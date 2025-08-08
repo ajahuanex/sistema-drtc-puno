@@ -1,0 +1,35 @@
+    .sidenav {
+      width: 280px; /* Sidebar expandido por defecto */
+      background: white;
+      border-right: 1px solid #e9ecef;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      position: fixed;
+      top: 64px; /* Debajo del topbar fijo */
+      left: 0;
+      height: calc(100vh - 64px);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .sidenav.collapsed {
+      width: 80px; /* Sidebar contraído */
+    }
+
+    .main-content {
+      background: transparent;
+      height: calc(100vh - 64px);
+      transition: all 0.3s ease;
+      margin-left: 280px; /* Espacio para sidebar expandido */
+      position: relative;
+      z-index: 1;
+      margin-top: 64px; /* Espacio para el topbar fijo */
+      padding-top: 0;
+      width: calc(100% - 280px); /* Ancho cuando sidebar expandido */
+      overflow: hidden;
+    }
+
+    .main-content.sidebar-collapsed {
+      margin-left: 80px; /* Se mueve a la izquierda cuando sidebar contrae */
+      width: calc(100% - 80px); /* Ancho cuando sidebar contraído - MÁS ESPACIO */
+    } 

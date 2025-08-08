@@ -1,0 +1,104 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Global styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: #fafafa;
+}
+
+/* Material Design Overrides */
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mat-mdc-form-field,
+.mat-mdc-card,
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-stroked-button,
+.mat-mdc-select-panel,
+.mat-mdc-snack-bar-container {
+  border-radius: 4px;
+}
+
+.mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline {
+  border-radius: 4px;
+}
+
+.mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline-start {
+  border-radius: 4px 0 0 4px;
+}
+
+.mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline-end {
+  border-radius: 0 4px 4px 0;
+}
+
+.mat-mdc-form-field-appearance-outline .mat-mdc-form-field-outline-gap {
+  border-radius: 4px;
+}
+
+.mat-mdc-form-field-label {
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.mat-mdc-input-element {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.mat-mdc-select-value {
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.mat-mdc-option {
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.87);
+  padding: 8px 16px;
+}
+
+.mat-mdc-form-field-appearance-outline.mat-focused .mat-mdc-form-field-outline-thick {
+  color: #1976d2;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+  color: #1976d2;
+}
+
+.mat-mdc-select-panel {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+}
+
+.mat-mdc-option.mat-mdc-option-active {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+.mat-mdc-option.mat-mdc-option-selected {
+  background-color: rgba(25, 118, 210, 0.2);
+}
+
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-stroked-button {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+}
+
+.mat-mdc-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+} 
