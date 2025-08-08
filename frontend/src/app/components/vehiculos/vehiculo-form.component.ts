@@ -655,8 +655,8 @@ export class VehiculoFormComponent implements OnInit {
       this.isEditing.set(true);
       this.vehiculoId.set(id);
 
-      this.vehiculoService.getVehiculo(id).subscribe({
-        next: (vehiculo) => {
+      this.vehiculoService.getVehiculoById(id).subscribe({
+        next: (vehiculo: Vehiculo) => {
           this.vehiculoForm.patchValue({
             empresaActualId: vehiculo.empresaActualId,
             resolucionId: vehiculo.resolucionId,
@@ -666,7 +666,6 @@ export class VehiculoFormComponent implements OnInit {
             marca: vehiculo.marca,
             modelo: vehiculo.modelo,
             categoria: vehiculo.categoria,
-            asientos: vehiculo.asientos,
             anioFabricacion: vehiculo.anioFabricacion,
             estado: vehiculo.estado,
             datosTecnicos: {
@@ -680,9 +679,13 @@ export class VehiculoFormComponent implements OnInit {
               medidas: vehiculo.datosTecnicos.medidas
             }
           });
+          // Update the asientos field separately since it's part of datosTecnicos
+          this.vehiculoForm.patchValue({
+            asientos: vehiculo.datosTecnicos.asientos
+          });
           this.isLoading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error loading vehicle:', error);
           this.snackBar.open('Error al cargar el vehículo', 'Cerrar', { duration: 3000 });
           this.isLoading.set(false);
@@ -705,7 +708,6 @@ export class VehiculoFormComponent implements OnInit {
           marca: formValue.marca,
           modelo: formValue.modelo,
           categoria: formValue.categoria,
-          asientos: formValue.asientos,
           anioFabricacion: formValue.anioFabricacion,
           empresaActualId: this.empresaId(),
           resolucionId: this.resolucionId(),
@@ -714,7 +716,10 @@ export class VehiculoFormComponent implements OnInit {
             nroTuc: formValue.numeroTuc,
             fechaEmision: new Date().toISOString()
           } : undefined,
-          datosTecnicos: formValue.datosTecnicos
+          datosTecnicos: {
+            ...formValue.datosTecnicos,
+            asientos: formValue.asientos
+          }
         };
 
         this.vehiculoCreated.emit(vehiculoCreate);
@@ -748,7 +753,6 @@ export class VehiculoFormComponent implements OnInit {
             marca: formValue.marca,
             modelo: formValue.modelo,
             categoria: formValue.categoria,
-            asientos: formValue.asientos,
             anioFabricacion: formValue.anioFabricacion,
             estado: formValue.estado,
             empresaActualId: formValue.empresaActualId,
@@ -758,7 +762,10 @@ export class VehiculoFormComponent implements OnInit {
               nroTuc: formValue.numeroTuc,
               fechaEmision: new Date().toISOString()
             } : undefined,
-            datosTecnicos: formValue.datosTecnicos
+            datosTecnicos: {
+              ...formValue.datosTecnicos,
+              asientos: formValue.asientos
+            }
           };
 
           this.vehiculoService.updateVehiculo(this.vehiculoId()!, vehiculoUpdate).subscribe({
@@ -778,7 +785,6 @@ export class VehiculoFormComponent implements OnInit {
             marca: formValue.marca,
             modelo: formValue.modelo,
             categoria: formValue.categoria,
-            asientos: formValue.asientos,
             anioFabricacion: formValue.anioFabricacion,
             empresaActualId: formValue.empresaActualId,
             resolucionId: formValue.resolucionId,
@@ -787,7 +793,10 @@ export class VehiculoFormComponent implements OnInit {
               nroTuc: formValue.numeroTuc,
               fechaEmision: new Date().toISOString()
             } : undefined,
-            datosTecnicos: formValue.datosTecnicos
+            datosTecnicos: {
+              ...formValue.datosTecnicos,
+              asientos: formValue.asientos
+            }
           };
 
           this.vehiculoService.createVehiculo(vehiculoCreate).subscribe({

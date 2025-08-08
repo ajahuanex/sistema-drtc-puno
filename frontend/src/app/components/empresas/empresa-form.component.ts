@@ -558,7 +558,8 @@ export class EmpresaFormComponent implements OnInit {
       direccionFiscal: formValue.direccionFiscal,
       representanteLegal: {
         dni: formValue.representanteDni,
-        nombres: formValue.representanteNombres
+        nombres: formValue.representanteNombres,
+        apellidos: formValue.representanteNombres // Usar nombres como apellidos temporalmente
       }
     };
 

@@ -13,6 +13,33 @@ from app.utils.exceptions import (
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
+def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
+    """Función helper para crear respuestas completas de EmpresaResponse"""
+    return EmpresaResponse(
+        id=empresa.id,
+        ruc=empresa.ruc,
+        razon_social=empresa.razon_social,
+        direccion_fiscal=empresa.direccion_fiscal,
+        estado=empresa.estado,
+        esta_activo=empresa.esta_activo,
+        fecha_registro=empresa.fecha_registro,
+        fecha_actualizacion=empresa.fecha_actualizacion,
+        representante_legal=empresa.representante_legal,
+        email_contacto=empresa.email_contacto,
+        telefono_contacto=empresa.telefono_contacto,
+        sitio_web=empresa.sitio_web,
+        documentos=empresa.documentos,
+        auditoria=empresa.auditoria,
+        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
+        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
+        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
+        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids,
+        datos_sunat=empresa.datos_sunat,
+        ultima_validacion_sunat=empresa.ultima_validacion_sunat,
+        score_riesgo=empresa.score_riesgo,
+        observaciones=empresa.observaciones
+    )
+
 @router.post("/", response_model=EmpresaResponse, status_code=201)
 async def create_empresa(
     empresa_data: EmpresaCreate
@@ -26,20 +53,7 @@ async def create_empresa(
     
     try:
         empresa = await empresa_service.create_empresa(empresa_data)
-        return EmpresaResponse(
-            id=empresa.id,
-            ruc=empresa.ruc,
-            razon_social=empresa.razon_social,
-            direccion_fiscal=empresa.direccion_fiscal,
-            estado=empresa.estado,
-            esta_activo=empresa.esta_activo,
-            fecha_registro=empresa.fecha_registro,
-            representante_legal=empresa.representante_legal,
-            resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-            vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-            conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-            rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-        )
+        return create_empresa_response(empresa)
     except ValueError as e:
         if "RUC" in str(e):
             raise EmpresaAlreadyExistsException(empresa_data.ruc)
@@ -64,20 +78,7 @@ async def get_empresas(
     empresas = empresas[skip:skip + limit]
     
     return [
-        EmpresaResponse(
-            id=empresa.id,
-            ruc=empresa.ruc,
-            razon_social=empresa.razon_social,
-            direccion_fiscal=empresa.direccion_fiscal,
-            estado=empresa.estado,
-            esta_activo=empresa.esta_activo,
-            fecha_registro=empresa.fecha_registro,
-            representante_legal=empresa.representante_legal,
-            resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-            vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-            conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-            rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-        )
+        create_empresa_response(empresa)
         for empresa in empresas
     ]
 
@@ -111,20 +112,7 @@ async def get_empresas_con_filtros(
     empresas = empresas[skip:skip + limit]
     
     return [
-        EmpresaResponse(
-            id=empresa.id,
-            ruc=empresa.ruc,
-            razon_social=empresa.razon_social,
-            direccion_fiscal=empresa.direccion_fiscal,
-            estado=empresa.estado,
-            esta_activo=empresa.esta_activo,
-            fecha_registro=empresa.fecha_registro,
-            representante_legal=empresa.representante_legal,
-            resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-            vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-            conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-            rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-        )
+        create_empresa_response(empresa)
         for empresa in empresas
     ]
 
@@ -157,20 +145,7 @@ async def get_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.get("/ruc/{ruc}", response_model=EmpresaResponse)
 async def get_empresa_by_ruc(
@@ -183,20 +158,7 @@ async def get_empresa_by_ruc(
     if not empresa:
         raise EmpresaNotFoundException(f"RUC {ruc}")
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.get("/validar-ruc/{ruc}")
 async def validar_ruc(ruc: str):
@@ -228,20 +190,7 @@ async def update_empresa(
     if not updated_empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=updated_empresa.id,
-        ruc=updated_empresa.ruc,
-        razon_social=updated_empresa.razon_social,
-        direccion_fiscal=updated_empresa.direccion_fiscal,
-        estado=updated_empresa.estado,
-        esta_activo=updated_empresa.esta_activo,
-        fecha_registro=updated_empresa.fecha_registro,
-        representante_legal=updated_empresa.representante_legal,
-        resoluciones_primigenias_ids=updated_empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=updated_empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=updated_empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=updated_empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(updated_empresa)
 
 @router.delete("/{empresa_id}", status_code=204)
 async def delete_empresa(
@@ -271,20 +220,7 @@ async def agregar_vehiculo_a_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.delete("/{empresa_id}/vehiculos/{vehiculo_id}", response_model=EmpresaResponse)
 async def remover_vehiculo_de_empresa(
@@ -298,20 +234,7 @@ async def remover_vehiculo_de_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 # Endpoints para gestión de conductores
 @router.post("/{empresa_id}/conductores/{conductor_id}", response_model=EmpresaResponse)
@@ -326,20 +249,7 @@ async def agregar_conductor_a_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.delete("/{empresa_id}/conductores/{conductor_id}", response_model=EmpresaResponse)
 async def remover_conductor_de_empresa(
@@ -353,20 +263,7 @@ async def remover_conductor_de_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 # Endpoints para gestión de rutas
 @router.post("/{empresa_id}/rutas/{ruta_id}", response_model=EmpresaResponse)
@@ -381,20 +278,7 @@ async def agregar_ruta_a_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.delete("/{empresa_id}/rutas/{ruta_id}", response_model=EmpresaResponse)
 async def remover_ruta_de_empresa(
@@ -408,20 +292,7 @@ async def remover_ruta_de_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 # Endpoints para gestión de resoluciones
 @router.post("/{empresa_id}/resoluciones/{resolucion_id}", response_model=EmpresaResponse)
@@ -436,20 +307,7 @@ async def agregar_resolucion_a_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.delete("/{empresa_id}/resoluciones/{resolucion_id}", response_model=EmpresaResponse)
 async def remover_resolucion_de_empresa(
@@ -463,20 +321,7 @@ async def remover_resolucion_de_empresa(
     if not empresa:
         raise EmpresaNotFoundException(empresa_id)
     
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razon_social=empresa.razon_social,
-        direccion_fiscal=empresa.direccion_fiscal,
-        estado=empresa.estado,
-        esta_activo=empresa.esta_activo,
-        fecha_registro=empresa.fecha_registro,
-        representante_legal=empresa.representante_legal,
-        resoluciones_primigenias_ids=empresa.resoluciones_primigenias_ids,
-        vehiculos_habilitados_ids=empresa.vehiculos_habilitados_ids,
-        conductores_habilitados_ids=empresa.conductores_habilitados_ids,
-        rutas_autorizadas_ids=empresa.rutas_autorizadas_ids
-    )
+    return create_empresa_response(empresa)
 
 @router.get("/{empresa_id}/resoluciones")
 async def get_resoluciones_empresa(empresa_id: str):

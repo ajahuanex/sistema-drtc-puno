@@ -7,9 +7,10 @@ import {
   Empresa, 
   EmpresaCreate, 
   EmpresaUpdate, 
-  EmpresaDetalle, 
   EmpresaFiltros, 
-  EmpresaEstadisticas 
+  EmpresaEstadisticas,
+  EstadoEmpresa,
+  TipoDocumento
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 
@@ -30,17 +31,56 @@ export class EmpresaService {
         minimo: 'Transportes Puno S.A.C.'
       },
       direccionFiscal: 'Av. Principal 123, Puno',
-      estado: 'HABILITADA',
+      estado: EstadoEmpresa.HABILITADA,
       estaActivo: true,
-      fechaRegistro: '2024-01-15T10:00:00Z',
+      fechaRegistro: new Date('2024-01-15T10:00:00Z'),
       representanteLegal: {
         dni: '12345678',
-        nombres: 'Juan Carlos Pérez Quispe'
+        nombres: 'Juan Carlos',
+        apellidos: 'Pérez Quispe',
+        email: 'juan.perez@transportespuno.com',
+        telefono: '951234567',
+        direccion: 'Av. Principal 123, Puno'
       },
+      emailContacto: 'info@transportespuno.com',
+      telefonoContacto: '951234567',
+      sitioWeb: 'www.transportespuno.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20123456789',
+          fechaEmision: new Date('2023-01-15'),
+          fechaVencimiento: new Date('2025-01-15'),
+          urlDocumento: 'https://example.com/ruc.pdf',
+          observaciones: 'RUC activo',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-01-15T10:00:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'Empresa creada con RUC: 20123456789',
+          observaciones: 'Creación inicial de empresa'
+        }
+      ],
       resolucionesPrimigeniasIds: ['1', '2'],
       vehiculosHabilitadosIds: ['1', '2', '3'],
       conductoresHabilitadosIds: ['1', '2'],
-      rutasAutorizadasIds: ['1', '2', '3']
+      rutasAutorizadasIds: ['1', '2', '3'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'Transportes Puno S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'Av. Principal 123, Puno',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 25,
+      observaciones: 'Empresa en buen estado'
     },
     {
       id: '2',
@@ -51,17 +91,56 @@ export class EmpresaService {
         minimo: 'Empresa de Transportes Juliaca E.I.R.L.'
       },
       direccionFiscal: 'Jr. Comercio 456, Juliaca',
-      estado: 'HABILITADA',
+      estado: EstadoEmpresa.HABILITADA,
       estaActivo: true,
-      fechaRegistro: '2024-02-20T14:30:00Z',
+      fechaRegistro: new Date('2024-02-20T14:30:00Z'),
       representanteLegal: {
         dni: '87654321',
-        nombres: 'María Elena Rodríguez López'
+        nombres: 'María Elena',
+        apellidos: 'Rodríguez López',
+        email: 'maria.rodriguez@transportesjuliaca.com',
+        telefono: '952345678',
+        direccion: 'Jr. Comercio 456, Juliaca'
       },
+      emailContacto: 'info@transportesjuliaca.com',
+      telefonoContacto: '952345678',
+      sitioWeb: 'www.transportesjuliaca.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20234567890',
+          fechaEmision: new Date('2023-02-20'),
+          fechaVencimiento: new Date('2025-02-20'),
+          urlDocumento: 'https://example.com/ruc2.pdf',
+          observaciones: 'RUC activo',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-02-20T14:30:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'Empresa creada con RUC: 20234567890',
+          observaciones: 'Creación inicial de empresa'
+        }
+      ],
       resolucionesPrimigeniasIds: ['3'],
       vehiculosHabilitadosIds: ['4', '5'],
       conductoresHabilitadosIds: ['3', '4'],
-      rutasAutorizadasIds: ['4', '5']
+      rutasAutorizadasIds: ['4', '5'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'Empresa de Transportes Juliaca E.I.R.L.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'Jr. Comercio 456, Juliaca',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 30,
+      observaciones: 'Empresa en buen estado'
     },
     {
       id: '3',
@@ -72,17 +151,56 @@ export class EmpresaService {
         minimo: 'Transportes Interprovinciales del Sur S.A.'
       },
       direccionFiscal: 'Av. Tacna 789, Puno',
-      estado: 'EN_TRAMITE',
+      estado: EstadoEmpresa.EN_TRAMITE,
       estaActivo: true,
-      fechaRegistro: '2024-03-10T09:15:00Z',
+      fechaRegistro: new Date('2024-03-10T09:15:00Z'),
       representanteLegal: {
         dni: '11223344',
-        nombres: 'Carlos Alberto Mendoza Torres'
+        nombres: 'Carlos Alberto',
+        apellidos: 'Mendoza Torres',
+        email: 'carlos.mendoza@transportesinterprovinciales.com',
+        telefono: '953456789',
+        direccion: 'Av. Tacna 789, Puno'
       },
+      emailContacto: 'info@transportesinterprovinciales.com',
+      telefonoContacto: '953456789',
+      sitioWeb: 'www.transportesinterprovinciales.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20345678901',
+          fechaEmision: new Date('2024-03-10'),
+          fechaVencimiento: new Date('2026-03-10'),
+          urlDocumento: 'https://example.com/ruc3.pdf',
+          observaciones: 'RUC en trámite',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-03-10T09:15:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'Empresa creada con RUC: 20345678901',
+          observaciones: 'Creación inicial de empresa'
+        }
+      ],
       resolucionesPrimigeniasIds: [],
       vehiculosHabilitadosIds: [],
       conductoresHabilitadosIds: [],
-      rutasAutorizadasIds: []
+      rutasAutorizadasIds: [],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'Transportes Interprovinciales del Sur S.A.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'Av. Tacna 789, Puno',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 45,
+      observaciones: 'Empresa en trámite de habilitación'
     },
     {
       id: '4',
@@ -93,17 +211,64 @@ export class EmpresaService {
         minimo: 'Transportes del Altiplano S.A.C.'
       },
       direccionFiscal: 'Av. La Marina 321, Puno',
-      estado: 'SUSPENDIDA',
+      estado: EstadoEmpresa.SUSPENDIDA,
       estaActivo: true,
-      fechaRegistro: '2024-01-05T08:00:00Z',
+      fechaRegistro: new Date('2024-01-05T08:00:00Z'),
       representanteLegal: {
         dni: '99887766',
-        nombres: 'Ana Patricia Flores Huanca'
+        nombres: 'Ana Patricia',
+        apellidos: 'García Mendoza',
+        email: 'ana.garcia@transportesaltiplano.com',
+        telefono: '954567890',
+        direccion: 'Av. La Marina 321, Puno'
       },
+      emailContacto: 'info@transportesaltiplano.com',
+      telefonoContacto: '954567890',
+      sitioWeb: 'www.transportesaltiplano.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20456789012',
+          fechaEmision: new Date('2023-01-05'),
+          fechaVencimiento: new Date('2025-01-05'),
+          urlDocumento: 'https://example.com/ruc4.pdf',
+          observaciones: 'RUC suspendido',
+          estaActivo: false
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-01-05T08:00:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'Empresa creada con RUC: 20456789012',
+          observaciones: 'Creación inicial de empresa'
+        },
+        {
+          fechaCambio: new Date('2024-06-15T10:00:00Z'),
+          usuarioId: '2',
+          tipoCambio: 'SUSPENSION_EMPRESA',
+          campoAnterior: 'HABILITADA',
+          campoNuevo: 'SUSPENDIDA',
+          observaciones: 'Empresa suspendida por incumplimientos'
+        }
+      ],
       resolucionesPrimigeniasIds: ['4'],
-      vehiculosHabilitadosIds: ['6', '7'],
-      conductoresHabilitadosIds: ['5', '6'],
-      rutasAutorizadasIds: ['6', '7']
+      vehiculosHabilitadosIds: ['6'],
+      conductoresHabilitadosIds: ['5'],
+      rutasAutorizadasIds: ['6'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'Transportes del Altiplano S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'Av. La Marina 321, Puno',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 75,
+      observaciones: 'Empresa suspendida por incumplimientos'
     }
   ];
 
@@ -164,42 +329,77 @@ export class EmpresaService {
 
   // Método para obtener empresas con filtros avanzados
   getEmpresasConFiltros(filtros: EmpresaFiltros, skip: number = 0, limit: number = 100): Observable<Empresa[]> {
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login']);
-      return of([]);
+    // Simular filtros en datos mock
+    let empresasFiltradas = [...this.mockEmpresas];
+
+    if (filtros.ruc) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.ruc.toLowerCase().includes(filtros.ruc!.toLowerCase())
+      );
     }
 
-    let params = new HttpParams()
-      .set('skip', skip.toString())
-      .set('limit', limit.toString());
+    if (filtros.razonSocial) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.razonSocial.principal.toLowerCase().includes(filtros.razonSocial!.toLowerCase())
+      );
+    }
 
-    if (filtros.estado) params = params.set('estado', filtros.estado);
-    if (filtros.ruc) params = params.set('ruc', filtros.ruc);
-    if (filtros.razonSocial) params = params.set('razon_social', filtros.razonSocial);
-    if (filtros.fechaDesde) params = params.set('fecha_desde', filtros.fechaDesde);
-    if (filtros.fechaHasta) params = params.set('fecha_hasta', filtros.fechaHasta);
+    if (filtros.estado) {
+      empresasFiltradas = empresasFiltradas.filter(emp => emp.estado === filtros.estado);
+    }
 
-    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas/filtros`, { params }).pipe(
+    if (filtros.fechaDesde) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.fechaRegistro >= filtros.fechaDesde!
+      );
+    }
+
+    if (filtros.fechaHasta) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.fechaRegistro <= filtros.fechaHasta!
+      );
+    }
+
+    if (filtros.scoreRiesgoMin !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.scoreRiesgo && emp.scoreRiesgo >= filtros.scoreRiesgoMin!
+      );
+    }
+
+    if (filtros.scoreRiesgoMax !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.scoreRiesgo && emp.scoreRiesgo <= filtros.scoreRiesgoMax!
+      );
+    }
+
+    if (filtros.tieneDocumentosVencidos) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.documentos.some(doc => 
+          doc.fechaVencimiento && doc.fechaVencimiento < new Date() && doc.estaActivo
+        )
+      );
+    }
+
+    if (filtros.tieneVehiculos) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.vehiculosHabilitadosIds.length > 0
+      );
+    }
+
+    if (filtros.tieneConductores) {
+      empresasFiltradas = empresasFiltradas.filter(emp => 
+        emp.conductoresHabilitadosIds.length > 0
+      );
+    }
+
+    // Aplicar paginación
+    const empresasPaginadas = empresasFiltradas.slice(skip, skip + limit);
+
+    return of(empresasPaginadas).pipe(
       catchError(error => {
-        console.log('Error obteniendo empresas con filtros, usando datos mock:', error);
-        // Aplicar filtros a datos mock
-        let empresasFiltradas = this.mockEmpresas;
-        
-        if (filtros.estado) {
-          empresasFiltradas = empresasFiltradas.filter(emp => emp.estado === filtros.estado);
-        }
-        if (filtros.ruc) {
-          empresasFiltradas = empresasFiltradas.filter(emp => emp.ruc.includes(filtros.ruc!));
-        }
-        if (filtros.razonSocial) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
-            emp.razonSocial.principal.toLowerCase().includes(filtros.razonSocial!.toLowerCase())
-          );
-        }
-        
-        return of(empresasFiltradas);
-      }),
-      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
+        console.error('Error al obtener empresas con filtros:', error);
+        return throwError(() => new Error('Error al obtener empresas con filtros'));
+      })
     );
   }
 
@@ -234,27 +434,55 @@ export class EmpresaService {
   }
 
   createEmpresa(empresa: EmpresaCreate): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/`, empresa).pipe(
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresa).pipe(
       catchError(error => {
-        console.log('Error creando empresa, simulando creación con datos mock:', error);
-        const newEmpresa: Empresa = {
+        console.log('Error creando empresa, simulando creación:', error);
+        
+        // Simular creación exitosa
+        const nuevaEmpresa: Empresa = {
           id: (this.mockEmpresas.length + 1).toString(),
           ruc: empresa.ruc,
           razonSocial: empresa.razonSocial,
           direccionFiscal: empresa.direccionFiscal,
-          estado: 'EN_TRAMITE',
+          estado: EstadoEmpresa.EN_TRAMITE,
           estaActivo: true,
-          fechaRegistro: new Date().toISOString(),
+          fechaRegistro: new Date(),
           representanteLegal: empresa.representanteLegal,
+          emailContacto: empresa.emailContacto || '',
+          telefonoContacto: empresa.telefonoContacto || '',
+          sitioWeb: empresa.sitioWeb || '',
+          documentos: empresa.documentos || [],
+          auditoria: [
+            {
+              fechaCambio: new Date(),
+              usuarioId: '1',
+              tipoCambio: 'CREACION_EMPRESA',
+              campoAnterior: undefined,
+              campoNuevo: `Empresa creada con RUC: ${empresa.ruc}`,
+              observaciones: 'Creación inicial de empresa'
+            }
+          ],
           resolucionesPrimigeniasIds: [],
           vehiculosHabilitadosIds: [],
           conductoresHabilitadosIds: [],
-          rutasAutorizadasIds: []
+          rutasAutorizadasIds: [],
+          datosSunat: {
+            valido: false,
+            razonSocial: '',
+            estado: '',
+            condicion: '',
+            direccion: '',
+            fechaActualizacion: new Date()
+          },
+          ultimaValidacionSunat: new Date(),
+          scoreRiesgo: 0,
+          observaciones: ''
         };
         
-        this.mockEmpresas.push(newEmpresa);
-        return of(newEmpresa);
-      })
+        this.mockEmpresas.push(nuevaEmpresa);
+        return of(nuevaEmpresa);
+      }),
+      map(empresa => this.transformEmpresaData(empresa))
     );
   }
 
@@ -289,20 +517,54 @@ export class EmpresaService {
 
   // Métodos para estadísticas
   getEstadisticasEmpresas(): Observable<EmpresaEstadisticas> {
-    return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`).pipe(
-      catchError(error => {
-        console.log('Error obteniendo estadísticas, calculando desde datos mock:', error);
-        const empresasActivas = this.mockEmpresas.filter(emp => emp.estaActivo);
+    return of(this.mockEmpresas).pipe(
+      map(empresas => {
+        const empresasActivas = empresas.filter(emp => emp.estaActivo);
         
+        const empresasConDocumentosVencidos = empresasActivas.filter(emp => 
+          emp.documentos.some(doc => 
+            doc.fechaVencimiento && doc.fechaVencimiento < new Date() && doc.estaActivo
+          )
+        ).length;
+
+        const empresasConScoreAltoRiesgo = empresasActivas.filter(emp => 
+          emp.scoreRiesgo && emp.scoreRiesgo > 70
+        ).length;
+
+        const totalVehiculos = empresasActivas.reduce((total, emp) => 
+          total + emp.vehiculosHabilitadosIds.length, 0
+        );
+
+        const totalConductores = empresasActivas.reduce((total, emp) => 
+          total + emp.conductoresHabilitadosIds.length, 0
+        );
+
+        const promedioVehiculosPorEmpresa = empresasActivas.length > 0 
+          ? totalVehiculos / empresasActivas.length 
+          : 0;
+
+        const promedioConductoresPorEmpresa = empresasActivas.length > 0 
+          ? totalConductores / empresasActivas.length 
+          : 0;
+
         const estadisticas: EmpresaEstadisticas = {
           totalEmpresas: empresasActivas.length,
-          empresasHabilitadas: empresasActivas.filter(emp => emp.estado === 'HABILITADA').length,
-          empresasEnTramite: empresasActivas.filter(emp => emp.estado === 'EN_TRAMITE').length,
-          empresasSuspendidas: empresasActivas.filter(emp => emp.estado === 'SUSPENDIDA').length,
-          empresasCanceladas: empresasActivas.filter(emp => emp.estado === 'CANCELADA').length
+          empresasHabilitadas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.HABILITADA).length,
+          empresasEnTramite: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.EN_TRAMITE).length,
+          empresasSuspendidas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.SUSPENDIDA).length,
+          empresasCanceladas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.CANCELADA).length,
+          empresasDadasDeBaja: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.DADA_DE_BAJA).length,
+          empresasConDocumentosVencidos: empresasConDocumentosVencidos,
+          empresasConScoreAltoRiesgo: empresasConScoreAltoRiesgo,
+          promedioVehiculosPorEmpresa: promedioVehiculosPorEmpresa,
+          promedioConductoresPorEmpresa: promedioConductoresPorEmpresa
         };
         
-        return of(estadisticas);
+        return estadisticas;
+      }),
+      catchError(error => {
+        console.error('Error al obtener estadísticas:', error);
+        return throwError(() => new Error('Error al obtener estadísticas'));
       })
     );
   }
@@ -476,36 +738,46 @@ export class EmpresaService {
   }
 
   private transformEmpresaData(empresa: any): Empresa {
-    console.log('Transformando empresa:', empresa);
-    
-    if (!empresa) {
-      console.error('Empresa es null o undefined');
-      return null as any;
-    }
-    
-    const transformed = {
-      id: empresa.id || '',
+    return {
+      id: empresa.id || empresa._id || '',
       ruc: empresa.ruc || '',
-      razonSocial: {
-        principal: empresa.razonSocial?.principal || empresa.razon_social?.principal || 'Sin razón social',
-        sunat: empresa.razonSocial?.sunat || empresa.razon_social?.sunat || '',
-        minimo: empresa.razonSocial?.minimo || empresa.razon_social?.minimo || ''
+      razonSocial: empresa.razonSocial || empresa.razon_social || {
+        principal: '',
+        sunat: '',
+        minimo: ''
       },
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
-      estado: empresa.estado || 'EN_TRAMITE',
+      estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : (empresa.esta_activo !== undefined ? empresa.esta_activo : true),
-      fechaRegistro: empresa.fechaRegistro || empresa.fecha_registro || new Date().toISOString(),
-      representanteLegal: {
-        dni: empresa.representanteLegal?.dni || empresa.representante_legal?.dni || '',
-        nombres: empresa.representanteLegal?.nombres || empresa.representante_legal?.nombres || 'Sin representante'
+      fechaRegistro: empresa.fechaRegistro || empresa.fecha_registro || new Date(),
+      representanteLegal: empresa.representanteLegal || empresa.representante_legal || {
+        dni: '',
+        nombres: '',
+        apellidos: '',
+        email: '',
+        telefono: '',
+        direccion: ''
       },
+      emailContacto: empresa.emailContacto || empresa.email_contacto || '',
+      telefonoContacto: empresa.telefonoContacto || empresa.telefono_contacto || '',
+      sitioWeb: empresa.sitioWeb || empresa.sitio_web || '',
+      documentos: empresa.documentos || [],
+      auditoria: empresa.auditoria || [],
       resolucionesPrimigeniasIds: empresa.resolucionesPrimigeniasIds || empresa.resoluciones_primigenias_ids || [],
       vehiculosHabilitadosIds: empresa.vehiculosHabilitadosIds || empresa.vehiculos_habilitados_ids || [],
       conductoresHabilitadosIds: empresa.conductoresHabilitadosIds || empresa.conductores_habilitados_ids || [],
-      rutasAutorizadasIds: empresa.rutasAutorizadasIds || empresa.rutas_autorizadas_ids || []
+      rutasAutorizadasIds: empresa.rutasAutorizadasIds || empresa.rutas_autorizadas_ids || [],
+      datosSunat: empresa.datosSunat || empresa.datos_sunat || {
+        valido: false,
+        razonSocial: '',
+        estado: '',
+        condicion: '',
+        direccion: '',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: empresa.ultimaValidacionSunat || empresa.ultima_validacion_sunat || new Date(),
+      scoreRiesgo: empresa.scoreRiesgo || empresa.score_riesgo || 0,
+      observaciones: empresa.observaciones || ''
     };
-    
-    console.log('Empresa transformada:', transformed);
-    return transformed;
   }
 } 

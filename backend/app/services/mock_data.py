@@ -2,7 +2,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
 from app.models.usuario import UsuarioInDB, UsuarioCreate, UsuarioUpdate
-from app.models.empresa import EmpresaInDB, EmpresaCreate, EmpresaUpdate
+from app.models.empresa import (
+    EmpresaInDB, EmpresaCreate, EmpresaUpdate, 
+    EstadoEmpresa, TipoDocumento, DocumentoEmpresa, AuditoriaEmpresa
+)
 from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, Tuc
 from app.models.ruta import RutaInDB, RutaCreate, RutaUpdate
 from app.models.resolucion import ResolucionInDB, ResolucionCreate, ResolucionUpdate
@@ -96,17 +99,56 @@ class MockDataService:
                     "minimo": "TRANSPORTES EL VELOZ"
                 },
                 "direccion_fiscal": "Av. El Sol 123, Puno",
-                "estado": "HABILITADA",
+                "estado": EstadoEmpresa.HABILITADA,
                 "esta_activo": True,
                 "fecha_registro": datetime.utcnow() - timedelta(days=60),
                 "representante_legal": {
                     "dni": "12345678",
-                    "nombres": "Juan Carlos Pérez"
+                    "nombres": "Juan Carlos",
+                    "apellidos": "Pérez López",
+                    "email": "juan.perez@transportesveloz.com",
+                    "telefono": "951234567",
+                    "direccion": "Av. El Sol 123, Puno"
                 },
+                "email_contacto": "info@transportesveloz.com",
+                "telefono_contacto": "951234567",
+                "sitio_web": "www.transportesveloz.com",
+                "documentos": [
+                    {
+                        "tipo": TipoDocumento.RUC,
+                        "numero": "20123456789",
+                        "fecha_emision": datetime.utcnow() - timedelta(days=365),
+                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=365),
+                        "url_documento": "https://example.com/ruc.pdf",
+                        "observaciones": "RUC activo",
+                        "esta_activo": True
+                    }
+                ],
+                "auditoria": [
+                    {
+                        "fecha_cambio": datetime.utcnow() - timedelta(days=60),
+                        "usuario_id": "1",
+                        "tipo_cambio": "CREACION_EMPRESA",
+                        "campo_anterior": None,
+                        "campo_nuevo": "Empresa creada con RUC: 20123456789",
+                        "observaciones": "Creación inicial de empresa"
+                    }
+                ],
                 "resoluciones_primigenias_ids": ["1", "2"],
                 "vehiculos_habilitados_ids": ["1", "2", "3"],
                 "conductores_habilitados_ids": ["1", "2"],
-                "rutas_autorizadas_ids": ["1", "2"]
+                "rutas_autorizadas_ids": ["1", "2"],
+                "datos_sunat": {
+                    "valido": True,
+                    "razon_social": "TRANSPORTES EL VELOZ S.A.C.",
+                    "estado": "ACTIVO",
+                    "condicion": "HABIDO",
+                    "direccion": "Av. El Sol 123, Puno",
+                    "fecha_actualizacion": datetime.utcnow()
+                },
+                "ultima_validacion_sunat": datetime.utcnow(),
+                "score_riesgo": 25,
+                "observaciones": "Empresa en buen estado"
             },
             {
                 "id": "2",
@@ -117,17 +159,56 @@ class MockDataService:
                     "minimo": "EMPRESA DE TRANSPORTES PUNO"
                 },
                 "direccion_fiscal": "Jr. Lima 456, Puno",
-                "estado": "HABILITADA",
+                "estado": EstadoEmpresa.HABILITADA,
                 "esta_activo": True,
                 "fecha_registro": datetime.utcnow() - timedelta(days=45),
                 "representante_legal": {
                     "dni": "87654321",
-                    "nombres": "María Elena García"
+                    "nombres": "María Elena",
+                    "apellidos": "García Rodríguez",
+                    "email": "maria.garcia@transportespuno.com",
+                    "telefono": "952345678",
+                    "direccion": "Jr. Lima 456, Puno"
                 },
+                "email_contacto": "info@transportespuno.com",
+                "telefono_contacto": "952345678",
+                "sitio_web": "www.transportespuno.com",
+                "documentos": [
+                    {
+                        "tipo": TipoDocumento.RUC,
+                        "numero": "20234567890",
+                        "fecha_emision": datetime.utcnow() - timedelta(days=300),
+                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=65),
+                        "url_documento": "https://example.com/ruc2.pdf",
+                        "observaciones": "RUC activo",
+                        "esta_activo": True
+                    }
+                ],
+                "auditoria": [
+                    {
+                        "fecha_cambio": datetime.utcnow() - timedelta(days=45),
+                        "usuario_id": "1",
+                        "tipo_cambio": "CREACION_EMPRESA",
+                        "campo_anterior": None,
+                        "campo_nuevo": "Empresa creada con RUC: 20234567890",
+                        "observaciones": "Creación inicial de empresa"
+                    }
+                ],
                 "resoluciones_primigenias_ids": ["3"],
                 "vehiculos_habilitados_ids": ["4", "5"],
                 "conductores_habilitados_ids": ["3", "4"],
-                "rutas_autorizadas_ids": ["3", "4"]
+                "rutas_autorizadas_ids": ["3", "4"],
+                "datos_sunat": {
+                    "valido": True,
+                    "razon_social": "EMPRESA DE TRANSPORTES PUNO S.A.C.",
+                    "estado": "ACTIVO",
+                    "condicion": "HABIDO",
+                    "direccion": "Jr. Lima 456, Puno",
+                    "fecha_actualizacion": datetime.utcnow()
+                },
+                "ultima_validacion_sunat": datetime.utcnow(),
+                "score_riesgo": 30,
+                "observaciones": "Empresa en buen estado"
             },
             {
                 "id": "3",
@@ -138,17 +219,56 @@ class MockDataService:
                     "minimo": "TRANSPORTES JULIACA EXPRESS"
                 },
                 "direccion_fiscal": "Av. San Martín 789, Juliaca",
-                "estado": "EN_TRAMITE",
+                "estado": EstadoEmpresa.EN_TRAMITE,
                 "esta_activo": True,
                 "fecha_registro": datetime.utcnow() - timedelta(days=20),
                 "representante_legal": {
                     "dni": "11223344",
-                    "nombres": "Carlos Alberto Rodríguez"
+                    "nombres": "Carlos Alberto",
+                    "apellidos": "Rodríguez Silva",
+                    "email": "carlos.rodriguez@juliacaexpress.com",
+                    "telefono": "953456789",
+                    "direccion": "Av. San Martín 789, Juliaca"
                 },
+                "email_contacto": "info@juliacaexpress.com",
+                "telefono_contacto": "953456789",
+                "sitio_web": "www.juliacaexpress.com",
+                "documentos": [
+                    {
+                        "tipo": TipoDocumento.RUC,
+                        "numero": "20345678901",
+                        "fecha_emision": datetime.utcnow() - timedelta(days=20),
+                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=345),
+                        "url_documento": "https://example.com/ruc3.pdf",
+                        "observaciones": "RUC en trámite",
+                        "esta_activo": True
+                    }
+                ],
+                "auditoria": [
+                    {
+                        "fecha_cambio": datetime.utcnow() - timedelta(days=20),
+                        "usuario_id": "1",
+                        "tipo_cambio": "CREACION_EMPRESA",
+                        "campo_anterior": None,
+                        "campo_nuevo": "Empresa creada con RUC: 20345678901",
+                        "observaciones": "Creación inicial de empresa"
+                    }
+                ],
                 "resoluciones_primigenias_ids": [],
                 "vehiculos_habilitados_ids": [],
                 "conductores_habilitados_ids": [],
-                "rutas_autorizadas_ids": []
+                "rutas_autorizadas_ids": [],
+                "datos_sunat": {
+                    "valido": True,
+                    "razon_social": "TRANSPORTES JULIACA EXPRESS S.A.C.",
+                    "estado": "ACTIVO",
+                    "condicion": "HABIDO",
+                    "direccion": "Av. San Martín 789, Juliaca",
+                    "fecha_actualizacion": datetime.utcnow()
+                },
+                "ultima_validacion_sunat": datetime.utcnow(),
+                "score_riesgo": 45,
+                "observaciones": "Empresa en trámite de habilitación"
             }
         ]
         

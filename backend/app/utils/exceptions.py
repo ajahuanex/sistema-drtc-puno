@@ -1,4 +1,4 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from typing import Any, Dict, Optional
 
 class CustomHTTPException(HTTPException):
@@ -11,19 +11,17 @@ class CustomHTTPException(HTTPException):
     ):
         super().__init__(status_code=status_code, detail=detail, headers=headers)
 
-class EmpresaNotFoundException(CustomHTTPException):
-    """Excepción cuando no se encuentra una empresa"""
+class EmpresaNotFoundException(HTTPException):
     def __init__(self, empresa_id: str):
         super().__init__(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Empresa con ID {empresa_id} no encontrada"
         )
 
-class EmpresaAlreadyExistsException(CustomHTTPException):
-    """Excepción cuando ya existe una empresa con el mismo RUC"""
+class EmpresaAlreadyExistsException(HTTPException):
     def __init__(self, ruc: str):
         super().__init__(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"Ya existe una empresa con RUC {ruc}"
         )
 
@@ -107,12 +105,11 @@ class UsuarioAlreadyExistsException(CustomHTTPException):
             detail=f"Ya existe un usuario con {field} {value}"
         )
 
-class ValidationErrorException(CustomHTTPException):
-    """Excepción de validación de datos"""
-    def __init__(self, field: str, message: str):
+class ValidationErrorException(HTTPException):
+    def __init__(self, campo: str, mensaje: str):
         super().__init__(
-            status_code=422,
-            detail=f"Error de validación en {field}: {message}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error de validación en {campo}: {mensaje}"
         )
 
 class AuthenticationException(CustomHTTPException):
@@ -129,4 +126,39 @@ class TucInvalidException(CustomHTTPException):
         super().__init__(
             status_code=400,
             detail=f"TUC {nro_tuc} no válido: {reason}"
+        )
+
+class SunatValidationError(HTTPException):
+    def __init__(self, ruc: str, error: str):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Error al validar RUC {ruc} con SUNAT: {error}"
+        )
+
+class DocumentoVencidoException(HTTPException):
+    def __init__(self, documento_tipo: str, fecha_vencimiento: str):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Documento {documento_tipo} vencido el {fecha_vencimiento}"
+        )
+
+class ScoreRiesgoAltoException(HTTPException):
+    def __init__(self, score: int):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Score de riesgo demasiado alto ({score}/100). Se requiere revisión manual."
+        )
+
+class AuditoriaException(HTTPException):
+    def __init__(self, mensaje: str):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en auditoría: {mensaje}"
+        )
+
+class NotificacionException(HTTPException):
+    def __init__(self, mensaje: str):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear notificación: {mensaje}"
         ) 
