@@ -1,0 +1,113 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from contextlib import asynccontextmanager
+import logging
+import time
+from app.config.settings import settings
+from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, tucs_router
+from app.routers.mock_router import router as mock_router
+
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    """Gestión del ciclo de vida de la aplicación"""
+    # Startup
+    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
+    
+    yield
+    
+    # Shutdown
+    logger.info("🛑 Cerrando Sistema de Gestión DRTC Puno...")
+
+# Crear aplicación FastAPI
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="API RESTful para el Sistema de Gestión DRTC Puno",
+    lifespan=app_lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Middleware de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Middleware de Trusted Host
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]
+)
+
+# Middleware de logging
+@app.middleware("http")
+async def log_requests(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    logger.info(
+        f"{request.method} {request.url.path} - "
+        f"Status: {response.status_code} - "
+        f"Time: {process_time:.4f}s"
+    )
+    
+    return response
+
+# Incluir routers
+app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(empresas_router, prefix=settings.API_V1_STR)
+app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
+app.include_router(rutas_router, prefix=settings.API_V1_STR)
+app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
+app.include_router(tucs_router, prefix=settings.API_V1_STR)
+app.include_router(mock_router, prefix=settings.API_V1_STR)
+
+# Endpoint de salud
+@app.get("/health")
+async def health_check():
+    """Endpoint de verificación de salud del sistema"""
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "timestamp": time.time(),
+        "mode": "mock_data"
+    }
+
+# Endpoint raíz
+@app.get("/")
+async def root():
+    """Endpoint raíz con información del sistema"""
+    return {
+        "message": f"Bienvenido al {settings.PROJECT_NAME}",
+        "version": settings.VERSION,
+        "mode": "mock_data",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "health": "/health",
+        "mock_info": f"{settings.API_V1_STR}/mock/info",
+        "mock_credentials": f"{settings.API_V1_STR}/mock/credenciales"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.DEBUG,
+        log_level="info"
+    ) 

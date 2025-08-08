@@ -1,0 +1,31 @@
+# FastAPI y servidor
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Base de datos MongoDB
+motor>=3.3.0
+pymongo>=4.6.0
+
+# Validación y configuración
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Autenticación y seguridad
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# Utilidades
+python-dotenv>=1.0.0
+aiofiles>=23.2.0
+httpx>=0.25.0
+
+# QR y documentos
+qrcode[pil]>=7.4.0
+Pillow>=10.0.0
+
+# Logging y monitoreo
+structlog>=23.2.0
+
+# Validación de datos
+email-validator>=2.1.0 
