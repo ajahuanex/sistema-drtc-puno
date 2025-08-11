@@ -5,8 +5,9 @@ from contextlib import asynccontextmanager
 import logging
 import time
 from app.config.settings import settings
-from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, tucs_router
+from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
 from app.routers.mock_router import router as mock_router
+from app.dependencies.db import lifespan
 
 # Configuración de logging
 logging.basicConfig(
@@ -15,23 +16,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    """Gestión del ciclo de vida de la aplicación"""
-    # Startup
-    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
-    
-    yield
-    
-    # Shutdown
-    logger.info("🛑 Cerrando Sistema de Gestión DRTC Puno...")
-
 # Crear aplicación FastAPI
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="API RESTful para el Sistema de Gestión DRTC Puno",
-    lifespan=app_lifespan,
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -70,9 +60,13 @@ async def log_requests(request, call_next):
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
+app.include_router(conductores_router, prefix=settings.API_V1_STR)
 app.include_router(rutas_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
 app.include_router(tucs_router, prefix=settings.API_V1_STR)
+app.include_router(infracciones_router, prefix=settings.API_V1_STR)
+app.include_router(oficinas_router, prefix=settings.API_V1_STR)
+app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(mock_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud

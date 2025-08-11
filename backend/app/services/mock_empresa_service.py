@@ -22,7 +22,7 @@ class MockEmpresaService:
         empresa_dict = empresa_data.model_dump()
         empresa_dict["id"] = new_id
         empresa_dict["fecha_registro"] = datetime.utcnow()
-        empresa_dict["esta_activo"] = True
+        empresa_dict["estaActivo"] = True
         empresa_dict["estado"] = "EN_TRAMITE"
         
         new_empresa = EmpresaInDB(**empresa_dict)
@@ -43,12 +43,12 @@ class MockEmpresaService:
 
     async def get_empresas_activas(self) -> List[EmpresaInDB]:
         """Obtener todas las empresas activas"""
-        return [empresa for empresa in self.empresas.values() if empresa.esta_activo]
+        return [empresa for empresa in self.empresas.values() if empresa.estaActivo]
 
     async def get_empresas_por_estado(self, estado: str) -> List[EmpresaInDB]:
         """Obtener empresas por estado"""
         return [empresa for empresa in self.empresas.values() 
-                if empresa.estado == estado and empresa.esta_activo]
+                if empresa.estado == estado and empresa.estaActivo]
 
     async def get_empresas_con_filtros(self, filtros: Dict) -> List[EmpresaInDB]:
         """Obtener empresas con filtros avanzados"""
@@ -73,11 +73,11 @@ class MockEmpresaService:
             fecha_hasta = datetime.fromisoformat(filtros['fecha_hasta'].replace('Z', '+00:00'))
             empresas = [emp for emp in empresas if emp.fecha_registro <= fecha_hasta]
         
-        return [emp for emp in empresas if emp.esta_activo]
+        return [emp for emp in empresas if emp.estaActivo]
 
     async def get_estadisticas(self) -> Dict:
         """Obtener estadísticas de empresas"""
-        empresas_activas = [emp for emp in self.empresas.values() if emp.esta_activo]
+        empresas_activas = [emp for emp in self.empresas.values() if emp.estaActivo]
         
         return {
             'total': len(empresas_activas),
@@ -109,7 +109,7 @@ class MockEmpresaService:
     async def soft_delete_empresa(self, empresa_id: str) -> bool:
         """Desactivar empresa (borrado lógico)"""
         if empresa_id in self.empresas:
-            self.empresas[empresa_id].esta_activo = False
+            self.empresas[empresa_id].estaActivo = False
             self.empresas[empresa_id].fecha_actualizacion = datetime.utcnow()
             return True
         return False

@@ -1,60 +1,182 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from bson import ObjectId
+from enum import Enum
 
-class ResolucionBase(BaseModel):
-    numero: str = Field(..., description="Número de la resolución")
-    fecha_emision: datetime = Field(..., description="Fecha de emisión")
-    fecha_vencimiento: datetime = Field(..., description="Fecha de vencimiento")
-    tipo: str = Field(..., description="Tipo de resolución (PRIMIGENIA, MODIFICATORIA, etc.)")
-    empresa_id: str = Field(..., description="ID de la empresa")
-    expediente_id: str = Field(..., description="ID del expediente")
-    estado: str = Field(default="VIGENTE", description="Estado de la resolución")
-    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
+class EstadoResolucion(str, Enum):
+    EN_PROCESO = "EN_PROCESO"
+    EMITIDA = "EMITIDA"
+    VIGENTE = "VIGENTE"
+    VENCIDA = "VENCIDA"
+    SUSPENDIDA = "SUSPENDIDA"
+    ANULADA = "ANULADA"
+    DADA_DE_BAJA = "DADA_DE_BAJA"
 
-class ResolucionCreate(ResolucionBase):
-    pass
+class TipoResolucion(str, Enum):
+    PADRE = "PADRE"
+    HIJO = "HIJO"
+
+class TipoTramite(str, Enum):
+    PRIMIGENIA = "PRIMIGENIA"
+    RENOVACION = "RENOVACION"
+    INCREMENTO = "INCREMENTO"
+    SUSTITUCION = "SUSTITUCION"
+    OTROS = "OTROS"
+
+class Resolucion(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    nroResolucion: str
+    empresaId: str
+    fechaEmision: datetime
+    fechaVigenciaInicio: datetime
+    fechaVigenciaFin: datetime
+    tipoResolucion: TipoResolucion
+    resolucionPadreId: Optional[str] = None
+    resolucionesHijasIds: List[str] = []
+    vehiculosHabilitadosIds: List[str] = []
+    rutasAutorizadasIds: List[str] = []
+    tipoTramite: TipoTramite
+    descripcion: str
+    expedienteId: str
+    documentoId: Optional[str] = None
+    estaActivo: bool = True
+    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+    usuarioEmisionId: str
+    observaciones: Optional[str] = None
+    estado: Optional[EstadoResolucion] = None
+    motivoSuspension: Optional[str] = None
+    fechaSuspension: Optional[datetime] = None
+    usuarioSuspensionId: Optional[str] = None
+    motivoAnulacion: Optional[str] = None
+    fechaAnulacion: Optional[datetime] = None
+    usuarioAnulacionId: Optional[str] = None
+
+class ResolucionCreate(BaseModel):
+    nroResolucion: str
+    empresaId: str
+    fechaEmision: datetime
+    fechaVigenciaInicio: Optional[datetime] = None
+    fechaVigenciaFin: Optional[datetime] = None
+    tipoResolucion: TipoResolucion
+    resolucionPadreId: Optional[str] = None
+    vehiculosHabilitadosIds: List[str] = []
+    rutasAutorizadasIds: List[str] = []
+    tipoTramite: TipoTramite
+    descripcion: str
+    expedienteId: str
+    documentoId: Optional[str] = None
+    usuarioEmisionId: str
+    observaciones: Optional[str] = None
 
 class ResolucionUpdate(BaseModel):
-    numero: Optional[str] = None
-    fecha_emision: Optional[datetime] = None
-    fecha_vencimiento: Optional[datetime] = None
-    tipo: Optional[str] = None
-    empresa_id: Optional[str] = None
-    expediente_id: Optional[str] = None
-    estado: Optional[str] = None
+    fechaVigenciaInicio: Optional[datetime] = None
+    fechaVigenciaFin: Optional[datetime] = None
+    vehiculosHabilitadosIds: Optional[List[str]] = None
+    rutasAutorizadasIds: Optional[List[str]] = None
+    descripcion: Optional[str] = None
+    documentoId: Optional[str] = None
     observaciones: Optional[str] = None
 
-class ResolucionInDB(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    numero: str
-    fecha_emision: datetime
-    fecha_vencimiento: datetime
-    tipo: str
-    empresa_id: str
-    expediente_id: str
-    estado: str = Field(default="VIGENTE")
-    observaciones: Optional[str] = None
-    esta_activo: bool = Field(default=True, alias="estaActivo")
-    fecha_registro: datetime = Field(default_factory=datetime.utcnow, alias="fechaRegistro")
+class ResolucionInDB(Resolucion):
+    """Modelo para resolución en base de datos con campos adicionales de seguridad"""
+    pass
 
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str}
+class ResolucionFiltros(BaseModel):
+    nroResolucion: Optional[str] = None
+    empresaId: Optional[str] = None
+    expedienteId: Optional[str] = None
+    tipoResolucion: Optional[TipoResolucion] = None
+    tipoTramite: Optional[TipoTramite] = None
+    estado: Optional[EstadoResolucion] = None
+    fechaEmisionDesde: Optional[datetime] = None
+    fechaEmisionHasta: Optional[datetime] = None
+    fechaVigenciaDesde: Optional[datetime] = None
+    fechaVigenciaHasta: Optional[datetime] = None
+    tieneDocumento: Optional[bool] = None
+    tieneVehiculos: Optional[bool] = None
+    tieneRutas: Optional[bool] = None
 
 class ResolucionResponse(BaseModel):
     id: str
-    numero: str
-    fecha_emision: datetime
-    fecha_vencimiento: datetime
-    tipo: str
-    empresa_id: str
-    expediente_id: str
-    estado: str
-    observaciones: Optional[str]
-    esta_activo: bool
-    fecha_registro: datetime
+    nroResolucion: str
+    empresaId: str
+    fechaEmision: datetime
+    fechaVigenciaInicio: datetime
+    fechaVigenciaFin: datetime
+    tipoResolucion: TipoResolucion
+    resolucionPadreId: Optional[str] = None
+    resolucionesHijasIds: List[str]
+    vehiculosHabilitadosIds: List[str]
+    rutasAutorizadasIds: List[str]
+    tipoTramite: TipoTramite
+    descripcion: str
+    expedienteId: str
+    documentoId: Optional[str] = None
+    estaActivo: bool
+    estado: Optional[EstadoResolucion] = None
+    fechaRegistro: datetime
+    fechaActualizacion: Optional[datetime] = None
+    usuarioEmisionId: str
+    observaciones: Optional[str] = None
+    motivoSuspension: Optional[str] = None
+    fechaSuspension: Optional[datetime] = None
+    usuarioSuspensionId: Optional[str] = None
+    motivoAnulacion: Optional[str] = None
+    fechaAnulacion: Optional[datetime] = None
+    usuarioAnulacionId: Optional[str] = None
 
-    class Config:
-        from_attributes = True 
+class ResolucionEstadisticas(BaseModel):
+    totalResoluciones: int
+    resolucionesEnProceso: int
+    resolucionesEmitidas: int
+    resolucionesVigentes: int
+    resolucionesVencidas: int
+    resolucionesSuspendidas: int
+    resolucionesAnuladas: int
+    resolucionesDadasDeBaja: int
+    promedioVehiculosPorResolucion: float
+    promedioRutasPorResolucion: float
+    distribucionPorTipo: dict
+
+class ResolucionResumen(BaseModel):
+    id: str
+    nroResolucion: str
+    empresaId: str
+    tipoResolucion: TipoResolucion
+    tipoTramite: TipoTramite
+    fechaEmision: datetime
+    fechaVigenciaInicio: datetime
+    fechaVigenciaFin: datetime
+    vehiculosCount: int
+    rutasCount: int
+    tieneDocumento: bool
+    ultimaActualizacion: datetime
+
+class ResolucionHistorial(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    resolucionId: str
+    fechaCambio: datetime
+    tipoCambio: str
+    usuarioId: str
+    campoAnterior: Optional[str] = None
+    campoNuevo: Optional[str] = None
+    observaciones: Optional[str] = None
+    datosCompletos: dict  # Estado completo de la resolución antes del cambio
+
+class CambioEstadoResolucion(BaseModel):
+    resolucionId: str
+    nuevoEstado: EstadoResolucion
+    motivo: str
+    usuarioId: str
+    observaciones: Optional[str] = None
+
+class ResolucionCompleta(BaseModel):
+    resolucion: ResolucionResponse
+    empresa: dict
+    expediente: dict
+    vehiculos: List[dict]
+    rutas: List[dict]
+    documento: Optional[dict] = None
+    historial: List[ResolucionHistorial] 

@@ -2,6 +2,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from app.config.settings import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Database:
     client: AsyncIOMotorClient = None
@@ -17,7 +20,7 @@ async def get_database() -> AsyncIOMotorClient:
 async def lifespan_startup():
     """Inicializar conexión a MongoDB"""
     db.client = AsyncIOMotorClient(settings.MONGODB_URL)
-    print(f"✅ Conectado a MongoDB: {settings.MONGODB_URL}")
+    logger.info(f"✅ Conectado a MongoDB: {settings.MONGODB_URL}")
     yield
 
 @asynccontextmanager
@@ -25,11 +28,14 @@ async def lifespan_shutdown():
     """Cerrar conexión a MongoDB"""
     if db.client:
         db.client.close()
-        print("🔌 Conexión a MongoDB cerrada")
+        logger.info("🔌 Conexión a MongoDB cerrada")
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app):
     """Gestión del ciclo de vida de la aplicación"""
-    await lifespan_startup()
-    yield
-    await lifespan_shutdown() 
+    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
+    async with lifespan_startup():
+        yield
+    async with lifespan_shutdown():
+        pass
+    logger.info("🛑 Cerrando Sistema de Gestión DRTC Puno...") 

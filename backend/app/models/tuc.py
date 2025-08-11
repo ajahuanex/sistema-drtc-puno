@@ -1,60 +1,148 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from bson import ObjectId
+from enum import Enum
 
-class TucBase(BaseModel):
-    nro_tuc: str = Field(..., description="Número de TUC")
-    vehiculo_id: str = Field(..., description="ID del vehículo")
-    empresa_id: str = Field(..., description="ID de la empresa")
-    expediente_id: str = Field(..., description="ID del expediente")
-    fecha_emision: datetime = Field(..., description="Fecha de emisión")
-    fecha_vencimiento: datetime = Field(..., description="Fecha de vencimiento")
-    estado: str = Field(default="VIGENTE", description="Estado del TUC")
-    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
+class EstadoTuc(str, Enum):
+    VIGENTE = "VIGENTE"
+    DADA_DE_BAJA = "DADA_DE_BAJA"
+    DESECHADA = "DESECHADA"
 
-class TucCreate(TucBase):
-    pass
+class TipoTramite(str, Enum):
+    AUTORIZACION_NUEVA = "AUTORIZACION_NUEVA"
+    RENOVACION = "RENOVACION"
+    INCREMENTO = "INCREMENTO"
+    SUSTITUCION = "SUSTITUCION"
+    OTROS = "OTROS"
+
+class Tuc(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    vehiculoId: str
+    empresaId: str
+    resolucionPadreId: str
+    nroTuc: str
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    estado: EstadoTuc
+    razonDescarte: Optional[str] = None
+    estaActivo: bool = True
+    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+    documentoId: Optional[str] = None
+    qrVerificationUrl: str
+    datosVehiculo: dict  # Datos del vehículo al momento de la emisión
+    datosEmpresa: dict   # Datos de la empresa al momento de la emisión
+    datosRuta: dict      # Datos de la ruta al momento de la emisión
+    observaciones: Optional[str] = None
+    historialIds: List[str] = []
+
+class TucCreate(BaseModel):
+    vehiculoId: str
+    empresaId: str
+    resolucionPadreId: str
+    nroTuc: str
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    estado: EstadoTuc = EstadoTuc.VIGENTE
+    documentoId: Optional[str] = None
+    observaciones: Optional[str] = None
 
 class TucUpdate(BaseModel):
-    nro_tuc: Optional[str] = None
-    vehiculo_id: Optional[str] = None
-    empresa_id: Optional[str] = None
-    expediente_id: Optional[str] = None
-    fecha_emision: Optional[datetime] = None
-    fecha_vencimiento: Optional[datetime] = None
-    estado: Optional[str] = None
+    estado: Optional[EstadoTuc] = None
+    razonDescarte: Optional[str] = None
+    fechaVencimiento: Optional[datetime] = None
+    documentoId: Optional[str] = None
     observaciones: Optional[str] = None
 
-class TucInDB(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    nro_tuc: str
-    vehiculo_id: str
-    empresa_id: str
-    expediente_id: str
-    fecha_emision: datetime
-    fecha_vencimiento: datetime
-    estado: str = Field(default="VIGENTE")
-    observaciones: Optional[str] = None
-    esta_activo: bool = Field(default=True, alias="estaActivo")
-    fecha_registro: datetime = Field(default_factory=datetime.utcnow, alias="fechaRegistro")
+class TucInDB(Tuc):
+    """Modelo para TUC en base de datos con campos adicionales de seguridad"""
+    pass
 
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str}
+class TucFiltros(BaseModel):
+    nroTuc: Optional[str] = None
+    vehiculoId: Optional[str] = None
+    empresaId: Optional[str] = None
+    resolucionPadreId: Optional[str] = None
+    estado: Optional[EstadoTuc] = None
+    fechaEmisionDesde: Optional[datetime] = None
+    fechaEmisionHasta: Optional[datetime] = None
+    fechaVencimientoDesde: Optional[datetime] = None
+    fechaVencimientoHasta: Optional[datetime] = None
+    tieneDocumento: Optional[bool] = None
 
 class TucResponse(BaseModel):
     id: str
-    nro_tuc: str
-    vehiculo_id: str
-    empresa_id: str
-    expediente_id: str
-    fecha_emision: datetime
-    fecha_vencimiento: datetime
-    estado: str
-    observaciones: Optional[str]
-    esta_activo: bool
-    fecha_registro: datetime
+    vehiculoId: str
+    empresaId: str
+    resolucionPadreId: str
+    nroTuc: str
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    estado: EstadoTuc
+    razonDescarte: Optional[str] = None
+    estaActivo: bool
+    fechaRegistro: datetime
+    fechaActualizacion: Optional[datetime] = None
+    documentoId: Optional[str] = None
+    qrVerificationUrl: str
+    datosVehiculo: dict
+    datosEmpresa: dict
+    datosRuta: dict
+    observaciones: Optional[str] = None
+    historialIds: List[str]
 
-    class Config:
-        from_attributes = True 
+class TucEstadisticas(BaseModel):
+    totalTucs: int
+    tucsVigentes: int
+    tucsDadasDeBaja: int
+    tucsDesechadas: int
+    tucsVencidos: int
+    tucsPorVencer: int
+    promedioTucsPorVehiculo: float
+    promedioTucsPorEmpresa: float
+    distribucionPorEstado: dict
+
+class TucResumen(BaseModel):
+    id: str
+    nroTuc: str
+    vehiculoId: str
+    empresaId: str
+    estado: EstadoTuc
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    tieneDocumento: bool
+    qrVerificationUrl: str
+    ultimaActualizacion: datetime
+
+class VerificacionTuc(BaseModel):
+    nroTuc: str
+    valido: bool
+    estado: EstadoTuc
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    vehiculo: dict
+    empresa: dict
+    ruta: dict
+    documento: Optional[dict] = None
+    fechaVerificacion: datetime
+    error: Optional[str] = None
+
+class GeneracionTuc(BaseModel):
+    vehiculoId: str
+    empresaId: str
+    resolucionPadreId: str
+    fechaEmision: datetime
+    fechaVencimiento: Optional[datetime] = None
+    observaciones: Optional[str] = None
+
+class TucHistorial(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    tucId: str
+    fechaCambio: datetime
+    tipoCambio: str
+    usuarioId: str
+    campoAnterior: Optional[str] = None
+    campoNuevo: Optional[str] = None
+    observaciones: Optional[str] = None
+    datosCompletos: dict  # Estado completo del TUC antes del cambio 

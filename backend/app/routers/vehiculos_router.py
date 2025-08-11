@@ -4,7 +4,7 @@ from bson import ObjectId
 from datetime import datetime
 from app.dependencies.auth import get_current_active_user
 from app.services.mock_vehiculo_service import MockVehiculoService
-from app.models.vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse, Tuc
+from app.models.vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse
 from app.utils.exceptions import (
     VehiculoNotFoundException, 
     VehiculoAlreadyExistsException,
@@ -29,16 +29,23 @@ async def create_vehiculo(
         return VehiculoResponse(
             id=vehiculo.id,
             placa=vehiculo.placa,
-            empresa_actual_id=vehiculo.empresa_actual_id,
-            resolucion_id=vehiculo.resolucion_id,
-            rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+            empresaActualId=vehiculo.empresaActualId,
+            resolucionId=vehiculo.resolucionId,
+            rutasAsignadasIds=vehiculo.rutasAsignadasIds,
             categoria=vehiculo.categoria,
             marca=vehiculo.marca,
-            anio_fabricacion=vehiculo.anio_fabricacion,
+            modelo=vehiculo.modelo,
+            anioFabricacion=vehiculo.anioFabricacion,
             estado=vehiculo.estado,
-            esta_activo=vehiculo.esta_activo,
-            fecha_registro=vehiculo.fecha_registro,
-            datos_tecnicos=vehiculo.datos_tecnicos,
+            estaActivo=vehiculo.estaActivo,
+            fechaRegistro=vehiculo.fechaRegistro,
+            fechaActualizacion=vehiculo.fechaActualizacion,
+            datosTecnicos=vehiculo.datosTecnicos,
+            color=vehiculo.color,
+            numeroSerie=vehiculo.numeroSerie,
+            observaciones=vehiculo.observaciones,
+            documentosIds=vehiculo.documentosIds,
+            historialIds=vehiculo.historialIds,
             tuc=vehiculo.tuc
         )
     except ValueError as e:
@@ -59,7 +66,7 @@ async def get_vehiculos(
     
     if estado and empresa_id:
         vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
-        vehiculos = [v for v in vehiculos if v.empresa_actual_id == empresa_id]
+        vehiculos = [v for v in vehiculos if v.empresaActualId == empresa_id]
     elif estado:
         vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
     elif empresa_id:
@@ -74,16 +81,23 @@ async def get_vehiculos(
         VehiculoResponse(
             id=vehiculo.id,
             placa=vehiculo.placa,
-            empresa_actual_id=vehiculo.empresa_actual_id,
-            resolucion_id=vehiculo.resolucion_id,
-            rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+            empresaActualId=vehiculo.empresaActualId,
+            resolucionId=vehiculo.resolucionId,
+            rutasAsignadasIds=vehiculo.rutasAsignadasIds,
             categoria=vehiculo.categoria,
             marca=vehiculo.marca,
-            anio_fabricacion=vehiculo.anio_fabricacion,
+            modelo=vehiculo.modelo,
+            anioFabricacion=vehiculo.anioFabricacion,
             estado=vehiculo.estado,
-            esta_activo=vehiculo.esta_activo,
-            fecha_registro=vehiculo.fecha_registro,
-            datos_tecnicos=vehiculo.datos_tecnicos,
+            estaActivo=vehiculo.estaActivo,
+            fechaRegistro=vehiculo.fechaRegistro,
+            fechaActualizacion=vehiculo.fechaActualizacion,
+            datosTecnicos=vehiculo.datosTecnicos,
+            color=vehiculo.color,
+            numeroSerie=vehiculo.numeroSerie,
+            observaciones=vehiculo.observaciones,
+            documentosIds=vehiculo.documentosIds,
+            historialIds=vehiculo.historialIds,
             tuc=vehiculo.tuc
         )
         for vehiculo in vehiculos
@@ -128,16 +142,23 @@ async def get_vehiculos_con_filtros(
         VehiculoResponse(
             id=vehiculo.id,
             placa=vehiculo.placa,
-            empresa_actual_id=vehiculo.empresa_actual_id,
-            resolucion_id=vehiculo.resolucion_id,
-            rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+            empresaActualId=vehiculo.empresaActualId,
+            resolucionId=vehiculo.resolucionId,
+            rutasAsignadasIds=vehiculo.rutasAsignadasIds,
             categoria=vehiculo.categoria,
             marca=vehiculo.marca,
-            anio_fabricacion=vehiculo.anio_fabricacion,
+            modelo=vehiculo.modelo,
+            anioFabricacion=vehiculo.anioFabricacion,
             estado=vehiculo.estado,
-            esta_activo=vehiculo.esta_activo,
-            fecha_registro=vehiculo.fecha_registro,
-            datos_tecnicos=vehiculo.datos_tecnicos,
+            estaActivo=vehiculo.estaActivo,
+            fechaRegistro=vehiculo.fechaRegistro,
+            fechaActualizacion=vehiculo.fechaActualizacion,
+            datosTecnicos=vehiculo.datosTecnicos,
+            color=vehiculo.color,
+            numeroSerie=vehiculo.numeroSerie,
+            observaciones=vehiculo.observaciones,
+            documentosIds=vehiculo.documentosIds,
+            historialIds=vehiculo.historialIds,
             tuc=vehiculo.tuc
         )
         for vehiculo in vehiculos
@@ -175,16 +196,23 @@ async def get_vehiculo(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -202,16 +230,23 @@ async def get_vehiculo_by_placa(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -248,16 +283,23 @@ async def update_vehiculo(
     return VehiculoResponse(
         id=updated_vehiculo.id,
         placa=updated_vehiculo.placa,
-        empresa_actual_id=updated_vehiculo.empresa_actual_id,
-        resolucion_id=updated_vehiculo.resolucion_id,
-        rutas_asignadas_ids=updated_vehiculo.rutas_asignadas_ids,
+        empresaActualId=updated_vehiculo.empresaActualId,
+        resolucionId=updated_vehiculo.resolucionId,
+        rutasAsignadasIds=updated_vehiculo.rutasAsignadasIds,
         categoria=updated_vehiculo.categoria,
         marca=updated_vehiculo.marca,
-        anio_fabricacion=updated_vehiculo.anio_fabricacion,
+        modelo=updated_vehiculo.modelo,
+        anioFabricacion=updated_vehiculo.anioFabricacion,
         estado=updated_vehiculo.estado,
-        esta_activo=updated_vehiculo.esta_activo,
-        fecha_registro=updated_vehiculo.fecha_registro,
-        datos_tecnicos=updated_vehiculo.datos_tecnicos,
+        estaActivo=updated_vehiculo.estaActivo,
+        fechaRegistro=updated_vehiculo.fechaRegistro,
+        fechaActualizacion=updated_vehiculo.fechaActualizacion,
+        datosTecnicos=updated_vehiculo.datosTecnicos,
+        color=updated_vehiculo.color,
+        numeroSerie=updated_vehiculo.numeroSerie,
+        observaciones=updated_vehiculo.observaciones,
+        documentosIds=updated_vehiculo.documentosIds,
+        historialIds=updated_vehiculo.historialIds,
         tuc=updated_vehiculo.tuc
     )
 
@@ -292,16 +334,23 @@ async def agregar_ruta_a_vehiculo(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -320,16 +369,23 @@ async def remover_ruta_de_vehiculo(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -337,7 +393,7 @@ async def remover_ruta_de_vehiculo(
 @router.post("/{vehiculo_id}/tuc", response_model=VehiculoResponse)
 async def asignar_tuc(
     vehiculo_id: str,
-    tuc_data: Tuc
+    tuc_data: dict
 ) -> VehiculoResponse:
     """Asignar TUC a vehículo"""
     vehiculo_service = MockVehiculoService()
@@ -349,16 +405,23 @@ async def asignar_tuc(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -376,16 +439,23 @@ async def remover_tuc(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 
@@ -405,16 +475,23 @@ async def cambiar_empresa_vehiculo(
     return VehiculoResponse(
         id=vehiculo.id,
         placa=vehiculo.placa,
-        empresa_actual_id=vehiculo.empresa_actual_id,
-        resolucion_id=vehiculo.resolucion_id,
-        rutas_asignadas_ids=vehiculo.rutas_asignadas_ids,
+        empresaActualId=vehiculo.empresaActualId,
+        resolucionId=vehiculo.resolucionId,
+        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
         categoria=vehiculo.categoria,
         marca=vehiculo.marca,
-        anio_fabricacion=vehiculo.anio_fabricacion,
+        modelo=vehiculo.modelo,
+        anioFabricacion=vehiculo.anioFabricacion,
         estado=vehiculo.estado,
-        esta_activo=vehiculo.esta_activo,
-        fecha_registro=vehiculo.fecha_registro,
-        datos_tecnicos=vehiculo.datos_tecnicos,
+        estaActivo=vehiculo.estaActivo,
+        fechaRegistro=vehiculo.fechaRegistro,
+        fechaActualizacion=vehiculo.fechaActualizacion,
+        datosTecnicos=vehiculo.datosTecnicos,
+        color=vehiculo.color,
+        numeroSerie=vehiculo.numeroSerie,
+        observaciones=vehiculo.observaciones,
+        documentosIds=vehiculo.documentosIds,
+        historialIds=vehiculo.historialIds,
         tuc=vehiculo.tuc
     )
 

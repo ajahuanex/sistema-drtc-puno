@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, computed, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
 
 @Component({
   selector: 'app-sidebar',
@@ -19,7 +20,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatChipsModule
   ],
   template: `
     <!-- Navegación Principal -->
@@ -27,20 +29,26 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       <mat-nav-list class="nav-list">
         
         <!-- Sección: Gestión Principal -->
-        <div class="nav-section" *ngIf="isExpanded">
-          <h3 class="section-title">Gestión Principal</h3>
-        </div>
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Gestión Principal</h3>
+          </div>
+        }
         
         <!-- Dashboard -->
         <a mat-list-item 
            routerLink="/dashboard" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Dashboard' : ''" 
+           [matTooltip]="!isExpanded() ? 'Dashboard' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">dashboard</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Dashboard</span>
-          <span matListItemMeta class="nav-badge" *ngIf="isExpanded">Nuevo</span>
+          @if (isExpanded()) {
+            <ng-container>
+              <span matListItemTitle class="nav-text">Dashboard</span>
+              <span matListItemMeta class="nav-badge">Nuevo</span>
+            </ng-container>
+          }
         </a>
 
         <!-- Empresas -->
@@ -48,10 +56,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
            routerLink="/empresas" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Empresas' : ''" 
+           [matTooltip]="!isExpanded() ? 'Empresas' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">business</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Empresas</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Empresas</span>
+          }
         </a>
 
         <!-- Vehículos -->
@@ -59,10 +69,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
            routerLink="/vehiculos" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Vehículos' : ''" 
+           [matTooltip]="!isExpanded() ? 'Vehículos' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">directions_car</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Vehículos</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Vehículos</span>
+          }
         </a>
 
         <!-- Conductores -->
@@ -70,10 +82,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
            routerLink="/conductores" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Conductores' : ''" 
+           [matTooltip]="!isExpanded() ? 'Conductores' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">person</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Conductores</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Conductores</span>
+          }
         </a>
 
         <!-- TUCs -->
@@ -81,59 +95,177 @@ import { MatTooltipModule } from '@angular/material/tooltip';
            routerLink="/tucs" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'TUCs' : ''" 
+           [matTooltip]="!isExpanded() ? 'TUCs' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">receipt</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">TUCs</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">TUCs</span>
+          }
         </a>
 
         <!-- Separador -->
-        <mat-divider class="section-divider" *ngIf="isExpanded"></mat-divider>
+        @if (isExpanded()) {
+          <mat-divider class="section-divider"></mat-divider>
+        }
 
         <!-- Sección: Operaciones -->
-        <div class="nav-section" *ngIf="isExpanded">
-          <h3 class="section-title">Operaciones</h3>
-        </div>
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Operaciones</h3>
+          </div>
+        }
 
         <!-- Fiscalizaciones -->
         <a mat-list-item 
            routerLink="/fiscalizaciones" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Fiscalizaciones' : ''" 
+           [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">security</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Fiscalizaciones</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Fiscalizaciones</span>
+          }
         </a>
+
+        <!-- Rutas -->
+        <a mat-list-item 
+           routerLink="/rutas" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Rutas' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">route</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Rutas</span>
+          }
+        </a>
+
+        <!-- Resoluciones -->
+        <a mat-list-item 
+           routerLink="/resoluciones" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">description</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Resoluciones</span>
+          }
+        </a>
+
+        <!-- Expedientes -->
+        <a mat-list-item 
+           routerLink="/expedientes" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Expedientes' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">folder</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Expedientes</span>
+          }
+        </a>
+
+        <!-- Separador -->
+        @if (isExpanded()) {
+          <mat-divider class="section-divider"></mat-divider>
+        }
+
+        <!-- Sección: Gestión de Oficinas -->
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Gestión de Oficinas</h3>
+          </div>
+        }
+
+        <!-- Oficinas -->
+        <a mat-list-item 
+           routerLink="/oficinas" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Oficinas' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">business</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Oficinas</span>
+          }
+        </a>
+
+        <!-- Flujo de Expedientes -->
+        <a mat-list-item 
+           routerLink="/oficinas/flujo" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">timeline</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Flujo de Expedientes</span>
+          }
+        </a>
+
+        <!-- Separador -->
+        @if (isExpanded()) {
+          <mat-divider class="section-divider"></mat-divider>
+        }
+
+        <!-- Sección: Reportes -->
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Reportes</h3>
+          </div>
+        }
 
         <!-- Reportes -->
         <a mat-list-item 
            routerLink="/reportes" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Reportes' : ''" 
+           [matTooltip]="!isExpanded() ? 'Reportes' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">assessment</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Reportes</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Reportes</span>
+          }
         </a>
 
         <!-- Separador -->
-        <mat-divider class="section-divider" *ngIf="isExpanded"></mat-divider>
+        @if (isExpanded()) {
+          <mat-divider class="section-divider"></mat-divider>
+        }
 
         <!-- Sección: Sistema -->
-        <div class="nav-section" *ngIf="isExpanded">
-          <h3 class="section-title">Sistema</h3>
-        </div>
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Sistema</h3>
+          </div>
+        }
 
         <!-- Configuración -->
         <a mat-list-item 
            routerLink="/configuracion" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Configuración' : ''" 
+           [matTooltip]="!isExpanded() ? 'Configuración' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">settings</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Configuración</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Configuración</span>
+          }
+        </a>
+
+        <!-- Perfil -->
+        <a mat-list-item 
+           routerLink="/perfil" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Perfil' : ''" 
+           matTooltipPosition="right">
+          <mat-icon matListItemIcon class="nav-icon">account_circle</mat-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Perfil</span>
+          }
         </a>
 
         <!-- Ayuda -->
@@ -141,252 +273,136 @@ import { MatTooltipModule } from '@angular/material/tooltip';
            routerLink="/ayuda" 
            routerLinkActive="active-link" 
            class="nav-item"
-           [matTooltip]="!isExpanded ? 'Ayuda' : ''" 
+           [matTooltip]="!isExpanded() ? 'Ayuda' : ''" 
            matTooltipPosition="right">
           <mat-icon matListItemIcon class="nav-icon">help</mat-icon>
-          <span matListItemTitle class="nav-text" *ngIf="isExpanded">Ayuda</span>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Ayuda</span>
+          }
         </a>
       </mat-nav-list>
     </nav>
-
-    <!-- Footer del Sidebar -->
-    <div class="sidebar-footer" *ngIf="isExpanded">
-      <div class="footer-content">
-        <div class="version-info">
-          <p class="version-text">v1.0.0</p>
-          <p class="status-text">Sistema Activo</p>
-        </div>
-      </div>
-    </div>
   `,
   styles: [`
-    :host {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      background: linear-gradient(135deg, #0078d4 0%, #106ebe 50%, #005a9e 100%);
-      border-right: 1px solid #106ebe;
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-    }
-
     .sidebar-nav {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 0 0 0; /* Agregar padding-top para bajar el primer icono */
       height: 100%;
+      background: white;
+      border-radius: 0 16px 16px 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
     }
 
     .nav-list {
       padding: 0;
-      margin: 0;
+      height: 100%;
+      overflow-y: auto;
     }
 
     .nav-section {
-      padding: 16px 20px 8px 20px;
-      margin-bottom: 8px;
+      padding: 16px 16px 8px 16px;
     }
 
     .section-title {
-      font-size: 11px;
+      margin: 0;
+      font-size: 12px;
       font-weight: 600;
-      color: #e8f4fd;
-      margin: 0 0 12px 0;
-      padding-left: 16px;
+      color: #6c757d;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      opacity: 0.8;
+      letter-spacing: 0.5px;
     }
 
     .nav-item {
-      margin: 2px 16px;
-      border-radius: 12px;
-      height: 48px;
+      margin: 4px 8px;
+      border-radius: 8px;
+      transition: all 0.2s ease-in-out;
       position: relative;
-      display: flex;
-      align-items: center;
-      text-decoration: none;
-      color: #e8f4fd;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
-      cursor: pointer;
-    }
-
-    .nav-item::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
-      pointer-events: none;
-    }
-
-    .nav-item:active::before {
-      width: 300px;
-      height: 300px;
     }
 
     .nav-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #ffffff;
+      background-color: #f8f9fa;
       transform: translateX(4px);
     }
 
     .nav-item.active-link {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
-      color: #ffffff !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-      border-left: 4px solid #60a5fa;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
-    .nav-item.active-link .nav-icon {
-      color: #60a5fa;
+    .nav-item.active-link:hover {
+      background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+      transform: translateX(4px);
     }
 
     .nav-icon {
-      font-size: 22px;
-      margin-right: 16px;
-      color: #e8f4fd;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      width: 22px;
-      height: 22px;
+      color: #6c757d;
+      transition: color 0.2s ease-in-out;
+    }
+
+    .nav-item.active-link .nav-icon {
+      color: white;
     }
 
     .nav-text {
-      font-size: 15px;
-      font-weight: 400;
-      color: #e8f4fd;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      flex: 1;
-      letter-spacing: 0.2px;
-      line-height: 1.4;
-    }
-
-    .nav-item:hover .nav-text {
-      color: #ffffff;
       font-weight: 500;
+      color: #2c3e50;
+      transition: color 0.2s ease-in-out;
     }
 
     .nav-item.active-link .nav-text {
-      color: #ffffff;
-      font-weight: 600;
+      color: white;
     }
 
     .nav-badge {
-      background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+      background: #dc3545;
       color: white;
+      padding: 2px 8px;
       border-radius: 12px;
-      padding: 4px 8px;
       font-size: 10px;
       font-weight: 600;
-      white-space: nowrap;
-      box-shadow: 0 2px 4px rgba(0, 184, 148, 0.3);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .section-divider {
-      margin: 16px 20px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(232, 244, 253, 0.3) 50%, transparent 100%);
+      margin: 16px 8px;
+      border-color: #e9ecef;
     }
 
-    .sidebar-footer {
-      padding: 20px;
-      background: linear-gradient(135deg, rgba(0, 90, 158, 0.8) 0%, rgba(16, 110, 190, 0.6) 100%);
-      border-top: 1px solid rgba(232, 244, 253, 0.2);
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .footer-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .version-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .version-text {
-      font-size: 11px;
-      color: #e8f4fd;
-      margin: 0;
-      font-weight: 500;
-    }
-
-    .status-text {
-      font-size: 11px;
-      color: #00b894;
-      font-weight: 600;
-      margin: 2px 0 0 0;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .status-text::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      background-color: #00b894;
-      border-radius: 50%;
-      display: inline-block;
-      animation: blink 2s infinite;
-    }
-
-    @keyframes blink {
-      0%, 50% { opacity: 1; }
-      51%, 100% { opacity: 0.3; }
-    }
-
-    /* Scrollbar personalizado solo cuando sea necesario */
-    .sidebar-nav::-webkit-scrollbar {
+    /* Scrollbar personalizado */
+    .nav-list::-webkit-scrollbar {
       width: 4px;
     }
 
-    .sidebar-nav::-webkit-scrollbar-track {
+    .nav-list::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    .sidebar-nav::-webkit-scrollbar-thumb {
-      background: rgba(232, 244, 253, 0.3);
+    .nav-list::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
       border-radius: 2px;
     }
 
-    .sidebar-nav::-webkit-scrollbar-thumb:hover {
-      background: rgba(232, 244, 253, 0.5);
+    .nav-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
     }
 
-    /* Estados responsive */
+    /* Responsive */
     @media (max-width: 768px) {
+      .sidebar-nav {
+        border-radius: 0;
+      }
+
       .nav-item {
-        margin: 2px 8px;
+        margin: 2px 4px;
       }
-      
-      .section-title {
-        padding-left: 8px;
+
+      .nav-section {
+        padding: 12px 12px 6px 12px;
       }
     }
 
-    /* Animaciones de entrada */
-    .nav-item {
-      animation: slideIn 0.3s ease-out;
-    }
-
+    /* Animaciones */
     @keyframes slideIn {
       from {
         opacity: 0;
@@ -398,17 +414,40 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       }
     }
 
-    /* Efectos de hover mejorados */
-    .nav-item:hover .nav-icon {
-      transform: scale(1.1);
-      color: #60a5fa;
+    .nav-item {
+      animation: slideIn 0.3s ease-out;
     }
 
-    .nav-item.active-link .nav-icon {
-      transform: scale(1.1);
-    }
+    .nav-item:nth-child(1) { animation-delay: 0.1s; }
+    .nav-item:nth-child(2) { animation-delay: 0.2s; }
+    .nav-item:nth-child(3) { animation-delay: 0.3s; }
+    .nav-item:nth-child(4) { animation-delay: 0.4s; }
+    .nav-item:nth-child(5) { animation-delay: 0.5s; }
+    .nav-item:nth-child(6) { animation-delay: 0.6s; }
+    .nav-item:nth-child(7) { animation-delay: 0.7s; }
+    .nav-item:nth-child(8) { animation-delay: 0.8s; }
+    .nav-item:nth-child(9) { animation-delay: 0.9s; }
+    .nav-item:nth-child(10) { animation-delay: 1.0s; }
+    .nav-item:nth-child(11) { animation-delay: 1.1s; }
+    .nav-item:nth-child(12) { animation-delay: 1.2s; }
+    .nav-item:nth-child(13) { animation-delay: 1.3s; }
+    .nav-item:nth-child(14) { animation-delay: 1.4s; }
+    .nav-item:nth-child(15) { animation-delay: 1.5s; }
+    .nav-item:nth-child(16) { animation-delay: 1.6s; }
+    .nav-item:nth-child(17) { animation-delay: 1.7s; }
+    .nav-item:nth-child(18) { animation-delay: 1.8s; }
+    .nav-item:nth-child(19) { animation-delay: 1.9s; }
+    .nav-item:nth-child(20) { animation-delay: 2.0s; }
   `]
 })
 export class SidebarComponent {
-  @Input() isExpanded: boolean = true;
+  private router = inject(Router);
+
+  // Input signal using modern syntax
+  isExpanded = input<boolean>(true);
+
+  // Computed properties
+  currentRoute = computed(() => {
+    return this.router.url;
+  });
 } 

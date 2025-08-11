@@ -22,7 +22,7 @@ class MockTucService:
         tuc_dict = tuc_data.model_dump()
         tuc_dict["id"] = new_id
         tuc_dict["fecha_registro"] = datetime.utcnow()
-        tuc_dict["esta_activo"] = True
+        tuc_dict["estaActivo"] = True
         tuc_dict["estado"] = "VIGENTE"
         
         new_tuc = TucInDB(**tuc_dict)
@@ -37,41 +37,41 @@ class MockTucService:
     async def get_tuc_by_numero(self, numero: str) -> Optional[TucInDB]:
         """Obtener TUC por número"""
         for tuc in self.tucs.values():
-            if tuc.nro_tuc == numero:
+            if tuc.nroTuc == numero:
                 return tuc
         return None
 
     async def get_tucs_activos(self) -> List[TucInDB]:
         """Obtener todos los TUCs activos"""
-        return [tuc for tuc in self.tucs.values() if tuc.esta_activo]
+        return [tuc for tuc in self.tucs.values() if tuc.estaActivo]
 
     async def get_tucs_por_estado(self, estado: str) -> List[TucInDB]:
         """Obtener TUCs por estado"""
         return [tuc for tuc in self.tucs.values() 
-                if tuc.estado == estado and tuc.esta_activo]
+                if tuc.estado == estado]
 
     async def get_tucs_por_empresa(self, empresa_id: str) -> List[TucInDB]:
         """Obtener TUCs por empresa"""
         return [tuc for tuc in self.tucs.values() 
-                if tuc.empresa_id == empresa_id and tuc.esta_activo]
+                if tuc.empresaId == empresa_id]
 
     async def get_tucs_por_vehiculo(self, vehiculo_id: str) -> List[TucInDB]:
         """Obtener TUCs por vehículo"""
         return [tuc for tuc in self.tucs.values() 
-                if tuc.vehiculo_id == vehiculo_id and tuc.esta_activo]
+                if tuc.vehiculoId == vehiculo_id]
 
     async def get_tucs_vencidos(self) -> List[TucInDB]:
         """Obtener TUCs vencidos"""
         hoy = datetime.utcnow()
         return [tuc for tuc in self.tucs.values() 
-                if tuc.fecha_vencimiento < hoy and tuc.esta_activo]
+                if tuc.fechaVencimiento and tuc.fechaVencimiento < hoy]
 
     async def get_tucs_por_vencer(self, dias: int = 30) -> List[TucInDB]:
         """Obtener TUCs por vencer en los próximos días"""
         hoy = datetime.utcnow()
         fecha_limite = hoy + timedelta(days=dias)
         return [tuc for tuc in self.tucs.values() 
-                if hoy <= tuc.fecha_vencimiento <= fecha_limite and tuc.esta_activo]
+                if tuc.fechaVencimiento and hoy <= tuc.fechaVencimiento <= fecha_limite]
 
     async def get_tucs_con_filtros(self, filtros: Dict) -> List[TucInDB]:
         """Obtener TUCs con filtros avanzados"""
@@ -82,39 +82,39 @@ class MockTucService:
             tucs = [t for t in tucs if t.estado == filtros['estado']]
         
         if 'numero' in filtros and filtros['numero']:
-            tucs = [t for t in tucs if filtros['numero'].upper() in t.nro_tuc.upper()]
+            tucs = [t for t in tucs if filtros['numero'].upper() in t.nroTuc.upper()]
         
         if 'empresa_id' in filtros and filtros['empresa_id']:
-            tucs = [t for t in tucs if t.empresa_id == filtros['empresa_id']]
+            tucs = [t for t in tucs if t.empresaId == filtros['empresa_id']]
         
         if 'vehiculo_id' in filtros and filtros['vehiculo_id']:
-            tucs = [t for t in tucs if t.vehiculo_id == filtros['vehiculo_id']]
+            tucs = [t for t in tucs if t.vehiculoId == filtros['vehiculo_id']]
         
-        if 'expediente_id' in filtros and filtros['expediente_id']:
-            tucs = [t for t in tucs if t.expediente_id == filtros['expediente_id']]
+        if 'resolucion_padre_id' in filtros and filtros['resolucion_padre_id']:
+            tucs = [t for t in tucs if t.resolucionPadreId == filtros['resolucion_padre_id']]
         
         if 'fecha_desde' in filtros and filtros['fecha_desde']:
-            tucs = [t for t in tucs if t.fecha_emision >= filtros['fecha_desde']]
+            tucs = [t for t in tucs if t.fechaEmision >= filtros['fecha_desde']]
         
         if 'fecha_hasta' in filtros and filtros['fecha_hasta']:
-            tucs = [t for t in tucs if t.fecha_emision <= filtros['fecha_hasta']]
+            tucs = [t for t in tucs if t.fechaEmision <= filtros['fecha_hasta']]
         
-        return [t for t in tucs if t.esta_activo]
+        return tucs
 
     async def get_estadisticas(self) -> Dict:
         """Obtener estadísticas de TUCs"""
-        tucs_activos = [t for t in self.tucs.values() if t.esta_activo]
+        tucs_activos = [t for t in self.tucs.values() if t.estaActivo]
         hoy = datetime.utcnow()
         
         return {
             'total': len(tucs_activos),
             'vigentes': len([t for t in tucs_activos if t.estado == 'VIGENTE']),
-            'vencidos': len([t for t in tucs_activos if t.estado == 'VENCIDO']),
-            'suspendidos': len([t for t in tucs_activos if t.estado == 'SUSPENDIDO']),
+            'vencidos': len([t for t in tucs_activos if t.estado == 'DADA_DE_BAJA']),
+            'suspendidos': len([t for t in tucs_activos if t.estado == 'DESECHADA']),
             'por_vencer': len([t for t in tucs_activos 
-                              if t.fecha_vencimiento > hoy and t.fecha_vencimiento <= hoy + timedelta(days=30)]),
+                              if t.fechaVencimiento and t.fechaVencimiento > hoy and t.fechaVencimiento <= hoy + timedelta(days=30)]),
             'vencidos_hoy': len([t for t in tucs_activos 
-                                if t.fecha_vencimiento.date() == hoy.date()])
+                                if t.fechaVencimiento and t.fechaVencimiento.date() == hoy.date()])
         }
 
     async def update_tuc(self, tuc_id: str, tuc_data: TucUpdate) -> Optional[TucInDB]:
@@ -139,7 +139,7 @@ class MockTucService:
     async def soft_delete_tuc(self, tuc_id: str) -> bool:
         """Desactivar TUC (borrado lógico)"""
         if tuc_id in self.tucs:
-            self.tucs[tuc_id].esta_activo = False
+            self.tucs[tuc_id].estaActivo = False
             self.tucs[tuc_id].fecha_actualizacion = datetime.utcnow()
             return True
         return False
@@ -147,7 +147,7 @@ class MockTucService:
     async def renovar_tuc(self, tuc_id: str, nueva_fecha_vencimiento: datetime) -> Optional[TucInDB]:
         """Renovar TUC con nueva fecha de vencimiento"""
         if tuc_id in self.tucs:
-            self.tucs[tuc_id].fecha_vencimiento = nueva_fecha_vencimiento
+            self.tucs[tuc_id].fechaVencimiento = nueva_fecha_vencimiento
             self.tucs[tuc_id].estado = "VIGENTE"
             self.tucs[tuc_id].fecha_actualizacion = datetime.utcnow()
             return self.tucs[tuc_id]
@@ -156,17 +156,19 @@ class MockTucService:
     async def suspender_tuc(self, tuc_id: str, motivo: str) -> Optional[TucInDB]:
         """Suspender TUC"""
         if tuc_id in self.tucs:
-            self.tucs[tuc_id].estado = "SUSPENDIDO"
-            self.tucs[tuc_id].observaciones = f"SUSPENDIDO: {motivo}"
+            self.tucs[tuc_id].estado = "DADA_DE_BAJA"
+            self.tucs[tuc_id].motivo_baja = motivo
+            self.tucs[tuc_id].fecha_baja = datetime.utcnow()
             self.tucs[tuc_id].fecha_actualizacion = datetime.utcnow()
             return self.tucs[tuc_id]
         return None
 
     async def activar_tuc(self, tuc_id: str) -> Optional[TucInDB]:
-        """Activar TUC suspendido"""
+        """Activar TUC"""
         if tuc_id in self.tucs:
             self.tucs[tuc_id].estado = "VIGENTE"
-            self.tucs[tuc_id].observaciones = "REACTIVADO"
+            self.tucs[tuc_id].motivo_baja = None
+            self.tucs[tuc_id].fecha_baja = None
             self.tucs[tuc_id].fecha_actualizacion = datetime.utcnow()
             return self.tucs[tuc_id]
         return None
@@ -178,7 +180,7 @@ class MockTucService:
             return {"valido": False, "mensaje": "TUC no encontrado"}
         
         hoy = datetime.utcnow()
-        if tuc.fecha_vencimiento < hoy:
+        if tuc.fechaVencimiento < hoy:
             return {"valido": False, "mensaje": "TUC vencido"}
         
         if tuc.estado != "VIGENTE":

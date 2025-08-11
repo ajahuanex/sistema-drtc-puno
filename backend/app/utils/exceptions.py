@@ -162,3 +162,27 @@ class NotificacionException(HTTPException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear notificación: {mensaje}"
         ) 
+
+class OficinaNotFoundException(CustomHTTPException):
+    """Excepción cuando no se encuentra una oficina"""
+    def __init__(self, oficina_id: str):
+        super().__init__(
+            status_code=404,
+            detail=f"Oficina con ID {oficina_id} no encontrada"
+        )
+
+class OficinaAlreadyExistsException(CustomHTTPException):
+    """Excepción cuando ya existe una oficina con el mismo nombre"""
+    def __init__(self, nombre: str):
+        super().__init__(
+            status_code=409,
+            detail=f"Ya existe una oficina con nombre {nombre}"
+        )
+
+class DatabaseErrorException(HTTPException):
+    """Excepción para errores de base de datos"""
+    def __init__(self, mensaje: str):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error de base de datos: {mensaje}"
+        ) 

@@ -1,0 +1,352 @@
+// Estilos para el componente topbar
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background-color: var(--mat-toolbar-container-background-color, #ffffff);
+  color: var(--mat-toolbar-container-text-color, rgba(0, 0, 0, 0.87));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1000;
+
+  // Sección izquierda
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .sidebar-toggle {
+      margin-right: 8px;
+      color: var(--mat-toolbar-container-text-color, rgba(0, 0, 0, 0.87));
+    }
+
+    .topbar-title {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--mat-primary-color, #1976d2);
+      margin: 0;
+      text-transform: uppercase;
+    }
+  }
+
+  // Sección central
+  .topbar-center {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+
+    .theme-selector {
+      .theme-form-field {
+        width: 200px;
+        margin: 0;
+
+        ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+          display: none;
+        }
+      }
+
+      .theme-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .theme-preview {
+          width: 24px;
+          height: 24px;
+          border-radius: 4px;
+          position: relative;
+
+          .theme-accent {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+
+    .dark-mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      mat-slide-toggle {
+        margin: 0;
+      }
+    }
+  }
+
+  // Sección derecha
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .notifications {
+      position: relative;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background-color: #f44336;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+      }
+    }
+
+    .divider {
+      width: 1px;
+      height: 32px;
+      background-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .user-menu-trigger {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--mat-primary-color, #1976d2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 500;
+        text-transform: uppercase;
+      }
+
+      .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .user-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--mat-toolbar-container-text-color, rgba(0, 0, 0, 0.87));
+          margin: 0;
+          text-transform: uppercase;
+        }
+
+        .user-role {
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.6);
+          margin: 0;
+          text-transform: uppercase;
+        }
+      }
+
+      mat-icon {
+        color: rgba(0, 0, 0, 0.6);
+      }
+    }
+  }
+}
+
+// Estilos para los menús
+.notification-menu {
+  .notification-header {
+    padding: 16px 16px 8px;
+    
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+  }
+
+  .notification-list {
+    max-height: 300px;
+    overflow-y: auto;
+
+    .notification-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      mat-icon {
+        &.info {
+          color: #2196f3;
+        }
+
+        &.warning {
+          color: #ff9800;
+        }
+
+        &.success {
+          color: #4caf50;
+        }
+
+        &.error {
+          color: #f44336;
+        }
+      }
+
+      span {
+        font-size: 14px;
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  .view-all-btn {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    text-transform: uppercase;
+  }
+}
+
+.user-dropdown-menu {
+  .user-info {
+    padding: 16px 16px 8px;
+    
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    text-transform: uppercase;
+
+    mat-icon {
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    &.logout-item {
+      color: #f44336;
+
+      mat-icon {
+        color: #f44336;
+      }
+    }
+  }
+}
+
+// Estilos para modo oscuro
+.dark-theme .topbar {
+  background-color: var(--mat-toolbar-container-background-color, #424242);
+  color: var(--mat-toolbar-container-text-color, rgba(255, 255, 255, 0.87));
+
+  .topbar-left .topbar-title {
+    color: var(--mat-primary-color, #90caf9);
+  }
+
+  .topbar-right {
+    .notifications:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .divider {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .user-menu-trigger {
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .user-info .user-role {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      mat-icon {
+        color: rgba(255, 255, 255, 0.6);
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 16px;
+
+    .topbar-center {
+      display: none;
+    }
+
+    .topbar-right {
+      gap: 8px;
+
+      .user-menu-trigger .user-info {
+        display: none;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    .topbar-left .topbar-title {
+      font-size: 16px;
+    }
+
+    .topbar-right .notifications {
+      .notification-badge {
+        display: none;
+      }
+    }
+  }
+} 

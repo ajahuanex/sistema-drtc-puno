@@ -1,13 +1,65 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatListModule } from '@angular/material/list';
+import { MatBadgeModule } from '@angular/material/badge';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AuthService } from '../../services/auth.service';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Subject, takeUntil, interval } from 'rxjs';
+
 import { EmpresaService } from '../../services/empresa.service';
+import { VehiculoService } from '../../services/vehiculo.service';
+import { ConductorService } from '../../services/conductor.service';
+import { RutaService } from '../../services/ruta.service';
+import { ResolucionService } from '../../services/resolucion.service';
+import { ExpedienteService } from '../../services/expediente.service';
+import { OficinaService } from '../../services/oficina.service';
+import { NotificationService } from '../../services/notification.service';
 import { Empresa } from '../../models/empresa.model';
+import { Vehiculo } from '../../models/vehiculo.model';
+import { Conductor } from '../../models/conductor.model';
+import { Ruta } from '../../models/ruta.model';
+import { Resolucion } from '../../models/resolucion.model';
+import { Expediente } from '../../models/expediente.model';
+import { Oficina } from '../../models/oficina.model';
+
+interface DashboardMetric {
+  titulo: string;
+  valor: number;
+  cambio: number;
+  cambioPorcentual: number;
+  icono: string;
+  color: string;
+  url: string;
+}
+
+interface ExpedienteEstado {
+  estado: string;
+  cantidad: number;
+  porcentaje: number;
+  color: string;
+}
+
+interface ActividadReciente {
+  id: string;
+  tipo: string;
+  descripcion: string;
+  fecha: Date;
+  usuario: string;
+  estado: string;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -16,141 +68,283 @@ import { Empresa } from '../../models/empresa.model';
     CommonModule,
     MatCardModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MatChipsModule,
+    MatProgressBarModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatMenuModule,
+    MatTooltipModule,
+    MatDividerModule,
+    MatExpansionModule,
+    MatListModule,
+    MatBadgeModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="dashboard-container">
       <!-- Header del Dashboard -->
       <div class="dashboard-header">
-        <div class="welcome-section">
-          <h1 class="welcome-title">Bienvenido, {{ currentUser?.nombres }} {{ currentUser?.apellidos }}</h1>
-          <p class="welcome-subtitle">{{ getRoleDisplayName(currentUser?.rolId) }} • Sistema DRTC Puno</p>
+        <div class="header-content">
+          <h1>Dashboard DRTC Puno</h1>
+          <p>Panel de control y monitoreo del sistema de transporte</p>
         </div>
         <div class="header-actions">
-          <button mat-raised-button color="primary" (click)="nuevaEmpresa()">
-            <mat-icon>add_business</mat-icon>
-            Nueva Empresa
+          <button mat-raised-button color="primary" (click)="actualizarDashboard()" [disabled]="actualizando()">
+            <mat-icon>refresh</mat-icon>
+            {{ actualizando() ? 'Actualizando...' : 'Actualizar' }}
           </button>
-        </div>
-      </div>
-
-      <!-- Estadísticas -->
-      <div class="stats-section">
-        <h2 class="section-title">Resumen del Sistema</h2>
-        <div class="stats-grid">
-          <mat-card class="stat-card primary-card">
-            <div class="stat-content">
-              <div class="stat-icon">
-                <mat-icon>business</mat-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ empresas.length }}</div>
-                <div class="stat-label">Empresas Registradas</div>
-              </div>
-            </div>
-          </mat-card>
-
-          <mat-card class="stat-card success-card">
-            <div class="stat-content">
-              <div class="stat-icon">
-                <mat-icon>check_circle</mat-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ empresasHabilitadas }}</div>
-                <div class="stat-label">Empresas Habilitadas</div>
-              </div>
-            </div>
-          </mat-card>
-
-          <mat-card class="stat-card warning-card">
-            <div class="stat-content">
-              <div class="stat-icon">
-                <mat-icon>pending</mat-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">{{ empresasEnTramite }}</div>
-                <div class="stat-label">En Trámite</div>
-              </div>
-            </div>
-          </mat-card>
-
-          <mat-card class="stat-card info-card">
-            <div class="stat-content">
-              <div class="stat-icon">
-                <mat-icon>security</mat-icon>
-              </div>
-              <div class="stat-info">
-                <div class="stat-number">0</div>
-                <div class="stat-label">Fiscalizaciones Hoy</div>
-              </div>
-            </div>
-          </mat-card>
-        </div>
-      </div>
-
-      <!-- Acciones Rápidas -->
-      <div class="actions-section">
-        <h2 class="section-title">Acciones Rápidas</h2>
-        <div class="actions-grid">
-          <button mat-raised-button class="action-btn" (click)="verEmpresas()">
-            <mat-icon>business</mat-icon>
-            <span>Ver Empresas</span>
-          </button>
-          <button mat-raised-button class="action-btn" (click)="verFiscalizaciones()">
-            <mat-icon>security</mat-icon>
-            <span>Fiscalizaciones</span>
-          </button>
-          <button mat-raised-button class="action-btn" (click)="verReportes()">
+          <button mat-raised-button color="accent" (click)="generarReporte()">
             <mat-icon>assessment</mat-icon>
-            <span>Reportes</span>
-          </button>
-          <button mat-raised-button class="action-btn" (click)="verConfiguracion()">
-            <mat-icon>settings</mat-icon>
-            <span>Configuración</span>
+            Generar Reporte
           </button>
         </div>
       </div>
 
-      <!-- Empresas Recientes -->
-      <div class="recent-section" *ngIf="empresas.length > 0">
-        <h2 class="section-title">Empresas Recientes</h2>
-        <div class="empresas-grid">
-          <mat-card *ngFor="let empresa of empresas.slice(0, 3)" class="empresa-card">
-            <mat-card-header>
-              <mat-card-title class="empresa-title">{{ empresa.razonSocial.principal }}</mat-card-title>
-              <mat-card-subtitle class="empresa-subtitle">RUC: {{ empresa.ruc }}</mat-card-subtitle>
-            </mat-card-header>
+      <!-- Métricas Principales -->
+      <div class="metricas-principales">
+        @for (metrica of metricasPrincipales(); track metrica.titulo) {
+          <mat-card class="metrica-card" (click)="navegarA(metrica.url)">
             <mat-card-content>
-              <div class="empresa-info">
-                <div class="info-item">
-                  <mat-icon class="info-icon">location_on</mat-icon>
-                  <span>{{ empresa.direccionFiscal }}</span>
+              <div class="metrica-header">
+                <div class="metrica-icono" [style.background]="metrica.color">
+                  <mat-icon>{{ metrica.icono }}</mat-icon>
                 </div>
-                <div class="info-item">
-                  <mat-icon class="info-icon">person</mat-icon>
-                  <span>{{ empresa.representanteLegal.nombres }}</span>
-                </div>
-                <div class="info-item">
-                  <mat-icon class="info-icon">circle</mat-icon>
-                  <span class="status-badge" [class]="'status-' + empresa.estado.toLowerCase()">
-                    {{ empresa.estado }}
-                  </span>
+                <div class="metrica-info">
+                  <h3 class="metrica-titulo">{{ metrica.titulo | uppercase }}</h3>
+                  <div class="metrica-valor">{{ metrica.valor.toLocaleString() }}</div>
+                  <div class="metrica-cambio" [class.positivo]="metrica.cambio >= 0" [class.negativo]="metrica.cambio < 0">
+                    <mat-icon>{{ metrica.cambio >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                    {{ metrica.cambio >= 0 ? '+' : '' }}{{ metrica.cambioPorcentual }}%
+                  </div>
                 </div>
               </div>
             </mat-card-content>
-            <mat-card-actions>
-              <button mat-button color="primary" (click)="verEmpresa(empresa.id)">
-                <mat-icon>visibility</mat-icon>
-                Ver Detalles
-              </button>
-            </mat-card-actions>
           </mat-card>
-        </div>
+        }
       </div>
+
+      <!-- Gráficos y Estadísticas -->
+      <div class="dashboard-grid">
+        <!-- Estado de Expedientes -->
+        <mat-card class="dashboard-card">
+          <mat-card-header>
+            <mat-card-title>Estado de Expedientes</mat-card-title>
+            <mat-card-subtitle>Distribución por estado</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (loadingExpedientes()) {
+              <div class="loading-container">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            } @else {
+              <div class="expedientes-estados">
+                @for (estado of estadosExpedientes(); track estado.estado) {
+                  <div class="estado-item">
+                    <div class="estado-header">
+                      <span class="estado-nombre">{{ estado.estado | uppercase }}</span>
+                      <span class="estado-cantidad">{{ estado.cantidad }}</span>
+                    </div>
+                    <mat-progress-bar 
+                      [value]="estado.porcentaje" 
+                      [color]="estado.color === 'primary' ? 'primary' : estado.color === 'accent' ? 'accent' : 'warn'">
+                    </mat-progress-bar>
+                    <span class="estado-porcentaje">{{ estado.porcentaje }}%</span>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Actividad Reciente -->
+        <mat-card class="dashboard-card">
+          <mat-card-header>
+            <mat-card-title>Actividad Reciente</mat-card-title>
+            <mat-card-subtitle>Últimas acciones del sistema</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (loadingActividad()) {
+              <div class="loading-container">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            } @else {
+              <div class="actividad-lista">
+                @for (actividad of actividadReciente(); track actividad.id) {
+                  <div class="actividad-item">
+                    <div class="actividad-icono">
+                      <mat-icon [class]="getActividadIcon(actividad.tipo)">
+                        {{ getActividadIcon(actividad.tipo) }}
+                      </mat-icon>
+                    </div>
+                    <div class="actividad-contenido">
+                      <div class="actividad-descripcion">{{ actividad.descripcion | uppercase }}</div>
+                      <div class="actividad-metadata">
+                        <span class="actividad-usuario">{{ actividad.usuario | uppercase }}</span>
+                        <span class="actividad-fecha">{{ actividad.fecha | date:'dd/MM HH:mm' }}</span>
+                      </div>
+                    </div>
+                    <div class="actividad-estado">
+                      <mat-chip [color]="getEstadoColor(actividad.estado)" selected>
+                        {{ actividad.estado | uppercase }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Notificaciones Importantes -->
+        <mat-card class="dashboard-card">
+          <mat-card-header>
+            <mat-card-title>Notificaciones Importantes</mat-card-title>
+            <mat-card-subtitle>Alertas y recordatorios críticos</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (loadingNotificaciones()) {
+              <div class="loading-container">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            } @else {
+              <div class="notificaciones-lista">
+                @for (notif of notificacionesImportantes(); track notif.id) {
+                  <div class="notificacion-item" [class.critica]="notif.prioridad === 'CRITICA'">
+                    <div class="notificacion-icono">
+                      <mat-icon [class]="getNotificacionIcon(notif.tipo)">
+                        {{ getNotificacionIcon(notif.tipo) }}
+                      </mat-icon>
+                    </div>
+                    <div class="notificacion-contenido">
+                      <div class="notificacion-titulo">{{ notif.titulo | uppercase }}</div>
+                      <div class="notificacion-mensaje">{{ notif.mensaje | uppercase }}</div>
+                      <div class="notificacion-fecha">{{ notif.fechaCreacion | date:'dd/MM HH:mm' }}</div>
+                    </div>
+                    <div class="notificacion-prioridad">
+                      <mat-chip [color]="getPrioridadColor(notif.prioridad)" selected>
+                        {{ notif.prioridad }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Resumen de Oficinas -->
+        <mat-card class="dashboard-card">
+          <mat-card-header>
+            <mat-card-title>Resumen de Oficinas</mat-card-title>
+            <mat-card-subtitle>Estado operativo por oficina</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (loadingOficinas()) {
+              <div class="loading-container">
+                <mat-spinner diameter="40"></mat-spinner>
+              </div>
+            } @else {
+              <div class="oficinas-resumen">
+                @for (oficina of resumenOficinas(); track oficina.id) {
+                  <div class="oficina-item">
+                    <div class="oficina-info">
+                      <div class="oficina-nombre">{{ oficina.nombre | uppercase }}</div>
+                      <div class="oficina-ubicacion">{{ oficina.ubicacion | uppercase }}</div>
+                    </div>
+                    <div class="oficina-estado">
+                      <mat-chip [color]="oficina.estaActiva ? 'primary' : 'warn'" selected>
+                        {{ oficina.estaActiva ? 'ACTIVA' : 'INACTIVA' }}
+                      </mat-chip>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Tabla de Expedientes Pendientes -->
+      <mat-card class="dashboard-card full-width">
+        <mat-card-header>
+          <mat-card-title>Expedientes Pendientes</mat-card-title>
+          <mat-card-subtitle>Expedientes que requieren atención</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (loadingExpedientesPendientes()) {
+            <div class="loading-container">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          } @else if (expedientesPendientes().length === 0) {
+            <div class="no-data">
+              <mat-icon>check_circle</mat-icon>
+              <p>No hay expedientes pendientes</p>
+            </div>
+          } @else {
+            <table mat-table [dataSource]="expedientesPendientes()" class="expedientes-table">
+              <ng-container matColumnDef="numero">
+                <th mat-header-cell *matHeaderCellDef>Número</th>
+                <td mat-cell *matCellDef="let expediente">{{ expediente.nroExpediente | uppercase }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="tipo">
+                <th mat-header-cell *matHeaderCellDef>Tipo</th>
+                <td mat-cell *matCellDef="let expediente">{{ expediente.tipoTramite | uppercase }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="empresa">
+                <th mat-header-cell *matHeaderCellDef>Empresa</th>
+                <td mat-cell *matCellDef="let expediente">
+                  {{ getEmpresaNombre(expediente.empresaId) | uppercase }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef>Estado</th>
+                <td mat-cell *matCellDef="let expediente">
+                  <mat-chip [color]="getExpedienteEstadoColor(expediente.estado)" selected>
+                    {{ expediente.estado | uppercase }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="fechaCreacion">
+                <th mat-header-cell *matHeaderCellDef>Fecha Creación</th>
+                <td mat-cell *matCellDef="let expediente">{{ expediente.fechaEmision | date:'dd/MM/yyyy' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                <td mat-cell *matCellDef="let expediente">
+                  <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Más opciones">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #menu="matMenu">
+                    <button mat-menu-item (click)="verExpediente(expediente.id)">
+                      <mat-icon>visibility</mat-icon>
+                      Ver detalle
+                    </button>
+                    <button mat-menu-item (click)="editarExpediente(expediente.id)">
+                      <mat-icon>edit</mat-icon>
+                      Editar
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columnasExpedientes"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasExpedientes;"></tr>
+            </table>
+          }
+        </mat-card-content>
+      </mat-card>
     </div>
   `,
   styles: [`
     .dashboard-container {
+      padding: 24px;
       max-width: 1400px;
       margin: 0 auto;
     }
@@ -160,337 +354,713 @@ import { Empresa } from '../../models/empresa.model';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 32px;
-      padding: 24px 0;
-      border-bottom: 1px solid #e9ecef;
-    }
-
-    .welcome-title {
-      margin: 0 0 8px 0;
-      font-size: 2.2em;
-      font-weight: 700;
-      color: #2c3e50;
+      padding: 24px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      border-radius: 16px;
+      color: white;
     }
 
-    .welcome-subtitle {
+    .header-content h1 {
       margin: 0;
-      font-size: 1.1em;
-      color: #6c757d;
-      font-weight: 500;
+      font-size: 32px;
+      font-weight: 600;
     }
 
-    .header-actions button {
-      padding: 12px 24px;
+    .header-content p {
+      margin: 8px 0 0 0;
+      opacity: 0.9;
       font-size: 16px;
-      font-weight: 600;
     }
 
-    .section-title {
-      font-size: 1.5em;
-      font-weight: 600;
-      color: #2c3e50;
-      margin-bottom: 24px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e9ecef;
+    .header-actions {
+      display: flex;
+      gap: 12px;
     }
 
-    .stats-section {
-      margin-bottom: 40px;
-    }
-
-    .stats-grid {
+    .metricas-principales {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 24px;
+      margin-bottom: 32px;
     }
 
-    .stat-card {
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      border: none;
+    .metrica-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-radius: 16px;
+      overflow: hidden;
     }
 
-    .stat-card:hover {
+    .metrica-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
-    .stat-content {
+    .metrica-header {
       display: flex;
       align-items: center;
+      gap: 20px;
       padding: 24px;
     }
 
-    .stat-icon {
-      margin-right: 20px;
-    }
-
-    .stat-icon mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-    }
-
-    .stat-info {
-      flex: 1;
-    }
-
-    .stat-number {
-      font-size: 2.5em;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      font-size: 1em;
-      color: #6c757d;
-      font-weight: 500;
-    }
-
-    .primary-card {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-
-    .success-card {
-      background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-      color: white;
-    }
-
-    .warning-card {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-    }
-
-    .info-card {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-    }
-
-    .actions-section {
-      margin-bottom: 40px;
-    }
-
-    .actions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-
-    .action-btn {
-      padding: 16px 24px;
-      font-size: 16px;
-      font-weight: 600;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      height: 80px;
+    .metrica-icono {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      color: white;
     }
 
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    }
-
-    .action-btn mat-icon {
+    .metrica-icono mat-icon {
       font-size: 32px;
       width: 32px;
       height: 32px;
     }
 
-    .recent-section {
-      margin-bottom: 40px;
+    .metrica-info {
+      flex: 1;
     }
 
-    .empresas-grid {
+    .metrica-titulo {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #6c757d;
+      font-weight: 500;
+    }
+
+    .metrica-valor {
+      font-size: 28px;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 8px;
+    }
+
+    .metrica-cambio {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .metrica-cambio.positivo {
+      color: #28a745;
+    }
+
+    .metrica-cambio.negativo {
+      color: #dc3545;
+    }
+
+    .metrica-cambio mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 24px;
+      margin-bottom: 32px;
     }
 
-    .empresa-card {
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      border: none;
+    .dashboard-card {
+      border-radius: 16px;
+      overflow: hidden;
     }
 
-    .empresa-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    .dashboard-card.full-width {
+      grid-column: 1 / -1;
     }
 
-    .empresa-title {
-      font-size: 1.2em;
+    .dashboard-card mat-card-header {
+      background: #f8f9fa;
+      padding: 20px;
+    }
+
+    .dashboard-card mat-card-title {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .dashboard-card mat-card-subtitle {
+      margin: 8px 0 0 0;
+      color: #6c757d;
+    }
+
+    .dashboard-card mat-card-content {
+      padding: 24px;
+    }
+
+    .expedientes-estados {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .estado-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .estado-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .estado-nombre {
+      font-weight: 500;
+      color: #2c3e50;
+    }
+
+    .estado-cantidad {
+      font-weight: 600;
+      color: #6c757d;
+    }
+
+    .estado-porcentaje {
+      font-size: 12px;
+      color: #6c757d;
+      text-align: right;
+    }
+
+    .actividad-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .actividad-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .actividad-icono {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .actividad-icono mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #6c757d;
+    }
+
+    .actividad-contenido {
+      flex: 1;
+    }
+
+    .actividad-descripcion {
+      font-weight: 500;
+      color: #2c3e50;
+      margin-bottom: 4px;
+    }
+
+    .actividad-metadata {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: #6c757d;
+    }
+
+    .notificaciones-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .notificacion-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border-left: 4px solid transparent;
+    }
+
+    .notificacion-item.critica {
+      background: #fff5f5;
+      border-left-color: #dc3545;
+    }
+
+    .notificacion-icono {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .notificacion-icono mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #6c757d;
+    }
+
+    .notificacion-contenido {
+      flex: 1;
+    }
+
+    .notificacion-titulo {
       font-weight: 600;
       color: #2c3e50;
       margin-bottom: 4px;
     }
 
-    .empresa-subtitle {
+    .notificacion-mensaje {
+      font-size: 14px;
       color: #6c757d;
-      font-weight: 500;
+      margin-bottom: 4px;
     }
 
-    .empresa-info {
-      margin-top: 16px;
+    .notificacion-fecha {
+      font-size: 12px;
+      color: #6c757d;
     }
 
-    .info-item {
+    .oficinas-resumen {
       display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 0.9em;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .info-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      margin-right: 8px;
+    .oficina-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .oficina-info {
+      flex: 1;
+    }
+
+    .oficina-nombre {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 4px;
+    }
+
+    .oficina-ubicacion {
+      font-size: 14px;
       color: #6c757d;
     }
 
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8em;
+    .expedientes-table {
+      width: 100%;
+    }
+
+    .expedientes-table th {
+      background: #f8f9fa;
       font-weight: 600;
-      text-transform: uppercase;
+      color: #2c3e50;
     }
 
-    .status-habilitada {
-      background-color: #d4edda;
-      color: #155724;
+    .loading-container {
+      display: flex;
+      justify-content: center;
+      padding: 40px;
     }
 
-    .status-en_tramite {
-      background-color: #fff3cd;
-      color: #856404;
+    .no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+      color: #6c757d;
     }
 
-    .status-suspendida {
-      background-color: #f8d7da;
-      color: #721c24;
+    .no-data mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
     }
 
-    mat-card-actions {
-      padding: 16px;
-      text-align: right;
-    }
-
-    mat-card-actions button {
-      font-weight: 600;
-    }
-
-    /* Responsive */
     @media (max-width: 768px) {
+      .dashboard-container {
+        padding: 16px;
+      }
+
       .dashboard-header {
         flex-direction: column;
-        gap: 16px;
         text-align: center;
+        gap: 16px;
       }
 
-      .welcome-title {
-        font-size: 1.8em;
-      }
-
-      .stats-grid {
+      .metricas-principales {
         grid-template-columns: 1fr;
       }
 
-      .actions-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .empresas-grid {
+      .dashboard-grid {
         grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .actions-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .welcome-title {
-        font-size: 1.5em;
       }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardComponent implements OnInit {
-  private authService = inject(AuthService);
+export class DashboardComponent implements OnInit, OnDestroy {
   private empresaService = inject(EmpresaService);
+  private vehiculoService = inject(VehiculoService);
+  private conductorService = inject(ConductorService);
+  private rutaService = inject(RutaService);
+  private resolucionService = inject(ResolucionService);
+  private expedienteService = inject(ExpedienteService);
+  private oficinaService = inject(OficinaService);
+  private notificationService = inject(NotificationService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  private destroy$ = new Subject<void>();
 
-  currentUser: any;
-  empresas: Empresa[] = [];
-  empresasHabilitadas = 0;
-  empresasEnTramite = 0;
+  // Signals
+  actualizando = signal(false);
+  loadingExpedientes = signal(false);
+  loadingActividad = signal(false);
+  loadingNotificaciones = signal(false);
+  loadingOficinas = signal(false);
+  loadingExpedientesPendientes = signal(false);
 
-  constructor() {
-    this.currentUser = this.authService.getCurrentUser();
-  }
+  // Data signals
+  empresas = signal<Empresa[]>([]);
+  vehiculos = signal<Vehiculo[]>([]);
+  conductores = signal<Conductor[]>([]);
+  rutas = signal<Ruta[]>([]);
+  resoluciones = signal<Resolucion[]>([]);
+  expedientes = signal<Expediente[]>([]);
+  oficinas = signal<Oficina[]>([]);
+  notificaciones = signal<any[]>([]);
+
+  // Computed properties
+  metricasPrincipales = computed(() => [
+    {
+      titulo: 'Empresas Activas',
+      valor: this.empresas().length,
+      cambio: this.calcularCambio(this.empresas()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.empresas()),
+      icono: 'business',
+      color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      url: '/empresas'
+    },
+    {
+      titulo: 'Vehículos Registrados',
+      valor: this.vehiculos().length,
+      cambio: this.calcularCambio(this.vehiculos()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.vehiculos()),
+      icono: 'directions_car',
+      color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      url: '/vehiculos'
+    },
+    {
+      titulo: 'Conductores',
+      valor: this.conductores().length,
+      cambio: this.calcularCambio(this.conductores()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.conductores()),
+      icono: 'person',
+      color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      url: '/conductores'
+    },
+    {
+      titulo: 'Rutas Activas',
+      valor: this.rutas().length,
+      cambio: this.calcularCambio(this.rutas()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.rutas()),
+      icono: 'route',
+      color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      url: '/rutas'
+    },
+    {
+      titulo: 'Resoluciones',
+      valor: this.resoluciones().length,
+      cambio: this.calcularCambio(this.resoluciones()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.resoluciones()),
+      icono: 'description',
+      color: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      url: '/resoluciones'
+    },
+    {
+      titulo: 'Expedientes',
+      valor: this.expedientes().length,
+      cambio: this.calcularCambio(this.expedientes()),
+      cambioPorcentual: this.calcularCambioPorcentual(this.expedientes()),
+      icono: 'folder',
+      color: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      url: '/expedientes'
+    }
+  ]);
+
+  estadosExpedientes = computed(() => {
+    const expedientes = this.expedientes();
+    if (expedientes.length === 0) return [];
+
+    const estados = expedientes.reduce((acc, exp) => {
+      acc[exp.estado] = (acc[exp.estado] || 0) + 1;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    const total = expedientes.length;
+    return Object.entries(estados).map(([estado, cantidad]) => ({
+      estado,
+      cantidad,
+      porcentaje: Math.round((cantidad / total) * 100),
+      color: this.getEstadoColor(estado)
+    }));
+  });
+
+  actividadReciente = computed(() => {
+    // Simular actividad reciente basada en los datos
+    const actividades: ActividadReciente[] = [];
+    
+    this.empresas().slice(0, 3).forEach(empresa => {
+      actividades.push({
+        id: `emp_${empresa.id}`,
+        tipo: 'EMPRESA',
+        descripcion: `Empresa ${empresa.razonSocial} registrada`,
+        fecha: new Date(),
+        usuario: 'Sistema',
+        estado: 'COMPLETADO'
+      });
+    });
+
+    this.vehiculos().slice(0, 2).forEach(vehiculo => {
+      actividades.push({
+        id: `veh_${vehiculo.id}`,
+        tipo: 'VEHICULO',
+        descripcion: `Vehículo ${vehiculo.placa} agregado`,
+        fecha: new Date(),
+        usuario: 'Admin',
+        estado: 'PENDIENTE'
+      });
+    });
+
+    return actividades.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()).slice(0, 5);
+  });
+
+  notificacionesImportantes = computed(() => {
+    return this.notificaciones().filter(n => n.prioridad === 'ALTA' || n.prioridad === 'CRITICA').slice(0, 5);
+  });
+
+  resumenOficinas = computed(() => {
+    return this.oficinas().slice(0, 5);
+  });
+
+  expedientesPendientes = computed(() => {
+    return this.expedientes().filter(e => e.estado === 'EN PROCESO').slice(0, 10);
+  });
+
+  // Columnas para la tabla
+  columnasExpedientes = ['numero', 'tipo', 'empresa', 'estado', 'fechaCreacion', 'acciones'];
 
   ngOnInit(): void {
-    this.loadEmpresas();
+    this.cargarDatos();
+    this.iniciarActualizacionAutomatica();
   }
 
-  loadEmpresas(): void {
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private cargarDatos(): void {
+    this.cargarEmpresas();
+    this.cargarVehiculos();
+    this.cargarConductores();
+    this.cargarRutas();
+    this.cargarResoluciones();
+    this.cargarExpedientes();
+    this.cargarOficinas();
+    this.cargarNotificaciones();
+  }
+
+  private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
-      next: (empresas) => {
-        this.empresas = empresas;
-        this.empresasHabilitadas = empresas.filter(e => e.estado === 'HABILITADA').length;
-        this.empresasEnTramite = empresas.filter(e => e.estado === 'EN_TRAMITE').length;
+      next: (empresas) => this.empresas.set(empresas),
+      error: (error) => console.error('Error cargando empresas:', error)
+    });
+  }
+
+  private cargarVehiculos(): void {
+    this.vehiculoService.getVehiculos().subscribe({
+      next: (vehiculos) => this.vehiculos.set(vehiculos),
+      error: (error) => console.error('Error cargando vehículos:', error)
+    });
+  }
+
+  private cargarConductores(): void {
+    this.conductorService.getConductores().subscribe({
+      next: (conductores) => this.conductores.set(conductores),
+      error: (error) => console.error('Error cargando conductores:', error)
+    });
+  }
+
+  private cargarRutas(): void {
+    this.rutaService.getRutas().subscribe({
+      next: (rutas) => this.rutas.set(rutas),
+      error: (error) => console.error('Error cargando rutas:', error)
+    });
+  }
+
+  private cargarResoluciones(): void {
+    this.resolucionService.getResoluciones().subscribe({
+      next: (resoluciones) => this.resoluciones.set(resoluciones),
+      error: (error) => console.error('Error cargando resoluciones:', error)
+    });
+  }
+
+  private cargarExpedientes(): void {
+    this.loadingExpedientes.set(true);
+    this.expedienteService.getExpedientes().subscribe({
+      next: (expedientes) => {
+        this.expedientes.set(expedientes);
+        this.loadingExpedientes.set(false);
       },
       error: (error) => {
-        console.error('Error cargando empresas:', error);
-        this.snackBar.open('Error al cargar empresas', 'Cerrar', { duration: 3000 });
+        console.error('Error cargando expedientes:', error);
+        this.loadingExpedientes.set(false);
       }
     });
   }
 
-  getRoleDisplayName(roleId?: string): string {
-    const roles: { [key: string]: string } = {
-      'admin': 'Administrador',
-      'fiscalizador': 'Fiscalizador',
-      'usuario': 'Usuario'
+  private cargarOficinas(): void {
+    this.loadingOficinas.set(true);
+    this.oficinaService.getOficinas().subscribe({
+      next: (oficinas) => {
+        this.oficinas.set(oficinas);
+        this.loadingOficinas.set(false);
+      },
+      error: (error) => {
+        console.error('Error cargando oficinas:', error);
+        this.loadingOficinas.set(false);
+      }
+    });
+  }
+
+  private cargarNotificaciones(): void {
+    this.loadingNotificaciones.set(true);
+    this.notificationService.getNotificaciones().subscribe({
+      next: (notificaciones) => {
+        this.notificaciones.set(notificaciones);
+        this.loadingNotificaciones.set(false);
+      },
+      error: (error) => {
+        console.error('Error cargando notificaciones:', error);
+        this.loadingNotificaciones.set(false);
+      }
+    });
+  }
+
+  private iniciarActualizacionAutomatica(): void {
+    interval(300000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.cargarDatos();
+    });
+  }
+
+  actualizarDashboard(): void {
+    this.actualizando.set(true);
+    this.cargarDatos();
+    setTimeout(() => this.actualizando.set(false), 2000);
+    this.snackBar.open('Dashboard actualizado', 'Cerrar', { duration: 2000 });
+  }
+
+  generarReporte(): void {
+    this.snackBar.open('Generando reporte...', 'Cerrar', { duration: 2000 });
+    // Implementar generación de reporte
+  }
+
+  navegarA(url: string): void {
+    this.router.navigate([url]);
+  }
+
+  verExpediente(id: string): void {
+    this.router.navigate(['/expedientes', id]);
+  }
+
+  editarExpediente(id: string): void {
+    this.router.navigate(['/expedientes', id, 'editar']);
+  }
+
+  private calcularCambio(datos: any[]): number {
+    // Simular cambio (en un sistema real vendría de la base de datos)
+    return Math.floor(Math.random() * 10) - 5;
+  }
+
+  private calcularCambioPorcentual(datos: any[]): number {
+    const cambio = this.calcularCambio(datos);
+    if (datos.length === 0) return 0;
+    return Math.round((cambio / datos.length) * 100);
+  }
+
+  getActividadIcon(tipo: string): string {
+    const iconos: { [key: string]: string } = {
+      'EMPRESA': 'business',
+      'VEHICULO': 'directions_car',
+      'CONDUCTOR': 'person',
+      'RUTA': 'route',
+      'RESOLUCION': 'description',
+      'EXPEDIENTE': 'folder'
     };
-    return roles[roleId || ''] || 'Usuario';
+    return iconos[tipo] || 'notifications';
   }
 
-  verEmpresas(): void {
-    this.router.navigate(['/empresas']);
+  getEstadoColor(estado: string): string {
+    const colores: { [key: string]: string } = {
+      'COMPLETADO': 'primary',
+      'PENDIENTE': 'warn',
+      'EN_REVISION': 'accent',
+      'APROBADO': 'primary',
+      'RECHAZADO': 'warn'
+    };
+    return colores[estado] || 'primary';
   }
 
-  nuevaEmpresa(): void {
-    this.router.navigate(['/empresas/nueva']);
+  getNotificacionIcon(tipo: string): string {
+    const iconos: { [key: string]: string } = {
+      'SISTEMA': 'computer',
+      'EXPEDIENTE': 'folder',
+      'FISCALIZACION': 'security',
+      'RECORDATORIO': 'schedule',
+      'ALERTA': 'warning'
+    };
+    return iconos[tipo] || 'notifications';
   }
 
-  verFiscalizaciones(): void {
-    this.router.navigate(['/fiscalizaciones']);
+  getPrioridadColor(prioridad: string): string {
+    const colores: { [key: string]: string } = {
+      'BAJA': 'primary',
+      'MEDIA': 'accent',
+      'ALTA': 'warn',
+      'CRITICA': 'warn'
+    };
+    return colores[prioridad] || 'primary';
   }
 
-  verReportes(): void {
-    this.router.navigate(['/reportes']);
+  getExpedienteEstadoColor(estado: string): string {
+    return this.getEstadoColor(estado);
   }
 
-  verConfiguracion(): void {
-    this.router.navigate(['/configuracion']);
-  }
-
-  verEmpresa(id: string): void {
-    this.router.navigate(['/empresas', id]);
+  getEmpresaNombre(empresaId: string): string {
+    const empresa = this.empresas().find(e => e.id === empresaId);
+    return empresa ? empresa.razonSocial.principal : 'Desconocida';
   }
 } 

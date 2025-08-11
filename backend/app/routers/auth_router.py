@@ -20,7 +20,7 @@ async def login(
     if not usuario:
         raise AuthenticationException("DNI o contraseña incorrectos")
     
-    if not usuario.esta_activo:
+    if not usuario.estaActivo:
         raise AuthenticationException("Usuario inactivo")
     
     # Crear token de acceso
@@ -33,9 +33,9 @@ async def login(
         nombres=usuario.nombres,
         apellidos=usuario.apellidos,
         email=usuario.email,
-        rol_id=usuario.rol_id,
-        esta_activo=usuario.esta_activo,
-        fecha_creacion=usuario.fecha_creacion
+        rolId=usuario.rolId,
+        estaActivo=usuario.estaActivo,
+        fechaCreacion=usuario.fechaCreacion
     )
     
     return LoginResponse(
@@ -59,9 +59,9 @@ async def register(
             nombres=usuario.nombres,
             apellidos=usuario.apellidos,
             email=usuario.email,
-            rol_id=usuario.rol_id,
-            esta_activo=usuario.esta_activo,
-            fecha_creacion=usuario.fecha_creacion
+            rolId=usuario.rolId,
+            estaActivo=usuario.estaActivo,
+            fechaCreacion=usuario.fechaCreacion
         )
     except ValueError as e:
         if "DNI" in str(e):
@@ -82,7 +82,7 @@ async def get_current_user_info(
         nombres=current_user.nombres,
         apellidos=current_user.apellidos,
         email=current_user.email,
-        rol_id=current_user.rol_id,
-        esta_activo=current_user.esta_activo,
-        fecha_creacion=current_user.fecha_creacion
-    ) 
+        rolId=current_user.rolId,
+        estaActivo=current_user.estaActivo,
+        fechaCreacion=current_user.fechaCreacion
+    )

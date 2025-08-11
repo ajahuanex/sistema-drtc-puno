@@ -2,6 +2,13 @@
 
 Sistema de gestión integral para la Dirección Regional de Transportes y Comunicaciones de Puno.
 
+## 📚 Documentación
+
+- **[📋 Brief Oficial del Sistema](docs/BRIEF_SISTEMA_DRTC_PUNO.md)** - Documento de referencia para la lógica de negocio
+- **[📋 Briefing Actualizado](docs/BRIEFING.md)** - Estado actual y cambios recientes implementados
+- **[🔌 API Documentation](docs/API.md)** - Especificaciones de la API REST
+- **[🏢 Mejoras Empresas](docs/MEJORAS_EMPRESAS.md)** - Funcionalidades específicas para gestión empresarial
+
 ## 🏗️ Arquitectura
 
 - **Backend**: Python 3.10+ con FastAPI
@@ -37,9 +44,30 @@ ng serve
 
 - Gestión de empresas de transporte
 - Control de vehículos y TUCs
+- **🆕 Seguimiento de expedientes por oficina**
 - Fiscalización móvil
 - Reportes y estadísticas
 - Interoperabilidad con sistemas externos
+
+## 🔄 Estado del Desarrollo
+
+### ✅ Completado
+- Modelos de datos básicos
+- API REST para entidades principales
+- Frontend Angular con componentes básicos
+- Autenticación JWT
+
+### 🔄 En Desarrollo
+- Sistema de seguimiento por oficina
+- Gestión de flujos de trabajo
+- Notificaciones automáticas
+- Reportes y métricas básicas
+
+### 📋 Planificado
+- Aplicación móvil Flutter
+- Integración con sistemas externos
+- Inteligencia artificial para optimización
+- Dashboard ejecutivo avanzado
 
 ## 🤝 Contribución
 

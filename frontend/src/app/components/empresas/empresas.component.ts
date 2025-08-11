@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -15,14 +15,17 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
 import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empresa.model';
+import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
 
 @Component({
   selector: 'app-empresas',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     MatTableModule,
@@ -38,6 +41,7 @@ import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empre
     MatNativeDateModule,
     MatExpansionModule,
     MatChipsModule,
+    MatDialogModule,
     FormsModule,
     ReactiveFormsModule
   ],
@@ -54,6 +58,10 @@ import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empre
           <mat-icon>add</mat-icon>
           Nueva Empresa
         </button>
+        <button mat-raised-button color="accent" (click)="crearResolucion()" class="action-button">
+          <mat-icon>gavel</mat-icon>
+          Crear Resolución
+        </button>
         <button mat-button color="accent" (click)="exportarEmpresas()" class="action-button">
           <mat-icon>download</mat-icon>
           Exportar
@@ -62,46 +70,48 @@ import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empre
     </div>
 
     <!-- Estadísticas -->
-    <div class="stats-section" *ngIf="!isLoading && estadisticas">
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">
-            <mat-icon>business</mat-icon>
+    @if (!isLoading() && estadisticas()) {
+      <div class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-icon">
+              <mat-icon>business</mat-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ estadisticas()?.totalEmpresas }}</div>
+              <div class="stat-label">Total Empresas</div>
+            </div>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ estadisticas.totalEmpresas }}</div>
-            <div class="stat-label">Total Empresas</div>
+          <div class="stat-card habilitadas">
+            <div class="stat-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ estadisticas()?.empresasHabilitadas }}</div>
+              <div class="stat-label">Habilitadas</div>
+            </div>
           </div>
-        </div>
-        <div class="stat-card habilitadas">
-          <div class="stat-icon">
-            <mat-icon>check_circle</mat-icon>
+          <div class="stat-card en-tramite">
+            <div class="stat-icon">
+              <mat-icon>pending</mat-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ estadisticas()?.empresasEnTramite }}</div>
+              <div class="stat-label">En Trámite</div>
+            </div>
           </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ estadisticas.empresasHabilitadas }}</div>
-            <div class="stat-label">Habilitadas</div>
-          </div>
-        </div>
-        <div class="stat-card en-tramite">
-          <div class="stat-icon">
-            <mat-icon>pending</mat-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ estadisticas.empresasEnTramite }}</div>
-            <div class="stat-label">En Trámite</div>
-          </div>
-        </div>
-        <div class="stat-card suspendidas">
-          <div class="stat-icon">
-            <mat-icon>block</mat-icon>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value">{{ estadisticas.empresasSuspendidas }}</div>
-            <div class="stat-label">Suspendidas</div>
+          <div class="stat-card suspendidas">
+            <div class="stat-icon">
+              <mat-icon>block</mat-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ estadisticas()?.empresasSuspendidas }}</div>
+              <div class="stat-label">Suspendidas</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
 
     <div class="content-section">
       <!-- Filtros Avanzados -->
@@ -165,172 +175,178 @@ import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empre
       </mat-expansion-panel>
 
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="loading-container">
-        <div class="loading-content">
-          <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
-          <h3>Cargando empresas...</h3>
-          <p>Obteniendo información de las empresas registradas</p>
+      @if (isLoading()) {
+        <div class="loading-container">
+          <div class="loading-content">
+            <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
+            <h3>Cargando empresas...</h3>
+            <p>Obteniendo información de las empresas registradas</p>
+          </div>
         </div>
-      </div>
+      }
 
       <!-- Empty State -->
-      <div *ngIf="!isLoading && empresas.length === 0" class="empty-container">
-        <div class="empty-content">
-          <div class="empty-icon-container">
-            <mat-icon class="empty-icon">business</mat-icon>
-          </div>
-          <h2>No hay empresas registradas</h2>
-          <p>Comienza agregando la primera empresa de transporte al sistema.</p>
-          <div class="empty-actions">
-            <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="primary-action">
-              <mat-icon>add</mat-icon>
-              Agregar Primera Empresa
-            </button>
-            <button mat-button color="accent" (click)="recargarEmpresas()" class="secondary-action">
-              <mat-icon>refresh</mat-icon>
-              Recargar
-            </button>
+      @if (!isLoading() && empresas().length === 0) {
+        <div class="empty-container">
+          <div class="empty-content">
+            <div class="empty-icon-container">
+              <mat-icon class="empty-icon">business</mat-icon>
+            </div>
+            <h2>No hay empresas registradas</h2>
+            <p>Comienza agregando la primera empresa de transporte al sistema.</p>
+            <div class="empty-actions">
+              <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="primary-action">
+                <mat-icon>add</mat-icon>
+                Agregar Primera Empresa
+              </button>
+              <button mat-button color="accent" (click)="recargarEmpresas()" class="secondary-action">
+                <mat-icon>refresh</mat-icon>
+                Recargar
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      }
 
       <!-- Data Table -->
-      <div *ngIf="!isLoading && empresas.length > 0" class="table-section">
-        <div class="table-header">
-          <div class="table-info">
-            <h3>Empresas Registradas</h3>
-            <p class="table-subtitle">Se encontraron {{empresas.length}} empresas</p>
+      @if (!isLoading() && empresas().length > 0) {
+        <div class="table-section">
+          <div class="table-header">
+            <div class="table-info">
+              <h3>Empresas Registradas</h3>
+              <p class="table-subtitle">Se encontraron {{empresas().length}} empresas</p>
+            </div>
+            <div class="table-actions">
+              <button mat-button color="accent" (click)="recargarEmpresas()">
+                <mat-icon>refresh</mat-icon>
+                Recargar
+              </button>
+            </div>
           </div>
-          <div class="table-actions">
-            <button mat-button color="accent" (click)="recargarEmpresas()">
-              <mat-icon>refresh</mat-icon>
-              Recargar
-            </button>
+
+          <div class="table-container">
+            <table mat-table [dataSource]="empresas()" class="modern-table">
+              <!-- RUC Column -->
+              <ng-container matColumnDef="ruc">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>RUC</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <span class="cell-text">{{ empresa.ruc }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Razón Social Column -->
+              <ng-container matColumnDef="razonSocial">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Razón Social</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <span class="cell-text">{{ empresa.razonSocial.principal }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Estado Column -->
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Estado</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <span class="status-badge" [class]="'status-' + empresa.estado.toLowerCase()">
+                      {{ empresa.estado }}
+                    </span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Representante Column -->
+              <ng-container matColumnDef="representante">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Representante</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <span class="cell-text">{{ empresa.representanteLegal.nombres }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Vehículos Column -->
+              <ng-container matColumnDef="vehiculos">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Vehículos</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <mat-chip-set>
+                      <mat-chip color="primary" selected>{{ empresa.vehiculosHabilitadosIds.length }}</mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Conductores Column -->
+              <ng-container matColumnDef="conductores">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Conductores</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content">
+                    <mat-chip-set>
+                      <mat-chip color="accent" selected>{{ empresa.conductoresHabilitadosIds.length }}</mat-chip>
+                    </mat-chip-set>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Acciones Column -->
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Acciones</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let empresa" class="table-cell">
+                  <div class="cell-content actions-content">
+                    <button mat-icon-button color="primary" (click)="verEmpresa(empresa.id)" 
+                            class="action-button" matTooltip="Ver detalles">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button color="accent" (click)="editarEmpresa(empresa.id)"
+                            class="action-button" matTooltip="Editar empresa">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="eliminarEmpresa(empresa.id)"
+                            class="action-button" matTooltip="Eliminar empresa">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header-row"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+            </table>
           </div>
         </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="empresas" class="modern-table">
-            <!-- RUC Column -->
-            <ng-container matColumnDef="ruc">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>RUC</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ empresa.ruc }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Razón Social Column -->
-            <ng-container matColumnDef="razonSocial">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Razón Social</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ empresa.razonSocial.principal }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Estado Column -->
-            <ng-container matColumnDef="estado">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Estado</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <span class="status-badge" [class]="'status-' + empresa.estado.toLowerCase()">
-                    {{ empresa.estado }}
-                  </span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Representante Column -->
-            <ng-container matColumnDef="representante">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Representante</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ empresa.representanteLegal.nombres }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Vehículos Column -->
-            <ng-container matColumnDef="vehiculos">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Vehículos</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <mat-chip-set>
-                    <mat-chip color="primary" selected>{{ empresa.vehiculosHabilitadosIds.length }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Conductores Column -->
-            <ng-container matColumnDef="conductores">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Conductores</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content">
-                  <mat-chip-set>
-                    <mat-chip color="accent" selected>{{ empresa.conductoresHabilitadosIds.length }}</mat-chip>
-                  </mat-chip-set>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Acciones Column -->
-            <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Acciones</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let empresa" class="table-cell">
-                <div class="cell-content actions-content">
-                  <button mat-icon-button color="primary" (click)="verEmpresa(empresa.id)" 
-                          class="action-button" matTooltip="Ver detalles">
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                  <button mat-icon-button color="accent" (click)="editarEmpresa(empresa.id)"
-                          class="action-button" matTooltip="Editar empresa">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button color="warn" (click)="eliminarEmpresa(empresa.id)"
-                          class="action-button" matTooltip="Eliminar empresa">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header-row"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
-          </table>
-        </div>
-      </div>
+      }
     </div>
   `,
   styles: [`
@@ -792,20 +808,23 @@ import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empre
   `]
 })
 export class EmpresasComponent implements OnInit {
-  empresas: Empresa[] = [];
-  displayedColumns: string[] = ['ruc', 'razonSocial', 'estado', 'representante', 'vehiculos', 'conductores', 'acciones'];
-  isLoading = false;
-  estadisticas?: EmpresaEstadisticas;
+  private empresaService = inject(EmpresaService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private fb = inject(FormBuilder);
+  private dialog = inject(MatDialog);
+
+  // Signals
+  empresas = signal<Empresa[]>([]);
+  isLoading = signal(false);
+  estadisticas = signal<EmpresaEstadisticas | undefined>(undefined);
+
+  // Computed properties
+  displayedColumns = ['ruc', 'razonSocial', 'estado', 'representante', 'vehiculos', 'conductores', 'acciones'];
   filtrosForm: FormGroup;
 
-  constructor(
-    private empresaService: EmpresaService,
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef,
-    private fb: FormBuilder
-  ) {
+  constructor() {
     this.filtrosForm = this.fb.group({
       ruc: [''],
       razonSocial: [''],
@@ -836,25 +855,23 @@ export class EmpresasComponent implements OnInit {
   }
 
   loadEmpresas(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     console.log('Iniciando carga de empresas...');
     
     this.empresaService.getEmpresas(0, 100).subscribe({
       next: (empresas) => {
         console.log('Empresas cargadas exitosamente:', empresas);
-        this.empresas = empresas;
-        this.isLoading = false;
-        this.cdr.detectChanges();
+        this.empresas.set(empresas);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error cargando empresas:', error);
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.snackBar.open('Error al cargar las empresas', 'Cerrar', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
-        this.cdr.detectChanges();
       }
     });
   }
@@ -862,8 +879,7 @@ export class EmpresasComponent implements OnInit {
   loadEstadisticas(): void {
     this.empresaService.getEstadisticasEmpresas().subscribe({
       next: (estadisticas) => {
-        this.estadisticas = estadisticas;
-        this.cdr.detectChanges();
+        this.estadisticas.set(estadisticas);
       },
       error: (error) => {
         console.error('Error cargando estadísticas:', error);
@@ -875,22 +891,20 @@ export class EmpresasComponent implements OnInit {
     const filtros = this.filtrosForm.value;
     console.log('Aplicando filtros:', filtros);
     
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.empresaService.getEmpresasConFiltros(filtros).subscribe({
       next: (empresas) => {
-        this.empresas = empresas;
-        this.isLoading = false;
-        this.cdr.detectChanges();
+        this.empresas.set(empresas);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error aplicando filtros:', error);
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.snackBar.open('Error al aplicar filtros', 'Cerrar', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
-        this.cdr.detectChanges();
       }
     });
   }
@@ -959,6 +973,25 @@ export class EmpresasComponent implements OnInit {
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
+      }
+    });
+  }
+
+  crearResolucion(): void {
+    const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
+      width: '700px',
+      data: { empresaId: null } // Se seleccionará la empresa en el modal
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Resolución creada:', result);
+        this.snackBar.open('Resolución creada exitosamente', 'Cerrar', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+        // Aquí podrías recargar las resoluciones si es necesario
       }
     });
   }

@@ -14,7 +14,7 @@ import { VehiculoCreate } from '../../models/vehiculo.model';
 interface Resolucion {
   id: string;
   numero: string;
-  tipo: 'PADRE' | 'HIJA';
+  tipoResolucion: 'PADRE' | 'HIJO';
   resuelve: string;
   rutasAutorizadas: string[];
 }
@@ -68,8 +68,8 @@ interface VehiculoForm {
                 </div>
                 <div class="info-item">
                   <span class="label">Tipo:</span>
-                  <span class="value tipo-chip" [class]="resolucion.tipo.toLowerCase()">
-                    {{ resolucion.tipo }}
+                  <span class="value tipo-chip" [class]="resolucion.tipoResolucion.toLowerCase()">
+                    {{ resolucion.tipoResolucion }}
                   </span>
                 </div>
                 <div class="info-item">

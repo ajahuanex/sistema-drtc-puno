@@ -1,4 +1,4 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
@@ -20,14 +20,14 @@ import { TopbarComponent } from './topbar.component';
       <!-- Topbar fijo -->
       <app-topbar 
         (toggleSidebar)="toggleSidebar()" 
-        [sidebarExpanded]="sidebarExpanded">
+        [sidebarExpanded]="sidebarExpanded()">
       </app-topbar>
 
       <!-- Contenedor principal -->
       <div class="main-container">
         <!-- Sidebar -->
-        <div class="sidebar" [class.collapsed]="!sidebarExpanded">
-          <app-sidebar [isExpanded]="sidebarExpanded"></app-sidebar>
+        <div class="sidebar" [class.collapsed]="!sidebarExpanded()">
+          <app-sidebar [isExpanded]="sidebarExpanded()"></app-sidebar>
         </div>
 
         <!-- Contenido principal -->
@@ -47,6 +47,7 @@ import { TopbarComponent } from './topbar.component';
       background: #f5f7fa;
       margin: 0;
       padding: 0;
+      overflow: hidden;
     }
 
     .main-container {
@@ -54,13 +55,16 @@ import { TopbarComponent } from './topbar.component';
       display: flex;
       height: calc(100vh - 64px);
       margin-top: 64px;
+      overflow: hidden;
     }
 
     .sidebar {
       width: 280px;
       background: transparent;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
     }
 
     .sidebar.collapsed {
@@ -70,23 +74,60 @@ import { TopbarComponent } from './topbar.component';
     .content-area {
       flex: 1;
       background: transparent;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       overflow: auto;
+      position: relative;
     }
 
     .content-wrapper {
-      padding: 20px;
+      padding: 24px;
       height: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Scrollbar personalizado */
+    .content-area::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .content-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .content-area::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+
+    .content-area::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
     }
 
     /* Responsive */
+    @media (max-width: 1024px) {
+      .content-wrapper {
+        padding: 20px;
+      }
+    }
+
     @media (max-width: 768px) {
       .sidebar {
         width: 250px;
+        position: fixed;
+        height: 100%;
+        z-index: 1000;
+        transform: translateX(0);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .sidebar.collapsed {
-        width: 60px;
+        width: 250px;
+        transform: translateX(-100%);
+      }
+
+      .content-area {
+        margin-left: 0;
       }
 
       .content-wrapper {
@@ -100,43 +141,74 @@ import { TopbarComponent } from './topbar.component';
         max-width: 280px;
       }
 
-      .sidebar.collapsed {
-        width: 100%;
-        max-width: 80px;
-      }
-
       .content-wrapper {
         padding: 12px;
       }
     }
+
+    /* Animaciones */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .content-wrapper {
+      animation: fadeIn 0.3s ease-out;
+    }
   `]
 })
-export class MainLayoutComponent {
-  sidebarOpened = true;
-  sidebarExpanded = true; // Sidebar expandido por defecto
-  isMobile = false;
+export class MainLayoutComponent implements OnInit, OnDestroy {
+  // Signals
+  sidebarExpanded = signal(true);
+  isMobile = signal(false);
 
-  constructor() {
+  // Computed properties
+  sidebarWidth = computed(() => {
+    return this.sidebarExpanded() ? '280px' : '80px';
+  });
+
+  private resizeObserver?: ResizeObserver;
+
+  ngOnInit(): void {
     this.checkScreenSize();
-    window.addEventListener('resize', () => this.checkScreenSize());
+    this.setupResizeObserver();
   }
 
-  checkScreenSize(): void {
-    this.isMobile = window.innerWidth < 768;
-    if (this.isMobile) {
-      this.sidebarOpened = false;
-      this.sidebarExpanded = false;
+  ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+  }
+
+  private setupResizeObserver(): void {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.checkScreenSize();
+      });
+      
+      this.resizeObserver.observe(document.body);
+    }
+  }
+
+  private checkScreenSize(): void {
+    const width = window.innerWidth;
+    const isMobileView = width <= 768;
+    
+    this.isMobile.set(isMobileView);
+    
+    // En móvil, colapsar sidebar por defecto
+    if (isMobileView && this.sidebarExpanded()) {
+      this.sidebarExpanded.set(false);
     }
   }
 
   toggleSidebar(): void {
-    if (this.isMobile) {
-      // En móvil, alternar entre abierto y cerrado
-      this.sidebarOpened = !this.sidebarOpened;
-    } else {
-      // En desktop, alternar entre expandido y contraído
-      this.sidebarExpanded = !this.sidebarExpanded;
-      this.sidebarOpened = true; // Mantener siempre abierto en desktop
-    }
+    this.sidebarExpanded.update(expanded => !expanded);
   }
 } 

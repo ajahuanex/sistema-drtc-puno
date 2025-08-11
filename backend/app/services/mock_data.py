@@ -1,15 +1,15 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from app.models.usuario import UsuarioInDB, UsuarioCreate, UsuarioUpdate
 from app.models.empresa import (
     EmpresaInDB, EmpresaCreate, EmpresaUpdate, 
     EstadoEmpresa, TipoDocumento, DocumentoEmpresa, AuditoriaEmpresa
 )
-from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, Tuc
+from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos
 from app.models.ruta import RutaInDB, RutaCreate, RutaUpdate
 from app.models.resolucion import ResolucionInDB, ResolucionCreate, ResolucionUpdate
-from app.models.tuc import TucInDB, TucCreate, TucUpdate
+from app.models.tuc import TucInDB, TucCreate, TucUpdate, Tuc
 from passlib.context import CryptContext
 
 # Configurar passlib para evitar errores con bcrypt
@@ -52,11 +52,11 @@ class MockDataService:
                 "nombres": "Juan Carlos",
                 "apellidos": "Pérez Quispe",
                 "email": "juan.perez@drtc.gob.pe",
-                "password_hash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
-                "rol_id": "admin",
-                "esta_activo": True,
-                "fecha_creacion": datetime.utcnow() - timedelta(days=30),
-                "fecha_actualizacion": None
+                "passwordHash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
+                "rolId": "admin",
+                "estaActivo": True,
+                "fechaCreacion": datetime.now(timezone.utc) - timedelta(days=30),
+                "fechaActualizacion": None
             },
             {
                 "id": "2", 
@@ -64,11 +64,11 @@ class MockDataService:
                 "nombres": "María Elena",
                 "apellidos": "García López",
                 "email": "maria.garcia@drtc.gob.pe",
-                "password_hash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
-                "rol_id": "fiscalizador",
-                "esta_activo": True,
-                "fecha_creacion": datetime.utcnow() - timedelta(days=15),
-                "fecha_actualizacion": None
+                "passwordHash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
+                "rolId": "fiscalizador",
+                "estaActivo": True,
+                "fechaCreacion": datetime.now(timezone.utc) - timedelta(days=15),
+                "fechaActualizacion": None
             },
             {
                 "id": "3",
@@ -76,11 +76,11 @@ class MockDataService:
                 "nombres": "Carlos Alberto",
                 "apellidos": "Rodríguez Silva",
                 "email": "carlos.rodriguez@drtc.gob.pe",
-                "password_hash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
-                "rol_id": "usuario",
-                "esta_activo": True,
-                "fecha_creacion": datetime.utcnow() - timedelta(days=10),
-                "fecha_actualizacion": None
+                "passwordHash": "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6",  # password123
+                "rolId": "usuario",
+                "estaActivo": True,
+                "fechaCreacion": datetime.now(timezone.utc) - timedelta(days=10),
+                "fechaActualizacion": None
             }
         ]
         
@@ -93,16 +93,16 @@ class MockDataService:
             {
                 "id": "1",
                 "ruc": "20123456789",
-                "razon_social": {
+                "razonSocial": {
                     "principal": "Transportes El Veloz S.A.C.",
                     "sunat": "TRANSPORTES EL VELOZ S.A.C.",
                     "minimo": "TRANSPORTES EL VELOZ"
                 },
-                "direccion_fiscal": "Av. El Sol 123, Puno",
+                "direccionFiscal": "Av. El Sol 123, Puno",
                 "estado": EstadoEmpresa.HABILITADA,
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=60),
-                "representante_legal": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=60),
+                "representanteLegal": {
                     "dni": "12345678",
                     "nombres": "Juan Carlos",
                     "apellidos": "Pérez López",
@@ -110,59 +110,59 @@ class MockDataService:
                     "telefono": "951234567",
                     "direccion": "Av. El Sol 123, Puno"
                 },
-                "email_contacto": "info@transportesveloz.com",
-                "telefono_contacto": "951234567",
-                "sitio_web": "www.transportesveloz.com",
+                "emailContacto": "info@transportesveloz.com",
+                "telefonoContacto": "951234567",
+                "sitioWeb": "www.transportesveloz.com",
                 "documentos": [
                     {
                         "tipo": TipoDocumento.RUC,
                         "numero": "20123456789",
-                        "fecha_emision": datetime.utcnow() - timedelta(days=365),
-                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=365),
-                        "url_documento": "https://example.com/ruc.pdf",
+                        "fechaEmision": datetime.utcnow() - timedelta(days=365),
+                        "fechaVencimiento": datetime.utcnow() + timedelta(days=365),
+                        "urlDocumento": "https://example.com/ruc.pdf",
                         "observaciones": "RUC activo",
-                        "esta_activo": True
+                        "estaActivo": True
                     }
                 ],
                 "auditoria": [
                     {
-                        "fecha_cambio": datetime.utcnow() - timedelta(days=60),
-                        "usuario_id": "1",
-                        "tipo_cambio": "CREACION_EMPRESA",
-                        "campo_anterior": None,
-                        "campo_nuevo": "Empresa creada con RUC: 20123456789",
+                        "fechaCambio": datetime.utcnow() - timedelta(days=60),
+                        "usuarioId": "1",
+                        "tipoCambio": "CREACION_EMPRESA",
+                        "campoAnterior": None,
+                        "campoNuevo": "Empresa creada con RUC: 20123456789",
                         "observaciones": "Creación inicial de empresa"
                     }
                 ],
-                "resoluciones_primigenias_ids": ["1", "2"],
-                "vehiculos_habilitados_ids": ["1", "2", "3"],
-                "conductores_habilitados_ids": ["1", "2"],
-                "rutas_autorizadas_ids": ["1", "2"],
-                "datos_sunat": {
+                "resolucionesPrimigeniasIds": ["1", "2"],
+                "vehiculosHabilitadosIds": ["1", "2", "3"],
+                "conductoresHabilitadosIds": ["1", "2"],
+                "rutasAutorizadasIds": ["1", "2"],
+                "datosSunat": {
                     "valido": True,
-                    "razon_social": "TRANSPORTES EL VELOZ S.A.C.",
+                    "razonSocial": "TRANSPORTES EL VELOZ S.A.C.",
                     "estado": "ACTIVO",
                     "condicion": "HABIDO",
                     "direccion": "Av. El Sol 123, Puno",
-                    "fecha_actualizacion": datetime.utcnow()
+                    "fechaActualizacion": datetime.utcnow()
                 },
-                "ultima_validacion_sunat": datetime.utcnow(),
-                "score_riesgo": 25,
+                "ultimaValidacionSunat": datetime.utcnow(),
+                "scoreRiesgo": 25,
                 "observaciones": "Empresa en buen estado"
             },
             {
                 "id": "2",
                 "ruc": "20234567890",
-                "razon_social": {
+                "razonSocial": {
                     "principal": "Empresa de Transportes Puno S.A.C.",
                     "sunat": "EMPRESA DE TRANSPORTES PUNO S.A.C.",
                     "minimo": "EMPRESA DE TRANSPORTES PUNO"
                 },
-                "direccion_fiscal": "Jr. Lima 456, Puno",
+                "direccionFiscal": "Jr. Lima 456, Puno",
                 "estado": EstadoEmpresa.HABILITADA,
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=45),
-                "representante_legal": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=45),
+                "representanteLegal": {
                     "dni": "87654321",
                     "nombres": "María Elena",
                     "apellidos": "García Rodríguez",
@@ -170,59 +170,59 @@ class MockDataService:
                     "telefono": "952345678",
                     "direccion": "Jr. Lima 456, Puno"
                 },
-                "email_contacto": "info@transportespuno.com",
-                "telefono_contacto": "952345678",
-                "sitio_web": "www.transportespuno.com",
+                "emailContacto": "info@transportespuno.com",
+                "telefonoContacto": "952345678",
+                "sitioWeb": "www.transportespuno.com",
                 "documentos": [
                     {
                         "tipo": TipoDocumento.RUC,
                         "numero": "20234567890",
-                        "fecha_emision": datetime.utcnow() - timedelta(days=300),
-                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=65),
-                        "url_documento": "https://example.com/ruc2.pdf",
+                        "fechaEmision": datetime.utcnow() - timedelta(days=365),
+                        "fechaVencimiento": datetime.utcnow() + timedelta(days=365),
+                        "urlDocumento": "https://example.com/ruc2.pdf",
                         "observaciones": "RUC activo",
-                        "esta_activo": True
+                        "estaActivo": True
                     }
                 ],
                 "auditoria": [
                     {
-                        "fecha_cambio": datetime.utcnow() - timedelta(days=45),
-                        "usuario_id": "1",
-                        "tipo_cambio": "CREACION_EMPRESA",
-                        "campo_anterior": None,
-                        "campo_nuevo": "Empresa creada con RUC: 20234567890",
+                        "fechaCambio": datetime.utcnow() - timedelta(days=45),
+                        "usuarioId": "1",
+                        "tipoCambio": "CREACION_EMPRESA",
+                        "campoAnterior": None,
+                        "campoNuevo": "Empresa creada con RUC: 20234567890",
                         "observaciones": "Creación inicial de empresa"
                     }
                 ],
-                "resoluciones_primigenias_ids": ["3"],
-                "vehiculos_habilitados_ids": ["4", "5"],
-                "conductores_habilitados_ids": ["3", "4"],
-                "rutas_autorizadas_ids": ["3", "4"],
-                "datos_sunat": {
+                "resolucionesPrimigeniasIds": ["3"],
+                "vehiculosHabilitadosIds": ["4", "5"],
+                "conductoresHabilitadosIds": ["3"],
+                "rutasAutorizadasIds": ["3"],
+                "datosSunat": {
                     "valido": True,
-                    "razon_social": "EMPRESA DE TRANSPORTES PUNO S.A.C.",
+                    "razonSocial": "EMPRESA DE TRANSPORTES PUNO S.A.C.",
                     "estado": "ACTIVO",
                     "condicion": "HABIDO",
                     "direccion": "Jr. Lima 456, Puno",
-                    "fecha_actualizacion": datetime.utcnow()
+                    "fechaActualizacion": datetime.utcnow()
                 },
-                "ultima_validacion_sunat": datetime.utcnow(),
-                "score_riesgo": 30,
+                "ultimaValidacionSunat": datetime.utcnow(),
+                "scoreRiesgo": 30,
                 "observaciones": "Empresa en buen estado"
             },
             {
                 "id": "3",
                 "ruc": "20345678901",
-                "razon_social": {
+                "razonSocial": {
                     "principal": "Transportes Juliaca Express S.A.C.",
                     "sunat": "TRANSPORTES JULIACA EXPRESS S.A.C.",
                     "minimo": "TRANSPORTES JULIACA EXPRESS"
                 },
-                "direccion_fiscal": "Av. San Martín 789, Juliaca",
+                "direccionFiscal": "Av. San Martín 789, Juliaca",
                 "estado": EstadoEmpresa.EN_TRAMITE,
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=20),
-                "representante_legal": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=20),
+                "representanteLegal": {
                     "dni": "11223344",
                     "nombres": "Carlos Alberto",
                     "apellidos": "Rodríguez Silva",
@@ -230,44 +230,44 @@ class MockDataService:
                     "telefono": "953456789",
                     "direccion": "Av. San Martín 789, Juliaca"
                 },
-                "email_contacto": "info@juliacaexpress.com",
-                "telefono_contacto": "953456789",
-                "sitio_web": "www.juliacaexpress.com",
+                "emailContacto": "info@juliacaexpress.com",
+                "telefonoContacto": "953456789",
+                "sitioWeb": "www.juliacaexpress.com",
                 "documentos": [
                     {
                         "tipo": TipoDocumento.RUC,
                         "numero": "20345678901",
-                        "fecha_emision": datetime.utcnow() - timedelta(days=20),
-                        "fecha_vencimiento": datetime.utcnow() + timedelta(days=345),
-                        "url_documento": "https://example.com/ruc3.pdf",
+                        "fechaEmision": datetime.utcnow() - timedelta(days=20),
+                        "fechaVencimiento": datetime.utcnow() + timedelta(days=345),
+                        "urlDocumento": "https://example.com/ruc3.pdf",
                         "observaciones": "RUC en trámite",
-                        "esta_activo": True
+                        "estaActivo": True
                     }
                 ],
                 "auditoria": [
                     {
-                        "fecha_cambio": datetime.utcnow() - timedelta(days=20),
-                        "usuario_id": "1",
-                        "tipo_cambio": "CREACION_EMPRESA",
-                        "campo_anterior": None,
-                        "campo_nuevo": "Empresa creada con RUC: 20345678901",
+                        "fechaCambio": datetime.utcnow() - timedelta(days=20),
+                        "usuarioId": "1",
+                        "tipoCambio": "CREACION_EMPRESA",
+                        "campoAnterior": None,
+                        "campoNuevo": "Empresa creada con RUC: 20345678901",
                         "observaciones": "Creación inicial de empresa"
                     }
                 ],
-                "resoluciones_primigenias_ids": [],
-                "vehiculos_habilitados_ids": [],
-                "conductores_habilitados_ids": [],
-                "rutas_autorizadas_ids": [],
-                "datos_sunat": {
+                "resolucionesPrimigeniasIds": [],
+                "vehiculosHabilitadosIds": [],
+                "conductoresHabilitadosIds": [],
+                "rutasAutorizadasIds": [],
+                "datosSunat": {
                     "valido": True,
-                    "razon_social": "TRANSPORTES JULIACA EXPRESS S.A.C.",
+                    "razonSocial": "TRANSPORTES JULIACA EXPRESS S.A.C.",
                     "estado": "ACTIVO",
                     "condicion": "HABIDO",
                     "direccion": "Av. San Martín 789, Juliaca",
-                    "fecha_actualizacion": datetime.utcnow()
+                    "fechaActualizacion": datetime.utcnow()
                 },
-                "ultima_validacion_sunat": datetime.utcnow(),
-                "score_riesgo": 45,
+                "ultimaValidacionSunat": datetime.utcnow(),
+                "scoreRiesgo": 45,
                 "observaciones": "Empresa en trámite de habilitación"
             }
         ]
@@ -281,152 +281,187 @@ class MockDataService:
             {
                 "id": "1",
                 "placa": "V1A-123",
-                "empresa_actual_id": "1",
-                "resolucion_id": "1",
-                "rutas_asignadas_ids": ["1", "2"],
+                "empresaActualId": "1",
+                "resolucionId": "1",
+                "rutasAsignadasIds": ["1", "2"],
                 "categoria": "M3",
                 "marca": "Mercedes-Benz",
-                "anio_fabricacion": 2018,
+                "modelo": "Sprinter",
+                "anioFabricacion": 2018,
                 "estado": "ACTIVO",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=50),
-                "datos_tecnicos": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=50),
+                "datosTecnicos": {
                     "motor": "Diesel Euro 4",
                     "chasis": "A123-B456-C789",
                     "ejes": 2,
                     "asientos": 30,
-                    "peso_neto": 5000.0,
-                    "peso_bruto": 12000.0,
+                    "pesoNeto": 5000.0,
+                    "pesoBruto": 12000.0,
                     "medidas": {
                         "largo": 10.5,
                         "ancho": 2.5,
                         "alto": 3.2
-                    }
+                    },
+                    "tipoCombustible": "DIESEL"
                 },
                 "tuc": {
-                    "nro_tuc": "T-123456-2025",
-                    "fecha_emision": datetime.utcnow() - timedelta(days=30)
-                }
+                    "nroTuc": "T-123456-2025",
+                    "fechaEmision": datetime.utcnow() - timedelta(days=30)
+                },
+                "color": "Blanco",
+                "numeroSerie": "MB123456789",
+                "observaciones": "Vehículo en buen estado",
+                "documentosIds": ["1", "2"],
+                "historialIds": []
             },
             {
                 "id": "2",
                 "placa": "V2B-456",
-                "empresa_actual_id": "1",
-                "resolucion_id": "1",
-                "rutas_asignadas_ids": ["1"],
+                "empresaActualId": "1",
+                "resolucionId": "1",
+                "rutasAsignadasIds": ["1"],
                 "categoria": "M3",
                 "marca": "Volvo",
-                "anio_fabricacion": 2019,
+                "modelo": "B12",
+                "anioFabricacion": 2019,
                 "estado": "ACTIVO",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=45),
-                "datos_tecnicos": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=45),
+                "datosTecnicos": {
                     "motor": "Diesel Euro 5",
                     "chasis": "D789-E012-F345",
                     "ejes": 2,
                     "asientos": 35,
-                    "peso_neto": 5500.0,
-                    "peso_bruto": 13000.0,
+                    "pesoNeto": 5500.0,
+                    "pesoBruto": 13000.0,
                     "medidas": {
                         "largo": 11.0,
                         "ancho": 2.6,
                         "alto": 3.3
-                    }
+                    },
+                    "tipoCombustible": "DIESEL"
                 },
                 "tuc": {
-                    "nro_tuc": "T-123457-2025",
-                    "fecha_emision": datetime.utcnow() - timedelta(days=25)
-                }
+                    "nroTuc": "T-123457-2025",
+                    "fechaEmision": datetime.utcnow() - timedelta(days=25)
+                },
+                "color": "Azul",
+                "numeroSerie": "VO987654321",
+                "observaciones": "Vehículo nuevo",
+                "documentosIds": ["3", "4"],
+                "historialIds": []
             },
             {
                 "id": "3",
                 "placa": "V3C-789",
-                "empresa_actual_id": "1",
-                "resolucion_id": "2",
-                "rutas_asignadas_ids": ["2"],
+                "empresaActualId": "1",
+                "resolucionId": "2",
+                "rutasAsignadasIds": ["2"],
                 "categoria": "M2",
                 "marca": "Toyota",
-                "anio_fabricacion": 2020,
+                "modelo": "Hiace",
+                "anioFabricacion": 2020,
                 "estado": "ACTIVO",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=40),
-                "datos_tecnicos": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=40),
+                "datosTecnicos": {
                     "motor": "Gasolina Euro 6",
                     "chasis": "G678-H901-I234",
                     "ejes": 2,
                     "asientos": 20,
-                    "peso_neto": 3500.0,
-                    "peso_bruto": 8000.0,
+                    "pesoNeto": 3500.0,
+                    "pesoBruto": 8000.0,
                     "medidas": {
                         "largo": 8.5,
                         "ancho": 2.3,
                         "alto": 2.8
-                    }
+                    },
+                    "tipoCombustible": "GASOLINA"
                 },
                 "tuc": {
-                    "nro_tuc": "T-123458-2025",
-                    "fecha_emision": datetime.utcnow() - timedelta(days=20)
-                }
+                    "nroTuc": "T-123458-2025",
+                    "fechaEmision": datetime.utcnow() - timedelta(days=20)
+                },
+                "color": "Plateado",
+                "numeroSerie": "TO456789123",
+                "observaciones": "Vehículo compacto",
+                "documentosIds": ["5", "6"],
+                "historialIds": []
             },
             {
                 "id": "4",
                 "placa": "V4D-012",
-                "empresa_actual_id": "2",
-                "resolucion_id": "3",
-                "rutas_asignadas_ids": ["3"],
+                "empresaActualId": "2",
+                "resolucionId": "3",
+                "rutasAsignadasIds": ["3"],
                 "categoria": "M3",
                 "marca": "Scania",
-                "anio_fabricacion": 2017,
+                "modelo": "K420",
+                "anioFabricacion": 2017,
                 "estado": "ACTIVO",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=35),
-                "datos_tecnicos": {
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=35),
+                "datosTecnicos": {
                     "motor": "Diesel Euro 4",
-                    "chasis": "J567-K890-L123",
+                    "chasis": "J345-K678-L901",
                     "ejes": 3,
-                    "asientos": 40,
-                    "peso_neto": 7000.0,
-                    "peso_bruto": 15000.0,
+                    "asientos": 45,
+                    "pesoNeto": 8000.0,
+                    "pesoBruto": 18000.0,
                     "medidas": {
-                        "largo": 12.0,
-                        "ancho": 2.7,
+                        "largo": 12.5,
+                        "ancho": 2.8,
                         "alto": 3.5
-                    }
+                    },
+                    "tipoCombustible": "DIESEL"
                 },
                 "tuc": {
-                    "nro_tuc": "T-123459-2025",
-                    "fecha_emision": datetime.utcnow() - timedelta(days=15)
-                }
+                    "nroTuc": "T-123459-2025",
+                    "fechaEmision": datetime.utcnow() - timedelta(days=15)
+                },
+                "color": "Rojo",
+                "numeroSerie": "SC789123456",
+                "observaciones": "Vehículo de larga distancia",
+                "documentosIds": ["7", "8"],
+                "historialIds": []
             },
             {
                 "id": "5",
                 "placa": "V5E-345",
-                "empresa_actual_id": "2",
-                "resolucion_id": "3",
-                "rutas_asignadas_ids": ["4"],
+                "empresaActualId": "2",
+                "resolucionId": "3",
+                "rutasAsignadasIds": ["3"],
                 "categoria": "M2",
-                "marca": "Nissan",
-                "anio_fabricacion": 2021,
-                "estado": "MANTENIMIENTO",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=30),
-                "datos_tecnicos": {
+                "marca": "Ford",
+                "modelo": "Transit",
+                "anioFabricacion": 2021,
+                "estado": "ACTIVO",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=30),
+                "datosTecnicos": {
                     "motor": "Diesel Euro 6",
-                    "chasis": "M456-N789-O012",
+                    "chasis": "M234-N567-O890",
                     "ejes": 2,
                     "asientos": 25,
-                    "peso_neto": 4000.0,
-                    "peso_bruto": 9000.0,
+                    "pesoNeto": 4000.0,
+                    "pesoBruto": 9000.0,
                     "medidas": {
                         "largo": 9.0,
                         "ancho": 2.4,
                         "alto": 3.0
-                    }
+                    },
+                    "tipoCombustible": "DIESEL"
                 },
                 "tuc": {
-                    "nro_tuc": "T-123460-2025",
-                    "fecha_emision": datetime.utcnow() - timedelta(days=10)
-                }
+                    "nroTuc": "T-123460-2025",
+                    "fechaEmision": datetime.utcnow() - timedelta(days=10)
+                },
+                "color": "Verde",
+                "numeroSerie": "FO123789456",
+                "observaciones": "Vehículo versátil",
+                "documentosIds": ["9", "10"],
+                "historialIds": []
             }
         ]
         
@@ -438,116 +473,346 @@ class MockDataService:
         mock_rutas = [
             {
                 "id": "1",
-                "codigo_ruta": "R001",
+                "codigoRuta": "R001",
                 "nombre": "Puno - Juliaca",
-                "origen_id": "1",
-                "destino_id": "2",
-                "itinerario_ids": ["1", "3", "2"],
+                "origenId": "1",
+                "destinoId": "2",
+                "itinerarioIds": ["1", "3", "2"],
                 "frecuencias": "Cada 30 minutos",
                 "estado": "ACTIVA",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=60)
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=60),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERURBANA",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 45.5,
+                "tiempoEstimado": "01:30",
+                "tarifaBase": 8.50,
+                "capacidadMaxima": 50,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "06:00", "horaLlegada": "07:30"},
+                    {"dia": "LUNES", "horaSalida": "18:00", "horaLlegada": "19:30"}
+                ],
+                "restricciones": [],
+                "observaciones": "Ruta principal Puno-Juliaca",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": ["1", "2"],
+                "documentosIds": ["1", "2"],
+                "historialIds": []
             },
             {
                 "id": "2",
-                "codigo_ruta": "R002",
+                "codigoRuta": "R002",
                 "nombre": "Puno - Cusco",
-                "origen_id": "1",
-                "destino_id": "3",
-                "itinerario_ids": ["1", "4", "5", "3"],
+                "origenId": "1",
+                "destinoId": "3",
+                "itinerarioIds": ["1", "4", "5", "3"],
                 "frecuencias": "Cada 2 horas",
                 "estado": "ACTIVA",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=45)
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=45),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERREGIONAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 380.0,
+                "tiempoEstimado": "08:00",
+                "tarifaBase": 45.00,
+                "capacidadMaxima": 45,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "08:00", "horaLlegada": "16:00"},
+                    {"dia": "LUNES", "horaSalida": "20:00", "horaLlegada": "04:00"}
+                ],
+                "restricciones": ["No circular en horario nocturno"],
+                "observaciones": "Ruta turística Puno-Cusco",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": ["3"],
+                "documentosIds": ["3", "4"],
+                "historialIds": []
             },
             {
                 "id": "3",
-                "codigo_ruta": "R003",
+                "codigoRuta": "R003",
                 "nombre": "Juliaca - Arequipa",
-                "origen_id": "2",
-                "destino_id": "4",
-                "itinerario_ids": ["2", "6", "4"],
+                "origenId": "2",
+                "destinoId": "4",
+                "itinerarioIds": ["2", "6", "4"],
                 "frecuencias": "Cada hora",
                 "estado": "ACTIVA",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=30)
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=30),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERREGIONAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 280.0,
+                "tiempoEstimado": "06:00",
+                "tarifaBase": 35.00,
+                "capacidadMaxima": 40,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "07:00", "horaLlegada": "13:00"},
+                    {"dia": "LUNES", "horaSalida": "14:00", "horaLlegada": "20:00"}
+                ],
+                "restricciones": [],
+                "observaciones": "Ruta Juliaca-Arequipa",
+                "empresasAutorizadasIds": ["2"],
+                "vehiculosAsignadosIds": ["4", "5"],
+                "documentosIds": ["5", "6"],
+                "historialIds": []
             },
             {
                 "id": "4",
-                "codigo_ruta": "R004",
+                "codigoRuta": "R004",
                 "nombre": "Puno - Tacna",
-                "origen_id": "1",
-                "destino_id": "5",
-                "itinerario_ids": ["1", "7", "5"],
+                "origenId": "1",
+                "destinoId": "5",
+                "itinerarioIds": ["1", "7", "5"],
                 "frecuencias": "Cada 3 horas",
                 "estado": "SUSPENDIDA",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=20)
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=20),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERREGIONAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 420.0,
+                "tiempoEstimado": "10:00",
+                "tarifaBase": 55.00,
+                "capacidadMaxima": 35,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "06:00", "horaLlegada": "16:00"}
+                ],
+                "restricciones": ["Ruta suspendida por mantenimiento"],
+                "observaciones": "Ruta Puno-Tacna suspendida",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": [],
+                "documentosIds": ["7", "8"],
+                "historialIds": []
             }
         ]
         
         for ruta_data in mock_rutas:
-            self.rutas[ruta_data["id"]] = RutaInDB(**ruta_data)
+            # Convertir snake_case a camelCase para coincidir con el modelo
+            ruta_data_converted = {
+                "id": ruta_data["id"],
+                "codigoRuta": ruta_data["codigoRuta"],
+                "nombre": ruta_data["nombre"],
+                "origenId": ruta_data["origenId"],
+                "destinoId": ruta_data["destinoId"],
+                "itinerarioIds": ruta_data["itinerarioIds"],
+                "frecuencias": ruta_data["frecuencias"],
+                "estado": ruta_data["estado"],
+                "estaActivo": ruta_data["estaActivo"],
+                "fechaRegistro": ruta_data["fechaRegistro"],
+                "fechaActualizacion": ruta_data["fechaActualizacion"],
+                "tipoRuta": ruta_data["tipoRuta"],
+                "tipoServicio": ruta_data["tipoServicio"],
+                "distancia": ruta_data["distancia"],
+                "tiempoEstimado": ruta_data["tiempoEstimado"],
+                "tarifaBase": ruta_data["tarifaBase"],
+                "capacidadMaxima": ruta_data["capacidadMaxima"],
+                "horarios": ruta_data["horarios"],
+                "restricciones": ruta_data["restricciones"],
+                "observaciones": ruta_data["observaciones"],
+                "empresasAutorizadasIds": ruta_data["empresasAutorizadasIds"],
+                "vehiculosAsignadosIds": ruta_data["vehiculosAsignadosIds"],
+                "documentosIds": ruta_data["documentosIds"],
+                "historialIds": ruta_data["historialIds"]
+            }
+            self.rutas[ruta_data["id"]] = RutaInDB(**ruta_data_converted)
 
     def _create_mock_resoluciones(self):
         """Crear resoluciones de prueba"""
         mock_resoluciones = [
             {
                 "id": "1",
-                "numero": "RES-001-2025",
-                "fecha_emision": datetime.utcnow() - timedelta(days=60),
-                "fecha_vencimiento": datetime.utcnow() + timedelta(days=300),
-                "tipo": "PRIMIGENIA",
+                "nro_resolucion": "R-0001-2025",
                 "empresa_id": "1",
                 "expediente_id": "1",
-                "estado": "VIGENTE",
+                "fecha_emision": datetime.utcnow() - timedelta(days=60),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=60),
+                "fecha_vigencia_fin": datetime.utcnow() + timedelta(days=300),
+                "tipo_resolucion": "PADRE",
+                "resolucion_padre_id": None,
+                "tipo_tramite": "PRIMIGENIA",
+                "descripcion": "Resolución primigenia para Transportes El Veloz S.A.C. autorizando operación de transporte interprovincial",
+                "vehiculos_habilitados_ids": ["1", "2", "3"],
+                "rutas_autorizadas_ids": ["1", "2"],
                 "observaciones": "Resolución primigenia para Transportes El Veloz",
+                "estado": "VIGENTE",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=60)
+                "fecha_registro": datetime.utcnow() - timedelta(days=60),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": ["2"],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=60),
+                "motivo_suspension": None,
+                "fecha_suspension": None
             },
             {
                 "id": "2",
-                "numero": "RES-002-2025",
-                "fecha_emision": datetime.utcnow() - timedelta(days=45),
-                "fecha_vencimiento": datetime.utcnow() + timedelta(days=315),
-                "tipo": "MODIFICATORIA",
+                "nro_resolucion": "R-0002-2025",
                 "empresa_id": "1",
                 "expediente_id": "1",
-                "estado": "VIGENTE",
+                "fecha_emision": datetime.utcnow() - timedelta(days=45),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=45),
+                "fecha_vigencia_fin": datetime.utcnow() + timedelta(days=315),
+                "tipo_resolucion": "HIJO",
+                "resolucion_padre_id": "1",
+                "tipo_tramite": "INCREMENTO",
+                "descripcion": "Modificación de rutas autorizadas para Transportes El Veloz S.A.C. ampliando cobertura geográfica",
+                "vehiculos_habilitados_ids": ["1", "2", "3"],
+                "rutas_autorizadas_ids": ["1", "2", "3"],
                 "observaciones": "Modificación de rutas autorizadas",
+                "estado": "VIGENTE",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=45)
+                "fecha_registro": datetime.utcnow() - timedelta(days=45),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": [],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=45),
+                "motivo_suspension": None,
+                "fecha_suspension": None
             },
             {
                 "id": "3",
-                "numero": "RES-003-2025",
-                "fecha_emision": datetime.utcnow() - timedelta(days=30),
-                "fecha_vencimiento": datetime.utcnow() + timedelta(days=330),
-                "tipo": "PRIMIGENIA",
+                "nro_resolucion": "R-0003-2025",
                 "empresa_id": "2",
                 "expediente_id": "2",
-                "estado": "VIGENTE",
+                "fecha_emision": datetime.utcnow() - timedelta(days=30),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=30),
+                "fecha_vigencia_fin": datetime.utcnow() + timedelta(days=330),
+                "tipo_resolucion": "PADRE",
+                "resolucion_padre_id": None,
+                "tipo_tramite": "PRIMIGENIA",
+                "descripcion": "Resolución primigenia para Empresa de Transportes Puno S.A.C. autorizando operación de transporte interprovincial",
+                "vehiculos_habilitados_ids": ["4", "5"],
+                "rutas_autorizadas_ids": ["3", "4"],
                 "observaciones": "Resolución primigenia para Empresa de Transportes Puno",
+                "estado": "VIGENTE",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=30)
+                "fecha_registro": datetime.utcnow() - timedelta(days=30),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": [],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=30),
+                "motivo_suspension": None,
+                "fecha_suspension": None
             },
             {
                 "id": "4",
-                "numero": "RES-004-2024",
-                "fecha_emision": datetime.utcnow() - timedelta(days=365),
-                "fecha_vencimiento": datetime.utcnow() - timedelta(days=30),
-                "tipo": "PRIMIGENIA",
+                "nro_resolucion": "R-0004-2024",
                 "empresa_id": "3",
                 "expediente_id": "3",
-                "estado": "VENCIDA",
+                "fecha_emision": datetime.utcnow() - timedelta(days=365),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=365),
+                "fecha_vigencia_fin": datetime.utcnow() - timedelta(days=30),
+                "tipo_resolucion": "PADRE",
+                "resolucion_padre_id": None,
+                "tipo_tramite": "PRIMIGENIA",
+                "descripcion": "Resolución primigenia para Transportes Juliaca Express S.A.C. autorizando operación de transporte interprovincial",
+                "vehiculos_habilitados_ids": [],
+                "rutas_autorizadas_ids": [],
                 "observaciones": "Resolución vencida",
+                "estado": "VENCIDA",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=365)
+                "fecha_registro": datetime.utcnow() - timedelta(days=365),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": [],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=365),
+                "motivo_suspension": None,
+                "fecha_suspension": None
+            },
+            {
+                "id": "5",
+                "nro_resolucion": "R-0001-2026",
+                "empresa_id": "2",
+                "expediente_id": "4",
+                "fecha_emision": datetime.utcnow() - timedelta(days=300),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=300),
+                "fecha_vigencia_fin": datetime.utcnow() + timedelta(days=1500),
+                "tipo_resolucion": "PADRE",
+                "resolucion_padre_id": None,
+                "tipo_tramite": "PRIMIGENIA",
+                "descripcion": "Resolución primigenia para empresa del año 2026",
+                "vehiculos_habilitados_ids": ["5", "6"],
+                "rutas_autorizadas_ids": ["4", "5"],
+                "observaciones": "Resolución del año 2026",
+                "estado": "VIGENTE",
+                "esta_activo": True,
+                "fecha_registro": datetime.utcnow() - timedelta(days=300),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": [],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=300),
+                "motivo_suspension": None,
+                "fecha_suspension": None
+            },
+            {
+                "id": "6",
+                "nro_resolucion": "R-0002-2026",
+                "empresa_id": "3",
+                "expediente_id": "5",
+                "fecha_emision": datetime.utcnow() - timedelta(days=250),
+                "fecha_vigencia_inicio": datetime.utcnow() - timedelta(days=250),
+                "fecha_vigencia_fin": datetime.utcnow() + timedelta(days=1550),
+                "tipo_resolucion": "PADRE",
+                "resolucion_padre_id": None,
+                "tipo_tramite": "RENOVACION",
+                "descripcion": "Renovación para empresa del año 2026",
+                "vehiculos_habilitados_ids": ["7"],
+                "rutas_autorizadas_ids": ["6"],
+                "observaciones": "Renovación del año 2026",
+                "estado": "VIGENTE",
+                "esta_activo": True,
+                "fecha_registro": datetime.utcnow() - timedelta(days=250),
+                "fecha_actualizacion": None,
+                "resoluciones_hijas_ids": [],
+                "documento_id": None,
+                "usuario_emision_id": "1",
+                "usuario_aprobacion_id": "1",
+                "fecha_aprobacion": datetime.utcnow() - timedelta(days=250),
+                "motivo_suspension": None,
+                "fecha_suspension": None
             }
         ]
         
         for resolucion_data in mock_resoluciones:
-            self.resoluciones[resolucion_data["id"]] = ResolucionInDB(**resolucion_data)
+            # Convertir snake_case a camelCase para coincidir con el modelo
+            resolucion_data_converted = {
+                "id": resolucion_data["id"],
+                "nroResolucion": resolucion_data["nro_resolucion"],
+                "empresaId": resolucion_data["empresa_id"],
+                "fechaEmision": resolucion_data["fecha_emision"],
+                "fechaVigenciaInicio": resolucion_data["fecha_vigencia_inicio"],
+                "fechaVigenciaFin": resolucion_data["fecha_vigencia_fin"],
+                "tipoResolucion": resolucion_data["tipo_resolucion"],
+                "resolucionPadreId": resolucion_data["resolucion_padre_id"],
+                "resolucionesHijasIds": resolucion_data["resoluciones_hijas_ids"],
+                "vehiculosHabilitadosIds": resolucion_data["vehiculos_habilitados_ids"],
+                "rutasAutorizadasIds": resolucion_data["rutas_autorizadas_ids"],
+                "tipoTramite": resolucion_data["tipo_tramite"],
+                "descripcion": resolucion_data["descripcion"],
+                "expedienteId": resolucion_data["expediente_id"],
+                "documentoId": resolucion_data["documento_id"],
+                "estaActivo": resolucion_data["esta_activo"],
+                "fechaRegistro": resolucion_data["fecha_registro"],
+                "fechaActualizacion": resolucion_data["fecha_actualizacion"],
+                "usuarioEmisionId": resolucion_data["usuario_emision_id"],
+                "observaciones": resolucion_data["observaciones"],
+                "estado": resolucion_data["estado"],
+                "motivoSuspension": resolucion_data["motivo_suspension"],
+                "fechaSuspension": resolucion_data["fecha_suspension"]
+            }
+            self.resoluciones[resolucion_data["id"]] = ResolucionInDB(**resolucion_data_converted)
 
     def _create_mock_tucs(self):
         """Crear TUCs de prueba"""
@@ -557,70 +822,126 @@ class MockDataService:
                 "nro_tuc": "T-123456-2025",
                 "vehiculo_id": "1",
                 "empresa_id": "1",
-                "expediente_id": "1",
+                "resolucion_padre_id": "1",
                 "fecha_emision": datetime.utcnow() - timedelta(days=30),
                 "fecha_vencimiento": datetime.utcnow() + timedelta(days=335),
                 "estado": "VIGENTE",
                 "observaciones": "TUC para Mercedes-Benz",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=30)
+                "fecha_registro": datetime.utcnow() - timedelta(days=30),
+                "usuario_emision_id": "1"
             },
             {
                 "id": "2",
                 "nro_tuc": "T-123457-2025",
                 "vehiculo_id": "2",
                 "empresa_id": "1",
-                "expediente_id": "1",
+                "resolucion_padre_id": "1",
                 "fecha_emision": datetime.utcnow() - timedelta(days=25),
                 "fecha_vencimiento": datetime.utcnow() + timedelta(days=340),
                 "estado": "VIGENTE",
                 "observaciones": "TUC para Volvo",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=25)
+                "fecha_registro": datetime.utcnow() - timedelta(days=25),
+                "usuario_emision_id": "1"
             },
             {
                 "id": "3",
                 "nro_tuc": "T-123458-2025",
                 "vehiculo_id": "3",
                 "empresa_id": "1",
-                "expediente_id": "1",
+                "resolucion_padre_id": "2",
                 "fecha_emision": datetime.utcnow() - timedelta(days=20),
                 "fecha_vencimiento": datetime.utcnow() + timedelta(days=345),
                 "estado": "VIGENTE",
                 "observaciones": "TUC para Toyota",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=20)
+                "fecha_registro": datetime.utcnow() - timedelta(days=20),
+                "usuario_emision_id": "1"
             },
             {
                 "id": "4",
                 "nro_tuc": "T-123459-2025",
                 "vehiculo_id": "4",
                 "empresa_id": "2",
-                "expediente_id": "2",
+                "resolucion_padre_id": "3",
                 "fecha_emision": datetime.utcnow() - timedelta(days=15),
                 "fecha_vencimiento": datetime.utcnow() + timedelta(days=350),
                 "estado": "VIGENTE",
                 "observaciones": "TUC para Scania",
                 "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=15)
+                "fecha_registro": datetime.utcnow() - timedelta(days=15),
+                "usuario_emision_id": "1"
             },
             {
                 "id": "5",
                 "nro_tuc": "T-123460-2025",
                 "vehiculo_id": "5",
                 "empresa_id": "2",
-                "expediente_id": "2",
+                "resolucion_padre_id": "3",
                 "fecha_emision": datetime.utcnow() - timedelta(days=10),
                 "fecha_vencimiento": datetime.utcnow() + timedelta(days=355),
-                "estado": "SUSPENDIDO",
-                "observaciones": "TUC suspendido por mantenimiento",
-                "esta_activo": True,
-                "fecha_registro": datetime.utcnow() - timedelta(days=10)
+                "estado": "DADA_DE_BAJA",
+                "observaciones": "TUC dado de baja por mantenimiento",
+                "esta_activo": False,
+                "fecha_registro": datetime.utcnow() - timedelta(days=10),
+                "usuario_emision_id": "1"
             }
         ]
         
         for tuc_data in mock_tucs:
-            self.tucs[tuc_data["id"]] = TucInDB(**tuc_data)
+            # Convertir snake_case a camelCase y agregar campos faltantes
+            tuc_data_converted = {
+                "id": tuc_data["id"],
+                "vehiculoId": tuc_data["vehiculo_id"],
+                "empresaId": tuc_data["empresa_id"],
+                "resolucionPadreId": tuc_data["resolucion_padre_id"],
+                "nroTuc": tuc_data["nro_tuc"],
+                "fechaEmision": tuc_data["fecha_emision"],
+                "fechaVencimiento": tuc_data["fecha_vencimiento"],
+                "estado": tuc_data["estado"],
+                "razonDescarte": None,
+                "estaActivo": tuc_data["esta_activo"],
+                "fechaRegistro": tuc_data["fecha_registro"],
+                "fechaActualizacion": None,
+                "documentoId": None,
+                "qrVerificationUrl": f"https://verificacion.drtc-puno.gob.pe/tuc/{tuc_data['nro_tuc']}",
+                "datosVehiculo": self._get_vehiculo_mock_data(tuc_data["vehiculo_id"]),
+                "datosEmpresa": self._get_empresa_mock_data(tuc_data["empresa_id"]),
+                "datosRuta": self._get_ruta_mock_data(tuc_data["resolucion_padre_id"]),
+                "observaciones": tuc_data["observaciones"],
+                "historialIds": []
+            }
+            self.tucs[tuc_data["id"]] = TucInDB(**tuc_data_converted)
+
+    def _get_vehiculo_mock_data(self, vehiculo_id: str) -> dict:
+        """Obtener datos mock del vehículo para el TUC"""
+        vehiculos_data = {
+            "1": {"id": "1", "placa": "ABC-123", "marca": "Mercedes-Benz", "modelo": "Sprinter", "anio": "2020"},
+            "2": {"id": "2", "placa": "DEF-456", "marca": "Volvo", "modelo": "B12M", "anio": "2019"},
+            "3": {"id": "3", "placa": "GHI-789", "marca": "Toyota", "modelo": "Coaster", "anio": "2021"},
+            "4": {"id": "4", "placa": "JKL-012", "marca": "Scania", "modelo": "K320", "anio": "2018"},
+            "5": {"id": "5", "placa": "MNO-345", "marca": "Iveco", "modelo": "Daily", "anio": "2022"}
+        }
+        return vehiculos_data.get(vehiculo_id, {"id": vehiculo_id, "placa": "XXX-000", "marca": "Desconocida", "modelo": "Desconocido"})
+
+    def _get_empresa_mock_data(self, empresa_id: str) -> dict:
+        """Obtener datos mock de la empresa para el TUC"""
+        empresas_data = {
+            "1": {"id": "1", "razonSocial": "Transportes El Veloz S.A.C.", "ruc": "20123456789"},
+            "2": {"id": "2", "razonSocial": "Empresa de Transportes Puno S.A.C.", "ruc": "20123456790"},
+            "3": {"id": "3", "razonSocial": "Transportes Juliaca Express S.A.C.", "ruc": "20123456791"}
+        }
+        return empresas_data.get(empresa_id, {"id": empresa_id, "razonSocial": "Empresa Desconocida", "ruc": "00000000000"})
+
+    def _get_ruta_mock_data(self, resolucion_id: str) -> dict:
+        """Obtener datos mock de la ruta para el TUC"""
+        rutas_data = {
+            "1": {"id": "1", "nombre": "Puno - Juliaca", "origen": "Puno", "destino": "Juliaca"},
+            "2": {"id": "2", "nombre": "Puno - Cusco", "origen": "Puno", "destino": "Cusco"},
+            "3": {"id": "3", "nombre": "Juliaca - Arequipa", "origen": "Juliaca", "destino": "Arequipa"}
+        }
+        return rutas_data.get(resolucion_id, {"id": resolucion_id, "nombre": "Ruta Desconocida", "origen": "Origen", "destino": "Destino"})
 
 # Instancia global del servicio mock
 mock_service = MockDataService() 

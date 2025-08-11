@@ -83,6 +83,66 @@ export class EmpresaService {
       observaciones: 'Empresa en buen estado'
     },
     {
+      id: '3',
+      ruc: '20345678901',
+      razonSocial: {
+        principal: 'Transportes Cusco Express S.A.C.',
+        sunat: 'Transportes Cusco Express S.A.C.',
+        minimo: 'Transportes Cusco Express S.A.C.'
+      },
+      direccionFiscal: 'Av. Sol 789, Cusco',
+      estado: EstadoEmpresa.HABILITADA,
+      estaActivo: true,
+      fechaRegistro: new Date('2024-03-15T09:00:00Z'),
+      representanteLegal: {
+        dni: '11223344',
+        nombres: 'Carlos Alberto',
+        apellidos: 'García Mendoza',
+        email: 'carlos.garcia@transportescusco.com',
+        telefono: '951234568',
+        direccion: 'Av. Sol 789, Cusco'
+      },
+      emailContacto: 'info@transportescusco.com',
+      telefonoContacto: '951234568',
+      sitioWeb: 'www.transportescusco.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20345678901',
+          fechaEmision: new Date('2023-03-15'),
+          fechaVencimiento: new Date('2025-03-15'),
+          urlDocumento: 'https://example.com/ruc3.pdf',
+          observaciones: 'RUC activo',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-03-15T09:00:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'Empresa creada con RUC: 20345678901',
+          observaciones: 'Creación inicial de empresa'
+        }
+      ],
+      resolucionesPrimigeniasIds: ['6'],
+      vehiculosHabilitadosIds: ['9', '10'],
+      conductoresHabilitadosIds: ['3', '4'],
+      rutasAutorizadasIds: ['8', '9'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'Transportes Cusco Express S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'Av. Sol 789, Cusco',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 30,
+      observaciones: 'Empresa en buen estado'
+    },
+    {
       id: '2',
       ruc: '20234567890',
       razonSocial: {
@@ -126,7 +186,7 @@ export class EmpresaService {
           observaciones: 'Creación inicial de empresa'
         }
       ],
-      resolucionesPrimigeniasIds: ['3'],
+      resolucionesPrimigeniasIds: ['4', '5'],
       vehiculosHabilitadosIds: ['4', '5'],
       conductoresHabilitadosIds: ['3', '4'],
       rutasAutorizadasIds: ['4', '5'],

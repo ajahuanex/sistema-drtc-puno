@@ -43,8 +43,8 @@ class MockUsuarioService:
         
         usuario_dict = usuario_data.model_dump()
         usuario_dict["id"] = new_id
-        usuario_dict["password_hash"] = self.get_password_hash(usuario_data.password)
-        usuario_dict["fecha_creacion"] = datetime.utcnow()
+        usuario_dict["passwordHash"] = self.get_password_hash(usuario_data.password)
+        usuario_dict["fechaCreacion"] = datetime.utcnow()
         del usuario_dict["password"]
         
         new_usuario = UsuarioInDB(**usuario_dict)
@@ -72,7 +72,7 @@ class MockUsuarioService:
 
     async def get_usuarios_activos(self) -> List[UsuarioInDB]:
         """Obtener todos los usuarios activos"""
-        return [user for user in self.usuarios.values() if user.esta_activo]
+        return [user for user in self.usuarios.values() if user.estaActivo]
 
     async def update_usuario(self, usuario_id: str, usuario_data: UsuarioUpdate) -> Optional[UsuarioInDB]:
         """Actualizar usuario"""
@@ -83,11 +83,11 @@ class MockUsuarioService:
         update_data = usuario_data.model_dump(exclude_unset=True)
         
         if update_data:
-            update_data["fecha_actualizacion"] = datetime.utcnow()
+            update_data["fechaActualizacion"] = datetime.utcnow()
             
             # Si se actualiza la contraseña, generar hash
             if "password" in update_data:
-                update_data["password_hash"] = self.get_password_hash(update_data["password"])
+                update_data["passwordHash"] = self.get_password_hash(update_data["password"])
                 del update_data["password"]
             
             # Actualizar campos
@@ -101,8 +101,8 @@ class MockUsuarioService:
     async def soft_delete_usuario(self, usuario_id: str) -> bool:
         """Desactivar usuario (borrado lógico)"""
         if usuario_id in self.usuarios:
-            self.usuarios[usuario_id].esta_activo = False
-            self.usuarios[usuario_id].fecha_actualizacion = datetime.utcnow()
+            self.usuarios[usuario_id].estaActivo = False
+            self.usuarios[usuario_id].fechaActualizacion = datetime.utcnow()
             return True
         return False
 
@@ -112,7 +112,7 @@ class MockUsuarioService:
         if not usuario:
             return None
         
-        if not self.verify_password(password, usuario.password_hash):
+        if not self.verify_password(password, usuario.passwordHash):
             return None
         
         return usuario 

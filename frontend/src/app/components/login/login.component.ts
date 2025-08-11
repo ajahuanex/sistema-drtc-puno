@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../models/usuario.model';
 
@@ -21,7 +22,8 @@ import { LoginRequest } from '../../models/usuario.model';
     MatInputModule,
     MatButtonModule,
     MatCardModule,
-    MatIconModule
+    MatIconModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="login-container">
@@ -61,12 +63,12 @@ import { LoginRequest } from '../../models/usuario.model';
                          maxlength="8"
                          type="text"
                          required>
-                  <mat-error *ngIf="loginForm.get('dni')?.hasError('required')">
-                    El DNI es requerido
-                  </mat-error>
-                  <mat-error *ngIf="loginForm.get('dni')?.hasError('pattern')">
-                    El DNI debe tener 8 dígitos
-                  </mat-error>
+                  @if (loginForm.get('dni')?.hasError('required') && loginForm.get('dni')?.touched) {
+                    <mat-error>El DNI es requerido</mat-error>
+                  }
+                  @if (loginForm.get('dni')?.hasError('pattern') && loginForm.get('dni')?.touched) {
+                    <mat-error>El DNI debe tener 8 dígitos</mat-error>
+                  }
                 </mat-form-field>
               </div>
 
@@ -81,9 +83,9 @@ import { LoginRequest } from '../../models/usuario.model';
                          placeholder="Ingrese su contraseña"
                          type="password"
                          required>
-                  <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
-                    La contraseña es requerida
-                  </mat-error>
+                  @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+                    <mat-error>La contraseña es requerida</mat-error>
+                  }
                 </mat-form-field>
               </div>
 
@@ -91,25 +93,36 @@ import { LoginRequest } from '../../models/usuario.model';
                       color="primary" 
                       type="submit" 
                       class="login-button"
-                      [disabled]="loginForm.invalid || isLoading">
-                <mat-icon class="button-icon">{{ isLoading ? 'hourglass_empty' : 'login' }}</mat-icon>
-                <span class="button-text">{{ isLoading ? 'Iniciando Sesión...' : 'Iniciar Sesión' }}</span>
+                      [disabled]="loginForm.invalid || isLoading()">
+                @if (isLoading()) {
+                  <ng-container>
+                    <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+                    <span class="button-text">Iniciando Sesión...</span>
+                  </ng-container>
+                } @else {
+                  <ng-container>
+                    <mat-icon class="button-icon">login</mat-icon>
+                    <span class="button-text">Iniciar Sesión</span>
+                  </ng-container>
+                }
               </button>
             </form>
 
             <div class="credentials-info">
-              <div class="info-header">
-                <mat-icon class="info-icon">info</mat-icon>
-                <span>Credenciales de Prueba</span>
-              </div>
-              <div class="credentials-grid">
-                <div class="credential-item">
-                  <span class="credential-label">DNI:</span>
-                  <span class="credential-value">12345678</span>
+              <div class="info-card">
+                <div class="info-header">
+                  <mat-icon class="info-icon">info</mat-icon>
+                  <span class="info-title">Credenciales de Prueba</span>
                 </div>
-                <div class="credential-item">
-                  <span class="credential-label">Contraseña:</span>
-                  <span class="credential-value">password123</span>
+                <div class="info-content">
+                  <div class="credential-item">
+                    <span class="credential-label">DNI:</span>
+                    <span class="credential-value">12345678</span>
+                  </div>
+                  <div class="credential-item">
+                    <span class="credential-label">Contraseña:</span>
+                    <span class="credential-value">admin123</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -120,13 +133,12 @@ import { LoginRequest } from '../../models/usuario.model';
   `,
   styles: [`
     .login-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       overflow: hidden;
     }
 
@@ -134,142 +146,124 @@ import { LoginRequest } from '../../models/usuario.model';
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      z-index: -1;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
     }
 
     .background-pattern {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
-      animation: float 6s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      33% { transform: translateY(-20px) rotate(1deg); }
-      66% { transform: translateY(-10px) rotate(-1deg); }
+      right: 0;
+      bottom: 0;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+      animation: float 20s ease-in-out infinite;
     }
 
     .background-overlay {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
     }
 
     .login-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      position: relative;
+      z-index: 2;
       width: 100%;
       max-width: 1200px;
       margin: 0 auto;
-      position: relative;
-      z-index: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
     }
 
     .login-header {
       text-align: center;
-      margin-bottom: 40px;
-      color: #fff;
+      color: white;
     }
 
     .logo-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 20px;
+      gap: 16px;
     }
 
     .logo-icon {
-      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
-      padding: 20px;
-      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
     }
 
     .logo-icon mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #fff;
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: white;
     }
 
     .system-title {
-      font-size: 2.5em;
+      margin: 0;
+      font-size: 36px;
       font-weight: 700;
-      margin-bottom: 8px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      letter-spacing: 1px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .system-subtitle {
-      font-size: 1.1em;
-      color: #e0e0e0;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-      font-weight: 300;
+      margin: 0;
+      font-size: 18px;
+      opacity: 0.9;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .login-form-container {
-      display: flex;
-      justify-content: center;
       width: 100%;
+      max-width: 400px;
     }
 
     .form-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 24px;
+      background: white;
+      border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 500px;
-      padding: 40px;
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .form-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #4CAF50, #45a049);
+      padding: 32px;
+      backdrop-filter: blur(10px);
     }
 
     .form-header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 32px;
     }
 
     .form-title {
-      font-size: 2em;
+      margin: 0 0 8px 0;
+      font-size: 24px;
       font-weight: 600;
       color: #2c3e50;
-      margin-bottom: 10px;
     }
 
     .form-subtitle {
-      font-size: 1em;
-      color: #7f8c8d;
-      margin-bottom: 25px;
-      font-weight: 400;
+      margin: 0;
+      color: #6c757d;
+      font-size: 14px;
     }
 
     .login-form {
@@ -279,248 +273,161 @@ import { LoginRequest } from '../../models/usuario.model';
     }
 
     .form-field-container {
-      width: 100%;
+      position: relative;
     }
 
     .form-field {
       width: 100%;
     }
 
-    .form-field ::ng-deep .mat-form-field-wrapper {
-      padding-bottom: 0;
-    }
-
-    .form-field ::ng-deep .mat-form-field-outline {
-      border-radius: 12px;
-    }
-
-    .form-field ::ng-deep .mat-form-field-outline-thick {
-      border-color: #4CAF50;
-    }
-
-    .form-field ::ng-deep .mat-form-field-label {
-      color: #555;
-      font-weight: 500;
-    }
-
-    .form-field ::ng-deep .mat-form-field-outline-start,
-    .form-field ::ng-deep .mat-form-field-outline-end,
-    .form-field ::ng-deep .mat-form-field-outline-gap {
-      border-width: 2px;
-    }
-
     .field-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      margin-right: 10px;
-      color: #4CAF50;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      color: #6c757d;
     }
 
     .login-button {
-      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-      color: white;
-      padding: 16px;
-      font-size: 1.1em;
-      font-weight: 600;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.3s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+      gap: 8px;
+      height: 48px;
+      border-radius: 8px;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.2s ease-in-out;
     }
 
-    .login-button:hover {
-      background: linear-gradient(135deg, #45a049 0%, #388E3C 100%);
+    .login-button:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 12px 25px rgba(76, 175, 80, 0.4);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
 
     .login-button:disabled {
-      background: #bdc3c7;
+      opacity: 0.7;
       cursor: not-allowed;
-      color: #7f8c8d;
-      transform: none;
-      box-shadow: none;
     }
 
     .button-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .button-spinner {
+      margin-right: 8px;
     }
 
     .button-text {
-      font-size: 1em;
+      font-size: 14px;
       font-weight: 600;
     }
 
     .credentials-info {
-      margin-top: 30px;
-      padding-top: 25px;
-      border-top: 2px solid #ecf0f1;
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .info-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 4px solid #667eea;
     }
 
     .info-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-      color: #2c3e50;
-      font-size: 1.1em;
-      font-weight: 600;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .info-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      color: #4CAF50;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #667eea;
     }
 
-    .credentials-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 12px;
-      border: 1px solid #e9ecef;
+    .info-title {
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+
+    .info-content {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .credential-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.95em;
-      color: #555;
       padding: 8px 0;
     }
 
     .credential-label {
       font-weight: 500;
-      color: #2c3e50;
+      color: #6c757d;
+      font-size: 12px;
     }
 
     .credential-value {
       font-weight: 600;
-      color: #4CAF50;
-      font-family: 'Courier New', monospace;
-      background: #e8f5e8;
+      color: #2c3e50;
+      font-size: 12px;
+      background: #e9ecef;
       padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid #c8e6c9;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
     }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .login-container {
-        padding: 10px;
-      }
-
-      .login-header {
-        margin-bottom: 30px;
+      .login-content {
+        padding: 16px;
+        gap: 32px;
       }
 
       .system-title {
-        font-size: 2em;
+        font-size: 28px;
       }
 
       .system-subtitle {
-        font-size: 0.9em;
+        font-size: 16px;
       }
 
       .form-card {
-        padding: 30px;
+        padding: 24px;
       }
 
       .form-title {
-        font-size: 1.8em;
-      }
-
-      .form-subtitle {
-        font-size: 0.9em;
-      }
-
-      .credentials-grid {
-        grid-template-columns: 1fr;
+        font-size: 20px;
       }
     }
 
     @media (max-width: 480px) {
-      .login-container {
-        padding: 5px;
-      }
-
-      .login-header {
-        margin-bottom: 25px;
-      }
-
-      .system-title {
-        font-size: 1.8em;
-      }
-
-      .system-subtitle {
-        font-size: 0.8em;
-      }
-
-      .logo-icon {
-        padding: 15px;
-      }
-
-      .logo-icon mat-icon {
-        font-size: 36px;
-        width: 36px;
-        height: 36px;
+      .login-content {
+        padding: 12px;
       }
 
       .form-card {
-        padding: 25px;
+        padding: 20px;
       }
 
-      .form-title {
-        font-size: 1.5em;
+      .system-title {
+        font-size: 24px;
       }
 
-      .form-subtitle {
-        font-size: 0.8em;
-      }
-
-      .field-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
-      }
-
-      .button-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-
-      .button-text {
-        font-size: 0.9em;
-      }
-
-      .info-header {
-        font-size: 1em;
-      }
-
-      .info-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-      }
-
-      .credential-item {
-        font-size: 0.85em;
+      .system-subtitle {
+        font-size: 14px;
       }
     }
   `],
@@ -532,39 +439,59 @@ export class LoginComponent {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
+  // Signals
+  isLoading = signal(false);
+
+  // Form
   loginForm: FormGroup;
-  isLoading = false;
 
   constructor() {
     this.loginForm = this.fb.group({
       dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
-      password: ['', [Validators.required]]
+      password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
   onSubmit(): void {
     if (this.loginForm.valid) {
-      this.isLoading = true;
-      const { dni, password } = this.loginForm.value;
-
-      const credentials: LoginRequest = {
-        username: dni,
-        password: password
+      this.isLoading.set(true);
+      
+      const loginRequest: LoginRequest = {
+        username: this.loginForm.get('dni')?.value,
+        password: this.loginForm.get('password')?.value
       };
 
-      this.authService.login(credentials).subscribe({
+      this.authService.login(loginRequest).subscribe({
         next: (response) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', { duration: 3000 });
-          // Usar replaceUrl para evitar conflictos de navegación
-          this.router.navigate(['/dashboard'], { replaceUrl: true });
+          this.router.navigate(['/dashboard']);
         },
         error: (error) => {
-          this.isLoading = false;
-          console.error('Error de login:', error);
-          this.snackBar.open('Error en el inicio de sesión', 'Cerrar', { duration: 3000 });
+          this.isLoading.set(false);
+          console.error('Error en login:', error);
+          
+          let errorMessage = 'Error al iniciar sesión';
+          if (error.status === 401) {
+            errorMessage = 'Credenciales incorrectas';
+          } else if (error.status === 0) {
+            errorMessage = 'No se puede conectar al servidor';
+          } else if (error.error?.detail) {
+            errorMessage = error.error.detail;
+          }
+          
+          this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
         }
       });
+    } else {
+      this.markFormGroupTouched();
     }
+  }
+
+  private markFormGroupTouched(): void {
+    Object.keys(this.loginForm.controls).forEach(key => {
+      const control = this.loginForm.get(key);
+      control?.markAsTouched();
+    });
   }
 } 

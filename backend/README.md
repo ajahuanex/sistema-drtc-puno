@@ -87,171 +87,219 @@ backend/
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── usuario.py         # Modelos de usuario
-│   │   └── empresa.py         # Modelos de empresa
+│   │   ├── empresa.py         # Modelos de empresa
+│   │   ├── vehiculo.py        # Modelos de vehículo
+│   │   ├── conductor.py       # Modelos de conductor
+│   │   ├── ruta.py            # Modelos de ruta
+│   │   ├── tuc.py             # Modelos de TUC
+│   │   ├── resolucion.py      # Modelos de resolución
+│   │   ├── expediente.py      # Modelos de expediente
+│   │   ├── infraccion.py      # Modelos de infracción
+│   │   ├── fiscalizacion.py   # Modelos de fiscalización
+│   │   ├── notificacion.py    # Modelos de notificación
+│   │   ├── documento.py       # Modelos de documento
+│   │   ├── historial.py       # Modelos de historial
+│   │   ├── interoperabilidad.py # Modelos de interoperabilidad
+│   │   ├── localidad.py       # Modelos de localidad
+│   │   └── terminal.py        # Modelos de terminal
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── usuario_service.py # Lógica de negocio de usuarios
-│   │   └── empresa_service.py # Lógica de negocio de empresas
+│   │   ├── empresa_service.py # Lógica de negocio de empresas
+│   │   ├── vehiculo_service.py # Lógica de negocio de vehículos
+│   │   ├── conductor_service.py # Lógica de negocio de conductores
+│   │   ├── ruta_service.py    # Lógica de negocio de rutas
+│   │   ├── tuc_service.py     # Lógica de negocio de TUCs
+│   │   ├── resolucion_service.py # Lógica de negocio de resoluciones
+│   │   ├── expediente_service.py # Lógica de negocio de expedientes
+│   │   ├── infraccion_service.py # Lógica de negocio de infracciones
+│   │   ├── fiscalizacion_service.py # Lógica de negocio de fiscalización
+│   │   ├── notificacion_service.py # Lógica de negocio de notificaciones
+│   │   ├── sunat_service.py   # Servicio de integración con SUNAT
+│   │   └── mock_data.py       # Datos de prueba para desarrollo
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   ├── auth_router.py     # Endpoints de autenticación
-│   │   └── empresas_router.py # Endpoints de empresas
+│   │   ├── empresas_router.py # Endpoints de empresas
+│   │   ├── vehiculos_router.py # Endpoints de vehículos
+│   │   ├── conductores_router.py # Endpoints de conductores
+│   │   ├── rutas_router.py    # Endpoints de rutas
+│   │   ├── tucs_router.py     # Endpoints de TUCs
+│   │   ├── resoluciones_router.py # Endpoints de resoluciones
+│   │   ├── expedientes_router.py # Endpoints de expedientes
+│   │   ├── infracciones_router.py # Endpoints de infracciones
+│   │   ├── fiscalizaciones_router.py # Endpoints de fiscalización
+│   │   ├── notificaciones_router.py # Endpoints de notificaciones
+│   │   └── mock_router.py     # Endpoints de datos de prueba
 │   └── utils/
 │       ├── __init__.py
 │       └── exceptions.py      # Excepciones personalizadas
 ├── requirements.txt            # Dependencias de Python
-├── env.example               # Ejemplo de variables de entorno
-└── README.md                 # Este archivo
+├── env.example                # Ejemplo de variables de entorno
+└── README.md                  # Este archivo
 ```
 
-## 🔐 Autenticación
+## 🗃️ Modelos de Datos
 
-El sistema utiliza JWT (JSON Web Tokens) para la autenticación:
+### 🔐 Usuario
+- **Propósito**: Gestión de usuarios del sistema (funcionarios, administradores)
+- **Campos clave**: `id`, `username`, `email`, `rol`, `estaActivo`, `fechaRegistro`
+- **Roles**: ADMIN, FUNCIONARIO, SUPERVISOR, DIRECTOR
 
-1. **Registro**: `POST /api/v1/auth/register`
-2. **Login**: `POST /api/v1/auth/login`
-3. **Verificar usuario actual**: `GET /api/v1/auth/me`
+### 🏢 Empresa
+- **Propósito**: Empresas de transporte autorizadas para operar
+- **Campos clave**: `ruc`, `razonSocial`, `estado`, `datosSunat`, `scoreRiesgo`
+- **Relaciones**: Vehículos, conductores, rutas, resoluciones
 
-### Ejemplo de uso:
+### 🚗 Vehículo
+- **Propósito**: Vehículos autorizados para transporte de pasajeros y carga
+- **Campos clave**: `placa`, `marca`, `modelo`, `capacidad`, `estado`
+- **Relaciones**: Empresa propietaria, TUCs, rutas autorizadas
 
-```bash
-# Registrar usuario
-curl -X POST "http://localhost:8000/api/v1/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dni": "12345678",
-    "nombres": "Juan",
-    "apellidos": "Pérez",
-    "email": "juan@example.com",
-    "password": "password123"
-  }'
+### 👨‍💼 Conductor
+- **Propósito**: Conductores autorizados para operar vehículos
+- **Campos clave**: `dni`, `nombres`, `apellidos`, `licencia`, `estado`
+- **Relaciones**: Empresa, vehículos asignados, historial de infracciones
 
-# Login
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=12345678&password=password123"
-```
+### 🛣️ Ruta
+- **Propósito**: Rutas autorizadas para el transporte
+- **Campos clave**: `codigoRuta`, `origen`, `destino`, `distancia`, `tipoServicio`
+- **Relaciones**: Empresas autorizadas, vehículos habilitados
 
-## 🏢 Endpoints de Empresas
+### 📋 TUC (Tarjeta Única de Circulación)
+- **Propósito**: Documento oficial que autoriza la circulación de un vehículo
+- **Campos clave**: `numeroTuc`, `fechaEmision`, `fechaVencimiento`, `estado`
+- **Relaciones**: Vehículo, empresa, rutas autorizadas
 
-### CRUD de Empresas:
+### 📄 Resolución
+- **Propósito**: Documento administrativo que autoriza operaciones específicas
+- **Campos clave**: `nroResolucion`, `fechaEmision`, `tipoTramite`, `estado`
+- **Relaciones**: Empresa, expediente, vehículos autorizados
 
+### 📁 Expediente
+- **Propósito**: Conjunto de documentos y trámites para una solicitud
+- **Campos clave**: `nroExpediente`, `fechaEmision`, `tipoTramite`, `estado`
+- **🆕 Nuevo**: Sistema de seguimiento por oficina
+
+### 🚨 Infracción
+- **Propósito**: Registro de violaciones a las normas de transporte
+- **Campos clave**: `codigoInfraccion`, `fechaInfraccion`, `gravedad`, `sancion`
+- **Relaciones**: Vehículo, conductor, empresa, expediente
+
+### 🔍 Fiscalización
+- **Propósito**: Actividades de control y verificación en campo
+- **Campos clave**: `fechaFiscalizacion`, `tipoFiscalizacion`, `resultado`
+- **Relaciones**: Funcionario, vehículo, empresa, infracciones
+
+## 🆕 Nueva Funcionalidad: Seguimiento de Expedientes por Oficina
+
+### Propósito
+Implementar trazabilidad completa de expedientes permitiendo conocer:
+- **Dónde se encuentra** físicamente el expediente
+- **Quién es el responsable** en cada oficina
+- **Cuánto tiempo** permanecerá en cada oficina
+- **Historial completo** de movimientos entre oficinas
+
+### Tipos de Oficina
+1. **RECEPCIÓN** → Recepción y validación inicial
+2. **REVISION_TECNICA** → Análisis técnico de requisitos
+3. **LEGAL** → Verificación de cumplimiento normativo
+4. **FINANCIERA** → Verificación de pagos
+5. **APROBACION** → Decisión final
+6. **FISCALIZACION** → Control posterior
+7. **ARCHIVO** → Almacenamiento final
+
+### Niveles de Urgencia
+- **NORMAL** → Procesamiento estándar
+- **URGENTE** → Atención prioritaria
+- **MUY_URGENTE** → Atención inmediata
+- **CRITICO** → Máxima prioridad
+
+## 🔧 Endpoints Principales
+
+### Autenticación
+- `POST /api/v1/auth/login` - Inicio de sesión
+- `POST /api/v1/auth/refresh` - Renovación de token
+- `POST /api/v1/auth/logout` - Cierre de sesión
+
+### Empresas
 - `GET /api/v1/empresas/` - Listar empresas
 - `POST /api/v1/empresas/` - Crear empresa
-- `GET /api/v1/empresas/{id}` - Obtener empresa por ID
-- `GET /api/v1/empresas/ruc/{ruc}` - Obtener empresa por RUC
+- `GET /api/v1/empresas/{id}` - Obtener empresa
 - `PUT /api/v1/empresas/{id}` - Actualizar empresa
-- `DELETE /api/v1/empresas/{id}` - Desactivar empresa
 
-### Ejemplo de creación de empresa:
+### Vehículos
+- `GET /api/v1/vehiculos/` - Listar vehículos
+- `POST /api/v1/vehiculos/` - Crear vehículo
+- `GET /api/v1/vehiculos/{id}` - Obtener vehículo
+- `PUT /api/v1/vehiculos/{id}` - Actualizar vehículo
 
-```bash
-curl -X POST "http://localhost:8000/api/v1/empresas/" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ruc": "20123456789",
-    "razon_social": {
-      "principal": "Transportes El Veloz S.A.C.",
-      "sunat": "TRANSPORTES EL VELOZ S.A.C.",
-      "minimo": "TRANSPORTES EL VELOZ"
-    },
-    "direccion_fiscal": "Av. El Sol 123, Puno",
-    "representante_legal": {
-      "dni": "12345678",
-      "nombres": "Juan Carlos Pérez"
-    }
-  }'
-```
+### TUCs
+- `GET /api/v1/tucs/` - Listar TUCs
+- `POST /api/v1/tucs/` - Crear TUC
+- `GET /api/v1/tucs/{id}` - Obtener TUC
+- `PUT /api/v1/tucs/{id}` - Actualizar TUC
 
-## 🔧 Configuración
+### Resoluciones
+- `GET /api/v1/resoluciones/` - Listar resoluciones
+- `POST /api/v1/resoluciones/` - Crear resolución
+- `GET /api/v1/resoluciones/{id}` - Obtener resolución
+- `PUT /api/v1/resoluciones/{id}` - Actualizar resolución
 
-### Variables de Entorno (.env)
+### Expedientes
+- `GET /api/v1/expedientes/` - Listar expedientes
+- `POST /api/v1/expedientes/` - Crear expediente
+- `GET /api/v1/expedientes/{id}` - Obtener expediente
+- `PUT /api/v1/expedientes/{id}` - Actualizar expediente
+- `POST /api/v1/expedientes/{id}/transferir` - Transferir a otra oficina
 
-```env
-# Configuración de la aplicación
-PROJECT_NAME=Sistema de Gestión DRTC Puno
-VERSION=1.0.0
-API_V1_STR=/api/v1
-DEBUG=true
+## 🚀 Estado del Desarrollo
 
-# Base de datos MongoDB
-MONGODB_URL=mongodb://localhost:27017
-DATABASE_NAME=drtc_puno_db
+### ✅ Completado
+- Modelos de datos básicos con Pydantic
+- API REST para todas las entidades principales
+- Autenticación JWT con roles y permisos
+- Validación robusta de datos
+- Sistema de logging estructurado
+- Documentación automática con Swagger
 
-# Seguridad
-SECRET_KEY=tu_clave_secreta_muy_larga_y_segura_aqui
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+### 🔄 En Desarrollo
+- Sistema de seguimiento por oficina
+- Gestión de flujos de trabajo
+- Notificaciones automáticas
+- Reportes y métricas básicas
 
-# CORS
-BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:4200"]
-```
+### 📋 Planificado
+- Integración con sistemas externos (SUNAT, otros)
+- Sistema de auditoría avanzado
+- API GraphQL para consultas complejas
+- Microservicios para funcionalidades específicas
 
-## 🧪 Testing
+## 🔒 Seguridad
 
-```bash
-# Instalar dependencias de testing
-pip install pytest pytest-asyncio httpx
+- **JWT Tokens** con expiración configurable
+- **CORS** configurado para frontend específico
+- **Validación de datos** con Pydantic
+- **Logging de auditoría** para todas las operaciones
+- **Manejo de errores** estructurado
 
-# Ejecutar tests
-pytest
-```
+## 📊 Monitoreo y Logs
 
-## 📦 Despliegue
-
-### Docker
-
-```dockerfile
-FROM python:3.10-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  backend:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - MONGODB_URL=mongodb://mongo:27017
-    depends_on:
-      - mongo
-  
-  mongo:
-    image: mongo:5.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-
-volumes:
-  mongo_data:
-```
+- **Health Check** endpoint para monitoreo
+- **Logging estructurado** con diferentes niveles
+- **Métricas de rendimiento** de endpoints
+- **Trazabilidad** de todas las operaciones
 
 ## 🤝 Contribución
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+Ver [CONTRIBUTING.md](../CONTRIBUTING.md) para detalles sobre cómo contribuir al proyecto.
+
+## 📚 Documentación Adicional
+
+- **[📋 Brief Oficial del Sistema](../docs/BRIEF_SISTEMA_DRTC_PUNO.md)** - Documento de referencia para la lógica de negocio
+- **[🔌 API Documentation](../docs/API.md)** - Especificaciones detalladas de la API
+- **[🏢 Mejoras Empresas](../docs/MEJORAS_EMPRESAS.md)** - Funcionalidades específicas para gestión empresarial
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## 📞 Contacto
-
-DRTC Puno - Dirección Regional de Transportes y Comunicaciones Puno 
+Este proyecto está bajo la Licencia MIT. Ver [LICENSE](../LICENSE) para más detalles. 

@@ -51,31 +51,103 @@ async def get_rutas(
     estado: str = Query(None, description="Filtrar por estado")
 ) -> List[RutaResponse]:
     """Obtener lista de rutas con filtros opcionales"""
-    ruta_service = MockRutaService()
-    
-    if estado:
-        rutas = await ruta_service.get_rutas_por_estado(estado)
-    else:
-        rutas = await ruta_service.get_rutas_activas()
-    
-    # Aplicar paginación
-    rutas = rutas[skip:skip + limit]
-    
-    return [
-        RutaResponse(
-            id=ruta.id,
-            codigo_ruta=ruta.codigo_ruta,
-            nombre=ruta.nombre,
-            origen_id=ruta.origen_id,
-            destino_id=ruta.destino_id,
-            itinerario_ids=ruta.itinerario_ids,
-            frecuencias=ruta.frecuencias,
-            estado=ruta.estado,
-            esta_activo=ruta.esta_activo,
-            fecha_registro=ruta.fecha_registro
-        )
-        for ruta in rutas
-    ]
+    try:
+        # Datos mock simplificados para evitar errores
+        mock_rutas = [
+            {
+                "id": "1",
+                "codigoRuta": "R001",
+                "nombre": "Puno - Juliaca",
+                "origenId": "1",
+                "destinoId": "2",
+                "itinerarioIds": ["1", "3", "2"],
+                "frecuencias": "Cada 30 minutos",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERURBANA",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 45.5,
+                "tiempoEstimado": "01:30",
+                "tarifaBase": 8.50,
+                "capacidadMaxima": 50,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta principal Puno-Juliaca",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": ["1", "2"],
+                "documentosIds": ["1", "2"],
+                "historialIds": []
+            },
+            {
+                "id": "2",
+                "codigoRuta": "R002",
+                "nombre": "Puno - Cusco",
+                "origenId": "1",
+                "destinoId": "3",
+                "itinerarioIds": ["1", "4", "5", "3"],
+                "frecuencias": "Cada 2 horas",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERREGIONAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 380.0,
+                "tiempoEstimado": "08:00",
+                "tarifaBase": 45.00,
+                "capacidadMaxima": 45,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta turística Puno-Cusco",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": ["3"],
+                "documentosIds": ["3", "4"],
+                "historialIds": []
+            }
+        ]
+        
+        # Filtrar por estado si se especifica
+        if estado:
+            mock_rutas = [r for r in mock_rutas if r["estado"] == estado]
+        
+        # Aplicar paginación
+        total = len(mock_rutas)
+        rutas_paginadas = mock_rutas[skip:skip + limit]
+        
+        return [
+            RutaResponse(
+                id=ruta["id"],
+                codigoRuta=ruta["codigoRuta"],
+                nombre=ruta["nombre"],
+                origenId=ruta["origenId"],
+                destinoId=ruta["destinoId"],
+                itinerarioIds=ruta["itinerarioIds"],
+                frecuencias=ruta["frecuencias"],
+                estado=ruta["estado"],
+                estaActivo=ruta["estaActivo"],
+                fechaRegistro=ruta["fechaRegistro"],
+                fechaActualizacion=ruta["fechaActualizacion"],
+                tipoRuta=ruta["tipoRuta"],
+                tipoServicio=ruta["tipoServicio"],
+                distancia=ruta["distancia"],
+                tiempoEstimado=ruta["tiempoEstimado"],
+                tarifaBase=ruta["tarifaBase"],
+                capacidadMaxima=ruta["capacidadMaxima"],
+                horarios=ruta["horarios"],
+                restricciones=ruta["restricciones"],
+                observaciones=ruta["observaciones"],
+                empresasAutorizadasIds=ruta["empresasAutorizadasIds"],
+                vehiculosAsignadosIds=ruta["vehiculosAsignadosIds"],
+                documentosIds=ruta["documentosIds"],
+                historialIds=ruta["historialIds"]
+            )
+            for ruta in rutas_paginadas
+        ]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @router.get("/filtros", response_model=List[RutaResponse])
 async def get_rutas_con_filtros(

@@ -33,6 +33,10 @@ export interface Empresa {
   emailContacto?: string;
   telefonoContacto?: string;
   sitioWeb?: string;
+  // Propiedades de compatibilidad
+  direccion?: string;
+  telefono?: string;
+  email?: string;
   documentos: DocumentoEmpresa[];
   auditoria: AuditoriaEmpresa[];
   resolucionesPrimigeniasIds: string[];

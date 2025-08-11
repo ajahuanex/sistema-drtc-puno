@@ -10,23 +10,23 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCreate(UsuarioBase):
     password: str = Field(..., min_length=6, max_length=100)
-    rol_id: Optional[str] = Field(default="usuario")
+    rolId: Optional[str] = Field(default="usuario")
 
 class UsuarioUpdate(BaseModel):
     nombres: Optional[str] = Field(None, min_length=2, max_length=100)
     apellidos: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[str] = Field(None, pattern=r'^[^@]+@[^@]+\.[^@]+$')
     password: Optional[str] = Field(None, min_length=6, max_length=100)
-    rol_id: Optional[str] = None
-    esta_activo: Optional[bool] = None
+    rolId: Optional[str] = None
+    estaActivo: Optional[bool] = None
 
 class UsuarioInDB(UsuarioBase):
     id: str
-    password_hash: str
-    rol_id: str
-    esta_activo: bool = True
-    fecha_creacion: datetime
-    fecha_actualizacion: Optional[datetime] = None
+    passwordHash: str
+    rolId: str
+    estaActivo: bool = True
+    fechaCreacion: datetime
+    fechaActualizacion: Optional[datetime] = None
 
 class UsuarioResponse(BaseModel):
     id: str
@@ -34,9 +34,9 @@ class UsuarioResponse(BaseModel):
     nombres: str
     apellidos: str
     email: str
-    rol_id: str
-    esta_activo: bool
-    fecha_creacion: datetime
+    rolId: str
+    estaActivo: bool
+    fechaCreacion: datetime
     
     class Config:
         from_attributes = True

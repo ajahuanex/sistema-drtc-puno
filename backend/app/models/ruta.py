@@ -1,56 +1,199 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from bson import ObjectId
+from enum import Enum
 
-class RutaBase(BaseModel):
-    codigo_ruta: str = Field(..., description="Código de la ruta")
-    nombre: str = Field(..., min_length=2, description="Nombre de la ruta")
-    origen_id: str = Field(..., description="ID de la localidad de origen")
-    destino_id: str = Field(..., description="ID de la localidad de destino")
-    itinerario_ids: List[str] = Field(default_factory=list, description="IDs de las localidades del itinerario")
-    frecuencias: str = Field(..., description="Frecuencias de la ruta")
-    estado: str = Field(default="ACTIVA", description="Estado de la ruta")
+class EstadoRuta(str, Enum):
+    ACTIVA = "ACTIVA"
+    INACTIVA = "INACTIVA"
+    EN_MANTENIMIENTO = "EN_MANTENIMIENTO"
+    SUSPENDIDA = "SUSPENDIDA"
+    DADA_DE_BAJA = "DADA_DE_BAJA"
 
-class RutaCreate(RutaBase):
-    pass
+class TipoRuta(str, Enum):
+    URBANA = "URBANA"
+    INTERURBANA = "INTERURBANA"
+    INTERPROVINCIAL = "INTERPROVINCIAL"
+    INTERREGIONAL = "INTERREGIONAL"
+
+class TipoServicio(str, Enum):
+    PASAJEROS = "PASAJEROS"
+    CARGA = "CARGA"
+    MIXTO = "MIXTO"
+
+class Ruta(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    codigoRuta: str
+    nombre: str
+    origenId: str
+    destinoId: str
+    itinerarioIds: List[str] = []
+    frecuencias: str
+    estado: EstadoRuta
+    estaActivo: bool = True
+    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+    tipoRuta: TipoRuta
+    tipoServicio: TipoServicio
+    distancia: Optional[float] = None  # en kilómetros
+    tiempoEstimado: Optional[str] = None  # formato HH:MM
+    tarifaBase: Optional[float] = None  # en soles
+    capacidadMaxima: Optional[int] = None
+    horarios: List[dict] = []  # [{dia, horaSalida, horaLlegada}]
+    restricciones: List[str] = []
+    observaciones: Optional[str] = None
+    empresasAutorizadasIds: List[str] = []
+    vehiculosAsignadosIds: List[str] = []
+    documentosIds: List[str] = []
+    historialIds: List[str] = []
+
+class RutaCreate(BaseModel):
+    codigoRuta: str
+    nombre: str
+    origenId: str
+    destinoId: str
+    itinerarioIds: List[str] = []
+    frecuencias: str
+    tipoRuta: TipoRuta
+    tipoServicio: TipoServicio
+    distancia: Optional[float] = None
+    tiempoEstimado: Optional[str] = None
+    tarifaBase: Optional[float] = None
+    capacidadMaxima: Optional[int] = None
+    horarios: List[dict] = []
+    restricciones: List[str] = []
+    observaciones: Optional[str] = None
 
 class RutaUpdate(BaseModel):
-    codigo_ruta: Optional[str] = None
-    nombre: Optional[str] = Field(None, min_length=2)
-    origen_id: Optional[str] = None
-    destino_id: Optional[str] = None
-    itinerario_ids: Optional[List[str]] = None
+    nombre: Optional[str] = None
+    itinerarioIds: Optional[List[str]] = None
     frecuencias: Optional[str] = None
-    estado: Optional[str] = None
+    estado: Optional[EstadoRuta] = None
+    tipoRuta: Optional[TipoRuta] = None
+    tipoServicio: Optional[TipoServicio] = None
+    distancia: Optional[float] = None
+    tiempoEstimado: Optional[str] = None
+    tarifaBase: Optional[float] = None
+    capacidadMaxima: Optional[int] = None
+    horarios: Optional[List[dict]] = None
+    restricciones: Optional[List[str]] = None
+    observaciones: Optional[str] = None
+    empresasAutorizadasIds: Optional[List[str]] = None
+    vehiculosAsignadosIds: Optional[List[str]] = None
+    documentosIds: Optional[List[str]] = None
 
-class RutaInDB(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    codigo_ruta: str
-    nombre: str
-    origen_id: str
-    destino_id: str
-    itinerario_ids: List[str] = Field(default_factory=list)
-    frecuencias: str
-    estado: str = Field(default="ACTIVA")
-    esta_activo: bool = Field(default=True, alias="estaActivo")
-    fecha_registro: datetime = Field(default_factory=datetime.utcnow, alias="fechaRegistro")
+class RutaInDB(Ruta):
+    """Modelo para ruta en base de datos con campos adicionales de seguridad"""
+    pass
 
-    class Config:
-        populate_by_name = True
-        json_encoders = {ObjectId: str}
+class RutaFiltros(BaseModel):
+    codigoRuta: Optional[str] = None
+    nombre: Optional[str] = None
+    origenId: Optional[str] = None
+    destinoId: Optional[str] = None
+    estado: Optional[EstadoRuta] = None
+    tipoRuta: Optional[TipoRuta] = None
+    tipoServicio: Optional[TipoServicio] = None
+    empresaId: Optional[str] = None
+    tieneVehiculos: Optional[bool] = None
+    tieneDocumentos: Optional[bool] = None
+    distanciaMin: Optional[float] = None
+    distanciaMax: Optional[float] = None
 
 class RutaResponse(BaseModel):
     id: str
-    codigo_ruta: str
+    codigoRuta: str
     nombre: str
-    origen_id: str
-    destino_id: str
-    itinerario_ids: List[str]
+    origenId: str
+    destinoId: str
+    itinerarioIds: List[str]
     frecuencias: str
-    estado: str
-    esta_activo: bool
-    fecha_registro: datetime
+    estado: EstadoRuta
+    estaActivo: bool
+    fechaRegistro: datetime
+    fechaActualizacion: Optional[datetime] = None
+    tipoRuta: TipoRuta
+    tipoServicio: TipoServicio
+    distancia: Optional[float] = None
+    tiempoEstimado: Optional[str] = None
+    tarifaBase: Optional[float] = None
+    capacidadMaxima: Optional[int] = None
+    horarios: List[dict]
+    restricciones: List[str]
+    observaciones: Optional[str] = None
+    empresasAutorizadasIds: List[str]
+    vehiculosAsignadosIds: List[str]
+    documentosIds: List[str]
+    historialIds: List[str]
 
-    class Config:
-        from_attributes = True 
+class RutaEstadisticas(BaseModel):
+    totalRutas: int
+    rutasActivas: int
+    rutasInactivas: int
+    rutasEnMantenimiento: int
+    rutasSuspendidas: int
+    rutasDadasDeBaja: int
+    rutasUrbanas: int
+    rutasInterurbanas: int
+    rutasInterprovinciales: int
+    rutasInterregionales: int
+    promedioVehiculosPorRuta: float
+    promedioEmpresasPorRuta: float
+    distribucionPorTipo: dict
+
+class RutaResumen(BaseModel):
+    id: str
+    codigoRuta: str
+    nombre: str
+    origenId: str
+    destinoId: str
+    estado: EstadoRuta
+    tipoRuta: TipoRuta
+    tipoServicio: TipoServicio
+    distancia: Optional[float] = None
+    vehiculosCount: int
+    empresasCount: int
+    documentosCount: int
+    ultimaActualizacion: datetime
+
+class RutaHistorial(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    rutaId: str
+    fechaCambio: datetime
+    tipoCambio: str
+    usuarioId: str
+    campoAnterior: Optional[str] = None
+    campoNuevo: Optional[str] = None
+    observaciones: Optional[str] = None
+    datosCompletos: dict  # Estado completo de la ruta antes del cambio
+
+class Itinerario(BaseModel):
+    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    rutaId: str
+    orden: int
+    localidadId: str
+    tipo: str  # ORIGEN, ESCALA, DESTINO
+    tiempoEstimado: Optional[str] = None
+    distanciaDesdeOrigen: Optional[float] = None
+    observaciones: Optional[str] = None
+    estaActivo: bool = True
+
+class ItinerarioCreate(BaseModel):
+    rutaId: str
+    orden: int
+    localidadId: str
+    tipo: str
+    tiempoEstimado: Optional[str] = None
+    distanciaDesdeOrigen: Optional[float] = None
+    observaciones: Optional[str] = None
+
+class RutaCompleta(BaseModel):
+    ruta: RutaResponse
+    origen: dict
+    destino: dict
+    itinerario: List[Itinerario]
+    empresas: List[dict]
+    vehiculos: List[dict]
+    documentos: List[dict]
+    historial: List[RutaHistorial] 

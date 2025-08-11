@@ -25,7 +25,7 @@ import { AgregarVehiculosModalComponent } from './agregar-vehiculos-modal.compon
 interface Resolucion {
   id: string;
   numero: string;
-  tipo: 'PADRE' | 'HIJA';
+  tipoResolucion: 'PADRE' | 'HIJO';
   resuelve: string;
   fechaEmision: string;
   estado: 'ACTIVA' | 'SUSPENDIDA' | 'VENCIDA';
@@ -141,7 +141,7 @@ interface Resolucion {
                     <th mat-header-cell *matHeaderCellDef>Número</th>
                     <td mat-cell *matCellDef="let resolucion">
                       <div class="resolucion-numero">
-                        @if (resolucion.tipo === 'HIJA') {
+                        @if (resolucion.tipoResolucion === 'HIJO') {
                           <mat-icon class="hija-icon">subdirectory_arrow_right</mat-icon>
                         }
                         {{ resolucion.numero }}
@@ -153,8 +153,8 @@ interface Resolucion {
                   <ng-container matColumnDef="tipo">
                     <th mat-header-cell *matHeaderCellDef>Tipo</th>
                     <td mat-cell *matCellDef="let resolucion">
-                      <span class="tipo-chip" [class]="resolucion.tipo.toLowerCase()">
-                        {{ resolucion.tipo }}
+                      <span class="tipo-chip" [class]="resolucion.tipoResolucion.toLowerCase()">
+                        {{ resolucion.tipoResolucion }}
                       </span>
                     </td>
                   </ng-container>
@@ -181,7 +181,7 @@ interface Resolucion {
                   <ng-container matColumnDef="vigencia">
                     <th mat-header-cell *matHeaderCellDef>Vigencia</th>
                     <td mat-cell *matCellDef="let resolucion">
-                      @if (resolucion.tipo === 'PADRE' && resolucion.fechaInicioVigencia && resolucion.fechaFinVigencia) {
+                      @if (resolucion.tipoResolucion === 'PADRE' && resolucion.fechaInicioVigencia && resolucion.fechaFinVigencia) {
                         {{ resolucion.fechaInicioVigencia | date:'dd/MM/yyyy' }} - {{ resolucion.fechaFinVigencia | date:'dd/MM/yyyy' }}
                       } @else {
                         <span class="no-vigencia">Sin vigencia</span>
@@ -758,7 +758,7 @@ export class EmpresaVehiculosBatchComponent {
       {
         id: '1',
         numero: 'RES-001/2024',
-        tipo: 'PADRE',
+        tipoResolucion: 'PADRE',
         resuelve: 'Autorización para operar transporte público',
         fechaEmision: '2024-01-15',
         estado: 'ACTIVA',
@@ -770,7 +770,7 @@ export class EmpresaVehiculosBatchComponent {
           {
             id: '2',
             numero: 'RES-002/2024',
-            tipo: 'HIJA',
+            tipoResolucion: 'HIJO',
             resuelve: 'Ampliación de rutas para zona norte',
             fechaEmision: '2024-02-20',
             estado: 'ACTIVA',
@@ -781,7 +781,7 @@ export class EmpresaVehiculosBatchComponent {
           {
             id: '3',
             numero: 'RES-003/2024',
-            tipo: 'HIJA',
+            tipoResolucion: 'HIJO',
             resuelve: 'Autorización para vehículos de carga',
             fechaEmision: '2024-03-10',
             estado: 'ACTIVA',
@@ -794,7 +794,7 @@ export class EmpresaVehiculosBatchComponent {
       {
         id: '4',
         numero: 'RES-004/2024',
-        tipo: 'PADRE',
+        tipoResolucion: 'PADRE',
         resuelve: 'Autorización para transporte interprovincial',
         fechaEmision: '2024-04-01',
         estado: 'ACTIVA',
@@ -806,7 +806,7 @@ export class EmpresaVehiculosBatchComponent {
           {
             id: '5',
             numero: 'RES-005/2024',
-            tipo: 'HIJA',
+            tipoResolucion: 'HIJO',
             resuelve: 'Ampliación a rutas costeras',
             fechaEmision: '2024-05-15',
             estado: 'ACTIVA',

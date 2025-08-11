@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
@@ -8,6 +8,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { AuthService } from '../../services/auth.service';
 import { Vehiculo } from '../../models/vehiculo.model';
@@ -15,6 +18,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
 @Component({
   selector: 'app-vehiculos',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     MatTableModule,
@@ -22,27 +26,30 @@ import { Vehiculo } from '../../models/vehiculo.model';
     MatIconModule,
     MatCardModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatChipsModule,
+    MatMenuModule,
+    MatDialogModule
   ],
   template: `
     <div class="page-header">
       <div class="header-content">
         <div class="header-title">
           <h1>Vehículos Registrados</h1>
+          <p class="header-subtitle">Gestión de vehículos de transporte</p>
         </div>
-        <p class="header-subtitle">Gestión de vehículos de transporte</p>
-      </div>
-      <div class="header-actions">
-        <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="action-button">
-          <mat-icon>add</mat-icon>
-          Nuevo Vehículo
-        </button>
+        <div class="header-actions">
+          <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="action-button">
+            <mat-icon>add</mat-icon>
+            Nuevo Vehículo
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="content-section">
       <!-- Loading State -->
-      @if (isLoading) {
+      @if (isLoading()) {
         <div class="loading-container">
           <div class="loading-content">
             <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
@@ -53,7 +60,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
       }
 
       <!-- Empty State -->
-      @if (!isLoading && vehiculos.length === 0) {
+      @if (!isLoading() && vehiculos().length === 0) {
         <div class="empty-container">
           <div class="empty-content">
             <div class="empty-icon-container">
@@ -76,135 +83,148 @@ import { Vehiculo } from '../../models/vehiculo.model';
       }
 
       <!-- Data Table -->
-      @if (!isLoading && vehiculos.length > 0) {
+      @if (!isLoading() && vehiculos().length > 0) {
         <div class="table-section">
-        <div class="table-header">
-          <div class="table-info">
-            <h3>Vehículos Registrados</h3>
-            <p class="table-subtitle">Se encontraron {{vehiculos.length}} vehículos</p>
+          <div class="table-header">
+            <div class="table-info">
+              <h3>Vehículos Registrados</h3>
+              <p class="table-subtitle">Se encontraron {{ vehiculos().length }} vehículos</p>
+            </div>
+            <div class="table-actions">
+              <button mat-button color="accent" (click)="recargarVehiculos()">
+                <mat-icon>refresh</mat-icon>
+                Recargar
+              </button>
+            </div>
           </div>
-          <div class="table-actions">
-            <button mat-button color="accent" (click)="recargarVehiculos()">
-              <mat-icon>refresh</mat-icon>
-              Recargar
-            </button>
+
+          <div class="table-container">
+            <table mat-table [dataSource]="vehiculos()" class="modern-table">
+              <!-- Placa Column -->
+              <ng-container matColumnDef="placa">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Placa</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <span class="placa-text">{{ vehiculo.placa }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Marca Column -->
+              <ng-container matColumnDef="marca">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Marca</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <span>{{ vehiculo.marca }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Modelo Column -->
+              <ng-container matColumnDef="modelo">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Modelo</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <span>{{ vehiculo.modelo }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Categoría Column -->
+              <ng-container matColumnDef="categoria">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Categoría</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <mat-chip [class]="'categoria-chip-' + vehiculo.categoria?.toLowerCase()">
+                      {{ vehiculo.categoria }}
+                    </mat-chip>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Estado Column -->
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Estado</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <mat-chip [class]="'estado-chip-' + vehiculo.estado?.toLowerCase()">
+                      {{ getEstadoDisplayName(vehiculo.estado) }}
+                    </mat-chip>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Año Fabricación Column -->
+              <ng-container matColumnDef="anioFabricacion">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Año</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <span>{{ vehiculo.anioFabricacion }}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Acciones Column -->
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                  <div class="header-content">
+                    <span>Acciones</span>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                  <div class="cell-content">
+                    <div class="action-buttons">
+                      <button mat-icon-button color="primary" 
+                              matTooltip="Ver detalles" 
+                              (click)="verVehiculo(vehiculo.id)">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-icon-button color="accent" 
+                              matTooltip="Editar" 
+                              (click)="editarVehiculo(vehiculo.id)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" 
+                              matTooltip="Eliminar" 
+                              (click)="eliminarVehiculo(vehiculo.id)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+                  class="table-row"
+                  (click)="verVehiculo(row.id)"></tr>
+            </table>
           </div>
         </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="vehiculos" class="modern-table">
-            <!-- Placa Column -->
-            <ng-container matColumnDef="placa">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Placa</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ vehiculo.placa }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Marca Column -->
-            <ng-container matColumnDef="marca">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Marca</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ vehiculo.marca }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Categoría Column -->
-            <ng-container matColumnDef="categoria">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Categoría</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text">{{ vehiculo.categoria }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Estado Column -->
-            <ng-container matColumnDef="estado">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Estado</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content">
-                  <span class="status-badge" [class]="'status-' + vehiculo.estado.toLowerCase()">
-                    {{ vehiculo.estado }}
-                  </span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- TUC Column -->
-            <ng-container matColumnDef="tuc">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>TUC</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content">
-                  <span class="cell-text" *ngIf="vehiculo.tuc">{{ vehiculo.tuc.nroTuc }}</span>
-                  <span class="cell-text text-muted" *ngIf="!vehiculo.tuc">Sin TUC</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Acciones Column -->
-            <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                <div class="header-content">
-                  <span>Acciones</span>
-                </div>
-              </th>
-              <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                <div class="cell-content actions-content">
-                  <button mat-icon-button 
-                          color="primary" 
-                          (click)="verVehiculo(vehiculo.id)"
-                          matTooltip="Ver detalles"
-                          class="action-button">
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                  <button mat-icon-button 
-                          color="accent" 
-                          (click)="editarVehiculo(vehiculo.id)"
-                          matTooltip="Editar vehículo"
-                          class="action-button">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button 
-                          color="warn" 
-                          (click)="eliminarVehiculo(vehiculo.id)"
-                          matTooltip="Eliminar vehículo"
-                          class="action-button">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-          </table>
-        </div>
-      </div>
       }
     </div>
   `,
@@ -226,9 +246,8 @@ import { Vehiculo } from '../../models/vehiculo.model';
 
     .header-title {
       display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 8px;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .header-title h1 {
@@ -244,11 +263,16 @@ import { Vehiculo } from '../../models/vehiculo.model';
       font-size: 16px;
     }
 
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
     .action-button {
       display: flex;
       align-items: center;
       gap: 8px;
-      border-radius: 4px;
+      border-radius: 8px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -271,13 +295,6 @@ import { Vehiculo } from '../../models/vehiculo.model';
       display: flex;
       align-items: center;
       gap: 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      min-height: 40px;
-      padding: 0 24px;
-      transition: all 0.2s ease-in-out;
     }
 
     .primary-action:hover {
@@ -289,13 +306,6 @@ import { Vehiculo } from '../../models/vehiculo.model';
       display: flex;
       align-items: center;
       gap: 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      min-height: 40px;
-      padding: 0 24px;
-      transition: all 0.2s ease-in-out;
     }
 
     .secondary-action:hover {
@@ -338,7 +348,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
     }
 
     .empty-content h2 {
-      margin: 24px 0 12px 0;
+      margin: 24px 0 8px 0;
       color: #2c3e50;
       font-weight: 500;
     }
@@ -349,23 +359,34 @@ import { Vehiculo } from '../../models/vehiculo.model';
       font-size: 16px;
     }
 
+    .empty-icon-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #6c757d;
+    }
+
     .empty-actions {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       justify-content: center;
-      flex-wrap: wrap;
     }
 
     .table-section {
-      padding: 0;
+      padding: 24px;
     }
 
     .table-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px;
-      border-bottom: 1px solid #e9ecef;
+      margin-bottom: 24px;
     }
 
     .table-info h3 {
@@ -380,33 +401,44 @@ import { Vehiculo } from '../../models/vehiculo.model';
       font-size: 14px;
     }
 
+    .table-actions {
+      display: flex;
+      gap: 8px;
+    }
+
     .table-container {
-      overflow-x: auto;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .modern-table {
       width: 100%;
-      border-collapse: collapse;
+      background: white;
     }
 
     .table-header-cell {
-      background: #f8f9fa;
-      padding: 16px;
-      font-weight: 600;
+      background-color: #f8f9fa;
       color: #2c3e50;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 16px;
       border-bottom: 2px solid #e9ecef;
-    }
-
-    .header-content {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .table-cell {
       padding: 16px;
       border-bottom: 1px solid #e9ecef;
-      vertical-align: middle;
+      color: #2c3e50;
+    }
+
+    .table-row {
+      transition: background-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .table-row:hover {
+      background-color: #f8f9fa;
     }
 
     .cell-content {
@@ -415,56 +447,62 @@ import { Vehiculo } from '../../models/vehiculo.model';
       gap: 8px;
     }
 
-    .cell-text {
-      color: #2c3e50;
-      font-weight: 500;
-    }
-
-    .text-muted {
-      color: #6c757d;
-      font-weight: 400;
-    }
-
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+    .placa-text {
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: #1976d2;
     }
 
-    .status-activo {
-      background: #d4edda;
+    .categoria-chip-autobus {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .categoria-chip-camion {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .categoria-chip-camioneta {
+      background-color: #e8f5e8;
+      color: #388e3c;
+    }
+
+    .categoria-chip-microbus {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .estado-chip-activo {
+      background-color: #d4edda;
       color: #155724;
     }
 
-    .status-inactivo {
-      background: #f8d7da;
+    .estado-chip-inactivo {
+      background-color: #f8d7da;
       color: #721c24;
     }
 
-    .status-en_tramite {
-      background: #fff3cd;
+    .estado-chip-en_mantenimiento {
+      background-color: #fff3cd;
       color: #856404;
     }
 
-    .actions-content {
+    .estado-chip-suspendido {
+      background-color: #e2e3e5;
+      color: #383d41;
+    }
+
+    .action-buttons {
       display: flex;
-      gap: 8px;
-      justify-content: flex-start;
+      gap: 4px;
     }
 
-    .action-button {
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
+    .action-buttons button {
+      transition: transform 0.2s ease;
     }
 
-    .action-button mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    .action-buttons button:hover {
+      transform: scale(1.1);
     }
 
     /* Responsive */
@@ -485,82 +523,64 @@ import { Vehiculo } from '../../models/vehiculo.model';
         text-align: center;
       }
 
-      .actions-content {
+      .table-actions {
         justify-content: center;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 2px;
       }
     }
   `]
 })
 export class VehiculosComponent implements OnInit {
-  vehiculos: Vehiculo[] = [];
-  displayedColumns: string[] = ['placa', 'marca', 'categoria', 'estado', 'tuc', 'acciones'];
-  isLoading = false;
+  private vehiculoService = inject(VehiculoService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
-  constructor(
-    private vehiculoService: VehiculoService,
-    private authService: AuthService,
-    private router: Router,
-    private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
-  ) {}
+  // Signals
+  vehiculos = signal<Vehiculo[]>([]);
+  isLoading = signal(false);
+
+  // Columnas de la tabla
+  displayedColumns = ['placa', 'marca', 'modelo', 'categoria', 'estado', 'anioFabricacion', 'acciones'];
 
   ngOnInit(): void {
-    // Verificar si el usuario está autenticado
-    if (!this.authService.isAuthenticated()) {
-      console.log('Usuario no autenticado, redirigiendo a login...');
-      this.router.navigate(['/login']);
-      return;
-    }
-    
-    console.log('Usuario autenticado:', this.authService.getCurrentUser());
-    console.log('Token disponible:', !!this.authService.getToken());
-    
-    // Cargar vehículos inmediatamente
     this.loadVehiculos();
   }
 
   recargarVehiculos(): void {
-    console.log('Recargando vehículos manualmente...');
     this.loadVehiculos();
   }
 
   loadVehiculos(): void {
-    this.isLoading = true;
-    console.log('Iniciando carga de vehículos...');
-    
+    this.isLoading.set(true);
     this.vehiculoService.getVehiculos().subscribe({
       next: (vehiculos) => {
-        console.log('Vehículos cargados exitosamente:', vehiculos);
-        this.vehiculos = vehiculos;
-        this.isLoading = false;
-        // Forzar la detección de cambios
-        this.cdr.detectChanges();
-        console.log('Detección de cambios forzada, vehículos en vista:', this.vehiculos);
+        this.vehiculos.set(vehiculos);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('Error cargando vehículos:', error);
-        console.error('Detalles del error:', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          url: error.url
-        });
-        
-        let errorMessage = 'Error al cargar vehículos';
-        
-        if (error.status === 401) {
-          errorMessage = 'No autorizado. Por favor, inicie sesión nuevamente.';
-        } else if (error.status === 404) {
-          errorMessage = 'Endpoint no encontrado. Verifique la configuración del backend.';
-        } else if (error.status === 0) {
-          errorMessage = 'No se puede conectar al servidor. Verifique que el backend esté ejecutándose.';
-        }
-        
-        this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
-        this.isLoading = false;
-        this.cdr.detectChanges();
+        this.snackBar.open('Error al cargar los vehículos', 'Cerrar', { duration: 3000 });
+        this.isLoading.set(false);
       }
     });
+  }
+
+  getEstadoDisplayName(estado?: string): string {
+    if (!estado) return 'Desconocido';
+    
+    const estados: { [key: string]: string } = {
+      'ACTIVO': 'Activo',
+      'INACTIVO': 'Inactivo',
+      'EN_MANTENIMIENTO': 'En Mantenimiento',
+      'SUSPENDIDO': 'Suspendido'
+    };
+    return estados[estado] || estado;
   }
 
   verVehiculo(id: string): void {
@@ -576,15 +596,15 @@ export class VehiculosComponent implements OnInit {
   }
 
   eliminarVehiculo(id: string): void {
-    if (confirm('¿Estás seguro de que deseas eliminar este vehículo? Esta acción no se puede deshacer.')) {
+    if (confirm('¿Estás seguro de que deseas eliminar este vehículo?')) {
       this.vehiculoService.deleteVehiculo(id).subscribe({
         next: () => {
           this.snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
-          this.loadVehiculos(); // Recargar la lista
+          this.loadVehiculos();
         },
         error: (error) => {
           console.error('Error eliminando vehículo:', error);
-          this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 5000 });
+          this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
         }
       });
     }

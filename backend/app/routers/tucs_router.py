@@ -31,13 +31,21 @@ async def create_tuc(
             nro_tuc=tuc.nro_tuc,
             vehiculo_id=tuc.vehiculo_id,
             empresa_id=tuc.empresa_id,
-            expediente_id=tuc.expediente_id,
+            resolucion_padre_id=tuc.resolucion_padre_id,
             fecha_emision=tuc.fecha_emision,
-            fecha_vencimiento=tuc.fecha_vencimiento,
             estado=tuc.estado,
+            razon_descarte=tuc.razon_descarte,
             observaciones=tuc.observaciones,
             esta_activo=tuc.esta_activo,
-            fecha_registro=tuc.fecha_registro
+            fecha_registro=tuc.fecha_registro,
+            fecha_actualizacion=tuc.fecha_actualizacion,
+            documento_id=tuc.documento_id,
+            qr_verification_url=tuc.qr_verification_url,
+            usuario_emision_id=tuc.usuario_emision_id,
+            fecha_vencimiento=tuc.fecha_vencimiento,
+            motivo_baja=tuc.motivo_baja,
+            fecha_baja=tuc.fecha_baja,
+            usuario_baja_id=tuc.usuario_baja_id
         )
     except ValueError as e:
         if "número" in str(e).lower():
@@ -80,22 +88,41 @@ async def get_tucs(
     # Aplicar paginación
     tucs = tucs[skip:skip + limit]
     
-    return [
-        TucResponse(
+    # Log de debug para ver qué datos se están devolviendo
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"TUCs obtenidos del servicio: {len(tucs)}")
+    for i, tuc in enumerate(tucs):
+        logger.info(f"TUC {i+1}: id={tuc.id}, vehiculo_id={tuc.vehiculo_id}, empresa_id={tuc.empresa_id}, resolucion_padre_id={tuc.resolucion_padre_id}")
+    
+    # Crear respuestas
+    responses = []
+    for tuc in tucs:
+        response = TucResponse(
             id=tuc.id,
             nro_tuc=tuc.nro_tuc,
             vehiculo_id=tuc.vehiculo_id,
             empresa_id=tuc.empresa_id,
-            expediente_id=tuc.expediente_id,
+            resolucion_padre_id=tuc.resolucion_padre_id,
             fecha_emision=tuc.fecha_emision,
-            fecha_vencimiento=tuc.fecha_vencimiento,
             estado=tuc.estado,
+            razon_descarte=tuc.razon_descarte,
             observaciones=tuc.observaciones,
             esta_activo=tuc.esta_activo,
-            fecha_registro=tuc.fecha_registro
+            fecha_registro=tuc.fecha_registro,
+            fecha_actualizacion=tuc.fecha_actualizacion,
+            documento_id=tuc.documento_id,
+            qr_verification_url=tuc.qr_verification_url,
+            usuario_emision_id=tuc.usuario_emision_id,
+            fecha_vencimiento=tuc.fecha_vencimiento,
+            motivo_baja=tuc.motivo_baja,
+            fecha_baja=tuc.fecha_baja,
+            usuario_baja_id=tuc.usuario_baja_id
         )
-        for tuc in tucs
-    ]
+        responses.append(response)
+        logger.info(f"TUC Response {response.id}: vehiculo_id={response.vehiculo_id}, empresa_id={response.empresa_id}, resolucion_padre_id={response.resolucion_padre_id}")
+    
+    return responses
 
 @router.get("/filtros", response_model=List[TucResponse])
 async def get_tucs_con_filtros(
@@ -105,7 +132,7 @@ async def get_tucs_con_filtros(
     numero: Optional[str] = Query(None),
     empresa_id: Optional[str] = Query(None),
     vehiculo_id: Optional[str] = Query(None),
-    expediente_id: Optional[str] = Query(None),
+    resolucion_padre_id: Optional[str] = Query(None),
     fecha_desde: Optional[datetime] = Query(None),
     fecha_hasta: Optional[datetime] = Query(None)
 ) -> List[TucResponse]:
@@ -122,8 +149,8 @@ async def get_tucs_con_filtros(
         filtros['empresa_id'] = empresa_id
     if vehiculo_id:
         filtros['vehiculo_id'] = vehiculo_id
-    if expediente_id:
-        filtros['expediente_id'] = expediente_id
+    if resolucion_padre_id:
+        filtros['resolucion_padre_id'] = resolucion_padre_id
     if fecha_desde:
         filtros['fecha_desde'] = fecha_desde
     if fecha_hasta:
@@ -138,13 +165,21 @@ async def get_tucs_con_filtros(
             nro_tuc=tuc.nro_tuc,
             vehiculo_id=tuc.vehiculo_id,
             empresa_id=tuc.empresa_id,
-            expediente_id=tuc.expediente_id,
+            resolucion_padre_id=tuc.resolucion_padre_id,
             fecha_emision=tuc.fecha_emision,
-            fecha_vencimiento=tuc.fecha_vencimiento,
             estado=tuc.estado,
+            razon_descarte=tuc.razon_descarte,
             observaciones=tuc.observaciones,
             esta_activo=tuc.esta_activo,
-            fecha_registro=tuc.fecha_registro
+            fecha_registro=tuc.fecha_registro,
+            fecha_actualizacion=tuc.fecha_actualizacion,
+            documento_id=tuc.documento_id,
+            qr_verification_url=tuc.qr_verification_url,
+            usuario_emision_id=tuc.usuario_emision_id,
+            fecha_vencimiento=tuc.fecha_vencimiento,
+            motivo_baja=tuc.motivo_baja,
+            fecha_baja=tuc.fecha_baja,
+            usuario_baja_id=tuc.usuario_baja_id
         )
         for tuc in tucs
     ]
@@ -176,13 +211,21 @@ async def get_tucs_vencidos():
             nro_tuc=tuc.nro_tuc,
             vehiculo_id=tuc.vehiculo_id,
             empresa_id=tuc.empresa_id,
-            expediente_id=tuc.expediente_id,
+            resolucion_padre_id=tuc.resolucion_padre_id,
             fecha_emision=tuc.fecha_emision,
-            fecha_vencimiento=tuc.fecha_vencimiento,
             estado=tuc.estado,
+            razon_descarte=tuc.razon_descarte,
             observaciones=tuc.observaciones,
             esta_activo=tuc.esta_activo,
-            fecha_registro=tuc.fecha_registro
+            fecha_registro=tuc.fecha_registro,
+            fecha_actualizacion=tuc.fecha_actualizacion,
+            documento_id=tuc.documento_id,
+            qr_verification_url=tuc.qr_verification_url,
+            usuario_emision_id=tuc.usuario_emision_id,
+            fecha_vencimiento=tuc.fecha_vencimiento,
+            motivo_baja=tuc.motivo_baja,
+            fecha_baja=tuc.fecha_baja,
+            usuario_baja_id=tuc.usuario_baja_id
         )
         for tuc in tucs
     ]
@@ -201,13 +244,21 @@ async def get_tucs_por_vencer(
             nro_tuc=tuc.nro_tuc,
             vehiculo_id=tuc.vehiculo_id,
             empresa_id=tuc.empresa_id,
-            expediente_id=tuc.expediente_id,
+            resolucion_padre_id=tuc.resolucion_padre_id,
             fecha_emision=tuc.fecha_emision,
-            fecha_vencimiento=tuc.fecha_vencimiento,
             estado=tuc.estado,
+            razon_descarte=tuc.razon_descarte,
             observaciones=tuc.observaciones,
             esta_activo=tuc.esta_activo,
-            fecha_registro=tuc.fecha_registro
+            fecha_registro=tuc.fecha_registro,
+            fecha_actualizacion=tuc.fecha_actualizacion,
+            documento_id=tuc.documento_id,
+            qr_verification_url=tuc.qr_verification_url,
+            usuario_emision_id=tuc.usuario_emision_id,
+            fecha_vencimiento=tuc.fecha_vencimiento,
+            motivo_baja=tuc.motivo_baja,
+            fecha_baja=tuc.fecha_baja,
+            usuario_baja_id=tuc.usuario_baja_id
         )
         for tuc in tucs
     ]
@@ -232,13 +283,21 @@ async def get_tuc(
         nro_tuc=tuc.nro_tuc,
         vehiculo_id=tuc.vehiculo_id,
         empresa_id=tuc.empresa_id,
-        expediente_id=tuc.expediente_id,
+        resolucion_padre_id=tuc.resolucion_padre_id,
         fecha_emision=tuc.fecha_emision,
-        fecha_vencimiento=tuc.fecha_vencimiento,
         estado=tuc.estado,
+        razon_descarte=tuc.razon_descarte,
         observaciones=tuc.observaciones,
         esta_activo=tuc.esta_activo,
-        fecha_registro=tuc.fecha_registro
+        fecha_registro=tuc.fecha_registro,
+        fecha_actualizacion=tuc.fecha_actualizacion,
+        documento_id=tuc.documento_id,
+        qr_verification_url=tuc.qr_verification_url,
+        usuario_emision_id=tuc.usuario_emision_id,
+        fecha_vencimiento=tuc.fecha_vencimiento,
+        motivo_baja=tuc.motivo_baja,
+        fecha_baja=tuc.fecha_baja,
+        usuario_baja_id=tuc.usuario_baja_id
     )
 
 @router.get("/numero/{numero}", response_model=TucResponse)
@@ -257,13 +316,21 @@ async def get_tuc_by_numero(
         nro_tuc=tuc.nro_tuc,
         vehiculo_id=tuc.vehiculo_id,
         empresa_id=tuc.empresa_id,
-        expediente_id=tuc.expediente_id,
+        resolucion_padre_id=tuc.resolucion_padre_id,
         fecha_emision=tuc.fecha_emision,
-        fecha_vencimiento=tuc.fecha_vencimiento,
         estado=tuc.estado,
+        razon_descarte=tuc.razon_descarte,
         observaciones=tuc.observaciones,
         esta_activo=tuc.esta_activo,
-        fecha_registro=tuc.fecha_registro
+        fecha_registro=tuc.fecha_registro,
+        fecha_actualizacion=tuc.fecha_actualizacion,
+        documento_id=tuc.documento_id,
+        qr_verification_url=tuc.qr_verification_url,
+        usuario_emision_id=tuc.usuario_emision_id,
+        fecha_vencimiento=tuc.fecha_vencimiento,
+        motivo_baja=tuc.motivo_baja,
+        fecha_baja=tuc.fecha_baja,
+        usuario_baja_id=tuc.usuario_baja_id
     )
 
 @router.get("/validar/{numero}")
@@ -309,13 +376,21 @@ async def update_tuc(
         nro_tuc=updated_tuc.nro_tuc,
         vehiculo_id=updated_tuc.vehiculo_id,
         empresa_id=updated_tuc.empresa_id,
-        expediente_id=updated_tuc.expediente_id,
+        resolucion_padre_id=updated_tuc.resolucion_padre_id,
         fecha_emision=updated_tuc.fecha_emision,
-        fecha_vencimiento=updated_tuc.fecha_vencimiento,
         estado=updated_tuc.estado,
+        razon_descarte=updated_tuc.razon_descarte,
         observaciones=updated_tuc.observaciones,
         esta_activo=updated_tuc.esta_activo,
-        fecha_registro=updated_tuc.fecha_registro
+        fecha_registro=updated_tuc.fecha_registro,
+        fecha_actualizacion=updated_tuc.fecha_actualizacion,
+        documento_id=updated_tuc.documento_id,
+        qr_verification_url=updated_tuc.qr_verification_url,
+        usuario_emision_id=updated_tuc.usuario_emision_id,
+        fecha_vencimiento=updated_tuc.fecha_vencimiento,
+        motivo_baja=updated_tuc.motivo_baja,
+        fecha_baja=updated_tuc.fecha_baja,
+        usuario_baja_id=updated_tuc.usuario_baja_id
     )
 
 @router.delete("/{tuc_id}", status_code=204)
@@ -351,13 +426,21 @@ async def renovar_tuc(
         nro_tuc=tuc.nro_tuc,
         vehiculo_id=tuc.vehiculo_id,
         empresa_id=tuc.empresa_id,
-        expediente_id=tuc.expediente_id,
+        resolucion_padre_id=tuc.resolucion_padre_id,
         fecha_emision=tuc.fecha_emision,
-        fecha_vencimiento=tuc.fecha_vencimiento,
         estado=tuc.estado,
+        razon_descarte=tuc.razon_descarte,
         observaciones=tuc.observaciones,
         esta_activo=tuc.esta_activo,
-        fecha_registro=tuc.fecha_registro
+        fecha_registro=tuc.fecha_registro,
+        fecha_actualizacion=tuc.fecha_actualizacion,
+        documento_id=tuc.documento_id,
+        qr_verification_url=tuc.qr_verification_url,
+        usuario_emision_id=tuc.usuario_emision_id,
+        fecha_vencimiento=tuc.fecha_vencimiento,
+        motivo_baja=tuc.motivo_baja,
+        fecha_baja=tuc.fecha_baja,
+        usuario_baja_id=tuc.usuario_baja_id
     )
 
 @router.put("/{tuc_id}/suspender", response_model=TucResponse)
@@ -377,13 +460,21 @@ async def suspender_tuc(
         nro_tuc=tuc.nro_tuc,
         vehiculo_id=tuc.vehiculo_id,
         empresa_id=tuc.empresa_id,
-        expediente_id=tuc.expediente_id,
+        resolucion_padre_id=tuc.resolucion_padre_id,
         fecha_emision=tuc.fecha_emision,
-        fecha_vencimiento=tuc.fecha_vencimiento,
         estado=tuc.estado,
+        razon_descarte=tuc.razon_descarte,
         observaciones=tuc.observaciones,
         esta_activo=tuc.esta_activo,
-        fecha_registro=tuc.fecha_registro
+        fecha_registro=tuc.fecha_registro,
+        fecha_actualizacion=tuc.fecha_actualizacion,
+        documento_id=tuc.documento_id,
+        qr_verification_url=tuc.qr_verification_url,
+        usuario_emision_id=tuc.usuario_emision_id,
+        fecha_vencimiento=tuc.fecha_vencimiento,
+        motivo_baja=tuc.motivo_baja,
+        fecha_baja=tuc.fecha_baja,
+        usuario_baja_id=tuc.usuario_baja_id
     )
 
 @router.put("/{tuc_id}/activar", response_model=TucResponse)
@@ -402,13 +493,21 @@ async def activar_tuc(
         nro_tuc=tuc.nro_tuc,
         vehiculo_id=tuc.vehiculo_id,
         empresa_id=tuc.empresa_id,
-        expediente_id=tuc.expediente_id,
+        resolucion_padre_id=tuc.resolucion_padre_id,
         fecha_emision=tuc.fecha_emision,
-        fecha_vencimiento=tuc.fecha_vencimiento,
         estado=tuc.estado,
+        razon_descarte=tuc.razon_descarte,
         observaciones=tuc.observaciones,
         esta_activo=tuc.esta_activo,
-        fecha_registro=tuc.fecha_registro
+        fecha_registro=tuc.fecha_registro,
+        fecha_actualizacion=tuc.fecha_actualizacion,
+        documento_id=tuc.documento_id,
+        qr_verification_url=tuc.qr_verification_url,
+        usuario_emision_id=tuc.usuario_emision_id,
+        fecha_vencimiento=tuc.fecha_vencimiento,
+        motivo_baja=tuc.motivo_baja,
+        fecha_baja=tuc.fecha_baja,
+        usuario_baja_id=tuc.usuario_baja_id
     )
 
 # Endpoints para exportación
