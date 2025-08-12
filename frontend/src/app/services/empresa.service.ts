@@ -26,21 +26,21 @@ export class EmpresaService {
       id: '1',
       ruc: '20123456789',
       razonSocial: {
-        principal: 'Transportes Puno S.A.C.',
-        sunat: 'Transportes Puno S.A.C.',
-        minimo: 'Transportes Puno S.A.C.'
+        principal: 'TRANSPORTES PUNO S.A.C.',
+        sunat: 'TRANSPORTES PUNO S.A.C.',
+        minimo: 'TRANSPORTES PUNO S.A.C.'
       },
-      direccionFiscal: 'Av. Principal 123, Puno',
+      direccionFiscal: 'AV. PRINCIPAL 123, PUNO',
       estado: EstadoEmpresa.HABILITADA,
       estaActivo: true,
       fechaRegistro: new Date('2024-01-15T10:00:00Z'),
       representanteLegal: {
         dni: '12345678',
-        nombres: 'Juan Carlos',
-        apellidos: 'Pérez Quispe',
+        nombres: 'JUAN CARLOS',
+        apellidos: 'PÉREZ QUISPE',
         email: 'juan.perez@transportespuno.com',
         telefono: '951234567',
-        direccion: 'Av. Principal 123, Puno'
+        direccion: 'AV. PRINCIPAL 123, PUNO'
       },
       emailContacto: 'info@transportespuno.com',
       telefonoContacto: '951234567',
@@ -52,7 +52,7 @@ export class EmpresaService {
           fechaEmision: new Date('2023-01-15'),
           fechaVencimiento: new Date('2025-01-15'),
           urlDocumento: 'https://example.com/ruc.pdf',
-          observaciones: 'RUC activo',
+          observaciones: 'RUC ACTIVO',
           estaActivo: true
         }
       ],
@@ -62,8 +62,8 @@ export class EmpresaService {
           usuarioId: '1',
           tipoCambio: 'CREACION_EMPRESA',
           campoAnterior: undefined,
-          campoNuevo: 'Empresa creada con RUC: 20123456789',
-          observaciones: 'Creación inicial de empresa'
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20123456789',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
       ],
       resolucionesPrimigeniasIds: ['1', '2'],
@@ -72,95 +72,35 @@ export class EmpresaService {
       rutasAutorizadasIds: ['1', '2', '3'],
       datosSunat: {
         valido: true,
-        razonSocial: 'Transportes Puno S.A.C.',
+        razonSocial: 'TRANSPORTES PUNO S.A.C.',
         estado: 'ACTIVO',
         condicion: 'HABIDO',
-        direccion: 'Av. Principal 123, Puno',
+        direccion: 'AV. PRINCIPAL 123, PUNO',
         fechaActualizacion: new Date()
       },
       ultimaValidacionSunat: new Date(),
       scoreRiesgo: 25,
-      observaciones: 'Empresa en buen estado'
-    },
-    {
-      id: '3',
-      ruc: '20345678901',
-      razonSocial: {
-        principal: 'Transportes Cusco Express S.A.C.',
-        sunat: 'Transportes Cusco Express S.A.C.',
-        minimo: 'Transportes Cusco Express S.A.C.'
-      },
-      direccionFiscal: 'Av. Sol 789, Cusco',
-      estado: EstadoEmpresa.HABILITADA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-03-15T09:00:00Z'),
-      representanteLegal: {
-        dni: '11223344',
-        nombres: 'Carlos Alberto',
-        apellidos: 'García Mendoza',
-        email: 'carlos.garcia@transportescusco.com',
-        telefono: '951234568',
-        direccion: 'Av. Sol 789, Cusco'
-      },
-      emailContacto: 'info@transportescusco.com',
-      telefonoContacto: '951234568',
-      sitioWeb: 'www.transportescusco.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20345678901',
-          fechaEmision: new Date('2023-03-15'),
-          fechaVencimiento: new Date('2025-03-15'),
-          urlDocumento: 'https://example.com/ruc3.pdf',
-          observaciones: 'RUC activo',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-03-15T09:00:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'Empresa creada con RUC: 20345678901',
-          observaciones: 'Creación inicial de empresa'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['6'],
-      vehiculosHabilitadosIds: ['9', '10'],
-      conductoresHabilitadosIds: ['3', '4'],
-      rutasAutorizadasIds: ['8', '9'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'Transportes Cusco Express S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'Av. Sol 789, Cusco',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 30,
-      observaciones: 'Empresa en buen estado'
+      observaciones: 'EMPRESA EN BUEN ESTADO'
     },
     {
       id: '2',
       ruc: '20234567890',
       razonSocial: {
-        principal: 'Empresa de Transportes Juliaca E.I.R.L.',
-        sunat: 'Empresa de Transportes Juliaca E.I.R.L.',
-        minimo: 'Empresa de Transportes Juliaca E.I.R.L.'
+        principal: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
+        sunat: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
+        minimo: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.'
       },
-      direccionFiscal: 'Jr. Comercio 456, Juliaca',
+      direccionFiscal: 'JR. COMERCIO 456, JULIACA',
       estado: EstadoEmpresa.HABILITADA,
       estaActivo: true,
       fechaRegistro: new Date('2024-02-20T14:30:00Z'),
       representanteLegal: {
         dni: '87654321',
-        nombres: 'María Elena',
-        apellidos: 'Rodríguez López',
+        nombres: 'MARÍA ELENA',
+        apellidos: 'RODRÍGUEZ LÓPEZ',
         email: 'maria.rodriguez@transportesjuliaca.com',
         telefono: '952345678',
-        direccion: 'Jr. Comercio 456, Juliaca'
+        direccion: 'JR. COMERCIO 456, JULIACA'
       },
       emailContacto: 'info@transportesjuliaca.com',
       telefonoContacto: '952345678',
@@ -172,7 +112,7 @@ export class EmpresaService {
           fechaEmision: new Date('2023-02-20'),
           fechaVencimiento: new Date('2025-02-20'),
           urlDocumento: 'https://example.com/ruc2.pdf',
-          observaciones: 'RUC activo',
+          observaciones: 'RUC ACTIVO',
           estaActivo: true
         }
       ],
@@ -182,8 +122,8 @@ export class EmpresaService {
           usuarioId: '1',
           tipoCambio: 'CREACION_EMPRESA',
           campoAnterior: undefined,
-          campoNuevo: 'Empresa creada con RUC: 20234567890',
-          observaciones: 'Creación inicial de empresa'
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20234567890',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
       ],
       resolucionesPrimigeniasIds: ['4', '5'],
@@ -192,143 +132,75 @@ export class EmpresaService {
       rutasAutorizadasIds: ['4', '5'],
       datosSunat: {
         valido: true,
-        razonSocial: 'Empresa de Transportes Juliaca E.I.R.L.',
+        razonSocial: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
         estado: 'ACTIVO',
         condicion: 'HABIDO',
-        direccion: 'Jr. Comercio 456, Juliaca',
+        direccion: 'JR. COMERCIO 456, JULIACA',
         fechaActualizacion: new Date()
       },
       ultimaValidacionSunat: new Date(),
       scoreRiesgo: 30,
-      observaciones: 'Empresa en buen estado'
+      observaciones: 'EMPRESA EN BUEN ESTADO'
     },
     {
       id: '3',
       ruc: '20345678901',
       razonSocial: {
-        principal: 'Transportes Interprovinciales del Sur S.A.',
-        sunat: 'Transportes Interprovinciales del Sur S.A.',
-        minimo: 'Transportes Interprovinciales del Sur S.A.'
+        principal: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
+        sunat: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
+        minimo: 'TRANSPORTES CUSCO EXPRESS S.A.C.'
       },
-      direccionFiscal: 'Av. Tacna 789, Puno',
+      direccionFiscal: 'AV. SOL 789, CUSCO',
       estado: EstadoEmpresa.EN_TRAMITE,
       estaActivo: true,
-      fechaRegistro: new Date('2024-03-10T09:15:00Z'),
+      fechaRegistro: new Date('2024-03-15T09:00:00Z'),
       representanteLegal: {
         dni: '11223344',
-        nombres: 'Carlos Alberto',
-        apellidos: 'Mendoza Torres',
-        email: 'carlos.mendoza@transportesinterprovinciales.com',
-        telefono: '953456789',
-        direccion: 'Av. Tacna 789, Puno'
+        nombres: 'CARLOS ALBERTO',
+        apellidos: 'GARCÍA MENDOZA',
+        email: 'carlos.garcia@transportescusco.com',
+        telefono: '951234568',
+        direccion: 'AV. SOL 789, CUSCO'
       },
-      emailContacto: 'info@transportesinterprovinciales.com',
-      telefonoContacto: '953456789',
-      sitioWeb: 'www.transportesinterprovinciales.com',
+      emailContacto: 'info@transportescusco.com',
+      telefonoContacto: '951234568',
+      sitioWeb: 'www.transportescusco.com',
       documentos: [
         {
           tipo: TipoDocumento.RUC,
           numero: '20345678901',
-          fechaEmision: new Date('2024-03-10'),
-          fechaVencimiento: new Date('2026-03-10'),
+          fechaEmision: new Date('2023-03-15'),
+          fechaVencimiento: new Date('2025-03-15'),
           urlDocumento: 'https://example.com/ruc3.pdf',
-          observaciones: 'RUC en trámite',
+          observaciones: 'RUC ACTIVO',
           estaActivo: true
         }
       ],
       auditoria: [
         {
-          fechaCambio: new Date('2024-03-10T09:15:00Z'),
+          fechaCambio: new Date('2024-03-15T09:00:00Z'),
           usuarioId: '1',
           tipoCambio: 'CREACION_EMPRESA',
           campoAnterior: undefined,
-          campoNuevo: 'Empresa creada con RUC: 20345678901',
-          observaciones: 'Creación inicial de empresa'
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20345678901',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
       ],
-      resolucionesPrimigeniasIds: [],
-      vehiculosHabilitadosIds: [],
-      conductoresHabilitadosIds: [],
-      rutasAutorizadasIds: [],
+      resolucionesPrimigeniasIds: ['6'],
+      vehiculosHabilitadosIds: ['9', '10'],
+      conductoresHabilitadosIds: ['3', '4'],
+      rutasAutorizadasIds: ['8', '9'],
       datosSunat: {
         valido: true,
-        razonSocial: 'Transportes Interprovinciales del Sur S.A.',
+        razonSocial: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
         estado: 'ACTIVO',
         condicion: 'HABIDO',
-        direccion: 'Av. Tacna 789, Puno',
+        direccion: 'AV. SOL 789, CUSCO',
         fechaActualizacion: new Date()
       },
       ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 45,
-      observaciones: 'Empresa en trámite de habilitación'
-    },
-    {
-      id: '4',
-      ruc: '20456789012',
-      razonSocial: {
-        principal: 'Transportes del Altiplano S.A.C.',
-        sunat: 'Transportes del Altiplano S.A.C.',
-        minimo: 'Transportes del Altiplano S.A.C.'
-      },
-      direccionFiscal: 'Av. La Marina 321, Puno',
-      estado: EstadoEmpresa.SUSPENDIDA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-01-05T08:00:00Z'),
-      representanteLegal: {
-        dni: '99887766',
-        nombres: 'Ana Patricia',
-        apellidos: 'García Mendoza',
-        email: 'ana.garcia@transportesaltiplano.com',
-        telefono: '954567890',
-        direccion: 'Av. La Marina 321, Puno'
-      },
-      emailContacto: 'info@transportesaltiplano.com',
-      telefonoContacto: '954567890',
-      sitioWeb: 'www.transportesaltiplano.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20456789012',
-          fechaEmision: new Date('2023-01-05'),
-          fechaVencimiento: new Date('2025-01-05'),
-          urlDocumento: 'https://example.com/ruc4.pdf',
-          observaciones: 'RUC suspendido',
-          estaActivo: false
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-01-05T08:00:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'Empresa creada con RUC: 20456789012',
-          observaciones: 'Creación inicial de empresa'
-        },
-        {
-          fechaCambio: new Date('2024-06-15T10:00:00Z'),
-          usuarioId: '2',
-          tipoCambio: 'SUSPENSION_EMPRESA',
-          campoAnterior: 'HABILITADA',
-          campoNuevo: 'SUSPENDIDA',
-          observaciones: 'Empresa suspendida por incumplimientos'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['4'],
-      vehiculosHabilitadosIds: ['6'],
-      conductoresHabilitadosIds: ['5'],
-      rutasAutorizadasIds: ['6'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'Transportes del Altiplano S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'Av. La Marina 321, Puno',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 75,
-      observaciones: 'Empresa suspendida por incumplimientos'
+      scoreRiesgo: 30,
+      observaciones: 'EMPRESA EN BUEN ESTADO'
     }
   ];
 
@@ -339,189 +211,69 @@ export class EmpresaService {
   ) {}
 
   private getHeaders(): HttpHeaders {
-    const authHeaders = this.authService.getAuthHeaders();
-    const headers = new HttpHeaders({
+    const token = this.authService.getToken();
+    return new HttpHeaders({
       'Content-Type': 'application/json',
-      ...authHeaders
+      'Authorization': `Bearer ${token}`
     });
-    return headers;
   }
 
-  // Métodos CRUD básicos
-  getEmpresas(skip: number = 0, limit: number = 100, estado?: string): Observable<Empresa[]> {
-    if (!this.authService.isAuthenticated()) {
-      console.log('Usuario no autenticado, redirigiendo al login...');
-      this.router.navigate(['/login']);
-      return of([]);
-    }
-
-    let url = `${this.apiUrl}/empresas/?skip=${skip}&limit=${limit}`;
-    if (estado) {
-      url += `&estado=${estado}`;
-    }
-    
-    console.log('Solicitando empresas desde:', url);
-    
-    return this.http.get<Empresa[]>(url).pipe(
+  // Métodos principales CRUD
+  getEmpresas(skip: number = 0, limit: number = 100): Observable<Empresa[]> {
+    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
-        console.log('Error conectando al backend:', error);
-        
-        if (error.status === 401) {
-          console.log('Error 401 - Usuario no autorizado, redirigiendo al login...');
-          this.authService.logout();
-          this.router.navigate(['/login']);
-          return of([]);
-        }
-        
-        console.log('Usando datos mock debido al error:', error.status);
-        return of(this.mockEmpresas);
+        console.log('Error obteniendo empresas, usando datos mock:', error);
+        return of(this.mockEmpresas.slice(skip, skip + limit));
       }),
-      map(empresas => {
-        console.log('Datos originales:', empresas);
-        const transformed = empresas
-          .map(empresa => this.transformEmpresaData(empresa))
-          .filter(empresa => empresa !== null);
-        console.log('Datos transformados:', transformed);
-        return transformed;
-      })
+      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
     );
   }
 
-  // Método para obtener empresas con filtros avanzados
-  getEmpresasConFiltros(filtros: EmpresaFiltros, skip: number = 0, limit: number = 100): Observable<Empresa[]> {
-    // Simular filtros en datos mock
-    let empresasFiltradas = [...this.mockEmpresas];
-
-    if (filtros.ruc) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.ruc.toLowerCase().includes(filtros.ruc!.toLowerCase())
-      );
-    }
-
-    if (filtros.razonSocial) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.razonSocial.principal.toLowerCase().includes(filtros.razonSocial!.toLowerCase())
-      );
-    }
-
-    if (filtros.estado) {
-      empresasFiltradas = empresasFiltradas.filter(emp => emp.estado === filtros.estado);
-    }
-
-    if (filtros.fechaDesde) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.fechaRegistro >= filtros.fechaDesde!
-      );
-    }
-
-    if (filtros.fechaHasta) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.fechaRegistro <= filtros.fechaHasta!
-      );
-    }
-
-    if (filtros.scoreRiesgoMin !== undefined) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.scoreRiesgo && emp.scoreRiesgo >= filtros.scoreRiesgoMin!
-      );
-    }
-
-    if (filtros.scoreRiesgoMax !== undefined) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.scoreRiesgo && emp.scoreRiesgo <= filtros.scoreRiesgoMax!
-      );
-    }
-
-    if (filtros.tieneDocumentosVencidos) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.documentos.some(doc => 
-          doc.fechaVencimiento && doc.fechaVencimiento < new Date() && doc.estaActivo
-        )
-      );
-    }
-
-    if (filtros.tieneVehiculos) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.vehiculosHabilitadosIds.length > 0
-      );
-    }
-
-    if (filtros.tieneConductores) {
-      empresasFiltradas = empresasFiltradas.filter(emp => 
-        emp.conductoresHabilitadosIds.length > 0
-      );
-    }
-
-    // Aplicar paginación
-    const empresasPaginadas = empresasFiltradas.slice(skip, skip + limit);
-
-    return of(empresasPaginadas).pipe(
+  getEmpresa(id: string): Observable<Empresa> {
+    return this.http.get<Empresa>(`${this.apiUrl}/empresas/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
-        console.error('Error al obtener empresas con filtros:', error);
-        return throwError(() => new Error('Error al obtener empresas con filtros'));
-      })
-    );
-  }
-
-  getEmpresaById(id: string): Observable<Empresa> {
-    return this.http.get<Empresa>(`${this.apiUrl}/empresas/${id}`).pipe(
-      catchError(error => {
-        console.log('Error obteniendo empresa por ID, usando datos mock:', error);
-        const mockEmpresa = this.mockEmpresas.find(emp => emp.id === id);
-        if (mockEmpresa) {
-          return of(mockEmpresa);
-        } else {
+        console.log('Error obteniendo empresa, usando datos mock:', error);
+        const empresa = this.mockEmpresas.find(emp => emp.id === id);
+        if (!empresa) {
           throw new Error('Empresa no encontrada');
         }
+        return of(empresa);
       }),
       map(empresa => this.transformEmpresaData(empresa))
     );
   }
 
-  getEmpresaByRuc(ruc: string): Observable<Empresa> {
-    return this.http.get<Empresa>(`${this.apiUrl}/empresas/ruc/${ruc}`).pipe(
+  createEmpresa(empresaData: EmpresaCreate): Observable<Empresa> {
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresaData, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
-        console.log('Error obteniendo empresa por RUC, usando datos mock:', error);
-        const mockEmpresa = this.mockEmpresas.find(emp => emp.ruc === ruc);
-        if (mockEmpresa) {
-          return of(mockEmpresa);
-        } else {
-          throw new Error('Empresa no encontrada');
-        }
-      }),
-      map(empresa => this.transformEmpresaData(empresa))
-    );
-  }
-
-  createEmpresa(empresa: EmpresaCreate): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresa).pipe(
-      catchError(error => {
-        console.log('Error creando empresa, simulando creación:', error);
-        
-        // Simular creación exitosa
+        console.log('Error creando empresa, simulando con datos mock:', error);
         const nuevaEmpresa: Empresa = {
           id: (this.mockEmpresas.length + 1).toString(),
-          ruc: empresa.ruc,
-          razonSocial: empresa.razonSocial,
-          direccionFiscal: empresa.direccionFiscal,
+          ruc: empresaData.ruc,
+          razonSocial: empresaData.razonSocial,
+          direccionFiscal: empresaData.direccionFiscal,
           estado: EstadoEmpresa.EN_TRAMITE,
           estaActivo: true,
           fechaRegistro: new Date(),
-          representanteLegal: empresa.representanteLegal,
-          emailContacto: empresa.emailContacto || '',
-          telefonoContacto: empresa.telefonoContacto || '',
-          sitioWeb: empresa.sitioWeb || '',
-          documentos: empresa.documentos || [],
-          auditoria: [
-            {
-              fechaCambio: new Date(),
-              usuarioId: '1',
-              tipoCambio: 'CREACION_EMPRESA',
-              campoAnterior: undefined,
-              campoNuevo: `Empresa creada con RUC: ${empresa.ruc}`,
-              observaciones: 'Creación inicial de empresa'
-            }
-          ],
+          representanteLegal: empresaData.representanteLegal,
+          emailContacto: empresaData.emailContacto,
+          telefonoContacto: empresaData.telefonoContacto,
+          sitioWeb: empresaData.sitioWeb,
+          documentos: [],
+          auditoria: [{
+            fechaCambio: new Date(),
+            usuarioId: this.authService.getCurrentUser()?.id || '1',
+            tipoCambio: 'CREACION_EMPRESA',
+            campoAnterior: undefined,
+            campoNuevo: `EMPRESA CREADA CON RUC: ${empresaData.ruc}`,
+            observaciones: 'CREACIÓN INICIAL DE EMPRESA'
+          }],
           resolucionesPrimigeniasIds: [],
           vehiculosHabilitadosIds: [],
           conductoresHabilitadosIds: [],
@@ -536,9 +288,8 @@ export class EmpresaService {
           },
           ultimaValidacionSunat: new Date(),
           scoreRiesgo: 0,
-          observaciones: ''
+          observaciones: 'EMPRESA NUEVA EN TRÁMITE'
         };
-        
         this.mockEmpresas.push(nuevaEmpresa);
         return of(nuevaEmpresa);
       }),
@@ -546,92 +297,153 @@ export class EmpresaService {
     );
   }
 
-  updateEmpresa(id: string, empresa: EmpresaUpdate): Observable<Empresa> {
-    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${id}`, empresa).pipe(
+  updateEmpresa(id: string, empresaData: EmpresaUpdate): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${id}`, empresaData, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
-        console.log('Error actualizando empresa, simulando actualización con datos mock:', error);
-        const mockEmpresa = this.mockEmpresas.find(emp => emp.id === id);
-        if (mockEmpresa) {
-          Object.assign(mockEmpresa, empresa);
-          return of(mockEmpresa);
-        } else {
-          throw new Error('Empresa no encontrada');
+        console.log('Error actualizando empresa, simulando con datos mock:', error);
+        const empresa = this.mockEmpresas.find(emp => emp.id === id);
+        if (empresa) {
+          Object.assign(empresa, empresaData);
+          empresa.auditoria.push({
+            fechaCambio: new Date(),
+            usuarioId: this.authService.getCurrentUser()?.id || '1',
+            tipoCambio: 'ACTUALIZACION_EMPRESA',
+            campoAnterior: undefined,
+            campoNuevo: 'EMPRESA ACTUALIZADA',
+            observaciones: 'ACTUALIZACIÓN DE DATOS DE EMPRESA'
+          });
         }
+        return of(empresa || this.mockEmpresas[0]);
       }),
       map(empresa => this.transformEmpresaData(empresa))
     );
   }
 
   deleteEmpresa(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/empresas/${id}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/empresas/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
-        console.log('Error eliminando empresa, simulando eliminación con datos mock:', error);
+        console.log('Error eliminando empresa, simulando con datos mock:', error);
         const index = this.mockEmpresas.findIndex(emp => emp.id === id);
         if (index !== -1) {
-          this.mockEmpresas[index].estaActivo = false;
+          this.mockEmpresas.splice(index, 1);
         }
         return of(void 0);
       })
     );
   }
 
-  // Métodos para estadísticas
-  getEstadisticasEmpresas(): Observable<EmpresaEstadisticas> {
-    return of(this.mockEmpresas).pipe(
-      map(empresas => {
-        const empresasActivas = empresas.filter(emp => emp.estaActivo);
-        
-        const empresasConDocumentosVencidos = empresasActivas.filter(emp => 
-          emp.documentos.some(doc => 
-            doc.fechaVencimiento && doc.fechaVencimiento < new Date() && doc.estaActivo
-          )
-        ).length;
+  // Métodos de filtrado y búsqueda
+  getEmpresasConFiltros(filtros: EmpresaFiltros): Observable<Empresa[]> {
+    const params = new HttpParams()
+      .set('skip', '0')
+      .set('limit', '1000');
 
-        const empresasConScoreAltoRiesgo = empresasActivas.filter(emp => 
-          emp.scoreRiesgo && emp.scoreRiesgo > 70
-        ).length;
+    if (filtros.ruc) params.set('ruc', filtros.ruc);
+    if (filtros.razonSocial) params.set('razon_social', filtros.razonSocial);
+    if (filtros.estado) params.set('estado', filtros.estado);
+    if (filtros.fechaDesde) params.set('fecha_desde', filtros.fechaDesde.toISOString());
+    if (filtros.fechaHasta) params.set('fecha_hasta', filtros.fechaHasta.toISOString());
 
-        const totalVehiculos = empresasActivas.reduce((total, emp) => 
-          total + emp.vehiculosHabilitadosIds.length, 0
-        );
-
-        const totalConductores = empresasActivas.reduce((total, emp) => 
-          total + emp.conductoresHabilitadosIds.length, 0
-        );
-
-        const promedioVehiculosPorEmpresa = empresasActivas.length > 0 
-          ? totalVehiculos / empresasActivas.length 
-          : 0;
-
-        const promedioConductoresPorEmpresa = empresasActivas.length > 0 
-          ? totalConductores / empresasActivas.length 
-          : 0;
-
-        const estadisticas: EmpresaEstadisticas = {
-          totalEmpresas: empresasActivas.length,
-          empresasHabilitadas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.HABILITADA).length,
-          empresasEnTramite: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.EN_TRAMITE).length,
-          empresasSuspendidas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.SUSPENDIDA).length,
-          empresasCanceladas: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.CANCELADA).length,
-          empresasDadasDeBaja: empresasActivas.filter(emp => emp.estado === EstadoEmpresa.DADA_DE_BAJA).length,
-          empresasConDocumentosVencidos: empresasConDocumentosVencidos,
-          empresasConScoreAltoRiesgo: empresasConScoreAltoRiesgo,
-          promedioVehiculosPorEmpresa: promedioVehiculosPorEmpresa,
-          promedioConductoresPorEmpresa: promedioConductoresPorEmpresa
-        };
-        
-        return estadisticas;
-      }),
+    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas/filtros`, {
+      headers: this.getHeaders(),
+      params
+    }).pipe(
       catchError(error => {
-        console.error('Error al obtener estadísticas:', error);
-        return throwError(() => new Error('Error al obtener estadísticas'));
+        console.log('Error aplicando filtros, usando datos mock:', error);
+        let empresasFiltradas = [...this.mockEmpresas];
+        
+        if (filtros.ruc) {
+          empresasFiltradas = empresasFiltradas.filter(emp => 
+            emp.ruc.includes(filtros.ruc!)
+          );
+        }
+        
+        if (filtros.razonSocial) {
+          empresasFiltradas = empresasFiltradas.filter(emp => 
+            emp.razonSocial.principal.toLowerCase().includes(filtros.razonSocial!.toLowerCase())
+          );
+        }
+        
+        if (filtros.estado) {
+          empresasFiltradas = empresasFiltradas.filter(emp => 
+            emp.estado === filtros.estado
+          );
+        }
+        
+        if (filtros.fechaDesde) {
+          empresasFiltradas = empresasFiltradas.filter(emp => 
+            emp.fechaRegistro >= filtros.fechaDesde!
+          );
+        }
+        
+        if (filtros.fechaHasta) {
+          empresasFiltradas = empresasFiltradas.filter(emp => 
+            emp.fechaRegistro <= filtros.fechaHasta!
+          );
+        }
+        
+        return of(empresasFiltradas);
+      }),
+      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
+    );
+  }
+
+  // Métodos de estadísticas
+  getEstadisticasEmpresas(): Observable<EmpresaEstadisticas> {
+    return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo estadísticas, calculando con datos mock:', error);
+        const totalEmpresas = this.mockEmpresas.length;
+        const empresasHabilitadas = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.HABILITADA).length;
+        const empresasEnTramite = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.EN_TRAMITE).length;
+        const empresasSuspendidas = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.SUSPENDIDA).length;
+        const empresasCanceladas = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.CANCELADA).length;
+        const empresasDadasDeBaja = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.DADA_DE_BAJA).length;
+        
+        // Calcular estadísticas adicionales
+        const empresasConDocumentosVencidos = this.mockEmpresas.filter(emp => 
+          emp.documentos.some(doc => doc.fechaVencimiento && new Date(doc.fechaVencimiento) < new Date())
+        ).length;
+        
+        const empresasConScoreAltoRiesgo = this.mockEmpresas.filter(emp => 
+          (emp.scoreRiesgo || 0) > 70
+        ).length;
+        
+        const promedioVehiculosPorEmpresa = this.mockEmpresas.length > 0 
+          ? this.mockEmpresas.reduce((sum, emp) => sum + emp.vehiculosHabilitadosIds.length, 0) / this.mockEmpresas.length
+          : 0;
+        
+        const promedioConductoresPorEmpresa = this.mockEmpresas.length > 0
+          ? this.mockEmpresas.reduce((sum, emp) => sum + emp.conductoresHabilitadosIds.length, 0) / this.mockEmpresas.length
+          : 0;
+        
+        return of({
+          totalEmpresas,
+          empresasHabilitadas,
+          empresasEnTramite,
+          empresasSuspendidas,
+          empresasCanceladas,
+          empresasDadasDeBaja,
+          empresasConDocumentosVencidos,
+          empresasConScoreAltoRiesgo,
+          promedioVehiculosPorEmpresa: Math.round(promedioVehiculosPorEmpresa * 100) / 100,
+          promedioConductoresPorEmpresa: Math.round(promedioConductoresPorEmpresa * 100) / 100
+        });
       })
     );
   }
 
-  // Métodos para gestión de vehículos y conductores
+  // Métodos para gestión de vehículos
   agregarVehiculoAEmpresa(empresaId: string, vehiculoId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`, {}).pipe(
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error agregando vehículo a empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -645,7 +457,9 @@ export class EmpresaService {
   }
 
   removerVehiculoDeEmpresa(empresaId: string, vehiculoId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`).pipe(
+    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error removiendo vehículo de empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -658,8 +472,11 @@ export class EmpresaService {
     );
   }
 
+  // Métodos para gestión de conductores
   agregarConductorAEmpresa(empresaId: string, conductorId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`, {}).pipe(
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error agregando conductor a empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -673,7 +490,9 @@ export class EmpresaService {
   }
 
   removerConductorDeEmpresa(empresaId: string, conductorId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`).pipe(
+    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error removiendo conductor de empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -688,7 +507,9 @@ export class EmpresaService {
 
   // Métodos para gestión de rutas
   agregarRutaAEmpresa(empresaId: string, rutaId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`, {}).pipe(
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error agregando ruta a empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -702,7 +523,9 @@ export class EmpresaService {
   }
 
   removerRutaDeEmpresa(empresaId: string, rutaId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`).pipe(
+    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error removiendo ruta de empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -717,7 +540,9 @@ export class EmpresaService {
 
   // Métodos para gestión de resoluciones
   agregarResolucionAEmpresa(empresaId: string, resolucionId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`, {}).pipe(
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error agregando resolución a empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -731,7 +556,9 @@ export class EmpresaService {
   }
 
   removerResolucionDeEmpresa(empresaId: string, resolucionId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`).pipe(
+    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error removiendo resolución de empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -745,7 +572,9 @@ export class EmpresaService {
   }
 
   getResolucionesEmpresa(empresaId: string): Observable<{ empresa_id: string; resoluciones: string[]; total: number }> {
-    return this.http.get<{ empresa_id: string; resoluciones: string[]; total: number }>(`${this.apiUrl}/empresas/${empresaId}/resoluciones`).pipe(
+    return this.http.get<{ empresa_id: string; resoluciones: string[]; total: number }>(`${this.apiUrl}/empresas/${empresaId}/resoluciones`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error obteniendo resoluciones de empresa, simulando con datos mock:', error);
         const empresa = this.mockEmpresas.find(emp => emp.id === empresaId);
@@ -760,7 +589,9 @@ export class EmpresaService {
 
   // Métodos para validación
   validarRuc(ruc: string): Observable<{ valido: boolean; empresa?: Empresa }> {
-    return this.http.get<{ valido: boolean; empresa?: Empresa }>(`${this.apiUrl}/empresas/validar-ruc/${ruc}`).pipe(
+    return this.http.get<{ valido: boolean; empresa?: Empresa }>(`${this.apiUrl}/empresas/validar-ruc/${ruc}`, {
+      headers: this.getHeaders()
+    }).pipe(
       catchError(error => {
         console.log('Error validando RUC, simulando validación con datos mock:', error);
         const empresaExistente = this.mockEmpresas.find(emp => emp.ruc === ruc);
@@ -775,11 +606,25 @@ export class EmpresaService {
   // Métodos para exportación
   exportarEmpresas(formato: 'pdf' | 'excel' | 'csv'): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/empresas/exportar/${formato}`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      headers: this.getHeaders()
     }).pipe(
       catchError(error => {
         console.log('Error exportando empresas:', error);
-        throw new Error('Error al exportar empresas');
+        // Crear un blob mock para desarrollo
+        const data = this.mockEmpresas.map(emp => ({
+          RUC: emp.ruc,
+          'RAZÓN SOCIAL': emp.razonSocial.principal,
+          ESTADO: emp.estado,
+          'FECHA REGISTRO': emp.fechaRegistro.toLocaleDateString('es-ES'),
+          REPRESENTANTE: `${emp.representanteLegal.nombres} ${emp.representanteLegal.apellidos}`,
+          'TELÉFONO': emp.telefonoContacto,
+          EMAIL: emp.emailContacto
+        }));
+        
+        const csvContent = this.convertToCSV(data);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        return of(blob);
       })
     );
   }
@@ -795,6 +640,24 @@ export class EmpresaService {
 
   getMockCredentials(): Observable<any> {
     return this.http.get(`${this.apiUrl}/mock/credenciales`);
+  }
+
+  // Métodos auxiliares
+  private convertToCSV(data: any[]): string {
+    if (data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const csvRows = [headers.join(',')];
+    
+    for (const row of data) {
+      const values = headers.map(header => {
+        const value = row[header];
+        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+      });
+      csvRows.push(values.join(','));
+    }
+    
+    return csvRows.join('\n');
   }
 
   private transformEmpresaData(empresa: any): Empresa {

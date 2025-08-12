@@ -595,7 +595,7 @@ export class TucService {
             return of({} as Vehiculo);
           }),
           switchMap(vehiculo => 
-            this.empresaService.getEmpresaById(tuc.empresaId).pipe(
+            this.empresaService.getEmpresa(tuc.empresaId).pipe(
               catchError(error => {
                 console.warn('Error obteniendo empresa, usando objeto vacío:', error);
                 return of({} as Empresa);

@@ -667,8 +667,8 @@ export class ExpedienteFormComponent implements OnInit {
         
         // Cargar la empresa asociada
         if (expediente.empresaId) {
-          this.empresaService.getEmpresaById(expediente.empresaId).subscribe({
-            next: (empresa) => {
+          this.empresaService.getEmpresa(expediente.empresaId).subscribe({
+            next: (empresa: Empresa) => {
               this.empresaSeleccionada.set(empresa);
               this.expedienteForm.patchValue({
                 empresaSearch: empresa

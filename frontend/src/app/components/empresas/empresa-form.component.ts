@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatDividerModule } from '@angular/material/divider';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
 import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../models/empresa.model';
@@ -22,6 +23,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
 @Component({
   selector: 'app-empresa-form',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -36,53 +38,54 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
     MatTooltipModule,
     MatStepperModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatDividerModule
   ],
   template: `
     <div class="page-header">
       <div class="header-content">
         <div class="header-title">
-          <h1>{{ isEditing ? 'Editar Empresa' : 'Nueva Empresa' }}</h1>
+          <h1>{{ isEditing() ? 'EDITAR EMPRESA' : 'NUEVA EMPRESA' }}</h1>
         </div>
         <p class="header-subtitle">
-          {{ isEditing ? 'Modificar información de la empresa' : 'Registrar nueva empresa de transporte' }}
+          {{ isEditing() ? 'MODIFICAR INFORMACIÓN DE LA EMPRESA' : 'REGISTRAR NUEVA EMPRESA DE TRANSPORTE' }}
         </p>
       </div>
       <div class="header-actions">
         <button mat-button color="accent" (click)="volver()" class="action-button">
           <mat-icon>arrow_back</mat-icon>
-          Volver
+          VOLVER
         </button>
       </div>
     </div>
 
     <div class="content-section">
       <!-- Loading State -->
-      @if (isLoading) {
+      @if (isLoading()) {
         <div class="loading-container">
           <div class="loading-content">
             <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
-            <h3>{{ isEditing ? 'Cargando empresa...' : 'Procesando...' }}</h3>
-            <p>{{ isEditing ? 'Obteniendo información de la empresa' : 'Guardando información' }}</p>
+            <h3>{{ isEditing() ? 'CARGANDO EMPRESA...' : 'PROCESANDO...' }}</h3>
+            <p>{{ isEditing() ? 'OBTENIENDO INFORMACIÓN DE LA EMPRESA' : 'GUARDANDO INFORMACIÓN' }}</p>
           </div>
         </div>
       }
 
       <!-- Form -->
-      @if (!isLoading) {
+      @if (!isLoading()) {
         <div class="form-container">
           <form [formGroup]="empresaForm" (ngSubmit)="onSubmit()" class="empresa-form">
             <mat-stepper #stepper linear class="stepper">
               <!-- Paso 1: Información Básica -->
-              <mat-step [stepControl]="empresaForm" label="Información Básica">
+              <mat-step [stepControl]="empresaForm" label="INFORMACIÓN BÁSICA">
                 <div class="step-content">
                   <mat-card class="form-card">
-                    <mat-card-header>
+                    <mat-card-header class="form-card-header">
                       <mat-card-title>
                         <mat-icon>business</mat-icon>
-                        Información Básica
+                        INFORMACIÓN BÁSICA
                       </mat-card-title>
-                      <mat-card-subtitle>Datos principales de la empresa</mat-card-subtitle>
+                      <mat-card-subtitle>DATOS PRINCIPALES DE LA EMPRESA</mat-card-subtitle>
                     </mat-card-header>
                     <mat-card-content>
                       <div class="form-grid">
@@ -91,75 +94,86 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                           <input matInput formControlName="ruc" 
                                  placeholder="20123456789" 
                                  maxlength="11"
-                                 [readonly]="isEditing"
+                                 [readonly]="isEditing()"
                                  (blur)="validarRuc(empresaForm.get('ruc')?.value)">
                           <mat-icon matSuffix>business</mat-icon>
                           <mat-error *ngIf="empresaForm.get('ruc')?.hasError('required')">
-                            El RUC es obligatorio
+                            EL RUC ES OBLIGATORIO
                           </mat-error>
                           <mat-error *ngIf="empresaForm.get('ruc')?.hasError('pattern')">
-                            El RUC debe tener 11 dígitos
+                            EL RUC DEBE TENER 11 DÍGITOS
                           </mat-error>
-                          <mat-error *ngIf="empresaForm.get('ruc')?.hasError('rucExists')">
-                            Este RUC ya está registrado
+                          <mat-error *ngIf="empresaForm.get('ruc')?.hasError('invalidRuc')">
+                            RUC NO VÁLIDO O YA EXISTE
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Razón Social Principal</mat-label>
+                          <mat-label>RAZÓN SOCIAL</mat-label>
                           <input matInput formControlName="razonSocialPrincipal" 
-                                 placeholder="Transportes Puno S.A.C."
+                                 placeholder="EMPRESA DE TRANSPORTES S.A.C."
                                  maxlength="200">
-                          <mat-icon matSuffix>description</mat-icon>
                           <mat-error *ngIf="empresaForm.get('razonSocialPrincipal')?.hasError('required')">
-                            La razón social es obligatoria
+                            LA RAZÓN SOCIAL ES OBLIGATORIA
+                          </mat-error>
+                          <mat-error *ngIf="empresaForm.get('razonSocialPrincipal')?.hasError('maxlength')">
+                            MÁXIMO 200 CARACTERES
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Dirección Fiscal</mat-label>
-                          <textarea matInput formControlName="direccionFiscal" 
-                                    placeholder="Av. Principal 123, Puno"
-                                    rows="3"
-                                    maxlength="500"></textarea>
-                          <mat-icon matSuffix>location_on</mat-icon>
+                          <mat-label>DIRECCIÓN FISCAL</mat-label>
+                          <input matInput formControlName="direccionFiscal" 
+                                 placeholder="AV. PRINCIPAL 123, CIUDAD"
+                                 maxlength="500">
                           <mat-error *ngIf="empresaForm.get('direccionFiscal')?.hasError('required')">
-                            La dirección fiscal es obligatoria
+                            LA DIRECCIÓN FISCAL ES OBLIGATORIA
+                          </mat-error>
+                          <mat-error *ngIf="empresaForm.get('direccionFiscal')?.hasError('maxlength')">
+                            MÁXIMO 500 CARACTERES
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Estado</mat-label>
-                          <mat-select formControlName="estado">
-                            <mat-option value="HABILITADA">Habilitada</mat-option>
-                            <mat-option value="EN_TRAMITE">En Trámite</mat-option>
-                            <mat-option value="SUSPENDIDA">Suspendida</mat-option>
-                            <mat-option value="CANCELADA">Cancelada</mat-option>
+                          <mat-label>ESTADO</mat-label>
+                          <mat-select formControlName="estado" required>
+                            <mat-option value="EN_TRAMITE">EN TRÁMITE</mat-option>
+                            <mat-option value="HABILITADA">HABILITADA</mat-option>
+                            <mat-option value="SUSPENDIDA">SUSPENDIDA</mat-option>
+                            <mat-option value="CANCELADA">CANCELADA</mat-option>
                           </mat-select>
-                          <mat-icon matSuffix>status</mat-icon>
+                          <mat-error *ngIf="empresaForm.get('estado')?.hasError('required')">
+                            EL ESTADO ES OBLIGATORIO
+                          </mat-error>
                         </mat-form-field>
                       </div>
                     </mat-card-content>
                   </mat-card>
                 </div>
                 <div class="step-actions">
-                  <button mat-button matStepperNext [disabled]="!isBasicInfoValid()">
-                    Siguiente
+                  <button mat-button type="button" (click)="volver()">
+                    <mat-icon>cancel</mat-icon>
+                    CANCELAR
+                  </button>
+                  <button mat-raised-button color="primary" 
+                          [disabled]="!isBasicInfoValid()"
+                          (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
+                    SIGUIENTE
                   </button>
                 </div>
               </mat-step>
 
               <!-- Paso 2: Representante Legal -->
-              <mat-step [stepControl]="empresaForm" label="Representante Legal">
+              <mat-step [stepControl]="empresaForm" label="REPRESENTANTE LEGAL">
                 <div class="step-content">
                   <mat-card class="form-card">
-                    <mat-card-header>
+                    <mat-card-header class="form-card-header">
                       <mat-card-title>
                         <mat-icon>person</mat-icon>
-                        Representante Legal
+                        REPRESENTANTE LEGAL
                       </mat-card-title>
-                      <mat-card-subtitle>Información del representante legal</mat-card-subtitle>
+                      <mat-card-subtitle>INFORMACIÓN DE LA PERSONA REPRESENTANTE</mat-card-subtitle>
                     </mat-card-header>
                     <mat-card-content>
                       <div class="form-grid">
@@ -168,194 +182,195 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                           <input matInput formControlName="representanteDni" 
                                  placeholder="12345678"
                                  maxlength="8">
-                          <mat-icon matSuffix>badge</mat-icon>
                           <mat-error *ngIf="empresaForm.get('representanteDni')?.hasError('required')">
-                            El DNI es obligatorio
+                            EL DNI ES OBLIGATORIO
                           </mat-error>
                           <mat-error *ngIf="empresaForm.get('representanteDni')?.hasError('pattern')">
-                            El DNI debe tener 8 dígitos
+                            EL DNI DEBE TENER 8 DÍGITOS
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Nombres</mat-label>
+                          <mat-label>NOMBRES</mat-label>
                           <input matInput formControlName="representanteNombres" 
-                                 placeholder="Juan Carlos"
+                                 placeholder="JUAN CARLOS"
                                  maxlength="100">
-                          <mat-icon matSuffix>person</mat-icon>
                           <mat-error *ngIf="empresaForm.get('representanteNombres')?.hasError('required')">
-                            Los nombres son obligatorios
+                            LOS NOMBRES SON OBLIGATORIOS
+                          </mat-error>
+                          <mat-error *ngIf="empresaForm.get('representanteNombres')?.hasError('maxlength')">
+                            MÁXIMO 100 CARACTERES
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Apellidos</mat-label>
+                          <mat-label>APELLIDOS</mat-label>
                           <input matInput formControlName="representanteApellidos" 
-                                 placeholder="Pérez Quispe"
+                                 placeholder="PÉREZ QUISPE"
                                  maxlength="100">
-                          <mat-icon matSuffix>person</mat-icon>
                           <mat-error *ngIf="empresaForm.get('representanteApellidos')?.hasError('required')">
-                            Los apellidos son obligatorios
+                            LOS APELLIDOS SON OBLIGATORIOS
+                          </mat-error>
+                          <mat-error *ngIf="empresaForm.get('representanteApellidos')?.hasError('maxlength')">
+                            MÁXIMO 100 CARACTERES
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Email</mat-label>
+                          <mat-label>EMAIL</mat-label>
                           <input matInput formControlName="representanteEmail" 
-                                 placeholder="juan.perez@empresa.com"
-                                 type="email"
-                                 maxlength="200">
-                          <mat-icon matSuffix>email</mat-icon>
+                                 placeholder="representante@empresa.com"
+                                 type="email">
                           <mat-error *ngIf="empresaForm.get('representanteEmail')?.hasError('email')">
-                            Ingrese un email válido
+                            FORMATO DE EMAIL INVÁLIDO
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Teléfono</mat-label>
+                          <mat-label>TELÉFONO</mat-label>
                           <input matInput formControlName="representanteTelefono" 
-                                 placeholder="951234567"
-                                 maxlength="15">
-                          <mat-icon matSuffix>phone</mat-icon>
+                                 placeholder="951234567">
                         </mat-form-field>
                       </div>
                     </mat-card-content>
                   </mat-card>
                 </div>
                 <div class="step-actions">
-                  <button mat-button matStepperPrevious>
+                  <button mat-button type="button" (click)="stepper.previous()">
                     <mat-icon>arrow_back</mat-icon>
-                    Anterior
+                    ANTERIOR
                   </button>
-                  <button mat-button matStepperNext [disabled]="!isRepresentanteValid()">
-                    Siguiente
+                  <button mat-raised-button color="primary" 
+                          [disabled]="!isRepresentanteValid()"
+                          (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
+                    SIGUIENTE
                   </button>
                 </div>
               </mat-step>
 
               <!-- Paso 3: Información de Contacto -->
-              <mat-step [stepControl]="empresaForm" label="Información de Contacto">
+              <mat-step [stepControl]="empresaForm" label="INFORMACIÓN DE CONTACTO">
                 <div class="step-content">
                   <mat-card class="form-card">
-                    <mat-card-header>
+                    <mat-card-header class="form-card-header">
                       <mat-card-title>
-                        <mat-icon>contact_phone</mat-icon>
-                        Información de Contacto
+                        <mat-icon>contact_mail</mat-icon>
+                        INFORMACIÓN DE CONTACTO
                       </mat-card-title>
-                      <mat-card-subtitle>Datos de contacto de la empresa</mat-card-subtitle>
+                      <mat-card-subtitle>DATOS PARA COMUNICACIÓN CON LA EMPRESA</mat-card-subtitle>
                     </mat-card-header>
                     <mat-card-content>
                       <div class="form-grid">
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Email de Contacto</mat-label>
+                          <mat-label>EMAIL DE CONTACTO</mat-label>
                           <input matInput formControlName="emailContacto" 
                                  placeholder="info@empresa.com"
-                                 type="email"
-                                 maxlength="200">
-                          <mat-icon matSuffix>email</mat-icon>
+                                 type="email">
                           <mat-error *ngIf="empresaForm.get('emailContacto')?.hasError('email')">
-                            Ingrese un email válido
+                            FORMATO DE EMAIL INVÁLIDO
                           </mat-error>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Teléfono de Contacto</mat-label>
+                          <mat-label>TELÉFONO DE CONTACTO</mat-label>
                           <input matInput formControlName="telefonoContacto" 
-                                 placeholder="951234567"
-                                 maxlength="15">
-                          <mat-icon matSuffix>phone</mat-icon>
+                                 placeholder="951234567">
                         </mat-form-field>
 
                         <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Sitio Web</mat-label>
+                          <mat-label>SITIO WEB</mat-label>
                           <input matInput formControlName="sitioWeb" 
-                                 placeholder="www.empresa.com"
-                                 maxlength="200">
-                          <mat-icon matSuffix>language</mat-icon>
+                                 placeholder="www.empresa.com">
                         </mat-form-field>
                       </div>
                     </mat-card-content>
                   </mat-card>
                 </div>
                 <div class="step-actions">
-                  <button mat-button matStepperPrevious>
+                  <button mat-button type="button" (click)="stepper.previous()">
                     <mat-icon>arrow_back</mat-icon>
-                    Anterior
+                    ANTERIOR
                   </button>
-                  <button mat-button matStepperNext [disabled]="!isContactInfoValid()">
-                    Siguiente
+                  <button mat-raised-button color="primary" 
+                          [disabled]="!isContactInfoValid()"
+                          (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
+                    SIGUIENTE
                   </button>
                 </div>
               </mat-step>
 
-              <!-- Paso 4: Revisión y Confirmación -->
-              <mat-step label="Revisión y Confirmación">
+              <!-- Paso 4: Revisión -->
+              <mat-step label="REVISIÓN">
                 <div class="step-content">
                   <mat-card class="form-card">
-                    <mat-card-header>
+                    <mat-card-header class="form-card-header">
                       <mat-card-title>
                         <mat-icon>preview</mat-icon>
-                        Revisión de Información
+                        REVISIÓN DE DATOS
                       </mat-card-title>
-                      <mat-card-subtitle>Confirma los datos antes de guardar</mat-card-subtitle>
+                      <mat-card-subtitle>VERIFICA QUE LA INFORMACIÓN SEA CORRECTA</mat-card-subtitle>
                     </mat-card-header>
                     <mat-card-content>
                       <div class="review-section">
-                        <h3>Información Básica</h3>
+                        <h3>INFORMACIÓN BÁSICA</h3>
                         <div class="review-grid">
                           <div class="review-item">
                             <span class="review-label">RUC:</span>
                             <span class="review-value">{{ empresaForm.get('ruc')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Razón Social:</span>
+                            <span class="review-label">RAZÓN SOCIAL:</span>
                             <span class="review-value">{{ empresaForm.get('razonSocialPrincipal')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Dirección:</span>
+                            <span class="review-label">DIRECCIÓN:</span>
                             <span class="review-value">{{ empresaForm.get('direccionFiscal')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Estado:</span>
+                            <span class="review-label">ESTADO:</span>
                             <span class="review-value">{{ getEstadoDisplayName(empresaForm.get('estado')?.value) }}</span>
                           </div>
                         </div>
 
-                        <h3>Representante Legal</h3>
+                        <h3>REPRESENTANTE LEGAL</h3>
                         <div class="review-grid">
                           <div class="review-item">
                             <span class="review-label">DNI:</span>
                             <span class="review-value">{{ empresaForm.get('representanteDni')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Nombres:</span>
+                            <span class="review-label">NOMBRES:</span>
                             <span class="review-value">{{ empresaForm.get('representanteNombres')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Apellidos:</span>
+                            <span class="review-label">APELLIDOS:</span>
                             <span class="review-value">{{ empresaForm.get('representanteApellidos')?.value }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Email:</span>
-                            <span class="review-value">{{ empresaForm.get('representanteEmail')?.value || 'No especificado' }}</span>
+                            <span class="review-label">EMAIL:</span>
+                            <span class="review-value">{{ empresaForm.get('representanteEmail')?.value || 'NO ESPECIFICADO' }}</span>
+                          </div>
+                          <div class="review-item">
+                            <span class="review-label">TELÉFONO:</span>
+                            <span class="review-value">{{ empresaForm.get('representanteTelefono')?.value || 'NO ESPECIFICADO' }}</span>
                           </div>
                         </div>
 
-                        <h3>Información de Contacto</h3>
+                        <h3>INFORMACIÓN DE CONTACTO</h3>
                         <div class="review-grid">
                           <div class="review-item">
-                            <span class="review-label">Email:</span>
-                            <span class="review-value">{{ empresaForm.get('emailContacto')?.value || 'No especificado' }}</span>
+                            <span class="review-label">EMAIL:</span>
+                            <span class="review-value">{{ empresaForm.get('emailContacto')?.value || 'NO ESPECIFICADO' }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Teléfono:</span>
-                            <span class="review-value">{{ empresaForm.get('telefonoContacto')?.value || 'No especificado' }}</span>
+                            <span class="review-label">TELÉFONO:</span>
+                            <span class="review-value">{{ empresaForm.get('telefonoContacto')?.value || 'NO ESPECIFICADO' }}</span>
                           </div>
                           <div class="review-item">
-                            <span class="review-label">Sitio Web:</span>
-                            <span class="review-value">{{ empresaForm.get('sitioWeb')?.value || 'No especificado' }}</span>
+                            <span class="review-label">SITIO WEB:</span>
+                            <span class="review-value">{{ empresaForm.get('sitioWeb')?.value || 'NO ESPECIFICADO' }}</span>
                           </div>
                         </div>
                       </div>
@@ -363,13 +378,17 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                   </mat-card>
                 </div>
                 <div class="step-actions">
-                  <button mat-button matStepperPrevious>
+                  <button mat-button type="button" (click)="stepper.previous()">
                     <mat-icon>arrow_back</mat-icon>
-                    Anterior
+                    ANTERIOR
                   </button>
-                  <button mat-raised-button color="primary" type="submit" [disabled]="empresaForm.invalid || isSubmitting">
-                    <mat-icon>{{ isSubmitting ? 'hourglass_empty' : 'save' }}</mat-icon>
-                    {{ isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar Empresa' : 'Crear Empresa') }}
+                  <button mat-raised-button color="primary" 
+                          type="submit"
+                          [disabled]="empresaForm.invalid || isSubmitting()">
+                    @if (isSubmitting()) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                    }
+                    {{ isEditing() ? 'ACTUALIZAR' : 'CREAR' }} EMPRESA
                   </button>
                 </div>
               </mat-step>
@@ -384,48 +403,55 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 32px;
       padding: 24px;
-      background: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
       border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
 
     .header-content {
-      flex: 1;
-    }
-
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 8px;
+      flex-grow: 1;
+      margin-right: 24px;
     }
 
     .header-title h1 {
       margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      color: #2c3e50;
+      font-size: 32px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .header-subtitle {
-      margin: 0;
-      color: #6c757d;
-      font-size: 16px;
+      margin: 8px 0 0 0;
+      font-size: 18px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
     .action-button {
       display: flex;
       align-items: center;
       gap: 8px;
-      border-radius: 4px;
-      font-weight: 500;
+      border-radius: 8px;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      min-height: 40px;
+      min-height: 48px;
       padding: 0 24px;
-      transition: all 0.2s ease-in-out;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .action-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
     .content-section {
@@ -446,12 +472,15 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
     .loading-content h3 {
       margin: 24px 0 8px 0;
       color: #2c3e50;
-      font-weight: 500;
+      font-weight: 600;
+      text-transform: uppercase;
     }
 
     .loading-content p {
       margin: 0;
       color: #6c757d;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
     .form-container {
@@ -467,22 +496,42 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
     }
 
     .form-card {
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       border: none;
+      overflow: hidden;
     }
 
     .form-card-header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      border-radius: 12px 12px 0 0;
+      padding: 24px;
+    }
+
+    .form-card-header mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .form-card-header mat-card-subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin: 8px 0 0 0;
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 24px;
-      margin-top: 16px;
+      margin-top: 24px;
+      padding: 0 24px 24px 24px;
     }
 
     .form-field {
@@ -492,64 +541,94 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
     .step-actions {
       display: flex;
       justify-content: space-between;
-      margin-top: 24px;
-      padding: 16px 0;
-      border-top: 1px solid #e9ecef;
+      margin-top: 32px;
+      padding: 24px;
+      border-top: 2px solid #e9ecef;
+      background: #f8f9fa;
+    }
+
+    .step-actions button {
+      min-width: 140px;
+      height: 48px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-radius: 8px;
     }
 
     .review-section {
       margin: 16px 0;
+      padding: 0 24px 24px 24px;
     }
 
     .review-section h3 {
       color: #2c3e50;
-      font-weight: 600;
-      margin: 24px 0 16px 0;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e9ecef;
+      font-weight: 700;
+      margin: 32px 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #667eea;
+      text-transform: uppercase;
+      font-size: 18px;
     }
 
     .review-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
     }
 
     .review-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border: 1px solid #e9ecef;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      border: 2px solid #dee2e6;
+      transition: all 0.3s ease;
+    }
+
+    .review-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      border-color: #667eea;
     }
 
     .review-label {
-      font-weight: 600;
+      font-weight: 700;
       color: #2c3e50;
+      text-transform: uppercase;
+      font-size: 14px;
     }
 
     .review-value {
       color: #6c757d;
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 16px;
+      text-transform: uppercase;
     }
 
     /* Responsive */
     @media (max-width: 768px) {
       .page-header {
         flex-direction: column;
-        gap: 16px;
+        gap: 20px;
         text-align: center;
+        padding: 20px;
       }
 
       .header-title h1 {
         font-size: 24px;
       }
 
+      .header-subtitle {
+        font-size: 16px;
+      }
+
       .form-grid {
         grid-template-columns: 1fr;
+        gap: 20px;
       }
 
       .review-grid {
@@ -559,6 +638,12 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
       .step-actions {
         flex-direction: column;
         gap: 16px;
+        align-items: center;
+      }
+
+      .step-actions button {
+        width: 100%;
+        max-width: 300px;
       }
     }
   `]
@@ -572,18 +657,22 @@ export class EmpresaFormComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private cdr = inject(ChangeDetectorRef);
 
+  // Signals
+  isLoading = signal(false);
+  isSubmitting = signal(false);
+  empresaId = signal<string | undefined>(undefined);
+
+  // Computed properties
+  isEditing = computed(() => !!this.empresaId());
+
   empresaForm: FormGroup;
-  isEditing = false;
-  isLoading = false;
-  isSubmitting = false;
-  empresaId?: string;
 
   constructor() {
     this.empresaForm = this.fb.group({
       ruc: ['', [Validators.required, Validators.pattern(/^\d{11}$/)]],
       razonSocialPrincipal: ['', [Validators.required, Validators.maxLength(200)]],
       direccionFiscal: ['', [Validators.required, Validators.maxLength(500)]],
-      estado: ['HABILITADA', [Validators.required]],
+      estado: ['EN_TRAMITE', [Validators.required]],
       representanteDni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       representanteNombres: ['', [Validators.required, Validators.maxLength(100)]],
       representanteApellidos: ['', [Validators.required, Validators.maxLength(100)]],
@@ -596,18 +685,19 @@ export class EmpresaFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.empresaId = this.route.snapshot.params['id'];
-    if (this.empresaId) {
-      this.isEditing = true;
+    const id = this.route.snapshot.params['id'];
+    if (id) {
+      this.empresaId.set(id);
       this.loadEmpresa();
     }
   }
 
   loadEmpresa(): void {
-    if (!this.empresaId) return;
+    const id = this.empresaId();
+    if (!id) return;
 
-    this.isLoading = true;
-    this.empresaService.getEmpresaById(this.empresaId).subscribe({
+    this.isLoading.set(true);
+    this.empresaService.getEmpresa(id).subscribe({
       next: (empresa) => {
         this.empresaForm.patchValue({
           ruc: empresa.ruc,
@@ -623,13 +713,13 @@ export class EmpresaFormComponent implements OnInit {
           telefonoContacto: empresa.telefonoContacto || '',
           sitioWeb: empresa.sitioWeb || ''
         });
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error cargando empresa:', error);
-        this.snackBar.open('Error al cargar la empresa', 'Cerrar', { duration: 3000 });
-        this.isLoading = false;
+        console.error('ERROR CARGANDO EMPRESA:', error);
+        this.snackBar.open('ERROR AL CARGAR LA EMPRESA', 'CERRAR', { duration: 3000 });
+        this.isLoading.set(false);
         this.cdr.detectChanges();
       }
     });
@@ -641,11 +731,11 @@ export class EmpresaFormComponent implements OnInit {
         next: (result) => {
           if (!result.valido) {
             this.empresaForm.get('ruc')?.setErrors({ invalidRuc: true });
-            this.snackBar.open('RUC no válido', 'Cerrar', { duration: 3000 });
+            this.snackBar.open('RUC NO VÁLIDO O YA EXISTE', 'CERRAR', { duration: 3000 });
           }
         },
         error: (error) => {
-          console.error('Error validando RUC:', error);
+          console.error('ERROR VALIDANDO RUC:', error);
         }
       });
     }
@@ -662,22 +752,22 @@ export class EmpresaFormComponent implements OnInit {
   }
 
   isContactInfoValid(): boolean {
-    return true; // Los campos de contacto son opcionales
+    return true; // LOS CAMPOS DE CONTACTO SON OPCIONALES
   }
 
   getEstadoDisplayName(estado: string): string {
     const estados: { [key: string]: string } = {
-      'HABILITADA': 'Habilitada',
-      'EN_TRAMITE': 'En Trámite',
-      'SUSPENDIDA': 'Suspendida',
-      'CANCELADA': 'Cancelada'
+      'HABILITADA': 'HABILITADA',
+      'EN_TRAMITE': 'EN TRÁMITE',
+      'SUSPENDIDA': 'SUSPENDIDA',
+      'CANCELADA': 'CANCELADA'
     };
     return estados[estado] || estado;
   }
 
   onSubmit(): void {
     if (this.empresaForm.valid) {
-      this.isSubmitting = true;
+      this.isSubmitting.set(true);
       
       const formData = this.empresaForm.value;
       const empresaData = {
@@ -702,22 +792,23 @@ export class EmpresaFormComponent implements OnInit {
         sitioWeb: formData.sitioWeb || undefined
       };
 
-      const request = this.isEditing 
-        ? this.empresaService.updateEmpresa(this.empresaId!, empresaData)
+      const id = this.empresaId();
+      const request = this.isEditing() 
+        ? this.empresaService.updateEmpresa(id!, empresaData)
         : this.empresaService.createEmpresa(empresaData);
 
       request.subscribe({
         next: (empresa) => {
-          this.isSubmitting = false;
-          const message = this.isEditing ? 'Empresa actualizada exitosamente' : 'Empresa creada exitosamente';
-          this.snackBar.open(message, 'Cerrar', { duration: 3000 });
+          this.isSubmitting.set(false);
+          const message = this.isEditing() ? 'EMPRESA ACTUALIZADA EXITOSAMENTE' : 'EMPRESA CREADA EXITOSAMENTE';
+          this.snackBar.open(message, 'CERRAR', { duration: 3000 });
           this.router.navigate(['/empresas', empresa.id]);
         },
         error: (error) => {
-          this.isSubmitting = false;
-          console.error('Error guardando empresa:', error);
-          const message = this.isEditing ? 'Error al actualizar empresa' : 'Error al crear empresa';
-          this.snackBar.open(message, 'Cerrar', { duration: 3000 });
+          this.isSubmitting.set(false);
+          console.error('ERROR GUARDANDO EMPRESA:', error);
+          const message = this.isEditing() ? 'ERROR AL ACTUALIZAR EMPRESA' : 'ERROR AL CREAR EMPRESA';
+          this.snackBar.open(message, 'CERRAR', { duration: 3000 });
         }
       });
     }

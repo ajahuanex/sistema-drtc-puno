@@ -17,6 +17,10 @@ import { MatDividerModule } from '@angular/material/divider';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
+import { ResolucionService } from '../../services/resolucion.service';
+import { Resolucion } from '../../models/resolucion.model';
+import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
+import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
 
 @Component({
   selector: 'app-empresa-detail',
@@ -214,6 +218,133 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
               </div>
             </mat-tab>
 
+            <!-- Tab: Gestión -->
+            <mat-tab label="Gestión">
+              <div class="tab-content">
+                <div class="gestion-grid">
+                  <!-- Gestión de Resoluciones -->
+                  <mat-card class="gestion-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>gavel</mat-icon>
+                        Resoluciones
+                      </mat-card-title>
+                      <mat-card-subtitle>Administrar resoluciones de la empresa</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <p>Gestiona las resoluciones administrativas, autorizaciones y permisos de la empresa.</p>
+                      <div class="stats-row">
+                        <span class="stat-item">
+                          <strong>{{ empresa.resolucionesPrimigeniasIds.length || 0 }}</strong>
+                          <small>Resoluciones</small>
+                        </span>
+                      </div>
+                    </mat-card-content>
+                    <mat-card-actions>
+                      <button mat-raised-button color="primary" (click)="crearResolucion()">
+                        <mat-icon>add</mat-icon>
+                        Nueva Resolución
+                      </button>
+                      <button mat-button color="accent" (click)="verTodasResoluciones()">
+                        <mat-icon>list</mat-icon>
+                        Ver Todas
+                      </button>
+                    </mat-card-actions>
+                  </mat-card>
+
+                  <!-- Gestión de Vehículos -->
+                  <mat-card class="gestion-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>directions_car</mat-icon>
+                        Vehículos
+                      </mat-card-title>
+                      <mat-card-subtitle>Administrar flota vehicular</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <p>Gestiona la flota de vehículos autorizados y sus documentos de circulación.</p>
+                      <div class="stats-row">
+                        <span class="stat-item">
+                          <strong>{{ empresa.vehiculosHabilitadosIds.length || 0 }}</strong>
+                          <small>Vehículos</small>
+                        </span>
+                      </div>
+                    </mat-card-content>
+                    <mat-card-actions>
+                      <button mat-raised-button color="primary" (click)="agregarVehiculos()">
+                        <mat-icon>add</mat-icon>
+                        Agregar Vehículos
+                      </button>
+                      <button mat-button color="accent" (click)="verTodosVehiculos()">
+                        <mat-icon>list</mat-icon>
+                        Ver Todos
+                      </button>
+                    </mat-card-actions>
+                  </mat-card>
+
+                  <!-- Gestión de Conductores -->
+                  <mat-card class="gestion-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>person</mat-icon>
+                        Conductores
+                      </mat-card-title>
+                      <mat-card-subtitle>Administrar personal conductor</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <p>Gestiona los conductores autorizados y sus licencias de conducir.</p>
+                      <div class="stats-row">
+                        <span class="stat-item">
+                          <strong>{{ empresa.conductoresHabilitadosIds.length || 0 }}</strong>
+                          <small>Conductores</small>
+                        </span>
+                      </div>
+                    </mat-card-content>
+                    <mat-card-actions>
+                      <button mat-raised-button color="primary" (click)="agregarConductores()">
+                        <mat-icon>add</mat-icon>
+                        Agregar Conductores
+                      </button>
+                      <button mat-button color="accent" (click)="verTodosConductores()">
+                        <mat-icon>list</mat-icon>
+                        Ver Todos
+                      </button>
+                    </mat-card-actions>
+                  </mat-card>
+
+                  <!-- Gestión de Rutas -->
+                  <mat-card class="gestion-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>route</mat-icon>
+                        Rutas
+                      </mat-card-title>
+                      <mat-card-subtitle>Administrar rutas autorizadas</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <p>Gestiona las rutas autorizadas y permisos de circulación.</p>
+                      <div class="stats-row">
+                        <span class="stat-item">
+                          <strong>{{ empresa.rutasAutorizadasIds.length || 0 }}</strong>
+                          <small>Rutas</small>
+                        </span>
+                      </div>
+                    </mat-card-content>
+                    <mat-card-actions>
+                      <button mat-raised-button color="primary" (click)="agregarRutas()">
+                        <mat-icon>add</mat-icon>
+                        Agregar Rutas
+                      </button>
+                      <button mat-button color="accent" (click)="verTodasRutas()">
+                        <mat-icon>list</mat-icon>
+                        Ver Todas
+                      </button>
+                    </mat-card-actions>
+                  </mat-card>
+                </div>
+              </div>
+            </mat-tab>
+
             <!-- Tab: Documentos -->
             <mat-tab label="Documentos">
               <div class="tab-content">
@@ -272,6 +403,172 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
               </div>
             </mat-tab>
 
+            <!-- Tab: Resoluciones -->
+            <mat-tab label="Resoluciones">
+              <div class="tab-content">
+                <mat-card class="info-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>gavel</mat-icon>
+                      Resoluciones de la Empresa
+                      <span class="badge-count">({{ empresa.resolucionesPrimigeniasIds.length || 0 }})</span>
+                    </mat-card-title>
+                    <mat-card-subtitle>
+                      <button mat-raised-button color="primary" (click)="crearResolucion()" class="add-button">
+                        <mat-icon>add</mat-icon>
+                        Nueva Resolución
+                      </button>
+                    </mat-card-subtitle>
+                  </mat-card-header>
+                  <mat-card-content>
+                    @if (isLoadingResoluciones) {
+                      <div class="loading-resoluciones">
+                        <mat-spinner diameter="40"></mat-spinner>
+                        <p>Cargando resoluciones...</p>
+                      </div>
+                    }                     @else if (resoluciones && resoluciones.length > 0) {
+                      <div class="resoluciones-hierarchical">
+                        @for (resolucionPadre of getResolucionesPadre(); track resolucionPadre.id) {
+                          <mat-card class="resolucion-padre-card">
+                            <mat-card-header>
+                              <mat-card-title>
+                                <mat-icon class="resolucion-icon">gavel</mat-icon>
+                                {{ resolucionPadre.nroResolucion }}
+                                <span class="badge-count">({{ getResolucionesHijas(resolucionPadre.id).length }})</span>
+                              </mat-card-title>
+                              <mat-card-subtitle>
+                                <div class="resolucion-meta">
+                                  <mat-chip [class]="'estado-chip-' + resolucionPadre.estado?.toLowerCase()">
+                                    {{ resolucionPadre.estado || 'SIN ESTADO' }}
+                                  </mat-chip>
+                                  <span class="tipo-tramite-chip">{{ resolucionPadre.tipoTramite }}</span>
+                                </div>
+                              </mat-card-subtitle>
+                            </mat-card-header>
+                            
+                            <mat-card-content>
+                              <div class="resolucion-info">
+                                <p class="descripcion">{{ resolucionPadre.descripcion || 'Sin descripción' }}</p>
+                                <div class="fechas">
+                                  <span class="fecha">
+                                    <strong>Emisión:</strong> {{ resolucionPadre.fechaEmision | date:'dd/MM/yyyy' }}
+                                  </span>
+                                  @if (resolucionPadre.fechaVigenciaInicio) {
+                                    <span class="fecha">
+                                      <strong>Vigencia:</strong> {{ resolucionPadre.fechaVigenciaInicio | date:'dd/MM/yyyy' }}
+                                    </span>
+                                  }
+                                  @if (resolucionPadre.fechaVigenciaFin) {
+                                    <span class="fecha">
+                                      <strong>Vence:</strong> {{ resolucionPadre.fechaVigenciaFin | date:'dd/MM/yyyy' }}
+                                    </span>
+                                  }
+                                </div>
+                                
+                                <!-- Estadísticas de la resolución padre -->
+                                                                  <div class="resolucion-stats">
+                                    <div class="stat-item">
+                                      <mat-icon>directions_car</mat-icon>
+                                      <span>{{ resolucionPadre.vehiculosHabilitadosIds.length || 0 }} Vehículos</span>
+                                    </div>
+                                    <div class="stat-item">
+                                      <mat-icon>route</mat-icon>
+                                      <span>{{ resolucionPadre.rutasAutorizadasIds.length || 0 }} Rutas</span>
+                                    </div>
+                                  </div>
+                              </div>
+                              
+                              <!-- Resoluciones hijas -->
+                              @if (getResolucionesHijas(resolucionPadre.id).length > 0) {
+                                <mat-divider class="resolucion-divider"></mat-divider>
+                                <div class="resoluciones-hijas">
+                                  <h4 class="hijas-title">
+                                    <mat-icon>subdirectory_arrow_right</mat-icon>
+                                    Resoluciones Hijas
+                                  </h4>
+                                  <div class="hijas-grid">
+                                    @for (resolucionHija of getResolucionesHijas(resolucionPadre.id); track resolucionHija.id) {
+                                      <mat-card class="resolucion-hija-card">
+                                        <mat-card-header>
+                                          <mat-card-title>{{ resolucionHija.nroResolucion }}</mat-card-title>
+                                          <mat-card-subtitle>
+                                            <mat-chip [class]="'estado-chip-' + resolucionHija.estado?.toLowerCase()">
+                                              {{ resolucionHija.estado || 'SIN ESTADO' }}
+                                            </mat-chip>
+                                          </mat-card-subtitle>
+                                        </mat-card-header>
+                                        <mat-card-content>
+                                          <div class="resolucion-info">
+                                            <p class="descripcion">{{ resolucionHija.descripcion || 'Sin descripción' }}</p>
+                                            <div class="fechas">
+                                              <span class="fecha">
+                                                <strong>Emisión:</strong> {{ resolucionHija.fechaEmision | date:'dd/MM/yyyy' }}
+                                              </span>
+                                            </div>
+                                            <div class="resolucion-stats">
+                                              <div class="stat-item">
+                                                <mat-icon>directions_car</mat-icon>
+                                                <span>{{ resolucionHija.vehiculosHabilitadosIds.length || 0 }} Vehículos</span>
+                                              </div>
+                                              <div class="stat-item">
+                                                <mat-icon>route</mat-icon>
+                                                <span>{{ resolucionHija.rutasAutorizadasIds.length || 0 }} Rutas</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </mat-card-content>
+                                        <mat-card-actions>
+                                          <button mat-button color="accent" (click)="verResolucion(resolucionHija.id)">
+                                            <mat-icon>visibility</mat-icon>
+                                            Ver Detalles
+                                          </button>
+                                        </mat-card-actions>
+                                      </mat-card>
+                                    }
+                                  </div>
+                                </div>
+                              }
+                            </mat-card-content>
+                            
+                            <mat-card-actions>
+                              <div class="resolucion-actions">
+                                <button mat-button color="primary" (click)="verResolucion(resolucionPadre.id)">
+                                  <mat-icon>visibility</mat-icon>
+                                  Ver Detalles
+                                </button>
+                                <button mat-button color="accent" (click)="gestionarVehiculosResolucion(resolucionPadre.id)">
+                                  <mat-icon>directions_car</mat-icon>
+                                  Gestionar Vehículos
+                                </button>
+                                <button mat-button color="accent" (click)="gestionarRutasResolucion(resolucionPadre.id)">
+                                  <mat-icon>route</mat-icon>
+                                  Gestionar Rutas
+                                </button>
+                                <button mat-button color="warn" (click)="crearResolucionHija(resolucionPadre.id)">
+                                  <mat-icon>add</mat-icon>
+                                  Nueva Hija
+                                </button>
+                              </div>
+                            </mat-card-actions>
+                          </mat-card>
+                        }
+                      </div>
+                    } @else {
+                      <div class="empty-state">
+                        <mat-icon class="empty-icon">gavel</mat-icon>
+                        <h3>No hay resoluciones registradas</h3>
+                        <p>Esta empresa no tiene resoluciones emitidas.</p>
+                        <button mat-raised-button color="primary" (click)="crearResolucion()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Crear Primera Resolución
+                        </button>
+                      </div>
+                    }
+                  </mat-card-content>
+                </mat-card>
+              </div>
+            </mat-tab>
+
             <!-- Tab: Vehículos -->
             <mat-tab label="Vehículos">
               <div class="tab-content">
@@ -282,6 +579,12 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                       Vehículos Asociados
                       <span class="badge-count">({{ empresa.vehiculosHabilitadosIds.length || 0 }})</span>
                     </mat-card-title>
+                    <mat-card-subtitle>
+                      <button mat-raised-button color="primary" (click)="agregarVehiculos()" class="add-button">
+                        <mat-icon>add</mat-icon>
+                        Agregar Vehículos
+                      </button>
+                    </mat-card-subtitle>
                   </mat-card-header>
                   <mat-card-content>
                     @if (empresa.vehiculosHabilitadosIds && empresa.vehiculosHabilitadosIds.length > 0) {
@@ -295,6 +598,12 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                             <mat-card-content>
                               <p>Información del vehículo se cargará próximamente.</p>
                             </mat-card-content>
+                            <mat-card-actions>
+                              <button mat-button color="primary" (click)="verVehiculo(vehiculoId)">
+                                <mat-icon>visibility</mat-icon>
+                                Ver Detalles
+                              </button>
+                            </mat-card-actions>
                           </mat-card>
                         }
                       </div>
@@ -303,6 +612,10 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                         <mat-icon class="empty-icon">directions_car</mat-icon>
                         <h3>No hay vehículos asociados</h3>
                         <p>Esta empresa no tiene vehículos registrados.</p>
+                        <button mat-raised-button color="primary" (click)="agregarVehiculos()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Agregar Primer Vehículo
+                        </button>
                       </div>
                     }
                   </mat-card-content>
@@ -320,6 +633,12 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                       Conductores Asociados
                       <span class="badge-count">({{ empresa.conductoresHabilitadosIds.length || 0 }})</span>
                     </mat-card-title>
+                    <mat-card-subtitle>
+                      <button mat-raised-button color="primary" (click)="agregarConductores()" class="add-button">
+                        <mat-icon>add</mat-icon>
+                        Agregar Conductores
+                      </button>
+                    </mat-card-subtitle>
                   </mat-card-header>
                   <mat-card-content>
                     @if (empresa.conductoresHabilitadosIds && empresa.conductoresHabilitadosIds.length > 0) {
@@ -333,6 +652,12 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                             <mat-card-content>
                               <p>Información del conductor se cargará próximamente.</p>
                             </mat-card-content>
+                            <mat-card-actions>
+                              <button mat-button color="primary" (click)="verConductor(conductorId)">
+                                <mat-icon>visibility</mat-icon>
+                                Ver Detalles
+                              </button>
+                            </mat-card-actions>
                           </mat-card>
                         }
                       </div>
@@ -341,6 +666,64 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
                         <mat-icon class="empty-icon">person</mat-icon>
                         <h3>No hay conductores asociados</h3>
                         <p>Esta empresa no tiene conductores registrados.</p>
+                        <button mat-raised-button color="primary" (click)="agregarConductores()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Agregar Primer Conductor
+                        </button>
+                      </div>
+                    }
+                  </mat-card-content>
+                </mat-card>
+              </div>
+            </mat-tab>
+
+            <!-- Tab: Rutas -->
+            <mat-tab label="Rutas">
+              <div class="tab-content">
+                <mat-card class="info-card">
+                  <mat-card-header>
+                    <mat-card-title>
+                      <mat-icon>route</mat-icon>
+                      Rutas Autorizadas
+                      <span class="badge-count">({{ empresa.rutasAutorizadasIds.length || 0 }})</span>
+                    </mat-card-title>
+                    <mat-card-subtitle>
+                      <button mat-raised-button color="primary" (click)="agregarRutas()" class="add-button">
+                        <mat-icon>add</mat-icon>
+                        Agregar Rutas
+                      </button>
+                    </mat-card-subtitle>
+                  </mat-card-header>
+                  <mat-card-content>
+                    @if (empresa.rutasAutorizadasIds && empresa.rutasAutorizadasIds.length > 0) {
+                      <div class="rutas-grid">
+                        @for (rutaId of empresa.rutasAutorizadasIds; track rutaId) {
+                          <mat-card class="ruta-card">
+                            <mat-card-header>
+                              <mat-card-title>Ruta {{ rutaId }}</mat-card-title>
+                              <mat-card-subtitle>ID: {{ rutaId }}</mat-card-subtitle>
+                            </mat-card-header>
+                            <mat-card-content>
+                              <p>Información de la ruta se cargará próximamente.</p>
+                            </mat-card-content>
+                            <mat-card-actions>
+                              <button mat-button color="primary" (click)="verRuta(rutaId)">
+                                <mat-icon>visibility</mat-icon>
+                                Ver Detalles
+                              </button>
+                            </mat-card-actions>
+                          </mat-card>
+                        }
+                      </div>
+                    } @else {
+                      <div class="empty-state">
+                        <mat-icon class="empty-icon">route</mat-icon>
+                        <h3>No hay rutas autorizadas</h3>
+                        <p>Esta empresa no tiene rutas autorizadas.</p>
+                        <button mat-raised-button color="primary" (click)="agregarRutas()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Agregar Primera Ruta
+                        </button>
                       </div>
                     }
                   </mat-card-content>
@@ -692,6 +1075,72 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
       margin-left: 8px;
     }
 
+    .add-button {
+      margin-top: 8px;
+    }
+
+    .resoluciones-grid,
+    .rutas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .resolucion-card,
+    .ruta-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .mat-card-actions {
+      padding: 8px 16px 16px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .gestion-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .gestion-card {
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .gestion-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      margin: 16px 0;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .stat-item strong {
+      font-size: 24px;
+      color: #1976d2;
+      font-weight: 600;
+    }
+
+    .stat-item small {
+      color: #6c757d;
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .page-header {
@@ -715,15 +1164,240 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 
       .documentos-grid,
       .vehiculos-grid,
-      .conductores-grid {
+      .conductores-grid,
+      .resoluciones-grid,
+      .rutas-grid,
+      .gestion-grid,
+      .hijas-grid {
         grid-template-columns: 1fr;
       }
+
+      .resoluciones-hierarchical {
+        gap: 16px;
+      }
+
+      .resolucion-actions {
+        flex-direction: column;
+      }
+
+      .resolucion-actions button {
+        width: 100%;
+      }
+    }
+
+    /* Estilos para resoluciones jerárquicas */
+    .resoluciones-hierarchical {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .resolucion-padre-card {
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #1976d2;
+    }
+
+    .resolucion-icon {
+      margin-right: 8px;
+      color: #1976d2;
+    }
+
+    .badge-count {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .resolucion-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tipo-tramite-chip {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .resolucion-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .resolucion-stats .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #6c757d;
+    }
+
+    .resolucion-stats .stat-item mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: #1976d2;
+    }
+
+    .resolucion-divider {
+      margin: 20px 0;
+    }
+
+    .resoluciones-hijas {
+      margin-top: 16px;
+    }
+
+    .hijas-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #495057;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+    }
+
+    .hijas-title mat-icon {
+      color: #6c757d;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .hijas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .resolucion-hija-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-left: 3px solid #ff9800;
+      background-color: #fafafa;
+    }
+
+    .resolucion-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    .resolucion-actions button {
+      min-width: auto;
+      padding: 0 16px;
+      height: 36px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .loading-resoluciones {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+      gap: 16px;
+      color: #6c757d;
+    }
+
+    .resolucion-info {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .descripcion {
+      font-weight: 500;
+      color: #2c3e50;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .fechas {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fecha {
+      font-size: 14px;
+      color: #6c757d;
+    }
+
+    .fecha strong {
+      color: #495057;
+    }
+
+    .tipo-info {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .tipo-resolucion,
+    .tipo-tramite {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tipo-resolucion {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .tipo-tramite {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .estado-chip-vigente {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .estado-chip-vencida {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .estado-chip-suspendida {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .estado-chip-revocada {
+      background-color: #e2e3e5;
+      color: #383d41;
+    }
+
+    .estado-chip-dada_de_baja {
+      background-color: #f8f9fa;
+      color: #6c757d;
     }
   `]
 })
 export class EmpresaDetailComponent implements OnInit {
   private empresaService = inject(EmpresaService);
   private authService = inject(AuthService);
+  private resolucionService = inject(ResolucionService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
@@ -732,6 +1406,8 @@ export class EmpresaDetailComponent implements OnInit {
 
   empresa?: Empresa;
   isLoading = false;
+  resoluciones: Resolucion[] = [];
+  isLoadingResoluciones = false;
 
   ngOnInit(): void {
     const empresaId = this.route.snapshot.params['id'];
@@ -742,11 +1418,14 @@ export class EmpresaDetailComponent implements OnInit {
 
   loadEmpresa(id: string): void {
     this.isLoading = true;
-    this.empresaService.getEmpresaById(id).subscribe({
+    this.empresaService.getEmpresa(id).subscribe({
       next: (empresa) => {
         this.empresa = empresa;
         this.isLoading = false;
         this.cdr.detectChanges();
+        
+        // Cargar las resoluciones de la empresa
+        this.cargarResolucionesEmpresa(id);
       },
       error: (error) => {
         console.error('Error cargando empresa:', error);
@@ -778,9 +1457,169 @@ export class EmpresaDetailComponent implements OnInit {
     this.router.navigate(['/empresas']);
   }
 
+  cargarResolucionesEmpresa(empresaId: string): void {
+    this.isLoadingResoluciones = true;
+    
+    this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
+      next: (resoluciones) => {
+        console.log('📋 Resoluciones cargadas para empresa:', empresaId, resoluciones);
+        this.resoluciones = resoluciones;
+        this.isLoadingResoluciones = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error cargando resoluciones de la empresa:', error);
+        this.isLoadingResoluciones = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Métodos para estructura jerárquica de resoluciones
+  getResolucionesPadre(): Resolucion[] {
+    return this.resoluciones.filter(r => r.tipoResolucion === 'PADRE');
+  }
+
+  getResolucionesHijas(resolucionPadreId: string): Resolucion[] {
+    return this.resoluciones.filter(r => r.resolucionPadreId === resolucionPadreId);
+  }
+
+  // Métodos para gestión de vehículos y rutas por resolución
+  gestionarVehiculosResolucion(resolucionId: string): void {
+    // TODO: Implementar modal para gestionar vehículos de la resolución
+    this.snackBar.open('Funcionalidad de gestión de vehículos próximamente', 'Cerrar', { duration: 3000 });
+  }
+
+  gestionarRutasResolucion(resolucionId: string): void {
+    // TODO: Implementar modal para gestionar rutas de la resolución
+    this.snackBar.open('Funcionalidad de gestión de rutas próximamente', 'Cerrar', { duration: 3000 });
+  }
+
+  crearResolucionHija(resolucionPadreId: string): void {
+    if (this.empresa) {
+      // Abrir modal de creación de resolución hija
+      const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
+        width: '800px',
+        data: { 
+          empresaId: this.empresa.id, 
+          empresa: this.empresa,
+          resolucionPadreId: resolucionPadreId,
+          esResolucionHija: true
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Recargar las resoluciones para mostrar la nueva hija
+          this.cargarResolucionesEmpresa(this.empresa!.id);
+          this.snackBar.open('Resolución hija creada exitosamente', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
   editarEmpresa(): void {
     if (this.empresa) {
       this.router.navigate(['/empresas', this.empresa.id, 'editar']);
+    }
+  }
+
+  // Métodos para Resoluciones
+  crearResolucion(): void {
+    if (this.empresa) {
+      // Abrir modal de creación de resolución
+      const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
+        width: '800px',
+        data: { empresaId: this.empresa.id, empresa: this.empresa }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Recargar las resoluciones para mostrar la nueva
+          this.cargarResolucionesEmpresa(this.empresa!.id);
+          this.snackBar.open('Resolución creada exitosamente', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  verResolucion(resolucionId: string): void {
+    // Navegar a la vista de detalles de la resolución
+    this.router.navigate(['/resoluciones', resolucionId]);
+  }
+
+  // Métodos para Vehículos
+  agregarVehiculos(): void {
+    if (this.empresa) {
+      // Abrir modal de agregar vehículos
+      const dialogRef = this.dialog.open(EmpresaVehiculosBatchComponent, {
+        width: '900px',
+        data: { empresaId: this.empresa.id, empresa: this.empresa }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Recargar la empresa para mostrar los nuevos vehículos
+          this.loadEmpresa(this.empresa!.id);
+          this.snackBar.open('Vehículos agregados exitosamente', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  verVehiculo(vehiculoId: string): void {
+    // Navegar a la vista de detalles del vehículo
+    this.router.navigate(['/vehiculos', vehiculoId]);
+  }
+
+  // Métodos para Conductores
+  agregarConductores(): void {
+    if (this.empresa) {
+      // Navegar a la vista de gestión de conductores
+      this.router.navigate(['/empresas', this.empresa.id, 'conductores']);
+    }
+  }
+
+  verConductor(conductorId: string): void {
+    // Navegar a la vista de detalles del conductor
+    this.router.navigate(['/conductores', conductorId]);
+  }
+
+  // Métodos para Rutas
+  agregarRutas(): void {
+    if (this.empresa) {
+      // Navegar a la vista de gestión de rutas
+      this.router.navigate(['/empresas', this.empresa.id, 'rutas']);
+    }
+  }
+
+  verRuta(rutaId: string): void {
+    // Navegar a la vista de detalles de la ruta
+    this.router.navigate(['/rutas', rutaId]);
+  }
+
+  // Métodos para "Ver Todos"
+  verTodasResoluciones(): void {
+    if (this.empresa) {
+      this.router.navigate(['/resoluciones'], { queryParams: { empresaId: this.empresa.id } });
+    }
+  }
+
+  verTodosVehiculos(): void {
+    if (this.empresa) {
+      this.router.navigate(['/vehiculos'], { queryParams: { empresaId: this.empresa.id } });
+    }
+  }
+
+  verTodosConductores(): void {
+    if (this.empresa) {
+      this.router.navigate(['/conductores'], { queryParams: { empresaId: this.empresa.id } });
+    }
+  }
+
+  verTodasRutas(): void {
+    if (this.empresa) {
+      this.router.navigate(['/rutas'], { queryParams: { empresaId: this.empresa.id } });
     }
   }
 } 

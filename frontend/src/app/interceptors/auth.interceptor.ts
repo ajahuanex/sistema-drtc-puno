@@ -1,47 +1,40 @@
-import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { HttpInterceptorFn, HttpRequest, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
-  private isHandling401 = false;
+export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  let isHandling401 = false;
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  // Agregar token de autorización si está disponible
+  let modifiedRequest = req;
+  const token = authService.getToken();
 
-  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Agregar token de autorización si está disponible
-    const token = this.authService.getToken();
-    let modifiedRequest = request;
-
-    if (token && this.authService.isTokenValid()) {
-      modifiedRequest = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-    }
-
-    return next.handle(modifiedRequest).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 401 && !this.isHandling401) {
-          this.isHandling401 = true;
-          console.log('Error 401 detectado en interceptor, redirigiendo al login...');
-          this.authService.logout();
-          
-          // Usar setTimeout para evitar conflictos de navegación
-          setTimeout(() => {
-            this.router.navigate(['/login'], { replaceUrl: true });
-            this.isHandling401 = false;
-          }, 100);
-        }
-        return throwError(() => error);
-      })
-    );
+  if (token && authService.isTokenValid()) {
+    modifiedRequest = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
   }
-} 
+
+  return next(modifiedRequest).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401 && !isHandling401) {
+        isHandling401 = true;
+        console.log('Error 401 detectado en interceptor, redirigiendo al login...');
+        authService.logout();
+        
+        // Usar setTimeout para evitar conflictos de navegación
+        setTimeout(() => {
+          router.navigate(['/login'], { replaceUrl: true });
+          isHandling401 = false;
+        }, 100);
+      }
+      return throwError(() => error);
+    })
+  );
+}; 

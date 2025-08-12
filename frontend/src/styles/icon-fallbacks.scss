@@ -1,0 +1,93 @@
+/* Estilos para fallbacks de iconos cuando Material Icons no están disponibles */
+
+.material-icons-fallback {
+  .material-icons {
+    font-family: Arial, sans-serif !important;
+    font-size: 18px !important;
+    line-height: 1 !important;
+    display: inline-block !important;
+    text-align: center !important;
+    min-width: 24px !important;
+    height: 24px !important;
+  }
+}
+
+/* Estilos para iconos con fallback automático */
+.icon-with-fallback {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  text-align: center;
+  line-height: 24px;
+}
+
+.icon-with-fallback .material-icons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.icon-with-fallback .fallback-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.material-icons-fallback .icon-with-fallback .material-icons {
+  display: none;
+}
+
+.material-icons-fallback .icon-with-fallback .fallback-icon {
+  display: block;
+}
+
+/* Animaciones para iconos */
+.icon-with-fallback {
+  transition: transform 0.2s ease;
+}
+
+.icon-with-fallback:hover {
+  transform: scale(1.1);
+}
+
+/* Estilos para iconos de diferentes tamaños */
+.icon-with-fallback.icon-small {
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+}
+
+.icon-with-fallback.icon-small .fallback-icon {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.icon-with-fallback.icon-large {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.icon-with-fallback.icon-large .fallback-icon {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.icon-with-fallback.icon-xl {
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+}
+
+.icon-with-fallback.icon-xl .fallback-icon {
+  font-size: 36px;
+  line-height: 48px;
+} 

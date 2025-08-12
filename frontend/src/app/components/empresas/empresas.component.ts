@@ -16,6 +16,9 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
@@ -26,6 +29,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
   selector: 'app-empresas',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+
   imports: [
     CommonModule,
     MatTableModule,
@@ -42,6 +46,9 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     MatExpansionModule,
     MatChipsModule,
     MatDialogModule,
+    MatMenuModule,
+    MatBadgeModule,
+    MatDividerModule,
     FormsModule,
     ReactiveFormsModule
   ],
@@ -49,22 +56,22 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     <div class="page-header">
       <div class="header-content">
         <div class="header-title">
-          <h1>Empresas Registradas</h1>
+          <h1>EMPRESAS REGISTRADAS</h1>
         </div>
-        <p class="header-subtitle">Gestión integral de empresas de transporte</p>
+        <p class="header-subtitle">GESTIÓN INTEGRAL DE EMPRESAS DE TRANSPORTE</p>
       </div>
       <div class="header-actions">
         <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="action-button">
           <mat-icon>add</mat-icon>
-          Nueva Empresa
+          NUEVA EMPRESA
         </button>
         <button mat-raised-button color="accent" (click)="crearResolucion()" class="action-button">
           <mat-icon>gavel</mat-icon>
-          Crear Resolución
+          CREAR RESOLUCIÓN
         </button>
         <button mat-button color="accent" (click)="exportarEmpresas()" class="action-button">
           <mat-icon>download</mat-icon>
-          Exportar
+          EXPORTAR
         </button>
       </div>
     </div>
@@ -79,7 +86,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ estadisticas()?.totalEmpresas }}</div>
-              <div class="stat-label">Total Empresas</div>
+              <div class="stat-label">TOTAL EMPRESAS</div>
             </div>
           </div>
           <div class="stat-card habilitadas">
@@ -88,7 +95,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ estadisticas()?.empresasHabilitadas }}</div>
-              <div class="stat-label">Habilitadas</div>
+              <div class="stat-label">HABILITADAS</div>
             </div>
           </div>
           <div class="stat-card en-tramite">
@@ -97,7 +104,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ estadisticas()?.empresasEnTramite }}</div>
-              <div class="stat-label">En Trámite</div>
+              <div class="stat-label">EN TRÁMITE</div>
             </div>
           </div>
           <div class="stat-card suspendidas">
@@ -106,7 +113,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ estadisticas()?.empresasSuspendidas }}</div>
-              <div class="stat-label">Suspendidas</div>
+              <div class="stat-label">SUSPENDIDAS</div>
             </div>
           </div>
         </div>
@@ -119,7 +126,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
         <mat-expansion-panel-header>
           <mat-panel-title>
             <mat-icon>filter_list</mat-icon>
-            Filtros Avanzados
+            FILTROS AVANZADOS
           </mat-panel-title>
         </mat-expansion-panel-header>
         
@@ -127,34 +134,34 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
           <div class="filters-grid">
             <mat-form-field appearance="outline">
               <mat-label>RUC</mat-label>
-              <input matInput formControlName="ruc" placeholder="Buscar por RUC">
+              <input matInput formControlName="ruc" placeholder="BUSCAR POR RUC">
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Razón Social</mat-label>
-              <input matInput formControlName="razonSocial" placeholder="Buscar por razón social">
+              <mat-label>RAZÓN SOCIAL</mat-label>
+              <input matInput formControlName="razonSocial" placeholder="BUSCAR POR RAZÓN SOCIAL">
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Estado</mat-label>
+              <mat-label>ESTADO</mat-label>
               <mat-select formControlName="estado">
-                <mat-option value="">Todos los estados</mat-option>
-                <mat-option value="HABILITADA">Habilitada</mat-option>
-                <mat-option value="EN_TRAMITE">En Trámite</mat-option>
-                <mat-option value="SUSPENDIDA">Suspendida</mat-option>
-                <mat-option value="CANCELADA">Cancelada</mat-option>
+                <mat-option value="">TODOS LOS ESTADOS</mat-option>
+                <mat-option value="HABILITADA">HABILITADA</mat-option>
+                <mat-option value="EN_TRAMITE">EN TRÁMITE</mat-option>
+                <mat-option value="SUSPENDIDA">SUSPENDIDA</mat-option>
+                <mat-option value="CANCELADA">CANCELADA</mat-option>
               </mat-select>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Fecha Desde</mat-label>
+              <mat-label>FECHA DESDE</mat-label>
               <input matInput [matDatepicker]="fechaDesdePicker" formControlName="fechaDesde">
               <mat-datepicker-toggle matSuffix [for]="fechaDesdePicker"></mat-datepicker-toggle>
               <mat-datepicker #fechaDesdePicker></mat-datepicker>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Fecha Hasta</mat-label>
+              <mat-label>FECHA HASTA</mat-label>
               <input matInput [matDatepicker]="fechaHastaPicker" formControlName="fechaHasta">
               <mat-datepicker-toggle matSuffix [for]="fechaHastaPicker"></mat-datepicker-toggle>
               <mat-datepicker #fechaHastaPicker></mat-datepicker>
@@ -164,11 +171,11 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
           <div class="filters-actions">
             <button mat-raised-button color="primary" (click)="aplicarFiltros()">
               <mat-icon>search</mat-icon>
-              Buscar
+              BUSCAR
             </button>
             <button mat-button (click)="limpiarFiltros()">
               <mat-icon>clear</mat-icon>
-              Limpiar
+              LIMPIAR
             </button>
           </div>
         </form>
@@ -179,8 +186,8 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
         <div class="loading-container">
           <div class="loading-content">
             <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
-            <h3>Cargando empresas...</h3>
-            <p>Obteniendo información de las empresas registradas</p>
+            <h3>CARGANDO EMPRESAS...</h3>
+            <p>OBTENIENDO INFORMACIÓN DE LAS EMPRESAS REGISTRADAS</p>
           </div>
         </div>
       }
@@ -192,16 +199,16 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
             <div class="empty-icon-container">
               <mat-icon class="empty-icon">business</mat-icon>
             </div>
-            <h2>No hay empresas registradas</h2>
-            <p>Comienza agregando la primera empresa de transporte al sistema.</p>
+            <h2>NO HAY EMPRESAS REGISTRADAS</h2>
+            <p>COMIENZA AGREGANDO LA PRIMERA EMPRESA DE TRANSPORTE AL SISTEMA.</p>
             <div class="empty-actions">
               <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="primary-action">
                 <mat-icon>add</mat-icon>
-                Agregar Primera Empresa
+                AGREGAR PRIMERA EMPRESA
               </button>
               <button mat-button color="accent" (click)="recargarEmpresas()" class="secondary-action">
                 <mat-icon>refresh</mat-icon>
-                Recargar
+                RECARGAR
               </button>
             </div>
           </div>
@@ -213,13 +220,13 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
         <div class="table-section">
           <div class="table-header">
             <div class="table-info">
-              <h3>Empresas Registradas</h3>
-              <p class="table-subtitle">Se encontraron {{empresas().length}} empresas</p>
+              <h3>EMPRESAS REGISTRADAS</h3>
+              <p class="table-subtitle">SE ENCONTRARON {{empresas().length}} EMPRESAS</p>
             </div>
             <div class="table-actions">
               <button mat-button color="accent" (click)="recargarEmpresas()">
                 <mat-icon>refresh</mat-icon>
-                Recargar
+                RECARGAR
               </button>
             </div>
           </div>
@@ -244,7 +251,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="razonSocial">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Razón Social</span>
+                    <span>RAZÓN SOCIAL</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
@@ -258,7 +265,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="estado">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Estado</span>
+                    <span>ESTADO</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
@@ -274,7 +281,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="representante">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Representante</span>
+                    <span>REPRESENTANTE</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
@@ -288,7 +295,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="vehiculos">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Vehículos</span>
+                    <span>VEHÍCULOS</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
@@ -304,7 +311,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="conductores">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Conductores</span>
+                    <span>CONDUCTORES</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
@@ -320,23 +327,41 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
               <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>Acciones</span>
+                    <span>ACCIONES</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
                   <div class="cell-content actions-content">
-                    <button mat-icon-button color="primary" (click)="verEmpresa(empresa.id)" 
-                            class="action-button" matTooltip="Ver detalles">
-                      <mat-icon>visibility</mat-icon>
+                    <button mat-icon-button [matMenuTriggerFor]="menu" class="action-button" matTooltip="MÁS ACCIONES">
+                      <mat-icon>more_vert</mat-icon>
                     </button>
-                    <button mat-icon-button color="accent" (click)="editarEmpresa(empresa.id)"
-                            class="action-button" matTooltip="Editar empresa">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn" (click)="eliminarEmpresa(empresa.id)"
-                            class="action-button" matTooltip="Eliminar empresa">
-                      <mat-icon>delete</mat-icon>
-                    </button>
+                    <mat-menu #menu="matMenu">
+                      <button mat-menu-item (click)="verEmpresa(empresa.id)">
+                        <mat-icon>visibility</mat-icon>
+                        <span>VER DETALLES</span>
+                      </button>
+                      <button mat-menu-item (click)="editarEmpresa(empresa.id)">
+                        <mat-icon>edit</mat-icon>
+                        <span>EDITAR EMPRESA</span>
+                      </button>
+                      <button mat-menu-item (click)="gestionarVehiculos(empresa.id)">
+                        <mat-icon>directions_car</mat-icon>
+                        <span>GESTIONAR VEHÍCULOS</span>
+                      </button>
+                      <button mat-menu-item (click)="gestionarConductores(empresa.id)">
+                        <mat-icon>person</mat-icon>
+                        <span>GESTIONAR CONDUCTORES</span>
+                      </button>
+                      <button mat-menu-item (click)="verResoluciones(empresa.id)">
+                        <mat-icon>gavel</mat-icon>
+                        <span>VER RESOLUCIONES</span>
+                      </button>
+                      <mat-divider></mat-divider>
+                      <button mat-menu-item color="warn" (click)="eliminarEmpresa(empresa.id)">
+                        <mat-icon>delete</mat-icon>
+                        <span>ELIMINAR EMPRESA</span>
+                      </button>
+                    </mat-menu>
                   </div>
                 </td>
               </ng-container>
@@ -369,9 +394,19 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
       align-items: center;
     }
 
+    .header-title h1 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 28px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
     .header-subtitle {
       color: #666;
       margin-top: 4px;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
     .header-actions {
@@ -382,6 +417,8 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
 
     .action-button {
       margin-left: 10px;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
     /* Estadísticas */
@@ -402,8 +439,8 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
       align-items: center;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
     }
 
     .stat-card:hover {
@@ -416,28 +453,24 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     }
 
     .stat-card.habilitadas {
-      background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: white;
     }
 
     .stat-card.en-tramite {
-      background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       color: white;
     }
 
     .stat-card.suspendidas {
-      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-      color: white;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+      color: #333;
     }
 
     .stat-icon {
       margin-right: 15px;
-    }
-
-    .stat-icon mat-icon {
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
+      font-size: 2.5em;
+      opacity: 0.8;
     }
 
     .stat-content {
@@ -445,20 +478,21 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     }
 
     .stat-value {
-      font-size: 24px;
+      font-size: 2em;
       font-weight: bold;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
 
     .stat-label {
-      font-size: 14px;
+      font-size: 0.9em;
       opacity: 0.9;
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
     /* Filtros */
     .filters-panel {
-      margin: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
     }
 
     .filters-form {
@@ -478,108 +512,109 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
       justify-content: flex-end;
     }
 
-    .content-section {
-      padding: 20px;
-    }
-
+    /* Loading */
     .loading-container {
-      text-align: center;
-      padding: 40px 20px;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 20px;
     }
 
     .loading-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
     }
 
     .loading-spinner {
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     .loading-content h3 {
-      color: #555;
-      margin-bottom: 8px;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-transform: uppercase;
     }
 
     .loading-content p {
-      color: #888;
-      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
     }
 
+    /* Empty State */
     .empty-container {
-      text-align: center;
-      padding: 40px 20px;
-      background-color: #f9f9f9;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 20px;
     }
 
     .empty-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      text-align: center;
+      max-width: 400px;
     }
 
     .empty-icon-container {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
 
     .empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
+      font-size: 4em;
       color: #ccc;
     }
 
     .empty-content h2 {
-      color: #666;
-      margin-bottom: 8px;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-transform: uppercase;
     }
 
     .empty-content p {
-      color: #999;
-      margin-bottom: 24px;
+      color: #666;
+      margin-bottom: 30px;
+      text-transform: uppercase;
     }
 
     .empty-actions {
       display: flex;
-      gap: 10px;
+      gap: 15px;
       justify-content: center;
     }
 
-    .primary-action, .secondary-action {
-      padding: 8px 16px;
+    .primary-action {
+      text-transform: uppercase;
+      font-weight: 500;
     }
 
+    .secondary-action {
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    /* Tabla */
     .table-section {
-      margin-top: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
     }
 
     .table-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #eee;
+      padding: 20px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
     .table-info h3 {
-      margin-bottom: 5px;
-      color: #333;
+      margin: 0;
+      color: #2c3e50;
+      text-transform: uppercase;
     }
 
     .table-subtitle {
+      margin: 5px 0 0 0;
       color: #666;
-      font-size: 14px;
-    }
-
-    .table-actions button {
-      padding: 8px 12px;
+      text-transform: uppercase;
     }
 
     .table-container {
@@ -589,37 +624,28 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     .modern-table {
       width: 100%;
       border-collapse: collapse;
-      border-spacing: 0;
-      background-color: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .table-header-row {
-      background-color: #f5f5f5;
-      font-weight: bold;
-      color: #333;
     }
 
     .table-header-cell {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-      background-color: #f5f5f5;
-      font-size: 14px;
-      color: #333;
+      background-color: #f8f9fa;
+      color: #2c3e50;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 16px;
+      border-bottom: 2px solid #dee2e6;
     }
 
     .table-cell {
-      padding: 12px 16px;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
-      color: #555;
+      padding: 16px;
+      border-bottom: 1px solid #e9ecef;
     }
 
-    .table-row:last-child .table-cell {
-      border-bottom: none;
+    .table-header-row {
+      background-color: #f8f9fa;
+    }
+
+    .table-row:hover {
+      background-color: #f8f9fa;
     }
 
     .cell-content {
@@ -628,50 +654,53 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
     }
 
     .cell-text {
+      color: #2c3e50;
       font-weight: 500;
     }
 
     .status-badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      color: #fff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .status-habilitada {
-      background-color: #4caf50;
+      background-color: #d4edda;
+      color: #155724;
     }
 
     .status-en_tramite {
-      background-color: #ff9800;
+      background-color: #fff3cd;
+      color: #856404;
     }
 
     .status-suspendida {
-      background-color: #f44336;
+      background-color: #f8d7da;
+      color: #721c24;
     }
 
     .status-cancelada {
-      background-color: #9e9e9e;
+      background-color: #e2e3e5;
+      color: #383d41;
     }
 
     .actions-content {
-      display: flex;
-      gap: 8px;
+      justify-content: center;
     }
 
     .action-button {
-      padding: 8px;
+      transition: all 0.3s ease;
     }
 
-    mat-icon {
-      font-size: 20px;
-      height: 20px;
-      width: 20px;
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    /* Responsive Design */
+    /* Responsive */
     @media (max-width: 768px) {
       .page-header {
         flex-direction: column;
@@ -681,7 +710,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
 
       .header-actions {
         width: 100%;
-        justify-content: flex-start;
+        justify-content: space-between;
       }
 
       .stats-grid {
@@ -692,118 +721,20 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
         grid-template-columns: 1fr;
       }
 
+      .filters-actions {
+        justify-content: center;
+      }
+
+      .empty-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
       .table-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
+        gap: 15px;
       }
-
-      .modern-table {
-        font-size: 12px;
-      }
-
-      .table-header-cell,
-      .table-cell {
-        padding: 8px 12px;
-      }
-    }
-
-    /* Hover Effects */
-    .table-row:hover {
-      background-color: #f8f9fa;
-      transition: background-color 0.2s ease;
-    }
-
-    .action-button:hover {
-      transform: scale(1.1);
-      transition: transform 0.2s ease;
-    }
-
-    /* Animations */
-    .loading-spinner {
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.7; }
-      100% { opacity: 1; }
-    }
-
-    /* Modern Card Effects */
-    .empty-container,
-    .loading-container {
-      transition: all 0.3s ease;
-    }
-
-    .empty-container:hover,
-    .loading-container:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    }
-
-    /* Status Badge Improvements */
-    .status-badge {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .status-badge::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
-    }
-
-    .status-badge:hover::before {
-      left: 100%;
-    }
-
-    /* Table Improvements */
-    .modern-table {
-      position: relative;
-    }
-
-    .modern-table::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
-    }
-
-    /* Header Improvements */
-    .header-title h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .header-subtitle {
-      margin: 0;
-      font-size: 16px;
-      color: #666;
-    }
-
-    /* Action Button Improvements */
-    .action-button {
-      border-radius: 8px;
-      font-weight: 500;
-      text-transform: none;
-      letter-spacing: 0.5px;
-      transition: all 0.3s ease;
-    }
-
-    .action-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
   `]
 })
@@ -836,38 +767,38 @@ export class EmpresasComponent implements OnInit {
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
-      console.log('Usuario no autenticado, redirigiendo a login...');
+      console.log('USUARIO NO AUTENTICADO, REDIRIGIENDO A LOGIN...');
       this.router.navigate(['/login']);
       return;
     }
     
-    console.log('Usuario autenticado:', this.authService.getCurrentUser());
-    console.log('Token disponible:', !!this.authService.getToken());
+    console.log('USUARIO AUTENTICADO:', this.authService.getCurrentUser());
+    console.log('TOKEN DISPONIBLE:', !!this.authService.getToken());
     
     this.loadEmpresas();
     this.loadEstadisticas();
   }
 
   recargarEmpresas(): void {
-    console.log('Recargando empresas manualmente...');
+    console.log('RECARGANDO EMPRESAS MANUALMENTE...');
     this.loadEmpresas();
     this.loadEstadisticas();
   }
 
   loadEmpresas(): void {
     this.isLoading.set(true);
-    console.log('Iniciando carga de empresas...');
+    console.log('INICIANDO CARGA DE EMPRESAS...');
     
     this.empresaService.getEmpresas(0, 100).subscribe({
       next: (empresas) => {
-        console.log('Empresas cargadas exitosamente:', empresas);
+        console.log('EMPRESAS CARGADAS EXITOSAMENTE:', empresas);
         this.empresas.set(empresas);
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error cargando empresas:', error);
+        console.error('ERROR CARGANDO EMPRESAS:', error);
         this.isLoading.set(false);
-        this.snackBar.open('Error al cargar las empresas', 'Cerrar', {
+        this.snackBar.open('ERROR AL CARGAR LAS EMPRESAS', 'CERRAR', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
@@ -882,14 +813,14 @@ export class EmpresasComponent implements OnInit {
         this.estadisticas.set(estadisticas);
       },
       error: (error) => {
-        console.error('Error cargando estadísticas:', error);
+        console.error('ERROR CARGANDO ESTADÍSTICAS:', error);
       }
     });
   }
 
   aplicarFiltros(): void {
     const filtros = this.filtrosForm.value;
-    console.log('Aplicando filtros:', filtros);
+    console.log('APLICANDO FILTROS:', filtros);
     
     this.isLoading.set(true);
     this.empresaService.getEmpresasConFiltros(filtros).subscribe({
@@ -898,9 +829,9 @@ export class EmpresasComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error aplicando filtros:', error);
+        console.error('ERROR APLICANDO FILTROS:', error);
         this.isLoading.set(false);
-        this.snackBar.open('Error al aplicar filtros', 'Cerrar', {
+        this.snackBar.open('ERROR AL APLICAR FILTROS', 'CERRAR', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
@@ -926,11 +857,33 @@ export class EmpresasComponent implements OnInit {
     this.router.navigate(['/empresas/nueva']);
   }
 
+  gestionarVehiculos(empresaId: string): void {
+    this.router.navigate(['/empresas', empresaId, 'vehiculos', 'batch']);
+  }
+
+  gestionarConductores(empresaId: string): void {
+    // TODO: Implementar gestión de conductores
+    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
+  }
+
+  verResoluciones(empresaId: string): void {
+    // TODO: Implementar vista de resoluciones
+    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
+  }
+
   eliminarEmpresa(id: string): void {
-    if (confirm('¿Está seguro de que desea eliminar esta empresa? Esta acción no se puede deshacer.')) {
+    if (confirm('¿ESTÁ SEGURO DE QUE DESEA ELIMINAR ESTA EMPRESA? ESTA ACCIÓN NO SE PUEDE DESHACER.')) {
       this.empresaService.deleteEmpresa(id).subscribe({
         next: () => {
-          this.snackBar.open('Empresa eliminada exitosamente', 'Cerrar', {
+          this.snackBar.open('EMPRESA ELIMINADA EXITOSAMENTE', 'CERRAR', {
             duration: 3000,
             horizontalPosition: 'center',
             verticalPosition: 'top'
@@ -939,8 +892,8 @@ export class EmpresasComponent implements OnInit {
           this.loadEstadisticas();
         },
         error: (error) => {
-          console.error('Error eliminando empresa:', error);
-          this.snackBar.open('Error al eliminar la empresa', 'Cerrar', {
+          console.error('ERROR ELIMINANDO EMPRESA:', error);
+          this.snackBar.open('ERROR AL ELIMINAR LA EMPRESA', 'CERRAR', {
             duration: 3000,
             horizontalPosition: 'center',
             verticalPosition: 'top'
@@ -960,15 +913,15 @@ export class EmpresasComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
         
-        this.snackBar.open('Archivo exportado exitosamente', 'Cerrar', {
+        this.snackBar.open('ARCHIVO EXPORTADO EXITOSAMENTE', 'CERRAR', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
       },
       error: (error) => {
-        console.error('Error exportando empresas:', error);
-        this.snackBar.open('Error al exportar empresas', 'Cerrar', {
+        console.error('ERROR EXPORTANDO EMPRESAS:', error);
+        this.snackBar.open('ERROR AL EXPORTAR EMPRESAS', 'CERRAR', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
@@ -980,18 +933,18 @@ export class EmpresasComponent implements OnInit {
   crearResolucion(): void {
     const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
       width: '700px',
-      data: { empresaId: null } // Se seleccionará la empresa en el modal
+      data: { empresaId: null } // SE SELECCIONARÁ LA EMPRESA EN EL MODAL
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Resolución creada:', result);
-        this.snackBar.open('Resolución creada exitosamente', 'Cerrar', {
+        console.log('RESOLUCIÓN CREADA:', result);
+        this.snackBar.open('RESOLUCIÓN CREADA EXITOSAMENTE', 'CERRAR', {
           duration: 3000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
-        // Aquí podrías recargar las resoluciones si es necesario
+        // AQUÍ PODRÍAS RECARGAR LAS RESOLUCIONES SI ES NECESARIO
       }
     });
   }

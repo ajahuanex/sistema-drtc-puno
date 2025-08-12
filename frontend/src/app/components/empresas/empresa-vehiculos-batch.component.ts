@@ -737,7 +737,7 @@ export class EmpresaVehiculosBatchComponent {
   private loadEmpresa(): void {
     if (this.empresaId()) {
       this.isLoading.set(true);
-      this.empresaService.getEmpresaById(this.empresaId()!).subscribe({
+              this.empresaService.getEmpresa(this.empresaId()!).subscribe({
         next: (empresa) => {
           this.empresa.set(empresa);
           this.isLoading.set(false);
