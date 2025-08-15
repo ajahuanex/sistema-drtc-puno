@@ -93,11 +93,12 @@ class MockRutaService:
         update_data = ruta_data.model_dump(exclude_unset=True)
         
         if update_data:
-            update_data["fecha_actualizacion"] = datetime.utcnow()
-            
             # Actualizar campos
             for key, value in update_data.items():
                 setattr(ruta, key, value)
+            
+            # Actualizar fecha de actualización
+            ruta.fechaActualizacion = datetime.utcnow()
             
             return ruta
         
@@ -107,7 +108,7 @@ class MockRutaService:
         """Desactivar ruta (borrado lógico)"""
         if ruta_id in self.rutas:
             self.rutas[ruta_id].estaActivo = False
-            self.rutas[ruta_id].fecha_actualizacion = datetime.utcnow()
+            self.rutas[ruta_id].fechaActualizacion = datetime.utcnow()
             return True
         return False
 
@@ -133,6 +134,6 @@ class MockRutaService:
         """Actualizar frecuencias de la ruta"""
         if ruta_id in self.rutas:
             self.rutas[ruta_id].frecuencias = frecuencias
-            self.rutas[ruta_id].fecha_actualizacion = datetime.utcnow()
+            self.rutas[ruta_id].fechaActualizacion = datetime.utcnow()
             return self.rutas[ruta_id]
         return None 

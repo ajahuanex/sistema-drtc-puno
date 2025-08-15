@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from typing import List, Optional
 from app.dependencies.auth import get_current_user
-from app.dependencies.db import get_database
+# from app.dependencies.db import get_database
 from app.models.oficina import (
     OficinaCreate, OficinaUpdate, OficinaResponse, 
     OficinaFiltros, OficinaResumen, OficinaEstadisticas
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/oficinas", tags=["oficinas"])
 async def create_oficina(
     oficina_data: OficinaCreate,
     current_user: UsuarioInDB = Depends(get_current_user),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Crear una nueva oficina"""
     try:
@@ -31,8 +31,13 @@ async def create_oficina(
                 detail="No tienes permisos para crear oficinas"
             )
         
-        oficina_service = OficinaService(db)
-        return await oficina_service.create_oficina(oficina_data)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.create_oficina(oficina_data)
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
+        )
         
     except OficinaAlreadyExistsException as e:
         raise HTTPException(
@@ -61,7 +66,7 @@ async def get_oficinas(
     estado: Optional[str] = Query(None, description="Filtrar por estado de la oficina"),
     prioridad: Optional[str] = Query(None, description="Filtrar por prioridad"),
     esta_activo: Optional[bool] = Query(None, alias="estaActivo", description="Filtrar por estado activo"),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener lista de oficinas con filtros opcionales"""
     try:
@@ -78,8 +83,10 @@ async def get_oficinas(
                 estaActivo=esta_activo
             )
         
-        oficina_service = OficinaService(db)
-        return await oficina_service.get_oficinas(skip=skip, limit=limit, filtros=filtros)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.get_oficinas(skip=skip, limit=limit, filtros=filtros)
+        # En modo mock, devolver respuesta simulada
+        return []
         
     except DatabaseErrorException as e:
         raise HTTPException(
@@ -89,12 +96,14 @@ async def get_oficinas(
 
 @router.get("/resumen", response_model=List[OficinaResumen])
 async def get_oficinas_resumen(
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener resumen de todas las oficinas activas"""
     try:
-        oficina_service = OficinaService(db)
-        return await oficina_service.get_oficinas_resumen()
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.get_oficinas_resumen()
+        # En modo mock, devolver respuesta simulada
+        return []
         
     except DatabaseErrorException as e:
         raise HTTPException(
@@ -105,7 +114,7 @@ async def get_oficinas_resumen(
 # Endpoints para Flujo de Expedientes (DEBEN IR ANTES DE /{oficina_id})
 @router.get("/flujo")
 async def get_flujo_general(
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener información general del flujo de expedientes"""
     try:
@@ -128,7 +137,7 @@ async def get_flujo_general(
 
 @router.get("/flujo/estadisticas")
 async def get_flujo_estadisticas(
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener estadísticas del flujo de expedientes"""
     try:
@@ -173,7 +182,7 @@ async def get_flujo_estadisticas(
 async def get_flujo_expedientes(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener lista de flujos de expedientes"""
     try:
@@ -281,7 +290,7 @@ async def get_flujo_expedientes(
 @router.get("/flujo/{expediente_id}")
 async def get_flujo_expediente(
     expediente_id: str,
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener flujo de un expediente específico"""
     try:
@@ -414,12 +423,17 @@ async def get_prioridades_oficina():
 @router.get("/{oficina_id}", response_model=OficinaResponse)
 async def get_oficina(
     oficina_id: str,
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener una oficina específica por ID"""
     try:
-        oficina_service = OficinaService(db)
-        return await oficina_service.get_oficina(oficina_id)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.get_oficina(oficina_id)
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
+        )
         
     except OficinaNotFoundException as e:
         raise HTTPException(
@@ -437,7 +451,7 @@ async def update_oficina(
     oficina_id: str,
     oficina_data: OficinaUpdate,
     current_user: UsuarioInDB = Depends(get_current_user),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Actualizar una oficina existente"""
     try:
@@ -448,8 +462,13 @@ async def update_oficina(
                 detail="No tienes permisos para actualizar oficinas"
             )
         
-        oficina_service = OficinaService(db)
-        return await oficina_service.update_oficina(oficina_id, oficina_data)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.update_oficina(oficina_id, oficina_data)
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
+        )
         
     except OficinaNotFoundException as e:
         raise HTTPException(
@@ -471,7 +490,7 @@ async def update_oficina(
 async def delete_oficina(
     oficina_id: str,
     current_user: UsuarioInDB = Depends(get_current_user),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Eliminar una oficina (desactivar)"""
     try:
@@ -482,14 +501,13 @@ async def delete_oficina(
                 detail="No tienes permisos para eliminar oficinas"
             )
         
-        oficina_service = OficinaService(db)
-        success = await oficina_service.delete_oficina(oficina_id)
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No se pudo eliminar la oficina"
-            )
+        # oficina_service = OficinaService(db)
+        # success = await oficina_service.delete_oficina(oficina_id)
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
+        )
         
     except OficinaNotFoundException as e:
         raise HTTPException(
@@ -512,12 +530,14 @@ async def get_expedientes_por_oficina(
     oficina_id: str,
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener expedientes que están en una oficina específica"""
     try:
-        oficina_service = OficinaService(db)
-        return await oficina_service.get_expedientes_por_oficina(oficina_id, skip=skip, limit=limit)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.get_expedientes_por_oficina(oficina_id, skip=skip, limit=limit)
+        # En modo mock, devolver respuesta simulada
+        return []
         
     except DatabaseErrorException as e:
         raise HTTPException(
@@ -534,7 +554,7 @@ async def mover_expediente(
     documentos_requeridos: Optional[List[str]] = None,
     documentos_entregados: Optional[List[str]] = None,
     current_user: UsuarioInDB = Depends(get_current_user),
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Mover un expediente a una nueva oficina"""
     try:
@@ -545,24 +565,21 @@ async def mover_expediente(
                 detail="No tienes permisos para mover expedientes"
             )
         
-        oficina_service = OficinaService(db)
-        success = await oficina_service.mover_expediente(
-            expediente_id=expediente_id,
-            nueva_oficina_id=oficina_id,
-            usuario_id=current_user.id,
-            motivo=motivo,
-            observaciones=observaciones,
-            documentos_requeridos=documentos_requeridos,
-            documentos_entregados=documentos_entregados
+        # oficina_service = OficinaService(db)
+        # success = await oficina_service.mover_expediente(
+        #     expediente_id=expediente_id,
+        #     nueva_oficina_id=oficina_id,
+        #     usuario_id=current_user.id,
+        #     motivo=motivo,
+        #     observaciones=observaciones,
+        #     documentos_requeridos=documentos_requeridos,
+        #     documentos_entregados=documentos_entregados
+        # )
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
         )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="No se pudo mover el expediente"
-            )
-        
-        return {"message": "Expediente movido exitosamente", "expediente_id": expediente_id, "nueva_oficina_id": oficina_id}
         
     except ValidationErrorException as e:
         raise HTTPException(
@@ -578,12 +595,17 @@ async def mover_expediente(
 @router.get("/{oficina_id}/estadisticas", response_model=OficinaEstadisticas)
 async def get_estadisticas_oficina(
     oficina_id: str,
-    db = Depends(get_database)
+    # db = Depends(get_database)
 ):
     """Obtener estadísticas detalladas de una oficina"""
     try:
-        oficina_service = OficinaService(db)
-        return await oficina_service.get_estadisticas_oficina(oficina_id)
+        # oficina_service = OficinaService(db)
+        # return await oficina_service.get_estadisticas_oficina(oficina_id)
+        # En modo mock, devolver respuesta simulada
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Funcionalidad no implementada en modo mock"
+        )
         
     except OficinaNotFoundException as e:
         raise HTTPException(

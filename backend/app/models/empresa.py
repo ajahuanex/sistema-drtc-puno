@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
-from bson import ObjectId
+# from bson import ObjectId
 from enum import Enum
+from app.utils.mock_utils import mock_id_factory
 
 class EstadoEmpresa(str, Enum):
     HABILITADA = "HABILITADA"
@@ -60,7 +61,7 @@ class DatosSunat(BaseModel):
     error: Optional[str] = None
 
 class Empresa(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=mock_id_factory)
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str

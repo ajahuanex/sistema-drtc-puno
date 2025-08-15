@@ -161,7 +161,7 @@ class NotificacionException(HTTPException):
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear notificación: {mensaje}"
-        ) 
+        )
 
 class OficinaNotFoundException(CustomHTTPException):
     """Excepción cuando no se encuentra una oficina"""
@@ -185,4 +185,20 @@ class DatabaseErrorException(HTTPException):
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error de base de datos: {mensaje}"
+        )
+
+class ConductorNotFoundException(CustomHTTPException):
+    """Excepción cuando no se encuentra un conductor"""
+    def __init__(self, conductor_id: str):
+        super().__init__(
+            status_code=404,
+            detail=f"Conductor con ID {conductor_id} no encontrado"
+        )
+
+class ConductorAlreadyExistsException(CustomHTTPException):
+    """Excepción cuando ya existe un conductor con el mismo DNI o licencia"""
+    def __init__(self, field: str, value: str):
+        super().__init__(
+            status_code=409,
+            detail=f"Ya existe un conductor con {field} {value}"
         ) 

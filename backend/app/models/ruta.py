@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
-from bson import ObjectId
+# from bson import ObjectId
 from enum import Enum
+from app.utils.mock_utils import mock_id_factory
 
 class EstadoRuta(str, Enum):
     ACTIVA = "ACTIVA"
@@ -23,7 +24,7 @@ class TipoServicio(str, Enum):
     MIXTO = "MIXTO"
 
 class Ruta(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=mock_id_factory)
     codigoRuta: str
     nombre: str
     origenId: str
@@ -161,7 +162,7 @@ class RutaResumen(BaseModel):
     ultimaActualizacion: datetime
 
 class RutaHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=lambda: str(mock_id_factory()))
     rutaId: str
     fechaCambio: datetime
     tipoCambio: str
@@ -172,7 +173,7 @@ class RutaHistorial(BaseModel):
     datosCompletos: dict  # Estado completo de la ruta antes del cambio
 
 class Itinerario(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=lambda: str(mock_id_factory()))
     rutaId: str
     orden: int
     localidadId: str

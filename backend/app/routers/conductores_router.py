@@ -1,532 +1,440 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Optional
-from datetime import datetime
-from bson import ObjectId
+from datetime import datetime, date
+from app.dependencies.auth import get_current_active_user
+from app.services.mock_conductor_service import MockConductorService
 from app.models.conductor import (
     ConductorCreate, 
     ConductorUpdate, 
-    ConductorResponse, 
+    ConductorInDB, 
+    ConductorResponse,
     ConductorFiltros,
-    ConductorEstadisticas,
-    ConductorResumen,
     EstadoConductor,
-    CalidadConductor,
-    TipoLicencia,
-    Licencia,
-    InfraccionConductor
+    EstadoLicencia
 )
-from app.dependencies.auth import get_current_user
-from app.models.usuario import UsuarioResponse
-from app.dependencies.db import get_database
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from app.utils.exceptions import (
+    ConductorNotFoundException, 
+    ConductorAlreadyExistsException,
+    ValidationErrorException
+)
 
 router = APIRouter(prefix="/conductores", tags=["conductores"])
 
-# Mock data para conductores
-MOCK_CONDUCTORES = [
-    {
-        "_id": "CON001",
-        "dni": "12345678",
-        "nombres": "Juan Carlos",
-        "apellidos": "Pérez García",
-        "fechaNacimiento": datetime(1985, 5, 15),
-        "direccion": "Av. Arequipa 123, Puno",
-        "telefono": "951234567",
-        "email": "juan.perez@email.com",
-        "licencia": {
-            "numero": "LIC-001-2024",
-            "tipo": "C2",
-            "fechaEmision": datetime(2024, 1, 15),
-            "fechaVencimiento": datetime(2029, 1, 15),
-            "categoria": "TRANSPORTE_PUBLICO",
-            "restricciones": [],
-            "estaActiva": True
-        },
-        "estado": "HABILITADO",
-        "calidadConductor": "ÓPTIMO",
-        "estaActivo": True,
-        "fechaRegistro": datetime(2024, 1, 15, 8, 0, 0),
-        "fechaActualizacion": datetime(2024, 1, 15, 8, 0, 0),
-        "empresasAsociadasIds": ["EMP001"],
-        "vehiculosAsignadosIds": ["VEH001"],
-        "infracciones": [],
-        "documentosIds": ["DOC001"],
-        "historialIds": ["HIST001"],
-        "observaciones": "Conductor experimentado con excelente historial",
-        "fotoUrl": None,
-        "huellaDigital": None
-    },
-    {
-        "_id": "CON002",
-        "dni": "87654321",
-        "nombres": "María Elena",
-        "apellidos": "Rodríguez López",
-        "fechaNacimiento": datetime(1990, 8, 22),
-        "direccion": "Jr. Tacna 456, Puno",
-        "telefono": "987654321",
-        "email": "maria.rodriguez@email.com",
-        "licencia": {
-            "numero": "LIC-002-2024",
-            "tipo": "C1",
-            "fechaEmision": datetime(2024, 2, 20),
-            "fechaVencimiento": datetime(2029, 2, 20),
-            "categoria": "TRANSPORTE_PUBLICO",
-            "restricciones": ["LENTES"],
-            "estaActiva": True
-        },
-        "estado": "HABILITADO",
-        "calidadConductor": "ÓPTIMO",
-        "estaActivo": True,
-        "fechaRegistro": datetime(2024, 2, 20, 9, 0, 0),
-        "fechaActualizacion": datetime(2024, 2, 20, 9, 0, 0),
-        "empresasAsociadasIds": ["EMP002"],
-        "vehiculosAsignadosIds": ["VEH002"],
-        "infracciones": [],
-        "documentosIds": ["DOC002"],
-        "historialIds": ["HIST002"],
-        "observaciones": "Conductora responsable con restricción de lentes",
-        "fotoUrl": None,
-        "huellaDigital": None
-    },
-    {
-        "_id": "CON003",
-        "dni": "11223344",
-        "nombres": "Carlos Alberto",
-        "apellidos": "Gutiérrez Silva",
-        "fechaNacimiento": datetime(1988, 12, 10),
-        "direccion": "Av. La Marina 789, Puno",
-        "telefono": "945678123",
-        "email": "carlos.gutierrez@email.com",
-        "licencia": {
-            "numero": "LIC-003-2024",
-            "tipo": "D2",
-            "fechaEmision": datetime(2024, 3, 10),
-            "fechaVencimiento": datetime(2029, 3, 10),
-            "categoria": "CARGA",
-            "restricciones": [],
-            "estaActiva": True
-        },
-        "estado": "EN_SANCION",
-        "calidadConductor": "EN_SANCION",
-        "estaActivo": True,
-        "fechaRegistro": datetime(2024, 3, 10, 10, 0, 0),
-        "fechaActualizacion": datetime(2024, 6, 15, 14, 30, 0),
-        "empresasAsociadasIds": ["EMP003"],
-        "vehiculosAsignadosIds": ["VEH003"],
-        "infracciones": [
-            {
-                "fecha": datetime(2024, 6, 10, 16, 0, 0),
-                "codigo": "INF-001",
-                "descripcion": "Exceso de velocidad en zona urbana",
-                "monto": 150.0,
-                "estado": "PAGADA",
-                "observaciones": "Multa pagada, sancionado por 30 días"
-            }
-        ],
-        "documentosIds": ["DOC003"],
-        "historialIds": ["HIST003"],
-        "observaciones": "Conductor con infracción reciente, en período de sanción",
-        "fotoUrl": None,
-        "huellaDigital": None
-    }
-]
+def build_conductor_response(conductor) -> ConductorResponse:
+    """Función helper para construir ConductorResponse con todos los campos requeridos"""
+    return ConductorResponse(
+        id=conductor.id,
+        dni=conductor.dni,
+        apellidoPaterno=conductor.apellidoPaterno,
+        apellidoMaterno=conductor.apellidoMaterno,
+        nombres=conductor.nombres,
+        nombreCompleto=f"{conductor.apellidoPaterno} {conductor.apellidoMaterno}, {conductor.nombres}",
+        fechaNacimiento=conductor.fechaNacimiento,
+        genero=conductor.genero,
+        estadoCivil=conductor.estadoCivil,
+        direccion=conductor.direccion,
+        distrito=conductor.distrito,
+        provincia=conductor.provincia,
+        departamento=conductor.departamento,
+        telefono=conductor.telefono,
+        celular=conductor.celular,
+        email=conductor.email,
+        numeroLicencia=conductor.numeroLicencia,
+        categoriaLicencia=conductor.categoriaLicencia,
+        fechaEmisionLicencia=conductor.fechaEmisionLicencia,
+        fechaVencimientoLicencia=conductor.fechaVencimientoLicencia,
+        estadoLicencia=conductor.estadoLicencia,
+        entidadEmisora=conductor.entidadEmisora,
+        empresaId=conductor.empresaId,
+        fechaIngreso=conductor.fechaIngreso,
+        cargo=conductor.cargo,
+        estado=conductor.estado,
+        estaActivo=conductor.estaActivo,
+        experienciaAnos=conductor.experienciaAnos,
+        tipoSangre=conductor.tipoSangre,
+        restricciones=conductor.restricciones,
+        observaciones=conductor.observaciones,
+        documentosIds=conductor.documentosIds,
+        fotoPerfil=conductor.fotoPerfil,
+        fechaRegistro=conductor.fechaRegistro,
+        fechaActualizacion=conductor.fechaActualizacion,
+        fechaUltimaVerificacion=conductor.fechaUltimaVerificacion,
+        usuarioRegistroId=conductor.usuarioRegistroId,
+        usuarioActualizacionId=conductor.usuarioActualizacionId
+    )
+
+@router.post("/", response_model=ConductorResponse, status_code=201)
+async def create_conductor(
+    conductor_data: ConductorCreate
+) -> ConductorResponse:
+    """Crear nuevo conductor"""
+    # Guard clauses al inicio
+    if not conductor_data.dni.strip():
+        raise ValidationErrorException("DNI", "El DNI no puede estar vacío")
+    
+    if not conductor_data.numeroLicencia.strip():
+        raise ValidationErrorException("Número de Licencia", "El número de licencia no puede estar vacío")
+    
+    conductor_service = MockConductorService()
+    
+    try:
+        conductor = await conductor_service.create_conductor(conductor_data)
+        return build_conductor_response(conductor)
+    except ValueError as e:
+        if "DNI" in str(e):
+            raise ConductorAlreadyExistsException(f"DNI {conductor_data.dni}")
+        elif "licencia" in str(e):
+            raise ConductorAlreadyExistsException(f"Licencia {conductor_data.numeroLicencia}")
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/", response_model=List[ConductorResponse])
 async def get_conductores(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar"),
-    dni: Optional[str] = Query(None, description="DNI del conductor"),
-    nombres: Optional[str] = Query(None, description="Nombres del conductor"),
-    apellidos: Optional[str] = Query(None, description="Apellidos del conductor"),
-    estado: Optional[str] = Query(None, description="Estado del conductor"),
-    calidadConductor: Optional[str] = Query(None, description="Calidad del conductor"),
-    empresaId: Optional[str] = Query(None, description="ID de la empresa"),
-    tieneLicenciaVigente: Optional[bool] = Query(None, description="Si tiene licencia vigente"),
-    tieneInfracciones: Optional[bool] = Query(None, description="Si tiene infracciones")
-):
-    """
-    Obtener lista de conductores con filtros opcionales
-    """
+    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
+    estado: Optional[str] = Query(None, description="Filtrar por estado"),
+    empresa_id: Optional[str] = Query(None, description="Filtrar por empresa")
+) -> List[ConductorResponse]:
+    """Obtener lista de conductores con filtros opcionales"""
     try:
-        # Filtrar conductores
-        conductores_filtrados = MOCK_CONDUCTORES.copy()
+        conductor_service = MockConductorService()
         
-        if dni:
-            conductores_filtrados = [c for c in conductores_filtrados if c["dni"] == dni]
+        # Usar el método get_conductores del servicio
+        conductores = await conductor_service.get_conductores(skip, limit, estado, empresa_id)
         
-        if nombres:
-            conductores_filtrados = [c for c in conductores_filtrados if nombres.lower() in c["nombres"].lower()]
-        
-        if apellidos:
-            conductores_filtrados = [c for c in conductores_filtrados if apellidos.lower() in c["apellidos"].lower()]
-        
-        if estado:
-            conductores_filtrados = [c for c in conductores_filtrados if c["estado"] == estado]
-        
-        if calidadConductor:
-            conductores_filtrados = [c for c in conductores_filtrados if c["calidadConductor"] == calidadConductor]
-        
-        if empresaId:
-            conductores_filtrados = [c for c in conductores_filtrados if empresaId in c["empresasAsociadasIds"]]
-        
-        if tieneLicenciaVigente is not None:
-            if tieneLicenciaVigente:
-                conductores_filtrados = [c for c in conductores_filtrados if c["licencia"]["estaActiva"] and c["licencia"]["fechaVencimiento"] > datetime.utcnow()]
-            else:
-                conductores_filtrados = [c for c in conductores_filtrados if not c["licencia"]["estaActiva"] or c["licencia"]["fechaVencimiento"] <= datetime.utcnow()]
-        
-        if tieneInfracciones is not None:
-            if tieneInfracciones:
-                conductores_filtrados = [c for c in conductores_filtrados if len(c["infracciones"]) > 0]
-            else:
-                conductores_filtrados = [c for c in conductores_filtrados if len(c["infracciones"]) == 0]
-        
-        # Aplicar paginación
-        total = len(conductores_filtrados)
-        conductores_paginados = conductores_filtrados[skip:skip + limit]
-        
-        # Convertir a ConductorResponse
-        response = []
-        for conductor in conductores_paginados:
-            response.append(ConductorResponse(
-                id=conductor["_id"],
-                dni=conductor["dni"],
-                nombres=conductor["nombres"],
-                apellidos=conductor["apellidos"],
-                fechaNacimiento=conductor["fechaNacimiento"],
-                direccion=conductor["direccion"],
-                telefono=conductor["telefono"],
-                email=conductor["email"],
-                licencia=Licencia(**conductor["licencia"]),
-                estado=conductor["estado"],
-                calidadConductor=conductor["calidadConductor"],
-                estaActivo=conductor["estaActivo"],
-                fechaRegistro=conductor["fechaRegistro"],
-                fechaActualizacion=conductor["fechaActualizacion"],
-                empresasAsociadasIds=conductor["empresasAsociadasIds"],
-                vehiculosAsignadosIds=conductor["vehiculosAsignadosIds"],
-                infracciones=[InfraccionConductor(**inf) for inf in conductor["infracciones"]],
-                documentosIds=conductor["documentosIds"],
-                historialIds=conductor["historialIds"],
-                observaciones=conductor["observaciones"],
-                fotoUrl=conductor["fotoUrl"],
-                huellaDigital=conductor["huellaDigital"]
-            ))
-        
-        return response
+        return [build_conductor_response(conductor) for conductor in conductores]
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+
+@router.get("/filtros", response_model=List[ConductorResponse])
+async def get_conductores_con_filtros(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    dni: Optional[str] = Query(None),
+    nombres: Optional[str] = Query(None),
+    apellido_paterno: Optional[str] = Query(None),
+    apellido_materno: Optional[str] = Query(None),
+    numero_licencia: Optional[str] = Query(None),
+    categoria_licencia: Optional[str] = Query(None),
+    estado_licencia: Optional[str] = Query(None),
+    estado: Optional[str] = Query(None),
+    empresa_id: Optional[str] = Query(None),
+    distrito: Optional[str] = Query(None),
+    provincia: Optional[str] = Query(None),
+    departamento: Optional[str] = Query(None),
+    fecha_vencimiento_desde: Optional[date] = Query(None),
+    fecha_vencimiento_hasta: Optional[date] = Query(None),
+    experiencia_minima: Optional[int] = Query(None),
+    experiencia_maxima: Optional[int] = Query(None)
+) -> List[ConductorResponse]:
+    """Obtener conductores con filtros avanzados"""
+    conductor_service = MockConductorService()
+    
+    # Construir filtros
+    filtros = ConductorFiltros(
+        dni=dni,
+        nombres=nombres,
+        apellidoPaterno=apellido_paterno,
+        apellidoMaterno=apellido_materno,
+        numeroLicencia=numero_licencia,
+        categoriaLicencia=categoria_licencia,
+        estadoLicencia=estado_licencia,
+        estado=estado,
+        empresaId=empresa_id,
+        distrito=distrito,
+        provincia=provincia,
+        departamento=departamento,
+        fechaVencimientoDesde=fecha_vencimiento_desde,
+        fechaVencimientoHasta=fecha_vencimiento_hasta,
+        experienciaMinima=experiencia_minima,
+        experienciaMaxima=experiencia_maxima
+    )
+    
+    conductores = await conductor_service.get_conductores_con_filtros(filtros)
+    conductores = conductores[skip:skip + limit]
+    
+    return [build_conductor_response(conductor) for conductor in conductores]
+
+@router.get("/estadisticas")
+async def get_estadisticas_conductores():
+    """Obtener estadísticas de conductores"""
+    conductor_service = MockConductorService()
+    estadisticas = await conductor_service.get_estadisticas()
+    
+    return {
+        "totalConductores": estadisticas['total'],
+        "estados": estadisticas['estados'],
+        "licenciasVigentes": estadisticas['licenciasVigentes'],
+        "licenciasVencidas": estadisticas['licenciasVencidas'],
+        "licenciasPorVencer": estadisticas['licenciasPorVencer'],
+        "distribucionPorGenero": estadisticas['distribucionPorGenero'],
+        "distribucionPorEdad": estadisticas['distribucionPorEdad'],
+        "distribucionPorCategoria": estadisticas['distribucionPorCategoria'],
+        "promedioExperiencia": estadisticas['promedioExperiencia']
+    }
 
 @router.get("/{conductor_id}", response_model=ConductorResponse)
 async def get_conductor(
     conductor_id: str
-):
-    """
-    Obtener un conductor específico por ID
-    """
-    try:
-        conductor = next((c for c in MOCK_CONDUCTORES if c["_id"] == conductor_id), None)
-        
-        if not conductor:
-            raise HTTPException(status_code=404, detail="Conductor no encontrado")
-        
-        return ConductorResponse(
-            id=conductor["_id"],
-            dni=conductor["dni"],
-            nombres=conductor["nombres"],
-            apellidos=conductor["apellidos"],
-            fechaNacimiento=conductor["fechaNacimiento"],
-            direccion=conductor["direccion"],
-            telefono=conductor["telefono"],
-            email=conductor["email"],
-            licencia=Licencia(**conductor["licencia"]),
-            estado=conductor["estado"],
-            calidadConductor=conductor["calidadConductor"],
-            estaActivo=conductor["estaActivo"],
-            fechaRegistro=conductor["fechaRegistro"],
-            fechaActualizacion=conductor["fechaActualizacion"],
-            empresasAsociadasIds=conductor["empresasAsociadasIds"],
-            vehiculosAsignadosIds=conductor["vehiculosAsignadosIds"],
-            infracciones=[InfraccionConductor(**inf) for inf in conductor["infracciones"]],
-            documentosIds=conductor["documentosIds"],
-            historialIds=conductor["historialIds"],
-            observaciones=conductor["observaciones"],
-            fotoUrl=conductor["fotoUrl"],
-            huellaDigital=conductor["huellaDigital"]
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+) -> ConductorResponse:
+    """Obtener conductor por ID"""
+    # Guard clause
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.get_conductor_by_id(conductor_id)
+    
+    if not conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(conductor)
 
-@router.post("/", response_model=ConductorResponse)
-async def create_conductor(
-    conductor: ConductorCreate,
-    current_user: UsuarioResponse = Depends(get_current_user)
-):
-    """
-    Crear un nuevo conductor
-    """
-    try:
-        # Generar ID único
-        new_id = f"CON{str(len(MOCK_CONDUCTORES) + 1).zfill(3)}"
-        
-        nuevo_conductor = {
-            "_id": new_id,
-            "dni": conductor.dni,
-            "nombres": conductor.nombres,
-            "apellidos": conductor.apellidos,
-            "fechaNacimiento": conductor.fechaNacimiento,
-            "direccion": conductor.direccion,
-            "telefono": conductor.telefono,
-            "email": conductor.email,
-            "licencia": conductor.licencia.dict(),
-            "estado": EstadoConductor.HABILITADO,
-            "calidadConductor": CalidadConductor.OPTIMO,
-            "estaActivo": True,
-            "fechaRegistro": datetime.utcnow(),
-            "fechaActualizacion": datetime.utcnow(),
-            "empresasAsociadasIds": [],
-            "vehiculosAsignadosIds": [],
-            "infracciones": [],
-            "documentosIds": [],
-            "historialIds": [],
-            "observaciones": conductor.observaciones,
-            "fotoUrl": None,
-            "huellaDigital": None
-        }
-        
-        MOCK_CONDUCTORES.append(nuevo_conductor)
-        
-        return ConductorResponse(
-            id=nuevo_conductor["_id"],
-            dni=nuevo_conductor["dni"],
-            nombres=nuevo_conductor["nombres"],
-            apellidos=nuevo_conductor["apellidos"],
-            fechaNacimiento=nuevo_conductor["fechaNacimiento"],
-            direccion=nuevo_conductor["direccion"],
-            telefono=nuevo_conductor["telefono"],
-            email=nuevo_conductor["email"],
-            licencia=Licencia(**nuevo_conductor["licencia"]),
-            estado=nuevo_conductor["estado"],
-            calidadConductor=nuevo_conductor["calidadConductor"],
-            estaActivo=nuevo_conductor["estaActivo"],
-            fechaRegistro=nuevo_conductor["fechaRegistro"],
-            fechaActualizacion=nuevo_conductor["fechaActualizacion"],
-            empresasAsociadasIds=nuevo_conductor["empresasAsociadasIds"],
-            vehiculosAsignadosIds=nuevo_conductor["vehiculosAsignadosIds"],
-            infracciones=[InfraccionConductor(**inf) for inf in nuevo_conductor["infracciones"]],
-            documentosIds=nuevo_conductor["documentosIds"],
-            historialIds=nuevo_conductor["historialIds"],
-            observaciones=nuevo_conductor["observaciones"],
-            fotoUrl=nuevo_conductor["fotoUrl"],
-            huellaDigital=nuevo_conductor["huellaDigital"]
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+@router.get("/dni/{dni}", response_model=ConductorResponse)
+async def get_conductor_by_dni(
+    dni: str
+) -> ConductorResponse:
+    """Obtener conductor por DNI"""
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.get_conductor_by_dni(dni)
+    
+    if not conductor:
+        raise ConductorNotFoundException(f"DNI {dni}")
+    
+    return build_conductor_response(conductor)
+
+@router.get("/licencia/{numero_licencia}", response_model=ConductorResponse)
+async def get_conductor_by_licencia(
+    numero_licencia: str
+) -> ConductorResponse:
+    """Obtener conductor por número de licencia"""
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.get_conductor_by_licencia(numero_licencia)
+    
+    if not conductor:
+        raise ConductorNotFoundException(f"Licencia {numero_licencia}")
+    
+    return build_conductor_response(conductor)
+
+@router.get("/validar-dni/{dni}")
+async def validar_dni_conductor(dni: str):
+    """Validar si un DNI ya existe"""
+    conductor_service = MockConductorService()
+    conductor_existente = await conductor_service.get_conductor_by_dni(dni)
+    
+    return {
+        "valido": not conductor_existente,
+        "conductor": conductor_existente
+    }
+
+@router.get("/validar-licencia/{numero_licencia}")
+async def validar_licencia_conductor(numero_licencia: str):
+    """Validar si un número de licencia ya existe"""
+    conductor_service = MockConductorService()
+    conductor_existente = await conductor_service.get_conductor_by_licencia(numero_licencia)
+    
+    return {
+        "valido": not conductor_existente,
+        "conductor": conductor_existente
+    }
 
 @router.put("/{conductor_id}", response_model=ConductorResponse)
 async def update_conductor(
     conductor_id: str,
-    conductor_update: ConductorUpdate,
-    current_user: UsuarioResponse = Depends(get_current_user)
-):
-    """
-    Actualizar un conductor existente
-    """
-    try:
-        conductor = next((c for c in MOCK_CONDUCTORES if c["_id"] == conductor_id), None)
+    conductor_data: ConductorUpdate
+) -> ConductorResponse:
+    """Actualizar conductor"""
+    # Guard clauses
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    if not conductor_data.model_dump(exclude_unset=True):
+        raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
+    
+    conductor_service = MockConductorService()
+    
+    # Si se está actualizando el DNI, validar que sea único
+    if conductor_data.dni:
+        # Obtener el conductor actual para verificar
+        conductor_actual = await conductor_service.get_conductor_by_id(conductor_id)
+        if not conductor_actual:
+            raise ConductorNotFoundException(conductor_id)
         
-        if not conductor:
-            raise HTTPException(status_code=404, detail="Conductor no encontrado")
+        # Verificar que el nuevo DNI no exista
+        if not await conductor_service.validar_dni_unico(conductor_data.dni, conductor_id):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ya existe un conductor con DNI {conductor_data.dni}"
+            )
+    
+    # Si se está actualizando la licencia, validar que sea única
+    if conductor_data.numeroLicencia:
+        # Obtener el conductor actual para verificar
+        conductor_actual = await conductor_service.get_conductor_by_id(conductor_id)
+        if not conductor_actual:
+            raise ConductorNotFoundException(conductor_id)
         
-        # Actualizar campos
-        update_data = conductor_update.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            if field == "licencia" and value:
-                conductor["licencia"] = value.dict()
-            else:
-                conductor[field] = value
-        
-        conductor["fechaActualizacion"] = datetime.utcnow()
-        
-        return ConductorResponse(
-            id=conductor["_id"],
-            dni=conductor["dni"],
-            nombres=conductor["nombres"],
-            apellidos=conductor["apellidos"],
-            fechaNacimiento=conductor["fechaNacimiento"],
-            direccion=conductor["direccion"],
-            telefono=conductor["telefono"],
-            email=conductor["email"],
-            licencia=Licencia(**conductor["licencia"]),
-            estado=conductor["estado"],
-            calidadConductor=conductor["calidadConductor"],
-            estaActivo=conductor["estaActivo"],
-            fechaRegistro=conductor["fechaRegistro"],
-            fechaActualizacion=conductor["fechaActualizacion"],
-            empresasAsociadasIds=conductor["empresasAsociadasIds"],
-            vehiculosAsignadosIds=conductor["vehiculosAsignadosIds"],
-            infracciones=[InfraccionConductor(**inf) for inf in conductor["infracciones"]],
-            documentosIds=conductor["documentosIds"],
-            historialIds=conductor["historialIds"],
-            observaciones=conductor["observaciones"],
-            fotoUrl=conductor["fotoUrl"],
-            huellaDigital=conductor["huellaDigital"]
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+        # Verificar que el nuevo número de licencia no exista
+        if not await conductor_service.validar_licencia_unica(conductor_data.numeroLicencia, conductor_id):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ya existe un conductor con licencia {conductor_data.numeroLicencia}"
+            )
+    
+    updated_conductor = await conductor_service.update_conductor(conductor_id, conductor_data)
+    
+    if not updated_conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(updated_conductor)
 
-@router.delete("/{conductor_id}")
+@router.delete("/{conductor_id}", status_code=204)
 async def delete_conductor(
+    conductor_id: str
+):
+    """Desactivar conductor (borrado lógico)"""
+    # Guard clause
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    success = await conductor_service.soft_delete_conductor(conductor_id)
+    
+    if not success:
+        raise ConductorNotFoundException(conductor_id)
+
+@router.patch("/{conductor_id}/estado", response_model=ConductorResponse)
+async def cambiar_estado_conductor(
     conductor_id: str,
-    current_user: UsuarioResponse = Depends(get_current_user)
+    nuevo_estado: EstadoConductor = Body(..., embed=True)
+) -> ConductorResponse:
+    """Cambiar estado del conductor"""
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.cambiar_estado_conductor(conductor_id, nuevo_estado)
+    
+    if not conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(conductor)
+
+@router.patch("/{conductor_id}/empresa", response_model=ConductorResponse)
+async def asignar_empresa_conductor(
+    conductor_id: str,
+    empresa_id: str = Body(..., embed=True),
+    cargo: Optional[str] = Body(None, embed=True)
+) -> ConductorResponse:
+    """Asignar conductor a una empresa"""
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.asignar_empresa(conductor_id, empresa_id, cargo)
+    
+    if not conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(conductor)
+
+@router.delete("/{conductor_id}/empresa", response_model=ConductorResponse)
+async def desasignar_empresa_conductor(
+    conductor_id: str
+) -> ConductorResponse:
+    """Desasignar conductor de empresa"""
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.desasignar_empresa(conductor_id)
+    
+    if not conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(conductor)
+
+@router.post("/{conductor_id}/verificar-licencia", response_model=ConductorResponse)
+async def verificar_licencia_conductor(
+    conductor_id: str
+) -> ConductorResponse:
+    """Verificar estado de licencia del conductor"""
+    if not conductor_id.isdigit():
+        raise HTTPException(status_code=400, detail="ID de conductor inválido")
+    
+    conductor_service = MockConductorService()
+    conductor = await conductor_service.verificar_licencia(conductor_id)
+    
+    if not conductor:
+        raise ConductorNotFoundException(conductor_id)
+    
+    return build_conductor_response(conductor)
+
+@router.get("/licencias/por-vencer")
+async def get_conductores_licencia_por_vencer(
+    dias: int = Query(30, ge=1, le=365, description="Días para considerar licencia por vencer")
 ):
-    """
-    Eliminar un conductor
-    """
-    try:
-        conductor = next((c for c in MOCK_CONDUCTORES if c["_id"] == conductor_id), None)
-        
-        if not conductor:
-            raise HTTPException(status_code=404, detail="Conductor no encontrado")
-        
-        # Marcar como inactivo en lugar de eliminar
-        conductor["estaActivo"] = False
-        conductor["fechaActualizacion"] = datetime.utcnow()
-        
-        return {"message": "Conductor eliminado exitosamente"}
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    """Obtener conductores cuya licencia vence en los próximos días"""
+    conductor_service = MockConductorService()
+    conductores = await conductor_service.get_conductores_por_vencer_licencia(dias)
+    
+    return {
+        "dias": dias,
+        "total": len(conductores),
+        "conductores": [build_conductor_response(conductor) for conductor in conductores]
+    }
 
-@router.get("/estadisticas", response_model=ConductorEstadisticas)
-async def get_estadisticas_conductores():
-    """
-    Obtener estadísticas de conductores
-    """
-    try:
-        total = len(MOCK_CONDUCTORES)
-        habilitados = len([c for c in MOCK_CONDUCTORES if c["estado"] == "HABILITADO"])
-        inhabilitados = len([c for c in MOCK_CONDUCTORES if c["estado"] == "INHABILITADO"])
-        en_sancion = len([c for c in MOCK_CONDUCTORES if c["estado"] == "EN_SANCION"])
-        suspendidos = len([c for c in MOCK_CONDUCTORES if c["estado"] == "SUSPENDIDO"])
-        dados_de_baja = len([c for c in MOCK_CONDUCTORES if c["estado"] == "DADO_DE_BAJA"])
-        
-        licencias_vigentes = len([c for c in MOCK_CONDUCTORES if c["licencia"]["estaActiva"] and c["licencia"]["fechaVencimiento"] > datetime.utcnow()])
-        con_infracciones = len([c for c in MOCK_CONDUCTORES if len(c["infracciones"]) > 0])
-        
-        # Calcular promedio de conductores por empresa (simulado)
-        empresas_unicas = set()
-        for c in MOCK_CONDUCTORES:
-            empresas_unicas.update(c["empresasAsociadasIds"])
-        promedio_por_empresa = total / len(empresas_unicas) if empresas_unicas else 0
-        
-        # Distribución por calidad
-        distribucion_calidad = {}
-        for c in MOCK_CONDUCTORES:
-            calidad = c["calidadConductor"]
-            distribucion_calidad[calidad] = distribucion_calidad.get(calidad, 0) + 1
-        
-        return ConductorEstadisticas(
-            totalConductores=total,
-            conductoresHabilitados=habilitados,
-            conductoresInhabilitados=inhabilitados,
-            conductoresEnSancion=en_sancion,
-            conductoresSuspendidos=suspendidos,
-            conductoresDadosDeBaja=dados_de_baja,
-            conductoresConLicenciaVigente=licencias_vigentes,
-            conductoresConInfracciones=con_infracciones,
-            promedioConductoresPorEmpresa=promedio_por_empresa,
-            distribucionPorCalidad=distribucion_calidad
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+@router.get("/licencias/vencidas")
+async def get_conductores_licencia_vencida():
+    """Obtener conductores con licencia vencida"""
+    conductor_service = MockConductorService()
+    conductores = await conductor_service.get_conductores_licencia_vencida()
+    
+    return {
+        "total": len(conductores),
+        "conductores": [build_conductor_response(conductor) for conductor in conductores]
+    }
 
-@router.get("/resumen", response_model=List[ConductorResumen])
-async def get_resumen_conductores(
-    skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros a retornar")
+@router.get("/empresa/{empresa_id}", response_model=List[ConductorResponse])
+async def get_conductores_por_empresa(
+    empresa_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000)
+) -> List[ConductorResponse]:
+    """Obtener conductores por empresa"""
+    conductor_service = MockConductorService()
+    conductores = await conductor_service.get_conductores_por_empresa(empresa_id)
+    
+    # Aplicar paginación
+    conductores = conductores[skip:skip + limit]
+    
+    return [build_conductor_response(conductor) for conductor in conductores]
+
+@router.get("/exportar/{formato}")
+async def exportar_conductores(
+    formato: str,
+    estado: Optional[str] = Query(None),
+    empresa_id: Optional[str] = Query(None)
 ):
-    """
-    Obtener resumen de conductores
-    """
-    try:
-        # Aplicar paginación
-        total = len(MOCK_CONDUCTORES)
-        conductores_paginados = MOCK_CONDUCTORES[skip:skip + limit]
-        
-        response = []
-        for conductor in conductores_paginados:
-            tiene_licencia_vigente = conductor["licencia"]["estaActiva"] and conductor["licencia"]["fechaVencimiento"] > datetime.utcnow()
-            
-            response.append(ConductorResumen(
-                id=conductor["_id"],
-                dni=conductor["dni"],
-                nombres=conductor["nombres"],
-                apellidos=conductor["apellidos"],
-                estado=conductor["estado"],
-                calidadConductor=conductor["calidadConductor"],
-                tieneLicenciaVigente=tiene_licencia_vigente,
-                empresasAsociadasCount=len(conductor["empresasAsociadasIds"]),
-                vehiculosAsignadosCount=len(conductor["vehiculosAsignadosIds"]),
-                infraccionesCount=len(conductor["infracciones"]),
-                ultimaActualizacion=conductor["fechaActualizacion"] or conductor["fechaRegistro"]
-            ))
-        
-        return response
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-
-@router.get("/validar-dni/{dni}")
-async def validar_dni(dni: str):
-    """
-    Validar DNI de conductor
-    """
-    try:
-        conductor = next((c for c in MOCK_CONDUCTORES if c["dni"] == dni), None)
-        
-        if conductor:
-            return {
-                "dni": dni,
-                "valido": True,
-                "nombres": conductor["nombres"],
-                "apellidos": conductor["apellidos"],
-                "fechaNacimiento": conductor["fechaNacimiento"].isoformat(),
-                "estado": conductor["estado"],
-                "fechaConsulta": datetime.utcnow(),
-                "error": None
-            }
-        else:
-            return {
-                "dni": dni,
-                "valido": False,
-                "nombres": None,
-                "apellidos": None,
-                "fechaNacimiento": None,
-                "estado": None,
-                "fechaConsulta": datetime.utcnow(),
-                "error": "DNI no encontrado en el sistema"
-            }
-        
-    except Exception as e:
-        return {
-            "dni": dni,
-            "valido": False,
-            "nombres": None,
-            "apellidos": None,
-            "fechaNacimiento": None,
-            "estado": None,
-            "fechaConsulta": datetime.utcnow(),
-            "error": f"Error en la validación: {str(e)}"
-        } 
+    """Exportar conductores en diferentes formatos"""
+    if formato not in ['pdf', 'excel', 'csv']:
+        raise HTTPException(status_code=400, detail="Formato no soportado")
+    
+    conductor_service = MockConductorService()
+    
+    # Obtener conductores según filtros
+    if empresa_id:
+        conductores = await conductor_service.get_conductores_por_empresa(empresa_id)
+    elif estado:
+        conductores = await conductor_service.get_conductores_por_estado(EstadoConductor(estado))
+    else:
+        conductores = await conductor_service.get_conductores_activos()
+    
+    # Simular exportación
+    if formato == 'excel':
+        return {"message": f"Exportando {len(conductores)} conductores a Excel"}
+    elif formato == 'pdf':
+        return {"message": f"Exportando {len(conductores)} conductores a PDF"}
+    elif formato == 'csv':
+        return {"message": f"Exportando {len(conductores)} conductores a CSV"} 

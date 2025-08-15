@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List
 from pydantic import BaseModel, Field
-from bson import ObjectId
+# from bson import ObjectId
 from enum import Enum
+from app.utils.mock_utils import mock_id_factory
 
 class EstadoTuc(str, Enum):
     VIGENTE = "VIGENTE"
@@ -17,7 +18,7 @@ class TipoTramite(str, Enum):
     OTROS = "OTROS"
 
 class Tuc(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=mock_id_factory)
     vehiculoId: str
     empresaId: str
     resolucionPadreId: str
@@ -137,7 +138,7 @@ class GeneracionTuc(BaseModel):
     observaciones: Optional[str] = None
 
 class TucHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=mock_id_factory)
     tucId: str
     fechaCambio: datetime
     tipoCambio: str

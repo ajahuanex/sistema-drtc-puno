@@ -1,11 +1,11 @@
 from typing import List, Optional
 from datetime import datetime
-from passlib.context import CryptContext
+# from passlib.context import CryptContext
 from app.models.usuario import UsuarioCreate, UsuarioUpdate, UsuarioInDB
 from app.services.mock_data import mock_service
 
 # Configurar passlib para evitar errores con bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__default_rounds=12)
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__default_rounds=12)
 
 class MockUsuarioService:
     """Servicio mock para usuarios en desarrollo"""
@@ -15,19 +15,18 @@ class MockUsuarioService:
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verificar contraseña"""
-        try:
-            return pwd_context.verify(plain_password, hashed_password)
-        except Exception:
-            # Fallback para contraseñas hardcodeadas
-            return plain_password == "password123" and hashed_password == "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6"
+        # En modo mock, aceptar contraseñas hardcodeadas
+        if plain_password == "password123" and hashed_password == "hashed_password_here":
+            return True
+        if plain_password == "admin123" and hashed_password == "hashed_password_here":
+            return True
+        # Para desarrollo, aceptar cualquier contraseña que coincida con el hash
+        return plain_password == hashed_password or hashed_password == "hashed_password_here"
 
     def get_password_hash(self, password: str) -> str:
         """Generar hash de contraseña"""
-        try:
-            return pwd_context.hash(password)
-        except Exception:
-            # Fallback para evitar errores
-            return "$2b$12$fbHM5OEHpgfJ36KMGoqC6.JDSN0tSCSiDCV3rH/ZR5qXq3ctb5.d6"
+        # En modo mock, devolver un hash simulado
+        return "hashed_password_here"
 
     async def create_usuario(self, usuario_data: UsuarioCreate) -> UsuarioInDB:
         """Crear nuevo usuario"""
@@ -70,6 +69,17 @@ class MockUsuarioService:
                 return user
         return None
 
+    async def authenticate_usuario(self, dni: str, password: str) -> Optional[UsuarioInDB]:
+        """Autenticar usuario por DNI y contraseña"""
+        usuario = await self.get_usuario_by_dni(dni)
+        if not usuario:
+            return None
+        
+        if not self.verify_password(password, usuario.passwordHash):
+            return None
+        
+        return usuario
+
     async def get_usuarios_activos(self) -> List[UsuarioInDB]:
         """Obtener todos los usuarios activos"""
         return [user for user in self.usuarios.values() if user.estaActivo]
@@ -104,15 +114,4 @@ class MockUsuarioService:
             self.usuarios[usuario_id].estaActivo = False
             self.usuarios[usuario_id].fechaActualizacion = datetime.utcnow()
             return True
-        return False
-
-    async def authenticate_usuario(self, dni: str, password: str) -> Optional[UsuarioInDB]:
-        """Autenticar usuario con DNI y contraseña"""
-        usuario = await self.get_usuario_by_dni(dni)
-        if not usuario:
-            return None
-        
-        if not self.verify_password(password, usuario.passwordHash):
-            return None
-        
-        return usuario 
+        return False 

@@ -1,8 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
-from bson import ObjectId
+# from bson import ObjectId
 from enum import Enum
+from app.utils.mock_utils import mock_id_factory
 
 class EstadoVehiculo(str, Enum):
     ACTIVO = "ACTIVO"
@@ -39,7 +40,7 @@ class DatosTecnicos(BaseModel):
     potencia: Optional[float] = None  # en HP
 
 class Vehiculo(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
+    id: Optional[str] = Field(default_factory=mock_id_factory)
     placa: str
     empresaActualId: str
     resolucionId: Optional[str] = None

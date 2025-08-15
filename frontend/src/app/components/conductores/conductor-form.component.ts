@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Conductor, ConductorCreate, ConductorUpdate } from '../../models/conductor.model';
 
 @Component({
   selector: 'app-conductor-form',
@@ -63,23 +64,31 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>Apellidos</mat-label>
-                <input matInput formControlName="apellidos" placeholder="Pérez Quispe">
-                <mat-error *ngIf="conductorForm.get('apellidos')?.hasError('required')">
-                  Los apellidos son requeridos
+                <mat-label>Apellido Paterno</mat-label>
+                <input matInput formControlName="apellidoPaterno" placeholder="Pérez">
+                <mat-error *ngIf="conductorForm.get('apellidoPaterno')?.hasError('required')">
+                  El apellido paterno es requerido
                 </mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Licencia de Conducir</mat-label>
-                <input matInput formControlName="licenciaConducir" placeholder="A1B2C3D4E5">
-                <mat-error *ngIf="conductorForm.get('licenciaConducir')?.hasError('required')">
-                  La licencia de conducir es requerida
+                <mat-label>Apellido Materno</mat-label>
+                <input matInput formControlName="apellidoMaterno" placeholder="García">
+                <mat-error *ngIf="conductorForm.get('apellidoMaterno')?.hasError('required')">
+                  El apellido materno es requerido
                 </mat-error>
               </mat-form-field>
             </div>
 
             <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Número de Licencia</mat-label>
+                <input matInput formControlName="numeroLicencia" placeholder="LIC-001-2024">
+                <mat-error *ngIf="conductorForm.get('numeroLicencia')?.hasError('required')">
+                  El número de licencia es requerido
+                </mat-error>
+              </mat-form-field>
+
               <mat-form-field appearance="outline">
                 <mat-label>Email</mat-label>
                 <input matInput formControlName="email" type="email" placeholder="conductor@email.com">
@@ -87,12 +96,40 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                   Ingrese un email válido
                 </mat-error>
               </mat-form-field>
+            </div>
 
+            <div class="form-row">
               <mat-form-field appearance="outline">
                 <mat-label>Teléfono</mat-label>
-                <input matInput formControlName="telefono" placeholder="951234567">
+                <input matInput formControlName="telefono" placeholder="051-123456">
                 <mat-error *ngIf="conductorForm.get('telefono')?.hasError('pattern')">
                   Ingrese un teléfono válido
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Celular</mat-label>
+                <input matInput formControlName="celular" placeholder="951234567">
+                <mat-error *ngIf="conductorForm.get('celular')?.hasError('pattern')">
+                  Ingrese un celular válido
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Dirección</mat-label>
+                <input matInput formControlName="direccion" placeholder="Av. Arequipa 123, Puno">
+                <mat-error *ngIf="conductorForm.get('direccion')?.hasError('required')">
+                  La dirección es requerida
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Distrito</mat-label>
+                <input matInput formControlName="distrito" placeholder="Puno">
+                <mat-error *ngIf="conductorForm.get('distrito')?.hasError('required')">
+                  El distrito es requerido
                 </mat-error>
               </mat-form-field>
             </div>
@@ -102,9 +139,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
                 <mat-icon>cancel</mat-icon>
                 Cancelar
               </button>
-              <button mat-raised-button color="primary" type="submit" [disabled]="conductorForm.invalid || isSubmitting()">
-                <mat-icon>save</mat-icon>
-                {{ isEditing() ? 'Actualizar' : 'Guardar' }}
+              <button mat-raised-button color="primary" type="submit" [disabled]="isSubmitting()">
+                <mat-icon *ngIf="isSubmitting()">hourglass_empty</mat-icon>
+                <mat-icon *ngIf="!isSubmitting()">{{ isEditing() ? 'save' : 'add' }}</mat-icon>
+                {{ isEditing() ? 'Actualizar' : 'Crear' }}
               </button>
             </div>
           </form>
@@ -151,6 +189,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   `]
 })
 export class ConductorFormComponent implements OnInit {
+  @Input() modo: 'crear' | 'editar' = 'crear';
+  @Input() conductor?: Conductor;
+  @Output() conductorCreado = new EventEmitter<ConductorCreate>();
+  @Output() conductorActualizado = new EventEmitter<ConductorUpdate>();
+  @Output() cancelado = new EventEmitter<void>();
+
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -159,7 +203,6 @@ export class ConductorFormComponent implements OnInit {
   conductorForm!: FormGroup;
   isEditing = signal(false);
   isSubmitting = signal(false);
-  conductorId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.initializeForm();
@@ -170,19 +213,32 @@ export class ConductorFormComponent implements OnInit {
     this.conductorForm = this.fb.group({
       dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       nombres: ['', Validators.required],
-      apellidos: ['', Validators.required],
-      licenciaConducir: ['', Validators.required],
+      apellidoPaterno: ['', Validators.required],
+      apellidoMaterno: ['', Validators.required],
+      numeroLicencia: ['', Validators.required],
       email: ['', [Validators.email]],
-      telefono: ['', [Validators.pattern(/^\d{9}$/)]]
+      telefono: ['', [Validators.pattern(/^\d{3}-\d{6}$/)]],
+      celular: ['', [Validators.pattern(/^\d{9}$/)]],
+      direccion: ['', Validators.required],
+      distrito: ['', Validators.required]
     });
   }
 
   private loadConductor(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
+    if (this.modo === 'editar' && this.conductor) {
       this.isEditing.set(true);
-      this.conductorId.set(id);
-      // TODO: Cargar datos del conductor
+      this.conductorForm.patchValue({
+        dni: this.conductor.dni,
+        nombres: this.conductor.nombres,
+        apellidoPaterno: this.conductor.apellidoPaterno,
+        apellidoMaterno: this.conductor.apellidoMaterno,
+        numeroLicencia: this.conductor.numeroLicencia,
+        email: this.conductor.email,
+        telefono: this.conductor.telefono,
+        celular: this.conductor.celular,
+        direccion: this.conductor.direccion,
+        distrito: this.conductor.distrito
+      });
     }
   }
 
@@ -190,22 +246,41 @@ export class ConductorFormComponent implements OnInit {
     if (this.conductorForm.valid) {
       this.isSubmitting.set(true);
       
-      const conductorData = this.conductorForm.value;
+      const formData = this.conductorForm.value;
       
-      // TODO: Implementar lógica para guardar conductor
-      console.log('Datos del conductor:', conductorData);
+      if (this.isEditing()) {
+        // Emitir evento de actualización
+        const conductorUpdate: ConductorUpdate = {
+          ...formData,
+          fechaActualizacion: new Date()
+        };
+        this.conductorActualizado.emit(conductorUpdate);
+      } else {
+        // Emitir evento de creación
+        const conductorCreate: ConductorCreate = {
+          ...formData,
+          fechaNacimiento: new Date(), // TODO: Agregar campo de fecha de nacimiento
+          genero: 'MASCULINO', // TODO: Agregar selector de género
+          estadoCivil: 'SOLTERO', // TODO: Agregar selector de estado civil
+          categoriaLicencia: ['C1'], // TODO: Agregar selector de categorías
+          fechaEmisionLicencia: new Date(), // TODO: Agregar campo de fecha de emisión
+          fechaVencimientoLicencia: new Date(), // TODO: Agregar campo de fecha de vencimiento
+          entidadEmisora: 'DIRCETUR PUNO', // TODO: Agregar campo de entidad emisora
+          empresaId: null, // TODO: Agregar selector de empresa
+          cargo: null, // TODO: Agregar campo de cargo
+          experienciaAnos: 0, // TODO: Agregar campo de experiencia
+          tipoSangre: null, // TODO: Agregar selector de tipo de sangre
+          restricciones: [], // TODO: Agregar selector de restricciones
+          observaciones: null // TODO: Agregar campo de observaciones
+        };
+        this.conductorCreado.emit(conductorCreate);
+      }
       
-      this.snackBar.open(
-        this.isEditing() ? 'Conductor actualizado exitosamente' : 'Conductor creado exitosamente',
-        'Cerrar',
-        { duration: 3000 }
-      );
-      
-      this.router.navigate(['/conductores']);
+      this.isSubmitting.set(false);
     }
   }
 
   cancelar(): void {
-    this.router.navigate(['/conductores']);
+    this.cancelado.emit();
   }
 } 

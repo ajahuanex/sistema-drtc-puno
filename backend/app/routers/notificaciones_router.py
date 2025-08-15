@@ -12,8 +12,8 @@ from app.models.notificacion import (
 )
 from app.dependencies.auth import get_current_user
 from app.models.usuario import UsuarioResponse
-from app.dependencies.db import get_database
-from motor.motor_asyncio import AsyncIOMotorDatabase
+# from app.dependencies.db import get_database
+# from motor.motor_asyncio import AsyncIOMotorDatabase
 
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 

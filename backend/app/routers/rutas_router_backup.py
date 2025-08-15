@@ -351,7 +351,21 @@ async def get_rutas_con_filtros(
     rutas = await ruta_service.get_rutas_con_filtros(filtros)
     rutas = rutas[skip:skip + limit]
     
-    return [build_ruta_response(ruta) for ruta in rutas]
+    return [
+        RutaResponse(
+            id=ruta.id,
+            codigoRuta=ruta.codigoRuta,
+            nombre=ruta.nombre,
+            origenId=ruta.origenId,
+            destinoId=ruta.destinoId,
+            itinerarioIds=ruta.itinerarioIds,
+            frecuencias=ruta.frecuencias,
+            estado=ruta.estado,
+            estaActivo=ruta.estaActivo,
+            fechaRegistro=ruta.fechaRegistro
+        )
+        for ruta in rutas
+    ]
 
 @router.get("/estadisticas")
 async def get_estadisticas_rutas():
@@ -381,7 +395,18 @@ async def get_ruta(
     if not ruta:
         raise RutaNotFoundException(ruta_id)
     
-    return build_ruta_response(ruta)
+    return RutaResponse(
+        id=ruta.id,
+        codigoRuta=ruta.codigoRuta,
+        nombre=ruta.nombre,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
+        frecuencias=ruta.frecuencias,
+        estado=ruta.estado,
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
+    )
 
 @router.get("/codigo/{codigo}", response_model=RutaResponse)
 async def get_ruta_by_codigo(
@@ -394,7 +419,18 @@ async def get_ruta_by_codigo(
     if not ruta:
         raise RutaNotFoundException(f"Código {codigo}")
     
-    return build_ruta_response(ruta)
+    return RutaResponse(
+        id=ruta.id,
+        codigoRuta=ruta.codigoRuta,
+        nombre=ruta.nombre,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
+        frecuencias=ruta.frecuencias,
+        estado=ruta.estado,
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
+    )
 
 @router.get("/validar-codigo/{codigo}")
 async def validar_codigo_ruta(codigo: str):
@@ -475,7 +511,18 @@ async def agregar_localidad_a_itinerario(
     if not ruta:
         raise RutaNotFoundException(ruta_id)
     
-    return build_ruta_response(ruta)
+    return RutaResponse(
+        id=ruta.id,
+        codigoRuta=ruta.codigoRuta,
+        nombre=ruta.nombre,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
+        frecuencias=ruta.frecuencias,
+        estado=ruta.estado,
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
+    )
 
 @router.delete("/{ruta_id}/itinerario/{localidad_id}", response_model=RutaResponse)
 async def remover_localidad_de_itinerario(
@@ -489,7 +536,18 @@ async def remover_localidad_de_itinerario(
     if not ruta:
         raise RutaNotFoundException(ruta_id)
     
-    return build_ruta_response(ruta)
+    return RutaResponse(
+        id=ruta.id,
+        codigoRuta=ruta.codigoRuta,
+        nombre=ruta.nombre,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
+        frecuencias=ruta.frecuencias,
+        estado=ruta.estado,
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
+    )
 
 # Endpoints para gestión de frecuencias
 @router.put("/{ruta_id}/frecuencias", response_model=RutaResponse)
@@ -504,7 +562,18 @@ async def actualizar_frecuencias(
     if not ruta:
         raise RutaNotFoundException(ruta_id)
     
-    return build_ruta_response(ruta)
+    return RutaResponse(
+        id=ruta.id,
+        codigoRuta=ruta.codigoRuta,
+        nombre=ruta.nombre,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
+        frecuencias=ruta.frecuencias,
+        estado=ruta.estado,
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
+    )
 
 # Endpoints para exportación
 @router.get("/exportar/{formato}")
@@ -530,4 +599,4 @@ async def exportar_rutas(
     elif formato == 'pdf':
         return {"message": f"Exportando {len(rutas)} rutas a PDF"}
     elif formato == 'csv':
-        return {"message": f"Exportando {len(rutas)} rutas a CSV"}
+        return {"message": f"Exportando {len(rutas)} rutas a CSV"} 

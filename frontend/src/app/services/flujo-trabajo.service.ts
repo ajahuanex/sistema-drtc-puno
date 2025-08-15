@@ -115,7 +115,7 @@ export interface FlujoFiltros {
 })
 export class FlujoTrabajoService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/flujos-trabajo`;
+      private baseUrl = `${environment.apiUrl}/api/v1/flujos-trabajo`;
 
   // BehaviorSubjects para estado reactivo
   private flujosSubject = new BehaviorSubject<FlujoTrabajo[]>([]);

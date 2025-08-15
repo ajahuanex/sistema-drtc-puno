@@ -19,7 +19,7 @@ import { DescripcionAutomaticaService } from './descripcion-automatica.service';
 export class ConfiguracionService {
   private http = inject(HttpClient);
   private descripcionService = inject(DescripcionAutomaticaService);
-  private apiUrl = `${environment.apiUrl}/configuraciones`;
+  private apiUrl = `${environment.apiUrl}/api/v1/configuraciones`;
 
   // Signals para las configuraciones
   private configuracionesSignal = signal<ConfiguracionSistema[]>([]);

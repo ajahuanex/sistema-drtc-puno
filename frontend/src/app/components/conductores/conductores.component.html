@@ -1,0 +1,706 @@
+<!-- Vista de Lista de Conductores -->
+<div *ngIf="modoVista === 'lista'" class="conductores-container">
+  
+  <!-- Header con estadísticas -->
+  <div class="stats-header" *ngIf="estadisticas">
+    <mat-card class="stats-card">
+      <mat-card-content>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-number">{{ estadisticas.totalConductores }}</div>
+            <div class="stat-label">Total Conductores</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number success">{{ estadisticas.conductoresActivos }}</div>
+            <div class="stat-label">Activos</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number warning">{{ estadisticas.conductoresInactivos }}</div>
+            <div class="stat-label">Inactivos</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number danger">{{ estadisticas.conductoresSuspendidos }}</div>
+            <div class="stat-label">Suspendidos</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number info">{{ estadisticas.conductoresEnVerificacion }}</div>
+            <div class="stat-label">En Verificación</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number primary">{{ estadisticas.licenciasVigentes }}</div>
+            <div class="stat-label">Licencias Vigentes</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Barra de herramientas -->
+  <mat-card class="toolbar-card">
+    <mat-card-content>
+      <div class="toolbar-content">
+        <div class="toolbar-left">
+          <button mat-raised-button color="primary" (click)="navegarACrear()">
+            <mat-icon>add</mat-icon>
+            Nuevo Conductor
+          </button>
+          
+          <button mat-button (click)="toggleFiltros()">
+            <mat-icon>filter_list</mat-icon>
+            {{ mostrarFiltros ? 'Ocultar' : 'Mostrar' }} Filtros
+          </button>
+        </div>
+
+        <div class="toolbar-right">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Buscar conductores</mat-label>
+            <input matInput 
+                   [(ngModel)]="terminoBusqueda"
+                   (input)="onBusquedaChange($event)"
+                   placeholder="DNI, nombre, licencia...">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <button mat-icon-button [matMenuTriggerFor]="exportMenu" matTooltip="Exportar">
+            <mat-icon>download</mat-icon>
+          </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item (click)="exportarConductores('excel')">
+              <mat-icon>table_chart</mat-icon>
+              Exportar a Excel
+            </button>
+            <button mat-menu-item (click)="exportarConductores('pdf')">
+              <mat-icon>picture_as_pdf</mat-icon>
+              Exportar a PDF
+            </button>
+            <button mat-menu-item (click)="exportarConductores('csv')">
+              <mat-icon>description</mat-icon>
+              Exportar a CSV
+            </button>
+          </mat-menu>
+
+          <button mat-icon-button (click)="refrescar()" matTooltip="Refrescar">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Filtros avanzados -->
+  <mat-card *ngIf="mostrarFiltros" class="filters-card">
+    <mat-card-header>
+      <mat-card-title>Filtros Avanzados</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="filtrosForm" class="filters-form">
+        <div class="filters-row">
+          <mat-form-field appearance="outline">
+            <mat-label>DNI</mat-label>
+            <input matInput formControlName="dni" placeholder="12345678">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nombres</mat-label>
+            <input matInput formControlName="nombres" placeholder="Juan Carlos">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Apellido Paterno</mat-label>
+            <input matInput formControlName="apellidoPaterno" placeholder="Pérez">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Apellido Materno</mat-label>
+            <input matInput formControlName="apellidoMaterno" placeholder="García">
+          </mat-form-field>
+        </div>
+
+        <div class="filters-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Número de Licencia</mat-label>
+            <input matInput formControlName="numeroLicencia" placeholder="LIC-001-2024">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Categoría de Licencia</mat-label>
+            <mat-select formControlName="categoriaLicencia">
+              <mat-option value="">Todas</mat-option>
+              <mat-option *ngFor="let tipo of TIPOS_LICENCIA" [value]="tipo">
+                {{ getTipoLicenciaLabel(tipo) }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Estado de Licencia</mat-label>
+            <mat-select formControlName="estadoLicencia">
+              <mat-option value="">Todos</mat-option>
+              <mat-option *ngFor="let estado of ESTADOS_LICENCIA" [value]="estado">
+                {{ getEstadoLicenciaLabel(estado) }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Estado del Conductor</mat-label>
+            <mat-select formControlName="estado">
+              <mat-option value="">Todos</mat-option>
+              <mat-option *ngFor="let estado of ESTADOS_CONDUCTOR" [value]="estado">
+                {{ getEstadoConductorLabel(estado) }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="filters-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Distrito</mat-label>
+            <input matInput formControlName="distrito" placeholder="Puno">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Provincia</mat-label>
+            <input matInput formControlName="provincia" placeholder="Puno">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Departamento</mat-label>
+            <input matInput formControlName="departamento" placeholder="Puno">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Empresa ID</mat-label>
+            <input matInput formControlName="empresaId" placeholder="1">
+          </mat-form-field>
+        </div>
+
+        <div class="filters-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha Vencimiento Desde</mat-label>
+            <input matInput [matDatepicker]="fechaDesdePicker" formControlName="fechaVencimientoDesde">
+            <mat-datepicker-toggle matSuffix [for]="fechaDesdePicker"></mat-datepicker-toggle>
+            <mat-datepicker #fechaDesdePicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha Vencimiento Hasta</mat-label>
+            <input matInput [matDatepicker]="fechaHastaPicker" formControlName="fechaVencimientoHasta">
+            <mat-datepicker-toggle matSuffix [for]="fechaHastaPicker"></mat-datepicker-toggle>
+            <mat-datepicker #fechaHastaPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Experiencia Mínima (años)</mat-label>
+            <input matInput type="number" formControlName="experienciaMinima" placeholder="0">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Experiencia Máxima (años)</mat-label>
+            <input matInput type="number" formControlName="experienciaMaxima" placeholder="50">
+          </mat-form-field>
+        </div>
+
+        <div class="filters-actions">
+          <button mat-raised-button color="primary" (click)="aplicarFiltros()">
+            <mat-icon>search</mat-icon>
+            Aplicar Filtros
+          </button>
+          <button mat-button (click)="limpiarFiltros()">
+            <mat-icon>clear</mat-icon>
+            Limpiar Filtros
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tabla de conductores -->
+  <mat-card class="table-card">
+    <mat-card-content>
+      <div class="table-container">
+        <table mat-table [dataSource]="conductores" matSort class="conductores-table">
+          
+          <!-- Columna DNI -->
+          <ng-container matColumnDef="dni">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>DNI</th>
+            <td mat-cell *matCellDef="let conductor">
+              <strong>{{ conductor.dni }}</strong>
+            </td>
+          </ng-container>
+
+          <!-- Columna Nombre Completo -->
+          <ng-container matColumnDef="nombreCompleto">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Nombre Completo</th>
+            <td mat-cell *matCellDef="let conductor">
+              <div class="conductor-info">
+                <div class="conductor-name">{{ conductor.nombreCompleto }}</div>
+                <div class="conductor-details">
+                  <small>{{ calcularEdad(conductor.fechaNacimiento) }} años • {{ getGeneroLabel(conductor.genero) }}</small>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Columna Número de Licencia -->
+          <ng-container matColumnDef="numeroLicencia">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Licencia</th>
+            <td mat-cell *matCellDef="let conductor">
+              <div class="license-info">
+                <div class="license-number">{{ conductor.numeroLicencia }}</div>
+                <div class="license-dates">
+                  <small>Vence: {{ formatearFecha(conductor.fechaVencimientoLicencia) }}</small>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Columna Categoría de Licencia -->
+          <ng-container matColumnDef="categoriaLicencia">
+            <th mat-header-cell *matHeaderCellDef>Categorías</th>
+            <td mat-cell *matCellDef="let conductor">
+              <div class="categorias-container">
+                <span *ngFor="let categoria of conductor.categoriaLicencia" 
+                      class="categoria-chip">
+                  {{ categoria }}
+                </span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Columna Estado de Licencia -->
+          <ng-container matColumnDef="estadoLicencia">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado Licencia</th>
+            <td mat-cell *matCellDef="let conductor">
+              <mat-chip [color]="getEstadoLicenciaColor(conductor.estadoLicencia)" 
+                       selected>
+                {{ getEstadoLicenciaLabel(conductor.estadoLicencia) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Columna Estado del Conductor -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+            <td mat-cell *matCellDef="let conductor">
+              <mat-chip [color]="getEstadoConductorColor(conductor.estado)" 
+                       selected>
+                {{ getEstadoConductorLabel(conductor.estado) }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Columna Empresa -->
+          <ng-container matColumnDef="empresaId">
+            <th mat-header-cell *matHeaderCellDef>Empresa</th>
+            <td mat-cell *matCellDef="let conductor">
+              <div *ngIf="conductor.empresaId; else sinEmpresa">
+                <mat-chip color="accent" selected>
+                  <mat-icon>business</mat-icon>
+                  {{ conductor.empresaId }}
+                </mat-chip>
+                <div *ngIf="conductor.cargo" class="cargo-info">
+                  <small>{{ conductor.cargo }}</small>
+                </div>
+              </div>
+              <ng-template #sinEmpresa>
+                <span class="no-empresa">Sin empresa</span>
+              </ng-template>
+            </td>
+          </ng-container>
+
+          <!-- Columna Acciones -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <td mat-cell *matCellDef="let conductor">
+              <div class="actions-container">
+                <button mat-icon-button 
+                        [matMenuTriggerFor]="menu" 
+                        matTooltip="Más acciones">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="navegarADetalle(conductor)">
+                    <mat-icon>visibility</mat-icon>
+                    Ver Detalle
+                  </button>
+                  
+                  <button mat-menu-item (click)="navegarAEditar(conductor)">
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  
+                  <button mat-menu-item (click)="verificarLicencia(conductor)">
+                    <mat-icon>verified</mat-icon>
+                    Verificar Licencia
+                  </button>
+                  
+                  <mat-divider></mat-divider>
+                  
+                  <button mat-menu-item (click)="cambiarEstadoConductor(conductor, EstadoConductor.ACTIVO)"
+                          *ngIf="conductor.estado !== EstadoConductor.ACTIVO">
+                    <mat-icon>check_circle</mat-icon>
+                    Activar
+                  </button>
+                  
+                  <button mat-menu-item (click)="cambiarEstadoConductor(conductor, EstadoConductor.SUSPENDIDO)"
+                          *ngIf="conductor.estado !== EstadoConductor.SUSPENDIDO">
+                    <mat-icon>pause_circle</mat-icon>
+                    Suspender
+                  </button>
+                  
+                  <button mat-menu-item (click)="cambiarEstadoConductor(conductor, EstadoConductor.INACTIVO)"
+                          *ngIf="conductor.estado !== EstadoConductor.INACTIVO">
+                    <mat-icon>cancel</mat-icon>
+                    Desactivar
+                  </button>
+                  
+                  <mat-divider></mat-divider>
+                  
+                  <button mat-menu-item (click)="eliminarConductor(conductor)"
+                          class="danger-action">
+                    <mat-icon>delete</mat-icon>
+                    Eliminar
+                  </button>
+                </mat-menu>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+              (click)="navegarADetalle(row)"
+              class="conductor-row"></tr>
+        </table>
+
+        <!-- Paginador -->
+        <mat-paginator [length]="totalRegistros"
+                      [pageSize]="registrosPorPagina"
+                      [pageSizeOptions]="[5, 10, 25, 50, 100]"
+                      (page)="onPageChange($event)"
+                      showFirstLastButtons>
+        </mat-paginator>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Indicador de carga -->
+  <div *ngIf="loading" class="loading-overlay">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Cargando conductores...</p>
+  </div>
+
+  <!-- Mensaje de error -->
+  <div *ngIf="error" class="error-message">
+    <mat-card class="error-card">
+      <mat-card-content>
+        <div class="error-content">
+          <mat-icon class="error-icon">error</mat-icon>
+          <div class="error-text">
+            <h3>Error</h3>
+            <p>{{ error }}</p>
+          </div>
+          <button mat-icon-button (click)="limpiarError()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Mensaje de no hay datos -->
+  <div *ngIf="!loading && conductores.length === 0" class="no-data">
+    <mat-card class="no-data-card">
+      <mat-card-content>
+        <div class="no-data-content">
+          <mat-icon class="no-data-icon">people_outline</mat-icon>
+          <h3>No hay conductores</h3>
+          <p>No se encontraron conductores que coincidan con los criterios de búsqueda.</p>
+          <button mat-raised-button color="primary" (click)="navegarACrear()">
+            <mat-icon>add</mat-icon>
+            Crear Primer Conductor
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<!-- Vista de Detalle del Conductor -->
+<div *ngIf="modoVista === 'detalle' && conductorSeleccionado" class="detalle-container">
+  <mat-card class="detalle-card">
+    <mat-card-header>
+      <mat-card-title>
+        <button mat-icon-button (click)="navegarALista()" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        Detalle del Conductor
+      </mat-card-title>
+      <mat-card-subtitle>{{ conductorSeleccionado.nombreCompleto }}</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <!-- Información básica -->
+      <div class="detalle-section">
+        <h3>Información Personal</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>DNI:</label>
+            <span>{{ conductorSeleccionado.dni }}</span>
+          </div>
+          <div class="info-item">
+            <label>Nombres:</label>
+            <span>{{ conductorSeleccionado.nombres }}</span>
+          </div>
+          <div class="info-item">
+            <label>Apellido Paterno:</label>
+            <span>{{ conductorSeleccionado.apellidoPaterno }}</span>
+          </div>
+          <div class="info-item">
+            <label>Apellido Materno:</label>
+            <span>{{ conductorSeleccionado.apellidoMaterno }}</span>
+          </div>
+          <div class="info-item">
+            <label>Fecha de Nacimiento:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaNacimiento) }} ({{ calcularEdad(conductorSeleccionado.fechaNacimiento) }} años)</span>
+          </div>
+          <div class="info-item">
+            <label>Género:</label>
+            <span>{{ getGeneroLabel(conductorSeleccionado.genero) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Estado Civil:</label>
+            <span>{{ getEstadoCivilLabel(conductorSeleccionado.estadoCivil) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información de contacto -->
+      <div class="detalle-section">
+        <h3>Información de Contacto</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Dirección:</label>
+            <span>{{ conductorSeleccionado.direccion }}</span>
+          </div>
+          <div class="info-item">
+            <label>Distrito:</label>
+            <span>{{ conductorSeleccionado.distrito }}</span>
+          </div>
+          <div class="info-item">
+            <label>Provincia:</label>
+            <span>{{ conductorSeleccionado.provincia }}</span>
+          </div>
+          <div class="info-item">
+            <label>Departamento:</label>
+            <span>{{ conductorSeleccionado.departamento }}</span>
+          </div>
+          <div class="info-item">
+            <label>Teléfono:</label>
+            <span>{{ formatearTelefono(conductorSeleccionado.telefono) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Celular:</label>
+            <span>{{ formatearTelefono(conductorSeleccionado.celular) }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.email">
+            <label>Email:</label>
+            <span>{{ conductorSeleccionado.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información de licencia -->
+      <div class="detalle-section">
+        <h3>Información de Licencia</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Número de Licencia:</label>
+            <span>{{ conductorSeleccionado.numeroLicencia }}</span>
+          </div>
+          <div class="info-item">
+            <label>Categorías:</label>
+            <span>
+              <div class="categorias-container">
+                <span *ngFor="let categoria of conductorSeleccionado.categoriaLicencia" 
+                      class="categoria-chip">
+                  {{ getTipoLicenciaLabel(categoria) }}
+                </span>
+              </div>
+            </span>
+          </div>
+          <div class="info-item">
+            <label>Fecha de Emisión:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaEmisionLicencia) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Fecha de Vencimiento:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaVencimientoLicencia) }}</span>
+          </div>
+          <div class="info-item">
+            <label>Estado de Licencia:</label>
+            <span>
+              <mat-chip [color]="getEstadoLicenciaColor(conductorSeleccionado.estadoLicencia)" 
+                       selected>
+                {{ getEstadoLicenciaLabel(conductorSeleccionado.estadoLicencia) }}
+              </mat-chip>
+            </span>
+          </div>
+          <div class="info-item">
+            <label>Entidad Emisora:</label>
+            <span>{{ conductorSeleccionado.entidadEmisora }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información laboral -->
+      <div class="detalle-section">
+        <h3>Información Laboral</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Estado:</label>
+            <span>
+              <mat-chip [color]="getEstadoConductorColor(conductorSeleccionado.estado)" 
+                       selected>
+                {{ getEstadoConductorLabel(conductorSeleccionado.estado) }}
+              </mat-chip>
+            </span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.empresaId">
+            <label>Empresa ID:</label>
+            <span>{{ conductorSeleccionado.empresaId }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.fechaIngreso">
+            <label>Fecha de Ingreso:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaIngreso) }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.cargo">
+            <label>Cargo:</label>
+            <span>{{ conductorSeleccionado.cargo }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.experienciaAnos">
+            <label>Experiencia:</label>
+            <span>{{ conductorSeleccionado.experienciaAnos }} años</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información adicional -->
+      <div class="detalle-section" *ngIf="conductorSeleccionado.tipoSangre || conductorSeleccionado.restricciones?.length || conductorSeleccionado.observaciones">
+        <h3>Información Adicional</h3>
+        <div class="info-grid">
+          <div class="info-item" *ngIf="conductorSeleccionado.tipoSangre">
+            <label>Tipo de Sangre:</label>
+            <span>{{ conductorSeleccionado.tipoSangre }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.restricciones?.length">
+            <label>Restricciones:</label>
+            <span>
+              <div class="restricciones-container">
+                <span *ngFor="let restriccion of conductorSeleccionado.restricciones" 
+                      class="restriccion-chip">
+                  {{ restriccion }}
+                </span>
+              </div>
+            </span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.observaciones">
+            <label>Observaciones:</label>
+            <span>{{ conductorSeleccionado.observaciones }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fechas del sistema -->
+      <div class="detalle-section">
+        <h3>Información del Sistema</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Fecha de Registro:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaRegistro) }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.fechaActualizacion">
+            <label>Última Actualización:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaActualizacion) }}</span>
+          </div>
+          <div class="info-item" *ngIf="conductorSeleccionado.fechaUltimaVerificacion">
+            <label>Última Verificación:</label>
+            <span>{{ formatearFecha(conductorSeleccionado.fechaUltimaVerificacion) }}</span>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button mat-raised-button color="primary" (click)="navegarAEditar(conductorSeleccionado)">
+        <mat-icon>edit</mat-icon>
+        Editar Conductor
+      </button>
+      
+      <button mat-raised-button color="accent" (click)="verificarLicencia(conductorSeleccionado)">
+        <mat-icon>verified</mat-icon>
+        Verificar Licencia
+      </button>
+      
+      <button mat-raised-button color="warn" (click)="eliminarConductor(conductorSeleccionado)">
+        <mat-icon>delete</mat-icon>
+        Eliminar Conductor
+      </button>
+      
+      <button mat-button (click)="navegarALista()">
+        <mat-icon>arrow_back</mat-icon>
+        Volver a la Lista
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
+
+<!-- Vista de Crear Conductor -->
+<div *ngIf="modoVista === 'crear'" class="crear-container">
+  <mat-card class="crear-card">
+    <mat-card-header>
+      <mat-card-title>
+        <button mat-icon-button (click)="navegarALista()" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        Crear Nuevo Conductor
+      </mat-card-title>
+      <mat-card-subtitle>Complete la información del conductor</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <!-- Formulario de creación -->
+      <app-conductor-form 
+        [modo]="'crear'"
+        (conductorCreado)="crearConductor($event)"
+        (cancelado)="navegarALista()">
+      </app-conductor-form>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Vista de Editar Conductor -->
+<div *ngIf="modoVista === 'editar' && conductorSeleccionado" class="editar-container">
+  <mat-card class="editar-card">
+    <mat-card-header>
+      <mat-card-title>
+        <button mat-icon-button (click)="navegarADetalle(conductorSeleccionado)" class="back-button">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        Editar Conductor
+      </mat-card-title>
+      <mat-card-subtitle>{{ conductorSeleccionado.nombreCompleto }}</mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <!-- Formulario de edición -->
+      <app-conductor-form 
+        [modo]="'editar'"
+        [conductor]="conductorSeleccionado"
+        (conductorActualizado)="actualizarConductor(conductorSeleccionado.id, $event)"
+        (cancelado)="navegarADetalle(conductorSeleccionado)">
+      </app-conductor-form>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -85,7 +85,7 @@ export interface GraficoReporte {
 })
 export class ReportesService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/reportes`;
+      private baseUrl = `${environment.apiUrl}/api/v1/reportes`;
 
   /**
    * Genera un reporte basado en la configuración proporcionada
