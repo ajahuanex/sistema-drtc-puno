@@ -29,8 +29,8 @@ class Resolucion(BaseModel):
     nroResolucion: str
     empresaId: str
     fechaEmision: datetime
-    fechaVigenciaInicio: datetime
-    fechaVigenciaFin: datetime
+    fechaVigenciaInicio: Optional[datetime] = None
+    fechaVigenciaFin: Optional[datetime] = None
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str] = []
@@ -103,8 +103,8 @@ class ResolucionResponse(BaseModel):
     nroResolucion: str
     empresaId: str
     fechaEmision: datetime
-    fechaVigenciaInicio: datetime
-    fechaVigenciaFin: datetime
+    fechaVigenciaInicio: Optional[datetime] = None
+    fechaVigenciaFin: Optional[datetime] = None
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str]

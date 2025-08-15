@@ -18,9 +18,9 @@ export class ExpedienteService {
       nroExpediente: 'E-0001-2025',
       folio: 15, // Cantidad de hojas del expediente
       fechaEmision: new Date('2025-01-15'),
-      tipoTramite: 'AUTORIZACION NUEVA',
+      tipoTramite: 'PRIMIGENIA',
       empresaId: '1',
-      descripcion: 'Solicitud de autorización para operar transporte público',
+      descripcion: 'Solicitud de autorización PRIMIGENIA para operar transporte público de pasajeros en rutas interprovinciales',
       estado: 'APROBADO',
       estaActivo: true,
       documentos: [],
@@ -36,7 +36,7 @@ export class ExpedienteService {
       fechaEmision: new Date('2025-01-20'),
       tipoTramite: 'RENOVACION',
       empresaId: '2',
-      descripcion: 'Renovación de autorización de transporte',
+      descripcion: 'Renovación de autorización de transporte público de pasajeros - vencimiento próximo',
       estado: 'EN PROCESO',
       estaActivo: true,
       documentos: [],
@@ -60,7 +60,7 @@ export class ExpedienteService {
       fechaEmision: new Date('2025-01-25'),
       tipoTramite: 'INCREMENTO',
       empresaId: '3',
-      descripcion: 'Solicitud de incremento de flota vehicular',
+      descripcion: 'Solicitud de INCREMENTO de flota vehicular para ampliar cobertura de rutas autorizadas',
       estado: 'EN PROCESO',
       estaActivo: true,
       documentos: [],
@@ -74,9 +74,9 @@ export class ExpedienteService {
       nroExpediente: 'E-0001-2026', // Mismo número (0001) pero año diferente (2026)
       folio: 12,
       fechaEmision: new Date('2026-01-10'),
-      tipoTramite: 'AUTORIZACION NUEVA',
+      tipoTramite: 'PRIMIGENIA',
       empresaId: '4',
-      descripcion: 'Nueva autorización para empresa del 2026',
+      descripcion: 'Solicitud de autorización PRIMIGENIA para empresa de transporte de carga pesada',
       estado: 'EN PROCESO',
       estaActivo: true,
       documentos: [],
@@ -92,11 +92,91 @@ export class ExpedienteService {
       fechaEmision: new Date('2026-01-15'),
       tipoTramite: 'RENOVACION',
       empresaId: '5',
-      descripcion: 'Renovación para empresa del 2026',
+      descripcion: 'Renovación de autorización para empresa de transporte de carga pesada - ampliación de vigencia',
       estado: 'EN PROCESO',
       estaActivo: true,
       documentos: [],
       observaciones: 'Renovación año 2026',
+      sistemaOrigen: SistemaOrigen.INTERNO,
+      fechaSincronizacion: new Date(),
+      estadoSincronizacion: EstadoSincronizacion.COMPLETADO
+    },
+    {
+      id: '6',
+      nroExpediente: 'E-0003-2026',
+      folio: 25,
+      fechaEmision: new Date('2026-02-15'),
+      tipoTramite: 'INCREMENTO',
+      empresaId: '2',
+      descripcion: 'Solicitud de INCREMENTO de flota vehicular para ampliar capacidad de transporte de carga',
+      estado: 'EN PROCESO',
+      estaActivo: true,
+      documentos: [],
+      observaciones: 'Incremento año 2026',
+      sistemaOrigen: SistemaOrigen.INTERNO,
+      fechaSincronizacion: new Date(),
+      estadoSincronizacion: EstadoSincronizacion.COMPLETADO
+    },
+    {
+      id: '7',
+      nroExpediente: 'E-0004-2026',
+      folio: 20,
+      fechaEmision: new Date('2026-03-10'),
+      tipoTramite: 'SUSTITUCION',
+      empresaId: '3',
+      descripcion: 'Solicitud de SUSTITUCIÓN de vehículos en flota existente por unidades más modernas y eficientes',
+      estado: 'EN PROCESO',
+      estaActivo: true,
+      documentos: [],
+      observaciones: 'Sustitución año 2026',
+      sistemaOrigen: SistemaOrigen.INTERNO,
+      fechaSincronizacion: new Date(),
+      estadoSincronizacion: EstadoSincronizacion.COMPLETADO
+    },
+    {
+      id: '8',
+      nroExpediente: 'E-0005-2026',
+      folio: 15,
+      fechaEmision: new Date('2026-04-01'),
+      tipoTramite: 'OTROS',
+      empresaId: '1',
+      descripcion: 'Solicitud de modificación de rutas autorizadas para optimizar cobertura geográfica',
+      estado: 'EN PROCESO',
+      estaActivo: true,
+      documentos: [],
+      observaciones: 'Modificación año 2026',
+      sistemaOrigen: SistemaOrigen.INTERNO,
+      fechaSincronizacion: new Date(),
+      estadoSincronizacion: EstadoSincronizacion.COMPLETADO
+    },
+    {
+      id: '9',
+      nroExpediente: 'E-0001-2027',
+      folio: 30,
+      fechaEmision: new Date('2027-01-20'),
+      tipoTramite: 'PRIMIGENIA',
+      empresaId: '6',
+      descripcion: 'Solicitud de autorización PRIMIGENIA para empresa de transporte turístico especializado',
+      estado: 'EN PROCESO',
+      estaActivo: true,
+      documentos: [],
+      observaciones: 'Primigenia año 2027',
+      sistemaOrigen: SistemaOrigen.INTERNO,
+      fechaSincronizacion: new Date(),
+      estadoSincronizacion: EstadoSincronizacion.COMPLETADO
+    },
+    {
+      id: '10',
+      nroExpediente: 'E-0002-2027',
+      folio: 22,
+      fechaEmision: new Date('2027-02-15'),
+      tipoTramite: 'RENOVACION',
+      empresaId: '6',
+      descripcion: 'Renovación de autorización para empresa de transporte turístico especializado - mantenimiento de servicios',
+      estado: 'EN PROCESO',
+      estaActivo: true,
+      documentos: [],
+      observaciones: 'Renovación año 2027',
       sistemaOrigen: SistemaOrigen.INTERNO,
       fechaSincronizacion: new Date(),
       estadoSincronizacion: EstadoSincronizacion.COMPLETADO
@@ -137,8 +217,11 @@ export class ExpedienteService {
   validarExpedienteUnico(validacion: ValidacionExpediente): Observable<RespuestaValidacion> {
     // Validar número de expediente único POR AÑO (E-1234-2025 y E-1234-2026 son diferentes)
     const numeroCompleto = `E-${validacion.numero.padStart(4, '0')}-${validacion.fechaEmision.getFullYear()}`;
+    
+    // Buscar expediente existente, excluyendo el expediente actual si estamos en modo edición
     const expedienteExistente = this.mockExpedientes.find(e => 
-      e.nroExpediente === numeroCompleto
+      e.nroExpediente === numeroCompleto && 
+      (!validacion.expedienteIdExcluir || e.id !== validacion.expedienteIdExcluir)
     );
 
     if (expedienteExistente) {

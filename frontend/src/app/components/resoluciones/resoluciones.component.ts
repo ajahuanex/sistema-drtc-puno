@@ -31,8 +31,8 @@ import { Resolucion } from '../../models/resolucion.model';
           <p class="header-subtitle">Administración de resoluciones autorizadas</p>
         </div>
         <div class="header-actions">
-          <button mat-raised-button color="primary" (click)="nuevaResolucion()">
-            <mat-icon>add</mat-icon>
+          <button mat-raised-button color="primary" (click)="nuevaResolucion()" class="new-resolution-btn">
+            <mat-icon>add_circle</mat-icon>
             Nueva Resolución
           </button>
         </div>
@@ -51,8 +51,8 @@ import { Resolucion } from '../../models/resolucion.model';
             <mat-icon>description</mat-icon>
             <h3>No hay resoluciones registradas</h3>
             <p>Comienza agregando la primera resolución al sistema</p>
-            <button mat-raised-button color="primary" (click)="nuevaResolucion()">
-              <mat-icon>add</mat-icon>
+            <button mat-raised-button color="primary" (click)="nuevaResolucion()" class="first-resolution-btn">
+              <mat-icon>add_circle</mat-icon>
               Agregar Primera Resolución
             </button>
           </div>
@@ -94,15 +94,32 @@ import { Resolucion } from '../../models/resolucion.model';
                 <ng-container matColumnDef="acciones">
                   <th mat-header-cell *matHeaderCellDef>Acciones</th>
                   <td mat-cell *matCellDef="let resolucion">
-                    <button mat-icon-button color="primary" (click)="verResolucion(resolucion.id)" matTooltip="Ver detalles">
-                      <mat-icon>visibility</mat-icon>
-                    </button>
-                    <button mat-icon-button color="accent" (click)="editarResolucion(resolucion.id)" matTooltip="Editar">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn" (click)="eliminarResolucion(resolucion.id)" matTooltip="Eliminar">
-                      <mat-icon>delete</mat-icon>
-                    </button>
+                    <div class="action-buttons">
+                      <button 
+                        mat-icon-button 
+                        color="primary" 
+                        (click)="verResolucion(resolucion.id)" 
+                        matTooltip="Ver detalles de la resolución"
+                        class="action-btn view-btn">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button 
+                        mat-icon-button 
+                        color="accent" 
+                        (click)="editarResolucion(resolucion.id)" 
+                        matTooltip="Editar resolución"
+                        class="action-btn edit-btn">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button 
+                        mat-icon-button 
+                        color="warn" 
+                        (click)="eliminarResolucion(resolucion.id)" 
+                        matTooltip="Eliminar resolución"
+                        class="action-btn delete-btn">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
                   </td>
                 </ng-container>
 
@@ -246,6 +263,69 @@ import { Resolucion } from '../../models/resolucion.model';
       color: #ffffff;
     }
 
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn {
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    .view-btn {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      
+      &:hover {
+        background-color: #bbdefb;
+      }
+    }
+
+    .edit-btn {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+      
+      &:hover {
+        background-color: #e1bee7;
+      }
+    }
+
+    .delete-btn {
+      background-color: #ffebee;
+      color: #d32f2f;
+      
+      &:hover {
+        background-color: #ffcdd2;
+      }
+    }
+
+    .new-resolution-btn, .first-resolution-btn {
+      transition: all 0.3s ease;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
+      }
+      
+      mat-icon {
+        margin-right: 8px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
     @media (max-width: 768px) {
       .page-header {
         flex-direction: column;
@@ -263,6 +343,16 @@ import { Resolucion } from '../../models/resolucion.model';
 
       .header-actions button {
         width: 100%;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .action-btn {
+        width: 100%;
+        height: 40px;
       }
     }
   `]

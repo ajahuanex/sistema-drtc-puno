@@ -2,7 +2,7 @@ export type EstadoResolucion = 'VIGENTE' | 'VENCIDA' | 'SUSPENDIDA' | 'REVOCADA'
 
 export type TipoResolucion = 'PADRE' | 'HIJO';
 
-export type TipoTramite = 'AUTORIZACION NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
+export type TipoTramite = 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
 
 export type TipoResolucionSimple = 'PRIMIGENIA' | 'AMPLIACION' | 'MODIFICACION';
 
@@ -12,9 +12,9 @@ export interface Resolucion {
   empresaId: string;
   expedienteId: string; // ID del expediente que determina el tipo de trámite
   fechaEmision: Date;
-  fechaVigenciaInicio?: Date; // Opcional: solo para PADRE + (AUTORIZACION NUEVA o RENOVACION)
-  fechaVigenciaFin?: Date; // Opcional: solo para PADRE + (AUTORIZACION NUEVA o RENOVACION)
-  tipoResolucion: TipoResolucion; // Se determina automáticamente: PADRE para AUTORIZACION NUEVA/RENOVACION, HIJO para otros
+  fechaVigenciaInicio?: Date; // Opcional: solo para PADRE + (PRIMIGENIA o RENOVACION)
+  fechaVigenciaFin?: Date; // Opcional: solo para PADRE + (PRIMIGENIA o RENOVACION)
+  tipoResolucion: TipoResolucion; // Se determina automáticamente: PADRE para PRIMIGENIA/RENOVACION, HIJO para otros
   resolucionPadreId?: string;
   resolucionesHijasIds: string[];
   vehiculosHabilitadosIds: string[];

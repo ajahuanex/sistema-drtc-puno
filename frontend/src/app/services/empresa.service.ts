@@ -201,6 +201,246 @@ export class EmpresaService {
       ultimaValidacionSunat: new Date(),
       scoreRiesgo: 30,
       observaciones: 'EMPRESA EN BUEN ESTADO'
+    },
+    {
+      id: '3',
+      ruc: '20345678901',
+      razonSocial: {
+        principal: 'TRANSPORTES INTERPROVINCIALES S.A.C.',
+        sunat: 'TRANSPORTES INTERPROVINCIALES S.A.C.',
+        minimo: 'TRANSPORTES INTERPROVINCIALES S.A.C.'
+      },
+      direccionFiscal: 'AV. TACNA 789, PUNO',
+      estado: EstadoEmpresa.HABILITADA,
+      estaActivo: true,
+      fechaRegistro: new Date('2024-03-15T09:15:00Z'),
+      representanteLegal: {
+        dni: '11223344',
+        nombres: 'CARLOS ALBERTO',
+        apellidos: 'GARCÍA SILVA',
+        email: 'carlos.garcia@transportesinter.com',
+        telefono: '952345678',
+        direccion: 'AV. TACNA 789, PUNO'
+      },
+      emailContacto: 'info@transportesinter.com',
+      telefonoContacto: '952345678',
+      sitioWeb: 'www.transportesinter.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20345678901',
+          fechaEmision: new Date('2023-03-15'),
+          fechaVencimiento: new Date('2025-03-15'),
+          urlDocumento: 'https://example.com/ruc3.pdf',
+          observaciones: 'RUC ACTIVO',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-03-15T09:15:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20345678901',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
+        }
+      ],
+      resolucionesPrimigeniasIds: ['3'],
+      vehiculosHabilitadosIds: ['4', '5'],
+      conductoresHabilitadosIds: ['3', '4'],
+      rutasAutorizadasIds: ['3', '4'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'TRANSPORTES INTERPROVINCIALES S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'AV. TACNA 789, PUNO',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 35,
+      observaciones: 'EMPRESA EN BUEN ESTADO'
+    },
+    {
+      id: '4',
+      ruc: '20456789012',
+      razonSocial: {
+        principal: 'TRANSPORTES URBANOS PUNO S.A.C.',
+        sunat: 'TRANSPORTES URBANOS PUNO S.A.C.',
+        minimo: 'TRANSPORTES URBANOS PUNO S.A.C.'
+      },
+      direccionFiscal: 'JR. LIMA 321, PUNO',
+      estado: EstadoEmpresa.HABILITADA,
+      estaActivo: true,
+      fechaRegistro: new Date('2024-04-10T11:45:00Z'),
+      representanteLegal: {
+        dni: '22334455',
+        nombres: 'ANA MARÍA',
+        apellidos: 'TORRES VARGAS',
+        email: 'ana.torres@transportesurbanos.com',
+        telefono: '953456789',
+        direccion: 'JR. LIMA 321, PUNO'
+      },
+      emailContacto: 'info@transportesurbanos.com',
+      telefonoContacto: '953456789',
+      sitioWeb: 'www.transportesurbanos.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20456789012',
+          fechaEmision: new Date('2023-04-10'),
+          fechaVencimiento: new Date('2025-04-10'),
+          urlDocumento: 'https://example.com/ruc4.pdf',
+          observaciones: 'RUC ACTIVO',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-04-10T11:45:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20456789012',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
+        }
+      ],
+      resolucionesPrimigeniasIds: ['4'],
+      vehiculosHabilitadosIds: ['6', '7'],
+      conductoresHabilitadosIds: ['5', '6'],
+      rutasAutorizadasIds: ['5', '6'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'TRANSPORTES URBANOS PUNO S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'JR. LIMA 321, PUNO',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 28,
+      observaciones: 'EMPRESA EN BUEN ESTADO'
+    },
+    {
+      id: '5',
+      ruc: '20567890123',
+      razonSocial: {
+        principal: 'TRANSPORTES RURALES S.A.C.',
+        sunat: 'TRANSPORTES RURALES S.A.C.',
+        minimo: 'TRANSPORTES RURALES S.A.C.'
+      },
+      direccionFiscal: 'AV. AYACUCHO 654, PUNO',
+      estado: EstadoEmpresa.HABILITADA,
+      estaActivo: true,
+      fechaRegistro: new Date('2024-05-05T16:20:00Z'),
+      representanteLegal: {
+        dni: '33445566',
+        nombres: 'ROBERTO JOSÉ',
+        apellidos: 'MARTÍNEZ QUISPE',
+        email: 'roberto.martinez@transportesrurales.com',
+        telefono: '954567890',
+        direccion: 'AV. AYACUCHO 654, PUNO'
+      },
+      emailContacto: 'info@transportesrurales.com',
+      telefonoContacto: '954567890',
+      sitioWeb: 'www.transportesrurales.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20567890123',
+          fechaEmision: new Date('2023-05-05'),
+          fechaVencimiento: new Date('2025-05-05'),
+          urlDocumento: 'https://example.com/ruc5.pdf',
+          observaciones: 'RUC ACTIVO',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-05-05T16:20:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20567890123',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
+        }
+      ],
+      resolucionesPrimigeniasIds: ['5'],
+      vehiculosHabilitadosIds: ['8', '9'],
+      conductoresHabilitadosIds: ['7', '8'],
+      rutasAutorizadasIds: ['7', '8'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'TRANSPORTES RURALES S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'AV. AYACUCHO 654, PUNO',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 32,
+      observaciones: 'EMPRESA EN BUEN ESTADO'
+    },
+    {
+      id: '6',
+      ruc: '20678901234',
+      razonSocial: {
+        principal: 'TRANSPORTES EXPRESS PUNO S.A.C.',
+        sunat: 'TRANSPORTES EXPRESS PUNO S.A.C.',
+        minimo: 'TRANSPORTES EXPRESS PUNO S.A.C.'
+      },
+      direccionFiscal: 'JR. AREQUIPA 987, PUNO',
+      estado: EstadoEmpresa.HABILITADA,
+      estaActivo: true,
+      fechaRegistro: new Date('2024-06-01T13:30:00Z'),
+      representanteLegal: {
+        dni: '44556677',
+        nombres: 'LUCÍA FERNANDA',
+        apellidos: 'HERRERA MAMANI',
+        email: 'lucia.herrera@transportesexpress.com',
+        telefono: '955678901',
+        direccion: 'JR. AREQUIPA 987, PUNO'
+      },
+      emailContacto: 'info@transportesexpress.com',
+      telefonoContacto: '955678901',
+      sitioWeb: 'www.transportesexpress.com',
+      documentos: [
+        {
+          tipo: TipoDocumento.RUC,
+          numero: '20678901234',
+          fechaEmision: new Date('2023-06-01'),
+          fechaVencimiento: new Date('2025-06-01'),
+          urlDocumento: 'https://example.com/ruc6.pdf',
+          observaciones: 'RUC ACTIVO',
+          estaActivo: true
+        }
+      ],
+      auditoria: [
+        {
+          fechaCambio: new Date('2024-06-01T13:30:00Z'),
+          usuarioId: '1',
+          tipoCambio: 'CREACION_EMPRESA',
+          campoAnterior: undefined,
+          campoNuevo: 'EMPRESA CREADA CON RUC: 20678901234',
+          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
+        }
+      ],
+      resolucionesPrimigeniasIds: ['9', '10'],
+      vehiculosHabilitadosIds: ['10', '11'],
+      conductoresHabilitadosIds: ['9', '10'],
+      rutasAutorizadasIds: ['9', '10'],
+      datosSunat: {
+        valido: true,
+        razonSocial: 'TRANSPORTES EXPRESS PUNO S.A.C.',
+        estado: 'ACTIVO',
+        condicion: 'HABIDO',
+        direccion: 'JR. AREQUIPA 987, PUNO',
+        fechaActualizacion: new Date()
+      },
+      ultimaValidacionSunat: new Date(),
+      scoreRiesgo: 27,
+      observaciones: 'EMPRESA EN BUEN ESTADO'
     }
   ];
 

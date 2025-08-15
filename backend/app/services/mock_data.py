@@ -585,6 +585,65 @@ class MockDataService:
                 "vehiculosAsignadosIds": [],
                 "documentosIds": ["7", "8"],
                 "historialIds": []
+            },
+            {
+                "id": "7",
+                "codigoRuta": "01",
+                "nombre": "AREQUIPA - MOLLENDO",
+                "origenId": "9",
+                "destinoId": "10",
+                "itinerarioIds": ["9", "10"],
+                "frecuencias": "Diaria, cada hora",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=15),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 120.0,
+                "tiempoEstimado": "02:00",
+                "tarifaBase": 8.00,
+                "capacidadMaxima": 30,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "06:00", "horaLlegada": "08:00"},
+                    {"dia": "LUNES", "horaSalida": "18:00", "horaLlegada": "20:00"}
+                ],
+                "restricciones": [],
+                "observaciones": "Ruta costera",
+                "empresasAutorizadasIds": ["3"],
+                "vehiculosAsignadosIds": ["7"],
+                "documentosIds": ["7"],
+                "historialIds": []
+            },
+            {
+                "id": "8",
+                "codigoRuta": "02",
+                "nombre": "AREQUIPA - TACNA",
+                "origenId": "9",
+                "destinoId": "11",
+                "itinerarioIds": ["9", "11"],
+                "frecuencias": "Diaria, 3 veces al día",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow() - timedelta(days=15),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 320.0,
+                "tiempoEstimado": "05:00",
+                "tarifaBase": 20.00,
+                "capacidadMaxima": 25,
+                "horarios": [
+                    {"dia": "LUNES", "horaSalida": "07:00", "horaLlegada": "12:00"},
+                    {"dia": "LUNES", "horaSalida": "14:00", "horaLlegada": "19:00"},
+                    {"dia": "LUNES", "horaSalida": "21:00", "horaLlegada": "02:00"}
+                ],
+                "restricciones": [],
+                "observaciones": "Ruta fronteriza",
+                "empresasAutorizadasIds": ["3"],
+                "vehiculosAsignadosIds": ["8"],
+                "documentosIds": ["8"],
+                "historialIds": []
             }
         ]
         

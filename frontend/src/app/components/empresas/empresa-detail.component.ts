@@ -19,7 +19,7 @@ import { AuthService } from '../../services/auth.service';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { ResolucionService } from '../../services/resolucion.service';
 import { Resolucion } from '../../models/resolucion.model';
-import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
+import { CrearResolucionModalComponent } from '../resoluciones/crear-resolucion-modal.component';
 import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
 
 @Component({

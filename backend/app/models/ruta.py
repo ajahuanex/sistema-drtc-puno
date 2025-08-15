@@ -66,6 +66,7 @@ class RutaCreate(BaseModel):
     observaciones: Optional[str] = None
 
 class RutaUpdate(BaseModel):
+    codigoRuta: Optional[str] = None  # Agregado para permitir cambios de código
     nombre: Optional[str] = None
     itinerarioIds: Optional[List[str]] = None
     frecuencias: Optional[str] = None
@@ -126,6 +127,8 @@ class RutaResponse(BaseModel):
     vehiculosAsignadosIds: List[str]
     documentosIds: List[str]
     historialIds: List[str]
+    empresaId: Optional[str] = None
+    resolucionId: Optional[str] = None
 
 class RutaEstadisticas(BaseModel):
     totalRutas: int

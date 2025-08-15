@@ -105,12 +105,45 @@ import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
               </mat-form-field>
             }
 
+            <!-- Indicador de Tipo de Resolución -->
+            @if (expedienteSeleccionado()) {
+              <div class="tipo-resolucion-indicator full-width">
+                <mat-card class="indicator-card">
+                  <mat-card-content>
+                    <div class="indicator-content">
+                      <mat-icon [class]="getIconoTipoResolucion()" class="indicator-icon">
+                        @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                          new_releases
+                        } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                          refresh
+                        } @else {
+                          add_circle
+                        }
+                      </mat-icon>
+                      <div class="indicator-text">
+                        <h3>Creando Resolución de {{ expedienteSeleccionado()?.tipoTramite | uppercase }}</h3>
+                        <p>
+                          @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                            Esta será una resolución PADRE con fechas de vigencia propias
+                          } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                            Esta será una resolución PADRE que renueva una autorización existente
+                          } @else {
+                            Esta será una resolución HIJA que hereda fechas de vigencia de una resolución padre
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </mat-card-content>
+                </mat-card>
+              </div>
+            }
+
             <!-- Selector de Expediente -->
             @if (mostrarSelectorExpediente()) {
               <div class="expediente-section full-width">
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>EXPEDIENTE</mat-label>
-                  <mat-select formControlName="expedienteId" required>
+                  <mat-select formControlName="expedienteId" required (selectionChange)="onExpedienteChange($event)">
                     <mat-option value="">SELECCIONE UN EXPEDIENTE</mat-option>
                     @for (expediente of expedientesFiltrados(); track expediente.id) {
                       <mat-option [value]="expediente.id">
@@ -122,7 +155,11 @@ import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
                     }
                   </mat-select>
                   <mat-hint>
-                    SELECCIONE UN EXPEDIENTE EXISTENTE O DEJE VACÍO PARA CREAR UNO AUTOMÁTICAMENTE
+                    @if (expedienteSeleccionado()) {
+                      Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
+                    } @else {
+                      SELECCIONE UN EXPEDIENTE EXISTENTE O DEJE VACÍO PARA CREAR UNO AUTOMÁTICAMENTE
+                    }
                   </mat-hint>
                   @if (resolucionForm.get('expedienteId')?.hasError('required') && resolucionForm.get('expedienteId')?.touched) {
                     <mat-error>EL EXPEDIENTE ES REQUERIDO</mat-error>
@@ -164,25 +201,18 @@ import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
               }
             </mat-form-field>
 
-            <!-- Tipo de Trámite -->
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>TIPO DE TRÁMITE</mat-label>
-              <mat-select formControlName="tipoTramite" required (selectionChange)="onTipoTramiteChange()">
-                <mat-option value="AUTORIZACION NUEVA">AUTORIZACIÓN NUEVA</mat-option>
-                <mat-option value="RENOVACION">RENOVACIÓN</mat-option>
-                <mat-option value="INCREMENTO">INCREMENTO</mat-option>
-                <mat-option value="SUSTITUCION">SUSTITUCIÓN</mat-option>
-                <mat-option value="OTROS">OTROS</mat-option>
-              </mat-select>
-              @if (resolucionForm.get('tipoTramite')?.hasError('required') && resolucionForm.get('tipoTramite')?.touched) {
-                <mat-error>EL TIPO DE TRÁMITE ES REQUERIDO</mat-error>
-              }
-            </mat-form-field>
 
-            <!-- Resolución Padre (solo para RENOVACIÓN) -->
+
+            <!-- Resolución Padre (para RENOVACIÓN y resoluciones HIJA) -->
             @if (mostrarResolucionPadre()) {
               <mat-form-field appearance="outline" class="form-field full-width">
-                <mat-label>RESOLUCIÓN PADRE A RENOVAR</mat-label>
+                <mat-label>
+                  @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                    RESOLUCIÓN PADRE A RENOVAR
+                  } @else {
+                    RESOLUCIÓN PADRE (requerida para {{ expedienteSeleccionado()?.tipoTramite | uppercase }})
+                  }
+                </mat-label>
                 <mat-select formControlName="resolucionPadreId" required (selectionChange)="onResolucionPadreChange()">
                   <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
                   @for (resolucion of resolucionesPadre(); track resolucion.id) {
@@ -194,6 +224,13 @@ import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
                     </mat-option>
                   }
                 </mat-select>
+                <mat-hint>
+                  @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                    Seleccione la resolución padre que desea renovar
+                  } @else {
+                    Seleccione la resolución padre de la cual heredará las fechas de vigencia
+                  }
+                </mat-hint>
                 @if (resolucionForm.get('resolucionPadreId')?.hasError('required') && resolucionForm.get('resolucionPadreId')?.touched) {
                   <mat-error>DEBE SELECCIONAR LA RESOLUCIÓN PADRE</mat-error>
                 }
@@ -586,6 +623,54 @@ import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
         grid-template-columns: 1fr;
       }
     }
+
+    .tipo-resolucion-indicator {
+      margin-bottom: 16px;
+    }
+
+    .indicator-card {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 4px solid #007bff;
+    }
+
+    .indicator-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .indicator-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #007bff;
+    }
+
+    .icono-primigenia {
+      color: #28a745 !important;
+    }
+
+    .icono-renovacion {
+      color: #ffc107 !important;
+    }
+
+    .icono-hija {
+      color: #17a2b8 !important;
+    }
+
+    .indicator-text h3 {
+      margin: 0 0 8px 0;
+      color: #2c3e50;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .indicator-text p {
+      margin: 0;
+      color: #6c757d;
+      font-size: 14px;
+      line-height: 1.4;
+    }
   `]
 })
 export class CrearResolucionModalComponent implements OnDestroy {
@@ -606,6 +691,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   resolucionesPadre = signal<Resolucion[]>([]);
   expedientes = signal<Expediente[]>([]);
   expedientesFiltrados = signal<Expediente[]>([]);
+  expedienteSeleccionado = signal<Expediente | null>(null);
   
   // Detectar si se está abriendo desde detalles de empresa
   empresaSeleccionada = computed(() => {
@@ -619,8 +705,17 @@ export class CrearResolucionModalComponent implements OnDestroy {
   
   // Determinar si mostrar selector de resolución padre
   mostrarResolucionPadre = computed(() => {
-    const tipoTramite = this.tipoTramiteSignal();
-    return tipoTramite === 'RENOVACION';
+    const expediente = this.expedienteSeleccionado();
+    if (!expediente) return false;
+    
+    // Mostrar para RENOVACION (siempre requiere padre)
+    if (expediente.tipoTramite === 'RENOVACION') return true;
+    
+    // Mostrar para tipos HIJO (INCREMENTO, SUSTITUCION, OTROS)
+    if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') return true;
+    
+    // No mostrar para PRIMIGENIA
+    return false;
   });
 
   // Determinar si mostrar selector de expediente
@@ -631,7 +726,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   // Signals para reactividad del formulario
   numeroBaseSignal = signal('');
   fechaEmisionSignal = signal<Date>(new Date());
-  tipoTramiteSignal = signal('AUTORIZACION NUEVA');
+  tipoTramiteSignal = signal('PRIMIGENIA');
   fechaVigenciaInicioSignal = signal<Date | null>(null);
   aniosVigenciaSignal = signal(5);
 
@@ -660,8 +755,8 @@ export class CrearResolucionModalComponent implements OnDestroy {
   });
 
   mostrarFechaVigenciaFin = computed(() => {
-    const tipoTramite = this.tipoTramiteSignal();
-    return tipoTramite === 'AUTORIZACION NUEVA' || tipoTramite === 'RENOVACION';
+    const expediente = this.expedienteSeleccionado();
+    return expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION';
   });
 
   fechaVigenciaFinCalculada = computed(() => {
@@ -694,8 +789,8 @@ export class CrearResolucionModalComponent implements OnDestroy {
   });
 
   tipoResolucionCalculado = computed(() => {
-    const tipoTramite = this.tipoTramiteSignal();
-    if (tipoTramite === 'AUTORIZACION NUEVA' || tipoTramite === 'RENOVACION') {
+    const expediente = this.expedienteSeleccionado();
+    if (expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION') {
       return 'PADRE';
     }
     return 'HIJO';
@@ -785,7 +880,6 @@ export class CrearResolucionModalComponent implements OnDestroy {
       empresaId: [this.data?.empresa?.id || '', [Validators.required]],
       expedienteId: ['', [Validators.required]], // Campo para expediente
       numeroBase: ['', [Validators.required, Validators.pattern(/^\d{1,4}$/)]],
-      tipoTramite: [this.data?.esResolucionHija ? 'INCREMENTO' : 'AUTORIZACION NUEVA', [Validators.required]],
       resolucionPadreId: [this.data?.resolucionPadreId || null], // Campo para resolución padre
       fechaEmision: [this.obtenerFechaLima(), [Validators.required]],
       fechaVigenciaInicio: [null],
@@ -800,6 +894,33 @@ export class CrearResolucionModalComponent implements OnDestroy {
       // Deshabilitar campos de vigencia para resoluciones hijas
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('aniosVigencia')?.disable();
+      
+      // Obtener las fechas de vigencia de la resolución padre
+      if (this.data?.resolucionPadreId) {
+        this.resolucionService.getResolucionById(this.data.resolucionPadreId).subscribe(resolucionPadre => {
+          if (resolucionPadre) {
+            // Configurar las fechas del padre en el formulario (aunque estén deshabilitadas)
+            if (resolucionPadre.fechaVigenciaInicio) {
+              this.resolucionForm.get('fechaVigenciaInicio')?.setValue(resolucionPadre.fechaVigenciaInicio);
+              this.fechaVigenciaInicioSignal.set(resolucionPadre.fechaVigenciaInicio);
+            }
+            
+            // Calcular años de vigencia basados en la fecha de fin del padre
+            if (resolucionPadre.fechaVigenciaFin && resolucionPadre.fechaVigenciaInicio) {
+              const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
+              const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
+              const aniosVigencia = fechaFin.getFullYear() - fechaInicio.getFullYear();
+              this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
+              this.aniosVigenciaSignal.set(aniosVigencia);
+            }
+            
+            console.log('🔗 Fechas de vigencia heredadas del padre:', {
+              fechaInicio: resolucionPadre.fechaVigenciaInicio,
+              fechaFin: resolucionPadre.fechaVigenciaFin
+            });
+          }
+        });
+      }
     }
 
     // Solo cargar empresas si no hay una empresa seleccionada
@@ -966,7 +1087,13 @@ export class CrearResolucionModalComponent implements OnDestroy {
       return;
     }
 
-    console.log('🔍 Cargando resoluciones padre para empresa:', empresaId);
+    const expediente = this.expedienteSeleccionado();
+    if (!expediente) {
+      console.warn('⚠️ No hay expediente seleccionado para determinar tipo de resolución');
+      return;
+    }
+
+    console.log('🔍 Cargando resoluciones padre para empresa:', empresaId, 'y tipo de trámite:', expediente.tipoTramite);
 
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
@@ -976,29 +1103,40 @@ export class CrearResolucionModalComponent implements OnDestroy {
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
         console.log('🏢 Resoluciones de la empresa:', resolucionesEmpresa);
         
-        // Filtrar solo resoluciones PADRE que estén vigentes
-        const resolucionesPadre = resolucionesEmpresa.filter(r => 
-          r.tipoResolucion === 'PADRE' && 
-          r.estaActivo
-        );
-        console.log('👑 Resoluciones PADRE de la empresa:', resolucionesPadre);
+        let resolucionesPadre: Resolucion[] = [];
         
-        // Filtrar por tipo de trámite (más flexible)
-        const resolucionesRenovables = resolucionesPadre.filter(r => 
-          r.tipoTramite === 'AUTORIZACION NUEVA' || 
-          r.tipoTramite === 'RENOVACION' ||
-          r.tipoTramite === 'INCREMENTO' || // También permitir incrementos como padre
-          !r.tipoTramite // Si no tiene tipo de trámite, también considerarlo
-        );
+        if (expediente.tipoTramite === 'RENOVACION') {
+          // Para RENOVACION: mostrar solo resoluciones padre que estén próximas a vencer
+          resolucionesPadre = resolucionesEmpresa.filter(r => 
+            r.tipoResolucion === 'PADRE' && 
+            r.estaActivo && 
+            r.estado === 'VIGENTE' &&
+            r.fechaVigenciaFin && 
+            new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
+          );
+          console.log('🔄 Resoluciones padre disponibles para RENOVACIÓN:', resolucionesPadre);
+          
+        } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
+          // Para tipos HIJO: mostrar solo resoluciones padre vigentes
+          resolucionesPadre = resolucionesEmpresa.filter(r => 
+            r.tipoResolucion === 'PADRE' && 
+            r.estaActivo && 
+            r.estado === 'VIGENTE' &&
+            r.fechaVigenciaFin && 
+            new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
+          );
+          console.log('🔗 Resoluciones padre disponibles para resolución HIJA:', resolucionesPadre);
+        }
         
-        console.log('🔄 Resoluciones renovables encontradas:', resolucionesRenovables);
-        this.resolucionesPadre.set(resolucionesRenovables);
+        this.resolucionesPadre.set(resolucionesPadre);
         
-        if (resolucionesRenovables.length === 0) {
-          console.warn('⚠️ No se encontraron resoluciones padre renovables para esta empresa');
-          this.snackBar.open('NO HAY RESOLUCIONES PADRE DISPONIBLES PARA RENOVAR', 'CERRAR', {
-            duration: 3000
-          });
+        if (resolucionesPadre.length === 0) {
+          const mensaje = expediente.tipoTramite === 'RENOVACION' 
+            ? 'NO HAY RESOLUCIONES PADRE DISPONIBLES PARA RENOVAR'
+            : 'NO HAY RESOLUCIONES PADRE DISPONIBLES PARA CREAR RESOLUCIÓN HIJA';
+          
+          console.warn('⚠️ No se encontraron resoluciones padre:', mensaje);
+          this.snackBar.open(mensaje, 'CERRAR', { duration: 3000 });
         }
       },
       error: (error) => {
@@ -1076,7 +1214,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     const tipoTramite = this.resolucionForm.get('tipoTramite')?.value;
     this.tipoTramiteSignal.set(tipoTramite);
     
-    const esPadre = tipoTramite === 'AUTORIZACION NUEVA' || tipoTramite === 'RENOVACION';
+    const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
     
     if (tipoTramite === 'RENOVACION') {
       // Cargar resoluciones padre disponibles para renovación
@@ -1100,7 +1238,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.aniosVigenciaSignal.set(5);
       }
     } else if (esPadre) {
-      // Para AUTORIZACION NUEVA, deshabilitar campo de resolución padre
+      // Para PRIMIGENIA, deshabilitar campo de resolución padre
       this.resolucionForm.get('resolucionPadreId')?.disable();
       this.resolucionForm.get('resolucionPadreId')?.setValue(null);
       
@@ -1137,6 +1275,184 @@ export class CrearResolucionModalComponent implements OnDestroy {
       this.resolucionForm.get('aniosVigencia')?.disable();
       this.resolucionForm.get('aniosVigencia')?.setValue(null);
       this.aniosVigenciaSignal.set(0);
+    }
+  }
+
+  onExpedienteChange(event: any): void {
+    const expedienteId = event.value;
+    console.log('📋 Expediente seleccionado:', expedienteId);
+    
+    if (expedienteId) {
+      // Buscar el expediente seleccionado
+      const expediente = this.expedientes().find(e => e.id === expedienteId);
+      if (expediente) {
+        this.expedienteSeleccionado.set(expediente);
+        
+        // Actualizar el tipo de trámite automáticamente desde el expediente
+        const tipoTramite = expediente.tipoTramite;
+        this.tipoTramiteSignal.set(tipoTramite);
+        
+        console.log('🔄 Tipo de trámite actualizado desde expediente:', tipoTramite);
+        
+        // Actualizar la lógica del formulario basada en el nuevo tipo de trámite
+        this.actualizarFormularioPorTipoTramite(tipoTramite);
+      }
+    } else {
+      this.expedienteSeleccionado.set(null);
+      this.tipoTramiteSignal.set('PRIMIGENIA'); // Valor por defecto
+    }
+  }
+
+  private actualizarFormularioPorTipoTramite(tipoTramite: string): void {
+    console.log('🔄 Actualizando formulario para tipo de trámite:', tipoTramite);
+    
+    // Determinar si es resolución PADRE o HIJA según el tipo de trámite
+    const esResolucionPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const esResolucionHija = tipoTramite === 'INCREMENTO' || tipoTramite === 'SUSTITUCION' || tipoTramite === 'OTROS';
+    
+    if (tipoTramite === 'RENOVACION') {
+      console.log('🔄 Configurando formulario para RENOVACIÓN (requiere resolución padre)');
+      
+      // Cargar resoluciones padre disponibles para renovación
+      this.cargarResolucionesPadre();
+      
+      // Habilitar y requerir campo de resolución padre
+      this.resolucionForm.get('resolucionPadreId')?.enable();
+      this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
+      this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
+      
+      // Habilitar campos de vigencia
+      this.resolucionForm.get('fechaVigenciaInicio')?.enable();
+      this.resolucionForm.get('aniosVigencia')?.enable();
+      
+      // Establecer valores por defecto si están vacíos
+      if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
+        const fechaDefault = this.obtenerFechaLima();
+        this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaDefault);
+        this.fechaVigenciaInicioSignal.set(fechaDefault);
+      }
+      if (!this.resolucionForm.get('aniosVigencia')?.value) {
+        this.resolucionForm.get('aniosVigencia')?.setValue(5);
+        this.aniosVigenciaSignal.set(5);
+      }
+      
+    } else if (esResolucionPadre) {
+      console.log('🔄 Configurando formulario para PRIMIGENIA (resolución padre)');
+      
+      // Para PRIMIGENIA, deshabilitar campo de resolución padre
+      this.resolucionForm.get('resolucionPadreId')?.disable();
+      this.resolucionForm.get('resolucionPadreId')?.clearValidators();
+      this.resolucionForm.get('resolucionPadreId')?.setValue(null);
+      this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
+      
+      // Habilitar campos de vigencia para tipos PADRE
+      this.resolucionForm.get('fechaVigenciaInicio')?.enable();
+      this.resolucionForm.get('aniosVigencia')?.enable();
+      
+      // Establecer valores por defecto si están vacíos
+      if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
+        const fechaDefault = this.obtenerFechaLima();
+        this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaDefault);
+        this.fechaVigenciaInicioSignal.set(fechaDefault);
+      }
+      if (!this.resolucionForm.get('aniosVigencia')?.value) {
+        this.resolucionForm.get('aniosVigencia')?.setValue(5);
+        this.aniosVigenciaSignal.set(5);
+      }
+      
+    } else if (esResolucionHija) {
+      console.log('🔄 Configurando formulario para resolución HIJA (requiere resolución padre)');
+      
+      // Para tipos HIJO, siempre requerir resolución padre
+      this.cargarResolucionesPadre();
+      this.resolucionForm.get('resolucionPadreId')?.enable();
+      this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
+      this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
+      
+      // Los campos de vigencia se heredan del padre, pero los mostramos para información
+      this.resolucionForm.get('fechaVigenciaInicio')?.disable();
+      this.resolucionForm.get('aniosVigencia')?.disable();
+      
+      // Si ya hay una resolución padre seleccionada (caso de resolución hija), configurar fechas
+      if (this.data?.esResolucionHija && this.data?.resolucionPadreId) {
+        this.configurarFechasHeredadasDelPadre(this.data.resolucionPadreId);
+      }
+      
+    } else {
+      console.log('🔄 Tipo de trámite no reconocido:', tipoTramite);
+    }
+    
+    // Actualizar la validación del formulario
+    this.resolucionForm.updateValueAndValidity();
+  }
+
+  private configurarFechasHeredadasDelPadre(resolucionPadreId: string): void {
+    console.log('🔗 Configurando fechas heredadas del padre:', resolucionPadreId);
+    
+    this.resolucionService.getResolucionById(resolucionPadreId).subscribe(resolucionPadre => {
+      if (resolucionPadre) {
+        // Heredar fechas de vigencia del padre
+        if (resolucionPadre.fechaVigenciaInicio) {
+          this.resolucionForm.get('fechaVigenciaInicio')?.setValue(resolucionPadre.fechaVigenciaInicio);
+          this.fechaVigenciaInicioSignal.set(resolucionPadre.fechaVigenciaInicio);
+        }
+        
+        // Calcular años de vigencia basados en la fecha de fin del padre
+        if (resolucionPadre.fechaVigenciaFin && resolucionPadre.fechaVigenciaInicio) {
+          const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
+          const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
+          const aniosVigencia = fechaFin.getFullYear() - fechaInicio.getFullYear();
+          this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
+          this.aniosVigenciaSignal.set(aniosVigencia);
+        }
+        
+        console.log('🔗 Fechas de vigencia heredadas del padre:', {
+          fechaInicio: resolucionPadre.fechaVigenciaInicio,
+          fechaFin: resolucionPadre.fechaVigenciaFin
+        });
+      }
+    });
+  }
+
+  getIconoTipoResolucion(): string {
+    const tipoTramite = this.expedienteSeleccionado()?.tipoTramite;
+    if (tipoTramite === 'PRIMIGENIA') {
+      return 'icono-primigenia';
+    } else if (tipoTramite === 'RENOVACION') {
+      return 'icono-renovacion';
+    } else {
+      return 'icono-hija';
+    }
+  }
+
+  private configurarFechasParaRenovacion(resolucionPadre: Resolucion): void {
+    console.log('🔄 Configurando fechas para renovación:', resolucionPadre);
+    
+    // Para renovación, las fechas se pueden ajustar manualmente
+    // pero sugerimos fechas basadas en la resolución padre
+    
+    if (resolucionPadre.fechaVigenciaFin) {
+      // Sugerir fecha de inicio después de que venza la resolución padre
+      const fechaVencimiento = new Date(resolucionPadre.fechaVigenciaFin);
+      const fechaSugerida = new Date(fechaVencimiento);
+      fechaSugerida.setDate(fechaSugerida.getDate() + 1); // Un día después
+      
+      this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaSugerida);
+      this.fechaVigenciaInicioSignal.set(fechaSugerida);
+      
+      // Mantener los mismos años de vigencia
+      if (resolucionPadre.fechaVigenciaInicio && resolucionPadre.fechaVigenciaFin) {
+        const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
+        const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
+        const aniosVigencia = fechaFin.getFullYear() - fechaInicio.getFullYear();
+        this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
+        this.aniosVigenciaSignal.set(aniosVigencia);
+      }
+      
+      console.log('🔄 Fechas sugeridas para renovación:', {
+        fechaInicio: fechaSugerida,
+        aniosVigencia: this.aniosVigenciaSignal()
+      });
     }
   }
 
@@ -1200,20 +1516,49 @@ export class CrearResolucionModalComponent implements OnDestroy {
       if (resolucionPadre) {
         console.log('🔍 Resolución padre seleccionada:', resolucionPadre);
         
-        // Copiar descripción si no hay una ya escrita
-        if (!this.resolucionForm.get('descripcion')?.value) {
-          this.resolucionForm.get('descripcion')?.setValue(
-            `RENOVACIÓN DE: ${resolucionPadre.nroResolucion}`
-          );
+        const expediente = this.expedienteSeleccionado();
+        if (expediente?.tipoTramite === 'RENOVACION') {
+          // Para RENOVACION: copiar descripción y observaciones
+          if (!this.resolucionForm.get('descripcion')?.value) {
+            this.resolucionForm.get('descripcion')?.setValue(
+              `RENOVACIÓN DE: ${resolucionPadre.nroResolucion}`
+            );
+          }
+          
+          if (!this.resolucionForm.get('observaciones')?.value) {
+            this.resolucionForm.get('observaciones')?.setValue(
+              `Renovación de la resolución ${resolucionPadre.nroResolucion} emitida el ${this.formatearFechaLima(resolucionPadre.fechaEmision)}`
+            );
+          }
+          
+          // Configurar fechas de vigencia para renovación
+          this.configurarFechasParaRenovacion(resolucionPadre);
+          
+        } else if (expediente?.tipoTramite === 'INCREMENTO' || expediente?.tipoTramite === 'SUSTITUCION' || expediente?.tipoTramite === 'OTROS') {
+          // Para resoluciones HIJA: heredar fechas del padre
+          this.configurarFechasHeredadasDelPadre(resolucionPadreId);
+          
+          // Configurar descripción para resolución hija
+          if (!this.resolucionForm.get('descripcion')?.value) {
+            this.resolucionForm.get('descripcion')?.setValue(
+              `${expediente.tipoTramite} de la resolución ${resolucionPadre.nroResolucion}`
+            );
+          }
         }
         
-        // Copiar observaciones si no hay unas ya escritas
-        if (!this.resolucionForm.get('observaciones')?.value) {
-          this.resolucionForm.get('observaciones')?.setValue(
-            `Renovación de la resolución ${resolucionPadre.nroResolucion} emitida el ${this.formatearFechaLima(resolucionPadre.fechaEmision)}`
-          );
-        }
+        // Mostrar notificación
+        this.snackBar.open(
+          `Resolución padre ${resolucionPadre.nroResolucion} seleccionada`, 
+          'CERRAR', 
+          { duration: 3000 }
+        );
       }
+    } else {
+      // Si se deselecciona la resolución padre, limpiar fechas
+      this.resolucionForm.get('fechaVigenciaInicio')?.setValue(null);
+      this.fechaVigenciaInicioSignal.set(null);
+      this.resolucionForm.get('aniosVigencia')?.setValue(null);
+      this.aniosVigenciaSignal.set(0);
     }
   }
 
@@ -1243,7 +1588,16 @@ export class CrearResolucionModalComponent implements OnDestroy {
     }
 
     // Validar que se seleccione resolución padre para renovación
-    const tipoTramite = this.resolucionForm.get('tipoTramite')?.value;
+    const expediente = this.expedienteSeleccionado();
+    if (!expediente) {
+      this.snackBar.open('DEBE SELECCIONAR UN EXPEDIENTE', 'CERRAR', {
+        duration: 3000,
+        panelClass: ['error-snackbar']
+      });
+      return;
+    }
+    
+    const tipoTramite = expediente.tipoTramite;
     if (tipoTramite === 'RENOVACION' && !this.resolucionForm.get('resolucionPadreId')?.value) {
       this.snackBar.open('DEBE SELECCIONAR LA RESOLUCIÓN PADRE A RENOVAR', 'CERRAR', {
         duration: 3000,
@@ -1265,12 +1619,40 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
     // Calcular fecha de vigencia fin si aplica
     let fechaVigenciaFin: Date | undefined;
-    const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
+    let fechaInicio: Date | undefined;
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
     
-    if (fechaInicio && aniosVigencia) {
-      fechaVigenciaFin = new Date(fechaInicio);
-      fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
+    // Si es resolución hija, heredar fechas del padre
+    if (this.data?.esResolucionHija && this.data?.resolucionPadreId) {
+      // Para resoluciones hijas, las fechas se heredan del padre
+      // Usar las fechas que ya están configuradas en el formulario
+      fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
+      if (fechaInicio) {
+        // Si hay fecha de inicio, calcular la fecha de fin
+        fechaVigenciaFin = new Date(fechaInicio);
+        if (aniosVigencia) {
+          fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
+        }
+      }
+      
+      console.log('🔗 Resolución hija - fechas heredadas del padre:', {
+        fechaInicio,
+        fechaVigenciaFin,
+        aniosVigencia
+      });
+    } else {
+      // Para resoluciones padre, usar las fechas del formulario
+      fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
+      if (fechaInicio && aniosVigencia) {
+        fechaVigenciaFin = new Date(fechaInicio);
+        fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
+      }
+      
+      console.log('🔗 Resolución padre - fechas del formulario:', {
+        fechaInicio,
+        fechaVigenciaFin,
+        aniosVigencia
+      });
     }
 
     const resolucionData: ResolucionCreate = {
@@ -1281,9 +1663,9 @@ export class CrearResolucionModalComponent implements OnDestroy {
       fechaVigenciaInicio: fechaInicio,
       fechaVigenciaFin: fechaVigenciaFin,
       tipoResolucion: this.tipoResolucionCalculado() as TipoResolucion,
-      tipoTramite: this.resolucionForm.get('tipoTramite')?.value as TipoTramite,
-      resolucionPadreId: this.resolucionForm.get('resolucionPadreId')?.value || undefined,
-      descripcion: this.resolucionForm.get('descripcion')?.value,
+      tipoTramite: tipoTramite as TipoTramite,
+      resolucionPadreId: this.data?.esResolucionHija ? this.data.resolucionPadreId : (this.resolucionForm.get('resolucionPadreId')?.value || undefined),
+      descripcion: this.resolucionForm.get('descripcion')?.value || (this.data?.esResolucionHija ? 'Resolución hija de ' + tipoTramite : ''),
       observaciones: this.resolucionForm.get('observaciones')?.value,
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []
@@ -1298,6 +1680,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
     this.resolucionService.createResolucion(resolucionData).subscribe({
       next: (resolucion) => {
         this.isLoading.set(false);
+        
+        // Debuggear el estado de los datos mock
+        this.resolucionService.debugMockData();
+        
         this.snackBar.open('RESOLUCIÓN CREADA EXITOSAMENTE', 'CERRAR', {
           duration: 3000,
           panelClass: ['success-snackbar']

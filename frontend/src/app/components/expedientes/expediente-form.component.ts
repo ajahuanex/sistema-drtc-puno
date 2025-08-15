@@ -115,7 +115,7 @@ import { Resolucion } from '../../models/resolucion.model';
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Tipo de Trámite</mat-label>
                 <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)">
-                  <mat-option value="AUTORIZACION NUEVA">AUTORIZACION NUEVA</mat-option>
+                  <mat-option value="PRIMIGENIA">PRIMIGENIA</mat-option>
                   <mat-option value="RENOVACION">RENOVACION</mat-option>
                   <mat-option value="INCREMENTO">INCREMENTO</mat-option>
                   <mat-option value="SUSTITUCION">SUSTITUCION</mat-option>
@@ -689,6 +689,11 @@ export class ExpedienteFormComponent implements OnInit {
         // Actualizar signals
         this.numero.set(numero);
         this.fechaEmision.set(new Date(expediente.fechaEmision));
+        
+        // Limpiar errores de validación en modo edición
+        if (this.isEditMode()) {
+          this.expedienteForm.get('numero')?.setErrors(null);
+        }
       },
       error: (error) => {
         console.error('Error al cargar expediente:', error);
@@ -719,7 +724,10 @@ export class ExpedienteFormComponent implements OnInit {
   onNumeroBlur(): void {
     const numero = this.expedienteForm.get('numero')?.value;
     if (numero && numero.length === 4) {
-      this.validarNumeroUnico(numero);
+      // Solo validar si no estamos en modo edición o si el número cambió
+      if (!this.isEditMode() || numero !== this.numero()) {
+        this.validarNumeroUnico(numero);
+      }
     }
   }
 
@@ -741,8 +749,10 @@ export class ExpedienteFormComponent implements OnInit {
         numero: numero,
         folio: this.expedienteForm.get('folio')?.value || 1,
         empresaId: this.empresaSeleccionada()?.id,
-        tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'AUTORIZACION NUEVA',
-        fechaEmision: this.expedienteForm.get('fechaEmision')?.value || new Date()
+        tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'PRIMIGENIA',
+        fechaEmision: this.expedienteForm.get('fechaEmision')?.value || new Date(),
+        // En modo edición, excluir el expediente actual de la validación
+        expedienteIdExcluir: this.isEditMode() ? this.expedienteId() || undefined : undefined
       };
 
       this.expedienteService.validarExpedienteUnico(validacion).subscribe({
@@ -825,19 +835,26 @@ export class ExpedienteFormComponent implements OnInit {
       // Verificar que el número sea único antes de continuar
       const numero = this.expedienteForm.get('numero')?.value;
       if (numero && numero.length === 4) {
-        this.validarNumeroUnico(numero);
-        
-        // Esperar un momento para que la validación se complete
-        setTimeout(() => {
-          const tieneError = this.expedienteForm.get('numero')?.hasError('numeroDuplicado');
-          if (tieneError) {
-            const año = this.fechaEmision().getFullYear();
-            this.snackBar.open(`El número de expediente ya existe en el año ${año}. Use otro número o cambie el año.`, 'Cerrar', { duration: 4000 });
-            return;
-          } else {
-            this.procesarEnvio();
-          }
-        }, 500);
+        // En modo edición, solo validar si el número cambió
+        if (this.isEditMode() && numero === this.numero()) {
+          // Número no cambió en edición, proceder directamente
+          this.procesarEnvio();
+        } else {
+          // Validar número único (nuevo expediente o número cambiado en edición)
+          this.validarNumeroUnico(numero);
+          
+          // Esperar un momento para que la validación se complete
+          setTimeout(() => {
+            const tieneError = this.expedienteForm.get('numero')?.hasError('numeroDuplicado');
+            if (tieneError) {
+              const año = this.fechaEmision().getFullYear();
+              this.snackBar.open(`El número de expediente ya existe en el año ${año}. Use otro número o cambie el año.`, 'Cerrar', { duration: 4000 });
+              return;
+            } else {
+              this.procesarEnvio();
+            }
+          }, 500);
+        }
       } else {
         this.procesarEnvio();
       }

@@ -787,8 +787,8 @@ export class ResolucionFormComponent {
     const expedienteData = this.expediente();
     if (!expedienteData) return 'Seleccione un expediente';
     
-    // PADRE para AUTORIZACION NUEVA y RENOVACION, HIJO para otros
-    if (expedienteData.tipoTramite === 'AUTORIZACION NUEVA' || expedienteData.tipoTramite === 'RENOVACION') {
+            // PADRE para PRIMIGENIA y RENOVACION, HIJO para otros
+        if (expedienteData.tipoTramite === 'PRIMIGENIA' || expedienteData.tipoTramite === 'RENOVACION') {
       return 'PADRE';
     } else {
       return 'HIJO';

@@ -718,7 +718,7 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
       {
         expedienteId: 'EXP001',
         expedienteNumero: 'E-0001-2024',
-        expedienteTipo: 'AUTORIZACION NUEVA',
+        expedienteTipo: 'PRIMIGENIA',
         expedienteEmpresa: 'EMPRESA TRANSPORTES ABC S.A.C.',
         estado: 'EN_PROCESO',
         oficinaActual: 'OF001',
@@ -754,7 +754,7 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
       {
         expedienteId: 'EXP002',
         expedienteNumero: 'E-0002-2024',
-        expedienteTipo: 'AUTORIZACION NUEVA',
+        expedienteTipo: 'PRIMIGENIA',
         expedienteEmpresa: 'EMPRESA TRANSPORTES XYZ S.A.C.',
         estado: 'PENDIENTE',
         oficinaActual: 'OF002',

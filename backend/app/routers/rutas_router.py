@@ -19,7 +19,7 @@ async def create_ruta(
 ) -> RutaResponse:
     """Crear nueva ruta"""
     # Guard clauses al inicio
-    if not ruta_data.codigo_ruta.strip():
+    if not ruta_data.codigoRuta.strip():
         raise ValidationErrorException("Código de Ruta", "El código de ruta no puede estar vacío")
     
     ruta_service = MockRutaService()
@@ -28,19 +28,19 @@ async def create_ruta(
         ruta = await ruta_service.create_ruta(ruta_data)
         return RutaResponse(
             id=ruta.id,
-            codigo_ruta=ruta.codigo_ruta,
+            codigoRuta=ruta.codigoRuta,
             nombre=ruta.nombre,
-            origen_id=ruta.origen_id,
-            destino_id=ruta.destino_id,
-            itinerario_ids=ruta.itinerario_ids,
+            origenId=ruta.origenId,
+            destinoId=ruta.destinoId,
+            itinerarioIds=ruta.itinerarioIds,
             frecuencias=ruta.frecuencias,
             estado=ruta.estado,
-            esta_activo=ruta.esta_activo,
-            fecha_registro=ruta.fecha_registro
+            estaActivo=ruta.estaActivo,
+            fechaRegistro=ruta.fechaRegistro
         )
     except ValueError as e:
         if "código" in str(e).lower():
-            raise RutaAlreadyExistsException(ruta_data.codigo_ruta)
+            raise RutaAlreadyExistsException(ruta_data.codigoRuta)
         else:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -54,58 +54,209 @@ async def get_rutas(
     try:
         # Datos mock simplificados para evitar errores
         mock_rutas = [
+            # RESOLUCIÓN 1 - EMPRESA 1 (TRANSPORTES PUNO S.A.)
             {
                 "id": "1",
-                "codigoRuta": "R001",
-                "nombre": "Puno - Juliaca",
+                "codigoRuta": "01",
+                "nombre": "PUNO - JULIACA",
                 "origenId": "1",
                 "destinoId": "2",
                 "itinerarioIds": ["1", "3", "2"],
-                "frecuencias": "Cada 30 minutos",
+                "frecuencias": "Diaria, cada 30 minutos",
                 "estado": "ACTIVA",
                 "estaActivo": True,
                 "fechaRegistro": datetime.utcnow(),
                 "fechaActualizacion": None,
-                "tipoRuta": "INTERURBANA",
+                "tipoRuta": "INTERPROVINCIAL",
                 "tipoServicio": "PASAJEROS",
-                "distancia": 45.5,
-                "tiempoEstimado": "01:30",
-                "tarifaBase": 8.50,
+                "distancia": 45.0,
+                "tiempoEstimado": "01:00",
+                "tarifaBase": 5.00,
                 "capacidadMaxima": 50,
                 "horarios": [],
                 "restricciones": [],
-                "observaciones": "Ruta principal Puno-Juliaca",
+                "observaciones": "Ruta principal interprovincial",
                 "empresasAutorizadasIds": ["1"],
                 "vehiculosAsignadosIds": ["1", "2"],
                 "documentosIds": ["1", "2"],
-                "historialIds": []
+                "historialIds": [],
+                "empresaId": "1",
+                "resolucionId": "1"
             },
             {
                 "id": "2",
-                "codigoRuta": "R002",
-                "nombre": "Puno - Cusco",
+                "codigoRuta": "02",
+                "nombre": "PUNO - CUSCO",
                 "origenId": "1",
                 "destinoId": "3",
                 "itinerarioIds": ["1", "4", "5", "3"],
-                "frecuencias": "Cada 2 horas",
+                "frecuencias": "Diaria, 3 veces al día",
                 "estado": "ACTIVA",
                 "estaActivo": True,
                 "fechaRegistro": datetime.utcnow(),
                 "fechaActualizacion": None,
-                "tipoRuta": "INTERREGIONAL",
+                "tipoRuta": "INTERPROVINCIAL",
                 "tipoServicio": "PASAJEROS",
-                "distancia": 380.0,
-                "tiempoEstimado": "08:00",
-                "tarifaBase": 45.00,
+                "distancia": 350.0,
+                "tiempoEstimado": "06:00",
+                "tarifaBase": 25.00,
                 "capacidadMaxima": 45,
                 "horarios": [],
                 "restricciones": [],
-                "observaciones": "Ruta turística Puno-Cusco",
+                "observaciones": "Ruta turística importante",
                 "empresasAutorizadasIds": ["1"],
                 "vehiculosAsignadosIds": ["3"],
                 "documentosIds": ["3", "4"],
-                "historialIds": []
-            }
+                "historialIds": [],
+                "empresaId": "1",
+                "resolucionId": "1"
+            },
+            {
+                "id": "3",
+                "codigoRuta": "03",
+                "nombre": "PUNO - MOQUEGUA",
+                "origenId": "1",
+                "destinoId": "4",
+                "itinerarioIds": ["1", "6", "4"],
+                "frecuencias": "Diaria, 2 veces al día",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 280.0,
+                "tiempoEstimado": "04:00",
+                "tarifaBase": 18.00,
+                "capacidadMaxima": 40,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta comercial",
+                "empresasAutorizadasIds": ["1"],
+                "vehiculosAsignadosIds": ["4"],
+                "documentosIds": ["5"],
+                "historialIds": [],
+                "empresaId": "1",
+                "resolucionId": "1"
+            },
+
+            # RESOLUCIÓN 2 - EMPRESA 2 (TRANSPORTES LIMA E.I.R.L.)
+            {
+                "id": "4",
+                "codigoRuta": "01",
+                "nombre": "LIMA - TRUJILLO",
+                "origenId": "5",
+                "destinoId": "6",
+                "itinerarioIds": ["5", "7", "6"],
+                "frecuencias": "Diaria, 2 veces al día",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 550.0,
+                "tiempoEstimado": "08:00",
+                "tarifaBase": 35.00,
+                "capacidadMaxima": 55,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta costera norte",
+                "empresasAutorizadasIds": ["2"],
+                "vehiculosAsignadosIds": ["5", "6"],
+                "documentosIds": ["6", "7"],
+                "historialIds": [],
+                "empresaId": "2",
+                "resolucionId": "2"
+            },
+            {
+                "id": "5",
+                "codigoRuta": "02",
+                "nombre": "LIMA - CHICLAYO",
+                "origenId": "5",
+                "destinoId": "7",
+                "itinerarioIds": ["5", "8", "7"],
+                "frecuencias": "Diaria, 1 vez al día",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 770.0,
+                "tiempoEstimado": "12:00",
+                "tarifaBase": 45.00,
+                "capacidadMaxima": 40,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta larga distancia",
+                "empresasAutorizadasIds": ["2"],
+                "vehiculosAsignadosIds": ["7"],
+                "documentosIds": ["8"],
+                "historialIds": [],
+                "empresaId": "2",
+                "resolucionId": "2"
+            },
+
+            # RESOLUCIÓN 3 - EMPRESA 3 (TRANSPORTES AREQUIPA S.A.C.)
+            {
+                "id": "7",
+                "codigoRuta": "01",
+                "nombre": "AREQUIPA - MOLLENDO",
+                "origenId": "9",
+                "destinoId": "10",
+                "itinerarioIds": ["9", "10"],
+                "frecuencias": "Diaria, cada hora",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 120.0,
+                "tiempoEstimado": "02:00",
+                "tarifaBase": 8.00,
+                "capacidadMaxima": 30,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta costera",
+                "empresasAutorizadasIds": ["3"],
+                "vehiculosAsignadosIds": ["7"],
+                "documentosIds": ["7"],
+                "historialIds": [],
+                "empresaId": "3",
+                "resolucionId": "3"
+            },
+            {
+                "id": "8",
+                "codigoRuta": "02",
+                "nombre": "AREQUIPA - TACNA",
+                "origenId": "9",
+                "destinoId": "11",
+                "itinerarioIds": ["9", "11"],
+                "frecuencias": "Diaria, 3 veces al día",
+                "estado": "ACTIVA",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "fechaActualizacion": None,
+                "tipoRuta": "INTERPROVINCIAL",
+                "tipoServicio": "PASAJEROS",
+                "distancia": 320.0,
+                "tiempoEstimado": "05:00",
+                "tarifaBase": 20.00,
+                "capacidadMaxima": 25,
+                "horarios": [],
+                "restricciones": [],
+                "observaciones": "Ruta fronteriza",
+                "empresasAutorizadasIds": ["3"],
+                "vehiculosAsignadosIds": ["8"],
+                "documentosIds": ["8"],
+                "historialIds": [],
+                "empresaId": "3",
+                "resolucionId": "3"
+            },
+
+            # RESOLUCIÓN 4 - EMPRESA 4 (TRANSPORTES CUSCO S.A.)
         ]
         
         # Filtrar por estado si se especifica
@@ -141,7 +292,9 @@ async def get_rutas(
                 empresasAutorizadasIds=ruta["empresasAutorizadasIds"],
                 vehiculosAsignadosIds=ruta["vehiculosAsignadosIds"],
                 documentosIds=ruta["documentosIds"],
-                historialIds=ruta["historialIds"]
+                historialIds=ruta["historialIds"],
+                empresaId=ruta["empresaId"],
+                resolucionId=ruta["resolucionId"]
             )
             for ruta in rutas_paginadas
         ]
@@ -181,15 +334,15 @@ async def get_rutas_con_filtros(
     return [
         RutaResponse(
             id=ruta.id,
-            codigo_ruta=ruta.codigo_ruta,
+            codigoRuta=ruta.codigoRuta,
             nombre=ruta.nombre,
-            origen_id=ruta.origen_id,
-            destino_id=ruta.destino_id,
-            itinerario_ids=ruta.itinerario_ids,
+            origenId=ruta.origenId,
+            destinoId=ruta.destinoId,
+            itinerarioIds=ruta.itinerarioIds,
             frecuencias=ruta.frecuencias,
             estado=ruta.estado,
-            esta_activo=ruta.esta_activo,
-            fecha_registro=ruta.fecha_registro
+            estaActivo=ruta.estaActivo,
+            fechaRegistro=ruta.fechaRegistro
         )
         for ruta in rutas
     ]
@@ -224,15 +377,15 @@ async def get_ruta(
     
     return RutaResponse(
         id=ruta.id,
-        codigo_ruta=ruta.codigo_ruta,
+        codigoRuta=ruta.codigoRuta,
         nombre=ruta.nombre,
-        origen_id=ruta.origen_id,
-        destino_id=ruta.destino_id,
-        itinerario_ids=ruta.itinerario_ids,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
         frecuencias=ruta.frecuencias,
         estado=ruta.estado,
-        esta_activo=ruta.esta_activo,
-        fecha_registro=ruta.fecha_registro
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
     )
 
 @router.get("/codigo/{codigo}", response_model=RutaResponse)
@@ -248,15 +401,15 @@ async def get_ruta_by_codigo(
     
     return RutaResponse(
         id=ruta.id,
-        codigo_ruta=ruta.codigo_ruta,
+        codigoRuta=ruta.codigoRuta,
         nombre=ruta.nombre,
-        origen_id=ruta.origen_id,
-        destino_id=ruta.destino_id,
-        itinerario_ids=ruta.itinerario_ids,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
         frecuencias=ruta.frecuencias,
         estado=ruta.estado,
-        esta_activo=ruta.esta_activo,
-        fecha_registro=ruta.fecha_registro
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
     )
 
 @router.get("/validar-codigo/{codigo}")
@@ -284,6 +437,25 @@ async def update_ruta(
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
     
     ruta_service = MockRutaService()
+    
+    # Si se está actualizando el código de ruta, validar que sea único
+    if ruta_data.codigoRuta:
+        # Obtener la ruta actual para verificar la resolución
+        ruta_actual = await ruta_service.get_ruta_by_id(ruta_id)
+        if not ruta_actual:
+            raise RutaNotFoundException(ruta_id)
+        
+        # Verificar que el nuevo código no exista en la misma resolución
+        ruta_existente = await ruta_service.get_ruta_by_codigo(ruta_data.codigoRuta)
+        if ruta_existente and ruta_existente.id != ruta_id:
+            # Verificar si pertenecen a la misma resolución
+            if hasattr(ruta_existente, 'resolucionId') and hasattr(ruta_actual, 'resolucionId'):
+                if ruta_existente.resolucionId == ruta_actual.resolucionId:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Ya existe una ruta con código {ruta_data.codigoRuta} en la misma resolución"
+                    )
+    
     updated_ruta = await ruta_service.update_ruta(ruta_id, ruta_data)
     
     if not updated_ruta:
@@ -291,15 +463,15 @@ async def update_ruta(
     
     return RutaResponse(
         id=updated_ruta.id,
-        codigo_ruta=updated_ruta.codigo_ruta,
+        codigoRuta=updated_ruta.codigoRuta,
         nombre=updated_ruta.nombre,
-        origen_id=updated_ruta.origen_id,
-        destino_id=updated_ruta.destino_id,
-        itinerario_ids=updated_ruta.itinerario_ids,
+        origenId=updated_ruta.origenId,
+        destinoId=updated_ruta.destinoId,
+        itinerarioIds=updated_ruta.itinerarioIds,
         frecuencias=updated_ruta.frecuencias,
         estado=updated_ruta.estado,
-        esta_activo=updated_ruta.esta_activo,
-        fecha_registro=updated_ruta.fecha_registro
+        estaActivo=updated_ruta.estaActivo,
+        fechaRegistro=updated_ruta.fechaRegistro
     )
 
 @router.delete("/{ruta_id}", status_code=204)
@@ -332,15 +504,15 @@ async def agregar_localidad_a_itinerario(
     
     return RutaResponse(
         id=ruta.id,
-        codigo_ruta=ruta.codigo_ruta,
+        codigoRuta=ruta.codigoRuta,
         nombre=ruta.nombre,
-        origen_id=ruta.origen_id,
-        destino_id=ruta.destino_id,
-        itinerario_ids=ruta.itinerario_ids,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
         frecuencias=ruta.frecuencias,
         estado=ruta.estado,
-        esta_activo=ruta.esta_activo,
-        fecha_registro=ruta.fecha_registro
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
     )
 
 @router.delete("/{ruta_id}/itinerario/{localidad_id}", response_model=RutaResponse)
@@ -357,15 +529,15 @@ async def remover_localidad_de_itinerario(
     
     return RutaResponse(
         id=ruta.id,
-        codigo_ruta=ruta.codigo_ruta,
+        codigoRuta=ruta.codigoRuta,
         nombre=ruta.nombre,
-        origen_id=ruta.origen_id,
-        destino_id=ruta.destino_id,
-        itinerario_ids=ruta.itinerario_ids,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
         frecuencias=ruta.frecuencias,
         estado=ruta.estado,
-        esta_activo=ruta.esta_activo,
-        fecha_registro=ruta.fecha_registro
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
     )
 
 # Endpoints para gestión de frecuencias
@@ -383,15 +555,15 @@ async def actualizar_frecuencias(
     
     return RutaResponse(
         id=ruta.id,
-        codigo_ruta=ruta.codigo_ruta,
+        codigoRuta=ruta.codigoRuta,
         nombre=ruta.nombre,
-        origen_id=ruta.origen_id,
-        destino_id=ruta.destino_id,
-        itinerario_ids=ruta.itinerario_ids,
+        origenId=ruta.origenId,
+        destinoId=ruta.destinoId,
+        itinerarioIds=ruta.itinerarioIds,
         frecuencias=ruta.frecuencias,
         estado=ruta.estado,
-        esta_activo=ruta.esta_activo,
-        fecha_registro=ruta.fecha_registro
+        estaActivo=ruta.estaActivo,
+        fechaRegistro=ruta.fechaRegistro
     )
 
 # Endpoints para exportación

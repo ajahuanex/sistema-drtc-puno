@@ -1,0 +1,281 @@
+.mover-expediente-modal {
+  min-width: 800px;
+  max-width: 1000px;
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
+
+    h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #1976d2;
+      font-size: 20px;
+      font-weight: 500;
+
+      mat-icon {
+        color: #1976d2;
+      }
+    }
+
+    button {
+      color: #666;
+    }
+  }
+
+  .modal-content {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+
+    .expediente-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid #e9ecef;
+
+      h3 {
+        margin: 0 0 16px 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .movimiento-form {
+      .form-section {
+        margin-bottom: 32px;
+
+        h3 {
+          margin: 0 0 20px 0;
+          color: #333;
+          font-size: 16px;
+          font-weight: 600;
+          padding-bottom: 8px;
+          border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+
+          .form-field {
+            flex: 1;
+            min-width: 200px;
+
+            &.full-width {
+              width: 100%;
+            }
+          }
+        }
+
+        .configuraciones {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          mat-checkbox {
+            color: #333;
+          }
+        }
+      }
+
+      .documentos-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+
+        .documentos-actuales,
+        .documentos-nuevos {
+          h4 {
+            margin: 0 0 16px 0;
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+          }
+
+          .documentos-lista {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+
+            mat-chip {
+              background: #e3f2fd;
+              color: #1976d2;
+              font-size: 12px;
+
+              mat-icon {
+                font-size: 16px;
+                width: 16px;
+                height: 16px;
+              }
+            }
+          }
+
+          .no-documentos {
+            color: #666;
+            font-style: italic;
+            font-size: 12px;
+            margin: 12px 0 0 0;
+          }
+
+          .documentos-input {
+            margin-bottom: 12px;
+
+            .form-field {
+              width: 100%;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .modal-actions {
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    button {
+      min-width: 120px;
+
+      &[disabled] {
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .mover-expediente-modal {
+    min-width: auto;
+    max-width: 95vw;
+
+    .modal-content {
+      padding: 16px;
+
+      .expediente-info {
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .movimiento-form {
+        .form-section {
+          .form-row {
+            flex-direction: column;
+
+            .form-field {
+              min-width: auto;
+            }
+          }
+        }
+
+        .documentos-container {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+      }
+    }
+
+    .modal-actions {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .mover-expediente-modal {
+    .modal-header {
+      background: #2d2d2d;
+      border-bottom-color: #4d4d4d;
+
+      h2 {
+        color: #64b5f6;
+      }
+    }
+
+    .modal-content {
+      .expediente-info {
+        background: #3d3d3d;
+        border-color: #4d4d4d;
+        color: #ffffff;
+
+        h3 {
+          color: #ffffff;
+        }
+
+        .info-grid {
+          .info-item {
+            .label {
+              color: #b0b0b0;
+            }
+
+            .value {
+              color: #ffffff;
+            }
+          }
+        }
+      }
+
+      .movimiento-form {
+        .form-section {
+          h3 {
+            color: #ffffff;
+            border-bottom-color: #4d4d4d;
+          }
+        }
+      }
+    }
+
+    .modal-actions {
+      background: #2d2d2d;
+      border-top-color: #4d4d4d;
+    }
+  }
+} 

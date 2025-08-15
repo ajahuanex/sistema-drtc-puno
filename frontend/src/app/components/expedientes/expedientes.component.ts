@@ -57,7 +57,7 @@ import { Expediente } from '../../models/expediente.model';
               <mat-label>Tipo de Trámite</mat-label>
               <mat-select [(ngModel)]="filtroTipoTramite">
                 <mat-option value="">Todos</mat-option>
-                <mat-option value="AUTORIZACION NUEVA">AUTORIZACION NUEVA</mat-option>
+                <mat-option value="PRIMIGENIA">PRIMIGENIA</mat-option>
                 <mat-option value="RENOVACION">RENOVACION</mat-option>
                 <mat-option value="INCREMENTO">INCREMENTO</mat-option>
                 <mat-option value="SUSTITUCION">SUSTITUCION</mat-option>

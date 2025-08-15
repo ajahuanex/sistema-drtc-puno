@@ -8,7 +8,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { ResolucionService } from '../../services/resolucion.service';
+import { ExpedienteService } from '../../services/expediente.service';
+import { EmpresaService } from '../../services/empresa.service';
 import { Resolucion } from '../../models/resolucion.model';
+import { Expediente } from '../../models/expediente.model';
+import { Empresa } from '../../models/empresa.model';
 
 @Component({
   selector: 'app-resolucion-detail',
@@ -78,10 +82,10 @@ import { Resolucion } from '../../models/resolucion.model';
                 <div class="info-list">
                   <div class="info-item">
                     <span class="info-label">Número de Resolución:</span>
-                    <span class="info-value">{{ resolucion()?.nroResolucion }}</span>
+                    <span class="info-value numero-resolucion">{{ resolucion()?.nroResolucion }}</span>
                   </div>
                   <div class="info-item">
-                    <span class="info-label">Tipo de Resolución:</span>
+                    <span class="info-label">Tipo de Trámite:</span>
                     <span class="info-value">
                       <mat-chip [class]="'tipo-chip-' + resolucion()?.tipoTramite?.toLowerCase()">
                         {{ getTipoDisplayName(resolucion()?.tipoTramite) }}
@@ -89,14 +93,16 @@ import { Resolucion } from '../../models/resolucion.model';
                     </span>
                   </div>
                   <div class="info-item">
-                    <span class="info-label">Fecha de Emisión:</span>
-                    <span class="info-value">{{ resolucion()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
+                    <span class="info-label">Tipo de Resolución:</span>
+                    <span class="info-value">
+                      <mat-chip [class]="'tipo-resolucion-chip-' + resolucion()?.tipoResolucion?.toLowerCase()">
+                        {{ resolucion()?.tipoResolucion === 'PADRE' ? 'RESOLUCIÓN PADRE' : 'RESOLUCIÓN HIJA' }}
+                      </mat-chip>
+                    </span>
                   </div>
                   <div class="info-item">
-                    <span class="info-label">Fecha de Vencimiento:</span>
-                    <span class="info-value" [class.vencida]="isVencida()">
-                      {{ resolucion()?.fechaVencimiento ? (resolucion()?.fechaVencimiento | date:'dd/MM/yyyy') : 'Sin vencimiento' }}
-                    </span>
+                    <span class="info-label">Fecha de Emisión:</span>
+                    <span class="info-value">{{ resolucion()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
                   </div>
                   <div class="info-item">
                     <span class="info-label">Estado:</span>
@@ -106,6 +112,158 @@ import { Resolucion } from '../../models/resolucion.model';
                       </mat-chip>
                     </span>
                   </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Fechas de Vigencia -->
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>schedule</mat-icon>
+                  Fechas de Vigencia
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="info-list">
+                  <div class="info-item">
+                    <span class="info-label">Inicio de Vigencia:</span>
+                    <span class="info-value">
+                      {{ resolucion()?.fechaVigenciaInicio ? (resolucion()?.fechaVigenciaInicio | date:'dd/MM/yyyy') : 'No aplica' }}
+                    </span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Fin de Vigencia:</span>
+                    <span class="info-value" [class.vencida]="isVencida()">
+                      {{ resolucion()?.fechaVigenciaFin ? (resolucion()?.fechaVigenciaFin | date:'dd/MM/yyyy') : 'No aplica' }}
+                    </span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Duración:</span>
+                    <span class="info-value">
+                      {{ calcularDuracionVigencia() }}
+                    </span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Información del Expediente -->
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>folder</mat-icon>
+                  Expediente Relacionado
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (expediente()) {
+                  <div class="info-list">
+                    <div class="info-item">
+                      <span class="info-label">Número de Expediente:</span>
+                      <span class="info-value expediente-numero">{{ expediente()?.nroExpediente }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Tipo de Trámite:</span>
+                      <span class="info-value">
+                        <mat-chip [class]="'tipo-chip-' + expediente()?.tipoTramite?.toLowerCase()">
+                          {{ getTipoDisplayName(expediente()?.tipoTramite) }}
+                        </mat-chip>
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Descripción:</span>
+                      <span class="info-value">{{ expediente()?.descripcion || 'Sin descripción' }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Estado:</span>
+                      <span class="info-value">
+                        <mat-chip [class]="'estado-chip-' + expediente()?.estado?.toLowerCase()">
+                          {{ expediente()?.estado || 'Sin estado' }}
+                        </mat-chip>
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Fecha de Emisión:</span>
+                      <span class="info-value">{{ expediente()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="no-data">
+                    <mat-icon>folder_open</mat-icon>
+                    <span>Cargando información del expediente...</span>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Información de la Empresa -->
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>business</mat-icon>
+                  Empresa
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                @if (empresa()) {
+                  <div class="info-list">
+                    <div class="info-item">
+                      <span class="info-label">RUC:</span>
+                      <span class="info-value">{{ empresa()?.ruc }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Razón Social:</span>
+                      <span class="info-value empresa-razon">{{ empresa()?.razonSocial?.principal }}</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Estado:</span>
+                      <span class="info-value">
+                        <mat-chip [class]="'estado-chip-' + empresa()?.estado?.toLowerCase()">
+                          {{ empresa()?.estado || 'Sin estado' }}
+                        </mat-chip>
+                      </span>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="no-data">
+                    <mat-icon>business</mat-icon>
+                    <span>Cargando información de la empresa...</span>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Relaciones -->
+            <mat-card class="info-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>account_tree</mat-icon>
+                  Relaciones
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="info-list">
+                  @if (resolucion()?.resolucionPadreId) {
+                    <div class="info-item">
+                      <span class="info-label">Resolución Padre:</span>
+                      <span class="info-value">{{ resolucion()?.resolucionPadreId }}</span>
+                    </div>
+                  }
+                  @if (resolucion()?.resolucionesHijasIds) {
+                    @if (resolucion()!.resolucionesHijasIds.length > 0) {
+                      <div class="info-item">
+                        <span class="info-label">Resoluciones Hijas:</span>
+                        <span class="info-value">
+                          @for (hijaId of resolucion()!.resolucionesHijasIds; track hijaId) {
+                            <mat-chip class="hija-chip">
+                              {{ hijaId }}
+                            </mat-chip>
+                          }
+                        </span>
+                      </div>
+                    }
+                  }
                 </div>
               </mat-card-content>
             </mat-card>
@@ -365,6 +523,97 @@ import { Resolucion } from '../../models/resolucion.model';
       color: #ffffff;
     }
 
+    .numero-resolucion {
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1976d2;
+      background-color: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 2px solid #e3f2fd;
+    }
+
+    .tipo-chip-primigenia {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .tipo-chip-renovacion {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .tipo-chip-incremento {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .tipo-chip-sustitucion {
+      background-color: #fce4ec;
+      color: #c2185b;
+    }
+
+    .tipo-chip-otros {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .tipo-resolucion-chip-padre {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+      font-weight: 600;
+    }
+
+    .tipo-resolucion-chip-hijo {
+      background-color: #fff3e0;
+      color: #f57c00;
+      font-weight: 600;
+    }
+
+    .hija-chip {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      margin: 2px;
+    }
+
+    .vencida {
+      color: #d32f2f;
+      font-weight: 600;
+    }
+
+    .expediente-numero {
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1976d2;
+      background-color: #f5f5f5;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #e3f2fd;
+    }
+
+    .empresa-razon {
+      font-weight: 600;
+      color: #2e7d32;
+      font-size: 16px;
+    }
+
+    .no-data {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      color: #6c757d;
+      font-style: italic;
+      
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .page-header {
@@ -393,8 +642,12 @@ export class ResolucionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
   private resolucionService = inject(ResolucionService);
+  private expedienteService = inject(ExpedienteService);
+  private empresaService = inject(EmpresaService);
 
   resolucion = signal<Resolucion | null>(null);
+  expediente = signal<Expediente | null>(null);
+  empresa = signal<Empresa | null>(null);
   isLoading = signal(false);
 
   ngOnInit(): void {
@@ -409,6 +662,31 @@ export class ResolucionDetailComponent implements OnInit {
     this.resolucionService.getResolucionById(id).subscribe({
       next: (resolucion) => {
         this.resolucion.set(resolucion);
+        
+        // Cargar expediente relacionado
+        if (resolucion.expedienteId) {
+          this.expedienteService.getExpediente(resolucion.expedienteId).subscribe({
+            next: (expediente) => {
+              this.expediente.set(expediente);
+            },
+            error: (error) => {
+              console.error('Error cargando expediente:', error);
+            }
+          });
+        }
+        
+        // Cargar empresa relacionada
+        if (resolucion.empresaId) {
+          this.empresaService.getEmpresa(resolucion.empresaId).subscribe({
+            next: (empresa) => {
+              this.empresa.set(empresa);
+            },
+            error: (error) => {
+              console.error('Error cargando empresa:', error);
+            }
+          });
+        }
+        
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -445,6 +723,30 @@ export class ResolucionDetailComponent implements OnInit {
     const resolucion = this.resolucion();
     if (!resolucion?.fechaVencimiento) return false;
     return new Date() > new Date(resolucion.fechaVencimiento);
+  }
+
+  calcularDuracionVigencia(): string {
+    const resolucion = this.resolucion();
+    if (!resolucion?.fechaVigenciaInicio || !resolucion?.fechaVigenciaFin) {
+      return 'No aplica';
+    }
+
+    const fechaInicio = new Date(resolucion.fechaVigenciaInicio);
+    const fechaFin = new Date(resolucion.fechaVigenciaFin);
+    const diffTime = fechaFin.getTime() - fechaInicio.getTime();
+    const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+    
+    if (diffYears >= 1) {
+      const years = Math.floor(diffYears);
+      const months = Math.floor((diffYears - years) * 12);
+      if (months > 0) {
+        return `${years} año(s) y ${months} mes(es)`;
+      }
+      return `${years} año(s)`;
+    } else {
+      const months = Math.floor(diffYears * 12);
+      return `${months} mes(es)`;
+    }
   }
 
   volver(): void {

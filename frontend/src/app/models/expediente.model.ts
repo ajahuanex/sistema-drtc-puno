@@ -346,6 +346,7 @@ export interface ValidacionExpediente {
   empresaId?: string;
   tipoTramite: TipoTramite;
   fechaEmision: Date;
+  expedienteIdExcluir?: string; // ID del expediente a excluir de la validación (para edición)
 }
 
 export interface RespuestaValidacion {
@@ -364,7 +365,7 @@ export interface RespuestaValidacion {
 export type EstadoExpediente = 'EN PROCESO' | 'APROBADO' | 'RECHAZADO' | 'SUSPENDIDO' | 'ARCHIVADO';
 
 // Actualizar TipoTramite según el briefing consolidado
-export type TipoTramite = 'AUTORIZACION NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS'; 
+export type TipoTramite = 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS'; 
 
 // Nuevas interfaces para seguimiento por oficina
 export interface OficinaExpediente {
