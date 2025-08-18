@@ -8,6 +8,8 @@
   <meta name="description" content="Sistema de Gestión de Transportes de la Dirección Regional de Transportes y Comunicaciones de Puno">
   <meta name="theme-color" content="#1976d2">
   
+  <!-- PWA deshabilitado - No se requieren funcionalidades offline -->
+  
 
   
   <!-- DNS prefetch para APIs externas -->
@@ -37,8 +39,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
   
-  <!-- Manifest para PWA -->
-  <link rel="manifest" href="/manifest.json">
+
   
   <!-- Estilos críticos inline para mejor rendimiento -->
   <style>
@@ -190,22 +191,7 @@
     
     window.addEventListener('scroll', requestTick, { passive: true });
     
-    // Pre-cargar datos críticos
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // Solo registrar SW si existe el archivo
-        fetch('/sw.js', { method: 'HEAD' })
-          .then(() => {
-            return navigator.serviceWorker.register('/sw.js');
-          })
-          .then(registration => {
-            console.log('✅ Service Worker registrado:', registration);
-          })
-          .catch(error => {
-            console.log('⚠️ Service Worker no disponible:', error.message);
-          });
-      });
-    }
+
     
     // Optimización de imágenes
     if ('IntersectionObserver' in window) {

@@ -46,5 +46,7 @@ async function preloadCriticalData() {
   }
 }
 
+
+
 // Inicializar la aplicación
 initializeApp().catch(err => console.error('Error starting app:', err));

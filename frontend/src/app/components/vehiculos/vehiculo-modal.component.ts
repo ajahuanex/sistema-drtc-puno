@@ -261,19 +261,18 @@ export interface VehiculoModalData {
             </mat-card>
 
             <!-- Especificaciones Técnicas -->
-            <mat-card class="form-card">
-              <mat-card-header class="card-header">
-                <div class="card-header-content">
+            <mat-expansion-panel class="form-card" [expanded]="false">
+              <mat-expansion-panel-header class="card-header">
+                <mat-panel-title class="card-title">
                   <mat-icon class="card-icon">build</mat-icon>
-                  <mat-card-title class="card-title">
-                    Especificaciones Técnicas
-                  </mat-card-title>
-                  <mat-card-subtitle class="card-subtitle">
-                    Datos técnicos del vehículo
-                  </mat-card-subtitle>
-                </div>
-              </mat-card-header>
-              <mat-card-content class="card-content">
+                  Especificaciones Técnicas
+                </mat-panel-title>
+                <mat-panel-description class="card-subtitle">
+                  Datos técnicos del vehículo
+                </mat-panel-description>
+              </mat-expansion-panel-header>
+              
+              <div class="card-content">
                 <div formGroupName="datosTecnicos">
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="form-field">
@@ -359,8 +358,8 @@ export interface VehiculoModalData {
                     </div>
                   </div>
                 </div>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </mat-expansion-panel>
 
             <!-- Rutas Asignadas -->
             <mat-card class="form-card">
@@ -379,7 +378,7 @@ export interface VehiculoModalData {
                 <div class="form-row">
                   <mat-form-field appearance="outline" class="form-field full-width">
                     <mat-label>Rutas Asignadas *</mat-label>
-                    <mat-select formControlName="rutasAsignadasIds" multiple [disabled]="!puedeSeleccionarRutas()">
+                    <mat-select formControlName="rutasAsignadasIds" multiple>
                       @if (rutasDisponibles().length > 0) {
                         @for (ruta of rutasDisponibles(); track ruta.id) {
                           <mat-option [value]="ruta.id">
@@ -502,6 +501,25 @@ export interface VehiculoModalData {
     .form-card {
       margin-bottom: 24px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Estilos específicos para el acordeón de especificaciones técnicas */
+    mat-expansion-panel.form-card {
+      border: 1px solid #e0e0e0;
+    }
+
+    mat-expansion-panel.form-card .mat-expansion-panel-header {
+      background: #f5f5f5;
+      padding: 16px;
+      margin: -16px -16px 0 -16px;
+    }
+
+    mat-expansion-panel.form-card .mat-expansion-panel-header:hover {
+      background: #eeeeee;
+    }
+
+    mat-expansion-panel.form-card .mat-expansion-panel-content {
+      padding: 16px;
     }
 
     .card-header {
@@ -633,6 +651,22 @@ export class VehiculoModalComponent {
   // Datos del dialog (alternativa a input)
   dialogData = inject(MAT_DIALOG_DATA);
   
+  // Watcher para modalData usando effect
+  private modalDataWatcher = effect(() => {
+    const data = this.modalData();
+    if (data && this.vehiculoForm) {
+      this.initializeModalData();
+    }
+  });
+  
+  // Watcher para dialogData usando effect
+  private dialogDataWatcher = effect(() => {
+    const data = this.dialogData;
+    if (data && this.vehiculoForm) {
+      this.initializeModalData();
+    }
+  });
+  
   // Eventos de salida
   vehiculoCreated = output<VehiculoCreate>();
   vehiculoUpdated = output<VehiculoUpdate>();
@@ -670,13 +704,10 @@ export class VehiculoModalComponent {
     this.initializeForm();
     this.loadEmpresas();
     
-    // Usar effect para reaccionar a cambios en modalData o usar dialogData
-    effect(() => {
-      const data = this.modalData() || this.dialogData;
-      if (data && this.vehiculoForm) {
-        this.initializeModalData();
-      }
-    });
+    // Inicializar datos del modal después de un breve delay para asegurar que todo esté listo
+    setTimeout(() => {
+      this.initializeModalData();
+    }, 100);
   }
 
   private initializeModalData(): void {
@@ -688,15 +719,28 @@ export class VehiculoModalComponent {
     } else {
       // En modo creación, pre-configurar empresa y resolución si se proporcionan
       if (data.empresaId) {
-        this.vehiculoForm.patchValue({
-          empresaActualId: data.empresaId
-        });
-        
-        // Cargar resoluciones y rutas si ya hay empresa y resolución
-        this.loadResoluciones(data.empresaId);
-        if (data.resolucionId) {
-          this.vehiculoForm.patchValue({ resolucionId: data.resolucionId });
-          this.loadRutasDisponibles(data.resolucionId);
+        // Buscar la empresa por ID para pre-seleccionarla en el autocompletado
+        const empresa = this.empresas().find(e => e.id === data.empresaId);
+        if (empresa) {
+          // Configurar tanto el FormControl del autocompletado como el campo del formulario
+          this.empresaControl.setValue(empresa);
+          this.vehiculoForm.patchValue({
+            empresaActualId: empresa.id
+          });
+          
+          // Cargar resoluciones para esta empresa
+          this.loadResoluciones(data.empresaId);
+          
+          // Habilitar el campo de resolución ya que hay empresa seleccionada
+          this.vehiculoForm.get('resolucionId')?.enable();
+          
+          // Si también hay resolución, pre-configurarla
+          if (data.resolucionId) {
+            this.vehiculoForm.patchValue({ resolucionId: data.resolucionId });
+            this.loadRutasDisponibles(data.resolucionId);
+            // También habilitar el campo de rutas
+            this.vehiculoForm.get('rutasAsignadasIds')?.enable();
+          }
         }
       }
     }
@@ -712,7 +756,7 @@ export class VehiculoModalComponent {
       empresaActualId: ['', Validators.required],
       resolucionId: [{ value: '', disabled: true }, Validators.required],
       numeroTuc: [''],
-      rutasAsignadasIds: [[], Validators.required],
+      rutasAsignadasIds: [{ value: [], disabled: true }, Validators.required],
       placa: ['', [Validators.required, Validators.pattern(/^[A-Z]{1,3}-\d{3,4}$/)]],
       marca: [''],
       modelo: [''],
@@ -847,8 +891,12 @@ export class VehiculoModalComponent {
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
     if (resolucionId) {
       this.loadRutasDisponibles(resolucionId);
+      // Habilitar el control de rutas cuando hay resolución seleccionada
+      this.vehiculoForm.get('rutasAsignadasIds')?.enable();
     } else {
       this.rutasDisponibles.set([]);
+      // Deshabilitar el control de rutas cuando no hay resolución
+      this.vehiculoForm.get('rutasAsignadasIds')?.disable();
     }
   }
 
@@ -943,6 +991,10 @@ export class VehiculoModalComponent {
     // Limpiar y deshabilitar campo de resolución
     this.vehiculoForm.patchValue({ resolucionId: '' });
     this.vehiculoForm.get('resolucionId')?.disable();
+    
+    // Limpiar y deshabilitar campo de rutas
+    this.vehiculoForm.patchValue({ rutasAsignadasIds: [] });
+    this.vehiculoForm.get('rutasAsignadasIds')?.disable();
   }
 
   // Métodos de utilidad

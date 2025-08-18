@@ -30,6 +30,7 @@ import { ValidacionSunatModalComponent } from './validacion-sunat-modal.componen
 import { GestionDocumentosModalComponent } from './gestion-documentos-modal.component';
 import { HistorialAuditoriaModalComponent } from './historial-auditoria-modal.component';
 import { CrearRutaModalComponent } from './crear-ruta-modal.component';
+import { VehiculoModalService } from '../../services/vehiculo-modal.service';
 
 @Component({
   selector: 'app-empresas',
@@ -370,6 +371,10 @@ import { CrearRutaModalComponent } from './crear-ruta-modal.component';
                       <button mat-menu-item (click)="gestionarVehiculos(empresa.id)">
                         <mat-icon>directions_car</mat-icon>
                         <span>GESTIONAR VEHÍCULOS</span>
+                      </button>
+                      <button mat-menu-item (click)="nuevoVehiculo(empresa.id)">
+                        <mat-icon>add_circle</mat-icon>
+                        <span>NUEVO VEHÍCULO</span>
                       </button>
                       <button mat-menu-item (click)="gestionarConductores(empresa.id)">
                         <mat-icon>person</mat-icon>
@@ -803,6 +808,7 @@ export class EmpresasComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
+  private vehiculoModalService = inject(VehiculoModalService);
 
   // Signals
   empresas = signal<Empresa[]>([]);
@@ -913,6 +919,22 @@ export class EmpresasComponent implements OnInit {
 
   nuevaEmpresa(): void {
     this.router.navigate(['/empresas/nueva']);
+  }
+
+  nuevoVehiculo(empresaId: string): void {
+    this.vehiculoModalService.openCreateForEmpresa(empresaId).subscribe({
+      next: (vehiculo) => {
+        console.log('✅ Vehículo creado para empresa:', vehiculo);
+        this.snackBar.open('Vehículo creado correctamente', 'Cerrar', { duration: 3000 });
+        // Recargar datos de la empresa para mostrar el nuevo vehículo
+        this.loadEmpresas();
+        this.loadEstadisticas();
+      },
+      error: (error) => {
+        console.error('❌ Error al crear vehículo:', error);
+        this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   gestionarVehiculos(empresaId: string): void {
