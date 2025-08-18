@@ -4,6 +4,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { MainLayoutComponent } from './components/layout/main-layout.component';
 import { AuthGuard } from './guards/auth.guard';
 import { EmpresaVehiculosBatchComponent } from './components/empresas/empresa-vehiculos-batch.component';
+import { VehiculosComponent } from './components/vehiculos/vehiculos.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -19,7 +20,8 @@ export const routes: Routes = [
       { path: 'empresas/:id/editar', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
       { path: 'empresas/:id', loadComponent: () => import('./components/empresas/empresa-detail.component').then(m => m.EmpresaDetailComponent) },
       { path: 'empresas/:id/vehiculos/batch', component: EmpresaVehiculosBatchComponent, canActivate: [AuthGuard] },
-      { path: 'vehiculos', loadComponent: () => import('./components/vehiculos/vehiculos.component').then(m => m.VehiculosComponent) },
+      { path: 'empresas/dashboard', loadComponent: () => import('./components/empresas/dashboard-empresas.component').then(m => m.DashboardEmpresasComponent) },
+      { path: 'vehiculos', component: VehiculosComponent },
       { path: 'vehiculos/nuevo', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/:id', loadComponent: () => import('./components/vehiculos/vehiculo-detail.component').then(m => m.VehiculoDetailComponent) },
       { path: 'vehiculos/:id/editar', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },

@@ -11,27 +11,30 @@ import { AuthService } from './auth.service';
 export class VehiculoService {
   private apiUrl = 'http://localhost:8000/api/v1';
 
-  // Datos mock para desarrollo
+  // Datos mock para desarrollo con lógica de dependencias coherente
   private mockVehiculos: Vehiculo[] = [
+    // ===== EMPRESA 1: TRANSPORTES PUNO S.A.C. =====
+    // Resolución 1 (PRIMIGENIA) - Vehículos de pasajeros
+    
     {
       id: '1',
-      placa: 'V1A-123',
+      placa: 'PUN-001',
       empresaActualId: '1',
       resolucionId: '1',
-      rutasAsignadasIds: ['1', '2'],
+      rutasAsignadasIds: ['1', '2'], // PUNO-JULIACA, PUNO-CUSCO
       categoria: 'M3',
-      marca: 'Mercedes-Benz',
+      marca: 'MERCEDES-BENZ',
       modelo: 'O500RS',
       anioFabricacion: 2018,
       estado: 'ACTIVO',
       estaActivo: true,
       tuc: {
-        nroTuc: 'T-123456-2025',
+        nroTuc: 'T-001234-2025',
         fechaEmision: '2025-01-15T10:00:00Z'
       },
       datosTecnicos: {
-        motor: 'ABC123456789',
-        chasis: 'A123-B456-C789',
+        motor: 'MB-OM457LA.6/2',
+        chasis: 'WDB9066131L123456',
         cilindros: 6,
         ejes: 2,
         ruedas: 6,
@@ -47,23 +50,23 @@ export class VehiculoService {
     },
     {
       id: '2',
-      placa: 'V2B-456',
+      placa: 'PUN-002',
       empresaActualId: '1',
       resolucionId: '1',
-      rutasAsignadasIds: ['3'],
+      rutasAsignadasIds: ['3'], // PUNO-MOQUEGUA
       categoria: 'M3',
-      marca: 'Volvo',
+      marca: 'VOLVO',
       modelo: 'B12M',
       anioFabricacion: 2019,
       estado: 'ACTIVO',
       estaActivo: true,
       tuc: {
-        nroTuc: 'T-123457-2025',
+        nroTuc: 'T-001235-2025',
         fechaEmision: '2025-02-20T14:30:00Z'
       },
       datosTecnicos: {
-        motor: 'DEF456789012',
-        chasis: 'D789-E012-F345',
+        motor: 'VOLVO-D12C380',
+        chasis: 'YV3R7C1234A123456',
         cilindros: 8,
         ejes: 2,
         ruedas: 6,
@@ -79,33 +82,275 @@ export class VehiculoService {
     },
     {
       id: '3',
-      placa: 'V3C-789',
-      empresaActualId: '2',
-      resolucionId: '2',
-      rutasAsignadasIds: ['4', '5'],
-      categoria: 'N3',
-      marca: 'Scania',
-      modelo: 'G420',
+      placa: 'PUN-003',
+      empresaActualId: '1',
+      resolucionId: '1',
+      rutasAsignadasIds: ['1'], // Solo PUNO-JULIACA
+      categoria: 'M2',
+      marca: 'MERCEDES-BENZ',
+      modelo: 'SPRINTER',
       anioFabricacion: 2020,
       estado: 'ACTIVO',
       estaActivo: true,
       tuc: {
-        nroTuc: 'T-123458-2025',
+        nroTuc: 'T-001236-2025',
         fechaEmision: '2025-03-10T09:15:00Z'
       },
       datosTecnicos: {
-        motor: 'GHI789012345',
-        chasis: 'G678-H901-I234',
+        motor: 'MB-OM651.951',
+        chasis: 'WDB9066131L789012',
+        cilindros: 4,
+        ejes: 2,
+        ruedas: 4,
+        asientos: 16,
+        pesoNeto: 3.200,
+        pesoBruto: 6.500,
+        medidas: {
+          largo: 6.8,
+          ancho: 2.0,
+          alto: 2.8
+        }
+      }
+    },
+
+    // Resolución 2 (RENOVACION) - Vehículos de pasajeros adicionales
+    {
+      id: '4',
+      placa: 'PUN-004',
+      empresaActualId: '1',
+      resolucionId: '2',
+      rutasAsignadasIds: ['2', '3'], // PUNO-CUSCO, PUNO-MOQUEGUA
+      categoria: 'M3',
+      marca: 'SCANIA',
+      modelo: 'K320',
+      anioFabricacion: 2021,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001237-2025',
+        fechaEmision: '2025-04-15T11:00:00Z'
+      },
+      datosTecnicos: {
+        motor: 'SCANIA-DC13-320',
+        chasis: 'XLE4X2HZ3PZ123456',
+        cilindros: 6,
+        ejes: 2,
+        ruedas: 6,
+        asientos: 32,
+        pesoNeto: 8.800,
+        pesoBruto: 17.200,
+        medidas: {
+          largo: 10.8,
+          ancho: 2.5,
+          alto: 3.1
+        }
+      }
+    },
+
+    // ===== EMPRESA 2: EMPRESA DE TRANSPORTES JULIACA E.I.R.L. =====
+    // Resolución 3 (PRIMIGENIA) - Vehículos de carga
+    
+    {
+      id: '5',
+      placa: 'JUL-001',
+      empresaActualId: '2',
+      resolucionId: '3',
+      rutasAsignadasIds: ['4'], // JULIACA-LIMA
+      categoria: 'N3',
+      marca: 'SCANIA',
+      modelo: 'G420',
+      anioFabricacion: 2019,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001238-2025',
+        fechaEmision: '2025-01-20T08:00:00Z'
+      },
+      datosTecnicos: {
+        motor: 'SCANIA-DC13-420',
+        chasis: 'XLE6X2HZ3PZ123456',
         cilindros: 12,
         ejes: 3,
         ruedas: 10,
-        asientos: 45,
-        pesoNeto: 12.800,
+        asientos: 2,
+        pesoNeto: 12.500,
         pesoBruto: 25.000,
         medidas: {
-          largo: 12.5,
-          ancho: 2.8,
-          alto: 3.5
+          largo: 13.5,
+          ancho: 2.6,
+          alto: 3.8
+        }
+      }
+    },
+    {
+      id: '6',
+      placa: 'JUL-002',
+      empresaActualId: '2',
+      resolucionId: '3',
+      rutasAsignadasIds: ['5'], // JULIACA-AREQUIPA
+      categoria: 'N2',
+      marca: 'ISUZU',
+      modelo: 'NQR75K',
+      anioFabricacion: 2020,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001239-2025',
+        fechaEmision: '2025-02-25T15:30:00Z'
+      },
+      datosTecnicos: {
+        motor: 'ISUZU-4HK1-TC',
+        chasis: 'JALLNQR75K1234567',
+        cilindros: 4,
+        ejes: 2,
+        ruedas: 6,
+        asientos: 3,
+        pesoNeto: 4.800,
+        pesoBruto: 12.000,
+        medidas: {
+          largo: 7.2,
+          ancho: 2.3,
+          alto: 2.9
+        }
+      }
+    },
+
+    // ===== EMPRESA 3: TRANSPORTES CUSCO S.A. =====
+    // Resolución 4 (PRIMIGENIA) - Vehículos mixtos
+    
+    {
+      id: '7',
+      placa: 'CUS-001',
+      empresaActualId: '3',
+      resolucionId: '4',
+      rutasAsignadasIds: ['6', '7'], // CUSCO-PUNO, CUSCO-AREQUIPA
+      categoria: 'M3',
+      marca: 'MERCEDES-BENZ',
+      modelo: 'O500U',
+      anioFabricacion: 2020,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001240-2025',
+        fechaEmision: '2025-03-01T12:00:00Z'
+      },
+      datosTecnicos: {
+        motor: 'MB-OM457LA.6/2',
+        chasis: 'WDB9066131L345678',
+        cilindros: 6,
+        ejes: 2,
+        ruedas: 6,
+        asientos: 28,
+        pesoNeto: 8.200,
+        pesoBruto: 15.800,
+        medidas: {
+          largo: 10.2,
+          ancho: 2.5,
+          alto: 3.0
+        }
+      }
+    },
+
+    // ===== EMPRESA 4: TRANSPORTES AREQUIPA E.I.R.L. =====
+    // Resolución 5 (PRIMIGENIA) - Vehículos de pasajeros
+    
+    {
+      id: '8',
+      placa: 'ARE-001',
+      empresaActualId: '4',
+      resolucionId: '5',
+      rutasAsignadasIds: ['8'], // AREQUIPA-MOQUEGUA
+      categoria: 'M3',
+      marca: 'VOLVO',
+      modelo: 'B12R',
+      anioFabricacion: 2021,
+      estado: 'MANTENIMIENTO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001241-2025',
+        fechaEmision: '2025-01-10T09:00:00Z'
+      },
+      datosTecnicos: {
+        motor: 'VOLVO-D12C380',
+        chasis: 'YV3R7C1234B789012',
+        cilindros: 8,
+        ejes: 2,
+        ruedas: 6,
+        asientos: 38,
+        pesoNeto: 9.500,
+        pesoBruto: 19.000,
+        medidas: {
+          largo: 11.2,
+          ancho: 2.6,
+          alto: 3.4
+        }
+      }
+    },
+    {
+      id: '9',
+      placa: 'ARE-002',
+      empresaActualId: '4',
+      resolucionId: '5',
+      rutasAsignadasIds: ['9'], // AREQUIPA-TACNA
+      categoria: 'M2',
+      marca: 'MERCEDES-BENZ',
+      modelo: 'SPRINTER',
+      anioFabricacion: 2022,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001242-2025',
+        fechaEmision: '2025-02-15T14:00:00Z'
+      },
+      datosTecnicos: {
+        motor: 'MB-OM651.951',
+        chasis: 'WDB9066131L901234',
+        cilindros: 4,
+        ejes: 2,
+        ruedas: 4,
+        asientos: 18,
+        pesoNeto: 3.400,
+        pesoBruto: 6.800,
+        medidas: {
+          largo: 6.9,
+          ancho: 2.0,
+          alto: 2.8
+        }
+      }
+    },
+
+    // ===== EMPRESA 5: TRANSPORTES MOQUEGUA S.A.C. =====
+    // Resolución 6 (PRIMIGENIA) - Vehículos de carga
+    
+    {
+      id: '10',
+      placa: 'MOQ-001',
+      empresaActualId: '5',
+      resolucionId: '6',
+      rutasAsignadasIds: ['10'], // MOQUEGUA-TACNA
+      categoria: 'N3',
+      marca: 'SCANIA',
+      modelo: 'P320',
+      anioFabricacion: 2019,
+      estado: 'ACTIVO',
+      estaActivo: true,
+      tuc: {
+        nroTuc: 'T-001243-2025',
+        fechaEmision: '2025-01-25T10:30:00Z'
+      },
+      datosTecnicos: {
+        motor: 'SCANIA-DC13-320',
+        chasis: 'XLE4X2HZ3PZ234567',
+        cilindros: 6,
+        ejes: 2,
+        ruedas: 6,
+        asientos: 2,
+        pesoNeto: 11.800,
+        pesoBruto: 24.500,
+        medidas: {
+          largo: 12.8,
+          ancho: 2.5,
+          alto: 3.6
         }
       }
     }
@@ -118,24 +363,30 @@ export class VehiculoService {
   ) {}
 
   private getHeaders(): HttpHeaders {
-    const headers = new HttpHeaders({
+    const token = this.authService.getToken();
+    return new HttpHeaders({
       'Content-Type': 'application/json',
-      ...this.authService.getAuthHeaders()
+      'Authorization': `Bearer ${token}`
     });
-    return headers;
   }
 
-  getVehiculos(skip: number = 0, limit: number = 100, estado?: string): Observable<Vehiculo[]> {
-    // Verificar si el usuario está autenticado
-    if (!this.authService.isAuthenticated()) {
-      console.log('Usuario no autenticado, redirigiendo al login...');
-      this.router.navigate(['/login']);
-      return of([]);
-    }
-
-    let url = `${this.apiUrl}/vehiculos/?skip=${skip}&limit=${limit}`;
-    if (estado) {
-      url += `&estado=${estado}`;
+  getVehiculos(): Observable<Vehiculo[]> {
+    // FORZAR USO DE DATOS MOCK EN DESARROLLO
+    console.log('🚀 FORZANDO USO DE DATOS MOCK - NO HACER LLAMADAS HTTP');
+    console.log('📊 DATOS MOCK DISPONIBLES:', this.mockVehiculos.length, 'vehículos');
+    
+    // Mostrar las placas disponibles para debugging
+    const placas = this.mockVehiculos.map(v => v.placa);
+    console.log('🔢 PLACAS DISPONIBLES:', placas);
+    
+    return of(this.mockVehiculos);
+    
+    /* CÓDIGO HTTP COMENTADO TEMPORALMENTE
+    const url = `${this.apiUrl}/vehiculos`;
+    
+    if (!this.apiUrl) {
+      console.log('API URL no configurada, usando datos mock');
+      return of(this.mockVehiculos);
     }
     
     const headers = this.getHeaders();
@@ -159,6 +410,7 @@ export class VehiculoService {
         return of(this.mockVehiculos);
       })
     );
+    */
   }
 
   getVehiculoById(id: string): Observable<Vehiculo> {
@@ -234,5 +486,97 @@ export class VehiculoService {
         }
       })
     );
+  }
+
+  // Métodos adicionales para funcionalidades específicas
+  
+  getVehiculosPorEmpresa(empresaId: string): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/empresa/${empresaId}`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo vehículos por empresa, usando datos mock:', error);
+        const vehiculosEmpresa = this.mockVehiculos.filter((v: Vehiculo) => v.empresaActualId === empresaId);
+        return of(vehiculosEmpresa);
+      })
+    );
+  }
+
+  getVehiculosPorResolucion(resolucionId: string): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/resolucion/${resolucionId}`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo vehículos por resolución, usando datos mock:', error);
+        const vehiculosResolucion = this.mockVehiculos.filter((v: Vehiculo) => v.resolucionId === resolucionId);
+        return of(vehiculosResolucion);
+      })
+    );
+  }
+
+  getVehiculosPorCategoria(categoria: string): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/categoria/${categoria}`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo vehículos por categoría, usando datos mock:', error);
+        const vehiculosCategoria = this.mockVehiculos.filter((v: Vehiculo) => v.categoria === categoria);
+        return of(vehiculosCategoria);
+      })
+    );
+  }
+
+  getVehiculosPorEstado(estado: string): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/estado/${estado}`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo vehículos por estado, usando datos mock:', error);
+        const vehiculosEstado = this.mockVehiculos.filter((v: Vehiculo) => v.estado === estado);
+        return of(vehiculosEstado);
+      })
+    );
+  }
+
+  // Método para obtener estadísticas del parque vehicular
+  getEstadisticasVehiculos(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/vehiculos/estadisticas`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Error obteniendo estadísticas, generando desde datos mock:', error);
+        // Generar estadísticas desde datos mock
+        const vehiculos = this.mockVehiculos || [];
+        const estadisticas = {
+          totalVehiculos: vehiculos.length,
+          vehiculosActivos: vehiculos.filter((v: Vehiculo) => v.estado === 'ACTIVO').length,
+          vehiculosMantenimiento: vehiculos.filter((v: Vehiculo) => v.estado === 'MANTENIMIENTO').length,
+          vehiculosInactivos: vehiculos.filter((v: Vehiculo) => v.estado === 'INACTIVO').length,
+          porCategoria: {
+            M2: vehiculos.filter((v: Vehiculo) => v.categoria === 'M2').length,
+            M3: vehiculos.filter((v: Vehiculo) => v.categoria === 'M3').length,
+            N2: vehiculos.filter((v: Vehiculo) => v.categoria === 'N2').length,
+            N3: vehiculos.filter((v: Vehiculo) => v.categoria === 'N3').length
+          },
+          porEmpresa: vehiculos.reduce((acc: { [key: string]: number }, v: Vehiculo) => {
+            acc[v.empresaActualId] = (acc[v.empresaActualId] || 0) + 1;
+            return acc;
+          }, {} as { [key: string]: number })
+        };
+        return of(estadisticas);
+      })
+    );
+  }
+
+  // Método para debugging - verificar datos mock
+  verificarDatosMock(): void {
+    console.log('🔍 VERIFICANDO DATOS MOCK DEL SERVICIO...');
+    console.log('📊 TOTAL VEHÍCULOS:', this.mockVehiculos.length);
+    
+    // Mostrar todas las placas
+    const placas = this.mockVehiculos.map(v => v.placa);
+    console.log('🔢 PLACAS DISPONIBLES:', placas);
+    
+    // Mostrar vehículos con placas que empiecen con "PUN"
+    const vehiculosPUN = this.mockVehiculos.filter(v => v.placa.startsWith('PUN'));
+    console.log('🏔️ VEHÍCULOS PUNO:', vehiculosPUN.length, vehiculosPUN.map(v => v.placa));
+    
+    // Mostrar vehículos con placas que empiecen con "JUL"
+    const vehiculosJUL = this.mockVehiculos.filter(v => v.placa.startsWith('JUL'));
+    console.log('🌅 VEHÍCULOS JULIACA:', vehiculosJUL.length, vehiculosJUL.map(v => v.placa));
+    
+    // Mostrar vehículos con placas que empiecen con "ARE"
+    const vehiculosARE = this.mockVehiculos.filter(v => v.placa.startsWith('ARE'));
+    console.log('🏙️ VEHÍCULOS AREQUIPA:', vehiculosARE.length, vehiculosARE.map(v => v.placa));
   }
 } 

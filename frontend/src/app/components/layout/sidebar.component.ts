@@ -64,6 +64,21 @@ import { MatChipsModule } from '@angular/material/chips';
           }
         </a>
 
+        <!-- Dashboard Empresas -->
+        @if (isExpanded()) {
+          <a mat-list-item 
+             routerLink="/empresas/dashboard" 
+             routerLinkActive="active-link" 
+             class="nav-item sub-item"
+             [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" 
+             matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon">dashboard</mat-icon>
+            @if (isExpanded()) {
+              <span matListItemTitle class="nav-text">Dashboard Empresas</span>
+            }
+          </a>
+        }
+
         <!-- Vehículos -->
         <a mat-list-item 
            routerLink="/vehiculos" 

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed, ViewEncapsulation, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -12,8 +12,21 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { VehiculoService } from '../../services/vehiculo.service';
+import { EmpresaService } from '../../services/empresa.service';
+import { ResolucionService } from '../../services/resolucion.service';
+import { RutaService } from '../../services/ruta.service';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
+import { Empresa } from '../../models/empresa.model';
+import { Resolucion } from '../../models/resolucion.model';
+import { Ruta } from '../../models/ruta.model';
+import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
+import { Observable, of } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
 
 @Component({
   selector: 'app-vehiculo-form',
@@ -30,7 +43,11 @@ import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../m
     MatSelectModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatDialogModule,
+    MatChipsModule,
+    MatAutocompleteModule,
+    MatTooltipModule
   ],
   template: `
     @if (!modalMode()) {
@@ -84,244 +101,261 @@ import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../m
               <mat-card-content class="card-content">
                 <div class="form-row">
                   <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Empresa Actual</mat-label>
-                    <mat-select formControlName="empresaActualId" (selectionChange)="onEmpresaChange()">
-                      <mat-option value="">Selecciona una empresa</mat-option>
-                      <mat-option value="1">Empresa A</mat-option>
-                      <mat-option value="2">Empresa B</mat-option>
-                    </mat-select>
+                    <mat-label>Empresa Actual *</mat-label>
+                    <input matInput 
+                           [matAutocomplete]="empresaAuto" 
+                           [formControl]="empresaControl"
+                           placeholder="Buscar empresa por RUC o razón social"
+                           required>
+                    <mat-autocomplete #empresaAuto="matAutocomplete" 
+                                     [displayWith]="displayEmpresa"
+                                     (optionSelected)="onEmpresaSelected($event)">
+                      @for (empresa of empresasFiltradas | async; track empresa.id) {
+                        <mat-option [value]="empresa">
+                          {{ empresa.ruc }} - {{ empresa.razonSocial.principal || 'Sin razón social' }}
+                        </mat-option>
+                      }
+                    </mat-autocomplete>
                     <mat-icon matSuffix>business</mat-icon>
+                    <button matSuffix mat-icon-button 
+                            type="button" 
+                            (click)="limpiarEmpresa()"
+                            *ngIf="empresaControl.value"
+                            matTooltip="Limpiar empresa">
+                      <mat-icon>clear</mat-icon>
+                    </button>
                     <mat-hint>Empresa propietaria del vehículo</mat-hint>
+                    <mat-error *ngIf="empresaControl.hasError('required')">
+                      La empresa es obligatoria
+                    </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Resolución</mat-label>
-                    <mat-select formControlName="resolucionId" (selectionChange)="onResolucionChange()">
+                    <mat-label>Resolución *</mat-label>
+                    <mat-select formControlName="resolucionId" (selectionChange)="onResolucionChange()" required>
                       <mat-option value="">Selecciona una resolución</mat-option>
-                      <mat-option value="1">Resolución 001/2024</mat-option>
-                      <mat-option value="2">Resolución 002/2024</mat-option>
+                      @for (resolucion of resoluciones(); track resolucion.id) {
+                        <mat-option [value]="resolucion.id">
+                          {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }}
+                          <span class="resolucion-tipo-badge" [class]="'tipo-' + (resolucion.tipoTramite === 'PRIMIGENIA' ? 'primigenia' : 'hija')">
+                            {{ resolucion.tipoTramite === 'PRIMIGENIA' ? 'PRIMIGENIA' : 'HIJA' }}
+                          </span>
+                        </mat-option>
+                      }
                     </mat-select>
                     <mat-icon matSuffix>description</mat-icon>
-                    <mat-hint>Resolución asociada al vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de TUC</mat-label>
-                    <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
-                    <mat-icon matSuffix>receipt</mat-icon>
-                    <mat-hint>Número del TUC del vehículo</mat-hint>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Rutas Asignadas</mat-label>
-                    <mat-select formControlName="rutasAsignadasIds" multiple [disabled]="!puedeSeleccionarRutas()">
-                      <mat-option value="1">Ruta 1 - Centro a Norte</mat-option>
-                      <mat-option value="2">Ruta 2 - Centro a Sur</mat-option>
-                      <mat-option value="3">Ruta 3 - Este a Oeste</mat-option>
-                      <mat-option value="4">Ruta 4 - Norte a Sur</mat-option>
-                      <mat-option value="5">Ruta 5 - Periférica</mat-option>
-                    </mat-select>
-                    <mat-icon matSuffix>route</mat-icon>
-                    <mat-hint>{{ getRutasHint() }}</mat-hint>
+                    <mat-hint>Resolución asociada al vehículo (primigenia o hija)</mat-hint>
+                    <mat-error *ngIf="vehiculoForm.get('resolucionId')?.hasError('required')">
+                      La resolución es obligatoria
+                    </mat-error>
                   </mat-form-field>
                 </div>
               </mat-card-content>
             </mat-card>
 
-            <!-- Información Básica -->
+            <!-- Gestión de Vehículos de la Resolución -->
             <mat-card class="form-card">
               <mat-card-header class="card-header">
                 <div class="card-header-content">
                   <mat-icon class="card-icon">directions_car</mat-icon>
                   <mat-card-title class="card-title">
-                    Información Básica
+                    Gestión de Vehículos
                   </mat-card-title>
                   <mat-card-subtitle class="card-subtitle">
-                    Datos principales del vehículo
+                    Administra los vehículos de la resolución seleccionada
                   </mat-card-subtitle>
                 </div>
               </mat-card-header>
               <mat-card-content class="card-content">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Placa *</mat-label>
-                    <input matInput formControlName="placa" placeholder="Ej: ABC-123" (input)="convertirAMayusculas($event, 'placa')">
-                    <mat-icon matSuffix>confirmation_number</mat-icon>
-                    <mat-hint>Formato: XXX-123</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('required')">
-                      La placa es requerida
-                    </mat-error>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Marca</mat-label>
-                    <input matInput formControlName="marca" placeholder="Ej: MERCEDES-BENZ" (input)="convertirAMayusculas($event, 'marca')">
-                    <mat-icon matSuffix>branding_watermark</mat-icon>
-                    <mat-hint>Marca del vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Modelo</mat-label>
-                    <input matInput formControlName="modelo" placeholder="Ej: O500RS" (input)="convertirAMayusculas($event, 'modelo')">
-                    <mat-icon matSuffix>directions_car</mat-icon>
-                    <mat-hint>Modelo específico del vehículo</mat-hint>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Categoría</mat-label>
-                    <mat-select formControlName="categoria">
-                      <mat-option value="M1">M1 - Vehículo de pasajeros hasta 8 asientos</mat-option>
-                      <mat-option value="M2">M2 - Vehículo de pasajeros hasta 8 asientos + conductor</mat-option>
-                      <mat-option value="M3">M3 - Vehículo de pasajeros más de 8 asientos + conductor</mat-option>
-                      <mat-option value="N1">N1 - Vehículo de carga hasta 3.5 toneladas</mat-option>
-                      <mat-option value="N2">N2 - Vehículo de carga entre 3.5 y 12 toneladas</mat-option>
-                      <mat-option value="N3">N3 - Vehículo de carga más de 12 toneladas</mat-option>
-                    </mat-select>
-                    <mat-icon matSuffix>category</mat-icon>
-                    <mat-hint>Selecciona la categoría</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Asientos</mat-label>
-                    <input matInput type="number" formControlName="asientos" placeholder="Ej: 30">
-                    <mat-icon matSuffix>airline_seat_recline_normal</mat-icon>
-                    <mat-hint>Número de asientos del vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Año de Fabricación *</mat-label>
-                    <input matInput type="number" formControlName="anioFabricacion" placeholder="Ej: 2020">
-                    <mat-icon matSuffix>event</mat-icon>
-                    <mat-hint>Año de fabricación del vehículo</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('required')">
-                      El año de fabricación es requerido
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Estado</mat-label>
-                    <mat-select formControlName="estado">
-                      <mat-option value="ACTIVO">Activo</mat-option>
-                      <mat-option value="INACTIVO">Inactivo</mat-option>
-                      <mat-option value="MANTENIMIENTO">En Mantenimiento</mat-option>
-                    </mat-select>
-                    <mat-icon matSuffix>info</mat-icon>
-                    <mat-hint>Estado actual del vehículo</mat-hint>
-                  </mat-form-field>
+                <div class="vehiculos-info">
+                  <p class="info-text">
+                    <strong>Empresa:</strong> {{ getEmpresaNombre() }}<br>
+                    <strong>Resolución:</strong> {{ getResolucionNumero() }}
+                  </p>
+                  
+                  @if (puedeGestionarVehiculos()) {
+                    <div class="vehiculos-actions">
+                      <button mat-raised-button 
+                              color="primary" 
+                              (click)="abrirModalVehiculos()"
+                              class="gestionar-button">
+                        <mat-icon>manage_accounts</mat-icon>
+                        GESTIONAR VEHÍCULOS DE LA RESOLUCIÓN
+                      </button>
+                      <p class="action-hint">
+                        Haz clic para ver, crear, editar o eliminar vehículos de esta resolución
+                      </p>
+                    </div>
+                  } @else {
+                    <div class="no-resolucion">
+                      <mat-icon class="warning-icon">warning</mat-icon>
+                      <p>Debes seleccionar una empresa y resolución para gestionar vehículos</p>
+                    </div>
+                  }
                 </div>
               </mat-card-content>
             </mat-card>
 
-            <!-- Especificaciones Técnicas -->
-            <mat-expansion-panel>
-              <mat-expansion-panel-header>
-                <mat-panel-title>
-                  <mat-icon>build</mat-icon>
-                  Especificaciones Técnicas
-                </mat-panel-title>
-                <mat-panel-description>
-                  Datos técnicos del vehículo
-                </mat-panel-description>
-              </mat-expansion-panel-header>
-
-              <div formGroupName="datosTecnicos">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Motor</mat-label>
-                    <input matInput formControlName="motor" placeholder="Ej: ABC123456789" (input)="convertirAMayusculas($event, 'motor')">
-                    <mat-icon matSuffix>settings</mat-icon>
-                    <mat-hint>Número de motor del vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Chasis</mat-label>
-                    <input matInput formControlName="chasis" placeholder="Ej: A123-B456-C789" (input)="convertirAMayusculas($event, 'chasis')">
-                    <mat-icon matSuffix>confirmation_number</mat-icon>
-                    <mat-hint>Número de chasis del vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Cilindros</mat-label>
-                    <input matInput type="number" formControlName="cilindros" placeholder="Ej: 6">
-                    <mat-icon matSuffix>tune</mat-icon>
-                    <mat-hint>Número de cilindros del motor</mat-hint>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Ejes</mat-label>
-                    <input matInput type="number" formControlName="ejes" placeholder="Ej: 2">
-                    <mat-icon matSuffix>straighten</mat-icon>
-                    <mat-hint>Número de ejes del vehículo</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Ruedas</mat-label>
-                    <input matInput type="number" formControlName="ruedas" placeholder="Ej: 6">
-                    <mat-icon matSuffix>tire_repair</mat-icon>
-                    <mat-hint>Número total de ruedas</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Peso Bruto (toneladas)</mat-label>
-                    <input matInput type="number" formControlName="pesoBruto" placeholder="Ej: 16.000" step="0.001">
-                    <mat-icon matSuffix>scale</mat-icon>
-                    <mat-hint>Peso bruto en toneladas</mat-hint>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Peso Neto (toneladas)</mat-label>
-                    <input matInput type="number" formControlName="pesoNeto" placeholder="Ej: 8.500" step="0.001">
-                    <mat-icon matSuffix>scale</mat-icon>
-                    <mat-hint>Peso neto en toneladas</mat-hint>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Carga Útil (toneladas)</mat-label>
-                    <input matInput [value]="calcularCargaUtil()" readonly>
-                    <mat-icon matSuffix>local_shipping</mat-icon>
-                    <mat-hint>Carga útil calculada automáticamente</mat-hint>
-                  </mat-form-field>
-                </div>
-
-                <!-- Dimensiones del Vehículo -->
-                <mat-divider></mat-divider>
-                <h4>Dimensiones del Vehículo</h4>
-                <div formGroupName="medidas">
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Largo (metros)</mat-label>
-                      <input matInput type="number" formControlName="largo" placeholder="Ej: 10.5" step="0.1">
-                      <mat-icon matSuffix>straighten</mat-icon>
-                      <mat-hint>Longitud del vehículo</mat-hint>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Ancho (metros)</mat-label>
-                      <input matInput type="number" formControlName="ancho" placeholder="Ej: 2.5" step="0.1">
-                      <mat-icon matSuffix>straighten</mat-icon>
-                      <mat-hint>Ancho del vehículo</mat-hint>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Alto (metros)</mat-label>
-                      <input matInput type="number" formControlName="alto" placeholder="Ej: 3.2" step="0.1">
-                      <mat-icon matSuffix>straighten</mat-icon>
-                      <mat-hint>Altura del vehículo</mat-hint>
-                    </mat-form-field>
+            <!-- Información del Vehículo Seleccionado -->
+            @if (vehiculoSeleccionado()) {
+              <mat-card class="form-card">
+                <mat-card-header class="card-header">
+                  <div class="card-header-content">
+                    <mat-icon class="card-icon">directions_car</mat-icon>
+                    <mat-card-title class="card-title">
+                      Vehículo Seleccionado
+                    </mat-card-title>
+                    <mat-card-subtitle class="card-subtitle">
+                      Información específica del vehículo
+                    </mat-card-subtitle>
                   </div>
-                </div>
-              </div>
-            </mat-expansion-panel>
+                </mat-card-header>
+                <mat-card-content class="card-content">
+                  <div class="vehiculo-info">
+                    <div class="vehiculo-header">
+                      <mat-icon class="check-icon">check_circle</mat-icon>
+                      <h3>{{ vehiculoSeleccionado()?.placa }}</h3>
+                    </div>
+                    
+                    <div class="vehiculo-details">
+                      <div class="detail-row">
+                        <span class="detail-label">Marca:</span>
+                        <span class="detail-value">{{ vehiculoSeleccionado()?.marca }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Categoría:</span>
+                        <span class="detail-value">
+                          <mat-chip [class]="'categoria-chip-' + vehiculoSeleccionado()?.categoria?.toLowerCase()">
+                            {{ vehiculoSeleccionado()?.categoria }}
+                          </mat-chip>
+                        </span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Año:</span>
+                        <span class="detail-value">{{ vehiculoSeleccionado()?.anioFabricacion }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Estado:</span>
+                        <span class="detail-value">
+                          <mat-chip [class]="'estado-chip-' + vehiculoSeleccionado()?.estado?.toLowerCase()">
+                            {{ vehiculoSeleccionado()?.estado }}
+                          </mat-chip>
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Información del TUC -->
+                    <div class="tuc-section">
+                      <h4>Información del TUC</h4>
+                      <div class="form-row">
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>Número de TUC</mat-label>
+                          <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
+                          <mat-icon matSuffix>receipt</mat-icon>
+                          <mat-hint>Número del TUC del vehículo</mat-hint>
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    <!-- Rutas Asignadas -->
+                    <div class="rutas-section">
+                      <h4>Rutas Asignadas</h4>
+                      <div class="form-row">
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>Rutas Asignadas</mat-label>
+                          <mat-select formControlName="rutasAsignadasIds" multiple [disabled]="!puedeSeleccionarRutas()">
+                            @if (rutasDisponibles().length > 0) {
+                              @for (ruta of rutasDisponibles(); track ruta.id) {
+                                <mat-option [value]="ruta.id">
+                                  {{ ruta.codigoRuta }} - {{ ruta.origen }} → {{ ruta.destino }}
+                                  <span class="ruta-info-badge">
+                                    {{ ruta.tipoRuta }} | {{ ruta.frecuencias }}
+                                  </span>
+                                </mat-option>
+                              }
+                            } @else {
+                              <mat-option value="" disabled>
+                                No hay rutas disponibles en esta resolución
+                              </mat-option>
+                            }
+                          </mat-select>
+                          <mat-icon matSuffix>route</mat-icon>
+                          <mat-hint>{{ getRutasHint() }}</mat-hint>
+                          <mat-error *ngIf="vehiculoForm.get('rutasAsignadasIds')?.hasError('required')">
+                            Debe seleccionar al menos una ruta
+                          </mat-error>
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    <!-- Información Técnica -->
+                    <div class="tecnica-section">
+                      <h4>Especificaciones Técnicas</h4>
+                      <div class="tecnica-info">
+                        @if (vehiculoSeleccionado()?.datosTecnicos) {
+                          <div class="datos-tecnicos">
+                            <div class="detail-row">
+                              <span class="detail-label">Motor:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.motor }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Chasis:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.chasis }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Cilindros:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.cilindros }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Ejes:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.ejes }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Ruedas:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.ruedas }}</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Peso Neto:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.pesoNeto }} ton</span>
+                            </div>
+                            <div class="detail-row">
+                              <span class="detail-label">Peso Bruto:</span>
+                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.pesoBruto }} ton</span>
+                            </div>
+                          </div>
+                        } @else {
+                          <p class="no-datos">No hay datos técnicos disponibles para este vehículo</p>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
+
+            <!-- Mensaje cuando no hay vehículo seleccionado -->
+            @if (!vehiculoSeleccionado()) {
+              <mat-card class="form-card">
+                <mat-card-header class="card-header">
+                  <div class="card-header-content">
+                    <mat-icon class="card-icon">info</mat-icon>
+                    <mat-card-title class="card-title">
+                      Selecciona un Vehículo
+                    </mat-card-title>
+                    <mat-card-subtitle class="card-subtitle">
+                      Para ver información específica del vehículo
+                    </mat-card-subtitle>
+                  </div>
+                </mat-card-header>
+                <mat-card-content class="card-content">
+                  <div class="no-vehiculo">
+                    <mat-icon class="info-icon">info</mat-icon>
+                    <p>No hay vehículo seleccionado</p>
+                    <p class="subtitle">Selecciona un vehículo desde la gestión para ver sus especificaciones técnicas, TUC y rutas asignadas</p>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            }
 
             <!-- Botones de Acción -->
             <div class="form-actions">
@@ -556,6 +590,246 @@ import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../m
 
     mat-expansion-panel-header {
       background-color: #f8f9fa;
+    }
+
+    .resolucion-tipo-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tipo-primigenia {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .tipo-hija {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    // Estilos para la gestión de vehículos
+    .vehiculos-info {
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .info-text {
+      margin: 0 0 20px 0;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .vehiculos-actions {
+      text-align: center;
+    }
+
+    .gestionar-button {
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      margin-bottom: 16px;
+    }
+
+    .action-hint {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    .no-resolucion {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .warning-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #ff9800;
+      margin-bottom: 16px;
+    }
+
+    // Estilos para información técnica
+    .tecnica-info {
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .vehiculo-seleccionado {
+      background-color: #e8f5e8;
+      border: 1px solid #4caf50;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .check-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #4caf50;
+      margin-bottom: 16px;
+    }
+
+    .no-vehiculo {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .info-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #2196f3;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+
+    // Estilos para información del vehículo seleccionado
+    .vehiculo-info {
+      padding: 20px;
+    }
+
+    .vehiculo-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .vehiculo-header h3 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    .vehiculo-details {
+      margin-bottom: 32px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #333;
+      min-width: 120px;
+    }
+
+    .detail-value {
+      color: #666;
+      text-align: right;
+    }
+
+    .tuc-section, .rutas-section, .tecnica-section {
+      margin-bottom: 32px;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #1976d2;
+    }
+
+    .tuc-section h4, .rutas-section h4, .tecnica-section h4 {
+      margin: 0 0 16px 0;
+      color: #1976d2;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .datos-tecnicos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .no-datos {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+      padding: 20px;
+    }
+
+    // Estilos para chips de categoría y estado
+    .categoria-chip-m3 {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .categoria-chip-n3 {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    .categoria-chip-m2 {
+      background-color: #2196f3;
+      color: white;
+    }
+
+    .categoria-chip-n2 {
+      background-color: #9c27b0;
+      color: white;
+    }
+
+    .estado-chip-activo {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .estado-chip-mantenimiento {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    .estado-chip-inactivo {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .ruta-info-badge {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: #666;
+      font-style: italic;
+    }
+
+    .form-field mat-select {
+      max-height: 300px;
+    }
+
+    .form-field mat-option {
+      padding: 8px 16px;
+      line-height: 1.4;
+    }
+
+    mat-expansion-panel-header {
+      background-color: #f8f9fa;
       border-radius: 8px 8px 0 0;
     }
 
@@ -596,16 +870,34 @@ export class VehiculoFormComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private vehiculoService = inject(VehiculoService);
+  private empresaService = inject(EmpresaService);
+  private resolucionService = inject(ResolucionService);
+  private rutaService = inject(RutaService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   vehiculoForm!: FormGroup;
   isLoading = signal(false);
   isSubmitting = signal(false);
   isEditing = signal(false);
   vehiculoId = signal<string | null>(null);
+  
+  // Datos de referencia
+  empresas = signal<Empresa[]>([]);
+  resoluciones = signal<Resolucion[]>([]);
+  rutasDisponibles = signal<Ruta[]>([]);
+  
+  // Autocompletado para empresas
+  empresasFiltradas!: Observable<Empresa[]>;
+  
+  // Getters para los controles del formulario
+  get empresaControl(): FormControl {
+    return this.vehiculoForm.get('empresaActualId') as FormControl;
+  }
 
   ngOnInit(): void {
     this.initializeForm();
+    this.loadEmpresas();
     
     if (!this.modalMode()) {
       this.loadVehiculo();
@@ -615,15 +907,37 @@ export class VehiculoFormComponent implements OnInit {
         empresaActualId: this.empresaId(),
         resolucionId: this.resolucionId()
       });
+      
+      // Cargar resoluciones y rutas si ya hay empresa y resolución
+      if (this.empresaId()) {
+        this.loadResoluciones(this.empresaId());
+        if (this.resolucionId()) {
+          this.loadRutasDisponibles(this.resolucionId());
+        }
+      }
     }
+  }
+
+  // Método para limpiar el campo de empresa
+  limpiarEmpresa(): void {
+    this.empresaControl.setValue('');
+    this.vehiculoForm.patchValue({ empresaActualId: '' });
+    
+    // Limpiar resoluciones y rutas
+    this.resoluciones.set([]);
+    this.rutasDisponibles.set([]);
+    
+    // Limpiar y deshabilitar campo de resolución
+    this.vehiculoForm.patchValue({ resolucionId: '' });
+    this.vehiculoForm.get('resolucionId')?.disable();
   }
 
   private initializeForm(): void {
     this.vehiculoForm = this.fb.group({
-      empresaActualId: [''],
-      resolucionId: [''],
+      empresaActualId: ['', Validators.required],
+      resolucionId: [{ value: '', disabled: true }, Validators.required],
       numeroTuc: [''],
-      rutasAsignadasIds: [[]],
+      rutasAsignadasIds: [[], Validators.required],
       placa: ['', [Validators.required, Validators.pattern(/^[A-Z]{1,3}-\d{3,4}$/)]],
       marca: [''],
       modelo: [''],
@@ -683,6 +997,11 @@ export class VehiculoFormComponent implements OnInit {
           this.vehiculoForm.patchValue({
             asientos: vehiculo.datosTecnicos.asientos
           });
+          
+          // Cargar resoluciones y rutas para este vehículo
+          this.loadResoluciones(vehiculo.empresaActualId);
+          this.loadRutasDisponibles(vehiculo.resolucionId);
+          
           this.isLoading.set(false);
         },
         error: (error: any) => {
@@ -694,6 +1013,126 @@ export class VehiculoFormComponent implements OnInit {
     } else {
       this.isLoading.set(false);
     }
+  }
+
+  private loadEmpresas(): void {
+    this.empresaService.getEmpresas().subscribe({
+      next: (empresas) => {
+        this.empresas.set(empresas.filter(e => e.estado === 'HABILITADA'));
+        // Configurar autocompletado después de cargar empresas
+        setTimeout(() => this.configurarAutocompletado(), 0);
+      },
+      error: (error) => {
+        console.error('Error cargando empresas:', error);
+        this.snackBar.open('Error al cargar empresas', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  private configurarAutocompletado(): void {
+    // Solo configurar si el formulario está inicializado
+    if (this.vehiculoForm && this.empresaControl) {
+      // Autocompletado para empresas
+      this.empresasFiltradas = this.empresaControl.valueChanges.pipe(
+        startWith(''),
+        map(value => this.filtrarEmpresas(value))
+      );
+    }
+  }
+
+  private filtrarEmpresas(value: any): Empresa[] {
+    if (!value) return this.empresas();
+    
+    // Si el valor es un objeto Empresa, extraer el texto para filtrar
+    let filterValue = '';
+    if (typeof value === 'string') {
+      filterValue = value.toLowerCase();
+    } else if (value && typeof value === 'object') {
+      filterValue = (value.razonSocial?.principal?.toLowerCase() || value.ruc?.toLowerCase() || '');
+    }
+    
+    return this.empresas().filter(empresa => {
+      const rucMatch = empresa.ruc.toLowerCase().includes(filterValue);
+      const razonSocialMatch = empresa.razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
+      return rucMatch || razonSocialMatch;
+    });
+  }
+
+  // Método para mostrar la empresa en el input (arrow function para preservar `this`)
+  displayEmpresa = (empresa: Empresa | string | null | undefined): string => {
+    if (!empresa) return '';
+    
+    // Si es un string (ID), buscar la empresa en la lista
+    if (typeof empresa === 'string') {
+      const empresaEncontrada = this.empresas().find(e => e.id === empresa);
+      if (empresaEncontrada) {
+        empresa = empresaEncontrada;
+      } else {
+        return 'Empresa no encontrada';
+      }
+    }
+    
+    // Verificar que razonSocial existe y tiene la propiedad principal
+    if (empresa.razonSocial && empresa.razonSocial.principal) {
+      return `${empresa.ruc} - ${empresa.razonSocial.principal}`;
+    } else if (empresa.razonSocial) {
+      return `${empresa.ruc} - Sin razón social`;
+    } else {
+      return `${empresa.ruc} - Sin información de razón social`;
+    }
+  }
+
+  // Método para manejar la selección de empresa
+  onEmpresaSelected(event: any): void {
+    const empresa = event.option.value;
+    if (empresa && empresa.id) {
+      // Establecer el objeto empresa completo en el control
+      this.empresaControl.setValue(empresa);
+      // También actualizar el valor del formulario con el ID
+      this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
+      
+      // Habilitar el campo de resolución
+      this.vehiculoForm.get('resolucionId')?.enable();
+      
+      this.onEmpresaChange();
+    }
+  }
+
+  private loadResoluciones(empresaId: string): void {
+    if (!empresaId) return;
+    
+    this.resolucionService.getResoluciones().subscribe({
+      next: (resoluciones) => {
+        // Filtrar resoluciones de la empresa seleccionada
+        const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
+        this.resoluciones.set(resolucionesEmpresa);
+        
+        // Si no hay resolución seleccionada, limpiar el campo
+        if (!this.vehiculoForm.get('resolucionId')?.value) {
+          this.vehiculoForm.patchValue({ resolucionId: '' });
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando resoluciones:', error);
+        this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  private loadRutasDisponibles(resolucionId: string): void {
+    if (!resolucionId) return;
+    
+    this.rutaService.getRutas().subscribe({
+      next: (rutas) => {
+        // Filtrar rutas de la resolución seleccionada
+        const rutasResolucion = rutas.filter(r => r.resolucionId === resolucionId);
+        this.rutasDisponibles.set(rutasResolucion);
+      },
+      error: (error) => {
+        console.error('Error cargando rutas:', error);
+        this.snackBar.open('Error al cargar rutas', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   onSubmit(): void {
@@ -825,25 +1264,63 @@ export class VehiculoFormComponent implements OnInit {
   }
 
   onEmpresaChange(): void {
-    this.vehiculoForm.get('resolucionId')?.setValue('');
-    this.vehiculoForm.get('rutasAsignadasIds')?.setValue([]);
+    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
+    
+    // Limpiar campos dependientes
+    this.vehiculoForm.patchValue({
+      resolucionId: '',
+      rutasAsignadasIds: []
+    });
+    
+    // Cargar resoluciones de la empresa seleccionada
+    if (empresaId) {
+      this.loadResoluciones(empresaId);
+    } else {
+      this.resoluciones.set([]);
+      this.rutasDisponibles.set([]);
+    }
   }
 
   onResolucionChange(): void {
-    this.vehiculoForm.get('rutasAsignadasIds')?.setValue([]);
+    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
+    
+    // Limpiar rutas asignadas
+    this.vehiculoForm.patchValue({
+      rutasAsignadasIds: []
+    });
+    
+    // Cargar rutas disponibles de la resolución seleccionada
+    if (resolucionId) {
+      this.loadRutasDisponibles(resolucionId);
+    } else {
+      this.rutasDisponibles.set([]);
+    }
   }
 
   puedeSeleccionarRutas(): boolean {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    return !!empresaId && !!resolucionId;
+    const hayRutasDisponibles = this.rutasDisponibles().length > 0;
+    return !!empresaId && !!resolucionId && hayRutasDisponibles;
   }
 
   getRutasHint(): string {
-    if (!this.puedeSeleccionarRutas()) {
-      return 'Selecciona empresa y resolución primero';
+    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
+    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
+    
+    if (!empresaId) {
+      return 'Selecciona una empresa primero';
     }
-    return 'Selecciona las rutas autorizadas';
+    
+    if (!resolucionId) {
+      return 'Selecciona una resolución primero';
+    }
+    
+    if (this.rutasDisponibles().length === 0) {
+      return 'No hay rutas disponibles en esta resolución';
+    }
+    
+    return `Selecciona las rutas autorizadas (${this.rutasDisponibles().length} disponibles)`;
   }
 
   calcularCargaUtil(): number {
@@ -857,5 +1334,66 @@ export class VehiculoFormComponent implements OnInit {
 
   volver(): void {
     this.router.navigate(['/vehiculos']);
+  }
+
+  // Métodos para el modal de gestión de vehículos
+  vehiculoSeleccionado = signal<Vehiculo | null>(null);
+
+  getEmpresaNombre(): string {
+    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
+    if (!empresaId) return 'No seleccionada';
+    
+    const empresa = this.empresas().find(e => e.id === empresaId);
+    return empresa ? `${empresa.ruc} - ${empresa.razonSocial.principal}` : 'No encontrada';
+  }
+
+  getResolucionNumero(): string {
+    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
+    if (!resolucionId) return 'No seleccionada';
+    
+    const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+    return resolucion ? `${resolucion.nroResolucion} - ${resolucion.tipoTramite}` : 'No encontrada';
+  }
+
+  puedeGestionarVehiculos(): boolean {
+    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
+    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
+    return !!empresaId && !!resolucionId;
+  }
+
+  abrirModalVehiculos(): void {
+    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
+    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
+    
+    if (!empresaId || !resolucionId) {
+      this.snackBar.open('Debes seleccionar una empresa y resolución primero', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const empresa = this.empresas().find(e => e.id === empresaId);
+    const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+    
+    if (!empresa || !resolucion) {
+      this.snackBar.open('Error: Empresa o resolución no encontrada', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Abrir el modal de gestión de vehículos
+    const dialogRef = this.dialog.open(VehiculosResolucionModalComponent, {
+      data: { empresa, resolucion },
+      width: '90vw',
+      maxWidth: '1200px',
+      height: '90vh',
+      maxHeight: '800px'
+    });
+
+    // Escuchar cuando se cierre el modal
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Si se seleccionó un vehículo, actualizar el formulario
+        this.vehiculoSeleccionado.set(result);
+        this.snackBar.open(`Vehículo seleccionado: ${result.placa}`, 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 } 

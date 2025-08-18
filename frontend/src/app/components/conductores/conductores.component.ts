@@ -30,7 +30,6 @@ import { MatListModule } from '@angular/material/list';
 // import { MatChipListboxModule } from '@angular/material/chips';
 
 // Componentes compartidos
-import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { MatConfirmDialogComponent } from '../../shared/mat-confirm-dialog.component';
 import { ConductorFormComponent } from './conductor-form.component';
 
@@ -97,7 +96,6 @@ import {
     MatDividerModule,
     MatListModule,
     // MatChipListboxModule,
-    SmartIconComponent,
     ConductorFormComponent
   ],
   templateUrl: './conductores.component.html',

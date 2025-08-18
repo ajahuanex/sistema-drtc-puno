@@ -21,9 +21,15 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { EmpresaService } from '../../services/empresa.service';
+import { RutaService } from '../../services/ruta.service';
 import { AuthService } from '../../services/auth.service';
 import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empresa.model';
+import { Ruta } from '../../models/ruta.model';
 import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
+import { ValidacionSunatModalComponent } from './validacion-sunat-modal.component';
+import { GestionDocumentosModalComponent } from './gestion-documentos-modal.component';
+import { HistorialAuditoriaModalComponent } from './historial-auditoria-modal.component';
+import { CrearRutaModalComponent } from './crear-ruta-modal.component';
 
 @Component({
   selector: 'app-empresas',
@@ -68,6 +74,14 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
         <button mat-raised-button color="accent" (click)="crearResolucion()" class="action-button">
           <mat-icon>gavel</mat-icon>
           CREAR RESOLUCIÓN
+        </button>
+        <button mat-raised-button color="accent" (click)="crearRutaGeneral()" class="action-button">
+          <mat-icon>route</mat-icon>
+          CREAR RUTA
+        </button>
+        <button mat-button color="accent" (click)="dashboardEmpresas()" class="action-button">
+          <mat-icon>dashboard</mat-icon>
+          DASHBOARD
         </button>
         <button mat-button color="accent" (click)="exportarEmpresas()" class="action-button">
           <mat-icon>download</mat-icon>
@@ -277,16 +291,25 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
                 </td>
               </ng-container>
 
-              <!-- Representante Column -->
-              <ng-container matColumnDef="representante">
+              <!-- Rutas Column -->
+              <ng-container matColumnDef="rutas">
                 <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                   <div class="header-content">
-                    <span>REPRESENTANTE</span>
+                    <span>RUTAS</span>
                   </div>
                 </th>
                 <td mat-cell *matCellDef="let empresa" class="table-cell">
                   <div class="cell-content">
-                    <span class="cell-text">{{ empresa.representanteLegal.nombres }}</span>
+                    <mat-chip-set>
+                      <mat-chip color="warn" selected>{{ empresa.rutas?.length || 0 }}</mat-chip>
+                    </mat-chip-set>
+                    <button mat-icon-button 
+                            size="small" 
+                            (click)="verRutasEmpresa(empresa)"
+                            matTooltip="VER RUTAS DE LA EMPRESA"
+                            class="ruta-button">
+                      <mat-icon>route</mat-icon>
+                    </button>
                   </div>
                 </td>
               </ng-container>
@@ -355,6 +378,22 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
                       <button mat-menu-item (click)="verResoluciones(empresa.id)">
                         <mat-icon>gavel</mat-icon>
                         <span>VER RESOLUCIONES</span>
+                      </button>
+                      <button mat-menu-item (click)="gestionarDocumentos(empresa)">
+                        <mat-icon>description</mat-icon>
+                        <span>GESTIONAR DOCUMENTOS</span>
+                      </button>
+                      <button mat-menu-item (click)="verHistorialAuditoria(empresa)">
+                        <mat-icon>history</mat-icon>
+                        <span>HISTORIAL DE AUDITORÍA</span>
+                      </button>
+                      <button mat-menu-item (click)="validarConSunat(empresa)">
+                        <mat-icon>verified</mat-icon>
+                        <span>VALIDAR CON SUNAT</span>
+                      </button>
+                      <button mat-menu-item (click)="crearRuta(empresa)">
+                        <mat-icon>route</mat-icon>
+                        <span>CREAR RUTA</span>
                       </button>
                       <mat-divider></mat-divider>
                       <button mat-menu-item color="warn" (click)="eliminarEmpresa(empresa.id)">
@@ -700,6 +739,24 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
+    /* Estilos para la columna de rutas */
+    .ruta-button {
+      margin-left: 8px;
+      color: #ff9800;
+      transition: all 0.3s ease;
+    }
+
+    .ruta-button:hover {
+      color: #f57c00;
+      transform: scale(1.1);
+    }
+
+    .ruta-button mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .page-header {
@@ -740,6 +797,7 @@ import { CrearResolucionModalComponent } from './crear-resolucion-modal.componen
 })
 export class EmpresasComponent implements OnInit {
   private empresaService = inject(EmpresaService);
+  private rutaService = inject(RutaService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -752,7 +810,7 @@ export class EmpresasComponent implements OnInit {
   estadisticas = signal<EmpresaEstadisticas | undefined>(undefined);
 
   // Computed properties
-  displayedColumns = ['ruc', 'razonSocial', 'estado', 'representante', 'vehiculos', 'conductores', 'acciones'];
+  displayedColumns = ['ruc', 'razonSocial', 'estado', 'rutas', 'vehiculos', 'conductores', 'acciones'];
   filtrosForm: FormGroup;
 
   constructor() {
@@ -930,6 +988,114 @@ export class EmpresasComponent implements OnInit {
     });
   }
 
+  dashboardEmpresas(): void {
+    this.router.navigate(['/empresas/dashboard']);
+  }
+
+  gestionarDocumentos(empresa: Empresa): void {
+    const dialogRef = this.dialog.open(GestionDocumentosModalComponent, {
+      width: '800px',
+      data: {
+        empresaId: empresa.id,
+        empresaRuc: empresa.ruc,
+        empresaRazonSocial: empresa.razonSocial.principal,
+        documentos: empresa.documentos
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Documentos actualizados:', result);
+        this.snackBar.open('DOCUMENTOS ACTUALIZADOS EXITOSAMENTE', 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      }
+    });
+  }
+
+  verHistorialAuditoria(empresa: Empresa): void {
+    const dialogRef = this.dialog.open(HistorialAuditoriaModalComponent, {
+      width: '900px',
+      data: {
+        empresaId: empresa.id,
+        empresaRuc: empresa.ruc,
+        empresaRazonSocial: empresa.razonSocial.principal,
+        auditoria: empresa.auditoria
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Auditoría exportada:', result);
+      }
+    });
+  }
+
+  validarConSunat(empresa: Empresa): void {
+    const dialogRef = this.dialog.open(ValidacionSunatModalComponent, {
+      width: '600px',
+      data: {
+        ruc: empresa.ruc,
+        razonSocial: empresa.razonSocial.principal
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Validación SUNAT:', result);
+        this.snackBar.open('VALIDACIÓN SUNAT COMPLETADA', 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+      }
+    });
+  }
+
+  crearRuta(empresa: Empresa): void {
+    const dialogRef = this.dialog.open(CrearRutaModalComponent, {
+      width: '900px',
+      maxHeight: '90vh',
+      data: {
+        empresa: empresa // Pre-cargar la empresa seleccionada
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('RUTA CREADA:', result);
+        this.snackBar.open('RUTA CREADA EXITOSAMENTE', 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+        // Aquí podrías recargar las rutas si es necesario
+      }
+    });
+  }
+
+  crearRutaGeneral(): void {
+    const dialogRef = this.dialog.open(CrearRutaModalComponent, {
+      width: '900px',
+      maxHeight: '90vh',
+      data: {} // Los datos se seleccionarán en el modal
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('RUTA CREADA:', result);
+        this.snackBar.open('RUTA CREADA EXITOSAMENTE', 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+        // Aquí podrías recargar las rutas si es necesario
+      }
+    });
+  }
+
   crearResolucion(): void {
     const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
       width: '700px',
@@ -945,6 +1111,34 @@ export class EmpresasComponent implements OnInit {
           verticalPosition: 'top'
         });
         // AQUÍ PODRÍAS RECARGAR LAS RESOLUCIONES SI ES NECESARIO
+      }
+    });
+  }
+
+  verRutasEmpresa(empresa: Empresa): void {
+    // Cargar las rutas de la empresa
+    this.rutaService.getRutasPorEmpresa(empresa.id).subscribe({
+      next: (rutas) => {
+        // Mostrar las rutas en un modal o navegar a una vista de rutas
+        console.log('RUTAS DE LA EMPRESA:', rutas);
+        
+        // Por ahora, mostrar en consola y snackbar
+        this.snackBar.open(`EMPRESA ${empresa.ruc}: ${rutas.length} RUTAS ENCONTRADAS`, 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
+        
+        // Aquí podrías abrir un modal para mostrar las rutas
+        // o navegar a una vista específica de rutas de la empresa
+      },
+      error: (error) => {
+        console.error('ERROR CARGANDO RUTAS:', error);
+        this.snackBar.open('ERROR AL CARGAR LAS RUTAS DE LA EMPRESA', 'CERRAR', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        });
       }
     });
   }

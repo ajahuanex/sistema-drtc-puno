@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom } from '@angular/core';
+import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -6,6 +6,7 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { MAT_DATE_LOCALE, DateAdapter, NativeDateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -26,6 +27,8 @@ export const appConfig: ApplicationConfig = {
     
     // Hidratación del lado del cliente
     provideClientHydration(),
+    
+
     
     // Configuración de Angular Material para fechas
     { provide: MAT_DATE_LOCALE, useValue: 'es' },

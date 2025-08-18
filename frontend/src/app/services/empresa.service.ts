@@ -943,4 +943,26 @@ export class EmpresaService {
       observaciones: empresa.observaciones || ''
     };
   }
+
+  // Método para validación SUNAT
+  validarEmpresaSunat(ruc: string): Observable<any> {
+    // Simulación de validación SUNAT
+    return of({
+      valido: true,
+      razonSocial: 'EMPRESA VALIDADA',
+      estado: 'ACTIVO',
+      condicion: 'HABIDO',
+      direccion: 'DIRECCIÓN VALIDADA',
+      fechaActualizacion: new Date()
+    }).pipe(
+      catchError(error => {
+        return of({
+          valido: false,
+          error: 'Error en validación SUNAT: ' + error.message
+        });
+      })
+    );
+  }
+
+
 } 

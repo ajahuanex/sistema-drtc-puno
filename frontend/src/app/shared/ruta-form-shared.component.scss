@@ -1,0 +1,278 @@
+.content-section {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  h3 {
+    margin-top: 20px;
+    color: #666;
+    font-weight: 500;
+  }
+}
+
+.mode-toggle-card {
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .mode-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 500;
+      color: #333;
+
+      input[type="checkbox"] {
+        margin-right: 12px;
+        transform: scale(1.2);
+      }
+
+      .mode-text {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1976d2;
+      }
+    }
+
+    .mode-description {
+      margin-left: 16px;
+      color: #666;
+      font-size: 14px;
+      font-style: italic;
+    }
+  }
+
+  .selection-section {
+    h3 {
+      margin: 0 0 16px 0;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+  }
+
+  .info-card {
+    background: #f5f5f5;
+    padding: 16px;
+    border-radius: 6px;
+    border-left: 4px solid #1976d2;
+
+    h4 {
+      margin: 0 0 12px 0;
+      color: #1976d2;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 8px 0;
+      color: #333;
+      font-size: 14px;
+
+      strong {
+        font-weight: 600;
+      }
+    }
+  }
+}
+
+.form-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .step-content {
+    padding: 24px 0;
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .localidades-section {
+      h3 {
+        margin: 0 0 16px 0;
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .section-description {
+        color: #666;
+        margin-bottom: 24px;
+        font-size: 14px;
+      }
+
+      .localidades-list {
+        margin-bottom: 24px;
+
+        .localidad-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          background: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 6px;
+          margin-bottom: 8px;
+
+          .localidad-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+
+            .localidad-orden {
+              background: #1976d2;
+              color: white;
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 12px;
+              font-weight: 600;
+            }
+
+            .localidad-nombre {
+              font-weight: 600;
+              color: #333;
+            }
+
+            .localidad-provincia {
+              color: #666;
+              font-size: 14px;
+            }
+          }
+
+          .remove-button {
+            color: #dc3545;
+          }
+        }
+      }
+
+      .add-localidad-section {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+
+        .form-field {
+          flex: 1;
+        }
+
+        .add-button {
+          height: 56px;
+          min-width: 120px;
+        }
+      }
+    }
+
+    .checkbox-section {
+      margin-top: 24px;
+    }
+  }
+
+  .step-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-top: 1px solid #e0e0e0;
+    margin-top: 24px;
+
+    button {
+      min-width: 120px;
+    }
+  }
+}
+
+.form-field {
+  width: 100%;
+}
+
+// Estilos para las opciones de autocompletado
+.empresa-option,
+.resolucion-option,
+.localidad-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .empresa-ruc,
+  .resolucion-numero,
+  .localidad-nombre {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .empresa-razon,
+  .resolucion-fecha,
+  .localidad-provincia {
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .content-section {
+    padding: 16px;
+  }
+
+  .mode-toggle {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .mode-description {
+      margin-left: 0;
+      margin-top: 8px;
+    }
+  }
+
+  .add-localidad-section {
+    flex-direction: column;
+    align-items: stretch;
+
+    .add-button {
+      min-width: auto;
+    }
+  }
+
+  .step-actions {
+    flex-direction: column;
+    gap: 12px;
+
+    button {
+      width: 100%;
+    }
+  }
+} 
