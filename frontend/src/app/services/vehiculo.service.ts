@@ -379,7 +379,8 @@ export class VehiculoService {
     const placas = this.mockVehiculos.map(v => v.placa);
     console.log('🔢 PLACAS DISPONIBLES:', placas);
     
-    return of(this.mockVehiculos);
+    // Devolver una copia del array para evitar mutaciones externas
+    return of([...this.mockVehiculos]);
     
     /* CÓDIGO HTTP COMENTADO TEMPORALMENTE
     const url = `${this.apiUrl}/vehiculos`;
@@ -450,7 +451,12 @@ export class VehiculoService {
           estaActivo: true,
           datosTecnicos: vehiculo.datosTecnicos
         };
+        
+        console.log('🚗 Creando vehículo mock:', newVehiculo);
         this.mockVehiculos.push(newVehiculo);
+        console.log('📊 Total vehículos mock después de crear:', this.mockVehiculos.length);
+        console.log('🔢 Placas disponibles después de crear:', this.mockVehiculos.map(v => v.placa));
+        
         return of(newVehiculo);
       })
     );
