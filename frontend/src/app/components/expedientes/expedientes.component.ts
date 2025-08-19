@@ -1,8 +1,8 @@
-import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -11,8 +11,40 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort, Sort } from '@angular/material/sort';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatDividerModule } from '@angular/material/divider';
+
 import { ExpedienteService } from '../../services/expediente.service';
-import { Expediente } from '../../models/expediente.model';
+import { Expediente, TipoTramite, EstadoExpediente, PrioridadExpediente, TipoSolicitante } from '../../models/expediente.model';
+import { CrearExpedienteModalComponent } from './crear-expediente-modal.component';
+
+interface ExpedienteFiltros {
+  numero: string;
+  tipoTramite: string;
+  estado: string;
+  prioridad: string;
+  empresaId: string;
+  fechaDesde: Date | null;
+  fechaHasta: Date | null;
+}
+
+interface ColumnaExpediente {
+  id: string;
+  nombre: string;
+  visible: boolean;
+  ordenable: boolean;
+  filtrable: boolean;
+}
 
 @Component({
   selector: 'app-expedientes',
@@ -21,6 +53,7 @@ import { Expediente } from '../../models/expediente.model';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -29,98 +62,290 @@ import { Expediente } from '../../models/expediente.model';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatDialogModule,
+    MatMenuModule,
+    MatCheckboxModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    MatExpansionModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatSlideToggleModule,
+    MatDividerModule
   ],
   template: `
     <div class="expedientes-container">
-      <mat-card>
+      <!-- Header Principal -->
+      <mat-card class="header-card">
         <mat-card-header>
-          <mat-card-title>
-            <mat-icon>folder</mat-icon>
-            Gestión de Expedientes
-          </mat-card-title>
-          <mat-card-subtitle>
-            Administra todos los expedientes del sistema
-          </mat-card-subtitle>
+          <div class="header-content">
+            <div class="header-title">
+              <mat-icon class="header-icon">folder</mat-icon>
+              <div class="title-text">
+                <h1>Gestión de Expedientes</h1>
+                <p>Administra todos los expedientes del sistema</p>
+              </div>
+            </div>
+            <div class="header-actions">
+              <button mat-raised-button 
+                      color="primary" 
+                      (click)="abrirModalCrearExpediente()"
+                      class="crear-button">
+                <mat-icon>add</mat-icon>
+                Nuevo Expediente
+              </button>
+              <button mat-stroked-button 
+                      (click)="toggleFiltrosAvanzados()"
+                      class="filtros-button">
+                <mat-icon>{{ filtrosAvanzados() ? 'expand_less' : 'expand_more' }}</mat-icon>
+                {{ filtrosAvanzados() ? 'Ocultar Filtros' : 'Mostrar Filtros' }}
+              </button>
+            </div>
+          </div>
         </mat-card-header>
-        
+      </mat-card>
+
+      <!-- Filtros Avanzados -->
+      <mat-card class="filtros-card" *ngIf="filtrosAvanzados()">
         <mat-card-content>
-          <!-- Filtros -->
-          <div class="filtros-container">
-            <mat-form-field appearance="outline" class="filtro-field">
-              <mat-label>Buscar por número</mat-label>
-              <input matInput [(ngModel)]="filtroNumero" placeholder="E-0001-2025">
-              <mat-icon matSuffix>search</mat-icon>
-            </mat-form-field>
-            
-            <mat-form-field appearance="outline" class="filtro-field">
-              <mat-label>Tipo de Trámite</mat-label>
-              <mat-select [(ngModel)]="filtroTipoTramite">
-                <mat-option value="">Todos</mat-option>
-                <mat-option value="PRIMIGENIA">PRIMIGENIA</mat-option>
-                <mat-option value="RENOVACION">RENOVACION</mat-option>
-                <mat-option value="INCREMENTO">INCREMENTO</mat-option>
-                <mat-option value="SUSTITUCION">SUSTITUCION</mat-option>
-                <mat-option value="OTROS">OTROS</mat-option>
-              </mat-select>
-            </mat-form-field>
-            
-            <mat-form-field appearance="outline" class="filtro-field">
-              <mat-label>Estado</mat-label>
-              <mat-select [(ngModel)]="filtroEstado">
-                <mat-option value="">Todos</mat-option>
-                <mat-option value="EN PROCESO">EN PROCESO</mat-option>
-                <mat-option value="APROBADO">APROBADO</mat-option>
-                <mat-option value="RECHAZADO">RECHAZADO</mat-option>
-                <mat-option value="ARCHIVADO">ARCHIVADO</mat-option>
-              </mat-select>
-            </mat-form-field>
+          <form [formGroup]="filtrosForm" class="filtros-form">
+            <div class="filtros-row">
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Número de Expediente</mat-label>
+                <input matInput 
+                       formControlName="numero" 
+                       placeholder="E-0001-2025"
+                       (input)="aplicarFiltros()">
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Tipo de Trámite</mat-label>
+                <mat-select formControlName="tipoTramite" (selectionChange)="aplicarFiltros()">
+                  <mat-option value="">Todos los tipos</mat-option>
+                  <mat-option value="PRIMIGENIA">Primigenia</mat-option>
+                  <mat-option value="RENOVACION">Renovación</mat-option>
+                  <mat-option value="INCREMENTO">Incremento</mat-option>
+                  <mat-option value="SUSTITUCION">Sustitución</mat-option>
+                  <mat-option value="OTROS">Otros</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Estado</mat-label>
+                <mat-select formControlName="estado" (selectionChange)="aplicarFiltros()">
+                  <mat-option value="">Todos los estados</mat-option>
+                  <mat-option value="EN PROCESO">En Proceso</mat-option>
+                  <mat-option value="APROBADO">Aprobado</mat-option>
+                  <mat-option value="RECHAZADO">Rechazado</mat-option>
+                  <mat-option value="SUSPENDIDO">Suspendido</mat-option>
+                  <mat-option value="ARCHIVADO">Archivado</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="filtros-row">
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Prioridad</mat-label>
+                <mat-select formControlName="prioridad" (selectionChange)="aplicarFiltros()">
+                  <mat-option value="">Todas las prioridades</mat-option>
+                  <mat-option [value]="PrioridadExpediente.BAJA">Baja</mat-option>
+                  <mat-option [value]="PrioridadExpediente.NORMAL">Normal</mat-option>
+                  <mat-option [value]="PrioridadExpediente.ALTA">Alta</mat-option>
+                  <mat-option [value]="PrioridadExpediente.URGENTE">Urgente</mat-option>
+                  <mat-option [value]="PrioridadExpediente.CRITICA">Crítica</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Fecha Desde</mat-label>
+                <input matInput 
+                       [matDatepicker]="fechaDesdePicker" 
+                       formControlName="fechaDesde"
+                       (dateChange)="aplicarFiltros()">
+                <mat-datepicker-toggle matSuffix [for]="fechaDesdePicker"></mat-datepicker-toggle>
+                <mat-datepicker #fechaDesdePicker></mat-datepicker>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="filtro-field">
+                <mat-label>Fecha Hasta</mat-label>
+                <input matInput 
+                       [matDatepicker]="fechaHastaPicker" 
+                       formControlName="fechaHasta"
+                       (dateChange)="aplicarFiltros()">
+                <mat-datepicker-toggle matSuffix [for]="fechaHastaPicker"></mat-datepicker-toggle>
+                <mat-datepicker #fechaHastaPicker></mat-datepicker>
+              </mat-form-field>
+            </div>
+
+            <div class="filtros-actions">
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="limpiarFiltros()"
+                      class="limpiar-button">
+                <mat-icon>clear</mat-icon>
+                Limpiar Filtros
+              </button>
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="exportarExpedientes()"
+                      class="exportar-button">
+                <mat-icon>download</mat-icon>
+                Exportar
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Tabla de Expedientes -->
+      <mat-card class="table-card">
+        <mat-card-content>
+          <div class="table-header">
+            <div class="table-info">
+              <h3>Expedientes</h3>
+              <span class="total-count">
+                {{ totalExpedientes() }} expedientes encontrados
+              </span>
+            </div>
+            <div class="table-actions">
+              <!-- Menú de Configuración de Columnas -->
+              <button mat-icon-button 
+                      [matMenuTriggerFor]="columnasMenu"
+                      class="columnas-button"
+                      matTooltip="Configurar columnas">
+                <mat-icon>view_column</mat-icon>
+              </button>
+              <mat-menu #columnasMenu="matMenu" class="columnas-menu">
+                <div class="menu-header">
+                  <h4>Columnas Visibles</h4>
+                  <button mat-button 
+                          (click)="toggleTodasColumnas()"
+                          class="toggle-all-button">
+                    {{ todasColumnasVisibles() ? 'Ocultar Todas' : 'Mostrar Todas' }}
+                  </button>
+                </div>
+                <mat-divider></mat-divider>
+                <div class="columnas-list">
+                  <div class="columna-item" *ngFor="let columna of columnas()">
+                    <mat-checkbox [checked]="columna.visible"
+                                  (change)="toggleColumna(columna.id, $event.checked)"
+                                  class="columna-checkbox">
+                      {{ columna.nombre }}
+                    </mat-checkbox>
+                  </div>
+                </div>
+              </mat-menu>
+
+              <!-- Menú Principal de Acciones -->
+              <button mat-icon-button 
+                      [matMenuTriggerFor]="menu"
+                      class="menu-button">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="recargarExpedientes()">
+                  <mat-icon>refresh</mat-icon>
+                  Recargar
+                </button>
+                <button mat-menu-item (click)="exportarExpedientes()">
+                  <mat-icon>download</mat-icon>
+                  Exportar
+                </button>
+                <mat-divider></mat-divider>
+                <button mat-menu-item (click)="toggleFiltrosAvanzados()">
+                  <mat-icon>filter_list</mat-icon>
+                  {{ filtrosAvanzados() ? 'Ocultar Filtros' : 'Mostrar Filtros' }}
+                </button>
+              </mat-menu>
+            </div>
           </div>
 
-          <!-- Tabla de Expedientes -->
-          <div class="table-container">
-            <table mat-table [dataSource]="expedientesFiltrados()" class="expedientes-table">
+          <div class="table-container" *ngIf="!isLoading()">
+            <table mat-table 
+                   [dataSource]="dataSource" 
+                   matSort 
+                   matSortActive="fechaEmision" 
+                   matSortDirection="desc"
+                   class="expedientes-table">
+              
               <!-- Número de Expediente -->
-              <ng-container matColumnDef="nroExpediente">
-                <th mat-header-cell *matHeaderCellDef>Número</th>
+              <ng-container matColumnDef="nroExpediente" *ngIf="columnaVisible('nroExpediente')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="nroExpediente">Número</th>
                 <td mat-cell *matCellDef="let expediente">
-                  <strong>{{ expediente.nroExpediente }}</strong>
+                  <div class="numero-cell">
+                    <span class="numero-text">{{ expediente.nroExpediente }}</span>
+                    <mat-chip class="tipo-chip" [class]="expediente.tipoTramite?.toLowerCase()">
+                      {{ expediente.tipoTramite }}
+                    </mat-chip>
+                  </div>
                 </td>
               </ng-container>
 
               <!-- Fecha de Emisión -->
-              <ng-container matColumnDef="fechaEmision">
-                <th mat-header-cell *matHeaderCellDef>Fecha Emisión</th>
+              <ng-container matColumnDef="fechaEmision" *ngIf="columnaVisible('fechaEmision')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="fechaEmision">Fecha Emisión</th>
                 <td mat-cell *matCellDef="let expediente">
                   {{ expediente.fechaEmision | date:'dd/MM/yyyy' }}
                 </td>
               </ng-container>
 
               <!-- Tipo de Trámite -->
-              <ng-container matColumnDef="tipoTramite">
-                <th mat-header-cell *matHeaderCellDef>Tipo de Trámite</th>
+              <ng-container matColumnDef="tipoTramite" *ngIf="columnaVisible('tipoTramite')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="tipoTramite">Tipo</th>
                 <td mat-cell *matCellDef="let expediente">
-                  <mat-chip [class]="'tipo-chip-' + expediente.tipoTramite.toLowerCase().replace(' ', '-')">
+                  <span class="tipo-chip" [class]="expediente.tipoTramite?.toLowerCase()">
                     {{ expediente.tipoTramite }}
-                  </mat-chip>
-                </td>
-              </ng-container>
-
-              <!-- Empresa ID -->
-              <ng-container matColumnDef="empresaId">
-                <th mat-header-cell *matHeaderCellDef>Empresa ID</th>
-                <td mat-cell *matCellDef="let expediente">
-                  {{ expediente.empresaId }}
+                  </span>
                 </td>
               </ng-container>
 
               <!-- Estado -->
-              <ng-container matColumnDef="estado">
-                <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <ng-container matColumnDef="estado" *ngIf="columnaVisible('estado')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="estado">Estado</th>
                 <td mat-cell *matCellDef="let expediente">
-                  <mat-chip [class]="'estado-chip-' + expediente.estado.toLowerCase().replace(' ', '-')">
+                  <span class="estado-chip" [class]="expediente.estado?.toLowerCase()">
                     {{ expediente.estado }}
-                  </mat-chip>
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Prioridad -->
+              <ng-container matColumnDef="prioridad" *ngIf="columnaVisible('prioridad')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="prioridad">Prioridad</th>
+                <td mat-cell *matCellDef="let expediente">
+                  <span class="prioridad-chip" [class]="expediente.prioridad?.toLowerCase()">
+                    {{ expediente.prioridad || 'NORMAL' }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <!-- Descripción -->
+              <ng-container matColumnDef="descripcion" *ngIf="columnaVisible('descripcion')">
+                <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                <td mat-cell *matCellDef="let expediente">
+                  <div class="descripcion-cell" [matTooltip]="expediente.descripcion">
+                    {{ expediente.descripcion | slice:0:50 }}{{ expediente.descripcion?.length > 50 ? '...' : '' }}
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Folio -->
+              <ng-container matColumnDef="folio" *ngIf="columnaVisible('folio')">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header="folio">Folio</th>
+                <td mat-cell *matCellDef="let expediente">
+                  {{ expediente.folio }}
+                </td>
+              </ng-container>
+
+              <!-- Empresa -->
+              <ng-container matColumnDef="empresa" *ngIf="columnaVisible('empresa')">
+                <th mat-header-cell *matHeaderCellDef>Empresa</th>
+                <td mat-cell *matCellDef="let expediente">
+                  <span class="empresa-text">{{ expediente.empresaId || 'Sin empresa' }}</span>
                 </td>
               </ng-container>
 
@@ -128,202 +353,800 @@ import { Expediente } from '../../models/expediente.model';
               <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef>Acciones</th>
                 <td mat-cell *matCellDef="let expediente">
-                  <button mat-icon-button color="primary" (click)="verDetalle(expediente.id)" matTooltip="Ver detalle">
-                    <mat-icon>visibility</mat-icon>
-                  </button>
-                  <button mat-icon-button color="accent" (click)="editar(expediente.id)" matTooltip="Editar">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button mat-icon-button color="warn" (click)="eliminar(expediente.id)" matTooltip="Eliminar">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  <div class="acciones-cell">
+                    <button mat-icon-button 
+                            [matMenuTriggerFor]="accionesMenu"
+                            class="acciones-button">
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #accionesMenu="matMenu">
+                      <button mat-menu-item (click)="verDetalleExpediente(expediente)">
+                        <mat-icon>visibility</mat-icon>
+                        Ver Detalle
+                      </button>
+                      <button mat-menu-item (click)="editarExpediente(expediente)">
+                        <mat-icon>edit</mat-icon>
+                        Editar
+                      </button>
+                      <button mat-menu-item (click)="duplicarExpediente(expediente)">
+                        <mat-icon>content_copy</mat-icon>
+                        Duplicar
+                      </button>
+                      <mat-divider></mat-divider>
+                      <button mat-menu-item (click)="cambiarEstadoExpediente(expediente, 'APROBADO')" 
+                              *ngIf="expediente.estado !== 'APROBADO'">
+                        <mat-icon>check_circle</mat-icon>
+                        Aprobar
+                      </button>
+                      <button mat-menu-item (click)="cambiarEstadoExpediente(expediente, 'RECHAZADO')"
+                              *ngIf="expediente.estado !== 'RECHAZADO'">
+                        <mat-icon>cancel</mat-icon>
+                        Rechazar
+                      </button>
+                      <button mat-menu-item (click)="archivarExpediente(expediente)"
+                              *ngIf="expediente.estado !== 'ARCHIVADO'">
+                        <mat-icon>archive</mat-icon>
+                        Archivar
+                      </button>
+                      <mat-divider></mat-divider>
+                      <button mat-menu-item (click)="eliminarExpediente(expediente)" 
+                              class="danger-action">
+                        <mat-icon>delete</mat-icon>
+                        Eliminar
+                      </button>
+                    </mat-menu>
+                  </div>
                 </td>
               </ng-container>
 
-              <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-              <tr mat-row *matRowDef="let row; columns: columnas;"></tr>
+              <tr mat-header-row *matHeaderRowDef="columnasVisibles()"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasVisibles();" 
+                  class="expediente-row"
+                  [class.selected]="expedienteSeleccionado()?.id === row.id"
+                  (click)="seleccionarExpediente(row)"></tr>
             </table>
+
+            <!-- Paginador -->
+            <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]"
+                           showFirstLastButtons
+                           aria-label="Seleccionar página de expedientes">
+            </mat-paginator>
           </div>
 
-          <!-- Mensaje cuando no hay expedientes -->
-          @if (expedientesFiltrados().length === 0) {
-            <div class="no-data">
-              <mat-icon>inbox</mat-icon>
-              <p>No se encontraron expedientes</p>
-            </div>
-          }
+          <!-- Estado de Carga -->
+          <div class="loading-container" *ngIf="isLoading()">
+            <mat-spinner diameter="50"></mat-spinner>
+            <p>Cargando expedientes...</p>
+          </div>
+
+          <!-- Estado Vacío -->
+          <div class="empty-container" *ngIf="!isLoading() && totalExpedientes() === 0">
+            <mat-icon class="empty-icon">folder_open</mat-icon>
+            <h3>No hay expedientes</h3>
+            <p>No se encontraron expedientes con los filtros aplicados</p>
+            <button mat-raised-button 
+                    color="primary"
+                    (click)="abrirModalCrearExpediente()">
+              <mat-icon>add</mat-icon>
+              Crear Primer Expediente
+            </button>
+          </div>
         </mat-card-content>
-        
-        <mat-card-actions align="end">
-          <button mat-raised-button color="primary" (click)="nuevoExpediente()">
-            <mat-icon>add</mat-icon>
-            Nuevo Expediente
-          </button>
-        </mat-card-actions>
       </mat-card>
     </div>
   `,
   styles: [`
     .expedientes-container {
-      padding: 20px;
+      padding: 24px;
+      background-color: #f5f5f5;
+      min-height: 100vh;
     }
-    
-    .filtros-container {
+
+    .header-card {
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+      color: white;
+    }
+
+    .header-content {
       display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .filtro-field {
-      min-width: 200px;
-    }
-    
-    .table-container {
-      margin: 20px 0;
-      overflow-x: auto;
-    }
-    
-    .expedientes-table {
+      justify-content: space-between;
+      align-items: center;
       width: 100%;
     }
-    
-    .no-data {
-      text-align: center;
-      padding: 40px;
-      color: #666;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
-    
-    .no-data mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
+
+    .header-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    .title-text h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .title-text p {
+      margin: 4px 0 0 0;
+      opacity: 0.9;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .crear-button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+    }
+
+    .filtros-button {
+      color: white;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .filtros-card, .table-card {
+      margin-bottom: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .filtros-form {
+      padding: 16px 0;
+    }
+
+    .filtros-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
       margin-bottom: 16px;
     }
-    
-    .tipo-chip-AUTORIZACION-NUEVA {
-      background-color: #4caf50;
-      color: white;
+
+    .filtro-field {
+      width: 100%;
     }
-    
-    .tipo-chip-RENOVACION {
-      background-color: #2196f3;
-      color: white;
+
+    .filtros-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
     }
-    
-    .tipo-chip-INCREMENTO {
-      background-color: #ff9800;
-      color: white;
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
     }
-    
-    .tipo-chip-SUSTITUCION {
-      background-color: #9c27b0;
-      color: white;
+
+    .table-info h3 {
+      margin: 0 0 4px 0;
+      color: #333;
+      font-weight: 600;
     }
-    
-    .tipo-chip-OTROS {
-      background-color: #607d8b;
-      color: white;
+
+    .total-count {
+      color: #666;
+      font-size: 14px;
     }
-    
-    .estado-chip-EN-PROCESO {
-      background-color: #ffc107;
-      color: black;
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
     }
-    
-    .estado-chip-APROBADO {
-      background-color: #4caf50;
-      color: white;
+
+    .columnas-button {
+      color: #1976d2;
     }
-    
-    .estado-chip-RECHAZADO {
-      background-color: #f44336;
-      color: white;
+
+    .menu-button {
+      color: #666;
     }
-    
-    .estado-chip-ARCHIVADO {
-      background-color: #9e9e9e;
-      color: white;
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .expedientes-table {
+      width: 100%;
+      background: white;
+    }
+
+    .expedientes-table th {
+      background-color: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+      padding: 12px 8px;
+    }
+
+    .expedientes-table td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .expediente-row {
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .expediente-row:hover {
+      background-color: #f8f9fa;
+    }
+
+    .expediente-row.selected {
+      background-color: #e3f2fd;
+    }
+
+    .numero-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .numero-text {
+      font-weight: 600;
+      color: #1976d2;
+      font-family: monospace;
+    }
+
+    .tipo-chip, .estado-chip, .prioridad-chip {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .tipo-chip.primigenia {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .tipo-chip.renovacion {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .tipo-chip.incremento {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .tipo-chip.sustitucion {
+      background-color: #fce4ec;
+      color: #ad1457;
+    }
+
+    .estado-chip.en_proceso {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .estado-chip.aprobado {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .estado-chip.rechazado {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .estado-chip.suspendido {
+      background-color: #fff8e1;
+      color: #f57f17;
+    }
+
+    .estado-chip.archivado {
+      background-color: #f5f5f5;
+      color: #666;
+    }
+
+    .prioridad-chip.baja {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    .prioridad-chip.normal {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .prioridad-chip.alta {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .prioridad-chip.urgente {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .prioridad-chip.critica {
+      background-color: #fce4ec;
+      color: #ad1457;
+    }
+
+    .descripcion-cell {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empresa-text {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .acciones-cell {
+      display: flex;
+      justify-content: center;
+    }
+
+    .acciones-button {
+      color: #666;
+    }
+
+    .danger-action {
+      color: #f44336;
+    }
+
+    .loading-container, .empty-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      text-align: center;
+    }
+
+    .loading-container p {
+      margin: 16px 0 0 0;
+      color: #666;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #ccc;
+      margin-bottom: 16px;
+    }
+
+    .empty-container h3 {
+      margin: 0 0 8px 0;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .empty-container p {
+      margin: 0 0 24px 0;
+      color: #999;
+    }
+
+    .limpiar-button, .exportar-button {
+      color: #666;
+      border-color: #ddd;
+    }
+
+    .crear-button:hover {
+      background-color: #45a049;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .filtros-button:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .limpiar-button:hover, .exportar-button:hover {
+      background-color: #f5f5f5;
+    }
+
+    /* Estilos para el menú de columnas */
+    .columnas-menu {
+      min-width: 280px;
+    }
+
+    .menu-header {
+      padding: 16px 16px 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .menu-header h4 {
+      margin: 0;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .toggle-all-button {
+      font-size: 12px;
+      color: #1976d2;
+      padding: 4px 8px;
+      min-width: auto;
+      line-height: 1.2;
+    }
+
+    .columnas-list {
+      padding: 8px 0;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .columna-item {
+      padding: 8px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .columna-item:last-child {
+      border-bottom: none;
+    }
+
+    .columna-checkbox {
+      width: 100%;
+    }
+
+    .columna-checkbox ::ng-deep .mat-mdc-checkbox-label {
+      font-size: 14px;
+      color: #333;
     }
   `]
 })
-export class ExpedientesComponent {
-  private expedienteService = inject(ExpedienteService);
+export class ExpedientesComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  private fb = inject(FormBuilder);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  private expedienteService = inject(ExpedienteService);
 
-  // Signals
+  // Estados
+  isLoading = signal(false);
+  filtrosAvanzados = signal(false);
+  expedienteSeleccionado = signal<Expediente | null>(null);
+
+  // Datos
   expedientes = signal<Expediente[]>([]);
-  
+  dataSource = new MatTableDataSource<Expediente>();
+
   // Filtros
-  filtroNumero = '';
-  filtroTipoTramite = '';
-  filtroEstado = '';
+  filtrosForm: FormGroup;
 
-  // Columnas de la tabla
-  columnas = ['nroExpediente', 'fechaEmision', 'tipoTramite', 'empresaId', 'estado', 'acciones'];
+  // Columnas configurables
+  columnas = signal<ColumnaExpediente[]>([
+    { id: 'nroExpediente', nombre: 'Número', visible: true, ordenable: true, filtrable: true },
+    { id: 'fechaEmision', nombre: 'Fecha Emisión', visible: true, ordenable: true, filtrable: true },
+    { id: 'tipoTramite', nombre: 'Tipo', visible: true, ordenable: true, filtrable: true },
+    { id: 'estado', nombre: 'Estado', visible: true, ordenable: true, filtrable: true },
+    { id: 'prioridad', nombre: 'Prioridad', visible: true, ordenable: true, filtrable: true },
+    { id: 'descripcion', nombre: 'Descripción', visible: true, ordenable: false, filtrable: true },
+    { id: 'folio', nombre: 'Folio', visible: false, ordenable: true, filtrable: false },
+    { id: 'empresa', nombre: 'Empresa', visible: false, ordenable: false, filtrable: true }
+  ]);
 
-  // Expedientes filtrados
-  expedientesFiltrados = computed(() => {
-    let expedientes = this.expedientes();
-    
-    if (this.filtroNumero) {
-      expedientes = expedientes.filter(e => 
-        e.nroExpediente.toLowerCase().includes(this.filtroNumero.toLowerCase())
-      );
-    }
-    
-    if (this.filtroTipoTramite) {
-      expedientes = expedientes.filter(e => e.tipoTramite === this.filtroTipoTramite);
-    }
-    
-    if (this.filtroEstado) {
-      expedientes = expedientes.filter(e => e.estado === this.filtroEstado);
-    }
-    
-    return expedientes;
-  });
+  // Enums disponibles en el template
+  PrioridadExpediente = PrioridadExpediente;
 
   constructor() {
+    this.filtrosForm = this.fb.group({
+      numero: [''],
+      tipoTramite: [''],
+      estado: [''],
+      prioridad: [''],
+      empresaId: [''],
+      fechaDesde: [null],
+      fechaHasta: [null]
+    });
+  }
+
+  ngOnInit(): void {
     this.cargarExpedientes();
   }
 
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  /**
+   * Carga los expedientes del sistema
+   */
   private cargarExpedientes(): void {
-    this.expedienteService.getExpedientes().subscribe({
-      next: (expedientes) => {
-        this.expedientes.set(expedientes);
-      },
-      error: (error) => {
-        console.error('Error al cargar expedientes:', error);
-        this.snackBar.open('Error al cargar expedientes', 'Cerrar', { duration: 3000 });
+    this.isLoading.set(true);
+    
+    // Simular carga de datos mock
+    setTimeout(() => {
+      const expedientesMock: Expediente[] = [
+        {
+          id: '1',
+          nroExpediente: 'E-0001-2025', // Formato correcto: E-NNNN-YYYY
+          folio: 15,
+          fechaEmision: new Date('2025-01-15'),
+          tipoTramite: 'PRIMIGENIA',
+          tipoSolicitante: TipoSolicitante.EMPRESA,
+          estado: 'EN PROCESO',
+          estaActivo: true,
+          fechaRegistro: new Date('2025-01-15'),
+          empresaId: 'EMP001',
+          descripcion: 'AUTORIZACIÓN PARA OPERACIÓN DE TRANSPORTE DE PASAJEROS EN RUTA PUNO - JULIACA',
+          observaciones: 'Expediente en revisión técnica',
+          prioridad: PrioridadExpediente.ALTA
+        },
+        {
+          id: '2',
+          nroExpediente: 'E-0002-2025',
+          folio: 8,
+          fechaEmision: new Date('2025-01-20'),
+          tipoTramite: 'RENOVACION',
+          tipoSolicitante: TipoSolicitante.EMPRESA,
+          estado: 'APROBADO',
+          estaActivo: true,
+          fechaRegistro: new Date('2025-01-20'),
+          empresaId: 'EMP002',
+          descripcion: 'RENOVACIÓN DE AUTORIZACIÓN PARA TRANSPORTE DE CARGA EN RUTA PUNO - AREQUIPA',
+          observaciones: 'Renovación aprobada exitosamente',
+          prioridad: PrioridadExpediente.NORMAL
+        },
+        {
+          id: '3',
+          nroExpediente: 'E-0003-2025',
+          folio: 12,
+          fechaEmision: new Date('2025-01-25'),
+          tipoTramite: 'INCREMENTO',
+          tipoSolicitante: TipoSolicitante.EMPRESA,
+          estado: 'EN PROCESO',
+          estaActivo: true,
+          fechaRegistro: new Date('2025-01-25'),
+          empresaId: 'EMP003',
+          descripcion: 'INCREMENTO DE UNIDADES PARA TRANSPORTE DE PASAJEROS EN RUTA PUNO - MOLLENDO',
+          observaciones: 'Solicitud de incremento en revisión',
+          prioridad: PrioridadExpediente.URGENTE
+        },
+        {
+          id: '4',
+          nroExpediente: 'E-0004-2025',
+          folio: 6,
+          fechaEmision: new Date('2025-01-30'),
+          tipoTramite: 'SUSTITUCION',
+          tipoSolicitante: TipoSolicitante.EMPRESA,
+          estado: 'SUSPENDIDO',
+          estaActivo: true,
+          fechaRegistro: new Date('2025-01-30'),
+          empresaId: 'EMP004',
+          descripcion: 'SUSTITUCIÓN DE VEHÍCULOS EN RUTA PUNO - TACNA',
+          observaciones: 'Solicitud suspendida por documentación incompleta',
+          prioridad: PrioridadExpediente.CRITICA
+        },
+        {
+          id: '5',
+          nroExpediente: 'E-0005-2025',
+          folio: 20,
+          fechaEmision: new Date('2025-02-05'),
+          tipoTramite: 'OTROS',
+          tipoSolicitante: TipoSolicitante.EMPRESA,
+          estado: 'RECHAZADO',
+          estaActivo: false,
+          fechaRegistro: new Date('2025-02-05'),
+          empresaId: 'EMP005',
+          descripcion: 'SOLICITUD ESPECIAL PARA TRANSPORTE DE MERCANCÍAS PELIGROSAS',
+          observaciones: 'Rechazado por no cumplir normativas de seguridad',
+          prioridad: PrioridadExpediente.ALTA
+        }
+      ];
+
+      this.expedientes.set(expedientesMock);
+      this.dataSource.data = expedientesMock;
+      this.isLoading.set(false);
+    }, 1000);
+  }
+
+  /**
+   * Aplica los filtros a la tabla
+   */
+  aplicarFiltros(): void {
+    const filtros = this.filtrosForm.value;
+    
+    this.dataSource.filterPredicate = (expediente: Expediente, filter: string) => {
+      const searchStr = filter.toLowerCase();
+      
+      return (
+        (!filtros.numero || expediente.nroExpediente.toLowerCase().includes(filtros.numero.toLowerCase())) &&
+        (!filtros.tipoTramite || expediente.tipoTramite === filtros.tipoTramite) &&
+        (!filtros.estado || expediente.estado === filtros.estado) &&
+        (!filtros.prioridad || expediente.prioridad === filtros.prioridad) &&
+        (!filtros.fechaDesde || new Date(expediente.fechaEmision) >= filtros.fechaDesde) &&
+        (!filtros.fechaHasta || new Date(expediente.fechaEmision) <= filtros.fechaHasta)
+      );
+    };
+
+    this.dataSource.filter = 'aplicar';
+  }
+
+  /**
+   * Limpia todos los filtros
+   */
+  limpiarFiltros(): void {
+    this.filtrosForm.reset();
+    this.aplicarFiltros();
+  }
+
+  /**
+   * Toggle para mostrar/ocultar filtros avanzados
+   */
+  toggleFiltrosAvanzados(): void {
+    this.filtrosAvanzados.update(current => !current);
+  }
+
+  /**
+   * Toggle para mostrar/ocultar todas las columnas
+   */
+  toggleTodasColumnas(): void {
+    const todasVisibles = this.todasColumnasVisibles();
+    this.columnas.update(cols => 
+      cols.map(col => ({ ...col, visible: !todasVisibles }))
+    );
+  }
+
+  /**
+   * Verifica si todas las columnas están visibles
+   */
+  todasColumnasVisibles(): boolean {
+    return this.columnas().every(col => col.visible);
+  }
+
+  /**
+   * Toggle para mostrar/ocultar una columna específica
+   */
+  toggleColumna(columnaId: string, visible: boolean): void {
+    this.columnas.update(cols => 
+      cols.map(col => 
+        col.id === columnaId ? { ...col, visible } : col
+      )
+    );
+  }
+
+  /**
+   * Verifica si una columna está visible
+   */
+  columnaVisible(columnaId: string): boolean {
+    return this.columnas().find(col => col.id === columnaId)?.visible || false;
+  }
+
+  /**
+   * Obtiene las columnas visibles para la tabla
+   */
+  columnasVisibles(): string[] {
+    return this.columnas()
+      .filter(col => col.visible)
+      .map(col => col.id)
+      .concat(['acciones']);
+  }
+
+  /**
+   * Obtiene el total de expedientes
+   */
+  totalExpedientes(): number {
+    return this.dataSource.data.length;
+  }
+
+  /**
+   * Selecciona un expediente
+   */
+  seleccionarExpediente(expediente: Expediente): void {
+    this.expedienteSeleccionado.set(expediente);
+  }
+
+  /**
+   * Abre el modal para crear un nuevo expediente
+   */
+  abrirModalCrearExpediente(): void {
+    const dialogRef = this.dialog.open(CrearExpedienteModalComponent, {
+      width: '800px',
+      data: {}
+    });
+
+    dialogRef.afterClosed().subscribe((expedienteCreado: Expediente) => {
+      if (expedienteCreado) {
+        this.expedientes.update(current => [...current, expedienteCreado]);
+        this.dataSource.data = this.expedientes();
+        this.snackBar.open('Expediente creado exitosamente', 'Cerrar', {
+          duration: 3000
+        });
       }
     });
   }
 
-  nuevoExpediente(): void {
-    this.router.navigate(['/expedientes/nuevo']);
+  /**
+   * Ver detalle de un expediente
+   */
+  verDetalleExpediente(expediente: Expediente): void {
+    // TODO: Implementar navegación al detalle
+    this.snackBar.open(`Ver detalle de expediente: ${expediente.nroExpediente}`, 'Cerrar', {
+      duration: 3000
+    });
   }
 
-  verDetalle(id: string): void {
-    this.router.navigate(['/expedientes', id]);
+  /**
+   * Editar un expediente
+   */
+  editarExpediente(expediente: Expediente): void {
+    // TODO: Implementar edición
+    this.snackBar.open(`Editar expediente: ${expediente.nroExpediente}`, 'Cerrar', {
+      duration: 3000
+    });
   }
 
-  editar(id: string): void {
-    this.router.navigate(['/expedientes', id, 'editar']);
+  /**
+   * Duplicar un expediente
+   */
+  duplicarExpediente(expediente: Expediente): void {
+    // TODO: Implementar duplicación
+    this.snackBar.open(`Duplicar expediente: ${expediente.nroExpediente}`, 'Cerrar', {
+      duration: 3000
+    });
   }
 
-  eliminar(id: string): void {
-    if (confirm('¿Está seguro de que desea eliminar este expediente?')) {
-      this.expedienteService.deleteExpediente(id).subscribe({
-        next: () => {
-          this.snackBar.open('Expediente eliminado exitosamente', 'Cerrar', { duration: 3000 });
-          this.cargarExpedientes();
-        },
-        error: (error) => {
-          console.error('Error al eliminar expediente:', error);
-          this.snackBar.open('Error al eliminar expediente', 'Cerrar', { duration: 3000 });
-        }
-      });
-    }
+  /**
+   * Cambiar estado de un expediente
+   */
+  cambiarEstadoExpediente(expediente: Expediente, nuevoEstado: EstadoExpediente): void {
+    // TODO: Implementar cambio de estado
+    this.snackBar.open(`Cambiar estado a ${nuevoEstado}`, 'Cerrar', {
+      duration: 3000
+    });
+  }
+
+  /**
+   * Archivar un expediente
+   */
+  archivarExpediente(expediente: Expediente): void {
+    // TODO: Implementar archivado
+    this.snackBar.open(`Archivar expediente: ${expediente.nroExpediente}`, 'Cerrar', {
+      duration: 3000
+    });
+  }
+
+  /**
+   * Eliminar un expediente
+   */
+  eliminarExpediente(expediente: Expediente): void {
+    // TODO: Implementar eliminación con confirmación
+    this.snackBar.open(`Eliminar expediente: ${expediente.nroExpediente}`, 'Cerrar', {
+      duration: 3000
+    });
+  }
+
+  /**
+   * Recargar expedientes
+   */
+  recargarExpedientes(): void {
+    this.cargarExpedientes();
+  }
+
+  /**
+   * Exportar expedientes
+   */
+  exportarExpedientes(): void {
+    // TODO: Implementar exportación
+    this.snackBar.open('Exportando expedientes...', 'Cerrar', {
+      duration: 3000
+    });
   }
 } 

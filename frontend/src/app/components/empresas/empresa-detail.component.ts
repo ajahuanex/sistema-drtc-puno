@@ -58,6 +58,14 @@ import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.compon
             <mat-icon>arrow_back</mat-icon>
             Volver
           </button>
+          <button mat-raised-button color="accent" (click)="verHistorialTransferencias()" class="action-button">
+            <mat-icon>swap_horiz</mat-icon>
+            Historial Transferencias
+          </button>
+          <button mat-raised-button color="warn" (click)="verBajasVehiculares()" class="action-button">
+            <mat-icon>remove_circle</mat-icon>
+            Bajas Vehiculares
+          </button>
           <button mat-raised-button color="primary" (click)="editarEmpresa()" class="action-button">
             <mat-icon>edit</mat-icon>
             Editar
@@ -1455,6 +1463,18 @@ export class EmpresaDetailComponent implements OnInit {
 
   volver(): void {
     this.router.navigate(['/empresas']);
+  }
+
+  verHistorialTransferencias(): void {
+    if (this.empresa) {
+      this.router.navigate(['/empresas', this.empresa.id, 'transferencias']);
+    }
+  }
+
+  verBajasVehiculares(): void {
+    if (this.empresa) {
+      this.router.navigate(['/empresas', this.empresa.id, 'bajas-vehiculos']);
+    }
   }
 
   cargarResolucionesEmpresa(empresaId: string): void {

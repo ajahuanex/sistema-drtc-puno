@@ -1,0 +1,272 @@
+<div class="historial-container">
+  <!-- Header -->
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>history</mat-icon>
+        HISTORIAL DE VEHÍCULOS
+      </mat-card-title>
+      <mat-card-subtitle>
+        Rastreo completo de cambios de estado y transferencias entre empresas
+      </mat-card-subtitle>
+    </mat-card-header>
+  </mat-card>
+
+  <!-- Filtros -->
+  <mat-card class="filtros-card">
+    <mat-card-content>
+      <div class="filtros-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>PLACA</mat-label>
+          <input 
+            matInput 
+            [(ngModel)]="filtros.placa" 
+            placeholder="BUSCAR POR PLACA"
+            (blur)="aplicarFiltros()"
+          >
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>EMPRESA</mat-label>
+          <input 
+            matInput 
+            [(ngModel)]="filtros.empresaId" 
+            placeholder="ID DE EMPRESA"
+            (blur)="aplicarFiltros()"
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>TIPO DE CAMBIO</mat-label>
+          <mat-select [(ngModel)]="filtros.tipoCambio" (selectionChange)="aplicarFiltros()">
+            <mat-option value="">TODOS</mat-option>
+            <mat-option *ngFor="let tipo of tiposCambio" [value]="tipo">
+              {{ tipo | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>ESTADO</mat-label>
+          <input 
+            matInput 
+            [(ngModel)]="filtros.estado" 
+            placeholder="ESTADO DEL VEHÍCULO"
+            (blur)="aplicarFiltros()"
+          >
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>FECHA DESDE</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="pickerDesde" 
+            [(ngModel)]="filtros.fechaDesde"
+            (dateChange)="aplicarFiltros()"
+          >
+          <mat-datepicker-toggle matSuffix [for]="pickerDesde"></mat-datepicker-toggle>
+          <mat-datepicker #pickerDesde></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>FECHA HASTA</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="pickerHasta" 
+            [(ngModel)]="filtros.fechaHasta"
+            (dateChange)="aplicarFiltros()"
+          >
+          <mat-datepicker-toggle matSuffix [for]="pickerHasta"></mat-datepicker-toggle>
+          <mat-datepicker #pickerHasta></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <div class="filtros-actions">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="aplicarFiltros()"
+          [disabled]="loading()"
+        >
+          <mat-icon>filter_list</mat-icon>
+          APLICAR FILTROS
+        </button>
+        <button 
+          mat-button 
+          (click)="limpiarFiltros()"
+          [disabled]="loading()"
+        >
+          <mat-icon>clear</mat-icon>
+          LIMPIAR
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Resumen -->
+  <mat-card *ngIf="resumen()" class="resumen-card">
+    <mat-card-content>
+      <div class="resumen-grid">
+        <div class="resumen-item">
+          <span class="resumen-label">TOTAL CAMBIOS:</span>
+          <span class="resumen-value">{{ resumen()?.totalCambios }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="resumen-label">ÚLTIMO CAMBIO:</span>
+          <span class="resumen-value">{{ resumen()?.ultimoCambio | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="resumen-label">EMPRESA ACTUAL:</span>
+          <span class="resumen-value">{{ resumen()?.empresaActual }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="resumen-label">ESTADO ACTUAL:</span>
+          <span class="resumen-value">{{ resumen()?.estadoActual }}</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tabla de Historial -->
+  <mat-card class="tabla-card">
+    <mat-card-content>
+      <div *ngIf="loading()" class="loading-container">
+        <mat-spinner></mat-spinner>
+        <p>CARGANDO HISTORIAL...</p>
+      </div>
+
+      <div *ngIf="!loading() && historial().length === 0" class="empty-state">
+        <mat-icon>inbox</mat-icon>
+        <p>NO SE ENCONTRÓ HISTORIAL</p>
+        <p>Intenta ajustar los filtros de búsqueda</p>
+      </div>
+
+      <div *ngIf="!loading() && historial().length > 0" class="table-container">
+        <table mat-table [dataSource]="historial()" matSort (matSortChange)="ordenarDatos($event)">
+          <!-- Fecha de Cambio -->
+          <ng-container matColumnDef="fechaCambio">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>FECHA</th>
+            <td mat-cell *matCellDef="let elemento">
+              {{ elemento.fechaCambio | date:'dd/MM/yyyy HH:mm' }}
+            </td>
+          </ng-container>
+
+          <!-- Placa -->
+          <ng-container matColumnDef="placa">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>PLACA</th>
+            <td mat-cell *matCellDef="let elemento">
+              <strong>{{ elemento.placa }}</strong>
+            </td>
+          </ng-container>
+
+          <!-- Tipo de Cambio -->
+          <ng-container matColumnDef="tipoCambio">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>TIPO</th>
+            <td mat-cell *matCellDef="let elemento">
+              <mat-chip-set>
+                <mat-chip [color]="obtenerColorTipoCambio(elemento.tipoCambio)" selected>
+                  {{ elemento.tipoCambio | titlecase }}
+                </mat-chip>
+              </mat-chip-set>
+            </td>
+          </ng-container>
+
+          <!-- Empresas -->
+          <ng-container matColumnDef="empresas">
+            <th mat-header-cell *matHeaderCellDef>EMPRESAS</th>
+            <td mat-cell *matCellDef="let elemento">
+              <div *ngIf="elemento.empresaOrigenNombre && elemento.empresaDestinoNombre" class="empresa-transfer">
+                <span class="empresa-origen">{{ elemento.empresaOrigenNombre }}</span>
+                <mat-icon>arrow_forward</mat-icon>
+                <span class="empresa-destino">{{ elemento.empresaDestinoNombre }}</span>
+              </div>
+              <span *ngIf="elemento.empresaOrigenNombre && !elemento.empresaDestinoNombre">
+                {{ elemento.empresaOrigenNombre }}
+              </span>
+              <span *ngIf="!elemento.empresaOrigenNombre && elemento.empresaDestinoNombre">
+                {{ elemento.empresaDestinoNombre }}
+              </span>
+              <span *ngIf="!elemento.empresaOrigenNombre && !elemento.empresaDestinoNombre">-</span>
+            </td>
+          </ng-container>
+
+          <!-- Estados -->
+          <ng-container matColumnDef="estados">
+            <th mat-header-cell *matHeaderCellDef>ESTADOS</th>
+            <td mat-cell *matCellDef="let elemento">
+              <div *ngIf="elemento.estadoAnterior && elemento.estadoNuevo" class="estado-cambio">
+                <span class="estado-anterior">{{ elemento.estadoAnterior }}</span>
+                <mat-icon>arrow_forward</mat-icon>
+                <span class="estado-nuevo">{{ elemento.estadoNuevo }}</span>
+              </div>
+              <span *ngIf="elemento.estadoNuevo && !elemento.estadoAnterior">
+                {{ elemento.estadoNuevo }}
+              </span>
+              <span *ngIf="!elemento.estadoNuevo">-</span>
+            </td>
+          </ng-container>
+
+          <!-- Motivo -->
+          <ng-container matColumnDef="motivo">
+            <th mat-header-cell *matHeaderCellDef>MOTIVO</th>
+            <td mat-cell *matCellDef="let elemento">
+              {{ elemento.motivo || '-' }}
+            </td>
+          </ng-container>
+
+          <!-- Usuario -->
+          <ng-container matColumnDef="usuario">
+            <th mat-header-cell *matHeaderCellDef>USUARIO</th>
+            <td mat-cell *matCellDef="let elemento">
+              {{ elemento.usuarioNombre }}
+            </td>
+          </ng-container>
+
+          <!-- Oficina -->
+          <ng-container matColumnDef="oficina">
+            <th mat-header-cell *matHeaderCellDef>OFICINA</th>
+            <td mat-cell *matCellDef="let elemento">
+              {{ elemento.oficinaNombre || '-' }}
+            </td>
+          </ng-container>
+
+          <!-- Acciones -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>ACCIONES</th>
+            <td mat-cell *matCellDef="let elemento">
+              <button 
+                mat-icon-button 
+                [matTooltip]="'VER DETALLES'"
+                (click)="verDetalles(elemento)"
+              >
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button 
+                mat-icon-button 
+                [matTooltip]="'EDITAR'"
+                (click)="editarHistorial(elemento)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+          <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      <mat-paginator
+        *ngIf="!loading() && historial().length > 0"
+        [length]="totalElementos()"
+        [pageSize]="tamanoPagina()"
+        [pageSizeOptions]="[10, 25, 50, 100]"
+        (page)="cambiarPagina($event)"
+        showFirstLastButtons
+      >
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div> 

@@ -6,6 +6,22 @@ export type TipoTramite = 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUC
 
 export type TipoResolucionSimple = 'PRIMIGENIA' | 'AMPLIACION' | 'MODIFICACION';
 
+// Nuevos tipos para integración con bajas vehiculares
+export type TipoBajaResolucion = 'SUSTITUCION_VEHICULO' | 'RENOVACION_VEHICULO' | 'INCREMENTO_VEHICULO' | 'OTROS';
+
+export interface BajaVehiculoResolucion {
+  id: string;
+  vehiculoId: string;
+  tipoBaja: TipoBajaResolucion;
+  fechaBaja: Date;
+  motivo: string;
+  resolucionAnteriorId?: string; // Para SUSTITUCIÓN
+  resolucionNuevaId?: string;    // Para SUSTITUCIÓN
+  observaciones?: string;
+  archivosSustentatorios?: string[]; // IDs de archivos
+  estaActivo: boolean;
+}
+
 export interface Resolucion {
   id: string;
   nroResolucion: string; // Formato: R-1234-2025 (según el brief)
@@ -36,6 +52,13 @@ export interface Resolucion {
   fechaVencimiento?: Date; // Para compatibilidad con el frontend
   documentos?: any[]; // Para compatibilidad con el servicio mock
   auditoria?: any[]; // Para compatibilidad con el servicio mock
+  
+  // Nuevos campos para integración con bajas vehiculares
+  bajasVehiculos?: BajaVehiculoResolucion[];
+  vehiculosSustituidos?: string[]; // IDs de vehículos sustituidos
+  vehiculosRenovados?: string[];   // IDs de vehículos renovados
+  resolucionSustituidaId?: string; // Para SUSTITUCIÓN: ID de la resolución que se sustituye
+  resolucionRenovadaId?: string;   // Para RENOVACIÓN: ID de la resolución que se renueva
 }
 
 export interface DocumentoResolucion {
@@ -70,6 +93,12 @@ export interface ResolucionCreate {
   resolucionPadreId?: string;
   vehiculosHabilitadosIds?: string[];
   rutasAutorizadasIds?: string[];
+  
+  // Nuevos campos para integración con bajas vehiculares
+  vehiculosSustituidos?: string[];
+  vehiculosRenovados?: string[];
+  resolucionSustituidaId?: string;
+  resolucionRenovadaId?: string;
 }
 
 export interface ResolucionUpdate {
@@ -86,6 +115,12 @@ export interface ResolucionUpdate {
   observaciones?: string;
   estaActivo?: boolean;
   resolucionPadreId?: string;
+  
+  // Nuevos campos para integración con bajas vehiculares
+  vehiculosSustituidos?: string[];
+  vehiculosRenovados?: string[];
+  resolucionSustituidaId?: string;
+  resolucionRenovadaId?: string;
 }
 
 export interface ResolucionFiltros {
@@ -111,4 +146,37 @@ export interface ResolucionEstadisticas {
   resolucionesAmpliacion: number;
   resolucionesModificacion: number;
   proximasAVencer: number;
+} 
+
+// Nueva interfaz para estadísticas de bajas vehiculares
+export interface ResolucionBajasEstadisticas {
+  totalBajas: number;
+  bajasSustitucion: number;
+  bajasRenovacion: number;
+  bajasIncremento: number;
+  vehiculosSustituidos: number;
+  vehiculosRenovados: number;
+  resolucionesConBajas: number;
+}
+
+// Nueva interfaz para el flujo de sustitución
+export interface FlujoSustitucionVehiculo {
+  resolucionAnteriorId: string;
+  vehiculoAnteriorId: string;
+  motivoSustitucion: string;
+  fechaSustitucion: Date;
+  vehiculoNuevoId?: string;
+  observaciones?: string;
+  archivosSustentatorios?: string[];
+}
+
+// Nueva interfaz para el flujo de renovación
+export interface FlujoRenovacionVehiculo {
+  resolucionAnteriorId: string;
+  vehiculosRenovados: string[];
+  motivoRenovacion: string;
+  fechaRenovacion: Date;
+  cambiosRealizados?: string;
+  observaciones?: string;
+  archivosSustentatorios?: string[];
 } 

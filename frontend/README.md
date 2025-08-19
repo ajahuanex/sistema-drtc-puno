@@ -12,6 +12,34 @@ Frontend Angular 20+ para el Sistema de Gestión de la Dirección Regional de Tr
 - **Responsive Design**: Diseño adaptable a dispositivos móviles
 - **TypeScript**: Tipado estático para mayor robustez
 
+## 📊 Estado del Proyecto
+
+### ✅ Completado
+- **Modelo de expediente expandido**: Sistema universal para cualquier trámite
+- **Numeración automática**: Formato E-XXXX-YYYY con padding automático
+- **Descripción automática**: Generada según tipo de trámite
+- **Componentes de modal**: Crear expediente y resolución con validaciones
+- **Tabla de expedientes**: Material Design con funcionalidades avanzadas
+- **Validaciones simplificadas**: Sin errores innecesarios, campos opcionales
+
+### 🔄 En Progreso
+- **Integración de tipos**: Campo `tipoExpediente` en el modal
+- **Validaciones condicionales**: Según `tipoSolicitante`
+- **Lógica de descripción**: Por `tipoExpediente` específico
+
+### 🚀 Pendiente
+- **Componentes de solicitantes**: Para diferentes tipos de solicitantes
+- **Integración con backend**: Conectar con la API real
+- **Flujo de oficinas**: Implementar movimiento entre oficinas
+- **Documentos resultantes**: Generar diferentes tipos según expediente
+
+### 🎯 Próximos Pasos
+1. Completar la implementación del campo `tipoExpediente`
+2. Implementar validaciones condicionales según solicitante
+3. Crear componentes para diferentes tipos de solicitantes
+4. Integrar con el sistema de oficinas
+5. Conectar con el backend
+
 ## 📋 Requisitos
 
 - Node.js 18+
@@ -129,14 +157,129 @@ frontend/
 - **Relaciones**: Empresa, expediente, vehículos autorizados
 
 ### 📁 Expediente
-- **Propósito**: Conjunto de documentos y trámites
-- **Campos clave**: `nroExpediente`, `fechaEmision`, `tipoTramite`, `estado`
-- **🆕 Nuevo**: Sistema de seguimiento por oficina
+- **Propósito**: **CENTRO DEL SISTEMA** - Inicio de todo acto administrativo
+- **Formato**: `E-XXXX-YYYY` (E-Número-Año)
+- **Campos clave**: `nroExpediente`, `fechaEmision`, `tipoTramite`, `estado`, `tipoExpediente`, `tipoSolicitante`
+- **🆕 Nuevo**: Sistema universal para cualquier tipo de trámite administrativo
+- **🆕 Nuevo**: Seguimiento por oficina con trazabilidad completa
 
 ### 🏢 Oficina
 - **Propósito**: Gestión de oficinas del sistema
 - **Campos clave**: `nombre`, `codigo`, `ubicacion`, `tipoOficina`, `responsable`
 - **🆕 Nuevo**: Modelo reutilizable para seguimiento de expedientes
+
+## 🆕 Sistema Universal de Expedientes
+
+### 🎯 Concepto Clave
+**El expediente ES el inicio de todo acto administrativo** - no solo para empresas de transporte, sino para cualquier solicitud administrativa del DRTC Puno.
+
+### 🔢 Numeración Automática
+- **Formato**: `E-XXXX-YYYY` donde XXXX se rellena automáticamente con ceros
+- **Ejemplos**: 
+  - `1` → `E-0001-2025`
+  - `25` → `E-0025-2025`
+  - `1234` → `E-1234-2025`
+- **Unicidad por año**: E-0001-2025 ≠ E-0001-2026
+
+### 🏷️ Tipos de Expedientes
+```typescript
+enum TipoExpediente {
+  // Transporte
+  AUTORIZACION_TRANSPORTE, RENOVACION_TRANSPORTE, 
+  INCREMENTO_FLOTA, SUSTITUCION_VEHICULOS,
+  
+  // Información y Documentación
+  SOLICITUD_INFORMACION, COPIA_DOCUMENTO, 
+  CERTIFICADO, CONSTANCIA,
+  
+  // Administrativos
+  SOLICITUD_ADMINISTRATIVA, RECLAMO, 
+  SUGERENCIA, CONSULTA,
+  
+  // Fiscalización
+  DENUNCIA, INSPECCION, AUDITORIA,
+  
+  // General
+  OTROS = 'OTROS'  // Para cualquier trámite no específico
+}
+```
+
+### 👥 Tipos de Solicitantes
+```typescript
+enum TipoSolicitante {
+  EMPRESA,           // Para expedientes de transporte
+  PERSONA_NATURAL,   // Ciudadanos particulares
+  FUNCIONARIO,       // Personal interno del DRTC
+  ORGANIZACION,      // ONGs, instituciones
+  OTROS              // Para cualquier otro tipo
+}
+```
+
+### 📄 Documentos Resultantes
+```typescript
+enum TipoDocumentoResultado {
+  RESOLUCION,        // Para expedientes empresariales
+  CONSTANCIA,        // Para solicitudes de información
+  CERTIFICADO,       // Para copias de documentos
+  INFORME,          // Para auditorías, inspecciones
+  ACTA,             // Para reuniones, decisiones
+  DECISION,         // Para decisiones administrativas
+  NOTIFICACION,     // Para notificaciones oficiales
+  OTROS             // Para cualquier otro documento
+}
+```
+
+### 🔄 Flujos del Sistema
+
+#### **Flujo Empresarial** 🚌
+```
+Expediente (E-0001-2025) 
+  ↓ [Solicita empresa]
+Empresa (Transportes ABC)
+  ↓ [Genera]
+Resolución (R-0001-2025)
+  ↓ [Autoriza]
+TUCs + Vehículos + Rutas
+```
+
+#### **Flujo de Información** 📋
+```
+Expediente (E-0002-2025)
+  ↓ [Solicita ciudadano]
+Persona Natural (Juan Pérez)
+  ↓ [Genera]
+Constancia (C-0001-2025)
+  ↓ [Certifica]
+Información solicitada
+```
+
+#### **Flujo de Copias** 📄
+```
+Expediente (E-0003-2025)
+  ↓ [Solicita funcionario]
+Funcionario (María López)
+  ↓ [Genera]
+Certificado (C-0002-2025)
+  ↓ [Certifica]
+Copia del documento
+```
+
+### 🤖 Funcionalidades Automáticas
+
+#### **1. Descripción Automática**
+- Se genera según el tipo de trámite
+- **PRIMIGENIA**: "SOLICITUD DE AUTORIZACIÓN PRIMIGENIA PARA OPERAR TRANSPORTE..."
+- **OTROS**: "SOLICITUD ADMINISTRATIVA GENERAL - TRÁMITE DIVERSO"
+
+#### **2. Numeración Reactiva**
+- Hint del input se actualiza en tiempo real
+- Muestra el formato completo mientras escribes
+- Validación automática de unicidad
+
+#### **3. Validaciones Inteligentes**
+- Solo se requiere `empresaId` o `solicitanteId` según el tipo
+- Campo descripción opcional (se genera automáticamente)
+- Sin errores de validación innecesarios
 
 ## 🆕 Nueva Funcionalidad: Seguimiento de Expedientes por Oficina
 
@@ -172,6 +315,43 @@ urgencia?: NivelUrgencia;                 // Nivel de urgencia
 - **URGENTE** → Atención prioritaria
 - **MUY_URGENTE** → Atención inmediata
 - **CRITICO** → Máxima prioridad
+
+## 🧩 Componentes Implementados
+
+### 📁 Expedientes
+- **ExpedientesComponent**: Tabla avanzada con Material Design
+  - Ordenamiento por columna
+  - Paginación
+  - Filtros avanzados
+  - Columnas configurables
+  - Datos mock con formato correcto
+
+- **CrearExpedienteModalComponent**: Modal reutilizable para crear expedientes
+  - Numeración automática reactiva
+  - Descripción automática según tipo de trámite
+  - Campo descripción de solo lectura
+  - Validaciones simplificadas
+
+### 📋 Resoluciones
+- **CrearResolucionModalComponent**: Modal para crear resoluciones
+  - Numeración automática con formato R-XXXX-YYYY
+  - Integración con expedientes
+  - Hint reactivo que se actualiza en tiempo real
+
+### 🏢 Empresas
+- **EmpresaVehiculosBatchComponent**: Gestión de vehículos por empresa
+- **AgregarVehiculosModalComponent**: Modal para agregar vehículos
+- **ValidacionSunatModalComponent**: Validación con SUNAT
+
+### 🚗 Vehículos
+- **VehiculoFormComponent**: Formulario completo de vehículos
+- **VehiculoDetailComponent**: Vista detallada de vehículos
+- **VehiculoModalComponent**: Modal para gestión de vehículos
+
+### 🛣️ Rutas
+- **RutaFormComponent**: Formulario de rutas
+- **RutaDetailComponent**: Vista detallada de rutas
+- **AgregarRutaModalComponent**: Modal para agregar rutas
 
 ## 🧩 Componentes Principales
 

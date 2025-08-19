@@ -1,0 +1,322 @@
+<div class="gestion-bajas-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h1>Gestión de Bajas Vehiculares en Resoluciones</h1>
+      <p>Administra las bajas vehiculares asociadas a resoluciones de {{ resolucion()?.tipoTramite | uppercase }}</p>
+    </div>
+    <div class="actions">
+      <button mat-raised-button color="primary" (click)="nuevaBaja()" class="new-baja-btn">
+        <mat-icon>add_circle</mat-icon>
+        Nueva Baja
+      </button>
+    </div>
+  </div>
+
+  <!-- Información de la Resolución -->
+  @if (resolucion()) {
+    <mat-card class="resolucion-info">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>description</mat-icon>
+          RESOLUCIÓN: {{ resolucion()?.nroResolucion }}
+        </mat-card-title>
+        <mat-card-subtitle>
+          {{ resolucion()?.tipoTramite | uppercase }} - {{ resolucion()?.descripcion }}
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="resolucion-details">
+          <div class="detail-item">
+            <span class="label">Estado:</span>
+            <span class="value estado-chip" [class]="'estado-' + resolucion()?.estado?.toLowerCase()">
+              {{ resolucion()?.estado | uppercase }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Fecha Emisión:</span>
+            <span class="value">{{ resolucion()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="label">Vehículos Habilitados:</span>
+            <span class="value">{{ resolucion()?.vehiculosHabilitadosIds?.length || 0 }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Tabs para diferentes tipos de gestión -->
+  <mat-tab-group class="bajas-tabs">
+    <!-- Tab: Bajas Existentes -->
+    <mat-tab label="Bajas Existentes">
+      <div class="tab-content">
+        @if (isLoading()) {
+          <div class="loading-container">
+            <mat-spinner diameter="50"></mat-spinner>
+            <p>Cargando bajas...</p>
+          </div>
+        } @else if (bajasIntegradas().length === 0) {
+          <div class="empty-state">
+            <mat-icon>inventory_2</mat-icon>
+            <h3>No hay bajas vehiculares registradas</h3>
+            <p>Esta resolución no tiene bajas vehiculares asociadas</p>
+          </div>
+        } @else {
+          <mat-card>
+            <mat-card-content>
+              <table mat-table [dataSource]="bajasIntegradas()" class="bajas-table">
+                <!-- Columna: Tipo de Baja -->
+                <ng-container matColumnDef="tipoBaja">
+                  <th mat-header-cell *matHeaderCellDef>Tipo de Baja</th>
+                  <td mat-cell *matCellDef="let baja">
+                    <span class="tipo-chip" [class]="'tipo-' + baja.tipoBaja.toLowerCase()">
+                      {{ getNombreTipoBaja(baja.tipoBaja) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Vehículo -->
+                <ng-container matColumnDef="vehiculo">
+                  <th mat-header-cell *matHeaderCellDef>Vehículo</th>
+                  <td mat-cell *matCellDef="let baja">
+                    {{ getNombreVehiculo(baja.vehiculoId) }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Fecha -->
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha Baja</th>
+                  <td mat-cell *matCellDef="let baja">
+                    {{ baja.fechaBaja | date:'dd/MM/yyyy' }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Motivo -->
+                <ng-container matColumnDef="motivo">
+                  <th mat-header-cell *matHeaderCellDef>Motivo</th>
+                  <td mat-cell *matCellDef="let baja">
+                    {{ baja.motivo }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Estado -->
+                <ng-container matColumnDef="estado">
+                  <th mat-header-cell *matHeaderCellDef>Estado</th>
+                  <td mat-cell *matCellDef="let baja">
+                    <span class="estado-chip" [class]="'estado-' + (baja.estaActivo ? 'activo' : 'inactivo')">
+                      {{ baja.estaActivo ? 'ACTIVO' : 'INACTIVO' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Acciones -->
+                <ng-container matColumnDef="acciones">
+                  <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                  <td mat-cell *matCellDef="let baja">
+                    <div class="action-buttons">
+                      <button mat-icon-button color="primary" (click)="verDetalleBaja(baja)" matTooltip="Ver detalle">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="eliminarBaja(baja)" matTooltip="Eliminar">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="columnasBajas"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasBajas;"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Flujos de Sustitución -->
+    <mat-tab label="Flujos de Sustitución">
+      <div class="tab-content">
+        @if (flujosSustitucion().length === 0) {
+          <div class="empty-state">
+            <mat-icon>swap_horiz</mat-icon>
+            <h3>No hay flujos de sustitución</h3>
+            <p>No se han registrado sustituciones de vehículos</p>
+          </div>
+        } @else {
+          <mat-card>
+            <mat-card-content>
+              <table mat-table [dataSource]="flujosSustitucion()" class="flujos-table">
+                <!-- Columna: Vehículo Anterior -->
+                <ng-container matColumnDef="vehiculoAnterior">
+                  <th mat-header-cell *matHeaderCellDef>Vehículo Anterior</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ getNombreVehiculo(flujo.vehiculoAnteriorId) }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Vehículo Nuevo -->
+                <ng-container matColumnDef="vehiculoNuevo">
+                  <th mat-header-cell *matHeaderCellDef>Vehículo Nuevo</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ getNombreVehiculo(flujo.vehiculoNuevoId) }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Fecha -->
+                <ng-container matColumnDef="fechaSustitucion">
+                  <th mat-header-cell *matHeaderCellDef>Fecha Sustitución</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ flujo.fechaSustitucion | date:'dd/MM/yyyy' }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Motivo -->
+                <ng-container matColumnDef="motivoSustitucion">
+                  <th mat-header-cell *matHeaderCellDef>Motivo</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ flujo.motivoSustitucion }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Acciones -->
+                <ng-container matColumnDef="accionesFlujo">
+                  <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    <div class="action-buttons">
+                      <button mat-icon-button color="primary" (click)="verDetalleFlujo(flujo)" matTooltip="Ver detalle">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="columnasFlujos"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasFlujos;"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Flujos de Renovación -->
+    <mat-tab label="Flujos de Renovación">
+      <div class="tab-content">
+        @if (flujosRenovacion().length === 0) {
+          <div class="empty-state">
+            <mat-icon>refresh</mat-icon>
+            <h3>No hay flujos de renovación</h3>
+            <p>No se han registrado renovaciones de vehículos</p>
+          </div>
+        } @else {
+          <mat-card>
+            <mat-card-content>
+              <table mat-table [dataSource]="flujosRenovacion()" class="flujos-table">
+                <!-- Columna: Vehículos Renovados -->
+                <ng-container matColumnDef="vehiculosRenovados">
+                  <th mat-header-cell *matHeaderCellDef>Vehículos Renovados</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    <div class="vehiculos-list">
+                      @for (vehiculoId of flujo.vehiculosRenovados; track vehiculoId) {
+                        <span class="vehiculo-chip">{{ getNombreVehiculo(vehiculoId) }}</span>
+                      }
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Fecha -->
+                <ng-container matColumnDef="fechaRenovacion">
+                  <th mat-header-cell *matHeaderCellDef>Fecha Renovación</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ flujo.fechaRenovacion | date:'dd/MM/yyyy' }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Motivo -->
+                <ng-container matColumnDef="motivoRenovacion">
+                  <th mat-header-cell *matHeaderCellDef>Motivo</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ flujo.motivoRenovacion }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Cambios -->
+                <ng-container matColumnDef="cambiosRealizados">
+                  <th mat-header-cell *matHeaderCellDef>Cambios Realizados</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    {{ flujo.cambiosRealizados || 'Sin cambios específicos' }}
+                  </td>
+                </ng-container>
+
+                <!-- Columna: Acciones -->
+                <ng-container matColumnDef="accionesRenovacion">
+                  <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                  <td mat-cell *matCellDef="let flujo">
+                    <div class="action-buttons">
+                      <button mat-icon-button color="primary" (click)="verDetalleRenovacion(flujo)" matTooltip="Ver detalle">
+                        <mat-icon>visibility</mat-icon>
+                      </button>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="columnasRenovacion"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasRenovacion;"></tr>
+              </table>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Estadísticas -->
+    <mat-tab label="Estadísticas">
+      <div class="tab-content">
+        <div class="stats-grid">
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().totalBajas }}</div>
+              <div class="stat-label">Total Bajas</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().bajasSustitucion }}</div>
+              <div class="stat-label">Sustituciones</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().bajasRenovacion }}</div>
+              <div class="stat-label">Renovaciones</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().vehiculosSustituidos }}</div>
+              <div class="stat-label">Vehículos Sustituidos</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().vehiculosRenovados }}</div>
+              <div class="stat-label">Vehículos Renovados</div>
+            </mat-card-content>
+          </mat-card>
+
+          <mat-card class="stat-card">
+            <mat-card-content>
+              <div class="stat-value">{{ estadisticas().resolucionesConBajas }}</div>
+              <div class="stat-label">Resoluciones con Bajas</div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div> 

@@ -21,7 +21,7 @@ import { EmpresaService } from '../../services/empresa.service';
 import { ExpedienteService } from '../../services/expediente.service';
 import { ResolucionCreate, TipoTramite, TipoResolucion, Resolucion } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
-import { Expediente, ExpedienteCreate } from '../../models/expediente.model';
+import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 
 @Component({
   selector: 'app-crear-resolucion-modal',
@@ -1033,6 +1033,8 @@ export class CrearResolucionModalComponent implements OnDestroy {
         folio: 1, // Expediente básico
         fechaEmision: new Date(),
         tipoTramite: tipoTramite as TipoTramite,
+        tipoExpediente: TipoExpediente.OTROS,
+        tipoSolicitante: TipoSolicitante.EMPRESA,
         empresaId: empresaId,
         descripcion: descripcion,
         observaciones: 'Expediente creado automáticamente al generar resolución'

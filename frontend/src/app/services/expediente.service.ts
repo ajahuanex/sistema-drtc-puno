@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Expediente, ExpedienteCreate, ExpedienteUpdate, ExpedienteSincronizacion, RespuestaSincronizacion, SistemaOrigen, EstadoSincronizacion, ValidacionExpediente, RespuestaValidacion } from '../models/expediente.model';
+import { Expediente, ExpedienteCreate, ExpedienteUpdate, ExpedienteSincronizacion, RespuestaSincronizacion, SistemaOrigen, EstadoSincronizacion, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../models/expediente.model';
 
 @Injectable({
   providedIn: 'root'
@@ -19,6 +19,7 @@ export class ExpedienteService {
       folio: 15, // Cantidad de hojas del expediente
       fechaEmision: new Date('2025-01-15'),
       tipoTramite: 'PRIMIGENIA',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '1',
       descripcion: 'Solicitud de autorización PRIMIGENIA para operar transporte público de pasajeros en rutas interprovinciales',
       estado: 'APROBADO',
@@ -35,6 +36,7 @@ export class ExpedienteService {
       folio: 8, // Cantidad de hojas del expediente
       fechaEmision: new Date('2025-01-20'),
       tipoTramite: 'RENOVACION',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '2',
       descripcion: 'Renovación de autorización de transporte público de pasajeros - vencimiento próximo',
       estado: 'EN PROCESO',
@@ -59,6 +61,7 @@ export class ExpedienteService {
       folio: 22, // Cantidad de hojas del expediente
       fechaEmision: new Date('2025-01-25'),
       tipoTramite: 'INCREMENTO',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '3',
       descripcion: 'Solicitud de INCREMENTO de flota vehicular para ampliar cobertura de rutas autorizadas',
       estado: 'EN PROCESO',
@@ -75,6 +78,7 @@ export class ExpedienteService {
       folio: 12,
       fechaEmision: new Date('2026-01-10'),
       tipoTramite: 'PRIMIGENIA',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '4',
       descripcion: 'Solicitud de autorización PRIMIGENIA para empresa de transporte de carga pesada',
       estado: 'EN PROCESO',
@@ -91,6 +95,7 @@ export class ExpedienteService {
       folio: 18,
       fechaEmision: new Date('2026-01-15'),
       tipoTramite: 'RENOVACION',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '5',
       descripcion: 'Renovación de autorización para empresa de transporte de carga pesada - ampliación de vigencia',
       estado: 'EN PROCESO',
@@ -107,6 +112,7 @@ export class ExpedienteService {
       folio: 25,
       fechaEmision: new Date('2026-02-15'),
       tipoTramite: 'INCREMENTO',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '2',
       descripcion: 'Solicitud de INCREMENTO de flota vehicular para ampliar capacidad de transporte de carga',
       estado: 'EN PROCESO',
@@ -123,6 +129,7 @@ export class ExpedienteService {
       folio: 20,
       fechaEmision: new Date('2026-03-10'),
       tipoTramite: 'SUSTITUCION',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '3',
       descripcion: 'Solicitud de SUSTITUCIÓN de vehículos en flota existente por unidades más modernas y eficientes',
       estado: 'EN PROCESO',
@@ -139,6 +146,7 @@ export class ExpedienteService {
       folio: 15,
       fechaEmision: new Date('2026-04-01'),
       tipoTramite: 'OTROS',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '1',
       descripcion: 'Solicitud de modificación de rutas autorizadas para optimizar cobertura geográfica',
       estado: 'EN PROCESO',
@@ -155,6 +163,7 @@ export class ExpedienteService {
       folio: 30,
       fechaEmision: new Date('2027-01-20'),
       tipoTramite: 'PRIMIGENIA',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '6',
       descripcion: 'Solicitud de autorización PRIMIGENIA para empresa de transporte turístico especializado',
       estado: 'EN PROCESO',
@@ -171,6 +180,7 @@ export class ExpedienteService {
       folio: 22,
       fechaEmision: new Date('2027-02-15'),
       tipoTramite: 'RENOVACION',
+      tipoSolicitante: TipoSolicitante.EMPRESA,
       empresaId: '6',
       descripcion: 'Renovación de autorización para empresa de transporte turístico especializado - mantenimiento de servicios',
       estado: 'EN PROCESO',
@@ -258,6 +268,7 @@ export class ExpedienteService {
       folio: expediente.folio,
       fechaEmision: expediente.fechaEmision,
       tipoTramite: expediente.tipoTramite,
+      tipoSolicitante: expediente.tipoSolicitante,
       empresaId: expediente.empresaId,
       descripcion: expediente.descripcion,
       observaciones: expediente.observaciones,
@@ -459,6 +470,8 @@ export class ExpedienteService {
       folio: dato.folio || Math.floor(Math.random() * 50) + 1, // Generar folio numérico aleatorio (1-50 hojas) si no existe
       fechaEmision: new Date(dato.fechaEmision),
       tipoTramite: dato.tipoTramite,
+      tipoExpediente: dato.tipoExpediente || 'OTROS',
+      tipoSolicitante: dato.tipoSolicitante || TipoSolicitante.EMPRESA,
       empresaId: dato.empresaId,
       descripcion: dato.descripcion,
       observaciones: dato.observaciones,
@@ -495,6 +508,7 @@ export class ExpedienteService {
       folio: expedienteCreate.folio,
       fechaEmision: expedienteCreate.fechaEmision,
       tipoTramite: expedienteCreate.tipoTramite,
+      tipoSolicitante: expedienteCreate.tipoSolicitante,
       empresaId: expedienteCreate.empresaId,
       descripcion: expedienteCreate.descripcion,
       observaciones: expedienteCreate.observaciones,

@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { VehiculoModalComponent, VehiculoModalData } from '../components/vehiculos/vehiculo-modal.component';
+import { TransferirVehiculoModalComponent, TransferirVehiculoData } from '../components/vehiculos/transferir-vehiculo-modal.component';
+import { SolicitarBajaVehiculoModalComponent } from '../components/vehiculos/solicitar-baja-vehiculo-modal.component';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate } from '../models/vehiculo.model';
 import { Observable } from 'rxjs';
 
@@ -93,5 +95,46 @@ export class VehiculoModalService {
    */
   openCreateForResolucion(empresaId: string, resolucionId: string): Observable<VehiculoCreate> {
     return this.openCreateModal(empresaId, resolucionId);
+  }
+
+  /**
+   * Abre el modal para transferir un vehículo entre empresas
+   * @param vehiculo Vehículo a transferir
+   * @returns Observable que emite el resultado de la transferencia
+   */
+  openTransferirModal(vehiculo: Vehiculo): Observable<any> {
+    const dialogRef = this.dialog.open(TransferirVehiculoModalComponent, {
+      width: '800px',
+      data: { vehiculo } as TransferirVehiculoData,
+      disableClose: true
+    });
+
+    return new Observable(observer => {
+      dialogRef.afterClosed().subscribe((result: any) => {
+        observer.next(result);
+        observer.complete();
+      });
+    });
+  }
+
+  /**
+   * Abre el modal para solicitar la baja de un vehículo
+   * @param vehiculo Vehículo para solicitar baja
+   * @returns Observable que emite el resultado de la solicitud
+   */
+  openSolicitarBajaModal(vehiculo: Vehiculo): Observable<any> {
+    const dialogRef = this.dialog.open(SolicitarBajaVehiculoModalComponent, {
+      width: '800px',
+      maxHeight: '85vh',
+      data: { vehiculo },
+      disableClose: true
+    });
+
+    return new Observable(observer => {
+      dialogRef.afterClosed().subscribe((result: any) => {
+        observer.next(result);
+        observer.complete();
+      });
+    });
   }
 } 

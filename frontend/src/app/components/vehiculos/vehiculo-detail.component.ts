@@ -8,8 +8,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { Vehiculo } from '../../models/vehiculo.model';
+import { TransferirVehiculoModalComponent, TransferirVehiculoData } from './transferir-vehiculo-modal.component';
+import { SolicitarBajaVehiculoModalComponent } from './solicitar-baja-vehiculo-modal.component';
 
 @Component({
   selector: 'app-vehiculo-detail',
@@ -21,7 +24,8 @@ import { Vehiculo } from '../../models/vehiculo.model';
     MatIconModule,
     MatProgressSpinnerModule,
     MatDividerModule,
-    MatChipsModule
+    MatChipsModule,
+    MatDialogModule
   ],
   template: `
     <div class="page-header">
@@ -39,6 +43,18 @@ import { Vehiculo } from '../../models/vehiculo.model';
         <button mat-raised-button color="accent" (click)="editarVehiculo()" class="action-button">
           <mat-icon>edit</mat-icon>
           Editar
+        </button>
+        <button mat-raised-button color="primary" (click)="verHistorial()" class="action-button">
+          <mat-icon>history</mat-icon>
+          Ver Historial
+        </button>
+        <button mat-raised-button color="accent" (click)="transferirVehiculo()" class="action-button">
+          <mat-icon>swap_horiz</mat-icon>
+          Transferir Empresa
+        </button>
+        <button mat-raised-button color="warn" (click)="solicitarBajaVehiculo()" class="action-button">
+          <mat-icon>remove_circle</mat-icon>
+          Solicitar Baja
         </button>
       </div>
     </div>
@@ -498,6 +514,7 @@ export class VehiculoDetailComponent implements OnInit {
   private router = inject(Router);
   private vehiculoService = inject(VehiculoService);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   vehiculo = signal<Vehiculo | null>(null);
   isLoading = signal(false);
@@ -531,6 +548,48 @@ export class VehiculoDetailComponent implements OnInit {
   editarVehiculo(): void {
     if (this.vehiculo()) {
       this.router.navigate(['/vehiculos', this.vehiculo()!.id, 'editar']);
+    }
+  }
+
+  verHistorial(): void {
+    if (this.vehiculo()) {
+      this.router.navigate(['/vehiculos', this.vehiculo()!.id, 'historial']);
+    }
+  }
+
+  transferirVehiculo(): void {
+    if (this.vehiculo()) {
+      const dialogRef = this.dialog.open(TransferirVehiculoModalComponent, {
+        width: '800px',
+        data: { vehiculo: this.vehiculo() } as TransferirVehiculoData,
+        disableClose: true
+      });
+
+      dialogRef.afterClosed().subscribe((result: any) => {
+        if (result?.success) {
+          console.log('✅ Vehículo transferido:', result.vehiculo);
+          this.snackBar.open('Vehículo transferido exitosamente', 'Cerrar', { duration: 3000 });
+          this.loadVehiculo(); // Recargar datos para mostrar cambios
+        }
+      });
+    }
+  }
+
+  solicitarBajaVehiculo(): void {
+    if (this.vehiculo()) {
+      const dialogRef = this.dialog.open(SolicitarBajaVehiculoModalComponent, {
+        width: '800px',
+        maxHeight: '85vh',
+        data: { vehiculo: this.vehiculo() },
+        disableClose: true
+      });
+
+      dialogRef.afterClosed().subscribe((result: any) => {
+        if (result?.success) {
+          console.log('✅ Solicitud de baja creada:', result.baja);
+          this.snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', { duration: 3000 });
+        }
+      });
     }
   }
 

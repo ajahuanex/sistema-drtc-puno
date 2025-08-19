@@ -13,6 +13,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { TransferirVehiculoModalComponent, TransferirVehiculoData } from './transferir-vehiculo-modal.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatChipsModule } from '@angular/material/chips';
@@ -413,6 +414,18 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                       <button mat-menu-item (click)="verDetalle(vehiculo)">
                         <mat-icon>visibility</mat-icon>
                         <span>Ver detalle</span>
+                      </button>
+                      <button mat-menu-item (click)="verHistorial(vehiculo)">
+                        <mat-icon>history</mat-icon>
+                        <span>Ver historial</span>
+                      </button>
+                      <button mat-menu-item (click)="transferirVehiculo(vehiculo)">
+                        <mat-icon>swap_horiz</mat-icon>
+                        <span>Transferir empresa</span>
+                      </button>
+                      <button mat-menu-item (click)="solicitarBajaVehiculo(vehiculo)">
+                        <mat-icon>remove_circle</mat-icon>
+                        <span>Solicitar baja</span>
                       </button>
                       <button mat-menu-item (click)="editarVehiculo(vehiculo)">
                         <mat-icon>edit</mat-icon>
@@ -955,6 +968,33 @@ export class VehiculosComponent implements OnInit {
 
   verDetalle(vehiculo: Vehiculo) {
     this.router.navigate(['/vehiculos', vehiculo.id]);
+  }
+
+  verHistorial(vehiculo: Vehiculo) {
+    this.router.navigate(['/vehiculos', vehiculo.id, 'historial']);
+  }
+
+  transferirVehiculo(vehiculo: Vehiculo) {
+    const dialogRef = this.vehiculoModalService.openTransferirModal(vehiculo);
+
+    dialogRef.subscribe((result: any) => {
+      if (result?.success) {
+        console.log('✅ Vehículo transferido:', result.vehiculo);
+        this.snackBar.open('Vehículo transferido exitosamente', 'Cerrar', { duration: 3000 });
+        this.cargarDatos(); // Recargar datos para mostrar cambios
+      }
+    });
+  }
+
+  solicitarBajaVehiculo(vehiculo: Vehiculo) {
+    const dialogRef = this.vehiculoModalService.openSolicitarBajaModal(vehiculo);
+
+    dialogRef.subscribe((result: any) => {
+      if (result?.success) {
+        console.log('✅ Solicitud de baja creada:', result.baja);
+        this.snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   editarVehiculo(vehiculo: Vehiculo) {

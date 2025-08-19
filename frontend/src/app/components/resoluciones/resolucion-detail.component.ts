@@ -47,6 +47,12 @@ import { Empresa } from '../../models/empresa.model';
             <mat-icon>edit</mat-icon>
             Editar
           </button>
+          @if (resolucion()?.tipoTramite === 'SUSTITUCION' || resolucion()?.tipoTramite === 'RENOVACION') {
+            <button mat-raised-button color="warn" (click)="gestionarBajasVehiculares()" class="action-button">
+              <mat-icon>inventory_2</mat-icon>
+              Gestión de Bajas
+            </button>
+          }
         </div>
       </div>
     </div>
@@ -757,6 +763,13 @@ export class ResolucionDetailComponent implements OnInit {
     const resolucion = this.resolucion();
     if (resolucion) {
       this.router.navigate(['/resoluciones', resolucion.id, 'editar']);
+    }
+  }
+
+  gestionarBajasVehiculares(): void {
+    const resolucion = this.resolucion();
+    if (resolucion) {
+      this.router.navigate(['/resoluciones', resolucion.id, 'bajas-vehiculares']);
     }
   }
 } 

@@ -22,7 +22,7 @@ import { map, startWith } from 'rxjs/operators';
 import { ExpedienteService } from '../../services/expediente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
-import { Expediente, ExpedienteCreate, ValidacionExpediente, RespuestaValidacion } from '../../models/expediente.model';
+import { Expediente, ExpedienteCreate, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 
@@ -897,6 +897,8 @@ export class ExpedienteFormComponent implements OnInit {
         folio: formValue.folio, // Folio único
         fechaEmision: formValue.fechaEmision,
         tipoTramite: formValue.tipoTramite,
+        tipoExpediente: TipoExpediente.OTROS,
+        tipoSolicitante: TipoSolicitante.EMPRESA,
         empresaId: this.empresaSeleccionada()?.id,
         resolucionPadreId: formValue.resolucionPadreId || undefined,
         descripcion: formValue.descripcion,

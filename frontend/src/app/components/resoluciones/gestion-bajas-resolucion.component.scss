@@ -1,0 +1,423 @@
+.gestion-bajas-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.title-section h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.title-section p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.new-baja-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.resolucion-info {
+  margin-bottom: 24px;
+  border: 2px solid #3498db;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+
+  .mat-card-header {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border-radius: 10px 10px 0 0;
+    padding: 16px 20px;
+
+    .mat-card-title {
+      color: white;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .mat-card-subtitle {
+      color: #e8f4fd;
+      font-weight: 500;
+    }
+  }
+
+  .resolucion-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 20px;
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .estado-chip {
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        max-width: 120px;
+
+        &.estado-vigente {
+          background: #27ae60;
+          color: white;
+        }
+
+        &.estado-vencida {
+          background: #e74c3c;
+          color: white;
+        }
+
+        &.estado-suspendida {
+          background: #f39c12;
+          color: white;
+        }
+
+        &.estado-revocada {
+          background: #8e44ad;
+          color: white;
+        }
+
+        &.estado-dada_de_baja {
+          background: #95a5a6;
+          color: white;
+        }
+      }
+    }
+  }
+}
+
+.bajas-tabs {
+  .mat-tab-group {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .tab-content {
+    padding: 24px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 16px;
+    color: #666;
+    font-size: 16px;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+}
+
+.bajas-table, .flujos-table {
+  width: 100%;
+
+  .mat-column-tipoBaja {
+    width: 150px;
+  }
+
+  .mat-column-fecha, .mat-column-fechaSustitucion, .mat-column-fechaRenovacion {
+    width: 120px;
+  }
+
+  .mat-column-estado {
+    width: 100px;
+  }
+
+  .mat-column-acciones, .mat-column-accionesFlujo, .mat-column-accionesRenovacion {
+    width: 100px;
+    text-align: center;
+  }
+
+  .tipo-chip {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &.tipo-sustitucion_vehiculo {
+      background: #e74c3c;
+      color: white;
+    }
+
+    &.tipo-renovacion_vehiculo {
+      background: #27ae60;
+      color: white;
+    }
+
+    &.tipo-incremento_vehiculo {
+      background: #3498db;
+      color: white;
+    }
+
+    &.tipo-otros {
+      background: #95a5a6;
+      color: white;
+    }
+  }
+
+  .estado-chip {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &.estado-activo {
+      background: #27ae60;
+      color: white;
+    }
+
+    &.estado-inactivo {
+      background: #e74c3c;
+      color: white;
+    }
+  }
+
+  .vehiculos-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    .vehiculo-chip {
+      background: #3498db;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 20px;
+
+  .stat-card {
+    text-align: center;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border-color: #3498db;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      color: #3498db;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Estilos para el tema oscuro
+@media (prefers-color-scheme: dark) {
+  .gestion-bajas-container {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+
+  .resolucion-info {
+    background: #2d2d2d;
+    border-color: #4a90e2;
+
+    .resolucion-details {
+      .detail-item {
+        .label {
+          color: #cccccc;
+        }
+
+        .value {
+          color: #ffffff;
+        }
+      }
+    }
+  }
+
+  .bajas-tabs {
+    .mat-tab-group {
+      background: #2d2d2d;
+    }
+  }
+
+  .empty-state {
+    color: #cccccc;
+  }
+
+  .stats-grid {
+    .stat-card {
+      background: #2d2d2d;
+      border-color: #4a90e2;
+
+      .stat-label {
+        color: #cccccc;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .gestion-bajas-container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .title-section h1 {
+    font-size: 24px;
+  }
+
+  .resolucion-details {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .tab-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gestion-bajas-container {
+    padding: 12px;
+  }
+
+  .header {
+    padding: 16px;
+  }
+
+  .title-section h1 {
+    font-size: 20px;
+  }
+
+  .new-baja-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+} 
