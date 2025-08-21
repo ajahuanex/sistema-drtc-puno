@@ -14,9 +14,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-
 import { ExpedienteService } from '../../services/expediente.service';
 import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-number-validator.component';
+import { ExpedienteValidationService } from '../../services/expediente-validation.service';
 
 @Component({
   selector: 'app-crear-expediente-modal',
@@ -35,7 +37,9 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
     MatChipsModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatDialogModule
+    MatDialogModule,
+    EmpresaSelectorComponent,
+    ExpedienteNumberValidatorComponent
   ],
   template: `
     <div class="modal-container">
@@ -65,19 +69,16 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
             </mat-card-header>
             <mat-card-content>
               <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Número de Expediente *</mat-label>
-                  <input matInput 
-                         formControlName="numero" 
-                         placeholder="Ej: 0001"
-                         (input)="convertirAMayusculas($event, 'numero')"
-                         required>
-                  <mat-icon matSuffix>receipt</mat-icon>
-                  <mat-hint>Número único del expediente (el sistema generará {{ getNumeroExpedienteCompleto() }})</mat-hint>
-                  <mat-error *ngIf="expedienteForm.get('numero')?.hasError('required')">
-                    El número de expediente es obligatorio
-                  </mat-error>
-                </mat-form-field>
+                <app-expediente-number-validator
+                  label="Número de Expediente *"
+                  placeholder="Ej: 0001"
+                  hint="El sistema generará E-0001-2025"
+                  [required]="true"
+                  [empresaId]="expedienteForm.get('empresaId')?.value"
+                  (numeroValido)="onNumeroExpedienteValido($event)"
+                  (numeroInvalido)="onNumeroExpedienteInvalido($event)"
+                  (validacionCompleta)="onValidacionExpedienteCompleta($event)">
+                </app-expediente-number-validator>
 
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Folio *</mat-label>
@@ -179,6 +180,15 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
 
 
               <div class="form-row">
+                <app-empresa-selector
+                  label="Empresa (Opcional)"
+                  placeholder="Buscar empresa por RUC o razón social"
+                  hint="Selecciona una empresa para crear dependencia (opcional)"
+                  [empresaId]="expedienteForm.get('empresaId')?.value"
+                  (empresaIdChange)="onEmpresaIdChange($event)"
+                  (empresaSeleccionada)="onEmpresaSeleccionada($event)">
+                </app-empresa-selector>
+
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Observaciones</mat-label>
                   <textarea matInput 
@@ -288,6 +298,8 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
       background-color: #f5f5f5;
       transform: translateY(-1px);
     }
+
+
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -297,7 +309,7 @@ export class CrearExpedienteModalComponent {
   private dialogRef = inject(MatDialogRef<CrearExpedienteModalComponent>);
   private data = inject(MAT_DIALOG_DATA);
   private expedienteService = inject(ExpedienteService);
-
+  private validationService = inject(ExpedienteValidationService);
   isSubmitting = signal(false);
   expedienteForm: FormGroup;
 
@@ -309,6 +321,7 @@ export class CrearExpedienteModalComponent {
       descripcion: [''],
       fechaEmision: ['', Validators.required],
       prioridad: ['NORMAL', Validators.required],
+      empresaId: [''], // Campo opcional para empresa
       observaciones: ['']
     });
 
@@ -378,7 +391,7 @@ export class CrearExpedienteModalComponent {
           tipoTramite: this.expedienteForm.value.tipoTramite,
           tipoExpediente: TipoExpediente.OTROS,
           tipoSolicitante: TipoSolicitante.EMPRESA,
-          empresaId: this.data.empresaId || '',
+          empresaId: this.expedienteForm.value.empresaId || '',
           descripcion: this.expedienteForm.value.descripcion,
           observaciones: this.expedienteForm.value.observaciones,
           prioridad: this.expedienteForm.value.prioridad
@@ -422,5 +435,57 @@ export class CrearExpedienteModalComponent {
    */
   cerrar(): void {
     this.dialogRef.close();
+  }
+
+  /**
+   * Maneja el cambio del ID de empresa
+   */
+  onEmpresaIdChange(empresaId: string): void {
+    this.expedienteForm.get('empresaId')?.setValue(empresaId, { emitEvent: false });
+  }
+
+  /**
+   * Maneja la selección de una empresa
+   */
+  onEmpresaSeleccionada(empresa: any): void {
+    if (empresa) {
+      // Opcional: Mostrar un mensaje de confirmación
+      this.snackBar.open(`Empresa seleccionada: ${empresa.razonSocial.principal}`, 'Cerrar', {
+        duration: 2000
+      });
+    }
+  }
+
+  /**
+   * Maneja cuando el número de expediente es válido
+   */
+  onNumeroExpedienteValido(data: { numero: string; año: number; nroCompleto: string }): void {
+    this.expedienteForm.get('numero')?.setValue(data.numero);
+    
+    // Mostrar confirmación
+    this.snackBar.open(`Número de expediente válido: ${data.nroCompleto}`, 'Cerrar', {
+      duration: 2000
+    });
+  }
+
+  /**
+   * Maneja cuando el número de expediente es inválido
+   */
+  onNumeroExpedienteInvalido(mensaje: string): void {
+    this.expedienteForm.get('numero')?.setErrors({ duplicado: true });
+    
+    // Mostrar error
+    this.snackBar.open(mensaje, 'Cerrar', {
+      duration: 4000,
+      panelClass: ['error-snackbar']
+    });
+  }
+
+  /**
+   * Maneja cuando la validación está completa
+   */
+  onValidacionExpedienteCompleta(resultado: any): void {
+    // La validación se completó, el formulario se actualiza automáticamente
+    console.log('Validación de expediente completada:', resultado);
   }
 } 

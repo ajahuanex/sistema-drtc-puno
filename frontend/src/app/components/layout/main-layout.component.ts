@@ -18,10 +18,12 @@ import { TopbarComponent } from './topbar.component';
   template: `
     <div class="app-container">
       <!-- Topbar fijo -->
-      <app-topbar 
-        (toggleSidebar)="toggleSidebar()" 
-        [sidebarExpanded]="sidebarExpanded()">
-      </app-topbar>
+      <div class="topbar-container">
+        <app-topbar 
+          (toggleSidebar)="toggleSidebar()" 
+          [sidebarExpanded]="sidebarExpanded()">
+        </app-topbar>
+      </div>
 
       <!-- Contenedor principal -->
       <div class="main-container">
@@ -50,11 +52,22 @@ import { TopbarComponent } from './topbar.component';
       overflow: hidden;
     }
 
+    .topbar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 1001;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
     .main-container {
       flex: 1;
       display: flex;
-      height: calc(100vh - 64px);
-      margin-top: 64px;
+      height: 100vh;
+      padding-top: 64px;
       overflow: hidden;
     }
 
@@ -80,7 +93,7 @@ import { TopbarComponent } from './topbar.component';
     }
 
     .content-wrapper {
-      padding: 24px;
+      padding: 16px;
       height: 100%;
       max-width: 1400px;
       margin: 0 auto;

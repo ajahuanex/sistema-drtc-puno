@@ -5,11 +5,12 @@
       box-shadow: 2px 0 12px rgba(0,0,0,0.08);
       transition: all 0.3s ease;
       position: fixed;
-      top: 64px; /* Debajo del topbar fijo */
+      top: 0; /* Sin espacio superior */
       left: 0;
-      height: calc(100vh - 64px);
+      height: 100vh;
       z-index: 100;
       overflow: hidden;
+      padding-top: 64px; /* Padding interno para el topbar */
     }
 
     .sidenav.collapsed {
@@ -18,18 +19,18 @@
 
     .main-content {
       background: transparent;
-      height: calc(100vh - 64px);
+      height: 100vh;
       transition: all 0.3s ease;
       margin-left: 260px; /* Espacio para sidebar expandido */
       position: relative;
       z-index: 1;
-      margin-top: 64px; /* Espacio para el topbar fijo */
-      padding-top: 0;
+      margin-top: 0; /* Sin margen superior */
+      padding-top: 64px; /* Padding interno para el topbar */
       width: calc(100% - 260px); /* Ancho cuando sidebar expandido */
       overflow: hidden;
     }
 
     .main-content.sidebar-collapsed {
       margin-left: 80px; /* Se mueve a la izquierda cuando sidebar contrae */
-      width: calc(100% - 80px); /* Ancho cuando sidebar contraído - MÁS ESPACIO */
+      width: calc(100% - 80px); /* Ancho cuando sidebar contraído */
     } 

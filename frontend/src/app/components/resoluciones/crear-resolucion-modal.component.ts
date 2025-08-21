@@ -25,6 +25,8 @@ import { Resolucion, ResolucionCreate, TipoTramite, TipoResolucion } from '../..
 import { Empresa } from '../../models/empresa.model';
 import { Expediente } from '../../models/expediente.model';
 import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-modal.component';
+import { ResolucionNumberValidatorComponent } from '../../shared/resolucion-number-validator.component';
+import { ResolucionValidationService } from '../../services/resolucion-validation.service';
 
 @Component({
   selector: 'app-crear-resolucion-modal',
@@ -46,7 +48,8 @@ import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-m
     MatDialogModule,
     MatTabsModule,
     MatExpansionModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    ResolucionNumberValidatorComponent
   ],
   template: `
     <div class="modal-container">
@@ -215,19 +218,16 @@ import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-m
               </mat-card-header>
               <mat-card-content>
                 <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Resolución *</mat-label>
-                    <input matInput 
-                           formControlName="numero" 
-                           placeholder="Ej: 0001"
-                           (input)="convertirAMayusculas($event, 'numero')"
-                           required>
-                    <mat-icon matSuffix>receipt</mat-icon>
-                    <mat-hint>Número único de la resolución (el sistema generará {{ getNumeroResolucionCompleto() }})</mat-hint>
-                    <mat-error *ngIf="resolucionForm.get('numero')?.hasError('required')">
-                      El número de resolución es obligatorio
-                    </mat-error>
-                  </mat-form-field>
+                                  <app-resolucion-number-validator
+                  label="Número de Resolución *"
+                  placeholder="Ej: 0001"
+                  hint="El sistema generará R-0001-2025"
+                  [required]="true"
+                  [empresaId]="resolucionForm.get('empresaId')?.value"
+                  (numeroValido)="onNumeroResolucionValido($event)"
+                  (numeroInvalido)="onNumeroResolucionInvalido($event)"
+                  (validacionCompleta)="onValidacionCompleta($event)">
+                </app-resolucion-number-validator>
 
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Tipo de Resolución *</mat-label>
@@ -666,6 +666,7 @@ export class CrearResolucionModalComponent {
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
   private expedienteService = inject(ExpedienteService);
+  private validationService = inject(ResolucionValidationService);
 
   isSubmitting = signal(false);
   isLoadingExpedientes = signal(false);
@@ -755,6 +756,39 @@ export class CrearResolucionModalComponent {
     
     // TODO: Implementar carga real de resoluciones padre
     this.resolucionesPadre.set([]);
+  }
+
+  /**
+   * Maneja cuando el número de resolución es válido
+   */
+  onNumeroResolucionValido(data: { numero: string; año: number; nroCompleto: string }): void {
+    this.resolucionForm.get('numero')?.setValue(data.numero);
+    
+    // Mostrar confirmación
+    this.snackBar.open(`Número de resolución válido: ${data.nroCompleto}`, 'Cerrar', {
+      duration: 2000
+    });
+  }
+
+  /**
+   * Maneja cuando el número de resolución es inválido
+   */
+  onNumeroResolucionInvalido(mensaje: string): void {
+    this.resolucionForm.get('numero')?.setErrors({ duplicado: true });
+    
+    // Mostrar error
+    this.snackBar.open(mensaje, 'Cerrar', {
+      duration: 4000,
+      panelClass: ['error-snackbar']
+    });
+  }
+
+  /**
+   * Maneja cuando la validación está completa
+   */
+  onValidacionCompleta(resultado: any): void {
+    // La validación se completó, el formulario se actualiza automáticamente
+    console.log('Validación completada:', resultado);
   }
 
   /**

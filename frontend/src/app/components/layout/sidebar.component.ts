@@ -46,7 +46,7 @@ import { MatChipsModule } from '@angular/material/chips';
           @if (isExpanded()) {
             <ng-container>
               <span matListItemTitle class="nav-text">Dashboard</span>
-              <span matListItemMeta class="nav-badge">Nuevo</span>
+              <span matListItemMeta class="nav-badge">Principal</span>
             </ng-container>
           }
         </a>
@@ -308,13 +308,13 @@ import { MatChipsModule } from '@angular/material/chips';
     }
 
     .nav-list {
-      padding: 0;
+      padding: 8px 0 0 0;
       height: 100%;
       overflow-y: auto;
     }
 
     .nav-section {
-      padding: 16px 16px 8px 16px;
+      padding: 8px 16px 8px 16px;
     }
 
     .section-title {
@@ -369,14 +369,29 @@ import { MatChipsModule } from '@angular/material/chips';
     }
 
     .nav-badge {
-      background: #dc3545;
+      background: linear-gradient(135deg, #28a745, #20c997);
       color: white;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 16px;
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      }
+      50% {
+        box-shadow: 0 2px 12px rgba(40, 167, 69, 0.5);
+      }
+      100% {
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      }
     }
 
     .section-divider {
