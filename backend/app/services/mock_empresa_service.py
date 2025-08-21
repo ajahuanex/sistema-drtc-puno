@@ -2,6 +2,7 @@ from typing import List, Optional, Dict
 from datetime import datetime
 from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB
 from app.services.mock_data import mock_service
+from app.utils.codigo_empresa_utils import CodigoEmpresaUtils
 
 class MockEmpresaService:
     """Servicio mock para empresas en desarrollo"""
@@ -15,6 +16,20 @@ class MockEmpresaService:
         existing_empresa = await self.get_empresa_by_ruc(empresa_data.ruc)
         if existing_empresa:
             raise ValueError(f"Ya existe una empresa con RUC {empresa_data.ruc}")
+        
+        # Verificar si ya existe una empresa con el mismo código
+        if empresa_data.codigoEmpresa:
+            existing_codigo = await self.get_empresa_by_codigo(empresa_data.codigoEmpresa)
+            if existing_codigo:
+                raise ValueError(f"Ya existe una empresa con código {empresa_data.codigoEmpresa}")
+        else:
+            # Generar código automáticamente si no se proporciona
+            codigos_existentes = await self.obtener_codigos_empresas_existentes()
+            empresa_data.codigoEmpresa = CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
+        
+        # Validar formato del código de empresa
+        if not CodigoEmpresaUtils.validar_formato_codigo(empresa_data.codigoEmpresa):
+            raise ValueError(f"Formato de código de empresa inválido: {empresa_data.codigoEmpresa}")
         
         # Generar nuevo ID
         new_id = str(len(self.empresas) + 1)
@@ -40,6 +55,22 @@ class MockEmpresaService:
             if empresa.ruc == ruc:
                 return empresa
         return None
+
+    async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
+        """Obtener empresa por código de empresa"""
+        for empresa in self.empresas.values():
+            if empresa.codigoEmpresa == codigo:
+                return empresa
+        return None
+
+    async def obtener_codigos_empresas_existentes(self) -> List[str]:
+        """Obtener todos los códigos de empresas existentes"""
+        return [empresa.codigoEmpresa for empresa in self.empresas.values() if hasattr(empresa, 'codigoEmpresa') and empresa.codigoEmpresa]
+
+    async def generar_siguiente_codigo_empresa(self) -> str:
+        """Generar el siguiente código de empresa disponible"""
+        codigos_existentes = await self.obtener_codigos_empresas_existentes()
+        return CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
 
     async def get_empresas_activas(self) -> List[EmpresaInDB]:
         """Obtener todas las empresas activas"""

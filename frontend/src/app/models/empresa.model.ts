@@ -9,8 +9,15 @@ export interface RepresentanteLegal {
   nombres: string;
 }
 
+export enum TipoEmpresa {
+  PERSONAS = 'P',
+  REGIONAL = 'R',
+  TURISMO = 'T'
+}
+
 export interface Empresa {
   id: string;
+  codigoEmpresa: string;
   ruc: string;
   razonSocial: {
     principal: string;
@@ -97,6 +104,7 @@ export interface DatosSunat {
 }
 
 export interface EmpresaCreate {
+  codigoEmpresa?: string; // Opcional, se puede generar automáticamente
   ruc: string;
   razonSocial: {
     principal: string;

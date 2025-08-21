@@ -17,6 +17,7 @@ def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
     """Función helper para crear respuestas completas de EmpresaResponse"""
     return EmpresaResponse(
         id=empresa.id,
+        codigoEmpresa=empresa.codigoEmpresa,
         ruc=empresa.ruc,
         razonSocial=empresa.razonSocial,
         direccionFiscal=empresa.direccionFiscal,
@@ -361,3 +362,48 @@ async def exportar_empresas(
         return {"message": f"Exportando {len(empresas)} empresas a PDF"}
     elif formato == 'csv':
         return {"message": f"Exportando {len(empresas)} empresas a CSV"} 
+
+@router.get("/siguiente-codigo", response_model=dict)
+async def obtener_siguiente_codigo_empresa() -> dict:
+    """Obtener el siguiente código de empresa disponible"""
+    empresa_service = MockEmpresaService()
+    
+    try:
+        siguiente_codigo = await empresa_service.generar_siguiente_codigo_empresa()
+        return {
+            "siguienteCodigo": siguiente_codigo,
+            "descripcion": "Código único de empresa en formato 4 dígitos + 3 letras",
+            "formato": "XXXXPRT (P: Personas, R: Regional, T: Turismo)"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/validar-codigo/{codigo}", response_model=dict)
+async def validar_codigo_empresa(codigo: str) -> dict:
+    """Validar formato de código de empresa"""
+    from app.utils.codigo_empresa_utils import CodigoEmpresaUtils
+    
+    try:
+        es_valido = CodigoEmpresaUtils.validar_formato_codigo(codigo)
+        
+        if es_valido:
+            info_codigo = CodigoEmpresaUtils.extraer_informacion_codigo(codigo)
+            return {
+                "codigo": codigo,
+                "esValido": True,
+                "numeroSecuencial": info_codigo["numero_secuencial"],
+                "tiposEmpresa": info_codigo["tipos_empresa"],
+                "descripcionTipos": CodigoEmpresaUtils.obtener_descripcion_tipos(info_codigo["tipos_empresa"])
+            }
+        else:
+            return {
+                "codigo": codigo,
+                "esValido": False,
+                "error": "Formato inválido. Debe ser 4 dígitos + 3 letras (ej: 0123PRT)"
+            }
+    except Exception as e:
+        return {
+            "codigo": codigo,
+            "esValido": False,
+            "error": str(e)
+        } 

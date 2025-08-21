@@ -12,6 +12,11 @@ class EstadoEmpresa(str, Enum):
     CANCELADA = "CANCELADA"
     DADA_DE_BAJA = "DADA_DE_BAJA"
 
+class TipoEmpresa(str, Enum):
+    PERSONAS = "P"
+    REGIONAL = "R"
+    TURISMO = "T"
+
 class TipoDocumento(str, Enum):
     RUC = "RUC"
     DNI = "DNI"
@@ -62,6 +67,7 @@ class DatosSunat(BaseModel):
 
 class Empresa(BaseModel):
     id: Optional[str] = Field(default_factory=mock_id_factory)
+    codigoEmpresa: str = Field(..., description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str
@@ -85,6 +91,7 @@ class Empresa(BaseModel):
     observaciones: Optional[str] = None
 
 class EmpresaCreate(BaseModel):
+    codigoEmpresa: str = Field(..., description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str
@@ -95,6 +102,7 @@ class EmpresaCreate(BaseModel):
     documentos: Optional[List[DocumentoEmpresa]] = []
 
 class EmpresaUpdate(BaseModel):
+    codigoEmpresa: Optional[str] = Field(None, description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
     ruc: Optional[str] = None
     razonSocial: Optional[RazonSocial] = None
     direccionFiscal: Optional[str] = None
@@ -137,6 +145,7 @@ class EmpresaEstadisticas(BaseModel):
 
 class EmpresaResponse(BaseModel):
     id: str
+    codigoEmpresa: str
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str
@@ -188,6 +197,7 @@ class EmpresaReporte(BaseModel):
 
 class EmpresaResumen(BaseModel):
     id: str
+    codigoEmpresa: str
     ruc: str
     razonSocial: str
     estado: EstadoEmpresa

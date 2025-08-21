@@ -14,6 +14,7 @@ from app.utils.exceptions import (
     ValidationErrorException,
     SunatValidationError
 )
+from app.utils.codigo_empresa_utils import CodigoEmpresaUtils
 
 class EmpresaService:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -27,6 +28,20 @@ class EmpresaService:
         existing_empresa = await self.get_empresa_by_ruc(empresa_data.ruc)
         if existing_empresa:
             raise EmpresaAlreadyExistsException(f"Ya existe una empresa con RUC {empresa_data.ruc}")
+        
+        # Verificar si ya existe una empresa con el mismo código
+        if empresa_data.codigoEmpresa:
+            existing_codigo = await self.get_empresa_by_codigo(empresa_data.codigoEmpresa)
+            if existing_codigo:
+                raise EmpresaAlreadyExistsException(f"Ya existe una empresa con código {empresa_data.codigoEmpresa}")
+        else:
+            # Generar código automáticamente si no se proporciona
+            codigos_existentes = await self.obtener_codigos_empresas_existentes()
+            empresa_data.codigoEmpresa = CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
+        
+        # Validar formato del código de empresa
+        if not CodigoEmpresaUtils.validar_formato_codigo(empresa_data.codigoEmpresa):
+            raise ValidationErrorException(f"Formato de código de empresa inválido: {empresa_data.codigoEmpresa}")
         
         # Validar RUC con SUNAT
         datos_sunat = await self.validar_ruc_sunat(empresa_data.ruc)
@@ -49,7 +64,7 @@ class EmpresaService:
             usuario_id=usuario_id,
             tipo_cambio="CREACION_EMPRESA",
             campo_anterior=None,
-            campo_nuevo=f"Empresa creada con RUC: {empresa_data.ruc}",
+            campo_nuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
             observaciones="Creación inicial de empresa"
         )
         empresa_dict["auditoria"] = [auditoria.model_dump()]
@@ -131,6 +146,11 @@ class EmpresaService:
     async def get_empresa_by_ruc(self, ruc: str) -> Optional[EmpresaInDB]:
         """Obtener empresa por RUC"""
         empresa = await self.collection.find_one({"ruc": ruc})
+        return EmpresaInDB(**empresa) if empresa else None
+
+    async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
+        """Obtener empresa por código de empresa"""
+        empresa = await self.collection.find_one({"codigoEmpresa": codigo})
         return EmpresaInDB(**empresa) if empresa else None
 
     async def get_empresas_activas(self) -> List[EmpresaInDB]:
@@ -393,6 +413,17 @@ class EmpresaService:
         
         # Aquí se insertaría en la colección de notificaciones
         # await self.db.notificaciones.insert_one(notificacion)
+
+    async def obtener_codigos_empresas_existentes(self) -> List[str]:
+        """Obtener todos los códigos de empresas existentes"""
+        cursor = self.collection.find({}, {"codigoEmpresa": 1})
+        empresas = await cursor.to_list(length=None)
+        return [empresa.get("codigoEmpresa") for empresa in empresas if empresa.get("codigoEmpresa")]
+
+    async def generar_siguiente_codigo_empresa(self) -> str:
+        """Generar el siguiente código de empresa disponible"""
+        codigos_existentes = await self.obtener_codigos_empresas_existentes()
+        return CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
 
     # Métodos existentes para gestión de relaciones
     async def agregar_vehiculo_habilitado(self, empresa_id: str, vehiculo_id: str) -> bool:

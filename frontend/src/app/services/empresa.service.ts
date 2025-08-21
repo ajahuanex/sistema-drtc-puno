@@ -24,6 +24,7 @@ export class EmpresaService {
   private mockEmpresas: Empresa[] = [
     {
       id: '1',
+      codigoEmpresa: '0001PRT',
       ruc: '20123456789',
       razonSocial: {
         principal: 'TRANSPORTES PUNO S.A.C.',
@@ -59,190 +60,10 @@ export class EmpresaService {
       auditoria: [
         {
           fechaCambio: new Date('2024-01-15T10:00:00Z'),
-          usuarioId: '1',
+          usuarioId: 'admin',
           tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20123456789',
-          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['1', '2'],
-      vehiculosHabilitadosIds: ['1', '2', '3'],
-      conductoresHabilitadosIds: ['1', '2'],
-      rutasAutorizadasIds: ['1', '2', '3'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'TRANSPORTES PUNO S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'AV. PRINCIPAL 123, PUNO',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 25,
-      observaciones: 'EMPRESA EN BUEN ESTADO'
-    },
-    {
-      id: '2',
-      ruc: '20234567890',
-      razonSocial: {
-        principal: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
-        sunat: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
-        minimo: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.'
-      },
-      direccionFiscal: 'JR. COMERCIO 456, JULIACA',
-      estado: EstadoEmpresa.HABILITADA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-02-20T14:30:00Z'),
-      representanteLegal: {
-        dni: '87654321',
-        nombres: 'MARÍA ELENA',
-        apellidos: 'RODRÍGUEZ LÓPEZ',
-        email: 'maria.rodriguez@transportesjuliaca.com',
-        telefono: '952345678',
-        direccion: 'JR. COMERCIO 456, JULIACA'
-      },
-      emailContacto: 'info@transportesjuliaca.com',
-      telefonoContacto: '952345678',
-      sitioWeb: 'www.transportesjuliaca.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20234567890',
-          fechaEmision: new Date('2023-02-20'),
-          fechaVencimiento: new Date('2025-02-20'),
-          urlDocumento: 'https://example.com/ruc2.pdf',
-          observaciones: 'RUC ACTIVO',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-02-20T14:30:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20234567890',
-          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['4', '5'],
-      vehiculosHabilitadosIds: ['4', '5'],
-      conductoresHabilitadosIds: ['3', '4'],
-      rutasAutorizadasIds: ['4', '5'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'EMPRESA DE TRANSPORTES JULIACA E.I.R.L.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'JR. COMERCIO 456, JULIACA',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 30,
-      observaciones: 'EMPRESA EN BUEN ESTADO'
-    },
-    {
-      id: '3',
-      ruc: '20345678901',
-      razonSocial: {
-        principal: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
-        sunat: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
-        minimo: 'TRANSPORTES CUSCO EXPRESS S.A.C.'
-      },
-      direccionFiscal: 'AV. SOL 789, CUSCO',
-      estado: EstadoEmpresa.EN_TRAMITE,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-03-15T09:00:00Z'),
-      representanteLegal: {
-        dni: '11223344',
-        nombres: 'CARLOS ALBERTO',
-        apellidos: 'GARCÍA MENDOZA',
-        email: 'carlos.garcia@transportescusco.com',
-        telefono: '951234568',
-        direccion: 'AV. SOL 789, CUSCO'
-      },
-      emailContacto: 'info@transportescusco.com',
-      telefonoContacto: '951234568',
-      sitioWeb: 'www.transportescusco.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20345678901',
-          fechaEmision: new Date('2023-03-15'),
-          fechaVencimiento: new Date('2025-03-15'),
-          urlDocumento: 'https://example.com/ruc3.pdf',
-          observaciones: 'RUC ACTIVO',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-03-15T09:00:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20345678901',
-          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['6'],
-      vehiculosHabilitadosIds: ['9', '10'],
-      conductoresHabilitadosIds: ['3', '4'],
-      rutasAutorizadasIds: ['8', '9'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'TRANSPORTES CUSCO EXPRESS S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'AV. SOL 789, CUSCO',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 30,
-      observaciones: 'EMPRESA EN BUEN ESTADO'
-    },
-    {
-      id: '3',
-      ruc: '20345678901',
-      razonSocial: {
-        principal: 'TRANSPORTES INTERPROVINCIALES S.A.C.',
-        sunat: 'TRANSPORTES INTERPROVINCIALES S.A.C.',
-        minimo: 'TRANSPORTES INTERPROVINCIALES S.A.C.'
-      },
-      direccionFiscal: 'AV. TACNA 789, PUNO',
-      estado: EstadoEmpresa.HABILITADA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-03-15T09:15:00Z'),
-      representanteLegal: {
-        dni: '11223344',
-        nombres: 'CARLOS ALBERTO',
-        apellidos: 'GARCÍA SILVA',
-        email: 'carlos.garcia@transportesinter.com',
-        telefono: '952345678',
-        direccion: 'AV. TACNA 789, PUNO'
-      },
-      emailContacto: 'info@transportesinter.com',
-      telefonoContacto: '952345678',
-      sitioWeb: 'www.transportesinter.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20345678901',
-          fechaEmision: new Date('2023-03-15'),
-          fechaVencimiento: new Date('2025-03-15'),
-          urlDocumento: 'https://example.com/ruc3.pdf',
-          observaciones: 'RUC ACTIVO',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-03-15T09:15:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20345678901',
+          campoAnterior: null,
+          campoNuevo: 'Empresa creada con código: 0001PRT y RUC: 20123456789',
           observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
       ],
@@ -264,6 +85,7 @@ export class EmpresaService {
     },
     {
       id: '4',
+      codigoEmpresa: '0002PRT',
       ruc: '20456789012',
       razonSocial: {
         principal: 'TRANSPORTES URBANOS PUNO S.A.C.',
@@ -299,10 +121,10 @@ export class EmpresaService {
       auditoria: [
         {
           fechaCambio: new Date('2024-04-10T11:45:00Z'),
-          usuarioId: '1',
+          usuarioId: 'admin',
           tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20456789012',
+          campoAnterior: null,
+          campoNuevo: 'Empresa creada con código: 0002PRT y RUC: 20456789012',
           observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
       ],
@@ -320,126 +142,6 @@ export class EmpresaService {
       },
       ultimaValidacionSunat: new Date(),
       scoreRiesgo: 28,
-      observaciones: 'EMPRESA EN BUEN ESTADO'
-    },
-    {
-      id: '5',
-      ruc: '20567890123',
-      razonSocial: {
-        principal: 'TRANSPORTES RURALES S.A.C.',
-        sunat: 'TRANSPORTES RURALES S.A.C.',
-        minimo: 'TRANSPORTES RURALES S.A.C.'
-      },
-      direccionFiscal: 'AV. AYACUCHO 654, PUNO',
-      estado: EstadoEmpresa.HABILITADA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-05-05T16:20:00Z'),
-      representanteLegal: {
-        dni: '33445566',
-        nombres: 'ROBERTO JOSÉ',
-        apellidos: 'MARTÍNEZ QUISPE',
-        email: 'roberto.martinez@transportesrurales.com',
-        telefono: '954567890',
-        direccion: 'AV. AYACUCHO 654, PUNO'
-      },
-      emailContacto: 'info@transportesrurales.com',
-      telefonoContacto: '954567890',
-      sitioWeb: 'www.transportesrurales.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20567890123',
-          fechaEmision: new Date('2023-05-05'),
-          fechaVencimiento: new Date('2025-05-05'),
-          urlDocumento: 'https://example.com/ruc5.pdf',
-          observaciones: 'RUC ACTIVO',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-05-05T16:20:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20567890123',
-          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['5'],
-      vehiculosHabilitadosIds: ['8', '9'],
-      conductoresHabilitadosIds: ['7', '8'],
-      rutasAutorizadasIds: ['7', '8'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'TRANSPORTES RURALES S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'AV. AYACUCHO 654, PUNO',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 32,
-      observaciones: 'EMPRESA EN BUEN ESTADO'
-    },
-    {
-      id: '6',
-      ruc: '20678901234',
-      razonSocial: {
-        principal: 'TRANSPORTES EXPRESS PUNO S.A.C.',
-        sunat: 'TRANSPORTES EXPRESS PUNO S.A.C.',
-        minimo: 'TRANSPORTES EXPRESS PUNO S.A.C.'
-      },
-      direccionFiscal: 'JR. AREQUIPA 987, PUNO',
-      estado: EstadoEmpresa.HABILITADA,
-      estaActivo: true,
-      fechaRegistro: new Date('2024-06-01T13:30:00Z'),
-      representanteLegal: {
-        dni: '44556677',
-        nombres: 'LUCÍA FERNANDA',
-        apellidos: 'HERRERA MAMANI',
-        email: 'lucia.herrera@transportesexpress.com',
-        telefono: '955678901',
-        direccion: 'JR. AREQUIPA 987, PUNO'
-      },
-      emailContacto: 'info@transportesexpress.com',
-      telefonoContacto: '955678901',
-      sitioWeb: 'www.transportesexpress.com',
-      documentos: [
-        {
-          tipo: TipoDocumento.RUC,
-          numero: '20678901234',
-          fechaEmision: new Date('2023-06-01'),
-          fechaVencimiento: new Date('2025-06-01'),
-          urlDocumento: 'https://example.com/ruc6.pdf',
-          observaciones: 'RUC ACTIVO',
-          estaActivo: true
-        }
-      ],
-      auditoria: [
-        {
-          fechaCambio: new Date('2024-06-01T13:30:00Z'),
-          usuarioId: '1',
-          tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: undefined,
-          campoNuevo: 'EMPRESA CREADA CON RUC: 20678901234',
-          observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-        }
-      ],
-      resolucionesPrimigeniasIds: ['9', '10'],
-      vehiculosHabilitadosIds: ['10', '11'],
-      conductoresHabilitadosIds: ['9', '10'],
-      rutasAutorizadasIds: ['9', '10'],
-      datosSunat: {
-        valido: true,
-        razonSocial: 'TRANSPORTES EXPRESS PUNO S.A.C.',
-        estado: 'ACTIVO',
-        condicion: 'HABIDO',
-        direccion: 'JR. AREQUIPA 987, PUNO',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: new Date(),
-      scoreRiesgo: 27,
       observaciones: 'EMPRESA EN BUEN ESTADO'
     }
   ];
@@ -940,7 +642,8 @@ export class EmpresaService {
       },
       ultimaValidacionSunat: empresa.ultimaValidacionSunat || empresa.ultima_validacion_sunat || new Date(),
       scoreRiesgo: empresa.scoreRiesgo || empresa.score_riesgo || 0,
-      observaciones: empresa.observaciones || ''
+      observaciones: empresa.observaciones || '',
+      codigoEmpresa: empresa.codigoEmpresa || ''
     };
   }
 
@@ -962,6 +665,66 @@ export class EmpresaService {
         });
       })
     );
+  }
+
+  // Generar número de TUC único
+  generarNumeroTuc(): string {
+    const año = new Date().getFullYear();
+    const numero = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
+    return `T-${numero}-${año}`;
+  }
+
+  // Generar siguiente código de empresa disponible
+  generarSiguienteCodigoEmpresa(): Observable<{siguienteCodigo: string, descripcion: string, formato: string}> {
+    const url = `${this.apiUrl}/empresas/siguiente-codigo`;
+    
+    return this.http.get<{siguienteCodigo: string, descripcion: string, formato: string}>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error generando código de empresa:', error);
+          // Fallback: generar código mock
+          const numero = Math.floor(Math.random() * 9999) + 1;
+          const codigo = `${numero.toString().padStart(4, '0')}PRT`;
+          return of({
+            siguienteCodigo: codigo,
+            descripcion: 'Código único de empresa en formato 4 dígitos + 3 letras',
+            formato: 'XXXXPRT (P: Personas, R: Regional, T: Turismo)'
+          });
+        })
+      );
+  }
+
+  // Validar código de empresa
+  validarCodigoEmpresa(codigo: string): Observable<{
+    codigo: string;
+    esValido: boolean;
+    numeroSecuencial?: number;
+    tiposEmpresa?: string[];
+    descripcionTipos?: string;
+    error?: string;
+  }> {
+    const url = `${this.apiUrl}/empresas/validar-codigo/${codigo}`;
+    
+    return this.http.get<{
+      codigo: string;
+      esValido: boolean;
+      numeroSecuencial?: number;
+      tiposEmpresa?: string[];
+      descripcionTipos?: string;
+      error?: string;
+    }>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error validando código de empresa:', error);
+          // Fallback: validación básica
+          const esValido = /^\d{4}[PRT]{3}$/.test(codigo);
+          return of({
+            codigo,
+            esValido,
+            error: esValido ? undefined : 'Formato inválido. Debe ser 4 dígitos + 3 letras (ej: 0123PRT)'
+          });
+        })
+      );
   }
 
 
