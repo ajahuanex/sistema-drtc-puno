@@ -62,7 +62,7 @@ export class EmpresaService {
           fechaCambio: new Date('2024-01-15T10:00:00Z'),
           usuarioId: 'admin',
           tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: null,
+          campoAnterior: undefined,
           campoNuevo: 'Empresa creada con código: 0001PRT y RUC: 20123456789',
           observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
@@ -123,7 +123,7 @@ export class EmpresaService {
           fechaCambio: new Date('2024-04-10T11:45:00Z'),
           usuarioId: 'admin',
           tipoCambio: 'CREACION_EMPRESA',
-          campoAnterior: null,
+          campoAnterior: undefined,
           campoNuevo: 'Empresa creada con código: 0002PRT y RUC: 20456789012',
           observaciones: 'CREACIÓN INICIAL DE EMPRESA'
         }
@@ -197,6 +197,7 @@ export class EmpresaService {
         console.log('Error creando empresa, simulando con datos mock:', error);
         const nuevaEmpresa: Empresa = {
           id: (this.mockEmpresas.length + 1).toString(),
+          codigoEmpresa: empresaData.codigoEmpresa || '',
           ruc: empresaData.ruc,
           razonSocial: empresaData.razonSocial,
           direccionFiscal: empresaData.direccionFiscal,

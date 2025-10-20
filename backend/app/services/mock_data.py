@@ -413,6 +413,7 @@ class MockDataService:
         # Empresa 1 - TRANSPORTES PUNO S.A.
         self.empresas["1"] = EmpresaInDB(
             id="1",
+            codigoEmpresa="0001PRT",
             ruc="20123456789",
             razonSocial=RazonSocial(
                 principal="TRANSPORTES PUNO S.A.",
@@ -440,6 +441,7 @@ class MockDataService:
         # Empresa 2 - TRANSPORTES LIMA E.I.R.L.
         self.empresas["2"] = EmpresaInDB(
             id="2",
+            codigoEmpresa="0002PRT",
             ruc="20234567890",
             razonSocial=RazonSocial(
                 principal="TRANSPORTES LIMA E.I.R.L.",
@@ -467,6 +469,7 @@ class MockDataService:
         # Empresa 3 - TRANSPORTES AREQUIPA S.A.C.
         self.empresas["3"] = EmpresaInDB(
             id="3",
+            codigoEmpresa="0003PRT",
             ruc="20345678901",
             razonSocial=RazonSocial(
                 principal="TRANSPORTES AREQUIPA S.A.C.",
@@ -494,6 +497,7 @@ class MockDataService:
         # Empresa 4 - TRANSPORTES CUSCO S.A.
         self.empresas["4"] = EmpresaInDB(
             id="4",
+            codigoEmpresa="0004PRT",
             ruc="20456789012",
             razonSocial=RazonSocial(
                 principal="TRANSPORTES CUSCO S.A.",

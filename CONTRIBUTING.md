@@ -1,4 +1,4 @@
-# Guía de Contribución - Sistema DRTC Puno
+un monton, primero # Guía de Contribución - Sistema DRTC Puno
 
 ## 🎯 Estándares de Código
 

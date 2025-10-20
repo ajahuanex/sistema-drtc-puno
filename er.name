@@ -1,0 +1,5 @@
+[33m899d147[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: Implementar sistema de códigos de empresa con formato 4 dígitos + 3 letras (PRT)
+[33m699ede2[m feat: Agregar validaciones de expedientes y resoluciones, componentes de validación y mejoras en layout
+[33m8a4d229[m feat: Implementar sistema universal de expedientes y mejoras del sistema
+[33ma04a00b[m feat: Mejoras en módulos de configuración y vehículos
+[33m16fd026[m feat: Agregar funcionalidad de Nuevo Vehículo en módulo de empresas usando modal reutilizable

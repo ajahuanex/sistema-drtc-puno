@@ -362,6 +362,7 @@ export class CrearExpedienteModalComponent {
     const empresasMock: { [key: string]: Empresa } = {
       '1': {
         id: '1',
+        codigoEmpresa: '0001PRT',
         ruc: '20123456789',
         razonSocial: { principal: 'EMPRESA TRANSPORTES ABC S.A.C.' },
         direccionFiscal: 'Av. Principal 123, Lima',
@@ -387,6 +388,7 @@ export class CrearExpedienteModalComponent {
       },
       '2': {
         id: '2',
+        codigoEmpresa: '0002PRT',
         ruc: '20123456790',
         razonSocial: { principal: 'EMPRESA TRANSPORTES XYZ S.A.C.' },
         direccionFiscal: 'Av. Secundaria 456, Lima',
@@ -412,6 +414,7 @@ export class CrearExpedienteModalComponent {
       },
       '3': {
         id: '3',
+        codigoEmpresa: '0003PRT',
         ruc: '20123456791',
         razonSocial: { principal: 'EMPRESA TRANSPORTES 123 S.A.C.' },
         direccionFiscal: 'Av. Terciaria 789, Lima',

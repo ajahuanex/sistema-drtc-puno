@@ -860,7 +860,8 @@ export class RutasComponent implements OnInit {
       maxHeight: '90vh',
       data: {
         empresa: { 
-          id: 'general', 
+          id: 'general',
+          codigoEmpresa: '0000SYS',
           ruc: 'GENERAL', 
           razonSocial: { principal: 'Sistema General' },
           direccionFiscal: 'Sistema General',
