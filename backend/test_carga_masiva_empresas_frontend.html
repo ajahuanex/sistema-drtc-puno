@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 Prueba Carga Masiva de Empresas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .section h2 {
+            color: #495057;
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        input[type="file"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="file"]:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #1e7e34);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            border: 2px solid #dee2e6;
+        }
+        
+        .results h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .stat-total { background: #6c757d; }
+        .stat-valid { background: #28a745; }
+        .stat-invalid { background: #dc3545; }
+        .stat-warning { background: #ffc107; color: #212529; }
+        .stat-created { background: #17a2b8; }
+        
+        .error-list, .warning-list, .created-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .error-item {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .warning-item {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .created-item {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input[type="radio"] {
+            width: auto;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏢 Prueba de Carga Masiva de Empresas</h1>
+        
+        <!-- Sección de descarga de plantilla -->
+        <div class="section">
+            <h2>📋 Descargar Plantilla Excel</h2>
+            <p>Descarga la plantilla con el formato correcto para cargar empresas:</p>
+            <button onclick="descargarPlantilla()" class="btn-success">
+                📥 Descargar Plantilla
+            </button>
+        </div>
+        
+        <!-- Sección de carga de archivo -->
+        <div class="section">
+            <h2>📤 Cargar Archivo de Empresas</h2>
+            
+            <div class="form-group">
+                <label for="archivoInput">Seleccionar archivo Excel:</label>
+                <input type="file" id="archivoInput" accept=".xlsx,.xls" onchange="archivoSeleccionado()">
+                <div id="archivoInfo" class="file-info" style="display: none;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Modo de operación:</label>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <input type="radio" id="soloValidar" name="modo" value="validar" checked>
+                        <label for="soloValidar">🔍 Solo validar (no crear empresas)</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" id="procesarCompleto" name="modo" value="procesar">
+                        <label for="procesarCompleto">✅ Validar y crear empresas</label>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="procesarArchivo()" id="btnProcesar" disabled>
+                🚀 Procesar Archivo
+            </button>
+            <button onclick="limpiar()" class="btn-warning">
+                🔄 Limpiar
+            </button>
+        </div>
+        
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Procesando archivo...</p>
+        </div>
+        
+        <!-- Resultados -->
+        <div id="resultados" class="results" style="display: none;">
+            <h3>📊 Resultados del Procesamiento</h3>
+            
+            <div id="estadisticas" class="stats"></div>
+            
+            <div id="barraProgreso" class="progress-bar">
+                <div id="progresoFill" class="progress-fill" style="width: 0%;">0%</div>
+            </div>
+            
+            <div id="empresasCreadas" style="display: none;">
+                <h4>✅ Empresas Creadas</h4>
+                <div id="listaCreadas" class="created-list"></div>
+            </div>
+            
+            <div id="erroresSeccion" style="display: none;">
+                <h4>❌ Errores Encontrados</h4>
+                <div id="listaErrores" class="error-list"></div>
+            </div>
+            
+            <div id="advertenciasSeccion" style="display: none;">
+                <h4>⚠️ Advertencias</h4>
+                <div id="listaAdvertencias" class="warning-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        let archivoSeleccionado = null;
+
+        function archivoSeleccionado() {
+            const input = document.getElementById('archivoInput');
+            const file = input.files[0];
+            const info = document.getElementById('archivoInfo');
+            const btnProcesar = document.getElementById('btnProcesar');
+            
+            if (file) {
+                archivoSeleccionado = file;
+                info.innerHTML = `
+                    <strong>Archivo:</strong> ${file.name}<br>
+                    <strong>Tamaño:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+                    <strong>Tipo:</strong> ${file.type}
+                `;
+                info.style.display = 'block';
+                btnProcesar.disabled = false;
+            } else {
+                archivoSeleccionado = null;
+                info.style.display = 'none';
+                btnProcesar.disabled = true;
+            }
+            
+            limpiarResultados();
+        }
+
+        async function descargarPlantilla() {
+            try {
+                const response = await fetch(`${API_BASE}/empresas/carga-masiva/plantilla`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'plantilla_empresas.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert('✅ Plantilla descargada exitosamente');
+                } else {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`❌ Error al descargar plantilla: ${error.message}`);
+            }
+        }
+
+        async function procesarArchivo() {
+            if (!archivoSeleccionado) {
+                alert('Por favor selecciona un archivo');
+                return;
+            }
+
+            const modo = document.querySelector('input[name="modo"]:checked').value;
+            const soloValidar = modo === 'validar';
+            
+            mostrarLoading(true);
+            limpiarResultados();
+
+            try {
+                const formData = new FormData();
+                formData.append('archivo', archivoSeleccionado);
+
+                const endpoint = soloValidar ? 'validar' : `procesar?solo_validar=false`;
+                const response = await fetch(`${API_BASE}/empresas/carga-masiva/${endpoint}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const resultado = await response.json();
+                    mostrarResultados(resultado, soloValidar);
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || `Error ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`❌ Error al procesar archivo: ${error.message}`);
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+
+        function mostrarResultados(data, soloValidar) {
+            const resultados = document.getElementById('resultados');
+            const estadisticas = document.getElementById('estadisticas');
+            
+            // Extraer datos según el tipo de respuesta
+            let validacion;
+            if (soloValidar) {
+                validacion = data.validacion;
+            } else {
+                validacion = data.resultado;
+            }
+            
+            // Mostrar estadísticas
+            estadisticas.innerHTML = `
+                <div class="stat-card stat-total">
+                    <div style="font-size: 24px;">${validacion.total_filas}</div>
+                    <div>Total Filas</div>
+                </div>
+                <div class="stat-card stat-valid">
+                    <div style="font-size: 24px;">${validacion.validos}</div>
+                    <div>Válidos</div>
+                </div>
+                <div class="stat-card stat-invalid">
+                    <div style="font-size: 24px;">${validacion.invalidos}</div>
+                    <div>Inválidos</div>
+                </div>
+                <div class="stat-card stat-warning">
+                    <div style="font-size: 24px;">${validacion.con_advertencias}</div>
+                    <div>Con Advertencias</div>
+                </div>
+                ${!soloValidar && validacion.empresas_creadas ? `
+                <div class="stat-card stat-created">
+                    <div style="font-size: 24px;">${validacion.total_creadas || 0}</div>
+                    <div>Creadas</div>
+                </div>
+                ` : ''}
+            `;
+            
+            // Barra de progreso
+            const porcentaje = validacion.total_filas > 0 ? 
+                Math.round((validacion.validos / validacion.total_filas) * 100) : 0;
+            const progresoFill = document.getElementById('progresoFill');
+            progresoFill.style.width = `${porcentaje}%`;
+            progresoFill.textContent = `${porcentaje}%`;
+            
+            // Empresas creadas
+            if (!soloValidar && validacion.empresas_creadas && validacion.empresas_creadas.length > 0) {
+                const empresasCreadas = document.getElementById('empresasCreadas');
+                const listaCreadas = document.getElementById('listaCreadas');
+                
+                listaCreadas.innerHTML = validacion.empresas_creadas.map(empresa => `
+                    <div class="created-item">
+                        <strong>${empresa.codigo_empresa}</strong> - ${empresa.ruc}<br>
+                        <em>${empresa.razon_social}</em><br>
+                        <span style="color: #28a745;">Estado: ${empresa.estado}</span>
+                    </div>
+                `).join('');
+                
+                empresasCreadas.style.display = 'block';
+            }
+            
+            // Errores
+            if (validacion.errores && validacion.errores.length > 0) {
+                const erroresSeccion = document.getElementById('erroresSeccion');
+                const listaErrores = document.getElementById('listaErrores');
+                
+                listaErrores.innerHTML = validacion.errores.map(error => `
+                    <div class="error-item">
+                        <strong>Fila ${error.fila} - Código: ${error.codigo_empresa}</strong>
+                        <ul>
+                            ${error.errores.map(msg => `<li>${msg}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+                
+                erroresSeccion.style.display = 'block';
+            }
+            
+            // Advertencias
+            if (validacion.advertencias && validacion.advertencias.length > 0) {
+                const advertenciasSeccion = document.getElementById('advertenciasSeccion');
+                const listaAdvertencias = document.getElementById('listaAdvertencias');
+                
+                listaAdvertencias.innerHTML = validacion.advertencias.map(advertencia => `
+                    <div class="warning-item">
+                        <strong>Fila ${advertencia.fila} - Código: ${advertencia.codigo_empresa}</strong>
+                        <ul>
+                            ${advertencia.advertencias.map(msg => `<li>${msg}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+                
+                advertenciasSeccion.style.display = 'block';
+            }
+            
+            resultados.style.display = 'block';
+        }
+
+        function mostrarLoading(mostrar) {
+            const loading = document.getElementById('loading');
+            const btnProcesar = document.getElementById('btnProcesar');
+            
+            loading.style.display = mostrar ? 'block' : 'none';
+            btnProcesar.disabled = mostrar;
+        }
+
+        function limpiarResultados() {
+            const resultados = document.getElementById('resultados');
+            const empresasCreadas = document.getElementById('empresasCreadas');
+            const erroresSeccion = document.getElementById('erroresSeccion');
+            const advertenciasSeccion = document.getElementById('advertenciasSeccion');
+            
+            resultados.style.display = 'none';
+            empresasCreadas.style.display = 'none';
+            erroresSeccion.style.display = 'none';
+            advertenciasSeccion.style.display = 'none';
+        }
+
+        function limpiar() {
+            const input = document.getElementById('archivoInput');
+            const info = document.getElementById('archivoInfo');
+            const btnProcesar = document.getElementById('btnProcesar');
+            const soloValidar = document.getElementById('soloValidar');
+            
+            input.value = '';
+            archivoSeleccionado = null;
+            info.style.display = 'none';
+            btnProcesar.disabled = true;
+            soloValidar.checked = true;
+            
+            limpiarResultados();
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏢 Interfaz de prueba de carga masiva de empresas cargada');
+        });
+    </script>
+</body>
+</html>

@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
+from io import BytesIO
 from app.dependencies.auth import get_current_active_user
 from app.services.mock_empresa_service import MockEmpresaService
+from app.services.empresa_excel_service import EmpresaExcelService
 from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse
 from app.utils.exceptions import (
     EmpresaNotFoundException, 
@@ -406,4 +409,99 @@ async def validar_codigo_empresa(codigo: str) -> dict:
             "codigo": codigo,
             "esValido": False,
             "error": str(e)
-        } 
+        }
+
+# ========================================
+# ENDPOINTS DE CARGA MASIVA DESDE EXCEL
+# ========================================
+
+@router.get("/carga-masiva/plantilla")
+async def descargar_plantilla_empresas():
+    """Descargar plantilla Excel para carga masiva de empresas"""
+    try:
+        excel_service = EmpresaExcelService()
+        plantilla_buffer = excel_service.generar_plantilla_excel()
+        
+        return StreamingResponse(
+            BytesIO(plantilla_buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=plantilla_empresas.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar plantilla: {str(e)}")
+
+@router.post("/carga-masiva/validar")
+async def validar_archivo_empresas(
+    archivo: UploadFile = File(..., description="Archivo Excel con empresas")
+):
+    """Validar archivo Excel de empresas sin procesarlo"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Validar con el servicio
+        excel_service = EmpresaExcelService()
+        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        
+        return {
+            "archivo": archivo.filename,
+            "validacion": resultado,
+            "mensaje": f"Archivo validado: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al validar archivo: {str(e)}"
+        )
+
+@router.post("/carga-masiva/procesar")
+async def procesar_carga_masiva_empresas(
+    archivo: UploadFile = File(..., description="Archivo Excel con empresas"),
+    solo_validar: bool = Query(False, description="Solo validar sin crear empresas")
+):
+    """Procesar carga masiva de empresas desde Excel"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Procesar con el servicio
+        excel_service = EmpresaExcelService()
+        
+        if solo_validar:
+            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        else:
+            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
+            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} empresas creadas"
+        
+        return {
+            "archivo": archivo.filename,
+            "solo_validacion": solo_validar,
+            "resultado": resultado,
+            "mensaje": mensaje
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar archivo: {str(e)}"
+        )

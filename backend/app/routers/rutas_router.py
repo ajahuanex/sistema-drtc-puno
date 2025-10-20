@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
+from io import BytesIO
 from app.dependencies.auth import get_current_active_user
+from app.services.ruta_excel_service import RutaExcelService
 from app.services.mock_ruta_service import MockRutaService
 from app.models.ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
 from app.utils.exceptions import (
@@ -531,3 +534,97 @@ async def exportar_rutas(
         return {"message": f"Exportando {len(rutas)} rutas a PDF"}
     elif formato == 'csv':
         return {"message": f"Exportando {len(rutas)} rutas a CSV"}
+# ========================================
+# ENDPOINTS DE CARGA MASIVA DESDE EXCEL
+# ========================================
+
+@router.get("/carga-masiva/plantilla")
+async def descargar_plantilla_rutas():
+    """Descargar plantilla Excel para carga masiva de rutas"""
+    try:
+        excel_service = RutaExcelService()
+        plantilla_buffer = excel_service.generar_plantilla_excel()
+        
+        return StreamingResponse(
+            BytesIO(plantilla_buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=plantilla_rutas.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar plantilla: {str(e)}")
+
+@router.post("/carga-masiva/validar")
+async def validar_archivo_rutas(
+    archivo: UploadFile = File(..., description="Archivo Excel con rutas")
+):
+    """Validar archivo Excel de rutas sin procesarlo"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Validar con el servicio
+        excel_service = RutaExcelService()
+        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        
+        return {
+            "archivo": archivo.filename,
+            "validacion": resultado,
+            "mensaje": f"Archivo validado: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al validar archivo: {str(e)}"
+        )
+
+@router.post("/carga-masiva/procesar")
+async def procesar_carga_masiva_rutas(
+    archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
+    solo_validar: bool = Query(False, description="Solo validar sin crear rutas")
+):
+    """Procesar carga masiva de rutas desde Excel"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Procesar con el servicio
+        excel_service = RutaExcelService()
+        
+        if solo_validar:
+            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        else:
+            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
+            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} rutas creadas"
+        
+        return {
+            "archivo": archivo.filename,
+            "solo_validacion": solo_validar,
+            "resultado": resultado,
+            "mensaje": mensaje
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar archivo: {str(e)}"
+        )

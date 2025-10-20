@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
+from io import BytesIO
 from app.dependencies.auth import get_current_active_user
 from app.services.mock_resolucion_service import MockResolucionService
+from app.services.resolucion_excel_service import ResolucionExcelService
 from app.models.resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse
 from app.utils.exceptions import (
     ResolucionNotFoundException, 
@@ -536,3 +539,98 @@ async def exportar_resoluciones(
         return {"message": f"Exportando {len(resoluciones)} resoluciones a PDF"}
     elif formato == 'csv':
         return {"message": f"Exportando {len(resoluciones)} resoluciones a CSV"} 
+
+# ========================================
+# ENDPOINTS DE CARGA MASIVA DESDE EXCEL
+# ========================================
+
+@router.get("/carga-masiva/plantilla")
+async def descargar_plantilla_resoluciones():
+    """Descargar plantilla Excel para carga masiva de resoluciones"""
+    try:
+        excel_service = ResolucionExcelService()
+        plantilla_buffer = excel_service.generar_plantilla_excel()
+        
+        return StreamingResponse(
+            BytesIO(plantilla_buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=plantilla_resoluciones.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar plantilla: {str(e)}")
+
+@router.post("/carga-masiva/validar")
+async def validar_archivo_resoluciones(
+    archivo: UploadFile = File(..., description="Archivo Excel con resoluciones")
+):
+    """Validar archivo Excel de resoluciones sin procesarlo"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Validar con el servicio
+        excel_service = ResolucionExcelService()
+        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        
+        return {
+            "archivo": archivo.filename,
+            "validacion": resultado,
+            "mensaje": f"Archivo validado: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al validar archivo: {str(e)}"
+        )
+
+@router.post("/carga-masiva/procesar")
+async def procesar_carga_masiva_resoluciones(
+    archivo: UploadFile = File(..., description="Archivo Excel con resoluciones"),
+    solo_validar: bool = Query(False, description="Solo validar sin crear resoluciones")
+):
+    """Procesar carga masiva de resoluciones desde Excel"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Procesar con el servicio
+        excel_service = ResolucionExcelService()
+        
+        if solo_validar:
+            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        else:
+            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
+            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} resoluciones creadas"
+        
+        return {
+            "archivo": archivo.filename,
+            "solo_validacion": solo_validar,
+            "resultado": resultado,
+            "mensaje": mensaje
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar archivo: {str(e)}"
+        )

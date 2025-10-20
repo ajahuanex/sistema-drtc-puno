@@ -11,6 +11,7 @@ class EstadoVehiculo(str, Enum):
     EN_MANTENIMIENTO = "EN_MANTENIMIENTO"
     FUERA_DE_SERVICIO = "FUERA_DE_SERVICIO"
     DADO_DE_BAJA = "DADO_DE_BAJA"
+    BLOQUEADO_HISTORIAL = "BLOQUEADO_HISTORIAL"  # Bloqueado por historial anterior
 
 class CategoriaVehiculo(str, Enum):
     M1 = "M1"  # Vehículos de pasajeros hasta 8 asientos
@@ -82,13 +83,17 @@ class Vehiculo(BaseModel):
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
-    tuc: Optional[dict] = None  # Referencia al TUC del vehículo
+    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
+    tuc: Optional[dict] = None  # Referencia al TUC del vehículo (datos completos)
     datosTecnicos: DatosTecnicos
     color: Optional[str] = None
     numeroSerie: Optional[str] = None
     observaciones: Optional[str] = None
     documentosIds: List[str] = []
     historialIds: List[str] = []
+    numeroHistorialValidacion: Optional[int] = None  # Número secuencial basado en orden de resoluciones
+    esHistorialActual: bool = True  # Si es el registro actual del vehículo (historial más alto)
+    vehiculoHistorialActualId: Optional[str] = None  # ID del vehículo con el historial más actual
 
 class VehiculoCreate(BaseModel):
     placa: str
@@ -103,6 +108,7 @@ class VehiculoCreate(BaseModel):
     fechaSustitucion: Optional[datetime] = None
     motivoSustitucion: Optional[MotivoSustitucion] = None
     resolucionSustitucion: Optional[str] = None
+    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
     datosTecnicos: DatosTecnicos
     color: Optional[str] = None
     numeroSerie: Optional[str] = None
@@ -124,6 +130,7 @@ class VehiculoUpdate(BaseModel):
     fechaSustitucion: Optional[datetime] = None
     motivoSustitucion: Optional[MotivoSustitucion] = None
     resolucionSustitucion: Optional[str] = None
+    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
     tuc: Optional[dict] = None
     datosTecnicos: Optional[DatosTecnicos] = None
     color: Optional[str] = None
@@ -163,6 +170,7 @@ class VehiculoResponse(BaseModel):
     fechaSustitucion: Optional[datetime] = None
     motivoSustitucion: Optional[MotivoSustitucion] = None
     resolucionSustitucion: Optional[str] = None
+    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
     estaActivo: bool
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
@@ -173,6 +181,9 @@ class VehiculoResponse(BaseModel):
     observaciones: Optional[str] = None
     documentosIds: List[str]
     historialIds: List[str]
+    numeroHistorialValidacion: Optional[int] = None  # Número secuencial basado en orden de resoluciones
+    esHistorialActual: bool = True  # Si es el registro actual del vehículo (historial más alto)
+    vehiculoHistorialActualId: Optional[str] = None  # ID del vehículo con el historial más actual
 
 class VehiculoEstadisticas(BaseModel):
     totalVehiculos: int
@@ -210,6 +221,7 @@ class VehiculoExcel(BaseModel):
     placa_sustituida: Optional[str] = None  # Placa del vehículo sustituido
     motivo_sustitucion: Optional[str] = None  # Motivo de sustitución
     resolucion_sustitucion: Optional[str] = None  # Resolución de sustitución
+    numero_tuc: Optional[str] = None  # Número de TUC formato T-001122-2025
     categoria: str
     marca: str
     modelo: str

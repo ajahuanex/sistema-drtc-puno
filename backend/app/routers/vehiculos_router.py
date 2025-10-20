@@ -73,20 +73,38 @@ async def get_vehiculos(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
-    empresa_id: str = Query(None, description="Filtrar por empresa")
+    empresa_id: str = Query(None, description="Filtrar por empresa"),
+    solo_visibles: bool = Query(True, description="Mostrar solo vehículos visibles (historial actual)")
 ) -> List[VehiculoResponse]:
     """Obtener lista de vehículos con filtros opcionales"""
     vehiculo_service = MockVehiculoService()
     
-    if estado and empresa_id:
-        vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
-        vehiculos = [v for v in vehiculos if v.empresaActualId == empresa_id]
-    elif estado:
-        vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
-    elif empresa_id:
-        vehiculos = await vehiculo_service.get_vehiculos_por_empresa(empresa_id)
+    # Si se solicitan solo vehículos visibles, usar el servicio de filtrado
+    if solo_visibles:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        # Obtener vehículos visibles con filtros
+        vehiculos = await filtro_service.obtener_vehiculos_con_filtro_historial(
+            empresa_id=empresa_id,
+            incluir_historicos=False,
+            solo_bloqueados=False
+        )
+        
+        # Aplicar filtro de estado si se especifica
+        if estado:
+            vehiculos = [v for v in vehiculos if v.estado == estado]
     else:
-        vehiculos = await vehiculo_service.get_vehiculos_activos()
+        # Lógica original para mostrar todos los vehículos
+        if estado and empresa_id:
+            vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
+            vehiculos = [v for v in vehiculos if v.empresaActualId == empresa_id]
+        elif estado:
+            vehiculos = await vehiculo_service.get_vehiculos_por_estado(estado)
+        elif empresa_id:
+            vehiculos = await vehiculo_service.get_vehiculos_por_empresa(empresa_id)
+        else:
+            vehiculos = await vehiculo_service.get_vehiculos_activos()
     
     # Aplicar paginación
     vehiculos = vehiculos[skip:skip + limit]
@@ -192,6 +210,181 @@ async def get_estadisticas_vehiculos():
         "porCategoria": estadisticas['por_categoria']
     }
 
+# ========================================
+# ENDPOINTS DE HISTORIAL DE VALIDACIONES
+# ========================================
+
+@router.post("/historial/actualizar-todos")
+async def actualizar_historial_todos():
+    """Actualizar el historial de validaciones para todos los vehículos"""
+    try:
+        from app.services.vehiculo_historial_service import VehiculoHistorialService
+        historial_service = VehiculoHistorialService()
+        
+        resultado = await historial_service.actualizar_historial_todos_vehiculos()
+        
+        return {
+            "mensaje": "Historial de validaciones actualizado exitosamente",
+            "estadisticas": resultado
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al actualizar historial: {str(e)}"
+        )
+
+@router.get("/historial/estadisticas")
+async def obtener_estadisticas_historial():
+    """Obtener estadísticas del historial de validaciones"""
+    try:
+        from app.services.vehiculo_historial_service import VehiculoHistorialService
+        historial_service = VehiculoHistorialService()
+        
+        estadisticas = await historial_service.obtener_estadisticas_historial()
+        
+        return {
+            "estadisticas": estadisticas,
+            "mensaje": "Estadísticas generadas exitosamente"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al generar estadísticas: {str(e)}"
+        )
+
+@router.post("/historial/marcar-actuales")
+async def marcar_vehiculos_historial_actual():
+    """Marcar qué vehículos tienen el historial más actual y bloquear los históricos"""
+    try:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        resultado = await filtro_service.marcar_vehiculos_historial_actual()
+        
+        return {
+            "mensaje": "Vehículos marcados por historial exitosamente",
+            "resultado": resultado
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al marcar vehículos: {str(e)}"
+        )
+
+@router.get("/visibles")
+async def obtener_vehiculos_visibles(
+    empresa_id: Optional[str] = Query(None, description="Filtrar por empresa")
+):
+    """Obtener solo los vehículos visibles (historial actual, no bloqueados)"""
+    try:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        vehiculos = await filtro_service.obtener_vehiculos_visibles(empresa_id)
+        
+        return {
+            "vehiculos": vehiculos,
+            "total": len(vehiculos),
+            "mensaje": f"Vehículos visibles obtenidos para empresa: {empresa_id or 'todas'}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al obtener vehículos visibles: {str(e)}"
+        )
+
+@router.get("/historial-placa/{placa}")
+async def obtener_historial_por_placa(placa: str):
+    """Obtener todos los registros históricos de una placa específica"""
+    try:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        vehiculos_historicos = await filtro_service.obtener_vehiculos_historicos(placa)
+        
+        return {
+            "placa": placa,
+            "registros_historicos": vehiculos_historicos,
+            "total_registros": len(vehiculos_historicos),
+            "mensaje": f"Historial completo obtenido para placa: {placa}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al obtener historial: {str(e)}"
+        )
+
+@router.get("/filtrado/estadisticas")
+async def obtener_estadisticas_filtrado():
+    """Obtener estadísticas del filtrado por historial"""
+    try:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        estadisticas = await filtro_service.obtener_estadisticas_filtrado()
+        
+        return {
+            "estadisticas": estadisticas,
+            "mensaje": "Estadísticas de filtrado generadas exitosamente"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al generar estadísticas: {str(e)}"
+        )
+
+@router.post("/restaurar-historico/{vehiculo_id}")
+async def restaurar_vehiculo_historico(vehiculo_id: str):
+    """Restaurar un vehículo histórico como el actual"""
+    try:
+        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
+        filtro_service = VehiculoFiltroHistorialService()
+        
+        resultado = await filtro_service.restaurar_vehiculo_historico(vehiculo_id)
+        
+        return {
+            "resultado": resultado,
+            "mensaje": "Vehículo histórico restaurado exitosamente"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al restaurar vehículo: {str(e)}"
+        )
+
+@router.post("/historial/recalcular-empresa/{empresa_id}")
+async def recalcular_historial_empresa(empresa_id: str):
+    """Recalcular historial de validaciones para una empresa específica"""
+    try:
+        from app.services.vehiculo_historial_service import VehiculoHistorialService
+        historial_service = VehiculoHistorialService()
+        
+        resultado = await historial_service.recalcular_historial_por_empresa(empresa_id)
+        
+        return {
+            "mensaje": f"Historial recalculado para empresa {empresa_id}",
+            "resultado": resultado
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al recalcular historial: {str(e)}"
+        )
+
+# ========================================
+# ENDPOINTS DE CARGA MASIVA DESDE EXCEL
+# ========================================
+
 # Endpoints para carga masiva desde Excel (DEBEN IR ANTES DE LOS ENDPOINTS CON PARÁMETROS)
 @router.get("/plantilla-excel")
 async def descargar_plantilla_excel():
@@ -295,6 +488,28 @@ async def estadisticas_carga_masiva():
             {"error": "Categoría inválida", "frecuencia": 5}
         ]
     }
+
+@router.get("/{vehiculo_id}/historial-detallado")
+async def obtener_historial_detallado(vehiculo_id: str):
+    """Obtener historial detallado de un vehículo específico"""
+    try:
+        from app.services.vehiculo_historial_service import VehiculoHistorialService
+        historial_service = VehiculoHistorialService()
+        
+        historial = await historial_service.obtener_historial_vehiculo_detallado(vehiculo_id)
+        
+        return {
+            "historial": historial,
+            "mensaje": "Historial detallado obtenido exitosamente"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al obtener historial: {str(e)}"
+        )
 
 @router.get("/{vehiculo_id}", response_model=VehiculoResponse)
 async def get_vehiculo(

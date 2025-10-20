@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import logging
 import time
 from app.config.settings import settings
-from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
+from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
 from app.routers.mock_router import router as mock_router
 from app.dependencies.db import lifespan
 
@@ -70,6 +70,7 @@ app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
 app.include_router(rutas_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
+app.include_router(expedientes_router, prefix=settings.API_V1_STR)
 app.include_router(tucs_router, prefix=settings.API_V1_STR)
 app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)

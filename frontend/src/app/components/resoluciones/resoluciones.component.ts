@@ -35,6 +35,10 @@ import { Resolucion } from '../../models/resolucion.model';
             <mat-icon>add_circle</mat-icon>
             Nueva Resolución
           </button>
+          <button mat-raised-button color="warn" (click)="cargaMasivaResoluciones()" class="bulk-upload-btn">
+            <mat-icon>upload_file</mat-icon>
+            Carga Masiva
+          </button>
         </div>
       </div>
 
@@ -393,6 +397,10 @@ export class ResolucionesComponent implements OnInit {
 
   nuevaResolucion(): void {
     this.router.navigate(['/resoluciones/nuevo']);
+  }
+
+  cargaMasivaResoluciones(): void {
+    this.router.navigate(['/resoluciones/carga-masiva']);
   }
 
   verResolucion(id: string): void {

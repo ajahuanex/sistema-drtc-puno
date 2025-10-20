@@ -72,6 +72,10 @@ import { VehiculoModalService } from '../../services/vehiculo-modal.service';
           <mat-icon>add</mat-icon>
           NUEVA EMPRESA
         </button>
+        <button mat-raised-button color="warn" (click)="cargaMasivaEmpresas()" class="action-button">
+          <mat-icon>upload_file</mat-icon>
+          CARGA MASIVA
+        </button>
         <button mat-raised-button color="accent" (click)="crearResolucion()" class="action-button">
           <mat-icon>gavel</mat-icon>
           CREAR RESOLUCIÓN
@@ -919,6 +923,10 @@ export class EmpresasComponent implements OnInit {
 
   nuevaEmpresa(): void {
     this.router.navigate(['/empresas/nueva']);
+  }
+
+  cargaMasivaEmpresas(): void {
+    this.router.navigate(['/empresas/carga-masiva']);
   }
 
   nuevoVehiculo(empresaId: string): void {

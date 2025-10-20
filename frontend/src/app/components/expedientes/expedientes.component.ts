@@ -97,6 +97,13 @@ interface ColumnaExpediente {
                 <mat-icon>add</mat-icon>
                 Nuevo Expediente
               </button>
+              <button mat-raised-button 
+                      color="warn" 
+                      (click)="cargaMasivaExpedientes()"
+                      class="carga-masiva-button">
+                <mat-icon>upload_file</mat-icon>
+                Carga Masiva
+              </button>
               <button mat-stroked-button 
                       (click)="toggleFiltrosAvanzados()"
                       class="filtros-button">
@@ -1071,6 +1078,13 @@ export class ExpedientesComponent implements OnInit {
         });
       }
     });
+  }
+
+  /**
+   * Navegar a la página de carga masiva de expedientes
+   */
+  cargaMasivaExpedientes(): void {
+    this.router.navigate(['/expedientes/carga-masiva']);
   }
 
   /**

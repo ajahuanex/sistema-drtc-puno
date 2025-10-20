@@ -4,6 +4,7 @@ from .vehiculos_router import router as vehiculos_router
 from .conductores_router import router as conductores_router
 from .rutas_router import router as rutas_router
 from .resoluciones_router import router as resoluciones_router
+from .expedientes_router import router as expedientes_router
 from .tucs_router import router as tucs_router
 from .infracciones_router import router as infracciones_router
 from .oficinas_router import router as oficinas_router
@@ -17,6 +18,7 @@ __all__ = [
     "conductores_router",
     "rutas_router",
     "resoluciones_router",
+    "expedientes_router",
     "tucs_router",
     "infracciones_router",
     "oficinas_router",

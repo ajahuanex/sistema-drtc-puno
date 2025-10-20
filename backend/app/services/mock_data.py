@@ -788,4 +788,29 @@ class MockDataService:
         )
 
 # Instancia global del servicio de datos mock
-mock_service = MockDataService() 
+mock_service = MockDataService()
+
+# Funciones de acceso para obtener datos mock
+def get_mock_empresas() -> List[EmpresaInDB]:
+    """Obtener lista de empresas mock"""
+    return list(mock_service.empresas.values())
+
+def get_mock_vehiculos() -> List[VehiculoInDB]:
+    """Obtener lista de vehículos mock"""
+    return list(mock_service.vehiculos.values())
+
+def get_mock_rutas() -> List[RutaInDB]:
+    """Obtener lista de rutas mock"""
+    return list(mock_service.rutas.values())
+
+def get_mock_resoluciones() -> List[ResolucionInDB]:
+    """Obtener lista de resoluciones mock"""
+    return list(mock_service.resoluciones.values())
+
+def get_mock_conductores() -> List[ConductorInDB]:
+    """Obtener lista de conductores mock"""
+    return list(mock_service.conductores.values())
+
+def get_mock_usuarios() -> List[UsuarioInDB]:
+    """Obtener lista de usuarios mock"""
+    return list(mock_service.usuarios.values())

@@ -1132,4 +1132,8 @@ export class RutasComponent implements OnInit {
       }
     });
   }
+
+  cargaMasivaRutas(): void {
+    this.router.navigate(['/rutas/carga-masiva']);
+  }
 } 

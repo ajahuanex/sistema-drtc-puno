@@ -772,4 +772,75 @@ export class ResolucionService {
     
     return resultado;
   }
+
+  // ========================================
+  // MÉTODOS DE CARGA MASIVA DESDE EXCEL
+  // ========================================
+
+  /**
+   * Descargar plantilla Excel para carga masiva de resoluciones
+   */
+  descargarPlantillaExcel(): Observable<Blob> {
+    const url = `${this.apiUrl}/resoluciones/carga-masiva/plantilla`;
+    
+    return this.http.get(url, { 
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('Error descargando plantilla de resoluciones:', error);
+        return throwError(() => new Error('Error al descargar la plantilla'));
+      })
+    );
+  }
+
+  /**
+   * Validar archivo Excel de resoluciones sin procesarlo
+   */
+  validarArchivoExcel(archivo: File): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/carga-masiva/validar`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    // Headers sin Content-Type para FormData
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    return this.http.post(url, formData, { headers }).pipe(
+      catchError(error => {
+        console.error('Error validando archivo de resoluciones:', error);
+        return throwError(() => new Error('Error al validar el archivo'));
+      })
+    );
+  }
+
+  /**
+   * Procesar carga masiva de resoluciones desde Excel
+   */
+  procesarCargaMasiva(archivo: File, soloValidar: boolean = false): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/carga-masiva/procesar`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    
+    // Agregar parámetro de solo validar
+    const params = new URLSearchParams();
+    if (soloValidar) {
+      params.append('solo_validar', 'true');
+    }
+
+    // Headers sin Content-Type para FormData
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    const finalUrl = params.toString() ? `${url}?${params.toString()}` : url;
+
+    return this.http.post(finalUrl, formData, { headers }).pipe(
+      catchError(error => {
+        console.error('Error procesando carga masiva de resoluciones:', error);
+        return throwError(() => new Error('Error al procesar el archivo'));
+      })
+    );
+  }
 } 

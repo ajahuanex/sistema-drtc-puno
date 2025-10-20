@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 Test Carga Masiva Empresas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .btn-test {
+            margin: 0.5rem;
+            min-width: 150px;
+        }
+        
+        .result-area {
+            background: #f1f3f4;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .status-info { background-color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-card">
+            <div class="test-header">
+                <h1>🏢 Test de Carga Masiva de Empresas</h1>
+                <p class="text-muted">Prueba de funcionalidad del componente Angular</p>
+            </div>
+
+            <!-- Test de API -->
+            <div class="test-section">
+                <h3>🔌 Test de API Backend</h3>
+                <p>Prueba la conectividad con los endpoints del backend:</p>
+                
+                <button class="btn btn-primary btn-test" onclick="testDescargarPlantilla()">
+                    📥 Test Descargar Plantilla
+                </button>
+                
+                <button class="btn btn-success btn-test" onclick="testValidarArchivo()">
+                    🔍 Test Validar Archivo
+                </button>
+                
+                <button class="btn btn-warning btn-test" onclick="testProcesarArchivo()">
+                    🚀 Test Procesar Archivo
+                </button>
+                
+                <div id="apiResults" class="result-area">
+                    <em>Resultados de las pruebas de API aparecerán aquí...</em>
+                </div>
+            </div>
+
+            <!-- Test de Componente -->
+            <div class="test-section">
+                <h3>🎨 Test de Componente Frontend</h3>
+                <p>Información sobre el estado del componente Angular:</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">📁 Archivos del Componente</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="status-indicator status-success"></span>carga-masiva-empresas.component.ts</li>
+                                    <li><span class="status-indicator status-success"></span>carga-masiva-empresas.component.html</li>
+                                    <li><span class="status-indicator status-success"></span>carga-masiva-empresas.component.scss</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">🔧 Configuración</h6>
+                                <ul class="list-unstyled">
+                                    <li><span class="status-indicator status-success"></span>Ruta registrada</li>
+                                    <li><span class="status-indicator status-success"></span>Servicio inyectado</li>
+                                    <li><span class="status-indicator status-success"></span>Standalone component</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Manual -->
+            <div class="test-section">
+                <h3>🧪 Test Manual</h3>
+                <p>Para probar el componente completo:</p>
+                
+                <ol>
+                    <li>Inicia el servidor Angular: <code>ng serve</code></li>
+                    <li>Navega a: <code>http://localhost:4200/empresas/carga-masiva</code></li>
+                    <li>Descarga la plantilla Excel</li>
+                    <li>Completa algunos datos de prueba</li>
+                    <li>Sube el archivo y valida</li>
+                    <li>Procesa la carga masiva</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <strong>💡 Tip:</strong> Asegúrate de que el backend esté corriendo en 
+                    <code>http://localhost:8000</code> para que las pruebas de API funcionen.
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="test-section">
+                <h3>📋 Logs de Prueba</h3>
+                <div id="testLogs" class="result-area">
+                    <em>Los logs de las pruebas aparecerán aquí...</em>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+        
+        function log(message, type = 'info') {
+            const logsArea = document.getElementById('testLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = {
+                'success': '✅',
+                'error': '❌',
+                'warning': '⚠️',
+                'info': 'ℹ️'
+            }[type] || 'ℹ️';
+            
+            logsArea.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            logsArea.scrollTop = logsArea.scrollHeight;
+        }
+        
+        function updateResults(elementId, content) {
+            document.getElementById(elementId).innerHTML = content;
+        }
+        
+        async function testDescargarPlantilla() {
+            log('Iniciando test de descarga de plantilla...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/empresas/carga-masiva/plantilla`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    log(`✅ Plantilla descargada exitosamente (${blob.size} bytes)`, 'success');
+                    
+                    // Crear enlace de descarga
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'plantilla_empresas_test.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    updateResults('apiResults', `
+                        <strong>✅ Test Plantilla: EXITOSO</strong><br>
+                        Tamaño: ${blob.size} bytes<br>
+                        Tipo: ${blob.type}<br>
+                        Archivo descargado automáticamente
+                    `);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ Error en descarga de plantilla: ${error.message}`, 'error');
+                updateResults('apiResults', `
+                    <strong>❌ Test Plantilla: ERROR</strong><br>
+                    Error: ${error.message}<br>
+                    Verifica que el backend esté corriendo
+                `);
+            }
+        }
+        
+        async function testValidarArchivo() {
+            log('Iniciando test de validación de archivo...', 'info');
+            
+            // Crear un archivo de prueba simulado
+            const csvContent = `Código Empresa,RUC,Razón Social Principal,Dirección Fiscal,DNI Representante,Nombres Representante,Apellidos Representante
+0001TRP,20123456789,EMPRESA TEST S.A.,AV. TEST 123 PUNO,12345678,JUAN,PEREZ
+INVALID,123,EMPRESA INVALIDA,DIR,DNI,N,A`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const file = new File([blob], 'empresas_test.csv', { type: 'text/csv' });
+            
+            try {
+                const formData = new FormData();
+                formData.append('archivo', file);
+                
+                const response = await fetch(`${API_BASE}/empresas/carga-masiva/validar`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const resultado = await response.json();
+                    log(`✅ Validación completada: ${resultado.validacion.validos} válidos, ${resultado.validacion.invalidos} inválidos`, 'success');
+                    
+                    updateResults('apiResults', `
+                        <strong>✅ Test Validación: EXITOSO</strong><br>
+                        Total filas: ${resultado.validacion.total_filas}<br>
+                        Válidos: ${resultado.validacion.validos}<br>
+                        Inválidos: ${resultado.validacion.invalidos}<br>
+                        Errores: ${resultado.validacion.errores.length}
+                    `);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ Error en validación: ${error.message}`, 'error');
+                updateResults('apiResults', `
+                    <strong>❌ Test Validación: ERROR</strong><br>
+                    Error: ${error.message}<br>
+                    Verifica que el backend esté corriendo
+                `);
+            }
+        }
+        
+        async function testProcesarArchivo() {
+            log('Iniciando test de procesamiento de archivo...', 'info');
+            
+            // Crear un archivo de prueba con datos válidos
+            const csvContent = `Código Empresa,RUC,Razón Social Principal,Dirección Fiscal,DNI Representante,Nombres Representante,Apellidos Representante
+0099TRP,20999888777,EMPRESA PROCESAMIENTO S.A.,AV. PROCESAMIENTO 123 PUNO,99887766,CARLOS,PROCESAMIENTO`;
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const file = new File([blob], 'empresas_procesamiento.csv', { type: 'text/csv' });
+            
+            try {
+                const formData = new FormData();
+                formData.append('archivo', file);
+                
+                const response = await fetch(`${API_BASE}/empresas/carga-masiva/procesar?solo_validar=false`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const resultado = await response.json();
+                    log(`✅ Procesamiento completado: ${resultado.resultado.total_creadas || 0} empresas creadas`, 'success');
+                    
+                    updateResults('apiResults', `
+                        <strong>✅ Test Procesamiento: EXITOSO</strong><br>
+                        Total filas: ${resultado.resultado.total_filas}<br>
+                        Válidos: ${resultado.resultado.validos}<br>
+                        Creadas: ${resultado.resultado.total_creadas || 0}<br>
+                        Errores creación: ${resultado.resultado.errores_creacion?.length || 0}
+                    `);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                log(`❌ Error en procesamiento: ${error.message}`, 'error');
+                updateResults('apiResults', `
+                    <strong>❌ Test Procesamiento: ERROR</strong><br>
+                    Error: ${error.message}<br>
+                    Verifica que el backend esté corriendo
+                `);
+            }
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🏢 Test de Carga Masiva de Empresas iniciado', 'info');
+            log('Backend esperado en: ' + API_BASE, 'info');
+        });
+    </script>
+</body>
+</html>

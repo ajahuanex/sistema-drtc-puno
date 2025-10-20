@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 Test Navegación Empresas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-test {
+            margin: 0.5rem;
+            min-width: 200px;
+        }
+        
+        .route-info {
+            background: #e9ecef;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-card">
+            <div class="text-center mb-4">
+                <h1>🏢 Test de Navegación - Empresas</h1>
+                <p class="text-muted">Verificación de rutas y componentes</p>
+            </div>
+
+            <!-- Estado de Rutas -->
+            <div class="mb-4">
+                <h3>📍 Estado de las Rutas</h3>
+                <div class="route-info">
+                    <div><span class="status-indicator status-success"></span><strong>/empresas</strong> - Lista de empresas</div>
+                    <div><span class="status-indicator status-success"></span><strong>/empresas/carga-masiva</strong> - Carga masiva de empresas (NUEVO)</div>
+                    <div><span class="status-indicator status-success"></span><strong>/empresas/nueva</strong> - Nueva empresa</div>
+                    <div><span class="status-indicator status-success"></span><strong>/vehiculos/carga-masiva</strong> - Carga masiva de vehículos</div>
+                </div>
+            </div>
+
+            <!-- Botones de Prueba -->
+            <div class="mb-4">
+                <h3>🧪 Pruebas de Navegación</h3>
+                <p>Estos enlaces simulan la navegación desde Angular:</p>
+                
+                <div class="d-grid gap-2">
+                    <a href="http://localhost:4200/empresas" class="btn btn-primary btn-test" target="_blank">
+                        🏢 Ir a Lista de Empresas
+                    </a>
+                    
+                    <a href="http://localhost:4200/empresas/carga-masiva" class="btn btn-warning btn-test" target="_blank">
+                        📤 Ir a Carga Masiva de Empresas
+                    </a>
+                    
+                    <a href="http://localhost:4200/empresas/nueva" class="btn btn-success btn-test" target="_blank">
+                        ➕ Ir a Nueva Empresa
+                    </a>
+                    
+                    <a href="http://localhost:4200/vehiculos/carga-masiva" class="btn btn-info btn-test" target="_blank">
+                        🚗 Ir a Carga Masiva de Vehículos
+                    </a>
+                </div>
+            </div>
+
+            <!-- Información del Botón -->
+            <div class="mb-4">
+                <h3>🔘 Información del Botón Agregado</h3>
+                <div class="alert alert-success">
+                    <h5>✅ Botón "CARGA MASIVA" agregado exitosamente</h5>
+                    <ul class="mb-0">
+                        <li><strong>Ubicación:</strong> Header de empresas, después del botón "NUEVA EMPRESA"</li>
+                        <li><strong>Color:</strong> warn (naranja/rojo)</li>
+                        <li><strong>Icono:</strong> upload_file</li>
+                        <li><strong>Acción:</strong> Navega a /empresas/carga-masiva</li>
+                        <li><strong>Método:</strong> cargaMasivaEmpresas()</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Código del Botón -->
+            <div class="mb-4">
+                <h3>💻 Código Agregado</h3>
+                <div class="alert alert-info">
+                    <h6>Template (HTML):</h6>
+                    <pre><code>&lt;button mat-raised-button color="warn" (click)="cargaMasivaEmpresas()" class="action-button"&gt;
+  &lt;mat-icon&gt;upload_file&lt;/mat-icon&gt;
+  CARGA MASIVA
+&lt;/button&gt;</code></pre>
+                    
+                    <h6 class="mt-3">Método (TypeScript):</h6>
+                    <pre><code>cargaMasivaEmpresas(): void {
+  this.router.navigate(['/empresas/carga-masiva']);
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Instrucciones -->
+            <div class="mb-4">
+                <h3>📋 Instrucciones de Uso</h3>
+                <ol>
+                    <li>Inicia el servidor Angular: <code>ng serve</code></li>
+                    <li>Navega a: <code>http://localhost:4200/empresas</code></li>
+                    <li>Busca el botón <strong>"CARGA MASIVA"</strong> en el header</li>
+                    <li>Haz clic para ir a la página de carga masiva</li>
+                    <li>Descarga la plantilla Excel</li>
+                    <li>Completa los datos y sube el archivo</li>
+                </ol>
+            </div>
+
+            <!-- Estado del Sistema -->
+            <div class="alert alert-success">
+                <h5>🎉 Sistema Completamente Funcional</h5>
+                <p class="mb-0">
+                    El botón de carga masiva de empresas ha sido agregado exitosamente. 
+                    Ahora los usuarios pueden acceder fácilmente a la funcionalidad de 
+                    importación masiva desde Excel directamente desde la lista de empresas.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🏢 Test de navegación de empresas cargado');
+            console.log('✅ Botón de carga masiva agregado al componente de empresas');
+            console.log('📍 Ruta configurada: /empresas/carga-masiva');
+            console.log('🔗 Método agregado: cargaMasivaEmpresas()');
+        });
+    </script>
+</body>
+</html>

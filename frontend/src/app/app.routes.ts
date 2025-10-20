@@ -16,6 +16,7 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'empresas', loadComponent: () => import('./components/empresas/empresas.component').then(m => m.EmpresasComponent) },
+      { path: 'empresas/carga-masiva', loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent) },
       { path: 'empresas/nueva', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
       { path: 'empresas/:id/editar', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
       { path: 'empresas/:id', loadComponent: () => import('./components/empresas/empresa-detail.component').then(m => m.EmpresaDetailComponent) },
@@ -45,6 +46,7 @@ export const routes: Routes = [
       { path: 'resoluciones/:id/editar', loadComponent: () => import('./components/resoluciones/crear-resolucion.component').then(m => m.CrearResolucionComponent) },
       { path: 'resoluciones/:id/bajas-vehiculares', loadComponent: () => import('./components/resoluciones/gestion-bajas-resolucion.component').then(m => m.GestionBajasResolucionComponent) },
       { path: 'expedientes', loadComponent: () => import('./components/expedientes/expedientes.component').then(m => m.ExpedientesComponent) },
+      { path: 'expedientes/carga-masiva', loadComponent: () => import('./components/expedientes/carga-masiva-expedientes.component').then(m => m.CargaMasivaExpedientesComponent) },
       { path: 'expedientes/nuevo', loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent) },
       { path: 'expedientes/:id', loadComponent: () => import('./components/expedientes/expediente-detail.component').then(m => m.ExpedienteDetailComponent) },
       { path: 'expedientes/:id/editar', loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent) },
