@@ -41,6 +41,15 @@ class SedeRegistro(str, Enum):
     CHICLAYO = "CHICLAYO"
     PIURA = "PIURA"
 
+class MotivoSustitucion(str, Enum):
+    ANTIGUEDAD = "ANTIGÜEDAD"  # Por año de fabricación
+    ACCIDENTE = "ACCIDENTE"  # Por accidente o siniestro
+    CAMBIO_TITULARIDAD = "CAMBIO_TITULARIDAD"  # Por cambio de propietario
+    SUSTITUCION_VOLUNTARIA = "SUSTITUCIÓN_VOLUNTARIA"  # Sustitución por mejora
+    MANTENIMIENTO_MAYOR = "MANTENIMIENTO_MAYOR"  # Por mantenimiento extenso
+    NORMATIVA = "NORMATIVA"  # Por cambios normativos
+    OTROS = "OTROS"  # Otros motivos
+
 class DatosTecnicos(BaseModel):
     motor: str
     chasis: str
@@ -65,6 +74,11 @@ class Vehiculo(BaseModel):
     anioFabricacion: int
     estado: EstadoVehiculo
     sedeRegistro: SedeRegistro = SedeRegistro.PUNO  # Sede donde se registró el vehículo
+    # Campos de sustitución
+    placaSustituida: Optional[str] = None  # Placa del vehículo que sustituyó (si aplica)
+    fechaSustitucion: Optional[datetime] = None  # Fecha cuando sustituyó a otro vehículo
+    motivoSustitucion: Optional[MotivoSustitucion] = None  # Motivo de la sustitución
+    resolucionSustitucion: Optional[str] = None  # Resolución que autoriza la sustitución
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
@@ -84,6 +98,11 @@ class VehiculoCreate(BaseModel):
     modelo: str
     anioFabricacion: int
     sedeRegistro: SedeRegistro = SedeRegistro.PUNO
+    # Campos de sustitución opcionales
+    placaSustituida: Optional[str] = None
+    fechaSustitucion: Optional[datetime] = None
+    motivoSustitucion: Optional[MotivoSustitucion] = None
+    resolucionSustitucion: Optional[str] = None
     datosTecnicos: DatosTecnicos
     color: Optional[str] = None
     numeroSerie: Optional[str] = None
@@ -100,6 +119,11 @@ class VehiculoUpdate(BaseModel):
     anioFabricacion: Optional[int] = None
     estado: Optional[EstadoVehiculo] = None
     sedeRegistro: Optional[SedeRegistro] = None
+    # Campos de sustitución
+    placaSustituida: Optional[str] = None
+    fechaSustitucion: Optional[datetime] = None
+    motivoSustitucion: Optional[MotivoSustitucion] = None
+    resolucionSustitucion: Optional[str] = None
     tuc: Optional[dict] = None
     datosTecnicos: Optional[DatosTecnicos] = None
     color: Optional[str] = None
@@ -134,6 +158,11 @@ class VehiculoResponse(BaseModel):
     anioFabricacion: int
     estado: EstadoVehiculo
     sedeRegistro: SedeRegistro
+    # Campos de sustitución
+    placaSustituida: Optional[str] = None
+    fechaSustitucion: Optional[datetime] = None
+    motivoSustitucion: Optional[MotivoSustitucion] = None
+    resolucionSustitucion: Optional[str] = None
     estaActivo: bool
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
@@ -177,6 +206,10 @@ class VehiculoExcel(BaseModel):
     resolucion_hija: Optional[str] = None  # Número de resolución hija (derivada)
     rutas_asignadas: Optional[str] = None  # Códigos de rutas separados por comas
     sede_registro: str = "PUNO"  # Sede donde se registra el vehículo
+    # Campos de sustitución
+    placa_sustituida: Optional[str] = None  # Placa del vehículo sustituido
+    motivo_sustitucion: Optional[str] = None  # Motivo de sustitución
+    resolucion_sustitucion: Optional[str] = None  # Resolución de sustitución
     categoria: str
     marca: str
     modelo: str

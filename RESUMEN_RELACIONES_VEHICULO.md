@@ -188,6 +188,35 @@ enum SedeRegistro {
 }
 ```
 
+## 1️⃣3️⃣ **SUSTITUCIÓN DE VEHÍCULOS** (Relación 1:1 opcional)
+```
+Vehículo.placaSustituida → Vehículo.placa (histórica)
+```
+- **Descripción**: Relación que indica qué vehículo fue sustituido por el actual
+- **Cardinalidad**: Un vehículo puede sustituir a UNO anterior, un vehículo puede ser sustituido por UNO nuevo
+- **Campos relacionados**:
+  - `placaSustituida`: Placa del vehículo que fue sustituido
+  - `fechaSustitucion`: Fecha cuando ocurrió la sustitución
+  - `motivoSustitucion`: Razón de la sustitución (ANTIGÜEDAD, ACCIDENTE, etc.)
+  - `resolucionSustitucion`: Resolución que autoriza la sustitución
+- **Lógica de negocio**:
+  - Vehículo sustituto hereda rutas del sustituido
+  - Vehículo sustituido se da de baja automáticamente
+  - Continuidad del servicio garantizada
+
+## 1️⃣4️⃣ **MOTIVOS DE SUSTITUCIÓN**
+```
+enum MotivoSustitucion {
+  ANTIGUEDAD = "Por año de fabricación"
+  ACCIDENTE = "Por accidente o siniestro"
+  CAMBIO_TITULARIDAD = "Por cambio de propietario"
+  SUSTITUCION_VOLUNTARIA = "Sustitución por mejora"
+  MANTENIMIENTO_MAYOR = "Por mantenimiento extenso"
+  NORMATIVA = "Por cambios normativos"
+  OTROS = "Otros motivos"
+}
+```
+
 ### 🔄 **Flujos de Negocio**
 
 ## 📋 **Proceso de Registro de Vehículo**
@@ -281,7 +310,7 @@ enum SedeRegistro {
 
 ## 🎯 **Resumen de Relaciones**
 
-El modelo de **Vehículo** es el núcleo del sistema de transporte, con **12 tipos de relaciones principales**:
+El modelo de **Vehículo** es el núcleo del sistema de transporte, con **14 tipos de relaciones principales**:
 
 1. **Empresa** (1:N) - Propiedad actual
 2. **Resolución** (N:1) - Autorización de operación  
@@ -295,5 +324,7 @@ El modelo de **Vehículo** es el núcleo del sistema de transporte, con **12 tip
 10. **Estado** (enum) - Estado operativo
 11. **Combustible** (enum) - Tipo de combustible
 12. **Sede** (enum) - Sede de registro
+13. **Sustitución** (1:1 opcional) - Vehículo sustituido (**NUEVO**)
+14. **Motivo Sustitución** (enum) - Razón de sustitución (**NUEVO**)
 
-Esta estructura permite un **control integral** del parque vehicular con **trazabilidad completa**, **validaciones robustas** y **flexibilidad operativa** para todos los procesos del sistema de transporte.
+Esta estructura permite un **control integral** del parque vehicular con **trazabilidad completa**, **validaciones robustas**, **gestión de sustituciones** y **flexibilidad operativa** para todos los procesos del sistema de transporte, incluyendo la **renovación ordenada de flotas**.

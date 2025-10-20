@@ -170,3 +170,44 @@ class MockVehiculoService:
             self.vehiculos[vehiculo_id].fechaActualizacion = datetime.utcnow()
             return self.vehiculos[vehiculo_id]
         return None
+
+    async def procesar_sustitucion(self, vehiculo_nuevo_id: str, placa_sustituida: str, motivo: str, resolucion: str) -> bool:
+        """Procesar sustitución de vehículo"""
+        # Buscar vehículo sustituido
+        vehiculo_sustituido = await self.get_vehiculo_by_placa(placa_sustituida)
+        if not vehiculo_sustituido:
+            return False
+        
+        # Dar de baja el vehículo sustituido
+        vehiculo_sustituido.estado = "DADO_DE_BAJA"
+        vehiculo_sustituido.estaActivo = False
+        vehiculo_sustituido.fechaActualizacion = datetime.utcnow()
+        
+        # Actualizar vehículo nuevo con datos de sustitución
+        if vehiculo_nuevo_id in self.vehiculos:
+            vehiculo_nuevo = self.vehiculos[vehiculo_nuevo_id]
+            vehiculo_nuevo.placaSustituida = placa_sustituida
+            vehiculo_nuevo.fechaSustitucion = datetime.utcnow()
+            vehiculo_nuevo.motivoSustitucion = motivo
+            vehiculo_nuevo.resolucionSustitucion = resolucion
+            
+            # Heredar rutas del vehículo sustituido
+            if hasattr(vehiculo_sustituido, 'rutasAsignadasIds'):
+                vehiculo_nuevo.rutasAsignadasIds = vehiculo_sustituido.rutasAsignadasIds.copy()
+            
+            vehiculo_nuevo.fechaActualizacion = datetime.utcnow()
+            return True
+        
+        return False
+
+    async def get_vehiculos_sustituidos_por(self, placa: str) -> List[VehiculoInDB]:
+        """Obtener vehículos que fueron sustituidos por la placa dada"""
+        return [vehiculo for vehiculo in self.vehiculos.values() 
+                if vehiculo.placaSustituida == placa and vehiculo.estaActivo]
+
+    async def get_vehiculo_sustituto_de(self, placa: str) -> Optional[VehiculoInDB]:
+        """Obtener el vehículo que sustituyó a la placa dada"""
+        for vehiculo in self.vehiculos.values():
+            if vehiculo.placaSustituida == placa and vehiculo.estaActivo:
+                return vehiculo
+        return None

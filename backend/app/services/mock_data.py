@@ -6,7 +6,7 @@ from app.models.empresa import (
     EstadoEmpresa, TipoDocumento, DocumentoEmpresa, AuditoriaEmpresa,
     RazonSocial, RepresentanteLegal
 )
-from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro
+from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro, MotivoSustitucion
 from app.models.ruta import RutaInDB, RutaCreate, RutaUpdate, EstadoRuta, TipoRuta, TipoServicio
 from app.models.resolucion import ResolucionInDB, ResolucionCreate, ResolucionUpdate, TipoResolucion, TipoTramite, EstadoResolucion
 from app.models.tuc import TucInDB, TucCreate, TucUpdate, Tuc
@@ -613,7 +613,7 @@ class MockDataService:
             fechaActualizacion=datetime(2024, 1, 1, 8, 0, 0)
         )
 
-        # Vehículo 4 - Mototaxi
+        # Vehículo 4 - Mototaxi (sustituyó a otro vehículo)
         self.vehiculos["4"] = VehiculoInDB(
             id="4",
             placa="GHI-789",
@@ -625,6 +625,11 @@ class MockDataService:
             color="ROJO",
             estado=EstadoVehiculo.ACTIVO,
             sedeRegistro=SedeRegistro.JULIACA,
+            # Campos de sustitución - este vehículo sustituyó a OLD-456
+            placaSustituida="OLD-456",
+            fechaSustitucion=datetime(2024, 1, 15, 10, 0, 0),
+            motivoSustitucion=MotivoSustitucion.ANTIGUEDAD,
+            resolucionSustitucion="R-1004-2024",
             datosTecnicos=DatosTecnicos(
                 motor="110cc",
                 chasis="MLHJC123456789",
@@ -709,7 +714,7 @@ class MockDataService:
         # Resolución 1 - TRANSPORTES PUNO S.A.
         self.resoluciones["1"] = ResolucionInDB(
             id="1",
-            nroResolucion="001-2024-DRTC-PUNO",
+            nroResolucion="R-1001-2024",
             empresaId="1",
             fechaEmision=datetime(2024, 1, 15, 8, 0, 0),
             fechaVigenciaInicio=datetime(2024, 1, 15, 8, 0, 0),
@@ -728,7 +733,7 @@ class MockDataService:
         # Resolución 2 - TRANSPORTES LIMA E.I.R.L.
         self.resoluciones["2"] = ResolucionInDB(
             id="2",
-            nroResolucion="002-2024-DRTC-PUNO",
+            nroResolucion="R-1002-2024",
             empresaId="2",
             fechaEmision=datetime(2024, 2, 20, 9, 0, 0),
             fechaVigenciaInicio=datetime(2024, 2, 20, 9, 0, 0),
@@ -747,7 +752,7 @@ class MockDataService:
         # Resolución 3 - TRANSPORTES AREQUIPA S.A.C.
         self.resoluciones["3"] = ResolucionInDB(
             id="3",
-            nroResolucion="003-2024-DRTC-PUNO",
+            nroResolucion="R-1003-2024",
             empresaId="3",
             fechaEmision=datetime(2024, 3, 10, 10, 0, 0),
             fechaVigenciaInicio=datetime(2024, 3, 10, 10, 0, 0),
@@ -766,7 +771,7 @@ class MockDataService:
         # Resolución 4 - TRANSPORTES CUSCO S.A.
         self.resoluciones["4"] = ResolucionInDB(
             id="4",
-            nroResolucion="004-2024-DRTC-PUNO",
+            nroResolucion="R-1004-2024",
             empresaId="4",
             fechaEmision=datetime(2024, 4, 5, 14, 0, 0),
             fechaVigenciaInicio=datetime(2024, 4, 5, 14, 0, 0),

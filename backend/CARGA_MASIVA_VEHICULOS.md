@@ -136,6 +136,9 @@ GET /api/v1/vehiculos/carga-masiva/estadisticas
 | Resolución Primigenia | Texto | ❌ | Número de resolución primigenia (PADRE) |
 | Resolución Hija | Texto | ❌ | Número de resolución hija (derivada) |
 | Sede de Registro | Texto | ❌ | Sede donde se registra el vehículo (PUNO por defecto) |
+| Placa Sustituida | Texto | ❌ | Placa del vehículo que este vehículo sustituyó |
+| Motivo Sustitución | Texto | ❌ | Motivo de la sustitución (ANTIGÜEDAD, ACCIDENTE, etc.) |
+| Resolución Sustitución | Texto | ❌ | Resolución que autoriza la sustitución (formato R-1234-2025) |
 | Rutas Asignadas | Texto | ❌ | Códigos separados por comas |
 | Categoría | Texto | ✅ | M1, M2, M3, N1, N2, N3 |
 | Marca | Texto | ✅ | Marca del vehículo |

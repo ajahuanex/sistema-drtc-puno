@@ -30,8 +30,8 @@ async def test_carga_masiva():
     print("\n2️⃣ CREANDO ARCHIVO DE PRUEBA...")
     datos_prueba = {
         'Placa': ['TEST-001', 'TEST-002', 'ABC-123', 'TEST-003', 'INVALID'],  # ABC-123 ya existe
-        'RUC Empresa': ['20123456789', '20234567890', '20123456789', '99999999999', '20123456789'],  # RUC inválido
-        'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO', '', '', ''],
+        'RUC Empresa': ['20123456789', '20234567890', '20123456789', '12345', '20123456789'],  # RUC inválido
+        'Resolución Primigenia': ['R-1001-2024', 'R-1002-2024', '', 'FORMATO-INVALIDO', ''],
         'Resolución Hija': ['', '', '', '', ''],
         'Rutas Asignadas': ['01,02', '03', '01', '', ''],
         'Sede de Registro': ['PUNO', 'AREQUIPA', 'CUSCO', 'INVALID_SEDE', 'LIMA'],
@@ -157,7 +157,7 @@ def test_validaciones_especificas():
             print(f"   {ruc}: ❌ No encontrada")
     
     # Probar búsqueda de resoluciones
-    resoluciones_test = ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO', '999-2024-DRTC-PUNO']
+    resoluciones_test = ['R-1001-2024', 'R-1002-2024', 'R-9999-2024']
     print("\n📄 Búsqueda de resoluciones:")
     for resolucion in resoluciones_test:
         res = excel_service._buscar_resolucion_por_numero(resolucion)

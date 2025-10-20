@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from app.models.vehiculo import (
     VehiculoExcel, VehiculoCargaMasivaResponse, VehiculoValidacionExcel,
-    VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro
+    VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro, MotivoSustitucion
 )
 from app.services.mock_vehiculo_service import MockVehiculoService
 from app.services.mock_data import mock_service
@@ -18,6 +18,11 @@ class VehiculoExcelService:
         self.resoluciones = mock_service.resoluciones
         self.rutas = mock_service.rutas
         
+        # Configuración de auto-creación
+        self.auto_crear_empresas = True  # Auto-crear empresas si no existen
+        self.auto_crear_resoluciones = False  # NO auto-crear resoluciones (requieren proceso formal)
+        self.auto_crear_rutas = False  # NO auto-crear rutas (requieren autorización)
+        
         # Mapeo de columnas esperadas en Excel
         self.columnas_requeridas = {
             'placa': 'Placa',
@@ -26,6 +31,10 @@ class VehiculoExcelService:
             'resolucion_hija': 'Resolución Hija',
             'rutas_asignadas': 'Rutas Asignadas',
             'sede_registro': 'Sede de Registro',
+            # Campos de sustitución
+            'placa_sustituida': 'Placa Sustituida',
+            'motivo_sustitucion': 'Motivo Sustitución',
+            'resolucion_sustitucion': 'Resolución Sustitución',
             'categoria': 'Categoría',
             'marca': 'Marca',
             'modelo': 'Modelo',
@@ -167,10 +176,15 @@ class VehiculoExcelService:
         empresa_ruc = str(row.get('RUC Empresa', '')).strip()
         if not empresa_ruc:
             errores.append("RUC de empresa es requerido")
+        elif not re.match(r'^\d{11}$', empresa_ruc):
+            errores.append(f"RUC debe tener 11 dígitos: {empresa_ruc}")
         else:
             empresa = self._buscar_empresa_por_ruc(empresa_ruc)
             if not empresa:
-                errores.append(f"No se encontró empresa con RUC {empresa_ruc}")
+                if self.auto_crear_empresas:
+                    advertencias.append(f"Empresa con RUC {empresa_ruc} será creada automáticamente")
+                else:
+                    errores.append(f"No se encontró empresa con RUC {empresa_ruc}")
         
         # Validar categoría
         categoria = str(row.get('Categoría', '')).strip()
@@ -190,6 +204,33 @@ class VehiculoExcelService:
         sede_registro = str(row.get('Sede de Registro', 'PUNO')).strip()
         if sede_registro and sede_registro not in [sede.value for sede in SedeRegistro]:
             errores.append(f"Sede de registro inválida: {sede_registro}")
+        
+        # Validar campos de sustitución
+        placa_sustituida = str(row.get('Placa Sustituida', '')).strip() if pd.notna(row.get('Placa Sustituida')) else None
+        motivo_sustitucion = str(row.get('Motivo Sustitución', '')).strip() if pd.notna(row.get('Motivo Sustitución')) else None
+        resolucion_sustitucion = str(row.get('Resolución Sustitución', '')).strip() if pd.notna(row.get('Resolución Sustitución')) else None
+        
+        # Si hay placa sustituida, validar que exista el vehículo
+        if placa_sustituida:
+            if not self._validar_formato_placa(placa_sustituida):
+                errores.append(f"Formato de placa sustituida inválido: {placa_sustituida}")
+            else:
+                # Verificar que el vehículo sustituido exista
+                vehiculo_sustituido = await self.vehiculo_service.get_vehiculo_by_placa(placa_sustituida)
+                if not vehiculo_sustituido:
+                    advertencias.append(f"Vehículo con placa {placa_sustituida} no encontrado para sustitución")
+                
+                # Si hay sustitución, debe haber motivo
+                if not motivo_sustitucion:
+                    errores.append("Si se especifica placa sustituida, debe indicarse el motivo de sustitución")
+                elif motivo_sustitucion not in [motivo.value for motivo in MotivoSustitucion]:
+                    errores.append(f"Motivo de sustitución inválido: {motivo_sustitucion}")
+                
+                # Si hay sustitución, debe haber resolución de sustitución
+                if not resolucion_sustitucion:
+                    errores.append("Si se especifica placa sustituida, debe indicarse la resolución de sustitución")
+                elif not self._validar_formato_resolucion(resolucion_sustitucion):
+                    errores.append(f"Formato de resolución de sustitución inválido: {resolucion_sustitucion}")
         
         # Validar campos numéricos
         campos_numericos = {
@@ -218,19 +259,35 @@ class VehiculoExcelService:
         # Validar resoluciones si se proporcionan
         if pd.notna(row.get('Resolución Primigenia')):
             resolucion_primigenia = str(row.get('Resolución Primigenia')).strip()
-            resolucion = self._buscar_resolucion_por_numero(resolucion_primigenia)
-            if not resolucion:
-                advertencias.append(f"No se encontró resolución primigenia: {resolucion_primigenia}")
-            elif resolucion.tipoResolucion != 'PADRE':
-                advertencias.append(f"La resolución {resolucion_primigenia} no es una resolución primigenia (PADRE)")
+            
+            # Validar formato R-1234-2025
+            if not self._validar_formato_resolucion(resolucion_primigenia):
+                errores.append(f"Formato de resolución primigenia inválido: {resolucion_primigenia} (debe ser R-1234-2025)")
+            else:
+                resolucion = self._buscar_resolucion_por_numero(resolucion_primigenia)
+                if not resolucion:
+                    if self.auto_crear_resoluciones:
+                        advertencias.append(f"Resolución primigenia {resolucion_primigenia} será creada automáticamente")
+                    else:
+                        errores.append(f"No se encontró resolución primigenia: {resolucion_primigenia}")
+                elif resolucion.tipoResolucion != 'PADRE':
+                    advertencias.append(f"La resolución {resolucion_primigenia} no es una resolución primigenia (PADRE)")
         
         if pd.notna(row.get('Resolución Hija')):
             resolucion_hija = str(row.get('Resolución Hija')).strip()
-            resolucion = self._buscar_resolucion_por_numero(resolucion_hija)
-            if not resolucion:
-                advertencias.append(f"No se encontró resolución hija: {resolucion_hija}")
-            elif resolucion.tipoResolucion != 'HIJA':
-                advertencias.append(f"La resolución {resolucion_hija} no es una resolución hija")
+            
+            # Validar formato R-1234-2025
+            if not self._validar_formato_resolucion(resolucion_hija):
+                errores.append(f"Formato de resolución hija inválido: {resolucion_hija} (debe ser R-1234-2025)")
+            else:
+                resolucion = self._buscar_resolucion_por_numero(resolucion_hija)
+                if not resolucion:
+                    if self.auto_crear_resoluciones:
+                        advertencias.append(f"Resolución hija {resolucion_hija} será creada automáticamente")
+                    else:
+                        errores.append(f"No se encontró resolución hija: {resolucion_hija}")
+                elif resolucion.tipoResolucion != 'HIJA':
+                    advertencias.append(f"La resolución {resolucion_hija} no es una resolución hija")
             
             # Validar que si hay resolución hija, debe haber primigenia
             if not pd.notna(row.get('Resolución Primigenia')):
@@ -255,9 +312,10 @@ class VehiculoExcelService:
     async def _convertir_fila_a_vehiculo(self, row: pd.Series) -> VehiculoCreate:
         """Convertir fila de Excel a modelo VehiculoCreate"""
         
-        # Buscar empresa por RUC
+        # Obtener o crear empresa por RUC
         empresa_ruc = str(row.get('RUC Empresa')).strip()
-        empresa = self._buscar_empresa_por_ruc(empresa_ruc)
+        nombre_sugerido = f"EMPRESA {str(row.get('Marca', '')).strip()} {str(row.get('Modelo', '')).strip()}".strip()
+        empresa = self._obtener_o_crear_empresa(empresa_ruc, nombre_sugerido)
         
         # Determinar qué resolución usar (priorizar resolución hija si existe)
         resolucion_id = None
@@ -280,38 +338,57 @@ class VehiculoExcelService:
                 if ruta:
                     rutas_asignadas.append(ruta.id)
         
-        # Crear datos técnicos
-        datos_tecnicos = DatosTecnicos(
-            motor=str(row.get('Motor', '')).strip(),
-            chasis=str(row.get('Chasis', '')).strip(),
-            ejes=int(row.get('Ejes')),
-            asientos=int(row.get('Asientos')),
-            pesoNeto=float(row.get('Peso Neto (kg)')),
-            pesoBruto=float(row.get('Peso Bruto (kg)')),
-            medidas={
-                'largo': float(row.get('Largo (m)')),
-                'ancho': float(row.get('Ancho (m)')),
-                'alto': float(row.get('Alto (m)'))
-            },
-            tipoCombustible=TipoCombustible(str(row.get('Tipo Combustible')).strip()),
-            cilindrada=float(row.get('Cilindrada')) if pd.notna(row.get('Cilindrada')) else None,
-            potencia=float(row.get('Potencia (HP)')) if pd.notna(row.get('Potencia (HP)')) else None
-        )
+        # Crear datos técnicos con conversiones seguras
+        try:
+            datos_tecnicos = DatosTecnicos(
+                motor=str(row.get('Motor', '')).strip(),
+                chasis=str(row.get('Chasis', '')).strip(),
+                ejes=int(float(str(row.get('Ejes', 2)))),
+                asientos=int(float(str(row.get('Asientos', 1)))),
+                pesoNeto=float(str(row.get('Peso Neto (kg)', 1000))),
+                pesoBruto=float(str(row.get('Peso Bruto (kg)', 2000))),
+                medidas={
+                    'largo': float(str(row.get('Largo (m)', 5))),
+                    'ancho': float(str(row.get('Ancho (m)', 2))),
+                    'alto': float(str(row.get('Alto (m)', 2)))
+                },
+                tipoCombustible=TipoCombustible(str(row.get('Tipo Combustible')).strip()),
+                cilindrada=float(str(row.get('Cilindrada'))) if pd.notna(row.get('Cilindrada')) and str(row.get('Cilindrada')).strip() else None,
+                potencia=float(str(row.get('Potencia (HP)'))) if pd.notna(row.get('Potencia (HP)')) and str(row.get('Potencia (HP)')).strip() else None
+            )
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Error en datos técnicos: {str(e)}")
         
         # Determinar sede de registro
         sede_registro_str = str(row.get('Sede de Registro', 'PUNO')).strip()
         sede_registro = SedeRegistro(sede_registro_str) if sede_registro_str in [sede.value for sede in SedeRegistro] else SedeRegistro.PUNO
         
+        # Procesar campos de sustitución
+        placa_sustituida = str(row.get('Placa Sustituida', '')).strip() if pd.notna(row.get('Placa Sustituida')) else None
+        motivo_sustitucion = None
+        if pd.notna(row.get('Motivo Sustitución')):
+            motivo_str = str(row.get('Motivo Sustitución')).strip()
+            if motivo_str in [motivo.value for motivo in MotivoSustitucion]:
+                motivo_sustitucion = MotivoSustitucion(motivo_str)
+        
+        resolucion_sustitucion = str(row.get('Resolución Sustitución', '')).strip() if pd.notna(row.get('Resolución Sustitución')) else None
+        fecha_sustitucion = datetime.utcnow() if placa_sustituida else None
+        
         return VehiculoCreate(
             placa=str(row.get('Placa')).strip(),
-            empresaActualId=empresa.id,
+            empresaActualId=str(empresa.id),
             resolucionId=resolucion_id,
             rutasAsignadasIds=rutas_asignadas,
             categoria=CategoriaVehiculo(str(row.get('Categoría')).strip()),
             marca=str(row.get('Marca', '')).strip(),
             modelo=str(row.get('Modelo', '')).strip(),
-            anioFabricacion=int(row.get('Año Fabricación')),
+            anioFabricacion=int(float(str(row.get('Año Fabricación', 2020)))),
             sedeRegistro=sede_registro,
+            # Campos de sustitución
+            placaSustituida=placa_sustituida,
+            fechaSustitucion=fecha_sustitucion,
+            motivoSustitucion=motivo_sustitucion,
+            resolucionSustitucion=resolucion_sustitucion,
             datosTecnicos=datos_tecnicos,
             color=str(row.get('Color', '')).strip() if pd.notna(row.get('Color')) else None,
             numeroSerie=str(row.get('Número Serie', '')).strip() if pd.notna(row.get('Número Serie')) else None,
@@ -345,6 +422,73 @@ class VehiculoExcelService:
                 return ruta
         return None
 
+    def _validar_formato_resolucion(self, numero: str) -> bool:
+        """Validar formato de resolución R-1234-2025"""
+        patron = r'^R-\d{4}-\d{4}$'
+        return bool(re.match(patron, numero.upper()))
+
+    def _crear_empresa_automatica(self, ruc: str, nombre_sugerido: str = None):
+        """Crear empresa automáticamente si no existe"""
+        if not self.auto_crear_empresas:
+            return None
+            
+        # Validar RUC (11 dígitos)
+        if not re.match(r'^\d{11}$', ruc):
+            return None
+            
+        # Generar nuevo ID
+        nuevo_id = str(len(self.empresas) + 1)
+        
+        # Crear empresa básica
+        from app.models.empresa import EmpresaInDB, RazonSocial, RepresentanteLegal, EstadoEmpresa
+        
+        nombre_empresa = nombre_sugerido or f"EMPRESA RUC {ruc}"
+        
+        nueva_empresa = EmpresaInDB(
+            id=nuevo_id,
+            codigoEmpresa=f"{nuevo_id:04d}AUT",  # Código automático
+            ruc=ruc,
+            razonSocial=RazonSocial(
+                principal=nombre_empresa,
+                sunat=nombre_empresa,
+                minimo=nombre_empresa[:20]
+            ),
+            direccionFiscal="DIRECCIÓN POR COMPLETAR",
+            estado=EstadoEmpresa.HABILITADA,
+            representanteLegal=RepresentanteLegal(
+                dni="00000000",
+                nombres="POR",
+                apellidos="COMPLETAR",
+                email="pendiente@empresa.com",
+                telefono="+51 000 000 000",
+                direccion="POR COMPLETAR"
+            ),
+            emailContacto="pendiente@empresa.com",
+            telefonoContacto="+51 000 000 000",
+            sitioWeb="",
+            estaActivo=True,
+            fechaRegistro=datetime.utcnow(),
+            fechaActualizacion=datetime.utcnow()
+        )
+        
+        # Agregar a la colección
+        self.empresas[nuevo_id] = nueva_empresa
+        
+        return nueva_empresa
+
+    def _obtener_o_crear_empresa(self, ruc: str, nombre_sugerido: str = None):
+        """Obtener empresa existente o crear una nueva"""
+        # Buscar empresa existente
+        empresa_existente = self._buscar_empresa_por_ruc(ruc)
+        if empresa_existente:
+            return empresa_existente
+            
+        # Si no existe y está habilitada la auto-creación, crear nueva
+        if self.auto_crear_empresas:
+            return self._crear_empresa_automatica(ruc, nombre_sugerido)
+            
+        return None
+
     async def generar_plantilla_excel(self) -> str:
         """Generar plantilla Excel para carga masiva"""
         # Crear DataFrame con las columnas requeridas
@@ -354,10 +498,14 @@ class VehiculoExcelService:
         datos_ejemplo = {
             'Placa': ['ABC-123', 'XYZ-456'],
             'RUC Empresa': ['20123456789', '20234567890'],
-            'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO'],
+            'Resolución Primigenia': ['R-1001-2024', 'R-1002-2024'],
             'Resolución Hija': ['', ''],  # Opcional
             'Rutas Asignadas': ['01,02', '03'],
             'Sede de Registro': ['PUNO', 'AREQUIPA'],
+            # Campos de sustitución (opcionales)
+            'Placa Sustituida': ['', 'OLD-789'],  # Segundo vehículo sustituye a OLD-789
+            'Motivo Sustitución': ['', 'ANTIGÜEDAD'],
+            'Resolución Sustitución': ['', 'R-1002-2024'],
             'Categoría': ['M3', 'N3'],
             'Marca': ['MERCEDES BENZ', 'VOLVO'],
             'Modelo': ['O500', 'FH16'],

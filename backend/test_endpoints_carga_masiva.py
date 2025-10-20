@@ -84,7 +84,7 @@ def test_carga_masiva():
     
     datos_validos = {
         'Placa': ['TST-100', 'TST-200'],
-        'RUC Empresa': ['20123456789', '20234567890'],
+        'RUC Empresa': ['20123456789', '20999888777'],  # Segundo RUC será auto-creado
         'Resolución Primigenia': ['', ''],
         'Resolución Hija': ['', ''],
         'Rutas Asignadas': ['', ''],
