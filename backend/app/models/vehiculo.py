@@ -27,6 +27,20 @@ class TipoCombustible(str, Enum):
     ELECTRICO = "ELECTRICO"
     HIBRIDO = "HIBRIDO"
 
+class SedeRegistro(str, Enum):
+    LIMA = "LIMA"
+    AREQUIPA = "AREQUIPA"
+    JULIACA = "JULIACA"
+    PUNO = "PUNO"
+    CUSCO = "CUSCO"
+    TACNA = "TACNA"
+    MOQUEGUA = "MOQUEGUA"
+    ICA = "ICA"
+    HUANCAYO = "HUANCAYO"
+    TRUJILLO = "TRUJILLO"
+    CHICLAYO = "CHICLAYO"
+    PIURA = "PIURA"
+
 class DatosTecnicos(BaseModel):
     motor: str
     chasis: str
@@ -50,6 +64,7 @@ class Vehiculo(BaseModel):
     modelo: str
     anioFabricacion: int
     estado: EstadoVehiculo
+    sedeRegistro: SedeRegistro = SedeRegistro.PUNO  # Sede donde se registró el vehículo
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
@@ -68,6 +83,7 @@ class VehiculoCreate(BaseModel):
     marca: str
     modelo: str
     anioFabricacion: int
+    sedeRegistro: SedeRegistro = SedeRegistro.PUNO
     datosTecnicos: DatosTecnicos
     color: Optional[str] = None
     numeroSerie: Optional[str] = None
@@ -83,6 +99,7 @@ class VehiculoUpdate(BaseModel):
     modelo: Optional[str] = None
     anioFabricacion: Optional[int] = None
     estado: Optional[EstadoVehiculo] = None
+    sedeRegistro: Optional[SedeRegistro] = None
     tuc: Optional[dict] = None
     datosTecnicos: Optional[DatosTecnicos] = None
     color: Optional[str] = None
@@ -116,6 +133,7 @@ class VehiculoResponse(BaseModel):
     modelo: str
     anioFabricacion: int
     estado: EstadoVehiculo
+    sedeRegistro: SedeRegistro
     estaActivo: bool
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
@@ -158,6 +176,7 @@ class VehiculoExcel(BaseModel):
     resolucion_primigenia: Optional[str] = None  # Número de resolución primigenia (padre)
     resolucion_hija: Optional[str] = None  # Número de resolución hija (derivada)
     rutas_asignadas: Optional[str] = None  # Códigos de rutas separados por comas
+    sede_registro: str = "PUNO"  # Sede donde se registra el vehículo
     categoria: str
     marca: str
     modelo: str

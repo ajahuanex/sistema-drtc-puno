@@ -135,6 +135,7 @@ GET /api/v1/vehiculos/carga-masiva/estadisticas
 | RUC Empresa | Texto | ✅ | RUC de 11 dígitos |
 | Resolución Primigenia | Texto | ❌ | Número de resolución primigenia (PADRE) |
 | Resolución Hija | Texto | ❌ | Número de resolución hija (derivada) |
+| Sede de Registro | Texto | ❌ | Sede donde se registra el vehículo (PUNO por defecto) |
 | Rutas Asignadas | Texto | ❌ | Códigos separados por comas |
 | Categoría | Texto | ✅ | M1, M2, M3, N1, N2, N3 |
 | Marca | Texto | ✅ | Marca del vehículo |

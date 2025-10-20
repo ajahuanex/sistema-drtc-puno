@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from app.models.vehiculo import (
     VehiculoExcel, VehiculoCargaMasivaResponse, VehiculoValidacionExcel,
-    VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible
+    VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro
 )
 from app.services.mock_vehiculo_service import MockVehiculoService
 from app.services.mock_data import mock_service
@@ -25,6 +25,7 @@ class VehiculoExcelService:
             'resolucion_primigenia': 'Resolución Primigenia',
             'resolucion_hija': 'Resolución Hija',
             'rutas_asignadas': 'Rutas Asignadas',
+            'sede_registro': 'Sede de Registro',
             'categoria': 'Categoría',
             'marca': 'Marca',
             'modelo': 'Modelo',
@@ -185,6 +186,11 @@ class VehiculoExcelService:
         elif tipo_combustible not in [tc.value for tc in TipoCombustible]:
             errores.append(f"Tipo de combustible inválido: {tipo_combustible}")
         
+        # Validar sede de registro
+        sede_registro = str(row.get('Sede de Registro', 'PUNO')).strip()
+        if sede_registro and sede_registro not in [sede.value for sede in SedeRegistro]:
+            errores.append(f"Sede de registro inválida: {sede_registro}")
+        
         # Validar campos numéricos
         campos_numericos = {
             'Año Fabricación': (1900, 2030),
@@ -292,6 +298,10 @@ class VehiculoExcelService:
             potencia=float(row.get('Potencia (HP)')) if pd.notna(row.get('Potencia (HP)')) else None
         )
         
+        # Determinar sede de registro
+        sede_registro_str = str(row.get('Sede de Registro', 'PUNO')).strip()
+        sede_registro = SedeRegistro(sede_registro_str) if sede_registro_str in [sede.value for sede in SedeRegistro] else SedeRegistro.PUNO
+        
         return VehiculoCreate(
             placa=str(row.get('Placa')).strip(),
             empresaActualId=empresa.id,
@@ -301,6 +311,7 @@ class VehiculoExcelService:
             marca=str(row.get('Marca', '')).strip(),
             modelo=str(row.get('Modelo', '')).strip(),
             anioFabricacion=int(row.get('Año Fabricación')),
+            sedeRegistro=sede_registro,
             datosTecnicos=datos_tecnicos,
             color=str(row.get('Color', '')).strip() if pd.notna(row.get('Color')) else None,
             numeroSerie=str(row.get('Número Serie', '')).strip() if pd.notna(row.get('Número Serie')) else None,
@@ -346,6 +357,7 @@ class VehiculoExcelService:
             'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO'],
             'Resolución Hija': ['', ''],  # Opcional
             'Rutas Asignadas': ['01,02', '03'],
+            'Sede de Registro': ['PUNO', 'AREQUIPA'],
             'Categoría': ['M3', 'N3'],
             'Marca': ['MERCEDES BENZ', 'VOLVO'],
             'Modelo': ['O500', 'FH16'],

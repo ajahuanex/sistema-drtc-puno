@@ -88,6 +88,7 @@ def test_carga_masiva():
         'Resolución Primigenia': ['', ''],
         'Resolución Hija': ['', ''],
         'Rutas Asignadas': ['', ''],
+        'Sede de Registro': ['PUNO', 'AREQUIPA'],
         'Categoría': ['M3', 'N3'],
         'Marca': ['MERCEDES BENZ', 'VOLVO'],
         'Modelo': ['O500', 'FH16'],

@@ -6,7 +6,7 @@ from app.models.empresa import (
     EstadoEmpresa, TipoDocumento, DocumentoEmpresa, AuditoriaEmpresa,
     RazonSocial, RepresentanteLegal
 )
-from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible
+from app.models.vehiculo import VehiculoInDB, VehiculoCreate, VehiculoUpdate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro
 from app.models.ruta import RutaInDB, RutaCreate, RutaUpdate, EstadoRuta, TipoRuta, TipoServicio
 from app.models.resolucion import ResolucionInDB, ResolucionCreate, ResolucionUpdate, TipoResolucion, TipoTramite, EstadoResolucion
 from app.models.tuc import TucInDB, TucCreate, TucUpdate, Tuc
@@ -537,6 +537,7 @@ class MockDataService:
             anioFabricacion=2020,
             color="BLANCO",
             estado=EstadoVehiculo.ACTIVO,
+            sedeRegistro=SedeRegistro.PUNO,
             datosTecnicos=DatosTecnicos(
                 motor="OM 457 LA",
                 chasis="WDB9066131L123456",
@@ -565,6 +566,7 @@ class MockDataService:
             anioFabricacion=2019,
             color="AZUL",
             estado=EstadoVehiculo.ACTIVO,
+            sedeRegistro=SedeRegistro.AREQUIPA,
             datosTecnicos=DatosTecnicos(
                 motor="D16G750",
                 chasis="VOLVOH16C123456",
@@ -593,6 +595,7 @@ class MockDataService:
             anioFabricacion=2021,
             color="PLATEADO",
             estado=EstadoVehiculo.ACTIVO,
+            sedeRegistro=SedeRegistro.CUSCO,
             datosTecnicos=DatosTecnicos(
                 motor="2.0L EcoBlue",
                 chasis="WF0EXXGBP1KE12345",
@@ -621,6 +624,7 @@ class MockDataService:
             anioFabricacion=2022,
             color="ROJO",
             estado=EstadoVehiculo.ACTIVO,
+            sedeRegistro=SedeRegistro.JULIACA,
             datosTecnicos=DatosTecnicos(
                 motor="110cc",
                 chasis="MLHJC123456789",

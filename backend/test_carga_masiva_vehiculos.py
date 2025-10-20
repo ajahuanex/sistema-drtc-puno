@@ -34,6 +34,7 @@ async def test_carga_masiva():
         'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO', '', '', ''],
         'Resolución Hija': ['', '', '', '', ''],
         'Rutas Asignadas': ['01,02', '03', '01', '', ''],
+        'Sede de Registro': ['PUNO', 'AREQUIPA', 'CUSCO', 'INVALID_SEDE', 'LIMA'],
         'Categoría': ['M3', 'N3', 'M2', 'INVALID', 'M3'],  # Categoría inválida
         'Marca': ['MERCEDES BENZ', 'VOLVO', 'FORD', 'TOYOTA', 'SCANIA'],
         'Modelo': ['O500', 'FH16', 'TRANSIT', 'HIACE', 'K320'],
