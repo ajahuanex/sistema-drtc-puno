@@ -155,8 +155,8 @@ class VehiculoExcel(BaseModel):
     """Modelo para importación desde Excel"""
     placa: str
     empresa_ruc: str  # RUC de la empresa
-    resolucion_padre: Optional[str] = None  # Número de resolución padre
-    resolucion_primigenia: Optional[str] = None  # Número de resolución primigenia
+    resolucion_primigenia: Optional[str] = None  # Número de resolución primigenia (padre)
+    resolucion_hija: Optional[str] = None  # Número de resolución hija (derivada)
     rutas_asignadas: Optional[str] = None  # Códigos de rutas separados por comas
     categoria: str
     marca: str

@@ -610,9 +610,9 @@ export class VehiculoService {
       console.log('Error descargando plantilla, generando plantilla mock:', error);
       
       // Generar plantilla mock como CSV para desarrollo
-      const csvContent = `Placa,RUC Empresa,Resolución Padre,Resolución Primigenia,Rutas Asignadas,Categoría,Marca,Modelo,Año Fabricación,Color,Número Serie,Motor,Chasis,Ejes,Asientos,Peso Neto (kg),Peso Bruto (kg),Largo (m),Ancho (m),Alto (m),Tipo Combustible,Cilindrada,Potencia (HP),Estado,Observaciones
-ABC-123,20123456789,001-2024-DRTC-PUNO,001-2024-DRTC-PUNO,"01,02",M3,MERCEDES BENZ,O500,2020,BLANCO,MB123456,OM 457 LA,WDB9066131L123456,2,50,8500.0,16000.0,12.0,2.55,3.2,DIESEL,11967.0,354.0,ACTIVO,Vehículo de ejemplo
-XYZ-456,20234567890,002-2024-DRTC-PUNO,002-2024-DRTC-PUNO,03,N3,VOLVO,FH16,2019,AZUL,VL789012,D16G750,VOLVOH16C123456,3,2,12000.0,26000.0,16.0,2.6,3.8,DIESEL,16000.0,750.0,ACTIVO,Camión de carga`;
+      const csvContent = `Placa,RUC Empresa,Resolución Primigenia,Resolución Hija,Rutas Asignadas,Categoría,Marca,Modelo,Año Fabricación,Color,Número Serie,Motor,Chasis,Ejes,Asientos,Peso Neto (kg),Peso Bruto (kg),Largo (m),Ancho (m),Alto (m),Tipo Combustible,Cilindrada,Potencia (HP),Estado,Observaciones
+ABC-123,20123456789,001-2024-DRTC-PUNO,,"01,02",M3,MERCEDES BENZ,O500,2020,BLANCO,MB123456,OM 457 LA,WDB9066131L123456,2,50,8500.0,16000.0,12.0,2.55,3.2,DIESEL,11967.0,354.0,ACTIVO,Vehículo de ejemplo con resolución primigenia
+XYZ-456,20234567890,002-2024-DRTC-PUNO,,03,N3,VOLVO,FH16,2019,AZUL,VL789012,D16G750,VOLVOH16C123456,3,2,12000.0,26000.0,16.0,2.6,3.8,DIESEL,16000.0,750.0,ACTIVO,Camión de carga`;
       
       const blob = new Blob([csvContent], { type: 'text/csv' });
       return blob;

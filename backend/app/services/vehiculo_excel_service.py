@@ -22,8 +22,8 @@ class VehiculoExcelService:
         self.columnas_requeridas = {
             'placa': 'Placa',
             'empresa_ruc': 'RUC Empresa',
-            'resolucion_padre': 'Resolución Padre',
             'resolucion_primigenia': 'Resolución Primigenia',
+            'resolucion_hija': 'Resolución Hija',
             'rutas_asignadas': 'Rutas Asignadas',
             'categoria': 'Categoría',
             'marca': 'Marca',
@@ -210,15 +210,25 @@ class VehiculoExcelService:
                     errores.append(f"{campo} debe ser un número válido")
         
         # Validar resoluciones si se proporcionan
-        if pd.notna(row.get('Resolución Padre')):
-            resolucion_padre = str(row.get('Resolución Padre')).strip()
-            if not self._buscar_resolucion_por_numero(resolucion_padre):
-                advertencias.append(f"No se encontró resolución padre: {resolucion_padre}")
-        
         if pd.notna(row.get('Resolución Primigenia')):
             resolucion_primigenia = str(row.get('Resolución Primigenia')).strip()
-            if not self._buscar_resolucion_por_numero(resolucion_primigenia):
+            resolucion = self._buscar_resolucion_por_numero(resolucion_primigenia)
+            if not resolucion:
                 advertencias.append(f"No se encontró resolución primigenia: {resolucion_primigenia}")
+            elif resolucion.tipoResolucion != 'PADRE':
+                advertencias.append(f"La resolución {resolucion_primigenia} no es una resolución primigenia (PADRE)")
+        
+        if pd.notna(row.get('Resolución Hija')):
+            resolucion_hija = str(row.get('Resolución Hija')).strip()
+            resolucion = self._buscar_resolucion_por_numero(resolucion_hija)
+            if not resolucion:
+                advertencias.append(f"No se encontró resolución hija: {resolucion_hija}")
+            elif resolucion.tipoResolucion != 'HIJA':
+                advertencias.append(f"La resolución {resolucion_hija} no es una resolución hija")
+            
+            # Validar que si hay resolución hija, debe haber primigenia
+            if not pd.notna(row.get('Resolución Primigenia')):
+                errores.append("Si se especifica una resolución hija, debe especificarse también la resolución primigenia")
         
         # Validar rutas si se proporcionan
         if pd.notna(row.get('Rutas Asignadas')):
@@ -243,6 +253,27 @@ class VehiculoExcelService:
         empresa_ruc = str(row.get('RUC Empresa')).strip()
         empresa = self._buscar_empresa_por_ruc(empresa_ruc)
         
+        # Determinar qué resolución usar (priorizar resolución hija si existe)
+        resolucion_id = None
+        if pd.notna(row.get('Resolución Hija')) and str(row.get('Resolución Hija')).strip():
+            resolucion_hija = self._buscar_resolucion_por_numero(str(row.get('Resolución Hija')).strip())
+            if resolucion_hija:
+                resolucion_id = resolucion_hija.id
+        elif pd.notna(row.get('Resolución Primigenia')) and str(row.get('Resolución Primigenia')).strip():
+            resolucion_primigenia = self._buscar_resolucion_por_numero(str(row.get('Resolución Primigenia')).strip())
+            if resolucion_primigenia:
+                resolucion_id = resolucion_primigenia.id
+        
+        # Procesar rutas asignadas
+        rutas_asignadas = []
+        if pd.notna(row.get('Rutas Asignadas')):
+            rutas_str = str(row.get('Rutas Asignadas')).strip()
+            rutas_codigos = [r.strip() for r in rutas_str.split(',') if r.strip()]
+            for codigo_ruta in rutas_codigos:
+                ruta = self._buscar_ruta_por_codigo(codigo_ruta)
+                if ruta:
+                    rutas_asignadas.append(ruta.id)
+        
         # Crear datos técnicos
         datos_tecnicos = DatosTecnicos(
             motor=str(row.get('Motor', '')).strip(),
@@ -264,6 +295,8 @@ class VehiculoExcelService:
         return VehiculoCreate(
             placa=str(row.get('Placa')).strip(),
             empresaActualId=empresa.id,
+            resolucionId=resolucion_id,
+            rutasAsignadasIds=rutas_asignadas,
             categoria=CategoriaVehiculo(str(row.get('Categoría')).strip()),
             marca=str(row.get('Marca', '')).strip(),
             modelo=str(row.get('Modelo', '')).strip(),
@@ -310,8 +343,8 @@ class VehiculoExcelService:
         datos_ejemplo = {
             'Placa': ['ABC-123', 'XYZ-456'],
             'RUC Empresa': ['20123456789', '20234567890'],
-            'Resolución Padre': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO'],
             'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO'],
+            'Resolución Hija': ['', ''],  # Opcional
             'Rutas Asignadas': ['01,02', '03'],
             'Categoría': ['M3', 'N3'],
             'Marca': ['MERCEDES BENZ', 'VOLVO'],

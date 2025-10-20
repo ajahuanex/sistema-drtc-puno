@@ -31,8 +31,8 @@ async def test_carga_masiva():
     datos_prueba = {
         'Placa': ['TEST-001', 'TEST-002', 'ABC-123', 'TEST-003', 'INVALID'],  # ABC-123 ya existe
         'RUC Empresa': ['20123456789', '20234567890', '20123456789', '99999999999', '20123456789'],  # RUC inválido
-        'Resolución Padre': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO', '', '', ''],
         'Resolución Primigenia': ['001-2024-DRTC-PUNO', '002-2024-DRTC-PUNO', '', '', ''],
+        'Resolución Hija': ['', '', '', '', ''],
         'Rutas Asignadas': ['01,02', '03', '01', '', ''],
         'Categoría': ['M3', 'N3', 'M2', 'INVALID', 'M3'],  # Categoría inválida
         'Marca': ['MERCEDES BENZ', 'VOLVO', 'FORD', 'TOYOTA', 'SCANIA'],

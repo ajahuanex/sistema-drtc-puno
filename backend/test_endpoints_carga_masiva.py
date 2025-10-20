@@ -85,8 +85,8 @@ def test_carga_masiva():
     datos_validos = {
         'Placa': ['TST-100', 'TST-200'],
         'RUC Empresa': ['20123456789', '20234567890'],
-        'Resolución Padre': ['', ''],
         'Resolución Primigenia': ['', ''],
+        'Resolución Hija': ['', ''],
         'Rutas Asignadas': ['', ''],
         'Categoría': ['M3', 'N3'],
         'Marca': ['MERCEDES BENZ', 'VOLVO'],

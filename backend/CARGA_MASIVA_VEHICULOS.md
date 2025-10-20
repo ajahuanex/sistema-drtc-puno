@@ -133,8 +133,8 @@ GET /api/v1/vehiculos/carga-masiva/estadisticas
 |---------|------|-----------|-------------|
 | Placa | Texto | ✅ | Formato ABC-123 o AB-1234 |
 | RUC Empresa | Texto | ✅ | RUC de 11 dígitos |
-| Resolución Padre | Texto | ❌ | Número de resolución existente |
-| Resolución Primigenia | Texto | ❌ | Número de resolución existente |
+| Resolución Primigenia | Texto | ❌ | Número de resolución primigenia (PADRE) |
+| Resolución Hija | Texto | ❌ | Número de resolución hija (derivada) |
 | Rutas Asignadas | Texto | ❌ | Códigos separados por comas |
 | Categoría | Texto | ✅ | M1, M2, M3, N1, N2, N3 |
 | Marca | Texto | ✅ | Marca del vehículo |
