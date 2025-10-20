@@ -1,10 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
+import tempfile
+import os
 from app.dependencies.auth import get_current_active_user
 from app.services.mock_vehiculo_service import MockVehiculoService
-from app.models.vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse
+# Importación condicional para evitar errores al iniciar el servidor
+try:
+    from app.services.vehiculo_excel_service import VehiculoExcelService
+    EXCEL_SERVICE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Servicio de Excel no disponible: {e}")
+    VehiculoExcelService = None
+    EXCEL_SERVICE_AVAILABLE = False
+from app.models.vehiculo import (
+    VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse,
+    VehiculoCargaMasivaResponse, VehiculoValidacionExcel
+)
 from app.utils.exceptions import (
     VehiculoNotFoundException, 
     VehiculoAlreadyExistsException,
@@ -176,6 +190,110 @@ async def get_estadisticas_vehiculos():
         "vehiculosInactivos": estadisticas['inactivos'],
         "vehiculosEnMantenimiento": estadisticas['mantenimiento'],
         "porCategoria": estadisticas['por_categoria']
+    }
+
+# Endpoints para carga masiva desde Excel (DEBEN IR ANTES DE LOS ENDPOINTS CON PARÁMETROS)
+@router.get("/plantilla-excel")
+async def descargar_plantilla_excel():
+    """Descargar plantilla Excel para carga masiva de vehículos"""
+    if not EXCEL_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Servicio de Excel no disponible. Instale las dependencias: pip install pandas openpyxl xlrd")
+    
+    excel_service = VehiculoExcelService()
+    
+    try:
+        archivo_plantilla = await excel_service.generar_plantilla_excel()
+        
+        return FileResponse(
+            path=archivo_plantilla,
+            filename="plantilla_vehiculos.xlsx",
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar plantilla: {str(e)}")
+
+@router.post("/validar-excel", response_model=List[VehiculoValidacionExcel])
+async def validar_excel(
+    archivo: UploadFile = File(...)
+):
+    """Validar archivo Excel antes de la carga masiva"""
+    
+    if not EXCEL_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Servicio de Excel no disponible. Instale las dependencias: pip install pandas openpyxl xlrd")
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx o .xls)")
+    
+    excel_service = VehiculoExcelService()
+    
+    # Guardar archivo temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+        content = await archivo.read()
+        temp_file.write(content)
+        temp_file_path = temp_file.name
+    
+    try:
+        # Validar archivo
+        validaciones = await excel_service.validar_excel_preview(temp_file_path)
+        return validaciones
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al validar archivo: {str(e)}")
+    
+    finally:
+        # Limpiar archivo temporal
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+@router.post("/carga-masiva", response_model=VehiculoCargaMasivaResponse)
+async def carga_masiva_vehiculos(
+    archivo: UploadFile = File(...)
+):
+    """Realizar carga masiva de vehículos desde Excel"""
+    
+    if not EXCEL_SERVICE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Servicio de Excel no disponible. Instale las dependencias: pip install pandas openpyxl xlrd")
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx o .xls)")
+    
+    excel_service = VehiculoExcelService()
+    
+    # Guardar archivo temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
+        content = await archivo.read()
+        temp_file.write(content)
+        temp_file_path = temp_file.name
+    
+    try:
+        # Procesar archivo
+        resultado = await excel_service.procesar_excel(temp_file_path)
+        return resultado
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar archivo: {str(e)}")
+    
+    finally:
+        # Limpiar archivo temporal
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+@router.get("/carga-masiva/estadisticas")
+async def estadisticas_carga_masiva():
+    """Obtener estadísticas de cargas masivas realizadas"""
+    # En un sistema real, esto vendría de una base de datos
+    return {
+        "total_cargas": 5,
+        "vehiculos_cargados_total": 150,
+        "ultima_carga": "2024-01-15T10:30:00",
+        "promedio_exitosos": 85.5,
+        "errores_comunes": [
+            {"error": "Placa duplicada", "frecuencia": 15},
+            {"error": "RUC empresa no encontrado", "frecuencia": 8},
+            {"error": "Categoría inválida", "frecuencia": 5}
+        ]
     }
 
 @router.get("/{vehiculo_id}", response_model=VehiculoResponse)
@@ -519,4 +637,6 @@ async def exportar_vehiculos(
     elif formato == 'pdf':
         return {"message": f"Exportando {len(vehiculos)} vehículos a PDF"}
     elif formato == 'csv':
-        return {"message": f"Exportando {len(vehiculos)} vehículos a CSV"} 
+        return {"message": f"Exportando {len(vehiculos)} vehículos a CSV"}
+
+ 

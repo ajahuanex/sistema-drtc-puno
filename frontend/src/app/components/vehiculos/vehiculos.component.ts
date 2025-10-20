@@ -64,6 +64,12 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
         </div>
         <div class="header-actions">
           <button mat-raised-button 
+                  color="accent" 
+                  (click)="cargaMasivaVehiculos()">
+            <mat-icon>upload_file</mat-icon>
+            Carga Masiva Excel
+          </button>
+          <button mat-raised-button 
                   color="primary" 
                   (click)="nuevoVehiculo()">
             <mat-icon>add</mat-icon>
@@ -964,6 +970,10 @@ export class VehiculosComponent implements OnInit {
         this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
       }
     });
+  }
+
+  cargaMasivaVehiculos() {
+    this.router.navigate(['/vehiculos/carga-masiva']);
   }
 
   verDetalle(vehiculo: Vehiculo) {

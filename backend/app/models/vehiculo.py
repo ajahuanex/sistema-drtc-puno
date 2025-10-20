@@ -149,4 +149,48 @@ class VehiculoResumen(BaseModel):
     estado: EstadoVehiculo
     tieneTucVigente: bool
     tieneResolucion: bool
-    ultimaActualizacion: datetime 
+    ultimaActualizacion: datetime
+
+class VehiculoExcel(BaseModel):
+    """Modelo para importación desde Excel"""
+    placa: str
+    empresa_ruc: str  # RUC de la empresa
+    resolucion_padre: Optional[str] = None  # Número de resolución padre
+    resolucion_primigenia: Optional[str] = None  # Número de resolución primigenia
+    rutas_asignadas: Optional[str] = None  # Códigos de rutas separados por comas
+    categoria: str
+    marca: str
+    modelo: str
+    anio_fabricacion: int
+    color: Optional[str] = None
+    numero_serie: Optional[str] = None
+    motor: str
+    chasis: str
+    ejes: int
+    asientos: int
+    peso_neto: float
+    peso_bruto: float
+    largo: float
+    ancho: float
+    alto: float
+    tipo_combustible: str
+    cilindrada: Optional[float] = None
+    potencia: Optional[float] = None
+    estado: str = "ACTIVO"
+    observaciones: Optional[str] = None
+
+class VehiculoCargaMasivaResponse(BaseModel):
+    """Respuesta de la carga masiva"""
+    total_procesados: int
+    exitosos: int
+    errores: int
+    vehiculos_creados: List[str]  # IDs de vehículos creados
+    errores_detalle: List[dict]  # Detalles de errores por fila
+
+class VehiculoValidacionExcel(BaseModel):
+    """Validación de datos de Excel"""
+    fila: int
+    placa: str
+    valido: bool
+    errores: List[str]
+    advertencias: List[str] 

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Carga Masiva de Vehículos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .step h3 {
+            color: #34495e;
+            margin-top: 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .loading {
+            display: none;
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Prueba de Carga Masiva de Vehículos</h1>
+        
+        <!-- Paso 1: Descargar Plantilla -->
+        <div class="step">
+            <h3>1. Descargar Plantilla Excel</h3>
+            <p>Descarga la plantilla con el formato correcto para cargar vehículos.</p>
+            <button onclick="descargarPlantilla()">📥 Descargar Plantilla</button>
+            <div class="loading" id="loading1">Descargando...</div>
+            <div class="result" id="result1"></div>
+        </div>
+
+        <!-- Paso 2: Validar Archivo -->
+        <div class="step">
+            <h3>2. Validar Archivo Excel</h3>
+            <p>Sube tu archivo Excel para validar los datos antes del procesamiento.</p>
+            <input type="file" id="fileValidar" accept=".xlsx,.xls">
+            <button onclick="validarArchivo()">✅ Validar Archivo</button>
+            <div class="loading" id="loading2">Validando...</div>
+            <div class="result" id="result2"></div>
+        </div>
+
+        <!-- Paso 3: Procesar Carga Masiva -->
+        <div class="step">
+            <h3>3. Procesar Carga Masiva</h3>
+            <p>Procesa el archivo Excel y crea los vehículos en el sistema.</p>
+            <input type="file" id="fileProcesar" accept=".xlsx,.xls">
+            <button onclick="procesarCargaMasiva()">🚀 Procesar Carga Masiva</button>
+            <div class="loading" id="loading3">Procesando...</div>
+            <div class="result" id="result3"></div>
+        </div>
+
+        <!-- Paso 4: Ver Estadísticas -->
+        <div class="step">
+            <h3>4. Ver Estadísticas</h3>
+            <p>Consulta las estadísticas de cargas masivas realizadas.</p>
+            <button onclick="verEstadisticas()">📊 Ver Estadísticas</button>
+            <div class="loading" id="loading4">Cargando...</div>
+            <div class="result" id="result4"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1/vehiculos';
+
+        async function descargarPlantilla() {
+            const loading = document.getElementById('loading1');
+            const result = document.getElementById('result1');
+            
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/plantilla-excel`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'plantilla_vehiculos.xlsx';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    result.innerHTML = '<span class="success">✅ Plantilla descargada correctamente</span>';
+                } else {
+                    const error = await response.text();
+                    result.innerHTML = `<span class="error">❌ Error: ${error}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error de conexión: ${error.message}</span>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function validarArchivo() {
+            const fileInput = document.getElementById('fileValidar');
+            const loading = document.getElementById('loading2');
+            const result = document.getElementById('result2');
+            
+            if (!fileInput.files[0]) {
+                result.innerHTML = '<span class="error">❌ Por favor selecciona un archivo</span>';
+                return;
+            }
+
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('archivo', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/validar-excel`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const validaciones = await response.json();
+                    
+                    const validos = validaciones.filter(v => v.valido).length;
+                    const invalidos = validaciones.filter(v => !v.valido).length;
+                    
+                    let html = `<div class="success">📊 Validación completada:</div>`;
+                    html += `<div>✅ Registros válidos: ${validos}</div>`;
+                    html += `<div>❌ Registros con errores: ${invalidos}</div>`;
+                    
+                    if (invalidos > 0) {
+                        html += '<div><strong>Errores encontrados:</strong></div>';
+                        validaciones.filter(v => !v.valido).forEach(v => {
+                            html += `<div>• Fila ${v.fila} - Placa ${v.placa}: ${v.errores.join(', ')}</div>`;
+                        });
+                    }
+                    
+                    result.innerHTML = html;
+                } else {
+                    const error = await response.text();
+                    result.innerHTML = `<span class="error">❌ Error: ${error}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error de conexión: ${error.message}</span>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function procesarCargaMasiva() {
+            const fileInput = document.getElementById('fileProcesar');
+            const loading = document.getElementById('loading3');
+            const result = document.getElementById('result3');
+            
+            if (!fileInput.files[0]) {
+                result.innerHTML = '<span class="error">❌ Por favor selecciona un archivo</span>';
+                return;
+            }
+
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('archivo', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/carga-masiva`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const resultado = await response.json();
+                    
+                    let html = `<div class="success">🚀 Carga masiva completada:</div>`;
+                    html += `<div>📊 Total procesados: ${resultado.total_procesados}</div>`;
+                    html += `<div>✅ Exitosos: ${resultado.exitosos}</div>`;
+                    html += `<div>❌ Errores: ${resultado.errores}</div>`;
+                    html += `<div>🆔 Vehículos creados: ${resultado.vehiculos_creados.join(', ')}</div>`;
+                    
+                    if (resultado.errores_detalle && resultado.errores_detalle.length > 0) {
+                        html += '<div><strong>Errores de procesamiento:</strong></div>';
+                        resultado.errores_detalle.forEach(error => {
+                            html += `<div>• Fila ${error.fila} - Placa ${error.placa}: ${error.errores.join(', ')}</div>`;
+                        });
+                    }
+                    
+                    result.innerHTML = html;
+                } else {
+                    const error = await response.text();
+                    result.innerHTML = `<span class="error">❌ Error: ${error}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error de conexión: ${error.message}</span>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function verEstadisticas() {
+            const loading = document.getElementById('loading4');
+            const result = document.getElementById('result4');
+            
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/carga-masiva/estadisticas`);
+                
+                if (response.ok) {
+                    const stats = await response.json();
+                    
+                    let html = `<div class="success">📊 Estadísticas de Carga Masiva:</div>`;
+                    html += `<div>📈 Total cargas realizadas: ${stats.total_cargas}</div>`;
+                    html += `<div>🚗 Vehículos cargados en total: ${stats.vehiculos_cargados_total}</div>`;
+                    html += `<div>📅 Última carga: ${new Date(stats.ultima_carga).toLocaleString()}</div>`;
+                    html += `<div>📊 Promedio de éxito: ${stats.promedio_exitosos}%</div>`;
+                    
+                    if (stats.errores_comunes && stats.errores_comunes.length > 0) {
+                        html += '<div><strong>Errores más comunes:</strong></div>';
+                        stats.errores_comunes.forEach(error => {
+                            html += `<div>• ${error.error}: ${error.frecuencia} veces</div>`;
+                        });
+                    }
+                    
+                    result.innerHTML = html;
+                } else {
+                    const error = await response.text();
+                    result.innerHTML = `<span class="error">❌ Error: ${error}</span>`;
+                }
+            } catch (error) {
+                result.innerHTML = `<span class="error">❌ Error de conexión: ${error.message}</span>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

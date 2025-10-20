@@ -31,6 +31,19 @@
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+    
+    button {
+      min-width: 160px;
+      
+      &[color="accent"] {
+        background-color: #ff9800;
+        color: white;
+        
+        &:hover {
+          background-color: #f57c00;
+        }
+      }
+    }
   }
 }
 

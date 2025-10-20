@@ -25,6 +25,7 @@ export const routes: Routes = [
       { path: 'empresas/:id/vehiculos/batch', component: EmpresaVehiculosBatchComponent, canActivate: [AuthGuard] },
       { path: 'empresas/dashboard', loadComponent: () => import('./components/empresas/dashboard-empresas.component').then(m => m.DashboardEmpresasComponent) },
       { path: 'vehiculos', component: VehiculosComponent },
+      { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
       { path: 'vehiculos/nuevo', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/:id', loadComponent: () => import('./components/vehiculos/vehiculo-detail.component').then(m => m.VehiculoDetailComponent) },
       { path: 'vehiculos/:id/editar', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
