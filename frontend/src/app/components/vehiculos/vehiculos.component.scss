@@ -306,11 +306,27 @@
   border: 1px solid #bbdefb;
 
   .filter-info {
-    h4 {
-      margin: 0 0 16px 0;
-      color: #1976d2;
-      font-size: 1.1rem;
-      font-weight: 600;
+    .filter-info-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      h4 {
+        margin: 0;
+        color: #1976d2;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .clear-all-btn {
+        border-color: #f44336;
+        color: #f44336;
+        
+        &:hover {
+          background-color: rgba(244, 67, 54, 0.1);
+        }
+      }
     }
 
     .filter-chips {

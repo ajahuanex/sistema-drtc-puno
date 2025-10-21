@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectionStrategy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,6 +20,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl } from '@angular/forms';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
@@ -54,6 +57,9 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
     MatChipsModule,
     MatMenuModule,
     MatDividerModule,
+    SmartIconComponent,
+    EmpresaSelectorComponent,
+    ResolucionSelectorComponent,
   ],
   template: `
     <div class="vehiculos-container">
@@ -66,13 +72,13 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
           <button mat-raised-button 
                   color="accent" 
                   (click)="cargaMasivaVehiculos()">
-            <mat-icon>upload_file</mat-icon>
+            <app-smart-icon [iconName]="'upload_file'" [size]="20"></app-smart-icon>
             Carga Masiva Excel
           </button>
           <button mat-raised-button 
                   color="primary" 
                   (click)="nuevoVehiculo()">
-            <mat-icon>add</mat-icon>
+            <app-smart-icon [iconName]="'add'" [size]="20"></app-smart-icon>
             Nuevo Vehículo
           </button>
         </div>
@@ -83,13 +89,13 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
         <div class="stats-grid">
           <div class="stat-card total">
             <div class="stat-icon">
-              <mat-icon>directions_car</mat-icon>
+              <app-smart-icon [iconName]="'directions_car'" [size]="32"></app-smart-icon>
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ vehiculos().length }}</div>
               <div class="stat-label">TOTAL VEHÍCULOS</div>
               <div class="stat-trend positive">
-                <mat-icon>trending_up</mat-icon>
+                <app-smart-icon [iconName]="'trending_up'" [size]="16"></app-smart-icon>
                 <span>+{{ getVehiculosActivos() }} activos</span>
               </div>
             </div>
@@ -97,7 +103,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
           
           <div class="stat-card activos">
             <div class="stat-icon">
-              <mat-icon>check_circle</mat-icon>
+              <app-smart-icon [iconName]="'check_circle'" [size]="32"></app-smart-icon>
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ getVehiculosActivos() }}</div>
@@ -110,7 +116,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
           
           <div class="stat-card suspendidos">
             <div class="stat-icon">
-              <mat-icon>warning</mat-icon>
+              <app-smart-icon [iconName]="'warning'" [size]="32"></app-smart-icon>
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ getVehiculosPorEstado('SUSPENDIDO') }}</div>
@@ -123,13 +129,13 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
           
           <div class="stat-card empresas">
             <div class="stat-icon">
-              <mat-icon>business</mat-icon>
+              <app-smart-icon [iconName]="'business'" [size]="32"></app-smart-icon>
             </div>
             <div class="stat-content">
               <div class="stat-value">{{ empresas().length }}</div>
               <div class="stat-label">EMPRESAS</div>
               <div class="stat-trend neutral">
-                <mat-icon>business_center</mat-icon>
+                <app-smart-icon [iconName]="'business_center'" [size]="16"></app-smart-icon>
                 <span>Operando en el sistema</span>
               </div>
             </div>
@@ -147,14 +153,14 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                      [formControl]="busquedaRapidaControl"
                      placeholder="Buscar por placa, marca, empresa, resolución..."
                      (keyup)="onBusquedaRapida()">
-              <mat-icon matSuffix>search</mat-icon>
+              <app-smart-icon [iconName]="'search'" [size]="20" matSuffix></app-smart-icon>
               <mat-hint>Presiona Enter para buscar</mat-hint>
             </mat-form-field>
             <button mat-icon-button 
                     color="primary" 
                     (click)="onBusquedaRapida()"
                     matTooltip="Buscar">
-              <mat-icon>search</mat-icon>
+              <app-smart-icon [iconName]="'search'" [size]="24" [clickable]="true"></app-smart-icon>
             </button>
           </div>
         </mat-card-content>
@@ -164,7 +170,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
       <mat-card class="filters-card">
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>filter_list</mat-icon>
+            <app-smart-icon [iconName]="'filter_list'" [size]="24"></app-smart-icon>
             Filtros Avanzados
           </mat-card-title>
           <mat-card-subtitle>Filtra vehículos por criterios específicos</mat-card-subtitle>
@@ -177,60 +183,29 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
               <input matInput 
                      [formControl]="placaControl"
                      placeholder="Buscar por placa">
-              <mat-icon matSuffix>directions_car</mat-icon>
+              <app-smart-icon [iconName]="'directions_car'" [size]="20" matSuffix></app-smart-icon>
             </mat-form-field>
 
             <!-- Filtro por empresa -->
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Empresa</mat-label>
-              <input matInput 
-                     [matAutocomplete]="empresaAuto" 
-                     [formControl]="empresaControl"
-                     placeholder="Buscar empresa">
-              <mat-autocomplete #empresaAuto="matAutocomplete" 
-                               [displayWith]="displayEmpresa"
-                               (optionSelected)="onEmpresaSelected($event)">
-                                 @for (empresa of empresasFiltradas | async; track empresa.id) {
-                   <mat-option [value]="empresa">
-                     {{ empresa.ruc }} - {{ empresa.razonSocial.principal }}
-                   </mat-option>
-                 }
-              </mat-autocomplete>
-              <mat-icon matSuffix>business</mat-icon>
-              <button matSuffix mat-icon-button 
-                      type="button" 
-                      (click)="limpiarEmpresa()"
-                      *ngIf="empresaControl.value"
-                      matTooltip="Limpiar empresa">
-                <mat-icon>clear</mat-icon>
-              </button>
-            </mat-form-field>
+            <app-empresa-selector
+              [label]="'Empresa'"
+              [placeholder]="'Buscar por RUC, razón social o código'"
+              [hint]="'Filtra vehículos por empresa'"
+              [empresaId]="empresaSeleccionada()?.id || ''"
+              (empresaSeleccionada)="onEmpresaFiltroSeleccionada($event)"
+              class="filter-field">
+            </app-empresa-selector>
 
             <!-- Filtro por resolución -->
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Resolución</mat-label>
-              <input matInput 
-                     [matAutocomplete]="resolucionAuto" 
-                     [formControl]="resolucionControl"
-                     placeholder="Buscar resolución">
-              <mat-autocomplete #resolucionAuto="matAutocomplete" 
-                               [displayWith]="displayResolucion"
-                               (optionSelected)="onResolucionSelected($event)">
-                                 @for (resolucion of resolucionesFiltradas | async; track resolucion.id) {
-                   <mat-option [value]="resolucion">
-                     {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }}
-                   </mat-option>
-                 }
-              </mat-autocomplete>
-              <mat-icon matSuffix>description</mat-icon>
-              <button matSuffix mat-icon-button 
-                      type="button" 
-                      (click)="limpiarResolucion()"
-                      *ngIf="resolucionControl.value"
-                      matTooltip="Limpiar resolución">
-                <mat-icon>clear</mat-icon>
-              </button>
-            </mat-form-field>
+            <app-resolucion-selector
+              [label]="'Resolución'"
+              [placeholder]="'Buscar por número o descripción'"
+              [hint]="'Filtra vehículos por resolución'"
+              [empresaId]="empresaSeleccionada()?.id || ''"
+              [resolucionId]="resolucionSeleccionada()?.id || ''"
+              (resolucionSeleccionada)="onResolucionFiltroSeleccionada($event)"
+              class="filter-field">
+            </app-resolucion-selector>
 
             <!-- Filtro por estado -->
             <mat-form-field appearance="outline" class="filter-field">
@@ -242,7 +217,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                 <mat-option value="SUSPENDIDO">Suspendido</mat-option>
                 <mat-option value="EN_REVISION">En Revisión</mat-option>
               </mat-select>
-              <mat-icon matSuffix>info</mat-icon>
+              <app-smart-icon [iconName]="'info'" [size]="20" matSuffix></app-smart-icon>
             </mat-form-field>
 
             <!-- Botones de acción -->
@@ -250,13 +225,13 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
               <button mat-raised-button 
                       color="primary" 
                       (click)="aplicarFiltros()">
-                <mat-icon>search</mat-icon>
+                <app-smart-icon [iconName]="'search'" [size]="20"></app-smart-icon>
                 Filtrar
               </button>
               <button mat-stroked-button 
                       color="warn" 
                       (click)="limpiarFiltros()">
-                <mat-icon>clear</mat-icon>
+                <app-smart-icon [iconName]="'clear'" [size]="20"></app-smart-icon>
                 Limpiar
               </button>
             </div>
@@ -269,36 +244,45 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
         <mat-card class="info-card">
           <mat-card-content>
             <div class="filter-info">
-              <h4>Filtros Activos:</h4>
+              <div class="filter-info-header">
+                <h4>Filtros Activos:</h4>
+                <button mat-stroked-button 
+                        color="warn" 
+                        (click)="limpiarFiltros()"
+                        class="clear-all-btn">
+                  <app-smart-icon [iconName]="'clear_all'" [size]="18"></app-smart-icon>
+                  Limpiar Todo
+                </button>
+              </div>
               <div class="filter-chips">
                 @if (busquedaRapidaControl.value) {
                   <mat-chip color="primary" (removed)="limpiarBusquedaRapida()">
                     Búsqueda: "{{ busquedaRapidaControl.value }}"
-                    <mat-icon matChipRemove>cancel</mat-icon>
+                    <app-smart-icon [iconName]="'cancel'" [size]="18" matChipRemove></app-smart-icon>
                   </mat-chip>
                 }
                 @if (placaControl.value) {
                   <mat-chip color="accent" (removed)="limpiarPlaca()">
                     Placa: {{ placaControl.value }}
-                    <mat-icon matChipRemove>cancel</mat-icon>
+                    <app-smart-icon [iconName]="'cancel'" [size]="18" matChipRemove></app-smart-icon>
                   </mat-chip>
                 }
                 @if (empresaSeleccionada()) {
                   <mat-chip color="warn" (removed)="limpiarEmpresa()">
                     Empresa: {{ empresaSeleccionada()?.razonSocial?.principal }}
-                    <mat-icon matChipRemove>cancel</mat-icon>
+                    <app-smart-icon [iconName]="'cancel'" [size]="18" matChipRemove></app-smart-icon>
                   </mat-chip>
                 }
                 @if (resolucionSeleccionada()) {
                   <mat-chip color="warn" (removed)="limpiarResolucion()">
                     Resolución: {{ resolucionSeleccionada()?.nroResolucion }}
-                    <mat-icon matChipRemove>cancel</mat-icon>
+                    <app-smart-icon [iconName]="'cancel'" [size]="18" matChipRemove></app-smart-icon>
                   </mat-chip>
                 }
                 @if (estadoControl.value) {
                   <mat-chip color="warn" (removed)="limpiarEstado()">
                     Estado: {{ estadoControl.value }}
-                    <mat-icon matChipRemove>cancel</mat-icon>
+                    <app-smart-icon [iconName]="'cancel'" [size]="18" matChipRemove></app-smart-icon>
                   </mat-chip>
                 }
               </div>
@@ -328,14 +312,14 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                   <button mat-icon-button 
                           [matMenuTriggerFor]="columnMenu"
                           matTooltip="Configurar columnas">
-                    <mat-icon>view_column</mat-icon>
+                    <app-smart-icon [iconName]="'view_column'" [size]="24" [clickable]="true"></app-smart-icon>
                   </button>
                   <mat-menu #columnMenu="matMenu">
                     @for (col of allColumns; track col) {
                       <button mat-menu-item 
                               (click)="toggleColumn(col)"
                               [class.selected]="isColumnVisible(col)">
-                        <mat-icon>{{ isColumnVisible(col) ? 'visibility' : 'visibility_off' }}</mat-icon>
+                        <app-smart-icon [iconName]="isColumnVisible(col) ? 'visibility' : 'visibility_off'" [size]="20"></app-smart-icon>
                         {{ getColumnDisplayName(col) }}
                       </button>
                     }
@@ -343,7 +327,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                   <button mat-icon-button 
                           (click)="exportarVehiculos()"
                           matTooltip="Exportar vehículos">
-                    <mat-icon>download</mat-icon>
+                    <app-smart-icon [iconName]="'download'" [size]="24" [clickable]="true"></app-smart-icon>
                   </button>
                 </div>
               </div>
@@ -414,37 +398,37 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                     <button mat-icon-button 
                             [matMenuTriggerFor]="actionMenu"
                             matTooltip="Acciones">
-                      <mat-icon>more_vert</mat-icon>
+                      <app-smart-icon [iconName]="'more_vert'" [size]="24" [clickable]="true"></app-smart-icon>
                     </button>
                     <mat-menu #actionMenu="matMenu">
                       <button mat-menu-item (click)="verDetalle(vehiculo)">
-                        <mat-icon>visibility</mat-icon>
+                        <app-smart-icon [iconName]="'visibility'" [size]="20"></app-smart-icon>
                         <span>Ver detalle</span>
                       </button>
                       <button mat-menu-item (click)="verHistorial(vehiculo)">
-                        <mat-icon>history</mat-icon>
+                        <app-smart-icon [iconName]="'history'" [size]="20"></app-smart-icon>
                         <span>Ver historial</span>
                       </button>
                       <button mat-menu-item (click)="transferirVehiculo(vehiculo)">
-                        <mat-icon>swap_horiz</mat-icon>
+                        <app-smart-icon [iconName]="'swap_horiz'" [size]="20"></app-smart-icon>
                         <span>Transferir empresa</span>
                       </button>
                       <button mat-menu-item (click)="solicitarBajaVehiculo(vehiculo)">
-                        <mat-icon>remove_circle</mat-icon>
+                        <app-smart-icon [iconName]="'remove_circle'" [size]="20"></app-smart-icon>
                         <span>Solicitar baja</span>
                       </button>
                       <button mat-menu-item (click)="editarVehiculo(vehiculo)">
-                        <mat-icon>edit</mat-icon>
+                        <app-smart-icon [iconName]="'edit'" [size]="20"></app-smart-icon>
                         <span>Editar</span>
                       </button>
                       <button mat-menu-item (click)="duplicarVehiculo(vehiculo)">
-                        <mat-icon>content_copy</mat-icon>
+                        <app-smart-icon [iconName]="'content_copy'" [size]="20"></app-smart-icon>
                         <span>Duplicar</span>
                       </button>
                       <mat-divider></mat-divider>
                       <button mat-menu-item (click)="eliminarVehiculo(vehiculo)" 
                               class="danger-action">
-                        <mat-icon>delete</mat-icon>
+                        <app-smart-icon [iconName]="'delete'" [size]="20"></app-smart-icon>
                         <span>Eliminar</span>
                       </button>
                     </mat-menu>
@@ -467,7 +451,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
 
               @if (getPaginatedVehiculos().length === 0) {
                 <div class="no-data">
-                  <mat-icon>directions_car</mat-icon>
+                  <app-smart-icon [iconName]="'directions_car'" [size]="48"></app-smart-icon>
                   <p>No se encontraron vehículos</p>
                   <p class="no-data-hint">Intenta ajustar los filtros o la búsqueda</p>
                 </div>
@@ -489,6 +473,7 @@ export class VehiculosComponent implements OnInit {
   private resolucionService = inject(ResolucionService);
   private vehiculoModalService = inject(VehiculoModalService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
   private fb = inject(FormBuilder);
 
@@ -538,6 +523,7 @@ export class VehiculosComponent implements OnInit {
     this.cargarDatos();
     this.configurarAutocompletado();
     this.configurarBusquedaRapida();
+    this.cargarFiltrosDesdeURL();
   }
 
   private inicializarFormulario() {
@@ -901,6 +887,9 @@ export class VehiculosComponent implements OnInit {
       this.paginator.firstPage();
     }
     
+    // Actualizar URL con filtros actuales
+    this.actualizarURLConFiltros();
+    
     const vehiculosFiltrados = this.vehiculosFiltrados();
     this.snackBar.open(`Se encontraron ${vehiculosFiltrados.length} vehículo(s)`, 'Cerrar', { duration: 2000 });
   }
@@ -913,6 +902,13 @@ export class VehiculosComponent implements OnInit {
     this.resolucionSeleccionada.set(null);
     this.resolucionControl.disable();
     this.currentPage = 0;
+    
+    // Limpiar URL
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {}
+    });
+    
     this.cargarDatos();
   }
 
@@ -1034,5 +1030,121 @@ export class VehiculosComponent implements OnInit {
         }
       });
     }
+  }
+
+  /**
+   * Maneja la selección de empresa en el filtro
+   */
+  onEmpresaFiltroSeleccionada(empresa: Empresa | null): void {
+    this.empresaSeleccionada.set(empresa);
+    this.currentPage = 0;
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
+  }
+
+  /**
+   * Maneja la selección de resolución en el filtro
+   */
+  onResolucionFiltroSeleccionada(resolucion: Resolucion | null): void {
+    this.resolucionSeleccionada.set(resolucion);
+    this.currentPage = 0;
+    if (this.paginator) {
+      this.paginator.firstPage();
+    }
+  }
+
+  /**
+   * Carga los filtros desde los query params de la URL
+   */
+  private cargarFiltrosDesdeURL(): void {
+    this.route.queryParams.subscribe(params => {
+      // Cargar búsqueda rápida
+      if (params['busqueda']) {
+        this.busquedaRapidaControl.setValue(params['busqueda']);
+      }
+
+      // Cargar placa
+      if (params['placa']) {
+        this.placaControl.setValue(params['placa']);
+      }
+
+      // Cargar estado
+      if (params['estado']) {
+        this.estadoControl.setValue(params['estado']);
+      }
+
+      // Cargar empresa (necesita esperar a que se carguen las empresas)
+      if (params['empresaId']) {
+        const empresaId = params['empresaId'];
+        // Esperar a que se carguen las empresas
+        const checkEmpresas = setInterval(() => {
+          if (this.empresas().length > 0) {
+            const empresa = this.empresas().find(e => e.id === empresaId);
+            if (empresa) {
+              this.empresaSeleccionada.set(empresa);
+              this.empresaControl.setValue(empresa);
+              this.resolucionControl.enable();
+            }
+            clearInterval(checkEmpresas);
+          }
+        }, 100);
+      }
+
+      // Cargar resolución (necesita esperar a que se carguen las resoluciones)
+      if (params['resolucionId']) {
+        const resolucionId = params['resolucionId'];
+        // Esperar a que se carguen las resoluciones
+        const checkResoluciones = setInterval(() => {
+          if (this.resoluciones().length > 0) {
+            const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+            if (resolucion) {
+              this.resolucionSeleccionada.set(resolucion);
+              this.resolucionControl.setValue(resolucion);
+            }
+            clearInterval(checkResoluciones);
+          }
+        }, 100);
+      }
+    });
+  }
+
+  /**
+   * Actualiza la URL con los filtros actuales
+   */
+  private actualizarURLConFiltros(): void {
+    const queryParams: any = {};
+
+    // Agregar búsqueda rápida
+    if (this.busquedaRapidaControl.value) {
+      queryParams['busqueda'] = this.busquedaRapidaControl.value;
+    }
+
+    // Agregar placa
+    if (this.placaControl.value) {
+      queryParams['placa'] = this.placaControl.value;
+    }
+
+    // Agregar empresa
+    if (this.empresaSeleccionada()) {
+      queryParams['empresaId'] = this.empresaSeleccionada()!.id;
+    }
+
+    // Agregar resolución
+    if (this.resolucionSeleccionada()) {
+      queryParams['resolucionId'] = this.resolucionSeleccionada()!.id;
+    }
+
+    // Agregar estado
+    if (this.estadoControl.value) {
+      queryParams['estado'] = this.estadoControl.value;
+    }
+
+    // Actualizar URL sin recargar el componente
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: queryParams,
+      queryParamsHandling: 'merge'
+    });
   }
 } 
