@@ -23,6 +23,7 @@ import { EmpresaService } from '../../services/empresa.service';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { ConductorService } from '../../services/conductor.service';
 import { RutaService } from '../../services/ruta.service';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { ResolucionService } from '../../services/resolucion.service';
 import { ExpedienteService } from '../../services/expediente.service';
 import { OficinaService } from '../../services/oficina.service';
@@ -80,7 +81,8 @@ interface ActividadReciente {
     MatExpansionModule,
     MatListModule,
     MatBadgeModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    SmartIconComponent
   ],
   template: `
     <div class="dashboard-container">
@@ -92,11 +94,11 @@ interface ActividadReciente {
         </div>
         <div class="header-actions">
           <button mat-raised-button color="primary" (click)="actualizarDashboard()" [disabled]="actualizando()">
-            <mat-icon>refresh</mat-icon>
+            <app-smart-icon [iconName]="'refresh'" [size]="20"></app-smart-icon>
             {{ actualizando() ? 'Actualizando...' : 'Actualizar' }}
           </button>
           <button mat-raised-button color="accent" (click)="generarReporte()">
-            <mat-icon>assessment</mat-icon>
+            <app-smart-icon [iconName]="'assessment'" [size]="20"></app-smart-icon>
             Generar Reporte
           </button>
         </div>
@@ -109,7 +111,7 @@ interface ActividadReciente {
             <mat-card-content>
               <div class="metrica-header">
                 <div class="metrica-icono" [style.background]="metrica.color">
-                  <mat-icon>{{ metrica.icono }}</mat-icon>
+                  <app-smart-icon [iconName]="metrica.icono" [size]="32"></app-smart-icon>
                 </div>
                 <div class="metrica-info">
                   <h3 class="metrica-titulo">{{ metrica.titulo | uppercase }}</h3>

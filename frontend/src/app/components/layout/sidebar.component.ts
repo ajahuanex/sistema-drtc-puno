@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 
 @Component({
   selector: 'app-sidebar',
@@ -21,7 +22,8 @@ import { MatChipsModule } from '@angular/material/chips';
     MatButtonModule,
     MatDividerModule,
     MatTooltipModule,
-    MatChipsModule
+    MatChipsModule,
+    SmartIconComponent
   ],
   template: `
     <!-- Navegación Principal -->
@@ -42,7 +44,7 @@ import { MatChipsModule } from '@angular/material/chips';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Dashboard' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">dashboard</mat-icon>
+          <app-smart-icon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <ng-container>
               <span matListItemTitle class="nav-text">Dashboard</span>
@@ -58,7 +60,7 @@ import { MatChipsModule } from '@angular/material/chips';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Empresas' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">business</mat-icon>
+          <app-smart-icon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Empresas</span>
           }
@@ -86,7 +88,7 @@ import { MatChipsModule } from '@angular/material/chips';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Vehículos' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">directions_car</mat-icon>
+          <app-smart-icon [iconName]="'directions_car'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Vehículos</span>
           }

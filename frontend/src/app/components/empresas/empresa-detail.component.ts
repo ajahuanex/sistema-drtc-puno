@@ -21,6 +21,7 @@ import { ResolucionService } from '../../services/resolucion.service';
 import { Resolucion } from '../../models/resolucion.model';
 import { CrearResolucionModalComponent } from '../resoluciones/crear-resolucion-modal.component';
 import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
+import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.component';
 
 @Component({
   selector: 'app-empresa-detail',
@@ -38,7 +39,8 @@ import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.compon
     MatExpansionModule,
     MatListModule,
     MatTooltipModule,
-    MatDividerModule
+    MatDividerModule,
+    CodigoEmpresaInfoComponent
   ],
   template: `
     <div class="page-header">
@@ -222,6 +224,11 @@ import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.compon
                       </div>
                     </mat-card-content>
                   </mat-card>
+
+                  <!-- Código de Empresa -->
+                  <app-codigo-empresa-info 
+                    [codigoEmpresa]="empresa.codigoEmpresa || ''">
+                  </app-codigo-empresa-info>
                 </div>
               </div>
             </mat-tab>

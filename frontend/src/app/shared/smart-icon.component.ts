@@ -2,6 +2,38 @@ import { Component, Input, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconService } from '../services/icon.service';
 
+/**
+ * Componente de icono inteligente que usa Material Icons con fallbacks automáticos.
+ * 
+ * Cuando Material Icons no están disponibles, automáticamente usa emojis como fallback.
+ * Incluye funcionalidades adicionales como tooltips, estados clickable/disabled y tamaños predefinidos.
+ * 
+ * @example
+ * ```html
+ * <!-- Uso básico -->
+ * <app-smart-icon [iconName]="'home'" [size]="24"></app-smart-icon>
+ * 
+ * <!-- Con tooltip personalizado -->
+ * <app-smart-icon 
+ *   [iconName]="'business'" 
+ *   [size]="32" 
+ *   [tooltipText]="'Información de empresa'">
+ * </app-smart-icon>
+ * 
+ * <!-- Icono clickeable -->
+ * <app-smart-icon 
+ *   [iconName]="'edit'" 
+ *   [clickable]="true" 
+ *   [size]="20">
+ * </app-smart-icon>
+ * 
+ * <!-- Icono deshabilitado -->
+ * <app-smart-icon 
+ *   [iconName]="'save'" 
+ *   [disabled]="true">
+ * </app-smart-icon>
+ * ```
+ */
 @Component({
   selector: 'app-smart-icon',
   standalone: true,
@@ -66,17 +98,32 @@ import { IconService } from '../services/icon.service';
 export class SmartIconComponent {
   private iconService = inject(IconService);
 
+  /** Nombre del icono de Material Icons (ej: 'home', 'business', 'edit') */
   @Input() iconName: string = '';
+  
+  /** Tamaño del icono en píxeles. Tamaños comunes: 18 (small), 24 (normal), 32 (large), 48 (xl) */
   @Input() size: number = 24;
+  
+  /** Texto del tooltip. Si no se proporciona, usa la descripción automática del IconService */
   @Input() tooltipText: string = '';
+  
+  /** Si true, aplica estilos de cursor pointer y efecto hover */
   @Input() clickable: boolean = false;
+  
+  /** Si true, aplica opacidad reducida y cursor not-allowed */
   @Input() disabled: boolean = false;
 
-  // Computed properties
+  /**
+   * Contenido del icono (Material Icons o emoji fallback)
+   * Se actualiza automáticamente según la disponibilidad de Material Icons
+   */
   readonly iconContent = computed(() => {
     return this.iconService.getIconText(this.iconName);
   });
 
+  /**
+   * Clases CSS aplicadas al icono según su estado y tamaño
+   */
   readonly iconClass = computed(() => {
     const classes = ['smart-icon'];
     
@@ -89,6 +136,9 @@ export class SmartIconComponent {
     return classes.join(' ');
   });
 
+  /**
+   * Texto del tooltip (personalizado o automático)
+   */
   readonly tooltip = computed(() => {
     if (this.tooltipText) return this.tooltipText;
     
@@ -96,12 +146,18 @@ export class SmartIconComponent {
     return iconInfo ? iconInfo.description : this.iconName;
   });
 
-  // Método para obtener el estado del servicio de iconos
+  /**
+   * Obtiene el estado actual del servicio de iconos
+   * @returns Objeto con información sobre la carga de Material Icons y fallbacks disponibles
+   */
   getIconStatus() {
     return this.iconService.getIconStatus();
   }
 
-  // Método para forzar recarga de iconos
+  /**
+   * Fuerza la recarga del sistema de iconos
+   * Útil para debugging o cuando se detectan problemas de carga
+   */
   forceReload() {
     this.iconService.forceReload();
   }

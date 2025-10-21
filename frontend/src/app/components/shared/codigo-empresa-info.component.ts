@@ -6,6 +6,27 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TipoEmpresa } from '../../models/empresa.model';
 
+/**
+ * Componente para mostrar información visual y detallada del código de empresa.
+ * 
+ * El código de empresa tiene el formato XXXXYYY donde:
+ * - XXXX: Número secuencial de 4 dígitos (0001-9999)
+ * - YYY: Letras que representan tipos de empresa (P=Personas, R=Regional, T=Turismo)
+ * 
+ * @example
+ * ```html
+ * <app-codigo-empresa-info [codigoEmpresa]="'0123PRT'"></app-codigo-empresa-info>
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // En el componente padre
+ * empresa = { codigoEmpresa: '0123PRT' };
+ * 
+ * // En el template
+ * <app-codigo-empresa-info [codigoEmpresa]="empresa.codigoEmpresa || ''"></app-codigo-empresa-info>
+ * ```
+ */
 @Component({
   selector: 'app-codigo-empresa-info',
   standalone: true,
@@ -29,7 +50,7 @@ import { TipoEmpresa } from '../../models/empresa.model';
       </mat-card-header>
       
       <mat-card-content>
-        @if (codigoEmpresa()) {
+        @if (codigoEmpresa) {
           <div class="codigo-display">
             <div class="codigo-numero">{{ obtenerNumero() }}</div>
             <div class="codigo-letras">{{ obtenerLetras() }}</div>
@@ -52,7 +73,7 @@ import { TipoEmpresa } from '../../models/empresa.model';
           
           <div class="codigo-details">
             <p><strong>Número Secuencial:</strong> {{ obtenerNumero() }}</p>
-            <p><strong>Código Completo:</strong> {{ codigoEmpresa() }}</p>
+            <p><strong>Código Completo:</strong> {{ codigoEmpresa }}</p>
           </div>
         } @else {
           <div class="no-codigo">
@@ -191,20 +212,36 @@ import { TipoEmpresa } from '../../models/empresa.model';
   `]
 })
 export class CodigoEmpresaInfoComponent {
-  @Input() codigoEmpresa = signal<string>('');
+  /**
+   * Código de empresa en formato XXXXYYY (4 dígitos + 3 letras)
+   * @example "0123PRT"
+   */
+  @Input() codigoEmpresa: string = '';
   
+  /**
+   * Extrae los primeros 4 dígitos del código de empresa (número secuencial)
+   * @returns Número secuencial como string (ej: "0123")
+   */
   obtenerNumero(): string {
-    if (!this.codigoEmpresa()) return '';
-    return this.codigoEmpresa().substring(0, 4);
+    if (!this.codigoEmpresa) return '';
+    return this.codigoEmpresa.substring(0, 4);
   }
   
+  /**
+   * Extrae las últimas 3 letras del código de empresa (tipos de empresa)
+   * @returns Letras de tipos como string (ej: "PRT")
+   */
   obtenerLetras(): string {
-    if (!this.codigoEmpresa()) return '';
-    return this.codigoEmpresa().substring(4, 7);
+    if (!this.codigoEmpresa) return '';
+    return this.codigoEmpresa.substring(4, 7);
   }
   
+  /**
+   * Convierte las letras del código en información detallada de tipos de empresa
+   * @returns Array de objetos con información de cada tipo de empresa
+   */
   obtenerTiposEmpresa(): Array<{letra: string, descripcion: string, color: string, icono: string}> {
-    if (!this.codigoEmpresa()) return [];
+    if (!this.codigoEmpresa) return [];
     
     const letras = this.obtenerLetras();
     const tipos = [];

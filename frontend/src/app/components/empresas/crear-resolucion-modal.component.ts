@@ -16,6 +16,7 @@ import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 import { ResolucionService } from '../../services/resolucion.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ExpedienteService } from '../../services/expediente.service';
@@ -41,7 +42,8 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatDividerModule
+    MatDividerModule,
+    EmpresaSelectorComponent
   ],
   template: `
     <div class="modal-header">
@@ -92,17 +94,15 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
               </div>
             } @else {
               <!-- Campo de selección de empresa (cuando se abre desde otra vista) -->
-              <mat-form-field appearance="outline" class="form-field full-width">
-                <mat-label>EMPRESA</mat-label>
-                <mat-select formControlName="empresaId" required>
-                  @for (empresa of empresas(); track empresa.id) {
-                    <mat-option [value]="empresa.id">{{ empresa.razonSocial.principal | uppercase }}</mat-option>
-                  }
-                </mat-select>
-                @if (resolucionForm.get('empresaId')?.hasError('required') && resolucionForm.get('empresaId')?.touched) {
-                  <mat-error>LA EMPRESA ES REQUERIDA</mat-error>
-                }
-              </mat-form-field>
+              <app-empresa-selector
+                [label]="'EMPRESA'"
+                [placeholder]="'Buscar por RUC, razón social o código'"
+                [hint]="'Seleccione la empresa para la cual se creará la resolución'"
+                [required]="true"
+                [empresaId]="resolucionForm.get('empresaId')?.value"
+                (empresaSeleccionada)="onEmpresaSeleccionadaModal($event)"
+                (empresaIdChange)="resolucionForm.patchValue({ empresaId: $event })">
+              </app-empresa-selector>
             }
 
             <!-- Indicador de Tipo de Resolución -->
@@ -1277,6 +1277,29 @@ export class CrearResolucionModalComponent implements OnDestroy {
       this.resolucionForm.get('aniosVigencia')?.disable();
       this.resolucionForm.get('aniosVigencia')?.setValue(null);
       this.aniosVigenciaSignal.set(0);
+    }
+  }
+
+  onEmpresaSeleccionadaModal(empresa: Empresa | null): void {
+    if (empresa) {
+      console.log('🏢 Empresa seleccionada en modal:', empresa);
+      
+      // Actualizar el formulario
+      this.resolucionForm.patchValue({ empresaId: empresa.id });
+      
+      // Limpiar expediente seleccionado ya que cambió la empresa
+      this.expedienteSeleccionado.set(null);
+      this.resolucionForm.patchValue({ expedienteId: '' });
+      
+      // Cargar expedientes para la nueva empresa
+      this.cargarExpedientesEmpresa(empresa.id);
+    } else {
+      console.log('🏢 Empresa deseleccionada en modal');
+      this.expedienteSeleccionado.set(null);
+      this.resolucionForm.patchValue({ 
+        empresaId: '',
+        expedienteId: ''
+      });
     }
   }
 

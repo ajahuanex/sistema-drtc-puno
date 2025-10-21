@@ -460,8 +460,21 @@ export class VehiculoService {
     );
   }
 
-  getVehiculoByPlaca(placa: string): Observable<Vehiculo> {
-    return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/placa/${placa}`, { headers: this.getHeaders() });
+  getVehiculoByPlaca(placa: string): Observable<Vehiculo | null> {
+    // Buscar en datos mock primero
+    const vehiculoMock = this.mockVehiculos.find(v => v.placa.toUpperCase() === placa.toUpperCase());
+    if (vehiculoMock) {
+      console.log('✅ Vehículo encontrado en mock:', vehiculoMock);
+      return of(vehiculoMock);
+    }
+    
+    // Si no está en mock, intentar con el backend
+    return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/placa/${placa}`, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.log('Vehículo no encontrado:', error);
+        return of(null);
+      })
+    );
   }
 
   createVehiculo(vehiculo: VehiculoCreate): Observable<Vehiculo> {

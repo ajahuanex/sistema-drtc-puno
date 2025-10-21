@@ -22,6 +22,7 @@ export interface Tuc {
 export interface Vehiculo {
   id: string;
   placa: string;
+  sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad con datos existentes)
   empresaActualId: string;
   resolucionId: string;
   rutasAsignadasIds: string[];
@@ -37,6 +38,7 @@ export interface Vehiculo {
 
 export interface VehiculoCreate {
   placa: string;
+  sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad)
   empresaActualId: string;
   resolucionId: string;
   rutasAsignadasIds: string[];
@@ -50,6 +52,7 @@ export interface VehiculoCreate {
 
 export interface VehiculoUpdate {
   placa?: string;
+  sedeRegistro?: string;
   empresaActualId?: string;
   resolucionId?: string;
   rutasAsignadasIds?: string[];

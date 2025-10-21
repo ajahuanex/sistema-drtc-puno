@@ -24,6 +24,7 @@ import { ConfiguracionService } from '../../services/configuracion.service';
 import { Resolucion, ResolucionCreate } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
 import { Expediente } from '../../models/expediente.model';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 
 @Component({
   selector: 'app-crear-resolucion',
@@ -42,7 +43,8 @@ import { Expediente } from '../../models/expediente.model';
     MatDividerModule,
     MatChipsModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    EmpresaSelectorComponent
   ],
   template: `
     <div class="crear-resolucion-container">
@@ -97,25 +99,15 @@ import { Expediente } from '../../models/expediente.model';
                       </div>
                     </div>
                   } @else {
-                    <mat-form-field 
-                      appearance="outline" 
-                      class="form-field full-width required-field"
-                      [class.field-error]="resolucionForm.get('empresaId')?.hasError('required') && resolucionForm.get('empresaId')?.touched"
-                    >
-                      <mat-label>
-                        <span class="required-indicator">*</span>
-                        EMPRESA
-                      </mat-label>
-                      <mat-select formControlName="empresaId" required>
-                        @for (empresa of empresas(); track empresa.id) {
-                          <mat-option [value]="empresa.id">{{ empresa.razonSocial.principal | uppercase }}</mat-option>
-                        }
-                      </mat-select>
-                      <mat-hint>Seleccione la empresa para la cual se creará la resolución</mat-hint>
-                      @if (resolucionForm.get('empresaId')?.hasError('required') && resolucionForm.get('empresaId')?.touched) {
-                        <mat-error>LA EMPRESA ES REQUERIDA</mat-error>
-                      }
-                    </mat-form-field>
+                    <app-empresa-selector
+                      [label]="'EMPRESA'"
+                      [placeholder]="'Buscar por RUC, razón social o código'"
+                      [hint]="'Seleccione la empresa para la cual se creará la resolución'"
+                      [required]="true"
+                      [empresaId]="resolucionForm.get('empresaId')?.value"
+                      (empresaSeleccionada)="onEmpresaSeleccionadaBuscador($event)"
+                      (empresaIdChange)="resolucionForm.patchValue({ empresaId: $event })">
+                    </app-empresa-selector>
                   }
                 </mat-card-content>
               </mat-card>
@@ -1291,6 +1283,35 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.snackBar.open('Error al cargar la resolución para edición', 'Cerrar', { duration: 3000 });
       }
     });
+  }
+
+  onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
+    if (empresa) {
+      console.log('🏢 Empresa seleccionada desde buscador:', empresa);
+      
+      // Actualizar el formulario (esto hará que empresaSeleccionada computed se actualice)
+      this.resolucionForm.patchValue({ empresaId: empresa.id });
+      
+      // Limpiar expediente seleccionado ya que cambió la empresa
+      this.expedienteSeleccionado.set(null);
+      this.resolucionForm.patchValue({ expedienteId: '' });
+      
+      // Filtrar expedientes por la nueva empresa
+      this.filtrarExpedientesPorEmpresa(empresa.id);
+    } else {
+      console.log('🏢 Empresa deseleccionada');
+      this.expedienteSeleccionado.set(null);
+      this.resolucionForm.patchValue({ 
+        empresaId: '',
+        expedienteId: ''
+      });
+    }
+  }
+
+  private filtrarExpedientesPorEmpresa(empresaId: string): void {
+    // Esta lógica ya existe en el computed expedientesFiltrados
+    // Solo necesitamos asegurar que se actualice
+    console.log('🔍 Filtrando expedientes para empresa:', empresaId);
   }
 
   onExpedienteChange(event: any): void {

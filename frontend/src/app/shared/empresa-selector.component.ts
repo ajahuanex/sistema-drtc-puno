@@ -86,7 +86,7 @@ import { Empresa } from '../models/empresa.model';
 })
 export class EmpresaSelectorComponent implements OnInit {
   @Input() label: string = 'Empresa';
-  @Input() placeholder: string = 'Buscar empresa por RUC o razón social';
+  @Input() placeholder: string = 'Buscar por RUC, razón social o código';
   @Input() hint: string = 'Selecciona una empresa';
   @Input() required: boolean = false;
   @Input() empresaId: string = '';
@@ -143,7 +143,8 @@ export class EmpresaSelectorComponent implements OnInit {
     return this.empresas().filter(empresa => 
       empresa.ruc.toLowerCase().includes(filterValue) ||
       empresa.razonSocial.principal.toLowerCase().includes(filterValue) ||
-      (empresa.razonSocial.minimo && empresa.razonSocial.minimo.toLowerCase().includes(filterValue))
+      (empresa.razonSocial.minimo && empresa.razonSocial.minimo.toLowerCase().includes(filterValue)) ||
+      (empresa.codigoEmpresa && empresa.codigoEmpresa.toLowerCase().includes(filterValue))
     );
   }
 
