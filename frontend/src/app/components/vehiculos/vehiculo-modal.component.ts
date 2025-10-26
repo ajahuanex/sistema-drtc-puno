@@ -253,10 +253,11 @@ export interface VehiculoModalData {
                     <mat-label>Sede de Registro *</mat-label>
                     <input matInput 
                            formControlName="sedeRegistro"
-                           placeholder="Buscar sede..."
+                           placeholder="Buscar o seleccionar sede..."
                            [matAutocomplete]="sedeAuto"
+                           (focus)="onSedeInputFocus()"
                            required>
-                    <mat-autocomplete #sedeAuto="matAutocomplete">
+                    <mat-autocomplete #sedeAuto="matAutocomplete" [autoActiveFirstOption]="true">
                       @for (sede of sedesFiltradas | async; track sede) {
                         <mat-option [value]="sede">
                           <div class="sede-option">
@@ -275,6 +276,13 @@ export interface VehiculoModalData {
                       }
                     </mat-autocomplete>
                     <app-smart-icon [iconName]="'location_city'" [size]="20" matSuffix></app-smart-icon>
+                    <button matSuffix mat-icon-button 
+                            type="button" 
+                            (click)="limpiarSede()"
+                            *ngIf="vehiculoForm.get('sedeRegistro')?.value"
+                            matTooltip="Limpiar sede">
+                      <app-smart-icon [iconName]="'clear'" [size]="18"></app-smart-icon>
+                    </button>
                     <mat-hint>Sede donde se registra el vehículo</mat-hint>
                     <mat-error *ngIf="vehiculoForm.get('sedeRegistro')?.hasError('required')">
                       La sede de registro es obligatoria
@@ -1189,10 +1197,39 @@ export class VehiculoModalComponent {
    * Filtra las sedes según el término de búsqueda
    */
   private _filterSedes(value: string): string[] {
-    const filterValue = value.toLowerCase();
+    // Si el valor es null o undefined, mostrar todas las sedes
+    if (!value) {
+      return this.sedesDisponibles();
+    }
+    
+    const filterValue = value.toLowerCase().trim();
+    
+    // Si el valor está vacío después de trim, mostrar todas
+    if (filterValue === '') {
+      return this.sedesDisponibles();
+    }
+    
     return this.sedesDisponibles().filter(sede => 
       sede.toLowerCase().includes(filterValue)
     );
+  }
+
+  /**
+   * Maneja el evento focus del input de sede para mostrar todas las opciones
+   */
+  onSedeInputFocus(): void {
+    const sedeControl = this.vehiculoForm.get('sedeRegistro');
+    if (sedeControl) {
+      // Forzar actualización del observable para mostrar todas las sedes
+      sedeControl.setValue(sedeControl.value || '');
+    }
+  }
+
+  /**
+   * Limpia el campo de sede
+   */
+  limpiarSede(): void {
+    this.vehiculoForm.patchValue({ sedeRegistro: '' });
   }
 
   private initializeModalData(): void {
