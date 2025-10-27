@@ -36,7 +36,7 @@ import { ExpedienteValidationService, ValidacionExpediente, ResultadoValidacionE
         <mat-icon matSuffix [class.valid]="isValid()" [class.invalid]="!isValid() && numeroControl.value">
           {{ getValidationIcon() }}
         </mat-icon>
-        <mat-hint>{{ hint }}</mat-hint>
+        <mat-hint>{{ hintDinamico() || hint }}</mat-hint>
         <mat-error *ngIf="numeroControl.hasError('required') && required">
           El número de expediente es obligatorio
         </mat-error>
@@ -45,34 +45,11 @@ import { ExpedienteValidationService, ValidacionExpediente, ResultadoValidacionE
         </mat-error>
       </mat-form-field>
 
-      <!-- Información de validación -->
-      <div class="validation-info" *ngIf="numeroControl.value && !isLoading()">
-        <div class="validation-status" [class.valid]="isValid()" [class.invalid]="!isValid()">
+      <!-- Información de validación - Solo mostrar errores -->
+      <div class="validation-info" *ngIf="numeroControl.value && !isLoading() && !isValid()">
+        <div class="validation-status invalid">
           <mat-icon>{{ getStatusIcon() }}</mat-icon>
           <span>{{ getStatusMessage() }}</span>
-        </div>
-        
-        <!-- Sugerencias -->
-        <div class="sugerencias" *ngIf="sugerencias().length > 0">
-          <span class="sugerencias-label">Números disponibles:</span>
-          <div class="sugerencias-chips">
-            <mat-chip 
-              *ngFor="let sugerencia of sugerencias()" 
-              (click)="seleccionarSugerencia(sugerencia)"
-              class="sugerencia-chip">
-              {{ sugerencia }}
-            </mat-chip>
-          </div>
-        </div>
-
-        <!-- Conflictos -->
-        <div class="conflictos" *ngIf="resultadoValidacion()?.conflictos?.length">
-          <span class="conflictos-label">Conflictos detectados:</span>
-          <ul class="conflictos-list">
-            <li *ngFor="let conflicto of resultadoValidacion()?.conflictos">
-              {{ conflicto }}
-            </li>
-          </ul>
         </div>
       </div>
 
@@ -213,6 +190,9 @@ export class ExpedienteNumberValidatorComponent implements OnInit, OnDestroy {
   @Input() expedienteIdExcluir: string = '';
   @Input() disabled: boolean = false;
   
+  // Signal para el hint dinámico
+  hintDinamico = signal<string>('');
+  
   @Output() numeroValido = new EventEmitter<{ numero: string; año: number; nroCompleto: string }>();
   @Output() numeroInvalido = new EventEmitter<string>();
   @Output() validacionCompleta = new EventEmitter<ResultadoValidacionExpediente>();
@@ -284,6 +264,10 @@ export class ExpedienteNumberValidatorComponent implements OnInit, OnDestroy {
       if (resultado.valido) {
         this.isValid.set(true);
         const nroCompleto = this.validationService.generarNumeroExpediente(numero, año);
+        
+        // Actualizar hint dinámico con el número completo
+        this.hintDinamico.set(`El sistema generará ${nroCompleto}`);
+        
         this.numeroValido.emit({ numero, año, nroCompleto });
         this.validacionCompleta.emit(resultado);
         
@@ -291,6 +275,10 @@ export class ExpedienteNumberValidatorComponent implements OnInit, OnDestroy {
         this.obtenerSugerencias(año);
       } else {
         this.isValid.set(false);
+        
+        // Limpiar hint dinámico cuando es inválido
+        this.hintDinamico.set('');
+        
         this.numeroInvalido.emit(resultado.mensaje);
         this.validacionCompleta.emit(resultado);
         
@@ -323,6 +311,7 @@ export class ExpedienteNumberValidatorComponent implements OnInit, OnDestroy {
     this.isValid.set(false);
     this.resultadoValidacion.set(null);
     this.sugerencias.set([]);
+    this.hintDinamico.set('');
   }
 
   /**

@@ -75,6 +75,9 @@ export class ExpedienteValidationService {
       };
     }
 
+    // Formatear el número de entrada con padding
+    const numeroFormateado = numero.padStart(4, '0');
+    
     // Buscar expedientes existentes con el mismo número en el mismo año
     const expedientesConflictivos = expedientes.filter(expediente => {
       // Excluir el expediente actual si estamos editando
@@ -89,8 +92,8 @@ export class ExpedienteValidationService {
       const numeroExistente = match[1];
       const añoExistente = parseInt(match[2]);
 
-      // Verificar si hay conflicto
-      return numeroExistente === numero && añoExistente === año;
+      // Verificar si hay conflicto (comparar con formato)
+      return numeroExistente === numeroFormateado && añoExistente === año;
     });
 
     if (expedientesConflictivos.length > 0) {

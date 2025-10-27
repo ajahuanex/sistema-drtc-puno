@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal, effect } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, effect, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -172,7 +172,7 @@ import { map, startWith } from 'rxjs/operators';
     }
   `]
 })
-export class ResolucionSelectorComponent {
+export class ResolucionSelectorComponent implements OnChanges {
   private resolucionService = inject(ResolucionService);
 
   /** Etiqueta del campo */
@@ -195,6 +195,9 @@ export class ResolucionSelectorComponent {
   
   /** ID de la resolución seleccionada (para binding bidireccional) */
   @Input() resolucionId: string = '';
+  
+  /** Filtro por tipo de trámite específico */
+  @Input() filtroTipoTramite: string = '';
   
   /** Evento emitido cuando se selecciona una resolución */
   @Output() resolucionSeleccionada = new EventEmitter<Resolucion | null>();
@@ -221,13 +224,21 @@ export class ResolucionSelectorComponent {
       startWith(''),
       map(value => this._filter(value))
     );
+  }
 
-    // Efecto para recargar cuando cambia la empresa
-    effect(() => {
-      if (this.empresaId) {
-        this.cargarResoluciones();
-      }
-    });
+  /**
+   * Detecta cambios en los inputs y recarga resoluciones si es necesario
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    // Si cambió empresaId o filtroTipoTramite, recargar resoluciones
+    if (changes['empresaId'] || changes['filtroTipoTramite']) {
+      console.log('🔄 Cambio detectado en ResolucionSelector:', {
+        empresaId: this.empresaId,
+        filtroTipoTramite: this.filtroTipoTramite,
+        changes: changes
+      });
+      this.cargarResoluciones();
+    }
   }
 
   /**
@@ -236,17 +247,28 @@ export class ResolucionSelectorComponent {
   private cargarResoluciones(): void {
     this.cargando.set(true);
     
+    console.log('📋 Cargando resoluciones con filtros:', {
+      empresaId: this.empresaId,
+      filtroTipoTramite: this.filtroTipoTramite,
+      usarFiltroEmpresa: !!this.empresaId
+    });
+    
     const observable = this.empresaId 
       ? this.resolucionService.getResolucionesPorEmpresa(this.empresaId)
       : this.resolucionService.getResoluciones();
     
     observable.subscribe({
       next: (resoluciones) => {
+        console.log('✅ Resoluciones cargadas:', {
+          total: resoluciones.length,
+          empresaId: this.empresaId,
+          resoluciones: resoluciones.map(r => ({ id: r.id, numero: r.nroResolucion, tipo: r.tipoTramite }))
+        });
         this.resoluciones.set(resoluciones);
         this.cargando.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar resoluciones:', error);
+        console.error('❌ Error al cargar resoluciones:', error);
         this.resoluciones.set([]);
         this.cargando.set(false);
       }
@@ -257,15 +279,24 @@ export class ResolucionSelectorComponent {
    * Filtra las resoluciones según el término de búsqueda
    */
   private _filter(value: string | Resolucion | null): Resolucion[] {
+    let resoluciones = this.resoluciones();
+    
+    // Aplicar filtro por tipo de trámite si está especificado
+    if (this.filtroTipoTramite) {
+      resoluciones = resoluciones.filter(resolucion => 
+        resolucion.tipoTramite === this.filtroTipoTramite
+      );
+    }
+    
     if (!value) {
-      return this.resoluciones();
+      return resoluciones;
     }
 
     const filterValue = typeof value === 'string' 
       ? value.toLowerCase() 
       : value.nroResolucion.toLowerCase();
     
-    return this.resoluciones().filter(resolucion => 
+    return resoluciones.filter(resolucion => 
       resolucion.nroResolucion.toLowerCase().includes(filterValue) ||
       (resolucion.descripcion && resolucion.descripcion.toLowerCase().includes(filterValue)) ||
       resolucion.tipoTramite.toLowerCase().includes(filterValue)

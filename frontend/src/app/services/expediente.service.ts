@@ -237,7 +237,7 @@ export class ExpedienteService {
     if (expedienteExistente) {
       const respuesta: RespuestaValidacion = {
         valido: false,
-        mensaje: `Ya existe un expediente con el número ${numeroCompleto} en el año ${validacion.fechaEmision.getFullYear()}`,
+        mensaje: `Número ${numeroCompleto} ya existe`,
         expedienteExistente: {
           id: expedienteExistente.id,
           nroExpediente: expedienteExistente.nroExpediente,
@@ -245,14 +245,14 @@ export class ExpedienteService {
           empresaId: expedienteExistente.empresaId,
           estado: expedienteExistente.estado
         },
-        conflictos: [`Número de expediente duplicado en el año ${validacion.fechaEmision.getFullYear()}`]
+        conflictos: [`Duplicado`]
       };
       return of(respuesta);
     }
 
     return of({
       valido: true,
-      mensaje: `Expediente válido - Número ${numeroCompleto} disponible para el año ${validacion.fechaEmision.getFullYear()}`
+      mensaje: `Número válido`
     });
   }
 

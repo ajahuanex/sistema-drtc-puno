@@ -26,6 +26,7 @@ async def lifespan_startup():
 async def lifespan_shutdown():
     """Cerrar sistema"""
     logger.info("🔌 Cerrando sistema")
+    yield
 
 @asynccontextmanager
 async def lifespan(app):

@@ -80,9 +80,9 @@ import { Resolucion } from '../../models/resolucion.model';
                   <mat-error>Debe ser un número de 4 dígitos</mat-error>
                 }
                 @if (expedienteForm.get('numero')?.hasError('numeroDuplicado')) {
-                  <mat-error>Ya existe un expediente con este número en el año {{ fechaEmision().getFullYear() }}</mat-error>
+                  <mat-error>Número duplicado en {{ fechaEmision().getFullYear() }}</mat-error>
                 }
-                <mat-hint>Formato: {{ numeroCompleto() }} - El número es único por año</mat-hint>
+                <mat-hint>Formato: {{ numeroCompleto() }} - Único por año</mat-hint>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="form-field">
@@ -641,18 +641,30 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarResolucionesPadre(empresaId: string): void {
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe({
       next: (resoluciones) => {
-        // Filtrar solo resoluciones padre (tipo PADRE) y vigentes
+        console.log('📋 Resoluciones de la empresa:', resoluciones);
+        
+        // Filtrar resoluciones que pueden ser padre
         const resolucionesPadre = resoluciones.filter(r => {
+          // Una resolución puede ser padre si:
+          // 1. Tiene tipoResolucion === 'PADRE'
+          // 2. Es de tipo PRIMIGENIA o RENOVACION
+          // 3. No tiene resolucionPadreId (es una resolución raíz)
+          // 4. Está vigente y activa
           const esPadre = r.tipoResolucion === 'PADRE';
-          const esVigente = r.estado === 'VIGENTE';
-          return esPadre && esVigente;
+          const esPrimigeniaORenovacion = r.tipoTramite === 'PRIMIGENIA' || r.tipoTramite === 'RENOVACION';
+          const noTienePadre = !r.resolucionPadreId;
+          const estaVigente = r.estaActivo && r.estado === 'VIGENTE';
+          
+          return (esPadre || esPrimigeniaORenovacion || noTienePadre) && estaVigente;
         });
+        
+        console.log('✅ Resoluciones padre filtradas:', resolucionesPadre);
         
         // Actualizar el signal
         this.resolucionesPadre.set(of(resolucionesPadre));
       },
       error: (error) => {
-        console.error('Error al cargar resoluciones padre:', error);
+        console.error('❌ Error al cargar resoluciones padre:', error);
         this.resolucionesPadre.set(of([]));
       }
     });
@@ -673,14 +685,21 @@ export class ExpedienteFormComponent implements OnInit {
               this.expedienteForm.patchValue({
                 empresaSearch: empresa
               });
+              
+              // Si el expediente necesita resolución padre, cargarlas
+              if (this.necesitaResolucionPadre()) {
+                this.cargarResolucionesPadre(empresa.id);
+              }
             }
           });
         }
         
         this.expedienteForm.patchValue({
           numero: numero,
+          folio: expediente.folio,
           fechaEmision: new Date(expediente.fechaEmision),
           tipoTramite: expediente.tipoTramite,
+          resolucionPadreId: (expediente as any).resolucionPadreId || '',
           estado: expediente.estado,
           descripcion: expediente.descripcion || '',
           observaciones: expediente.observaciones || ''
@@ -772,22 +791,22 @@ export class ExpedienteFormComponent implements OnInit {
         if (!respuesta.valido) {
           // Número duplicado
           this.expedienteForm.get('numero')?.setErrors({ numeroDuplicado: true });
-          this.snackBar.open(respuesta.mensaje, 'Cerrar', { duration: 5000 });
+          this.snackBar.open('⚠️ Número duplicado', 'Cerrar', { duration: 3000 });
         } else {
-          // Número válido - limpiar errores de duplicado
+          // Número válido - limpiar errores de duplicado sin mostrar mensaje
           const numeroControl = this.expedienteForm.get('numero');
           if (numeroControl?.hasError('numeroDuplicado')) {
             const errors = { ...numeroControl.errors };
             delete errors['numeroDuplicado'];
             numeroControl.setErrors(Object.keys(errors).length > 0 ? errors : null);
           }
-          this.snackBar.open(respuesta.mensaje, 'Cerrar', { duration: 3000 });
+          // No mostrar mensaje cuando el número es válido
         }
       },
       error: (error) => {
         console.error('❌ Error en validación:', error);
-        // En caso de error, permitir el número pero mostrar advertencia
-        this.snackBar.open('Error al validar el número. Verifique la conexión.', 'Cerrar', { duration: 3000 });
+        // En caso de error, permitir el número pero mostrar advertencia corta
+        this.snackBar.open('Error al validar', 'Cerrar', { duration: 2000 });
       }
     });
   }

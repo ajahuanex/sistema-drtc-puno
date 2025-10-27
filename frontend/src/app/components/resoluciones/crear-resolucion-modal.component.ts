@@ -318,7 +318,7 @@ import { ResolucionValidationService } from '../../services/resolucion-validatio
                   </div>
                 }
 
-                @if (resolucionForm.get('tipoResolucion')?.value === 'HIJA') {
+                @if (resolucionForm.get('tipoResolucion')?.value === 'HIJO') {
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Resolución Padre *</mat-label>
@@ -326,17 +326,32 @@ import { ResolucionValidationService } from '../../services/resolucion-validatio
                         <mat-option value="">Selecciona una resolución padre</mat-option>
                         @for (resolucion of resolucionesPadre(); track resolucion.id) {
                           <mat-option [value]="resolucion.id">
-                            {{ resolucion.nroResolucion }} - {{ resolucion.descripcion }}
+                            {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }} - {{ resolucion.descripcion }}
                           </mat-option>
                         }
                       </mat-select>
                       <mat-icon matSuffix>account_tree</mat-icon>
-                      <mat-hint>Resolución padre de la que deriva</mat-hint>
+                      @if (resolucionesPadre().length === 1 && resolucionForm.get('resolucionPadreId')?.value) {
+                        <mat-hint>Resolución primigenia asignada automáticamente</mat-hint>
+                      } @else {
+                        <mat-hint>Resolución padre de la que deriva</mat-hint>
+                      }
                       <mat-error *ngIf="resolucionForm.get('resolucionPadreId')?.hasError('required')">
                         La resolución padre es obligatoria
                       </mat-error>
                     </mat-form-field>
                   </div>
+                  
+                  @if (resolucionesPadre().length === 0) {
+                    <div class="warning-message">
+                      <mat-icon class="warning-icon">warning</mat-icon>
+                      <div class="warning-content">
+                        <h4>No hay resoluciones padre disponibles</h4>
+                        <p>Para crear una resolución de tipo {{ resolucionForm.get('tipoTramite')?.value }}, 
+                           primero debes crear una resolución PRIMIGENIA para esta empresa.</p>
+                      </div>
+                    </div>
+                  }
                 }
               </mat-card-content>
             </mat-card>
@@ -653,6 +668,39 @@ import { ResolucionValidationService } from '../../services/resolucion-validatio
       background-color: #f5f5f5;
       transform: translateY(-1px);
     }
+
+    .warning-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px;
+      background-color: #fff3e0;
+      border-radius: 8px;
+      border-left: 4px solid #ff9800;
+      margin-top: 16px;
+    }
+
+    .warning-message .warning-icon {
+      color: #ff9800;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .warning-content h4 {
+      margin: 0 0 8px 0;
+      color: #e65100;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .warning-content p {
+      margin: 0;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.5;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -792,10 +840,104 @@ export class CrearResolucionModalComponent {
   }
 
   /**
-   * Selecciona un expediente
+   * Selecciona un expediente y configura automáticamente la resolución padre si aplica
    */
   seleccionarExpediente(expediente: Expediente): void {
     this.expedienteSeleccionado.set(expediente);
+    
+    // Actualizar el tipo de trámite basado en el expediente
+    const tipoTramite = expediente.tipoTramite;
+    this.resolucionForm.patchValue({
+      tipoTramite: tipoTramite
+    });
+    
+    // Determinar si es PADRE o HIJO basado en el tipo de trámite
+    const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const tipoResolucion = esPadre ? 'PADRE' : 'HIJO';
+    
+    this.resolucionForm.patchValue({
+      tipoResolucion: tipoResolucion
+    });
+    
+    // Si es HIJO, buscar la resolución PRIMIGENIA del expediente
+    if (!esPadre) {
+      this.buscarYAsignarResolucionPrimigenia(expediente);
+    }
+  }
+  
+  /**
+   * Busca la resolución PRIMIGENIA asociada al expediente y la asigna como padre
+   */
+  private buscarYAsignarResolucionPrimigenia(expediente: Expediente): void {
+    // Verificar si el expediente ya tiene una resolución primigenia asociada
+    if (expediente.resolucionPrimigeniaId) {
+      // El expediente ya tiene una resolución primigenia definida, obtenerla
+      this.resolucionService.getResolucionById(expediente.resolucionPrimigeniaId).subscribe({
+        next: (resolucionPrimigenia) => {
+          // Asignar automáticamente como resolución padre
+          this.resolucionForm.patchValue({
+            resolucionPadreId: resolucionPrimigenia.id
+          });
+          
+          // Actualizar lista de resoluciones padre con solo esta
+          this.resolucionesPadre.set([resolucionPrimigenia]);
+          
+          this.snackBar.open(
+            `Resolución primigenia ${resolucionPrimigenia.nroResolucion} asignada automáticamente como padre`,
+            'Cerrar',
+            { duration: 4000 }
+          );
+        },
+        error: (error) => {
+          console.error('Error al obtener resolución primigenia:', error);
+          // Si falla, cargar todas las resoluciones PADRE disponibles
+          this.cargarResolucionesPadreDisponibles();
+        }
+      });
+    } else {
+      // No hay resolución primigenia en el expediente, cargar todas las disponibles
+      this.cargarResolucionesPadreDisponibles();
+    }
+  }
+  
+  /**
+   * Carga todas las resoluciones PADRE disponibles de la empresa
+   */
+  private cargarResolucionesPadreDisponibles(): void {
+    if (!this.empresaSeleccionada()) return;
+    
+    this.resolucionService.getResolucionesPorEmpresa(this.empresaSeleccionada()!.id).subscribe({
+      next: (resoluciones) => {
+        // Filtrar solo resoluciones PADRE activas
+        const resolucionesPadreDisponibles = resoluciones.filter(r => 
+          r.tipoResolucion === 'PADRE' && r.estaActivo
+        );
+        
+        this.resolucionesPadre.set(resolucionesPadreDisponibles);
+        
+        if (resolucionesPadreDisponibles.length === 0) {
+          this.snackBar.open(
+            'No hay resoluciones padre disponibles. Debes crear primero una resolución PRIMIGENIA.',
+            'Cerrar',
+            { duration: 5000, panelClass: ['warning-snackbar'] }
+          );
+        } else {
+          this.snackBar.open(
+            'Selecciona una resolución padre de la lista',
+            'Cerrar',
+            { duration: 3000 }
+          );
+        }
+      },
+      error: (error) => {
+        console.error('Error al buscar resoluciones:', error);
+        this.snackBar.open(
+          'Error al buscar resoluciones padre',
+          'Cerrar',
+          { duration: 3000, panelClass: ['error-snackbar'] }
+        );
+      }
+    });
   }
 
   /**
@@ -830,7 +972,7 @@ export class CrearResolucionModalComponent {
       control.setValue(value, { emitEvent: false });
     }
   }
-
+  
   /**
    * Obtiene el número completo de la resolución reactivamente
    */
@@ -852,69 +994,76 @@ export class CrearResolucionModalComponent {
    * Verifica si se puede crear la resolución
    */
   puedeCrearResolucion(): boolean {
-    return this.empresaSeleccionada() !== null && 
-           this.expedienteSeleccionado() !== null && 
-           this.resolucionForm.valid;
+    // Debe haber empresa seleccionada
+    if (!this.empresaSeleccionada()) return false;
+    
+    // Debe haber expediente seleccionado
+    if (!this.expedienteSeleccionado()) return false;
+    
+    // El formulario debe ser válido
+    if (!this.resolucionForm.valid) return false;
+    
+    // Si es resolución HIJO, debe tener resolución padre
+    const tipoResolucion = this.resolucionForm.get('tipoResolucion')?.value;
+    if (tipoResolucion === 'HIJO') {
+      const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
+      if (!resolucionPadreId) return false;
+    }
+    
+    return true;
   }
 
   /**
    * Envía el formulario
    */
   onSubmit(): void {
-    if (this.puedeCrearResolucion()) {
-      this.isSubmitting.set(true);
-      
-      const resolucionData: ResolucionCreate = {
-        numero: this.resolucionForm.value.numero,
-        expedienteId: this.expedienteSeleccionado()!.id,
-        fechaEmision: this.resolucionForm.value.fechaEmision,
-        fechaVigenciaInicio: this.resolucionForm.value.fechaVigenciaInicio,
-        fechaVigenciaFin: this.resolucionForm.value.fechaVigenciaFin,
-        tipoResolucion: this.resolucionForm.value.tipoResolucion,
-        tipoTramite: this.resolucionForm.value.tipoTramite,
-        empresaId: this.empresaSeleccionada()!.id,
-        descripcion: this.resolucionForm.value.descripcion,
-        observaciones: this.resolucionForm.value.observaciones,
-        resolucionPadreId: this.resolucionForm.value.resolucionPadreId,
-        vehiculosHabilitadosIds: [],
-        rutasAutorizadasIds: []
-      };
-
-      // TODO: Implementar creación real de la resolución
-      setTimeout(() => {
-        this.isSubmitting.set(false);
-        this.snackBar.open('Resolución creada exitosamente', 'Cerrar', {
-          duration: 3000
-        });
-        
-        // Generar el número completo de la resolución usando la lógica correcta
-        const año = resolucionData.fechaEmision.getFullYear();
-        const numeroFormateado = resolucionData.numero.padStart(4, '0');
-        const nroResolucion = `R-${numeroFormateado}-${año}`;
-
-        // Retornar la resolución creada
-        const resolucionCreada: Resolucion = {
-          id: Date.now().toString(),
-          nroResolucion: nroResolucion,
-          empresaId: resolucionData.empresaId,
-          fechaEmision: resolucionData.fechaEmision,
-          fechaVigenciaInicio: resolucionData.fechaVigenciaInicio,
-          fechaVigenciaFin: resolucionData.fechaVigenciaFin,
-          tipoResolucion: resolucionData.tipoResolucion,
-          resolucionPadreId: resolucionData.resolucionPadreId,
-          resolucionesHijasIds: [],
-          vehiculosHabilitadosIds: resolucionData.vehiculosHabilitadosIds || [],
-          rutasAutorizadasIds: resolucionData.rutasAutorizadasIds || [],
-          tipoTramite: resolucionData.tipoTramite,
-          descripcion: resolucionData.descripcion,
-          expedienteId: resolucionData.expedienteId,
-          fechaRegistro: new Date(),
-          estaActivo: true
-        };
-        
-        this.dialogRef.close(resolucionCreada);
-      }, 1000);
+    if (!this.puedeCrearResolucion()) {
+      this.snackBar.open('Por favor completa todos los campos requeridos', 'Cerrar', {
+        duration: 3000,
+        panelClass: ['error-snackbar']
+      });
+      return;
     }
+    
+    this.isSubmitting.set(true);
+    
+    const formValue = this.resolucionForm.value;
+    const resolucionData: ResolucionCreate = {
+      numero: formValue.numero,
+      expedienteId: this.expedienteSeleccionado()!.id,
+      empresaId: this.empresaSeleccionada()!.id,
+      fechaEmision: formValue.fechaEmision,
+      fechaVigenciaInicio: formValue.fechaVigenciaInicio || undefined,
+      fechaVigenciaFin: formValue.fechaVigenciaFin || undefined,
+      tipoResolucion: formValue.tipoResolucion,
+      tipoTramite: formValue.tipoTramite,
+      descripcion: formValue.descripcion,
+      observaciones: formValue.observaciones || undefined,
+      resolucionPadreId: formValue.resolucionPadreId || undefined,
+      vehiculosHabilitadosIds: [],
+      rutasAutorizadasIds: []
+    };
+    
+    this.resolucionService.createResolucion(resolucionData).subscribe({
+      next: (resolucionCreada) => {
+        this.isSubmitting.set(false);
+        this.snackBar.open(
+          `Resolución ${resolucionCreada.nroResolucion} creada exitosamente`,
+          'Cerrar',
+          { duration: 4000 }
+        );
+        this.dialogRef.close(resolucionCreada);
+      },
+      error: (error) => {
+        this.isSubmitting.set(false);
+        console.error('Error al crear resolución:', error);
+        this.snackBar.open(
+          error.message || 'Error al crear la resolución',
+          'Cerrar',
+          { duration: 5000, panelClass: ['error-snackbar'] }
+        );
+      }
+    });
   }
 
   /**

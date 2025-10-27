@@ -21,6 +21,8 @@ export interface Expediente {
   
   // Para expedientes de INCREMENTO/SUSTITUCION, pueden basarse en una resolución anterior
   resolucionPadreId?: string; // ID de la resolución padre para expedientes derivados
+  // Para expedientes de RENOVACION, se basan en una resolución primigenia
+  resolucionPrimigeniaId?: string; // ID de la resolución primigenia base para expedientes de renovación
   
   // ========== CONTENIDO DEL EXPEDIENTE ==========
   descripcion?: string; // Descripción automática según tipo de trámite
@@ -283,6 +285,7 @@ export interface ExpedienteCreate {
   
   // ========== DOCUMENTOS RESULTANTES ==========
   resolucionPadreId?: string; // ID de la resolución padre para expedientes de INCREMENTO o SUSTITUCION
+  resolucionPrimigeniaId?: string; // ID de la resolución primigenia para expedientes de RENOVACION
   tipoDocumentoResultado?: TipoDocumentoResultado; // Qué tipo de documento se generará
   
   // ========== CONTENIDO ==========
@@ -318,6 +321,7 @@ export interface ExpedienteUpdate {
   estado?: EstadoExpediente;
   empresaId?: string;
   resolucionPadreId?: string; // ID de la resolución padre para expedientes de INCREMENTO o SUSTITUCION
+  resolucionPrimigeniaId?: string; // ID de la resolución primigenia para expedientes de RENOVACION
   descripcion?: string;
   observaciones?: string;
   

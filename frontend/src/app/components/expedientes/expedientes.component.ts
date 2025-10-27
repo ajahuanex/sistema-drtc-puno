@@ -25,7 +25,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { ExpedienteService } from '../../services/expediente.service';
+import { EmpresaService } from '../../services/empresa.service';
 import { Expediente, TipoTramite, EstadoExpediente, PrioridadExpediente, TipoSolicitante } from '../../models/expediente.model';
+import { Empresa } from '../../models/empresa.model';
 import { CrearExpedienteModalComponent } from './crear-expediente-modal.component';
 
 interface ExpedienteFiltros {
@@ -330,12 +332,12 @@ interface ColumnaExpediente {
                 </td>
               </ng-container>
 
-              <!-- Descripción -->
+              <!-- Empresa (reemplaza descripción) -->
               <ng-container matColumnDef="descripcion" *ngIf="columnaVisible('descripcion')">
-                <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                <th mat-header-cell *matHeaderCellDef>Empresa</th>
                 <td mat-cell *matCellDef="let expediente">
-                  <div class="descripcion-cell" [matTooltip]="expediente.descripcion">
-                    {{ expediente.descripcion | slice:0:50 }}{{ expediente.descripcion?.length > 50 ? '...' : '' }}
+                  <div class="empresa-cell" [matTooltip]="getEmpresaNombre(expediente.empresaId)">
+                    {{ getEmpresaNombre(expediente.empresaId) }}
                   </div>
                 </td>
               </ng-container>
@@ -823,6 +825,7 @@ export class ExpedientesComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private expedienteService = inject(ExpedienteService);
+  private empresaService = inject(EmpresaService);
 
   // Estados
   isLoading = signal(false);
@@ -831,6 +834,7 @@ export class ExpedientesComponent implements OnInit {
 
   // Datos
   expedientes = signal<Expediente[]>([]);
+  empresas = signal<Empresa[]>([]);
   dataSource = new MatTableDataSource<Expediente>();
 
   // Filtros
@@ -865,6 +869,7 @@ export class ExpedientesComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarExpedientes();
+    this.cargarEmpresas();
   }
 
   ngAfterViewInit(): void {
@@ -878,14 +883,27 @@ export class ExpedientesComponent implements OnInit {
   private cargarExpedientes(): void {
     this.isLoading.set(true);
     
-    // Simular carga de datos mock
-    setTimeout(() => {
-      const expedientesMock: Expediente[] = [
-        {
-          id: '1',
-          nroExpediente: 'E-0001-2025', // Formato correcto: E-NNNN-YYYY
-          folio: 15,
-          fechaEmision: new Date('2025-01-15'),
+    // Cargar expedientes desde el servicio
+    this.expedienteService.getExpedientes().subscribe({
+      next: (expedientes) => {
+        this.expedientes.set(expedientes);
+        this.dataSource.data = expedientes;
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error al cargar expedientes:', error);
+        this.isLoading.set(false);
+        this.snackBar.open('Error al cargar expedientes', 'Cerrar', {
+          duration: 3000
+        });
+        
+        // Fallback a datos mock en caso de error
+        const expedientesMock: Expediente[] = [
+          {
+            id: '1',
+            nroExpediente: 'E-0001-2025', // Formato correcto: E-NNNN-YYYY
+            folio: 15,
+            fechaEmision: new Date('2025-01-15'),
           tipoTramite: 'PRIMIGENIA',
           tipoSolicitante: TipoSolicitante.EMPRESA,
           estado: 'EN PROCESO',
@@ -958,10 +976,10 @@ export class ExpedientesComponent implements OnInit {
         }
       ];
 
-      this.expedientes.set(expedientesMock);
-      this.dataSource.data = expedientesMock;
-      this.isLoading.set(false);
-    }, 1000);
+        this.expedientes.set(expedientesMock);
+        this.dataSource.data = expedientesMock;
+      }
+    });
   }
 
   /**
@@ -1071,13 +1089,46 @@ export class ExpedientesComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((expedienteCreado: Expediente) => {
       if (expedienteCreado) {
+        // Agregar el expediente creado a la lista
         this.expedientes.update(current => [...current, expedienteCreado]);
+        
+        // Actualizar el dataSource y notificar el cambio
         this.dataSource.data = this.expedientes();
+        
+        // Forzar la actualización de la tabla
+        this.dataSource._updateChangeSubscription();
+        
+        // Recargar expedientes desde el servicio para asegurar sincronización
+        this.recargarExpedientes();
+        
         this.snackBar.open('Expediente creado exitosamente', 'Cerrar', {
           duration: 3000
         });
       }
     });
+  }
+
+  /**
+   * Carga las empresas del sistema
+   */
+  private cargarEmpresas(): void {
+    this.empresaService.getEmpresas().subscribe({
+      next: (empresas) => {
+        this.empresas.set(empresas);
+      },
+      error: (error) => {
+        console.error('Error al cargar empresas:', error);
+      }
+    });
+  }
+
+  /**
+   * Obtiene el nombre de una empresa por su ID
+   */
+  getEmpresaNombre(empresaId: string | undefined): string {
+    if (!empresaId) return 'Sin empresa';
+    const empresa = this.empresas().find(e => e.id === empresaId);
+    return empresa ? empresa.razonSocial.principal : 'Empresa no encontrada';
   }
 
   /**
@@ -1091,7 +1142,14 @@ export class ExpedientesComponent implements OnInit {
    * Ver detalle de un expediente
    */
   verDetalleExpediente(expediente: Expediente): void {
-    // TODO: Implementar navegación al detalle
+    this.router.navigate(['/expedientes', expediente.id]);
+  }
+
+  /**
+   * Ver detalle de un expediente (método alternativo para compatibilidad)
+   */
+  verDetalleExpedienteOld(expediente: Expediente): void {
+    // Método antiguo con snackbar
     this.snackBar.open(`Ver detalle de expediente: ${expediente.nroExpediente}`, 'Cerrar', {
       duration: 3000
     });

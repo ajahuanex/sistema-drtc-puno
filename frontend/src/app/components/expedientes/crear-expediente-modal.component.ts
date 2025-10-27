@@ -13,12 +13,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { ExpedienteService } from '../../services/expediente.service';
-import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
+import { ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-number-validator.component';
-import { ExpedienteValidationService } from '../../services/expediente-validation.service';
+import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.component';
 
 @Component({
   selector: 'app-crear-expediente-modal',
@@ -39,7 +39,8 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
     MatNativeDateModule,
     MatDialogModule,
     EmpresaSelectorComponent,
-    ExpedienteNumberValidatorComponent
+    ExpedienteNumberValidatorComponent,
+    ResolucionSelectorComponent
   ],
   template: `
     <div class="modal-container">
@@ -74,7 +75,7 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
                   placeholder="Ej: 0001"
                   hint="El sistema generará E-0001-2025"
                   [required]="true"
-                  [empresaId]="expedienteForm.get('empresaId')?.value"
+                  [empresaId]="empresaId()"
                   (numeroValido)="onNumeroExpedienteValido($event)"
                   (numeroInvalido)="onNumeroExpedienteInvalido($event)"
                   (validacionCompleta)="onValidacionExpedienteCompleta($event)">
@@ -102,7 +103,7 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
               <div class="form-row">
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Tipo de Expediente *</mat-label>
-                  <mat-select formControlName="tipoTramite" required>
+                  <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)" required>
                     <mat-option value="PRIMIGENIA">Primigenia</mat-option>
                     <mat-option value="RENOVACION">Renovación</mat-option>
                     <mat-option value="INCREMENTO">Incremento</mat-option>
@@ -115,6 +116,21 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
                     El tipo de expediente es obligatorio
                   </mat-error>
                 </mat-form-field>
+              </div>
+
+              <!-- Resolución Primigenia - Solo para RENOVACION -->
+              <div class="form-row" *ngIf="necesitaResolucionPrimigenia()">
+                <app-resolucion-selector
+                  label="Resolución Primigenia *"
+                  placeholder="Buscar resolución primigenia"
+                  [hint]="getHintResolucionPrimigenia()"
+                  [required]="true"
+                  [empresaId]="empresaId()"
+                  [resolucionId]="expedienteForm.get('resolucionPrimigeniaId')?.value"
+                  [filtroTipoTramite]="getFiltroTipoTramite()"
+                  (resolucionIdChange)="onResolucionPrimigeniaIdChange($event)"
+                  (resolucionSeleccionada)="onResolucionPrimigeniaSeleccionada($event)">
+                </app-resolucion-selector>
               </div>
 
               <div class="form-row">
@@ -184,7 +200,7 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
                   label="Empresa (Opcional)"
                   placeholder="Buscar empresa por RUC o razón social"
                   hint="Selecciona una empresa para crear dependencia (opcional)"
-                  [empresaId]="expedienteForm.get('empresaId')?.value"
+                  [empresaId]="empresaId()"
                   (empresaIdChange)="onEmpresaIdChange($event)"
                   (empresaSeleccionada)="onEmpresaSeleccionada($event)">
                 </app-empresa-selector>
@@ -199,6 +215,20 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
                   <mat-icon matSuffix>note</mat-icon>
                   <mat-hint>Observaciones del expediente (opcional)</mat-hint>
                 </mat-form-field>
+              </div>
+
+              <!-- Resolución Padre - Solo cuando hay empresa seleccionada -->
+              <div class="form-row" *ngIf="empresaSeleccionada()">
+                <app-resolucion-selector
+                  label="Resolución Padre (Opcional)"
+                  placeholder="Buscar resolución padre"
+                  hint="Seleccione una resolución padre si este expediente está relacionado con otra resolución"
+                  [required]="false"
+                  [empresaId]="empresaId()"
+                  [resolucionId]="expedienteForm.get('resolucionPadreId')?.value"
+                  (resolucionIdChange)="onResolucionPadreIdChange($event)"
+                  (resolucionSeleccionada)="onResolucionPadreSeleccionada($event)">
+                </app-resolucion-selector>
               </div>
             </mat-card-content>
           </mat-card>
@@ -299,7 +329,26 @@ import { ExpedienteValidationService } from '../../services/expediente-validatio
       transform: translateY(-1px);
     }
 
+    .resolucion-option {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
+    .resolucion-numero {
+      font-weight: 500;
+      color: #1976d2;
+    }
+
+    .resolucion-tipo {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .resolucion-fecha {
+      font-size: 0.8em;
+      color: #999;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -307,10 +356,14 @@ export class CrearExpedienteModalComponent {
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
   private dialogRef = inject(MatDialogRef<CrearExpedienteModalComponent>);
-  private data = inject(MAT_DIALOG_DATA);
   private expedienteService = inject(ExpedienteService);
-  private validationService = inject(ExpedienteValidationService);
+  
   isSubmitting = signal(false);
+  empresaSeleccionada = signal<any>(null);
+  empresaId = signal<string>(''); // Señal reactiva para el ID de empresa
+  resolucionPrimigeniaSeleccionada = signal<any>(null);
+  resolucionPadreSeleccionada = signal<any>(null);
+  
   expedienteForm: FormGroup;
 
   constructor() {
@@ -318,6 +371,8 @@ export class CrearExpedienteModalComponent {
       numero: ['', [Validators.required, Validators.minLength(1)]],
       folio: [1, [Validators.required, Validators.min(1)]],
       tipoTramite: ['', Validators.required],
+      resolucionPrimigeniaId: [''], // Campo para resolución primigenia (solo para RENOVACION)
+      resolucionPadreId: [''], // Campo para resolución padre (opcional cuando hay empresa)
       descripcion: [''],
       fechaEmision: ['', Validators.required],
       prioridad: ['NORMAL', Validators.required],
@@ -330,6 +385,14 @@ export class CrearExpedienteModalComponent {
       if (tipoTramite) {
         const descripcionAutomatica = this.generarDescripcionAutomatica(tipoTramite);
         this.expedienteForm.get('descripcion')?.setValue(descripcionAutomatica, { emitEvent: false });
+        
+        // Limpiar resoluciones cuando cambia el tipo
+        this.expedienteForm.patchValue({ 
+          resolucionPrimigeniaId: '',
+          resolucionPadreId: ''
+        });
+        this.resolucionPrimigeniaSeleccionada.set(null);
+        this.resolucionPadreSeleccionada.set(null);
       }
     });
   }
@@ -392,41 +455,30 @@ export class CrearExpedienteModalComponent {
           tipoExpediente: TipoExpediente.OTROS,
           tipoSolicitante: TipoSolicitante.EMPRESA,
           empresaId: this.expedienteForm.value.empresaId || '',
+          resolucionPrimigeniaId: this.expedienteForm.value.resolucionPrimigeniaId || undefined,
+          resolucionPadreId: this.expedienteForm.value.resolucionPadreId || undefined,
           descripcion: this.expedienteForm.value.descripcion,
           observaciones: this.expedienteForm.value.observaciones,
           prioridad: this.expedienteForm.value.prioridad
         };
 
-      // TODO: Implementar creación real del expediente
-      setTimeout(() => {
-        this.isSubmitting.set(false);
-        this.snackBar.open('Expediente creado exitosamente', 'Cerrar', {
-          duration: 3000
-        });
-        
-        // Generar el número completo del expediente usando la lógica correcta
-        const año = expedienteData.fechaEmision.getFullYear();
-        const numeroFormateado = expedienteData.numero.padStart(4, '0');
-        const nroExpediente = `E-${numeroFormateado}-${año}`;
-
-        // Retornar el expediente creado
-        const expedienteCreado: Expediente = {
-          id: Date.now().toString(),
-          nroExpediente: nroExpediente,
-          folio: expedienteData.folio,
-          fechaEmision: expedienteData.fechaEmision,
-          tipoTramite: expedienteData.tipoTramite,
-          tipoSolicitante: expedienteData.tipoSolicitante,
-          estado: 'EN PROCESO',
-          estaActivo: true,
-          fechaRegistro: new Date(),
-          empresaId: expedienteData.empresaId,
-          descripcion: expedienteData.descripcion,
-          observaciones: expedienteData.observaciones
-        };
-        
-        this.dialogRef.close(expedienteCreado);
-      }, 1000);
+      // Crear expediente usando el servicio
+      this.expedienteService.createExpediente(expedienteData).subscribe({
+        next: (expedienteCreado) => {
+          this.isSubmitting.set(false);
+          this.snackBar.open('Expediente creado exitosamente', 'Cerrar', {
+            duration: 3000
+          });
+          this.dialogRef.close(expedienteCreado);
+        },
+        error: (error) => {
+          console.error('Error al crear expediente:', error);
+          this.isSubmitting.set(false);
+          this.snackBar.open('Error al crear expediente', 'Cerrar', {
+            duration: 3000
+          });
+        }
+      });
     }
   }
 
@@ -441,7 +493,9 @@ export class CrearExpedienteModalComponent {
    * Maneja el cambio del ID de empresa
    */
   onEmpresaIdChange(empresaId: string): void {
+    console.log('🏢 Cambio de empresa ID:', empresaId);
     this.expedienteForm.get('empresaId')?.setValue(empresaId, { emitEvent: false });
+    this.empresaId.set(empresaId); // Actualizar señal reactiva
   }
 
   /**
@@ -449,8 +503,65 @@ export class CrearExpedienteModalComponent {
    */
   onEmpresaSeleccionada(empresa: any): void {
     if (empresa) {
-      // Opcional: Mostrar un mensaje de confirmación
+      console.log('🏢 Empresa seleccionada:', empresa);
+      this.empresaSeleccionada.set(empresa);
+      this.empresaId.set(empresa.id); // Actualizar señal reactiva
       this.snackBar.open(`Empresa seleccionada: ${empresa.razonSocial.principal}`, 'Cerrar', {
+        duration: 2000
+      });
+    } else {
+      // Si se deselecciona la empresa, limpiar resolución padre
+      console.log('🏢 Empresa deseleccionada');
+      this.empresaSeleccionada.set(null);
+      this.empresaId.set(''); // Limpiar señal reactiva
+      this.expedienteForm.patchValue({ resolucionPadreId: '' });
+      this.resolucionPadreSeleccionada.set(null);
+    }
+  }
+
+  /**
+   * Maneja el cambio de tipo de trámite
+   */
+  onTipoTramiteChange(event: any): void {
+    // La lógica ya está en el valueChanges del constructor
+  }
+
+  /**
+   * Verifica si el tipo de trámite necesita resolución primigenia
+   */
+  necesitaResolucionPrimigenia(): boolean {
+    const tipoTramite = this.expedienteForm.get('tipoTramite')?.value;
+    return tipoTramite === 'RENOVACION';
+  }
+
+  /**
+   * Obtiene el hint apropiado según el tipo de trámite
+   */
+  getHintResolucionPrimigenia(): string {
+    return 'Seleccione la resolución primigenia que se va a renovar';
+  }
+
+  /**
+   * Obtiene el filtro de tipo de trámite apropiado
+   */
+  getFiltroTipoTramite(): string {
+    return 'PRIMIGENIA'; // Solo mostrar resoluciones primigenias para renovación
+  }
+
+  /**
+   * Maneja el cambio del ID de resolución primigenia
+   */
+  onResolucionPrimigeniaIdChange(resolucionId: string): void {
+    this.expedienteForm.get('resolucionPrimigeniaId')?.setValue(resolucionId, { emitEvent: false });
+  }
+
+  /**
+   * Maneja la selección de una resolución primigenia
+   */
+  onResolucionPrimigeniaSeleccionada(resolucion: any): void {
+    if (resolucion) {
+      this.resolucionPrimigeniaSeleccionada.set(resolucion);
+      this.snackBar.open(`Resolución primigenia seleccionada: ${resolucion.nroResolucion}`, 'Cerrar', {
         duration: 2000
       });
     }
@@ -487,5 +598,26 @@ export class CrearExpedienteModalComponent {
   onValidacionExpedienteCompleta(resultado: any): void {
     // La validación se completó, el formulario se actualiza automáticamente
     console.log('Validación de expediente completada:', resultado);
+  }
+
+  /**
+   * Maneja el cambio del ID de resolución padre
+   */
+  onResolucionPadreIdChange(resolucionId: string): void {
+    this.expedienteForm.get('resolucionPadreId')?.setValue(resolucionId, { emitEvent: false });
+  }
+
+  /**
+   * Maneja la selección de una resolución padre
+   */
+  onResolucionPadreSeleccionada(resolucion: any): void {
+    if (resolucion) {
+      this.resolucionPadreSeleccionada.set(resolucion);
+      this.snackBar.open(`Resolución padre seleccionada: ${resolucion.nroResolucion}`, 'Cerrar', {
+        duration: 2000
+      });
+    } else {
+      this.resolucionPadreSeleccionada.set(null);
+    }
   }
 } 
