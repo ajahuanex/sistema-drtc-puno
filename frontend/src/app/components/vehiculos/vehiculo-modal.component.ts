@@ -198,17 +198,18 @@ export interface VehiculoModalData {
                     <mat-label>Placa *</mat-label>
                     <input matInput 
                            formControlName="placa" 
-                           placeholder="Ej: ABC-123" 
-                           (input)="convertirAMayusculas($event, 'placa')" 
+                           placeholder="Ej: A3B123 o ABC123" 
+                           (input)="formatearPlaca($event)" 
                            (blur)="validarPlaca()"
+                           maxlength="7"
                            required>
                     <app-smart-icon [iconName]="'directions_car'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Formato: XXX-000 (3 letras, guión, 3-4 números)</mat-hint>
+                    <mat-hint>Escribe 3 caracteres alfanuméricos y 3 números (el guión se agrega automáticamente)</mat-hint>
                     <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('required')">
                       La placa es obligatoria
                     </mat-error>
                     <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('pattern')">
-                      Formato de placa inválido
+                      Formato de placa inválido (Ej: A3B-123)
                     </mat-error>
                   </mat-form-field>
                   
@@ -1232,6 +1233,36 @@ export class VehiculoModalComponent {
     this.vehiculoForm.patchValue({ sedeRegistro: '' });
   }
 
+  /**
+   * Formatea la placa automáticamente mientras el usuario escribe
+   * Formato: XXX-000 (3 caracteres alfanuméricos, guión automático, 3 números)
+   */
+  formatearPlaca(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); // Solo alfanuméricos
+    
+    // Limitar a 6 caracteres (3 + 3)
+    if (value.length > 6) {
+      value = value.substring(0, 6);
+    }
+    
+    // Agregar guión automáticamente después de los primeros 3 caracteres
+    if (value.length > 3) {
+      value = value.substring(0, 3) + '-' + value.substring(3);
+    }
+    
+    // Actualizar el valor del formulario
+    this.vehiculoForm.patchValue({ placa: value }, { emitEvent: false });
+    
+    // Actualizar la posición del cursor
+    const cursorPosition = value.length;
+    setTimeout(() => {
+      input.setSelectionRange(cursorPosition, cursorPosition);
+    }, 0);
+  }
+
+
+
   private initializeModalData(): void {
     const data = this.modalData() || this.dialogData;
     if (!data) return;
@@ -1276,7 +1307,7 @@ export class VehiculoModalComponent {
   private initializeForm(): void {
     this.vehiculoForm = this.fb.group({
       // Campos obligatorios: solo placa y sede de registro
-      placa: ['', [Validators.required, Validators.pattern(/^[A-Z]{1,3}-\d{3,4}$/)]],
+      placa: ['', [Validators.required, Validators.pattern(/^[A-Z0-9]{3}-\d{3}$/)]],
       sedeRegistro: ['', Validators.required],
       
       // Campos opcionales
@@ -2055,7 +2086,16 @@ export class VehiculoModalComponent {
   validarPlaca(): void {
     const placa = this.vehiculoForm.get('placa')?.value;
     
-    if (!placa || placa.length < 6) {
+    // Validar que la placa tenga el formato correcto (XXX-000)
+    if (!placa || placa.length < 7) {
+      this.vehiculoExistente.set(null);
+      this.mostrarOpcionesPlacaExistente.set(false);
+      return;
+    }
+    
+    // Validar formato con regex
+    const formatoValido = /^[A-Z0-9]{3}-\d{3}$/.test(placa);
+    if (!formatoValido) {
       this.vehiculoExistente.set(null);
       this.mostrarOpcionesPlacaExistente.set(false);
       return;

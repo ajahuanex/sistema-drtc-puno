@@ -723,12 +723,14 @@ export class ExpedienteFormComponent implements OnInit {
 
   onNumeroBlur(): void {
     const numero = this.expedienteForm.get('numero')?.value;
-    if (numero && numero.length === 4) {
-      // Solo validar si no estamos en modo edición o si el número cambió
-      if (!this.isEditMode() || numero !== this.numero()) {
-        this.validarNumeroUnico(numero);
-      }
+    
+    // Validar que el número tenga 4 dígitos
+    if (!numero || numero.length !== 4) {
+      return;
     }
+    
+    // Validar número único
+    this.validarNumeroUnico(numero);
   }
 
   onFolioInput(event: Event): void {
@@ -744,33 +746,50 @@ export class ExpedienteFormComponent implements OnInit {
   }
 
   private validarNumeroUnico(numero: string): void {
-    if (numero.length === 4) {
-      const validacion: ValidacionExpediente = {
-        numero: numero,
-        folio: this.expedienteForm.get('folio')?.value || 1,
-        empresaId: this.empresaSeleccionada()?.id,
-        tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'PRIMIGENIA',
-        fechaEmision: this.expedienteForm.get('fechaEmision')?.value || new Date(),
-        // En modo edición, excluir el expediente actual de la validación
-        expedienteIdExcluir: this.isEditMode() ? this.expedienteId() || undefined : undefined
-      };
-
-      this.expedienteService.validarExpedienteUnico(validacion).subscribe({
-        next: (respuesta) => {
-          if (!respuesta.valido) {
-            this.expedienteForm.get('numero')?.setErrors({ numeroDuplicado: true });
-            this.snackBar.open(respuesta.mensaje, 'Cerrar', { duration: 3000 });
-          } else {
-            this.expedienteForm.get('numero')?.setErrors(null);
-          }
-        },
-        error: (error) => {
-          console.error('Error en validación:', error);
-          // En caso de error, permitir el número pero mostrar advertencia
-          this.snackBar.open('Error al validar el número. Verifique la conexión.', 'Cerrar', { duration: 3000 });
-        }
-      });
+    // Asegurar que el número tenga 4 dígitos
+    if (numero.length !== 4) {
+      return;
     }
+    
+    const fechaEmision = this.expedienteForm.get('fechaEmision')?.value || new Date();
+    
+    const validacion: ValidacionExpediente = {
+      numero: numero,
+      folio: this.expedienteForm.get('folio')?.value || 1,
+      empresaId: this.empresaSeleccionada()?.id,
+      tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'PRIMIGENIA',
+      fechaEmision: fechaEmision,
+      // En modo edición, excluir el expediente actual de la validación
+      expedienteIdExcluir: this.isEditMode() ? this.expedienteId() || undefined : undefined
+    };
+
+    console.log('🔍 Validando número de expediente:', validacion);
+
+    this.expedienteService.validarExpedienteUnico(validacion).subscribe({
+      next: (respuesta) => {
+        console.log('✅ Respuesta de validación:', respuesta);
+        
+        if (!respuesta.valido) {
+          // Número duplicado
+          this.expedienteForm.get('numero')?.setErrors({ numeroDuplicado: true });
+          this.snackBar.open(respuesta.mensaje, 'Cerrar', { duration: 5000 });
+        } else {
+          // Número válido - limpiar errores de duplicado
+          const numeroControl = this.expedienteForm.get('numero');
+          if (numeroControl?.hasError('numeroDuplicado')) {
+            const errors = { ...numeroControl.errors };
+            delete errors['numeroDuplicado'];
+            numeroControl.setErrors(Object.keys(errors).length > 0 ? errors : null);
+          }
+          this.snackBar.open(respuesta.mensaje, 'Cerrar', { duration: 3000 });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error en validación:', error);
+        // En caso de error, permitir el número pero mostrar advertencia
+        this.snackBar.open('Error al validar el número. Verifique la conexión.', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   // Métodos para manejo de archivos
