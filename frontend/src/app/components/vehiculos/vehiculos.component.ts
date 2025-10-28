@@ -75,6 +75,33 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
             <app-smart-icon [iconName]="'upload_file'" [size]="20"></app-smart-icon>
             Carga Masiva Excel
           </button>
+          
+          <!-- Menú de historial -->
+          <button mat-raised-button 
+                  color="warn"
+                  [matMenuTriggerFor]="historialMenu">
+            <app-smart-icon [iconName]="'history'" [size]="20"></app-smart-icon>
+            Historial
+          </button>
+          <mat-menu #historialMenu="matMenu">
+            <button mat-menu-item (click)="actualizarHistorialTodos()">
+              <app-smart-icon [iconName]="'refresh'" [size]="20"></app-smart-icon>
+              <span>Actualizar Historial</span>
+            </button>
+            <button mat-menu-item (click)="verEstadisticasHistorial()">
+              <app-smart-icon [iconName]="'analytics'" [size]="20"></app-smart-icon>
+              <span>Estadísticas Historial</span>
+            </button>
+            <button mat-menu-item (click)="marcarVehiculosActuales()">
+              <app-smart-icon [iconName]="'visibility'" [size]="20"></app-smart-icon>
+              <span>Marcar Actuales</span>
+            </button>
+            <button mat-menu-item (click)="verEstadisticasFiltrado()">
+              <app-smart-icon [iconName]="'filter_list'" [size]="20"></app-smart-icon>
+              <span>Estadísticas Filtrado</span>
+            </button>
+          </mat-menu>
+          
           <button mat-raised-button 
                   color="primary" 
                   (click)="nuevoVehiculo()">
@@ -824,19 +851,52 @@ export class VehiculosComponent implements OnInit {
       }
     });
 
-    // Cargar vehículos
-    this.vehiculoService.getVehiculos().subscribe({
-      next: (vehiculos) => {
+    // Cargar vehículos (con filtrado por historial)
+    this.cargarVehiculosConHistorial();
+  }
+
+  /**
+   * Cargar vehículos aplicando filtrado por historial
+   */
+  private async cargarVehiculosConHistorial() {
+    try {
+      // Intentar obtener solo vehículos visibles (historial actual)
+      const vehiculos = await this.vehiculoService.obtenerVehiculosVisibles();
+      
+      if (vehiculos && vehiculos.length > 0) {
+        console.log('✅ Vehículos visibles cargados:', vehiculos.length);
         this.vehiculos.set(vehiculos);
-        console.log('✅ Vehículos cargados:', vehiculos.length);
-        this.cargando.set(false);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar vehículos:', error);
-        this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 3000 });
-        this.cargando.set(false);
+      } else {
+        // Fallback a método tradicional si no hay vehículos visibles
+        console.log('⚠️ No hay vehículos visibles, usando método tradicional');
+        this.vehiculoService.getVehiculos().subscribe({
+          next: (vehiculos) => {
+            this.vehiculos.set(vehiculos);
+            console.log('✅ Vehículos cargados (fallback):', vehiculos.length);
+          },
+          error: (error) => {
+            console.error('❌ Error al cargar vehículos:', error);
+            this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 3000 });
+          }
+        });
       }
-    });
+    } catch (error) {
+      console.error('❌ Error al cargar vehículos visibles:', error);
+      
+      // Fallback a método tradicional
+      this.vehiculoService.getVehiculos().subscribe({
+        next: (vehiculos) => {
+          this.vehiculos.set(vehiculos);
+          console.log('✅ Vehículos cargados (fallback):', vehiculos.length);
+        },
+        error: (error) => {
+          console.error('❌ Error al cargar vehículos (fallback):', error);
+          this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 3000 });
+        }
+      });
+    } finally {
+      this.cargando.set(false);
+    }
   }
 
   // Métodos de filtrado
@@ -1146,5 +1206,136 @@ export class VehiculosComponent implements OnInit {
       queryParams: queryParams,
       queryParamsHandling: 'merge'
     });
+  }
+
+  // ========================================
+  // MÉTODOS DE GESTIÓN DE HISTORIAL
+  // ========================================
+
+  /**
+   * Actualizar historial de validaciones para todos los vehículos
+   */
+  async actualizarHistorialTodos() {
+    try {
+      this.cargando.set(true);
+      const resultado = await this.vehiculoService.actualizarHistorialTodos();
+      
+      this.snackBar.open(
+        `Historial actualizado: ${resultado.estadisticas.actualizados} vehículos procesados`, 
+        'Cerrar', 
+        { duration: 5000 }
+      );
+      
+      // Recargar datos para mostrar cambios
+      this.cargarVehiculosConHistorial();
+      
+    } catch (error) {
+      console.error('❌ Error actualizando historial:', error);
+      this.snackBar.open('Error al actualizar historial', 'Cerrar', { duration: 3000 });
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  /**
+   * Ver estadísticas del historial de validaciones
+   */
+  async verEstadisticasHistorial() {
+    try {
+      const estadisticas = await this.vehiculoService.obtenerEstadisticasHistorial();
+      
+      // Mostrar estadísticas en un diálogo o snackbar
+      const resumen = estadisticas.estadisticas.resumen;
+      const mensaje = `
+        📊 Estadísticas de Historial:
+        • Total vehículos: ${resumen.total_vehiculos}
+        • Con historial: ${resumen.vehiculos_con_historial}
+        • Promedio resoluciones: ${estadisticas.estadisticas.promedio_resoluciones}
+        • Máximo resoluciones: ${estadisticas.estadisticas.maximo_resoluciones}
+      `;
+      
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 8000 });
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas:', error);
+      this.snackBar.open('Error al obtener estadísticas', 'Cerrar', { duration: 3000 });
+    }
+  }
+
+  /**
+   * Marcar vehículos con historial actual vs históricos
+   */
+  async marcarVehiculosActuales() {
+    try {
+      this.cargando.set(true);
+      const resultado = await this.vehiculoService.marcarVehiculosHistorialActual();
+      
+      this.snackBar.open(
+        `Marcado completado: ${resultado.resultado.vehiculos_actuales} actuales, ${resultado.resultado.vehiculos_historicos} históricos`, 
+        'Cerrar', 
+        { duration: 5000 }
+      );
+      
+      // Recargar datos para mostrar cambios
+      this.cargarVehiculosConHistorial();
+      
+    } catch (error) {
+      console.error('❌ Error marcando vehículos:', error);
+      this.snackBar.open('Error al marcar vehículos', 'Cerrar', { duration: 3000 });
+    } finally {
+      this.cargando.set(false);
+    }
+  }
+
+  /**
+   * Ver estadísticas del filtrado por historial
+   */
+  async verEstadisticasFiltrado() {
+    try {
+      const estadisticas = await this.vehiculoService.obtenerEstadisticasFiltrado();
+      
+      const resumen = estadisticas.estadisticas.resumen;
+      const eficiencia = estadisticas.estadisticas.eficiencia_filtrado;
+      
+      const mensaje = `
+        🔍 Estadísticas de Filtrado:
+        • Vehículos actuales: ${resumen.vehiculos_actuales}
+        • Vehículos históricos: ${resumen.vehiculos_historicos}
+        • Vehículos bloqueados: ${resumen.vehiculos_bloqueados}
+        • Eficiencia: ${eficiencia.porcentaje_visibles}% visibles
+        • Reducción ruido: ${eficiencia.reduccion_ruido} registros
+      `;
+      
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 8000 });
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas de filtrado:', error);
+      this.snackBar.open('Error al obtener estadísticas', 'Cerrar', { duration: 3000 });
+    }
+  }
+
+  /**
+   * Ver historial detallado de un vehículo
+   */
+  async verHistorialDetallado(vehiculoId: string) {
+    try {
+      const historial = await this.vehiculoService.obtenerHistorialDetallado(vehiculoId);
+      
+      const vehiculo = historial.historial.vehiculo;
+      const totalResoluciones = historial.historial.total_resoluciones;
+      
+      const mensaje = `
+        📋 Historial de ${vehiculo.placa}:
+        • Total resoluciones: ${totalResoluciones}
+        • Historial actual: #${vehiculo.numero_historial_actual}
+        • Empresa actual: ${vehiculo.empresa_actual_id}
+      `;
+      
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 6000 });
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo historial detallado:', error);
+      this.snackBar.open('Error al obtener historial detallado', 'Cerrar', { duration: 3000 });
+    }
   }
 } 

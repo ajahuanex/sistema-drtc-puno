@@ -745,4 +745,161 @@ XYZ-456,20999888777,,,03,AREQUIPA,N3,VOLVO,FH16,2019,AZUL,VL789012,D16G750,VOLVO
     const vehiculosARE = this.mockVehiculos.filter(v => v.placa.startsWith('ARE'));
     console.log('🏙️ VEHÍCULOS AREQUIPA:', vehiculosARE.length, vehiculosARE.map(v => v.placa));
   }
+
+  // ========================================
+  // MÉTODOS DE HISTORIAL DE VALIDACIONES
+  // ========================================
+
+  /**
+   * Actualizar historial de validaciones para todos los vehículos
+   */
+  async actualizarHistorialTodos(): Promise<any> {
+    try {
+      const response = await this.http.post<any>(`${this.apiUrl}/vehiculos/historial/actualizar-todos`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      console.log('✅ Historial actualizado exitosamente:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error actualizando historial:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener estadísticas del historial de validaciones
+   */
+  async obtenerEstadisticasHistorial(): Promise<any> {
+    try {
+      const response = await this.http.get<any>(`${this.apiUrl}/vehiculos/historial/estadisticas`, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas de historial:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recalcular historial para una empresa específica
+   */
+  async recalcularHistorialEmpresa(empresaId: string): Promise<any> {
+    try {
+      const response = await this.http.post<any>(`${this.apiUrl}/vehiculos/historial/recalcular-empresa/${empresaId}`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error recalculando historial de empresa:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener historial detallado de un vehículo
+   */
+  async obtenerHistorialDetallado(vehiculoId: string): Promise<any> {
+    try {
+      const response = await this.http.get<any>(`${this.apiUrl}/vehiculos/${vehiculoId}/historial-detallado`, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error obteniendo historial detallado:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // MÉTODOS DE FILTRADO POR HISTORIAL
+  // ========================================
+
+  /**
+   * Marcar vehículos con historial actual vs históricos
+   */
+  async marcarVehiculosHistorialActual(): Promise<any> {
+    try {
+      const response = await this.http.post<any>(`${this.apiUrl}/vehiculos/historial/marcar-actuales`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error marcando vehículos por historial:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener solo vehículos visibles (historial actual)
+   */
+  async obtenerVehiculosVisibles(empresaId?: string): Promise<Vehiculo[]> {
+    try {
+      const params = empresaId ? `?empresa_id=${empresaId}` : '';
+      const response = await this.http.get<any>(`${this.apiUrl}/vehiculos/visibles${params}`, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response.vehiculos || [];
+    } catch (error) {
+      console.error('❌ Error obteniendo vehículos visibles:', error);
+      // Fallback a datos mock filtrados
+      return this.mockVehiculos.filter(v => 
+        (!empresaId || v.empresaActualId === empresaId) && v.estaActivo
+      );
+    }
+  }
+
+  /**
+   * Obtener historial completo por placa
+   */
+  async obtenerHistorialPorPlaca(placa: string): Promise<any> {
+    try {
+      const response = await this.http.get<any>(`${this.apiUrl}/vehiculos/historial-placa/${placa}`, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error obteniendo historial por placa:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener estadísticas del filtrado por historial
+   */
+  async obtenerEstadisticasFiltrado(): Promise<any> {
+    try {
+      const response = await this.http.get<any>(`${this.apiUrl}/vehiculos/filtrado/estadisticas`, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error obteniendo estadísticas de filtrado:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restaurar vehículo histórico como actual
+   */
+  async restaurarVehiculoHistorico(vehiculoId: string): Promise<any> {
+    try {
+      const response = await this.http.post<any>(`${this.apiUrl}/vehiculos/restaurar-historico/${vehiculoId}`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+
+      return response;
+    } catch (error) {
+      console.error('❌ Error restaurando vehículo histórico:', error);
+      throw error;
+    }
+  }
 } 

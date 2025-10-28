@@ -34,6 +34,10 @@ export interface Vehiculo {
   estaActivo: boolean;
   tuc?: Tuc;
   datosTecnicos: DatosTecnicos;
+  // Campos de historial de validaciones
+  numeroHistorialValidacion?: number; // Número secuencial basado en orden de resoluciones
+  esHistorialActual?: boolean; // Si es el registro actual del vehículo (historial más alto)
+  vehiculoHistorialActualId?: string; // ID del vehículo con el historial más actual
 }
 
 export interface VehiculoCreate {
