@@ -74,7 +74,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
              class="nav-item sub-item"
              [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" 
              matTooltipPosition="right">
-            <mat-icon matListItemIcon class="nav-icon">dashboard</mat-icon>
+            <app-smart-icon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
             @if (isExpanded()) {
               <span matListItemTitle class="nav-text">Dashboard Empresas</span>
             }
@@ -101,7 +101,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Conductores' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">person</mat-icon>
+          <app-smart-icon [iconName]="'person'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Conductores</span>
           }
@@ -114,7 +114,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'TUCs' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">receipt</mat-icon>
+          <app-smart-icon [iconName]="'receipt'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">TUCs</span>
           }
@@ -139,7 +139,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">security</mat-icon>
+          <app-smart-icon [iconName]="'security'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Fiscalizaciones</span>
           }
@@ -152,7 +152,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Rutas' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">route</mat-icon>
+          <app-smart-icon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Rutas</span>
           }
@@ -165,7 +165,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">description</mat-icon>
+          <app-smart-icon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Resoluciones</span>
           }
@@ -178,7 +178,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Expedientes' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">folder</mat-icon>
+          <app-smart-icon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Expedientes</span>
           }
@@ -203,7 +203,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Oficinas' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">business</mat-icon>
+          <app-smart-icon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Oficinas</span>
           }
@@ -216,7 +216,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">timeline</mat-icon>
+          <app-smart-icon [iconName]="'timeline'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Flujo de Expedientes</span>
           }
@@ -241,7 +241,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Reportes' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">assessment</mat-icon>
+          <app-smart-icon [iconName]="'assessment'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Reportes</span>
           }
@@ -266,7 +266,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Configuración' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">settings</mat-icon>
+          <app-smart-icon [iconName]="'settings'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Configuración</span>
           }
@@ -279,7 +279,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Perfil' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">account_circle</mat-icon>
+          <app-smart-icon [iconName]="'account_circle'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Perfil</span>
           }
@@ -292,7 +292,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Ayuda' : ''" 
            matTooltipPosition="right">
-          <mat-icon matListItemIcon class="nav-icon">help</mat-icon>
+          <app-smart-icon [iconName]="'help'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Ayuda</span>
           }
@@ -354,10 +354,23 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     .nav-icon {
       color: #6c757d;
       transition: color 0.2s ease-in-out;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      flex-shrink: 0;
     }
 
     .nav-item.active-link .nav-icon {
       color: white;
+    }
+    
+    /* Asegurar alineación de iconos en mat-list-item */
+    .nav-item ::ng-deep app-smart-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
     }
 
     .nav-text {
