@@ -7,6 +7,7 @@ import time
 from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
 from app.routers.mock_router import router as mock_router
+from app.routers.data_manager_router import router as data_manager_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -76,6 +77,7 @@ app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(mock_router, prefix=settings.API_V1_STR)
+app.include_router(data_manager_router)
 
 # Endpoint de salud
 @app.get("/health")

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Sistema de Datos Persistentes Completo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .feature-icon.persistent {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+        }
+
+        .feature-icon.relations {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+        }
+
+        .feature-icon.realtime {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .feature-icon.api {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .feature-list li::before {
+            content: '✅';
+            font-size: 12px;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 32px;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .demo-header h2 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .demo-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .demo-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .demo-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .demo-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .demo-card p {
+            color: #666;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .demo-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .demo-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .demo-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 4px;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .connection-status.connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .connection-status.disconnected {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .connection-status.loading {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .material-icons {
+            font-size: 20px;
+        }
+
+        .log-panel {
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        .log-level-info {
+            color: #4fc3f7;
+        }
+
+        .log-level-success {
+            color: #66bb6a;
+        }
+
+        .log-level-error {
+            color: #ef5350;
+        }
+
+        .log-level-warning {
+            color: #ffb74d;
+        }
+
+        @media (max-width: 768px) {
+            .features-grid,
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>
+                <span class="material-icons" style="font-size: 40px;">storage</span>
+                Sistema de Datos Persistentes
+            </h1>
+            <p>DataManager con persistencia en memoria para desarrollo y testing</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon persistent">
+                        <span class="material-icons">save</span>
+                    </div>
+                    <div class="feature-title">Datos Persistentes</div>
+                </div>
+                <div class="feature-description">
+                    Los datos se mantienen en memoria durante toda la sesión de desarrollo, 
+                    permitiendo trabajar con información consistente sin base de datos.
+                </div>
+                <ul class="feature-list">
+                    <li>Persistencia en memoria durante la sesión</li>
+                    <li>Datos iniciales realistas preconfigurados</li>
+                    <li>Fácil migración a base de datos en producción</li>
+                    <li>Sin configuración de BD para desarrollo</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon relations">
+                        <span class="material-icons">link</span>
+                    </div>
+                    <div class="feature-title">Relaciones Automáticas</div>
+                </div>
+                <div class="feature-description">
+                    El sistema mantiene automáticamente las relaciones entre empresas, 
+                    vehículos, conductores, rutas, expedientes y resoluciones.
+                </div>
+                <ul class="feature-list">
+                    <li>Relaciones automáticas entre módulos</li>
+                    <li>Integridad referencial garantizada</li>
+                    <li>Cascada de operaciones</li>
+                    <li>Validaciones de consistencia</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon realtime">
+                        <span class="material-icons">update</span>
+                    </div>
+                    <div class="feature-title">Tiempo Real</div>
+                </div>
+                <div class="feature-description">
+                    Estadísticas y métricas actualizadas en tiempo real, 
+                    con log de operaciones y seguimiento de cambios.
+                </div>
+                <ul class="feature-list">
+                    <li>Estadísticas en tiempo real</li>
+                    <li>Log de operaciones con timestamps</li>
+                    <li>Métricas de rendimiento</li>
+                    <li>Alertas del sistema</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-header">
+                    <div class="feature-icon api">
+                        <span class="material-icons">api</span>
+                    </div>
+                    <div class="feature-title">API REST Completa</div>
+                </div>
+                <div class="feature-description">
+                    API REST completa para acceder a todos los datos y funcionalidades, 
+                    compatible con el frontend Angular.
+                </div>
+                <ul class="feature-list">
+                    <li>Endpoints RESTful completos</li>
+                    <li>Búsquedas avanzadas con filtros</li>
+                    <li>Operaciones CRUD completas</li>
+                    <li>Documentación Swagger automática</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Demostración Interactiva</h2>
+                <p>Prueba las funcionalidades del sistema de datos persistentes</p>
+            </div>
+
+            <div id="connectionStatus" class="connection-status loading">
+                <span class="material-icons">sync</span>
+                Conectando con el DataManager...
+            </div>
+
+            <div class="demo-grid">
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">assessment</span>
+                        Estadísticas
+                    </h3>
+                    <p>Ver estadísticas globales del sistema en tiempo real</p>
+                    <button class="demo-button" onclick="loadStats()" id="statsBtn">
+                        <span class="material-icons">refresh</span>
+                        Cargar Estadísticas
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">business</span>
+                        Empresas
+                    </h3>
+                    <p>Gestionar empresas y ver sus relaciones completas</p>
+                    <button class="demo-button" onclick="loadCompanies()" id="companiesBtn">
+                        <span class="material-icons">domain</span>
+                        Ver Empresas
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">directions_car</span>
+                        Vehículos
+                    </h3>
+                    <p>Consultar vehículos con flujo completo de procesos</p>
+                    <button class="demo-button" onclick="loadVehicles()" id="vehiclesBtn">
+                        <span class="material-icons">local_shipping</span>
+                        Ver Vehículos
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">person</span>
+                        Conductores
+                    </h3>
+                    <p>Administrar conductores y sus asignaciones</p>
+                    <button class="demo-button" onclick="loadDrivers()" id="driversBtn">
+                        <span class="material-icons">people</span>
+                        Ver Conductores
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">route</span>
+                        Rutas
+                    </h3>
+                    <p>Gestionar rutas y sus configuraciones</p>
+                    <button class="demo-button" onclick="loadRoutes()" id="routesBtn">
+                        <span class="material-icons">map</span>
+                        Ver Rutas
+                    </button>
+                </div>
+
+                <div class="demo-card">
+                    <h3>
+                        <span class="material-icons">add_circle</span>
+                        Agregar Datos
+                    </h3>
+                    <p>Agregar nuevos elementos y ver relaciones automáticas</p>
+                    <button class="demo-button" onclick="addSampleData()" id="addBtn">
+                        <span class="material-icons">add</span>
+                        Agregar Muestra
+                    </button>
+                </div>
+            </div>
+
+            <div class="status-panel">
+                <div class="status-header">
+                    <span class="material-icons">dashboard</span>
+                    Estado del Sistema
+                </div>
+                <div class="status-grid" id="statusGrid">
+                    <div class="status-item">
+                        <div class="status-value" id="totalEntities">-</div>
+                        <div class="status-label">Total Entidades</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-value" id="totalCompanies">-</div>
+                        <div class="status-label">Empresas</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-value" id="totalVehicles">-</div>
+                        <div class="status-label">Vehículos</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-value" id="totalDrivers">-</div>
+                        <div class="status-label">Conductores</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-value" id="totalRoutes">-</div>
+                        <div class="status-label">Rutas</div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-value" id="uptime">-</div>
+                        <div class="status-label">Tiempo Activo</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry">
+                    <span class="log-timestamp">[Iniciando...]</span> 
+                    <span class="log-level-info">INFO</span>: 
+                    Sistema de datos persistentes cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/data-manager';
+        let isConnected = false;
+
+        // Función para agregar logs
+        function addLog(level, message) {
+            const logPanel = document.getElementById('logPanel');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span> 
+                <span class="log-level-${level}">${level.toUpperCase()}</span>: 
+                ${message}
+            `;
+            logPanel.appendChild(logEntry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        // Función para actualizar estado de conexión
+        function updateConnectionStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `connection-status ${status}`;
+            
+            const icon = status === 'connected' ? 'check_circle' : 
+                        status === 'disconnected' ? 'error' : 'sync';
+            
+            statusEl.innerHTML = `
+                <span class="material-icons">${icon}</span>
+                ${message}
+            `;
+        }
+
+        // Función para hacer peticiones a la API
+        async function apiRequest(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                addLog('error', `Error en ${endpoint}: ${error.message}`);
+                throw error;
+            }
+        }
+
+        // Cargar estadísticas
+        async function loadStats() {
+            const btn = document.getElementById('statsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Cargando...';
+            
+            try {
+                const response = await apiRequest('/estadisticas');
+                
+                if (response.success) {
+                    const stats = response.data.estadisticas_generales;
+                    
+                    // Actualizar contadores
+                    document.getElementById('totalCompanies').textContent = stats.total_empresas;
+                    document.getElementById('totalVehicles').textContent = stats.total_vehiculos;
+                    document.getElementById('totalDrivers').textContent = stats.total_conductores;
+                    document.getElementById('totalRoutes').textContent = stats.total_rutas;
+                    document.getElementById('uptime').textContent = response.data.informacion_sesion.tiempo_activo;
+                    
+                    const total = Object.values(stats).reduce((sum, val) => sum + val, 0);
+                    document.getElementById('totalEntities').textContent = total;
+                    
+                    addLog('success', `Estadísticas cargadas: ${total} entidades totales`);
+                    
+                    if (!isConnected) {
+                        isConnected = true;
+                        updateConnectionStatus('connected', 'Conectado al DataManager');
+                    }
+                } else {
+                    addLog('error', 'Error al cargar estadísticas: ' + response.message);
+                }
+            } catch (error) {
+                addLog('error', 'Error de conexión con el DataManager');
+                updateConnectionStatus('disconnected', 'Error de conexión');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">refresh</span> Cargar Estadísticas';
+            }
+        }
+
+        // Cargar empresas
+        async function loadCompanies() {
+            const btn = document.getElementById('companiesBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Cargando...';
+            
+            try {
+                const response = await apiRequest('/datos/empresas');
+                
+                if (response.success) {
+                    const companies = Object.values(response.data.datos);
+                    addLog('info', `${companies.length} empresas encontradas`);
+                    
+                    // Mostrar algunas empresas
+                    companies.slice(0, 3).forEach(company => {
+                        addLog('info', `📋 ${company.razonSocial?.principal || 'Sin nombre'} (RUC: ${company.ruc})`);
+                    });
+                }
+            } catch (error) {
+                addLog('error', 'Error cargando empresas');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">domain</span> Ver Empresas';
+            }
+        }
+
+        // Cargar vehículos
+        async function loadVehicles() {
+            const btn = document.getElementById('vehiclesBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Cargando...';
+            
+            try {
+                const response = await apiRequest('/datos/vehiculos');
+                
+                if (response.success) {
+                    const vehicles = Object.values(response.data.datos);
+                    addLog('info', `${vehicles.length} vehículos encontrados`);
+                    
+                    // Mostrar algunos vehículos
+                    vehicles.slice(0, 3).forEach(vehicle => {
+                        addLog('info', `🚗 ${vehicle.placa} - ${vehicle.marca} ${vehicle.modelo} (${vehicle.estado})`);
+                    });
+                }
+            } catch (error) {
+                addLog('error', 'Error cargando vehículos');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">local_shipping</span> Ver Vehículos';
+            }
+        }
+
+        // Cargar conductores
+        async function loadDrivers() {
+            const btn = document.getElementById('driversBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Cargando...';
+            
+            try {
+                const response = await apiRequest('/datos/conductores');
+                
+                if (response.success) {
+                    const drivers = Object.values(response.data.datos);
+                    addLog('info', `${drivers.length} conductores encontrados`);
+                    
+                    // Mostrar algunos conductores
+                    drivers.slice(0, 3).forEach(driver => {
+                        const nombre = `${driver.nombres} ${driver.apellidoPaterno}`;
+                        addLog('info', `👨‍💼 ${nombre} - ${driver.codigoConductor} (${driver.estado})`);
+                    });
+                }
+            } catch (error) {
+                addLog('error', 'Error cargando conductores');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">people</span> Ver Conductores';
+            }
+        }
+
+        // Cargar rutas
+        async function loadRoutes() {
+            const btn = document.getElementById('routesBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Cargando...';
+            
+            try {
+                const response = await apiRequest('/datos/rutas');
+                
+                if (response.success) {
+                    const routes = Object.values(response.data.datos);
+                    addLog('info', `${routes.length} rutas encontradas`);
+                    
+                    // Mostrar algunas rutas
+                    routes.slice(0, 3).forEach(route => {
+                        addLog('info', `🛣️ ${route.codigoRuta} - ${route.origen} → ${route.destino} (${route.estado})`);
+                    });
+                }
+            } catch (error) {
+                addLog('error', 'Error cargando rutas');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">map</span> Ver Rutas';
+            }
+        }
+
+        // Agregar datos de muestra
+        async function addSampleData() {
+            const btn = document.getElementById('addBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons">sync</span> Agregando...';
+            
+            try {
+                // Agregar empresa de muestra
+                const newCompany = {
+                    razonSocial: "Transportes Demo Persistente S.A.C.",
+                    ruc: "20777888999",
+                    representanteLegal: "Demo Persistente",
+                    telefono: "051-777888",
+                    email: "demo@persistente.com",
+                    direccion: "Av. Demo Persistente 789, Puno",
+                    estado: "ACTIVO",
+                    fechaConstitucion: "2024-01-01",
+                    modalidadServicio: "REGULAR",
+                    tipoEmpresa: "PEQUEÑA"
+                };
+                
+                const response = await apiRequest('/agregar/empresas', {
+                    method: 'POST',
+                    body: JSON.stringify(newCompany)
+                });
+                
+                if (response.success) {
+                    addLog('success', `✅ Empresa agregada: ${newCompany.razonSocial}`);
+                    addLog('info', `🆔 ID generado: ${response.data.elemento_id}`);
+                    
+                    // Actualizar estadísticas automáticamente
+                    setTimeout(loadStats, 1000);
+                } else {
+                    addLog('error', 'Error agregando empresa: ' + response.message);
+                }
+            } catch (error) {
+                addLog('error', 'Error agregando datos de muestra');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons">add</span> Agregar Muestra';
+            }
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('info', 'Sistema de datos persistentes iniciado');
+            addLog('info', 'Conectando con DataManager en http://localhost:8000');
+            
+            // Cargar estadísticas iniciales
+            setTimeout(loadStats, 1000);
+            
+            // Actualizar estadísticas cada 30 segundos
+            setInterval(loadStats, 30000);
+        });
+
+        console.log('🎉 Sistema de Datos Persistentes - Demo Cargado');
+        console.log('✅ Datos persistentes en memoria durante la sesión');
+        console.log('✅ Relaciones automáticas entre módulos');
+        console.log('✅ API REST completa funcionando');
+        console.log('✅ Estadísticas en tiempo real');
+    </script>
+</body>
+</html>

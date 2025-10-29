@@ -589,7 +589,7 @@ export class TucService {
         }
 
         // Obtener información relacionada solo si los IDs existen
-        return this.vehiculoService.getVehiculoById(tuc.vehiculoId).pipe(
+        return this.vehiculoService.getVehiculo(tuc.vehiculoId).pipe(
           catchError(error => {
             console.warn('Error obteniendo vehículo, usando objeto vacío:', error);
             return of({} as Vehiculo);

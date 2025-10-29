@@ -133,6 +133,16 @@ export interface AgregarRutaData {
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field full-width">
+                  <mat-label>Itinerario</mat-label>
+                  <textarea matInput 
+                            formControlName="itinerario" 
+                            placeholder="Describa el itinerario de la ruta (localidades intermedias, paradas, etc.)"
+                            rows="3"
+                            class="itinerario-field"></textarea>
+                  <mat-hint>Detalle las paradas y localidades intermedias de la ruta</mat-hint>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field full-width">
                   <mat-label>Observaciones</mat-label>
                   <textarea matInput 
                             formControlName="observaciones" 
@@ -192,6 +202,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       destino: ['', [Validators.required]],
       frecuencias: ['', [Validators.required]],
       tipoRuta: ['INTERPROVINCIAL'],
+      itinerario: [''],
       observaciones: ['']
     });
 
@@ -241,6 +252,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
         origen: this.data.ruta.origen,
         destino: this.data.ruta.destino,
         frecuencias: this.data.ruta.frecuencias,
+        itinerario: this.data.ruta.descripcion || '',
         observaciones: this.data.ruta.observaciones,
         tipoRuta: this.data.ruta.tipoRuta
       });
@@ -414,10 +426,15 @@ export class AgregarRutaModalComponent implements OnDestroy {
       });
     } else if (this.data.modo === 'edicion' && this.data.ruta) {
       // Modo edición: actualizar ruta existente
+      const formValue = this.rutaForm.value;
       const rutaActualizada: Partial<Ruta> = {
-        ...this.rutaForm.value,
+        ...formValue,
+        descripcion: formValue.itinerario, // Guardar itinerario en descripción
         fechaActualizacion: new Date()
       };
+      
+      // Remover el campo itinerario del objeto final
+      delete (rutaActualizada as any).itinerario;
 
       console.log('✏️ ACTUALIZANDO RUTA EXISTENTE:', JSON.stringify(rutaActualizada, null, 2));
 
@@ -435,8 +452,10 @@ export class AgregarRutaModalComponent implements OnDestroy {
       });
     } else {
       // Modo creación: crear nueva ruta
+      const formValue = this.rutaForm.value;
       const nuevaRuta: Partial<Ruta> = {
-        ...this.rutaForm.value,
+        ...formValue,
+        descripcion: formValue.itinerario, // Guardar itinerario en descripción
         empresaId: this.data.empresa?.id,
         resolucionId: this.data.resolucion?.id,
         estado: 'ACTIVA',
@@ -444,6 +463,9 @@ export class AgregarRutaModalComponent implements OnDestroy {
         fechaRegistro: new Date(),
         fechaActualizacion: new Date()
       };
+      
+      // Remover el campo itinerario del objeto final
+      delete (nuevaRuta as any).itinerario;
 
       console.log('💾 GUARDANDO NUEVA RUTA:', JSON.stringify(nuevaRuta, null, 2));
 

@@ -2344,6 +2344,8 @@ export class EditarVehiculoDialogComponent {
     MatSelectModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
+    MatIconModule,
     SmartIconComponent
   ],
   template: `
@@ -2365,17 +2367,33 @@ export class EditarVehiculoDialogComponent {
           }}
         </p>
         
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Rutas</mat-label>
-          <mat-select [formControl]="rutasControl" multiple>
+        <div class="rutas-selection-container">
+          <h4 class="selection-title">Rutas Disponibles</h4>
+          <p class="selection-hint">Selecciona una o más rutas para asignar al vehículo</p>
+          
+          <div class="rutas-checkboxes">
             @for (ruta of rutasDisponibles(); track ruta.id) {
-              <mat-option [value]="ruta.id">
-                {{ ruta.codigoRuta }} - {{ ruta.origen }} → {{ ruta.destino }}
-              </mat-option>
+              <div class="ruta-checkbox-item">
+                <mat-checkbox 
+                  [checked]="rutasControl.value?.includes(ruta.id)"
+                  (change)="onRutaCheckboxChange(ruta.id, $event.checked)"
+                  class="ruta-checkbox">
+                  <div class="ruta-info">
+                    <span class="ruta-codigo">{{ ruta.codigoRuta }}</span>
+                    <span class="ruta-descripcion">{{ ruta.origen }} → {{ ruta.destino }}</span>
+                  </div>
+                </mat-checkbox>
+              </div>
             }
-          </mat-select>
-          <mat-hint>Selecciona una o más rutas</mat-hint>
-        </mat-form-field>
+          </div>
+          
+          @if (rutasDisponibles().length === 0) {
+            <div class="no-rutas-message">
+              <mat-icon>info</mat-icon>
+              <span>No hay rutas disponibles para esta empresa</span>
+            </div>
+          }
+        </div>
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -2399,6 +2417,62 @@ export class EditarVehiculoDialogComponent {
     .dialog-description {
       margin-bottom: 16px;
       color: #666;
+    }
+    .rutas-selection-container {
+      margin: 16px 0;
+    }
+    .selection-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+      margin: 0 0 8px 0;
+    }
+    .selection-hint {
+      font-size: 13px;
+      color: #666;
+      margin: 0 0 16px 0;
+      font-weight: 400;
+    }
+    .rutas-checkboxes {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .ruta-checkbox-item {
+      padding: 8px 4px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .ruta-checkbox-item:last-child {
+      border-bottom: none;
+    }
+    .ruta-checkbox {
+      width: 100%;
+    }
+    .ruta-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 8px;
+    }
+    .ruta-codigo {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 14px;
+    }
+    .ruta-descripcion {
+      font-size: 13px;
+      color: #666;
+      font-weight: 400;
+    }
+    .no-rutas-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      color: #666;
+      font-style: italic;
     }
   `]
 })
@@ -2437,6 +2511,20 @@ export class AgregarRutasDialogComponent {
 
   cancelar(): void {
     this.dialogRef.close();
+  }
+
+  onRutaCheckboxChange(rutaId: string, checked: boolean): void {
+    const currentValue = this.rutasControl.value || [];
+    
+    if (checked) {
+      // Agregar la ruta si no está ya seleccionada
+      if (!currentValue.includes(rutaId)) {
+        this.rutasControl.setValue([...currentValue, rutaId]);
+      }
+    } else {
+      // Remover la ruta si está seleccionada
+      this.rutasControl.setValue(currentValue.filter(id => id !== rutaId));
+    }
   }
 
   guardar(): void {

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Modal de Rutas Mejorado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .modal-container {
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .modal-content {
+            padding: 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-field {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .form-field.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-field input,
+        .form-field select,
+        .form-field textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Estilos específicos para el campo de itinerario */
+        .itinerario-field {
+            font-size: 13px !important;
+            font-weight: 400 !important;
+            line-height: 1.4 !important;
+            color: #666 !important;
+            font-family: 'Roboto', sans-serif !important;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .itinerario-field::placeholder {
+            font-size: 12px !important;
+            font-weight: 300 !important;
+            color: #999 !important;
+        }
+
+        /* Label del itinerario más sutil */
+        .form-field.itinerario-container label {
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            color: #777 !important;
+        }
+
+        /* Hint del itinerario */
+        .form-hint {
+            font-size: 11px !important;
+            font-weight: 400 !important;
+            color: #888 !important;
+            margin-top: 4px;
+        }
+
+        .codigo-ruta-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .codigo-ruta-container input {
+            flex: 1;
+        }
+
+        .codigo-ruta-container button {
+            flex-shrink: 0;
+            padding: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .codigo-ruta-container button:hover {
+            background: #5a67d8;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+
+        .material-icons {
+            font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .modal-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">Agregar Nueva Ruta</div>
+                <div class="modal-subtitle">Empresa: 20123456789 - Transportes Titicaca S.A.C.</div>
+                <div class="modal-subtitle">Resolución: RES-001-2024 - PRIMIGENIA</div>
+            </div>
+
+            <div class="modal-content">
+                <form>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="codigoRuta">Código de Ruta *</label>
+                            <div class="codigo-ruta-container">
+                                <input type="text" id="codigoRuta" placeholder="Ej: 01, 02, 03..." value="01" required>
+                                <button type="button" title="Regenerar código de ruta">
+                                    <span class="material-icons">refresh</span>
+                                </button>
+                            </div>
+                            <div class="form-hint">Código único de dos dígitos (01, 02, 03...) por resolución</div>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="tipoRuta">Tipo de Ruta</label>
+                            <select id="tipoRuta">
+                                <option value="INTERPROVINCIAL" selected>Interprovincial</option>
+                                <option value="INTERURBANA">Interurbana</option>
+                                <option value="URBANA">Urbana</option>
+                                <option value="RURAL">Rural</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="origen">Origen *</label>
+                            <input type="text" id="origen" placeholder="Ej: Puno" value="Puno" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="destino">Destino *</label>
+                            <input type="text" id="destino" placeholder="Ej: Juliaca" value="Juliaca" required>
+                        </div>
+
+                        <div class="form-field full-width">
+                            <label for="frecuencias">Frecuencias *</label>
+                            <input type="text" id="frecuencias" placeholder="Ej: Diaria, Lunes a Viernes" value="Diaria cada 30 minutos" required>
+                        </div>
+
+                        <div class="form-field full-width itinerario-container">
+                            <label for="itinerario">Itinerario</label>
+                            <textarea 
+                                id="itinerario" 
+                                class="itinerario-field"
+                                placeholder="Describa el itinerario de la ruta (localidades intermedias, paradas, etc.)"
+                                rows="3">Puno (Terminal Terrestre) → Salcedo → Tiquillaca → Caracoto → Juliaca (Terminal San Martín)
+
+Paradas intermedias:
+- Salcedo: Plaza Principal
+- Tiquillaca: Mercado Central  
+- Caracoto: Cruce Principal
+- Juliaca: Av. Circunvalación, Terminal San Martín
+
+Tiempo estimado: 1 hora 15 minutos
+Distancia aproximada: 45 km</textarea>
+                            <div class="form-hint">Detalle las paradas y localidades intermedias de la ruta</div>
+                        </div>
+
+                        <div class="form-field full-width">
+                            <label for="observaciones">Observaciones</label>
+                            <textarea id="observaciones" placeholder="Observaciones adicionales..." rows="3">Ruta principal entre Puno y Juliaca. Servicio regular con alta frecuencia.</textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary">
+                    <span class="material-icons">close</span>
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="material-icons">save</span>
+                    Guardar Ruta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulación de funcionalidad
+        document.querySelector('.codigo-ruta-container button').addEventListener('click', function() {
+            const input = document.getElementById('codigoRuta');
+            const newCode = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');
+            input.value = newCode;
+            
+            // Mostrar notificación simulada
+            const notification = document.createElement('div');
+            notification.textContent = `Nuevo código generado: ${newCode}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4caf50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        });
+
+        // Simulación de envío de formulario
+        document.querySelector('.btn-primary').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const notification = document.createElement('div');
+            notification.textContent = 'Ruta guardada exitosamente';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #2196f3;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-size: 14px;
+                font-weight: 500;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        });
+
+        console.log('🎉 Modal de Rutas Mejorado - Test Cargado');
+        console.log('✅ Campo de itinerario con estilo más sutil implementado');
+        console.log('✅ Sin selección múltiple en campos de texto');
+        console.log('✅ Letras más pequeñas y menos negrita en itinerario');
+    </script>
+</body>
+</html>

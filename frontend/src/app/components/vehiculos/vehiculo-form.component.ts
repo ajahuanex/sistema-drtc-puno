@@ -16,6 +16,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
@@ -47,7 +48,8 @@ import { map, startWith } from 'rxjs/operators';
     MatDialogModule,
     MatChipsModule,
     MatAutocompleteModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatCheckboxModule
   ],
   template: `
     @if (!modalMode()) {
@@ -261,30 +263,42 @@ import { map, startWith } from 'rxjs/operators';
                     <div class="rutas-section">
                       <h4>Rutas Asignadas</h4>
                       <div class="form-row">
-                        <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Rutas Asignadas</mat-label>
-                          <mat-select formControlName="rutasAsignadasIds" multiple [disabled]="!puedeSeleccionarRutas()">
-                            @if (rutasDisponibles().length > 0) {
+                        <div class="rutas-selection-container">
+                          <label class="selection-label">Rutas Asignadas</label>
+                          <p class="selection-hint">{{ getRutasHint() }}</p>
+                          
+                          @if (rutasDisponibles().length > 0) {
+                            <div class="rutas-checkboxes" [class.disabled]="!puedeSeleccionarRutas()">
                               @for (ruta of rutasDisponibles(); track ruta.id) {
-                                <mat-option [value]="ruta.id">
-                                  {{ ruta.codigoRuta }} - {{ ruta.origen }} → {{ ruta.destino }}
-                                  <span class="ruta-info-badge">
-                                    {{ ruta.tipoRuta }} | {{ ruta.frecuencias }}
-                                  </span>
-                                </mat-option>
+                                <div class="ruta-checkbox-item">
+                                  <mat-checkbox 
+                                    [checked]="vehiculoForm.get('rutasAsignadasIds')?.value?.includes(ruta.id)"
+                                    [disabled]="!puedeSeleccionarRutas()"
+                                    (change)="onRutaCheckboxChange(ruta.id, $event.checked)"
+                                    class="ruta-checkbox">
+                                    <div class="ruta-info">
+                                      <span class="ruta-codigo">{{ ruta.codigoRuta }}</span>
+                                      <span class="ruta-descripcion">{{ ruta.origen }} → {{ ruta.destino }}</span>
+                                      <span class="ruta-detalles">{{ ruta.tipoRuta }} | {{ ruta.frecuencias }}</span>
+                                    </div>
+                                  </mat-checkbox>
+                                </div>
                               }
-                            } @else {
-                              <mat-option value="" disabled>
-                                No hay rutas disponibles en esta resolución
-                              </mat-option>
-                            }
-                          </mat-select>
-                          <mat-icon matSuffix>route</mat-icon>
-                          <mat-hint>{{ getRutasHint() }}</mat-hint>
-                          <mat-error *ngIf="vehiculoForm.get('rutasAsignadasIds')?.hasError('required')">
-                            Debe seleccionar al menos una ruta
-                          </mat-error>
-                        </mat-form-field>
+                            </div>
+                          } @else {
+                            <div class="no-rutas-message">
+                              <mat-icon>info</mat-icon>
+                              <span>No hay rutas disponibles en esta resolución</span>
+                            </div>
+                          }
+                          
+                          @if (vehiculoForm.get('rutasAsignadasIds')?.hasError('required')) {
+                            <div class="error-message">
+                              <mat-icon>error</mat-icon>
+                              <span>Debe seleccionar al menos una ruta</span>
+                            </div>
+                          }
+                        </div>
                       </div>
                     </div>
 
@@ -855,6 +869,99 @@ import { map, startWith } from 'rxjs/operators';
     mat-divider {
       margin: 24px 0;
     }
+
+    /* Estilos para la selección de rutas con checkboxes */
+    .rutas-selection-container {
+      margin: 16px 0;
+    }
+    
+    .selection-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    .selection-hint {
+      font-size: 13px;
+      color: #666;
+      margin: 0 0 16px 0;
+      font-weight: 400;
+    }
+    
+    .rutas-checkboxes {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 8px;
+      background: #fafafa;
+    }
+    
+    .rutas-checkboxes.disabled {
+      opacity: 0.6;
+      background: #f5f5f5;
+    }
+    
+    .ruta-checkbox-item {
+      padding: 8px 4px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .ruta-checkbox-item:last-child {
+      border-bottom: none;
+    }
+    
+    .ruta-checkbox {
+      width: 100%;
+    }
+    
+    .ruta-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 8px;
+    }
+    
+    .ruta-codigo {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 14px;
+    }
+    
+    .ruta-descripcion {
+      font-size: 13px;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .ruta-detalles {
+      font-size: 12px;
+      color: #666;
+      font-weight: 400;
+    }
+    
+    .no-rutas-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      color: #666;
+      font-style: italic;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    
+    .error-message {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      color: #d32f2f;
+      font-size: 12px;
+      margin-top: 8px;
+    }
   `]
 })
 export class VehiculoFormComponent implements OnInit {
@@ -1321,6 +1428,24 @@ export class VehiculoFormComponent implements OnInit {
     }
     
     return `Selecciona las rutas autorizadas (${this.rutasDisponibles().length} disponibles)`;
+  }
+
+  onRutaCheckboxChange(rutaId: string, checked: boolean): void {
+    const rutasControl = this.vehiculoForm.get('rutasAsignadasIds');
+    const currentValue = rutasControl?.value || [];
+    
+    if (checked) {
+      // Agregar la ruta si no está ya seleccionada
+      if (!currentValue.includes(rutaId)) {
+        rutasControl?.setValue([...currentValue, rutaId]);
+      }
+    } else {
+      // Remover la ruta si está seleccionada
+      rutasControl?.setValue(currentValue.filter((id: string) => id !== rutaId));
+    }
+    
+    // Marcar el control como touched para activar validaciones
+    rutasControl?.markAsTouched();
   }
 
   calcularCargaUtil(): number {

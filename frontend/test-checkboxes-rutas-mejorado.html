@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Checkboxes de Rutas Mejorado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .section.old {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+
+        .section.new {
+            border-color: #4caf50;
+            background: #e8f5e8;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section.old .section-title {
+            color: #d32f2f;
+        }
+
+        .section.new .section-title {
+            color: #2e7d32;
+        }
+
+        /* Simulación del select múltiple anterior */
+        .old-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .old-select::after {
+            content: '▼';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+
+        .old-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+
+        .old-select.open .old-select-dropdown {
+            display: block;
+        }
+
+        .old-option {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .old-option:hover {
+            background: #f5f5f5;
+        }
+
+        .old-checkbox {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Nuevos estilos para checkboxes directos */
+        .rutas-selection-container {
+            margin: 16px 0;
+        }
+
+        .selection-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .selection-hint {
+            font-size: 13px;
+            color: #666;
+            margin: 0 0 16px 0;
+            font-weight: 400;
+        }
+
+        .rutas-checkboxes {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 8px;
+            background: #fafafa;
+        }
+
+        .ruta-checkbox-item {
+            padding: 8px 4px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .ruta-checkbox-item:last-child {
+            border-bottom: none;
+        }
+
+        .ruta-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .ruta-checkbox:hover {
+            background: #f0f0f0;
+        }
+
+        .checkbox-input {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+
+        .ruta-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .ruta-codigo {
+            font-weight: 600;
+            color: #1976d2;
+            font-size: 14px;
+        }
+
+        .ruta-descripcion {
+            font-size: 13px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .ruta-detalles {
+            font-size: 12px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .no-rutas-message {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            color: #666;
+            font-style: italic;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .material-icons {
+            font-size: 20px;
+        }
+
+        .demo-actions {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 0 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .selected-count {
+            margin-top: 16px;
+            padding: 12px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            color: #1976d2;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Selección de Rutas Mejorada</h1>
+            <p>Comparación: Select Múltiple vs Checkboxes Directos</p>
+        </div>
+
+        <div class="content">
+            <div class="comparison">
+                <!-- Versión anterior con select múltiple -->
+                <div class="section old">
+                    <div class="section-title">
+                        <span class="material-icons">close</span>
+                        Anterior (Con Select)
+                    </div>
+                    
+                    <div style="position: relative;">
+                        <div class="old-select" onclick="toggleOldSelect()" id="oldSelect">
+                            <span id="oldSelectText">Seleccionar rutas...</span>
+                        </div>
+                        <div class="old-select-dropdown" id="oldDropdown">
+                            <div class="old-option">
+                                <input type="checkbox" class="old-checkbox" id="old1" onchange="updateOldSelection()">
+                                <label for="old1">01 - Puno → Juliaca</label>
+                            </div>
+                            <div class="old-option">
+                                <input type="checkbox" class="old-checkbox" id="old2" onchange="updateOldSelection()">
+                                <label for="old2">02 - Juliaca → Arequipa</label>
+                            </div>
+                            <div class="old-option">
+                                <input type="checkbox" class="old-checkbox" id="old3" onchange="updateOldSelection()">
+                                <label for="old3">03 - Puno → Cusco</label>
+                            </div>
+                            <div class="old-option">
+                                <input type="checkbox" class="old-checkbox" id="old4" onchange="updateOldSelection()">
+                                <label for="old4">04 - Arequipa → Lima</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 16px; font-size: 12px; color: #666;">
+                        ❌ Problemas: Select encierra las opciones, difícil de ver todas las opciones, interfaz confusa
+                    </p>
+                </div>
+
+                <!-- Versión nueva con checkboxes directos -->
+                <div class="section new">
+                    <div class="section-title">
+                        <span class="material-icons">check</span>
+                        Nuevo (Checkboxes Directos)
+                    </div>
+                    
+                    <div class="rutas-selection-container">
+                        <label class="selection-label">Rutas Disponibles</label>
+                        <p class="selection-hint">Selecciona una o más rutas para asignar al vehículo</p>
+                        
+                        <div class="rutas-checkboxes">
+                            <div class="ruta-checkbox-item">
+                                <div class="ruta-checkbox">
+                                    <input type="checkbox" class="checkbox-input" id="new1" onchange="updateNewSelection()">
+                                    <div class="ruta-info">
+                                        <span class="ruta-codigo">01</span>
+                                        <span class="ruta-descripcion">Puno → Juliaca</span>
+                                        <span class="ruta-detalles">INTERPROVINCIAL | Diaria cada 30 min</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ruta-checkbox-item">
+                                <div class="ruta-checkbox">
+                                    <input type="checkbox" class="checkbox-input" id="new2" onchange="updateNewSelection()">
+                                    <div class="ruta-info">
+                                        <span class="ruta-codigo">02</span>
+                                        <span class="ruta-descripcion">Juliaca → Arequipa</span>
+                                        <span class="ruta-detalles">INTERPROVINCIAL | 4 viajes diarios</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ruta-checkbox-item">
+                                <div class="ruta-checkbox">
+                                    <input type="checkbox" class="checkbox-input" id="new3" onchange="updateNewSelection()">
+                                    <div class="ruta-info">
+                                        <span class="ruta-codigo">03</span>
+                                        <span class="ruta-descripcion">Puno → Cusco</span>
+                                        <span class="ruta-detalles">TURÍSTICO | 2 viajes diarios</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ruta-checkbox-item">
+                                <div class="ruta-checkbox">
+                                    <input type="checkbox" class="checkbox-input" id="new4" onchange="updateNewSelection()">
+                                    <div class="ruta-info">
+                                        <span class="ruta-codigo">04</span>
+                                        <span class="ruta-descripcion">Arequipa → Lima</span>
+                                        <span class="ruta-detalles">NACIONAL | 6 viajes diarios</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 16px; font-size: 12px; color: #2e7d32;">
+                        ✅ Ventajas: Todas las opciones visibles, fácil selección, información detallada, interfaz clara
+                    </p>
+                </div>
+            </div>
+
+            <div class="selected-count" id="selectedCount">
+                Rutas seleccionadas: 0
+            </div>
+        </div>
+
+        <div class="demo-actions">
+            <button class="btn btn-secondary" onclick="clearAll()">Limpiar Todo</button>
+            <button class="btn btn-primary" onclick="selectAll()">Seleccionar Todo</button>
+        </div>
+    </div>
+
+    <script>
+        function toggleOldSelect() {
+            const select = document.getElementById('oldSelect');
+            select.classList.toggle('open');
+        }
+
+        function updateOldSelection() {
+            const checkboxes = document.querySelectorAll('.old-checkbox:checked');
+            const text = document.getElementById('oldSelectText');
+            
+            if (checkboxes.length === 0) {
+                text.textContent = 'Seleccionar rutas...';
+            } else if (checkboxes.length === 1) {
+                text.textContent = '1 ruta seleccionada';
+            } else {
+                text.textContent = `${checkboxes.length} rutas seleccionadas`;
+            }
+            
+            updateSelectedCount();
+        }
+
+        function updateNewSelection() {
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const oldChecked = document.querySelectorAll('.old-checkbox:checked').length;
+            const newChecked = document.querySelectorAll('.checkbox-input:checked').length;
+            const total = oldChecked + newChecked;
+            
+            document.getElementById('selectedCount').textContent = `Rutas seleccionadas: ${total}`;
+        }
+
+        function clearAll() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateOldSelection();
+            updateNewSelection();
+        }
+
+        function selectAll() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateOldSelection();
+            updateNewSelection();
+        }
+
+        // Cerrar dropdown al hacer clic fuera
+        document.addEventListener('click', function(event) {
+            const select = document.getElementById('oldSelect');
+            const dropdown = document.getElementById('oldDropdown');
+            
+            if (!select.contains(event.target)) {
+                select.classList.remove('open');
+            }
+        });
+
+        console.log('🎉 Demo de Checkboxes de Rutas Mejorado Cargado');
+        console.log('✅ Sin select que encierre las opciones');
+        console.log('✅ Checkboxes directamente visibles');
+        console.log('✅ Información detallada de cada ruta');
+        console.log('✅ Interfaz más clara y usable');
+    </script>
+</body>
+</html>

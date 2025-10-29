@@ -77,6 +77,35 @@
   min-height: 80px;
 }
 
+// Estilos específicos para el campo de itinerario
+.form-field .itinerario-field {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color: #666 !important;
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.form-field .itinerario-field::placeholder {
+  font-size: 12px !important;
+  font-weight: 300 !important;
+  color: #999 !important;
+}
+
+// Asegurar que el label del itinerario también tenga un estilo más sutil
+.form-field:has(.itinerario-field) .mat-form-field-label {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #777 !important;
+}
+
+// Estilo para el hint del itinerario
+.form-field:has(.itinerario-field) .mat-hint {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  color: #888 !important;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
