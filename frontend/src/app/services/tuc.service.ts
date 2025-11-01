@@ -543,7 +543,7 @@ export class TucService {
   // Obtener TUC con información completa (vehículo, empresa, resolución)
   getTucCompleto(id: string): Observable<{
     tuc: Tuc;
-    vehiculo: Vehiculo;
+    vehiculo: Vehiculo | null;
     empresa: Empresa;
     resolucion: Resolucion;
   }> {
@@ -582,7 +582,7 @@ export class TucService {
           // Retornar solo el TUC con objetos vacíos para las entidades relacionadas
           return of({
             tuc,
-            vehiculo: {} as Vehiculo,
+            vehiculo: null as any as Vehiculo,
             empresa: {} as Empresa,
             resolucion: {} as Resolucion
           });

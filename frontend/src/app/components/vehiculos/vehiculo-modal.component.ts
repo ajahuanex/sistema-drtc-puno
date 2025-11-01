@@ -18,7 +18,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
@@ -60,8 +59,7 @@ export interface VehiculoModalData {
     MatTooltipModule,
     MatSlideToggleModule,
     MatCheckboxModule,
-    SmartIconComponent,
-    EmpresaSelectorComponent
+    SmartIconComponent
   ],
   template: `
     <div class="vehiculo-modal">

@@ -285,32 +285,35 @@ export class CargaMasivaVehiculosComponent implements OnInit {
     // Inicialización si es necesaria
   }
 
-  async descargarPlantilla() {
+  descargarPlantilla() {
     this.descargandoPlantilla = true;
     this.errorGeneral = '';
 
-    try {
-      const response = await this.vehiculoService.descargarPlantillaExcel();
-      
-      // Crear enlace de descarga
-      const blob = new Blob([response], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'plantilla_vehiculos.xlsx';
-      link.click();
-      window.URL.revokeObjectURL(url);
+    this.vehiculoService.descargarPlantillaExcel().subscribe({
+      next: (response) => {
+        // Crear enlace de descarga
+        const blob = new Blob([response], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla_vehiculos.xlsx';
+        link.click();
+        window.URL.revokeObjectURL(url);
 
-      this.plantillaDescargada = true;
-    } catch (error) {
-      this.errorGeneral = 'Error al descargar la plantilla. Inténtalo de nuevo.';
-      console.error('Error descargando plantilla:', error);
-    } finally {
-      this.descargandoPlantilla = false;
-    }
+        this.plantillaDescargada = true;
+        this.descargandoPlantilla = false;
+      },
+      error: (error) => {
+        this.errorGeneral = 'Error al descargar la plantilla. Inténtalo de nuevo.';
+        console.error('Error descargando plantilla:', error);
+        this.descargandoPlantilla = false;
+      }
+    });
   }
+
+
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
@@ -365,53 +368,55 @@ export class CargaMasivaVehiculosComponent implements OnInit {
     this.procesamientoCompleto = false;
   }
 
-  async validarArchivo() {
+  validarArchivo() {
     if (!this.archivoSeleccionado) return;
 
     this.validandoArchivo = true;
     this.errorGeneral = '';
 
-    try {
-      this.validaciones = await this.vehiculoService.validarExcel(this.archivoSeleccionado);
-      
-      // Calcular estadísticas
-      this.validacionesExitosas = this.validaciones.filter(v => v.valido).length;
-      this.validacionesConError = this.validaciones.filter(v => !v.valido).length;
-      this.validacionesConAdvertencia = this.validaciones.filter(v => v.advertencias.length > 0).length;
-      
-      this.validacionCompleta = true;
-      this.validacionExitosa = this.validacionesConError === 0;
-      
-    } catch (error) {
-      this.errorGeneral = 'Error al validar el archivo. Verifica el formato y contenido.';
-      console.error('Error validando archivo:', error);
-    } finally {
-      this.validandoArchivo = false;
-    }
+    this.vehiculoService.validarExcel(this.archivoSeleccionado).subscribe({
+      next: (validaciones) => {
+        this.validaciones = validaciones;
+        
+        // Calcular estadísticas
+        this.validacionesExitosas = this.validaciones.filter(v => v.valido).length;
+        this.validacionesConError = this.validaciones.filter(v => !v.valido).length;
+        this.validacionesConAdvertencia = this.validaciones.filter(v => v.advertencias.length > 0).length;
+        
+        this.validacionCompleta = true;
+        this.validacionExitosa = this.validacionesConError === 0;
+        this.validandoArchivo = false;
+      },
+      error: (error) => {
+        this.errorGeneral = 'Error al validar el archivo. Verifica el formato y contenido.';
+        console.error('Error validando archivo:', error);
+        this.validandoArchivo = false;
+      }
+    });
   }
 
-  async procesarCargaMasiva() {
+  procesarCargaMasiva() {
     if (!this.archivoSeleccionado || !this.validacionExitosa) return;
 
     this.procesandoArchivo = true;
     this.errorGeneral = '';
 
-    try {
-      this.resultadoCarga = await this.vehiculoService.cargaMasivaVehiculos(this.archivoSeleccionado);
-      
-      if (this.resultadoCarga) {
-        this.procesamientoCompleto = true;
-        this.procesamientoExitoso = (this.resultadoCarga.exitosos || 0) > 0;
-      } else {
-        throw new Error('No se recibió respuesta del servidor');
+    this.vehiculoService.cargaMasivaVehiculos(this.archivoSeleccionado).subscribe({
+      next: (resultado) => {
+        this.resultadoCarga = resultado;
+        
+        if (this.resultadoCarga) {
+          this.procesamientoCompleto = true;
+          this.procesamientoExitoso = (this.resultadoCarga.exitosos || 0) > 0;
+        }
+        this.procesandoArchivo = false;
+      },
+      error: (error) => {
+        this.errorGeneral = 'Error al procesar la carga masiva. Inténtalo de nuevo.';
+        console.error('Error procesando carga masiva:', error);
+        this.procesandoArchivo = false;
       }
-      
-    } catch (error) {
-      this.errorGeneral = 'Error al procesar la carga masiva. Inténtalo de nuevo.';
-      console.error('Error procesando carga masiva:', error);
-    } finally {
-      this.procesandoArchivo = false;
-    }
+    });
   }
 
   reiniciarProceso() {

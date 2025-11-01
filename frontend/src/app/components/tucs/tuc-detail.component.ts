@@ -622,7 +622,7 @@ export class TucDetailComponent implements OnInit {
   // Signals
   tucCompleto = signal<{
     tuc: Tuc;
-    vehiculo: Vehiculo;
+    vehiculo: Vehiculo | null;
     empresa: Empresa;
     resolucion: Resolucion;
   } | null>(null);
@@ -711,7 +711,7 @@ export class TucDetailComponent implements OnInit {
   }
 
   verVehiculo() {
-    const vehiculoId = this.tucCompleto()?.vehiculo.id;
+    const vehiculoId = this.tucCompleto()?.vehiculo?.id;
     if (vehiculoId) {
       this.router.navigate(['/vehiculos', vehiculoId]);
     }

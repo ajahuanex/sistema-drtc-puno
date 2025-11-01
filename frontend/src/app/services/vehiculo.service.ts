@@ -420,4 +420,130 @@ export class VehiculoService {
       })
     );
   }
+
+  /**
+   * Marca vehículos como historial actual
+   */
+  async marcarVehiculosHistorialActual(): Promise<any> {
+    try {
+      const response = await this.http.post(`${this.apiUrl}/vehiculos/marcar-historial-actual`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('Error marcando vehículos como historial actual:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene estadísticas filtradas
+   */
+  async obtenerEstadisticasFiltrado(): Promise<any> {
+    try {
+      const response = await this.http.get(`${this.apiUrl}/vehiculos/estadisticas-filtrado`, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('Error obteniendo estadísticas filtradas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene historial detallado de un vehículo
+   */
+  async obtenerHistorialDetallado(vehiculoId: string): Promise<any> {
+    try {
+      const response = await this.http.get(`${this.apiUrl}/vehiculos/${vehiculoId}/historial-detallado`, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('Error obteniendo historial detallado:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene estadísticas de historial
+   */
+  async obtenerEstadisticasHistorial(): Promise<any> {
+    try {
+      const response = await this.http.get(`${this.apiUrl}/vehiculos/estadisticas-historial`, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('Error obteniendo estadísticas de historial:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualiza historial de todos los vehículos
+   */
+  async actualizarHistorialTodos(): Promise<any> {
+    try {
+      const response = await this.http.post(`${this.apiUrl}/vehiculos/actualizar-historial-todos`, {}, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('Error actualizando historial de todos:', error);
+      throw error;
+    }
+  }
+
+  getVehiculoById(id: string): Observable<Vehiculo | null> {
+    return this.getVehiculo(id);
+  }
+
+  getVehiculoByPlaca(placa: string): Observable<Vehiculo | null> {
+    return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/placa/${placa}`, {
+      headers: this.getHeaders()
+    }).pipe(catchError(() => of(null)));
+  }
+
+  getVehiculosPorResolucion(resolucionId: string): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/resolucion/${resolucionId}`, {
+      headers: this.getHeaders()
+    }).pipe(catchError(() => of([])));
+  }
+
+  async obtenerVehiculosVisibles(): Promise<Vehiculo[]> {
+    try {
+      const response = await this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/visibles`, {
+        headers: this.getHeaders()
+      }).toPromise();
+      return response || [];
+    } catch (error: any) {
+      console.error('Error obteniendo vehículos visibles:', error);
+      return [];
+    }
+  }
+
+  descargarPlantillaExcel(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/vehiculos/plantilla-excel`, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    });
+  }
+
+  validarExcel(archivo: File): Observable<any[]> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    return this.http.post<any[]>(`${this.apiUrl}/vehiculos/validar-excel`, formData, {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` })
+    }).pipe(catchError(() => of([])));
+  }
+
+  cargaMasivaVehiculos(archivo: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    return this.http.post(`${this.apiUrl}/vehiculos/carga-masiva-vehiculos`, formData, {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` })
+    });
+  }
 }

@@ -1,6 +1,6 @@
-import { Component, inject, signal, computed, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,12 +44,9 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Dashboard' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
-            <ng-container>
-              <span matListItemTitle class="nav-text">Dashboard</span>
-              <span matListItemMeta class="nav-badge">Principal</span>
-            </ng-container>
+            <span matListItemTitle class="nav-text">Dashboard</span>
           }
         </a>
 
@@ -60,7 +57,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Empresas' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Empresas</span>
           }
@@ -74,7 +71,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
              class="nav-item sub-item"
              [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" 
              matTooltipPosition="right">
-            <app-smart-icon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
+            <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
             @if (isExpanded()) {
               <span matListItemTitle class="nav-text">Dashboard Empresas</span>
             }
@@ -88,7 +85,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Vehículos' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'directions_car'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'directions_car'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Vehículos</span>
           }
@@ -101,7 +98,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Conductores' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'person'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'person'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Conductores</span>
           }
@@ -114,7 +111,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'TUCs' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'receipt'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'receipt'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">TUCs</span>
           }
@@ -139,7 +136,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'security'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'security'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Fiscalizaciones</span>
           }
@@ -152,7 +149,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Rutas' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Rutas</span>
           }
@@ -165,7 +162,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Resoluciones</span>
           }
@@ -178,7 +175,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Expedientes' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Expedientes</span>
           }
@@ -203,7 +200,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Oficinas' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Oficinas</span>
           }
@@ -216,7 +213,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'timeline'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'timeline'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Flujo de Expedientes</span>
           }
@@ -241,7 +238,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Reportes' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'assessment'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'assessment'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Reportes</span>
           }
@@ -266,7 +263,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Configuración' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'settings'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'settings'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Configuración</span>
           }
@@ -279,7 +276,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Perfil' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'account_circle'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'account_circle'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Perfil</span>
           }
@@ -292,7 +289,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
            class="nav-item"
            [matTooltip]="!isExpanded() ? 'Ayuda' : ''" 
            matTooltipPosition="right">
-          <app-smart-icon [iconName]="'help'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'help'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) {
             <span matListItemTitle class="nav-text">Ayuda</span>
           }
@@ -333,6 +330,9 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
       border-radius: 8px;
       transition: all 0.2s ease-in-out;
       position: relative;
+      display: flex !important;
+      align-items: center !important;
+      height: 48px !important;
     }
 
     .nav-item:hover {
@@ -354,11 +354,12 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     .nav-icon {
       color: #6c757d;
       transition: color 0.2s ease-in-out;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       margin-right: 16px;
       flex-shrink: 0;
+      vertical-align: middle !important;
     }
 
     .nav-item.active-link .nav-icon {
@@ -367,10 +368,23 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     
     /* Asegurar alineación de iconos en mat-list-item */
     .nav-item ::ng-deep app-smart-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      vertical-align: middle;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      vertical-align: middle !important;
+    }
+
+    /* Forzar alineación del contenido del mat-list-item */
+    .nav-item ::ng-deep .mdc-list-item__content {
+      display: flex !important;
+      align-items: center !important;
+      flex-direction: row !important;
+    }
+
+    .nav-item ::ng-deep .mat-mdc-list-item-unscoped-content {
+      display: flex !important;
+      align-items: center !important;
+      flex-direction: row !important;
     }
 
     .nav-text {
@@ -383,31 +397,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
       color: white;
     }
 
-    .nav-badge {
-      background: linear-gradient(135deg, #28a745, #20c997);
-      color: white;
-      padding: 3px 10px;
-      border-radius: 16px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      animation: pulse 2s infinite;
-    }
 
-    @keyframes pulse {
-      0% {
-        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-      }
-      50% {
-        box-shadow: 0 2px 12px rgba(40, 167, 69, 0.5);
-      }
-      100% {
-        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-      }
-    }
 
     .section-divider {
       margin: 16px 8px;
@@ -486,13 +476,6 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
   `]
 })
 export class SidebarComponent {
-  private router = inject(Router);
-
   // Input signal using modern syntax
   isExpanded = input<boolean>(true);
-
-  // Computed properties
-  currentRoute = computed(() => {
-    return this.router.url;
-  });
 } 

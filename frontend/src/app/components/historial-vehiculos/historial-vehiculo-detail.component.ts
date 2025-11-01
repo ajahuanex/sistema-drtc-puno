@@ -180,8 +180,10 @@ export class HistorialVehiculoDetailComponent implements OnInit {
 
   cargarVehiculo(vehiculoId: string): void {
     this.vehiculoService.getVehiculoById(vehiculoId).subscribe({
-      next: (vehiculo: Vehiculo) => {
-        this.vehiculo.set(vehiculo);
+      next: (vehiculo: Vehiculo | null) => {
+        if (vehiculo) {
+          this.vehiculo.set(vehiculo);
+        }
       },
       error: (error: any) => {
         console.error('Error al cargar vehículo:', error);

@@ -1077,7 +1077,12 @@ export class VehiculoFormComponent implements OnInit {
       this.vehiculoId.set(id);
 
       this.vehiculoService.getVehiculoById(id).subscribe({
-        next: (vehiculo: Vehiculo) => {
+        next: (vehiculo: Vehiculo | null) => {
+          if (!vehiculo) {
+            this.snackBar.open('Vehículo no encontrado', 'Cerrar', { duration: 3000 });
+            this.isLoading.set(false);
+            return;
+          }
           this.vehiculoForm.patchValue({
             empresaActualId: vehiculo.empresaActualId,
             resolucionId: vehiculo.resolucionId,
