@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Flujo Completo de Creación de Resolución</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1976d2;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #333;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .test-step {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .test-step h3 {
+            margin: 0 0 10px 0;
+            color: #2e7d32;
+            font-size: 16px;
+        }
+        
+        .test-step p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .expected-result {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border-left: 3px solid #4caf50;
+        }
+        
+        .expected-result strong {
+            color: #2e7d32;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #ff9800;
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .checklist li::before {
+            content: '☐';
+            position: absolute;
+            left: 15px;
+            font-size: 16px;
+            color: #ff9800;
+        }
+        
+        .checklist li.completed::before {
+            content: '☑';
+            color: #4caf50;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .warning h4 {
+            color: #e65100;
+            margin: 0 0 10px 0;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #1976d2;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .info h4 {
+            color: #1976d2;
+            margin: 0 0 10px 0;
+        }
+        
+        .test-data {
+            background: #f3e5f5;
+            border: 1px solid #9c27b0;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .test-data h4 {
+            color: #7b1fa2;
+            margin: 0 0 10px 0;
+        }
+        
+        .test-data code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d32f2f;
+        }
+        
+        .requirements {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .requirements h4 {
+            color: #f57c00;
+            margin: 0 0 10px 0;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .button:hover {
+            background: #1565c0;
+        }
+        
+        .button.secondary {
+            background: #757575;
+        }
+        
+        .button.secondary:hover {
+            background: #616161;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+        }
+        
+        .status-success {
+            background: #4caf50;
+        }
+        
+        .status-error {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test: Flujo Completo de Creación de Resolución</h1>
+        
+        <div class="info">
+            <h4>📋 Objetivo del Test</h4>
+            <p>Verificar que el flujo completo de creación de resolución funciona correctamente con el nuevo EmpresaSelectorComponent integrado, incluyendo búsqueda por RUC, razón social y código de empresa.</p>
+        </div>
+        
+        <div class="requirements">
+            <h4>📋 Requirements Cubiertos</h4>
+            <ul>
+                <li><strong>6.1:</strong> Campo de empresa como input de búsqueda con autocompletado</li>
+                <li><strong>6.2:</strong> Sugerencias filtradas por RUC, razón social o código de empresa</li>
+                <li><strong>6.3:</strong> Selección de empresa completa el campo correctamente</li>
+            </ul>
+        </div>
+
+        <div class="test-data">
+            <h4>🗂️ Datos de Prueba</h4>
+            <p>Para realizar las pruebas, utiliza estos datos de empresas de ejemplo:</p>
+            <ul>
+                <li><strong>Empresa 1:</strong> RUC <code>20123456789</code>, Razón Social <code>TRANSPORTES ABC SAC</code>, Código <code>0123PRT</code></li>
+                <li><strong>Empresa 2:</strong> RUC <code>20987654321</code>, Razón Social <code>SERVICIOS XYZ EIRL</code>, Código <code>0456SRT</code></li>
+                <li><strong>Empresa 3:</strong> RUC <code>20555666777</code>, Razón Social <code>TURISMO PUNO TOURS SAC</code>, Código <code>0789TRT</code></li>
+            </ul>
+        </div>
+
+        <h2>🚀 Preparación del Test</h2>
+        
+        <div class="test-section">
+            <h3>Paso 0: Verificar Entorno</h3>
+            <ul class="checklist">
+                <li>Servidor de desarrollo Angular ejecutándose (<code>ng serve</code>)</li>
+                <li>Backend API funcionando correctamente</li>
+                <li>Base de datos con empresas de prueba cargadas</li>
+                <li>EmpresaSelectorComponent integrado en CrearResolucionModalComponent</li>
+                <li>Navegador con herramientas de desarrollo abiertas</li>
+            </ul>
+        </div>
+
+        <h2>🧪 Casos de Prueba</h2>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 1: Abrir Modal de Crear Resolución</h3>
+                <p><strong>Acción:</strong> Navegar a la sección de resoluciones y hacer clic en "Crear Nueva Resolución"</p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Modal se abre correctamente</li>
+                        <li>Se muestra el Paso 1: "Selección de Empresa"</li>
+                        <li>Campo de empresa es un input con autocompletado (no un select)</li>
+                        <li>Placeholder muestra: "Buscar por RUC, razón social o código"</li>
+                        <li>Hint muestra: "Seleccione la empresa para la cual se creará la resolución"</li>
+                        <li>Campo tiene asterisco (*) indicando que es requerido</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Modal se abre sin errores en consola</li>
+                    <li>EmpresaSelectorComponent se renderiza correctamente</li>
+                    <li>Campo muestra placeholder correcto</li>
+                    <li>Campo muestra hint correcto</li>
+                    <li>Campo tiene indicador de requerido</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 2: Búsqueda por RUC</h3>
+                <p><strong>Acción:</strong> En el campo de empresa, escribir un RUC parcial o completo</p>
+                <p><strong>Datos de prueba:</strong> Escribir <code>20123</code> o <code>20123456789</code></p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Autocompletado se activa mientras se escribe</li>
+                        <li>Se muestran empresas que coinciden con el RUC</li>
+                        <li>Cada opción muestra: RUC en negrita, razón social, código de empresa (si existe)</li>
+                        <li>Filtrado es en tiempo real (sin delay notable)</li>
+                        <li>Si no hay coincidencias, muestra mensaje "No se encontraron empresas"</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Autocompletado funciona al escribir RUC</li>
+                    <li>Filtrado es correcto y en tiempo real</li>
+                    <li>Opciones muestran formato correcto (RUC en negrita)</li>
+                    <li>Código de empresa se muestra si existe</li>
+                    <li>Mensaje de "no encontrado" aparece cuando corresponde</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 3: Búsqueda por Razón Social</h3>
+                <p><strong>Acción:</strong> Limpiar el campo y escribir parte de una razón social</p>
+                <p><strong>Datos de prueba:</strong> Escribir <code>TRANSPORTES</code> o <code>ABC</code></p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Se muestran empresas cuya razón social contiene el texto</li>
+                        <li>Búsqueda funciona tanto en razón social principal como mínima</li>
+                        <li>Búsqueda es case-insensitive</li>
+                        <li>Resultados se actualizan en tiempo real</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Búsqueda por razón social principal funciona</li>
+                    <li>Búsqueda por razón social mínima funciona (si existe)</li>
+                    <li>Búsqueda es case-insensitive</li>
+                    <li>Filtrado es en tiempo real</li>
+                    <li>Resultados son precisos</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 4: Búsqueda por Código de Empresa</h3>
+                <p><strong>Acción:</strong> Limpiar el campo y escribir un código de empresa</p>
+                <p><strong>Datos de prueba:</strong> Escribir <code>0123</code> o <code>PRT</code></p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Se muestran empresas cuyo código contiene el texto</li>
+                        <li>Búsqueda funciona tanto por números como por letras del código</li>
+                        <li>Código de empresa se resalta en los resultados</li>
+                        <li>Empresas sin código no aparecen en esta búsqueda</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Búsqueda por código de empresa funciona</li>
+                    <li>Búsqueda funciona por números del código</li>
+                    <li>Búsqueda funciona por letras del código</li>
+                    <li>Código se muestra resaltado en resultados</li>
+                    <li>Solo empresas con código aparecen en resultados</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 5: Selección de Empresa</h3>
+                <p><strong>Acción:</strong> Seleccionar una empresa de los resultados del autocompletado</p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Campo se completa con formato: "RUC - Razón Social"</li>
+                        <li>Se muestra la sección "Información de la empresa seleccionada"</li>
+                        <li>Se muestran: RUC, Razón Social, Estado</li>
+                        <li>Se activa el Paso 2: "Expedientes Disponibles"</li>
+                        <li>Se inicia carga de expedientes de la empresa</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Campo se completa correctamente</li>
+                    <li>Información de empresa se muestra</li>
+                    <li>Datos mostrados son correctos</li>
+                    <li>Paso 2 se activa automáticamente</li>
+                    <li>Carga de expedientes se inicia</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 6: Verificar Formulario se Completa</h3>
+                <p><strong>Acción:</strong> Verificar que el formulario reactivo se actualiza correctamente</p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Campo empresaId del formulario tiene el ID de la empresa seleccionada</li>
+                        <li>Validación de campo requerido se cumple</li>
+                        <li>No hay errores de validación en el campo empresa</li>
+                        <li>Formulario permite continuar al siguiente paso</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>FormControl empresaId se actualiza</li>
+                    <li>Validación requerida se cumple</li>
+                    <li>No hay errores de validación</li>
+                    <li>Formulario permite continuar</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 7: Completar Creación de Resolución</h3>
+                <p><strong>Acción:</strong> Completar todos los pasos del formulario y crear la resolución</p>
+                
+                <div class="expected-result">
+                    <strong>Resultado Esperado:</strong>
+                    <ul>
+                        <li>Seleccionar o crear un expediente</li>
+                        <li>Completar información de la resolución</li>
+                        <li>Botón "Crear Resolución" se habilita</li>
+                        <li>Resolución se crea exitosamente</li>
+                        <li>Se muestra mensaje de éxito</li>
+                        <li>Modal se cierra</li>
+                    </ul>
+                </div>
+                
+                <ul class="checklist">
+                    <li>Expediente seleccionado o creado</li>
+                    <li>Información de resolución completada</li>
+                    <li>Botón crear se habilita</li>
+                    <li>Resolución se crea sin errores</li>
+                    <li>Mensaje de éxito se muestra</li>
+                    <li>Modal se cierra correctamente</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>🔍 Casos de Prueba Adicionales</h2>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 8: Estados de Carga</h3>
+                <p><strong>Acción:</strong> Verificar estados de carga del componente</p>
+                
+                <ul class="checklist">
+                    <li>Spinner se muestra mientras cargan empresas</li>
+                    <li>Campo se deshabilita durante carga</li>
+                    <li>Mensaje "Cargando empresas..." aparece en opciones</li>
+                    <li>Estado de carga se limpia al completar</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 9: Manejo de Errores</h3>
+                <p><strong>Acción:</strong> Simular errores de red o datos</p>
+                
+                <ul class="checklist">
+                    <li>Error al cargar empresas se maneja correctamente</li>
+                    <li>Campo requerido muestra error si no se selecciona</li>
+                    <li>Búsqueda sin resultados muestra mensaje apropiado</li>
+                    <li>Errores no rompen la funcionalidad</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-step">
+                <h3>Test 10: UX y Accesibilidad</h3>
+                <p><strong>Acción:</strong> Verificar experiencia de usuario</p>
+                
+                <ul class="checklist">
+                    <li>Navegación con teclado funciona</li>
+                    <li>Tooltips y hints son claros</li>
+                    <li>Indicadores visuales son apropiados</li>
+                    <li>Responsive design funciona en móvil</li>
+                    <li>Colores y contraste son adecuados</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>📊 Resumen de Validación</h2>
+
+        <div class="warning">
+            <h4>⚠️ Puntos Críticos a Verificar</h4>
+            <ul>
+                <li>EmpresaSelectorComponent reemplaza completamente el mat-select anterior</li>
+                <li>Búsqueda funciona por los 3 criterios: RUC, razón social y código</li>
+                <li>Formulario reactivo se actualiza correctamente</li>
+                <li>No hay regresiones en el flujo de creación</li>
+                <li>Performance es aceptable con muchas empresas</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h4>✅ Criterios de Éxito</h4>
+            <p>El test se considera exitoso si:</p>
+            <ul>
+                <li>Todos los casos de prueba pasan sin errores</li>
+                <li>La búsqueda funciona por RUC, razón social y código</li>
+                <li>El formulario se completa correctamente</li>
+                <li>La resolución se crea exitosamente</li>
+                <li>No hay errores en consola del navegador</li>
+                <li>La experiencia de usuario es fluida</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="button" onclick="window.open('http://localhost:4200', '_blank')">
+                🚀 Abrir Aplicación
+            </button>
+            <button class="button secondary" onclick="window.print()">
+                🖨️ Imprimir Checklist
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Funcionalidad para marcar items como completados
+        document.addEventListener('DOMContentLoaded', function() {
+            const checklistItems = document.querySelectorAll('.checklist li');
+            
+            checklistItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    this.classList.toggle('completed');
+                });
+            });
+        });
+
+        // Función para marcar todos los items de una sección
+        function markSectionComplete(sectionElement) {
+            const items = sectionElement.querySelectorAll('.checklist li');
+            items.forEach(item => item.classList.add('completed'));
+        }
+
+        // Función para limpiar todos los checks
+        function clearAllChecks() {
+            const items = document.querySelectorAll('.checklist li');
+            items.forEach(item => item.classList.remove('completed'));
+        }
+    </script>
+</body>
+</html>

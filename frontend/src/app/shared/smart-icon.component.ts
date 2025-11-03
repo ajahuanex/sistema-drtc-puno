@@ -1,12 +1,27 @@
-import { Component, Input, inject, signal, computed } from '@angular/core';
+import { Component, Input, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconService } from '../services/icon.service';
 
 /**
  * Componente de icono inteligente que usa Material Icons con fallbacks automáticos.
  * 
- * Cuando Material Icons no están disponibles, automáticamente usa emojis como fallback.
- * Incluye funcionalidades adicionales como tooltips, estados clickable/disabled y tamaños predefinidos.
+ * Este componente detecta automáticamente si Material Icons están disponibles en el navegador.
+ * Si están disponibles, muestra el icono de Material Icons. Si no están disponibles (por ejemplo,
+ * si la CDN falla o está bloqueada), automáticamente usa emojis como fallback.
+ * 
+ * **Comportamiento de Fallback:**
+ * - Detecta automáticamente la disponibilidad de Material Icons
+ * - Si Material Icons están cargados: muestra el icono normal
+ * - Si Material Icons NO están cargados: muestra emoji equivalente
+ * - El cambio es transparente para el usuario
+ * - Mantiene toda la funcionalidad (tooltips, clicks, etc.)
+ * 
+ * **Características:**
+ * - Tooltips automáticos con descripción del icono
+ * - Estados clickable y disabled
+ * - Tamaños predefinidos: small (18px), normal (24px), large (32px), xl (48px)
+ * - Efectos hover suaves
+ * - Integración completa con IconService
  * 
  * @example
  * ```html
@@ -20,11 +35,12 @@ import { IconService } from '../services/icon.service';
  *   [tooltipText]="'Información de empresa'">
  * </app-smart-icon>
  * 
- * <!-- Icono clickeable -->
+ * <!-- Icono clickeable con efecto hover -->
  * <app-smart-icon 
  *   [iconName]="'edit'" 
  *   [clickable]="true" 
- *   [size]="20">
+ *   [size]="20"
+ *   (click)="editItem()">
  * </app-smart-icon>
  * 
  * <!-- Icono deshabilitado -->
@@ -32,6 +48,49 @@ import { IconService } from '../services/icon.service';
  *   [iconName]="'save'" 
  *   [disabled]="true">
  * </app-smart-icon>
+ * 
+ * <!-- Diferentes tamaños -->
+ * <app-smart-icon [iconName]="'star'" [size]="18"></app-smart-icon> <!-- small -->
+ * <app-smart-icon [iconName]="'star'" [size]="24"></app-smart-icon> <!-- normal -->
+ * <app-smart-icon [iconName]="'star'" [size]="32"></app-smart-icon> <!-- large -->
+ * <app-smart-icon [iconName]="'star'" [size]="48"></app-smart-icon> <!-- xl -->
+ * 
+ * <!-- En botones -->
+ * <button mat-button>
+ *   <app-smart-icon [iconName]="'add'" [size]="20"></app-smart-icon>
+ *   Agregar
+ * </button>
+ * 
+ * <!-- En headers de cards -->
+ * <mat-card-header>
+ *   <app-smart-icon 
+ *     [iconName]="'business'" 
+ *     [size]="24" 
+ *     mat-card-avatar>
+ *   </app-smart-icon>
+ *   <mat-card-title>Empresa</mat-card-title>
+ * </mat-card-header>
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // En el componente TypeScript
+ * export class MyComponent {
+ *   // Iconos dinámicos
+ *   getStatusIcon(status: string): string {
+ *     switch(status) {
+ *       case 'active': return 'check_circle';
+ *       case 'inactive': return 'cancel';
+ *       default: return 'help';
+ *     }
+ *   }
+ * 
+ *   // Verificar estado de iconos
+ *   checkIconStatus() {
+ *     const smartIcon = this.smartIconRef.nativeElement;
+ *     console.log(smartIcon.getIconStatus());
+ *   }
+ * }
  * ```
  */
 @Component({
@@ -98,31 +157,94 @@ import { IconService } from '../services/icon.service';
 export class SmartIconComponent {
   private iconService = inject(IconService);
 
-  /** Nombre del icono de Material Icons (ej: 'home', 'business', 'edit') */
+  /** 
+   * Nombre del icono de Material Icons a mostrar.
+   * 
+   * Debe corresponder a un nombre válido de Material Icons (ej: 'home', 'business', 'edit', 'delete').
+   * Si el icono no existe en Material Icons, se mostrará el nombre tal cual.
+   * Si Material Icons no están disponibles, se usará el emoji fallback correspondiente.
+   * 
+   * @example 'home', 'business', 'edit', 'delete', 'add', 'search'
+   */
   @Input() iconName: string = '';
   
-  /** Tamaño del icono en píxeles. Tamaños comunes: 18 (small), 24 (normal), 32 (large), 48 (xl) */
+  /** 
+   * Tamaño del icono en píxeles.
+   * 
+   * Tamaños predefinidos con clases CSS especiales:
+   * - 18px o menor: aplica clase 'icon-small'
+   * - 24px (default): tamaño normal
+   * - 32px o mayor: aplica clase 'icon-large'  
+   * - 48px o mayor: aplica clase 'icon-xl'
+   * 
+   * @default 24
+   * @example 18, 20, 24, 32, 48
+   */
   @Input() size: number = 24;
   
-  /** Texto del tooltip. Si no se proporciona, usa la descripción automática del IconService */
+  /** 
+   * Texto personalizado para el tooltip del icono.
+   * 
+   * Si no se proporciona, el componente usará automáticamente la descripción
+   * del icono desde IconService. Si el icono no tiene descripción, usará el nombre del icono.
+   * 
+   * @default '' (usa descripción automática)
+   * @example 'Editar elemento', 'Eliminar registro', 'Información de empresa'
+   */
   @Input() tooltipText: string = '';
   
-  /** Si true, aplica estilos de cursor pointer y efecto hover */
+  /** 
+   * Indica si el icono es clickeable.
+   * 
+   * Cuando es true:
+   * - Aplica cursor pointer
+   * - Agrega efecto hover con scale(1.1)
+   * - Agrega clase CSS 'clickable'
+   * 
+   * @default false
+   */
   @Input() clickable: boolean = false;
   
-  /** Si true, aplica opacidad reducida y cursor not-allowed */
+  /** 
+   * Indica si el icono está deshabilitado.
+   * 
+   * Cuando es true:
+   * - Aplica opacidad 0.5
+   * - Aplica cursor not-allowed
+   * - Agrega clase CSS 'disabled'
+   * - Anula efectos hover
+   * 
+   * @default false
+   */
   @Input() disabled: boolean = false;
 
   /**
-   * Contenido del icono (Material Icons o emoji fallback)
-   * Se actualiza automáticamente según la disponibilidad de Material Icons
+   * Contenido del icono que se muestra en el template.
+   * 
+   * Este computed signal se actualiza automáticamente cuando:
+   * - Cambia el iconName
+   * - Cambia el estado de Material Icons (cargado/no cargado)
+   * 
+   * Comportamiento:
+   * - Si Material Icons están disponibles: retorna el nombre del icono
+   * - Si Material Icons NO están disponibles: retorna el emoji fallback
+   * - Si no hay fallback disponible: retorna el nombre del icono
+   * 
+   * @returns El contenido a mostrar (nombre de icono o emoji)
    */
   readonly iconContent = computed(() => {
     return this.iconService.getIconText(this.iconName);
   });
 
   /**
-   * Clases CSS aplicadas al icono según su estado y tamaño
+   * Clases CSS aplicadas dinámicamente al elemento del icono.
+   * 
+   * Genera las clases según:
+   * - Tamaño: 'icon-small', 'icon-large', 'icon-xl'
+   * - Estado: 'clickable', 'disabled'
+   * - Base: 'smart-icon' (siempre presente)
+   * 
+   * @returns String con las clases CSS separadas por espacios
    */
   readonly iconClass = computed(() => {
     const classes = ['smart-icon'];
@@ -137,7 +259,14 @@ export class SmartIconComponent {
   });
 
   /**
-   * Texto del tooltip (personalizado o automático)
+   * Texto del tooltip que se muestra al hacer hover.
+   * 
+   * Prioridad:
+   * 1. tooltipText personalizado (si se proporciona)
+   * 2. Descripción del icono desde IconService
+   * 3. Nombre del icono como fallback
+   * 
+   * @returns El texto del tooltip a mostrar
    */
   readonly tooltip = computed(() => {
     if (this.tooltipText) return this.tooltipText;
@@ -147,16 +276,48 @@ export class SmartIconComponent {
   });
 
   /**
-   * Obtiene el estado actual del servicio de iconos
-   * @returns Objeto con información sobre la carga de Material Icons y fallbacks disponibles
+   * Obtiene el estado actual del servicio de iconos.
+   * 
+   * Útil para debugging o para verificar si Material Icons están funcionando correctamente.
+   * 
+   * @returns Objeto con información detallada:
+   *   - loaded: boolean - Si Material Icons están cargados
+   *   - fallbackMode: boolean - Si está usando fallbacks
+   *   - totalFallbacks: number - Cantidad de fallbacks disponibles
+   * 
+   * @example
+   * ```typescript
+   * const status = this.smartIcon.getIconStatus();
+   * console.log('Material Icons loaded:', status.loaded);
+   * console.log('Using fallbacks:', status.fallbackMode);
+   * console.log('Available fallbacks:', status.totalFallbacks);
+   * ```
    */
   getIconStatus() {
     return this.iconService.getIconStatus();
   }
 
   /**
-   * Fuerza la recarga del sistema de iconos
-   * Útil para debugging o cuando se detectan problemas de carga
+   * Fuerza la recarga del sistema de iconos.
+   * 
+   * Útil para:
+   * - Debugging cuando los iconos no se muestran correctamente
+   * - Recuperación después de problemas de red
+   * - Testing del comportamiento de fallback
+   * 
+   * Reinicia la detección de Material Icons y actualiza todos los componentes.
+   * 
+   * @example
+   * ```typescript
+   * // En caso de problemas con iconos
+   * this.smartIcon.forceReload();
+   * 
+   * // Para testing
+   * this.smartIcon.forceReload();
+   * setTimeout(() => {
+   *   console.log('New status:', this.smartIcon.getIconStatus());
+   * }, 100);
+   * ```
    */
   forceReload() {
     this.iconService.forceReload();

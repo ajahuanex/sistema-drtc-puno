@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { DataManagerClientService, DataManagerStats } from '../../services/data-manager-client.service';
 import { environment } from '../../../environments/environment';
 
@@ -20,14 +21,15 @@ import { environment } from '../../../environments/environment';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    MatChipsModule
+    MatChipsModule,
+    SmartIconComponent
   ],
   template: `
     <div class="dashboard-container">
       <div class="dashboard-header">
         <div class="header-content">
           <h1>
-            <mat-icon>storage</mat-icon>
+            <app-smart-icon [iconName]="'storage'" [size]="32" [tooltipText]="'Sistema de almacenamiento de datos'"></app-smart-icon>
             Dashboard de Datos Persistentes
           </h1>
           <p class="subtitle">Sistema DataManager - Datos en memoria durante la sesión</p>
@@ -38,7 +40,7 @@ import { environment } from '../../../environments/environment';
                   (click)="refreshStats()"
                   [disabled]="loading()"
                   matTooltip="Actualizar estadísticas">
-            <mat-icon>refresh</mat-icon>
+            <app-smart-icon [iconName]="'refresh'" [size]="20" [tooltipText]="'Actualizar estadísticas del dashboard'"></app-smart-icon>
             Actualizar
           </button>
           @if (!environment.production) {
@@ -47,7 +49,7 @@ import { environment } from '../../../environments/environment';
                     (click)="resetSystem()"
                     [disabled]="loading()"
                     matTooltip="⚠️ Resetear todos los datos (solo desarrollo)">
-              <mat-icon>restore</mat-icon>
+              <app-smart-icon [iconName]="'restore'" [size]="20" [tooltipText]="'Resetear sistema completo'"></app-smart-icon>
               Reset Sistema
             </button>
           }
@@ -65,7 +67,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card general">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>assessment</mat-icon>
+                <app-smart-icon [iconName]="'assessment'" [size]="24" [tooltipText]="'Estadísticas generales del sistema'"></app-smart-icon>
                 Estadísticas Generales
               </mat-card-title>
             </mat-card-header>
@@ -110,7 +112,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card vehicles">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>directions_car</mat-icon>
+                <app-smart-icon [iconName]="'directions_car'" [size]="24" [tooltipText]="'Estados de vehículos registrados'"></app-smart-icon>
                 Estados de Vehículos
               </mat-card-title>
             </mat-card-header>
@@ -132,7 +134,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card drivers">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>person</mat-icon>
+                <app-smart-icon [iconName]="'person'" [size]="24" [tooltipText]="'Estados de conductores registrados'"></app-smart-icon>
                 Estados de Conductores
               </mat-card-title>
             </mat-card-header>
@@ -154,7 +156,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card relations">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>link</mat-icon>
+                <app-smart-icon [iconName]="'link'" [size]="24" [tooltipText]="'Relaciones entre vehículos y conductores'"></app-smart-icon>
                 Relaciones Activas
               </mat-card-title>
             </mat-card-header>
@@ -192,7 +194,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card session">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>schedule</mat-icon>
+                <app-smart-icon [iconName]="'schedule'" [size]="24" [tooltipText]="'Información de la sesión actual'"></app-smart-icon>
                 Información de Sesión
               </mat-card-title>
             </mat-card-header>
@@ -218,7 +220,7 @@ import { environment } from '../../../environments/environment';
           <mat-card class="stats-card operations">
             <mat-card-header>
               <mat-card-title>
-                <mat-icon>history</mat-icon>
+                <app-smart-icon [iconName]="'history'" [size]="24" [tooltipText]="'Historial de operaciones recientes'"></app-smart-icon>
                 Operaciones Recientes
               </mat-card-title>
             </mat-card-header>
@@ -237,7 +239,7 @@ import { environment } from '../../../environments/environment';
         </div>
       } @else {
         <div class="error-container">
-          <mat-icon class="error-icon">error</mat-icon>
+          <app-smart-icon [iconName]="'error'" [size]="64" [tooltipText]="'Error al cargar datos'" class="error-icon"></app-smart-icon>
           <h3>Error al cargar estadísticas</h3>
           <p>No se pudieron cargar las estadísticas del DataManager</p>
           <button mat-raised-button color="primary" (click)="refreshStats()">
@@ -507,7 +509,6 @@ import { environment } from '../../../environments/environment';
     }
 
     .error-icon {
-      font-size: 64px;
       color: #f44336;
       margin-bottom: 16px;
     }

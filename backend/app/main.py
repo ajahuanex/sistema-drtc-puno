@@ -8,6 +8,17 @@ from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
 from app.routers.mock_router import router as mock_router
 from app.routers.data_manager_router import router as data_manager_router
+
+# Mesa de Partes routers - Temporarily commented out due to import issues
+# from app.routers.mesa_partes.documentos_router import router as documentos_router
+# from app.routers.mesa_partes.derivaciones_router import router as derivaciones_router
+# from app.routers.mesa_partes.integraciones_router import router as integraciones_router
+# from app.routers.mesa_partes.reportes_router import router as reportes_router
+# from app.routers.mesa_partes.notificaciones_router import router as notificaciones_mesa_router
+# from app.routers.mesa_partes.auditoria_router import router as auditoria_router
+# from app.routers.mesa_partes.permissions_router import router as permissions_router
+# from app.routers.mesa_partes.integration_security_router import router as integration_security_router
+# from app.routers.mesa_partes.integracion_externa_router import router as integracion_externa_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -78,6 +89,17 @@ app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(mock_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router)
+
+# Mesa de Partes routers - Temporarily commented out due to import issues
+# app.include_router(documentos_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Documentos"])
+# app.include_router(derivaciones_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Derivaciones"])
+# app.include_router(integraciones_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Integraciones"])
+# app.include_router(reportes_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Reportes"])
+# app.include_router(notificaciones_mesa_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Notificaciones"])
+# app.include_router(auditoria_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Auditoría"])
+# app.include_router(permissions_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Permisos"])
+# app.include_router(integration_security_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Seguridad"])
+# app.include_router(integracion_externa_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Integración Externa"])
 
 # Endpoint de salud
 @app.get("/health")

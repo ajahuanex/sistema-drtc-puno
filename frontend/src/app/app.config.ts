@@ -10,6 +10,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { IconService } from './services/icon.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -43,6 +44,9 @@ export const appConfig: ApplicationConfig = {
         monthYearA11yLabel: 'MMMM YYYY',
       },
     }},
+    
+    // IconService - Servicio de iconos con fallbacks automáticos
+    IconService,
     
     // Configuración de inicialización eager
     {

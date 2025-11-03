@@ -337,11 +337,13 @@ urgencia?: NivelUrgencia;                 // Nivel de urgencia
   - Numeración automática con formato R-XXXX-YYYY
   - Integración con expedientes
   - Hint reactivo que se actualiza en tiempo real
+  - **🆕 Integrado con EmpresaSelectorComponent mejorado**
 
 ### 🏢 Empresas
 - **EmpresaVehiculosBatchComponent**: Gestión de vehículos por empresa
 - **AgregarVehiculosModalComponent**: Modal para agregar vehículos
 - **ValidacionSunatModalComponent**: Validación con SUNAT
+- **🆕 EmpresaDetailComponent**: Vista detallada con CodigoEmpresaInfoComponent integrado
 
 ### 🚗 Vehículos
 - **VehiculoFormComponent**: Formulario completo de vehículos
@@ -352,6 +354,218 @@ urgencia?: NivelUrgencia;                 // Nivel de urgencia
 - **RutaFormComponent**: Formulario de rutas
 - **RutaDetailComponent**: Vista detallada de rutas
 - **AgregarRutaModalComponent**: Modal para agregar rutas
+
+## 🆕 Componentes Integrados Recientemente
+
+### 🏢 CodigoEmpresaInfoComponent
+**Ubicación**: `src/app/components/shared/codigo-empresa-info.component.ts`
+**Integrado en**: `EmpresaDetailComponent`
+
+Componente visual para mostrar información detallada del código de empresa con formato `XXXXYYY`.
+
+**Características:**
+- **Visualización dividida**: Muestra el código separado en número (4 dígitos) y letras (3 letras)
+- **Chips de colores**: Cada tipo de empresa tiene su color distintivo
+  - 🟦 **P** (Personas) - Azul
+  - 🟩 **R** (Regional) - Verde  
+  - 🟨 **T** (Turismo) - Amarillo
+- **Información del formato**: Muestra ejemplos y explicación del formato
+- **Estado sin código**: Maneja empresas que no tienen código asignado
+- **Responsive**: Se adapta a diferentes tamaños de pantalla
+
+**Props:**
+```typescript
+@Input() codigoEmpresa: Signal<string> // Código de empresa reactivo
+```
+
+**Ejemplo de uso:**
+```html
+<app-codigo-empresa-info 
+  [codigoEmpresa]="signal(empresa?.codigoEmpresa || '')">
+</app-codigo-empresa-info>
+```
+
+### 🎯 SmartIconComponent
+**Ubicación**: `src/app/shared/smart-icon.component.ts`
+**Servicio**: `src/app/services/icon.service.ts`
+**Integrado en**: Componentes principales (MainLayout, Dashboard, etc.)
+
+Sistema inteligente de iconos con fallbacks automáticos cuando Material Icons no se carga.
+
+**Características:**
+- **Detección automática**: Verifica si Material Icons están disponibles
+- **Fallback inteligente**: Usa emojis cuando Material Icons fallan
+- **Tooltips automáticos**: Descripción automática del icono
+- **Estados interactivos**: Clickable, disabled, hover effects
+- **Tamaños predefinidos**: small (18px), normal (24px), large (32px), xl (48px)
+- **80+ iconos mapeados**: Cobertura completa de iconos comunes
+
+**Props:**
+```typescript
+@Input() iconName: string = ''        // Nombre del icono de Material Icons
+@Input() size: number = 24            // Tamaño en píxeles
+@Input() tooltipText: string = ''     // Texto del tooltip (opcional)
+@Input() clickable: boolean = false   // Si es clickeable
+@Input() disabled: boolean = false    // Si está deshabilitado
+```
+
+**Ejemplo de uso:**
+```html
+<app-smart-icon 
+  [iconName]="'business'"
+  [size]="32"
+  [tooltipText]="'Información de empresa'"
+  [clickable]="true">
+</app-smart-icon>
+```
+
+### 🔧 IconService
+**Ubicación**: `src/app/services/icon.service.ts`
+**Configurado en**: `app.config.ts` como provider global
+
+Servicio que gestiona la detección y fallbacks de iconos.
+
+**API Principal:**
+```typescript
+// Signals reactivos
+readonly materialIconsLoaded: Signal<boolean>
+
+// Métodos principales
+getIcon(iconName: string): string              // Obtiene icono o fallback
+getIconText(iconName: string): string          // Obtiene descripción
+getIconInfo(iconName: string): IconFallback    // Obtiene info completa
+hasFallback(iconName: string): boolean         // Verifica si tiene fallback
+
+// Gestión de fallbacks
+addFallback(iconName: string, fallback: IconFallback): void
+removeFallback(iconName: string): boolean
+getAllFallbacks(): IconFallback[]
+
+// Utilidades
+forceReload(): void                            // Fuerza recarga de detección
+getIconStatus(): IconStatus                    // Estado del servicio
+```
+
+### 🔍 EmpresaSelectorComponent (Mejorado)
+**Ubicación**: `src/app/shared/empresa-selector.component.ts`
+**Integrado en**: `CrearResolucionModalComponent`
+
+Selector de empresas con búsqueda avanzada y autocompletado.
+
+**Mejoras implementadas:**
+- **Búsqueda múltiple**: Por RUC, razón social o código de empresa
+- **Autocompletado en tiempo real**: Filtrado mientras se escribe
+- **UX mejorada**: Loading states, mensajes de error, indicadores
+- **Integración con formularios reactivos**: Compatible con Angular Forms
+- **Performance optimizada**: Filtrado eficiente sin bloquear UI
+
+**Props:**
+```typescript
+@Input() label: string = 'Empresa'
+@Input() placeholder: string = 'Buscar empresa...'
+@Input() hint: string = 'Selecciona una empresa'
+@Input() required: boolean = false
+@Input() empresaId: string = ''
+@Input() disabled: boolean = false
+
+@Output() empresaSeleccionada = new EventEmitter<Empresa | null>()
+@Output() empresaIdChange = new EventEmitter<string>()
+```
+
+**Ejemplo de uso en modal de resolución:**
+```html
+<app-empresa-selector
+  [label]="'EMPRESA'"
+  [placeholder]="'Buscar por RUC, razón social o código'"
+  [hint]="'Seleccione la empresa para la cual se creará la resolución'"
+  [required]="true"
+  [empresaId]="resolucionForm.get('empresaId')?.value"
+  (empresaSeleccionada)="onEmpresaSeleccionadaBuscador($event)"
+  (empresaIdChange)="resolucionForm.patchValue({ empresaId: $event })">
+</app-empresa-selector>
+```
+
+### ⚙️ FlujoTrabajoService (Preparado)
+**Ubicación**: `src/app/services/flujo-trabajo.service.ts`
+**Estado**: Preparado para uso futuro, no integrado activamente
+**Documentación**: `src/app/services/flujo-trabajo-service.README.md`
+
+Servicio completo para gestión de flujos de trabajo de expedientes entre oficinas.
+
+**Características preparadas:**
+- **Gestión de flujos**: Crear, actualizar, consultar flujos de trabajo
+- **Movimientos de expedientes**: Transferencia entre oficinas con trazabilidad
+- **Estados de flujo**: Seguimiento completo del estado de expedientes
+- **Notificaciones**: Sistema de alertas automáticas
+- **Reportes**: Métricas y análisis de flujos
+- **Validaciones**: Control de permisos y reglas de negocio
+
+**API Principal:**
+```typescript
+// Flujos de Trabajo
+getFlujos(filtros?: FlujoFiltros): Observable<FlujoTrabajo[]>
+getFlujoById(id: string): Observable<FlujoTrabajo>
+crearFlujo(flujo: Omit<FlujoTrabajo, 'id'>): Observable<FlujoTrabajo>
+actualizarFlujo(id: string, flujo: Partial<FlujoTrabajo>): Observable<FlujoTrabajo>
+
+// Movimientos
+moverExpediente(movimiento: MovimientoExpediente): Observable<MovimientoExpediente>
+getMovimientos(expedienteId?: string): Observable<MovimientoExpediente[]>
+
+// Estados
+getEstadoFlujo(expedienteId: string): Observable<EstadoFlujo>
+actualizarEstado(expedienteId: string, estado: Partial<EstadoFlujo>): Observable<EstadoFlujo>
+
+// Reportes
+getReporteFlujo(flujoId: string, fechaDesde: Date, fechaHasta: Date): Observable<any>
+getDashboardFlujos(): Observable<any>
+```
+
+**Preparación para integración futura:**
+- Servicio configurado como `providedIn: 'root'`
+- Estructura de datos completa y documentada
+- Métodos HTTP configurados con environment.apiUrl
+- Ejemplos de uso documentados
+- Listo para inyectar en componentes de expedientes
+
+### 📦 Shared Components Export
+**Ubicación**: `src/app/shared/index.ts`
+
+Archivo de exportación centralizado para facilitar imports de componentes compartidos.
+
+**Componentes exportados:**
+```typescript
+export * from './ruta-form-shared.component';
+export * from './mat-confirm-dialog.component';
+export * from './smart-icon.component';                    // 🆕 Agregado
+export * from './empresa-selector.component';
+export * from './resolucion-number-validator.component';
+export * from './expediente-number-validator.component';
+export * from '../components/shared/codigo-empresa-info.component';  // 🆕 Agregado
+export * from '../components/vehiculos/vehiculos-resolucion-modal.component';
+export * from '../services/vehiculo-modal.service';
+```
+
+**Beneficios:**
+- **Imports simplificados**: Un solo import para múltiples componentes
+- **Mejor organización**: Centralización de exportaciones
+- **Mantenimiento fácil**: Un solo lugar para gestionar exports
+- **Tree shaking**: Optimización automática de bundle
+
+**Uso:**
+```typescript
+// Antes (múltiples imports)
+import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+import { CodigoEmpresaInfoComponent } from '../../shared/codigo-empresa-info.component';
+
+// Después (import unificado)
+import { 
+  SmartIconComponent, 
+  EmpresaSelectorComponent,
+  CodigoEmpresaInfoComponent 
+} from '../../shared';
+```
 
 ## 🧩 Componentes Principales
 
@@ -387,6 +601,73 @@ urgencia?: NivelUrgencia;                 // Nivel de urgencia
 - **Componentes**: Lista, detalle, formulario, validación de licencias
 - **Funcionalidades**: CRUD completo, verificación de antecedentes, asignación de vehículos
 
+## 📋 Lista de Componentes Disponibles
+
+### 🧩 Componentes Compartidos (Shared)
+- **CodigoEmpresaInfoComponent** - Información visual de códigos de empresa
+- **SmartIconComponent** - Iconos inteligentes con fallbacks automáticos
+- **EmpresaSelectorComponent** - Selector de empresas con búsqueda avanzada
+- **RutaFormSharedComponent** - Formulario compartido de rutas
+- **MatConfirmDialogComponent** - Diálogos de confirmación Material Design
+- **ResolucionNumberValidatorComponent** - Validador de números de resolución
+- **ExpedienteNumberValidatorComponent** - Validador de números de expediente
+- **DateRangePickerComponent** - Selector de rangos de fechas
+- **SortableHeaderComponent** - Headers ordenables para tablas
+- **ColumnSelectorComponent** - Selector de columnas para tablas
+
+### 🏢 Componentes de Empresas
+- **EmpresasComponent** - Lista principal de empresas
+- **EmpresaDetailComponent** - Vista detallada de empresa (con CodigoEmpresaInfoComponent)
+- **EmpresaFormComponent** - Formulario de empresa
+- **EmpresaVehiculosBatchComponent** - Gestión masiva de vehículos
+- **AgregarVehiculosModalComponent** - Modal para agregar vehículos
+- **ValidacionSunatModalComponent** - Validación con SUNAT
+
+### 📋 Componentes de Resoluciones
+- **ResolucionesComponent** - Lista principal de resoluciones
+- **CrearResolucionModalComponent** - Modal de creación (con EmpresaSelectorComponent mejorado)
+- **ResolucionesTableComponent** - Tabla avanzada de resoluciones
+- **ResolucionesFiltersComponent** - Filtros avanzados
+- **ResolucionSelectorComponent** - Selector de resoluciones
+
+### 📁 Componentes de Expedientes
+- **ExpedientesComponent** - Lista principal de expedientes
+- **CrearExpedienteModalComponent** - Modal de creación con numeración automática
+- **ExpedienteDetailComponent** - Vista detallada de expediente
+
+### 🚗 Componentes de Vehículos
+- **VehiculosComponent** - Lista principal de vehículos (mejorada)
+- **VehiculoModalComponent** - Modal de gestión de vehículos
+- **VehiculoFormComponent** - Formulario de vehículo
+- **VehiculoDetailComponent** - Vista detallada de vehículo
+
+### 🛣️ Componentes de Rutas
+- **RutasComponent** - Lista principal de rutas
+- **RutaFormComponent** - Formulario de ruta
+- **RutaDetailComponent** - Vista detallada de ruta
+- **AgregarRutaModalComponent** - Modal para agregar rutas
+
+### 📊 Componentes de Dashboard
+- **DashboardComponent** - Panel principal (con SmartIconComponent integrado)
+- **StatsCardComponent** - Tarjetas de estadísticas
+- **ChartComponent** - Componente de gráficos
+
+### 🏗️ Componentes de Layout
+- **MainLayoutComponent** - Layout principal (con SmartIconComponent integrado)
+- **SidebarComponent** - Barra lateral de navegación
+- **HeaderComponent** - Cabecera de la aplicación
+- **FooterComponent** - Pie de página
+
+### 🔍 Componentes de Mesa de Partes
+- **MesaPartesComponent** - Componente principal de mesa de partes
+- **RegistroDocumentoComponent** - Registro de documentos
+- **ListaDocumentosComponent** - Lista de documentos
+- **DetalleDocumentoComponent** - Detalle de documento
+- **DerivarDocumentoComponent** - Derivación de documentos
+- **BusquedaDocumentosComponent** - Búsqueda avanzada
+- **DashboardMesaComponent** - Dashboard de mesa de partes
+- **ConfiguracionIntegracionesComponent** - Configuración de integraciones
+
 ## 🔧 Servicios Principales
 
 ### 🔐 AuthService
@@ -412,6 +693,14 @@ urgencia?: NivelUrgencia;                 // Nivel de urgencia
 ### 📁 ExpedienteService
 - **Propósito**: Gestión de expedientes
 - **Funcionalidades**: CRUD, seguimiento por oficina, transferencias
+
+### 🎯 IconService (Nuevo)
+- **Propósito**: Gestión inteligente de iconos con fallbacks
+- **Funcionalidades**: Detección de Material Icons, fallbacks automáticos, gestión de mapeos
+
+### ⚙️ FlujoTrabajoService (Preparado)
+- **Propósito**: Gestión de flujos de trabajo de expedientes
+- **Funcionalidades**: Movimientos entre oficinas, estados de flujo, reportes, notificaciones
 
 ### 🔔 NotificationService
 - **Propósito**: Sistema de notificaciones

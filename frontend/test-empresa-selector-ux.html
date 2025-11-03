@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test EmpresaSelectorComponent UX Improvements</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            color: #1976d2;
+            border-bottom: 2px solid #1976d2;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .improvement-box {
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .requirement-ref {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Task 5.4: Mejorar UX del selector - COMPLETADO</h1>
+    
+    <div class="test-section">
+        <h2 class="test-title">📋 Resumen de Mejoras Implementadas</h2>
+        <ul class="feature-list">
+            <li>Loading state mientras carga empresas</li>
+            <li>Mensaje cuando no hay resultados de búsqueda</li>
+            <li>Indicador de campo requerido mejorado</li>
+            <li>Estados de carga visual con spinner</li>
+            <li>Manejo de errores mejorado</li>
+            <li>Mensajes informativos para diferentes estados</li>
+        </ul>
+        
+        <div class="requirement-ref">
+            <strong>Requirements:</strong> 6.4 (Loading state), 6.5 (No results message), 6.6 (Required field indicator)
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🔄 1. Loading State</h2>
+        <div class="improvement-box">
+            <strong>Mejora:</strong> Se agregó un signal <code>isLoading</code> que controla el estado de carga
+        </div>
+        
+        <h3>Características implementadas:</h3>
+        <ul class="feature-list">
+            <li>Spinner en el sufijo del campo mientras carga</li>
+            <li>Opción "Cargando empresas..." en el autocomplete</li>
+            <li>Campo deshabilitado durante la carga</li>
+            <li>Manejo de errores con finalize()</li>
+        </ul>
+
+        <div class="code-block">
+// Signal para controlar loading state
+isLoading = signal&lt;boolean&gt;(false);
+
+// Método mejorado con loading state
+private cargarEmpresas(): void {
+  this.isLoading.set(true);
+  this.empresaService.getEmpresas()
+    .pipe(
+      finalize(() => this.isLoading.set(false))
+    )
+    .subscribe({
+      next: (empresas) => {
+        this.empresas.set(empresas);
+      },
+      error: (error) => {
+        console.error('Error al cargar empresas:', error);
+        this.empresas.set([]);
+      }
+    });
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🔍 2. Mensaje "No Results"</h2>
+        <div class="improvement-box">
+            <strong>Mejora:</strong> Diferentes mensajes según el estado de la búsqueda
+        </div>
+        
+        <h3>Estados implementados:</h3>
+        <ul class="feature-list">
+            <li>No se encontraron empresas que coincidan con "término"</li>
+            <li>No hay empresas disponibles (cuando no hay datos)</li>
+            <li>Iconos descriptivos para cada estado</li>
+            <li>Opciones deshabilitadas para evitar selección</li>
+        </ul>
+
+        <div class="code-block">
+&lt;!-- No results option --&gt;
+&lt;mat-option *ngIf="!isLoading() && (filteredEmpresas | async)?.length === 0 && 
+                   empresaControl.value && empresaControl.value.length > 0" 
+            value="" disabled&gt;
+  &lt;div class="no-results-option"&gt;
+    &lt;mat-icon&gt;search_off&lt;/mat-icon&gt;
+    &lt;span&gt;No se encontraron empresas que coincidan con "{{ empresaControl.value }}"&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/mat-option&gt;
+
+&lt;!-- Empty state when no search term --&gt;
+&lt;mat-option *ngIf="!isLoading() && empresas().length === 0 && 
+                   (!empresaControl.value || empresaControl.value.length === 0)" 
+            value="" disabled&gt;
+  &lt;div class="empty-state-option"&gt;
+    &lt;mat-icon&gt;info&lt;/mat-icon&gt;
+    &lt;span&gt;No hay empresas disponibles&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/mat-option&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">⚠️ 3. Indicador de Campo Requerido</h2>
+        <div class="improvement-box">
+            <strong>Mejora:</strong> Indicador visual mejorado y mensaje de error personalizado
+        </div>
+        
+        <h3>Características implementadas:</h3>
+        <ul class="feature-list">
+            <li>Asterisco rojo (*) en el label cuando es requerido</li>
+            <li>Mensaje de error personalizado con el nombre del campo</li>
+            <li>Estilos CSS mejorados para el indicador</li>
+            <li>Validación reactiva integrada</li>
+        </ul>
+
+        <div class="code-block">
+&lt;mat-label&gt;
+  {{ label }}
+  &lt;span *ngIf="required" class="required-indicator"&gt;*&lt;/span&gt;
+&lt;/mat-label&gt;
+
+&lt;mat-error *ngIf="empresaControl.hasError('required') && required"&gt;
+  {{ label }} es un campo obligatorio
+&lt;/mat-error&gt;
+
+/* CSS */
+.required-indicator {
+  color: #f44336;
+  font-weight: bold;
+  margin-left: 2px;
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🎨 4. Mejoras Visuales Adicionales</h2>
+        <div class="improvement-box">
+            <strong>Bonus:</strong> Mejoras adicionales para mejor UX
+        </div>
+        
+        <h3>Características adicionales:</h3>
+        <ul class="feature-list">
+            <li>Código de empresa destacado con chip verde</li>
+            <li>Spinner en sufijo durante carga</li>
+            <li>Opciones de empresa con mejor formato</li>
+            <li>Estados disabled con opacidad reducida</li>
+            <li>Métodos utilitarios para estado del componente</li>
+        </ul>
+
+        <div class="code-block">
+// Métodos utilitarios agregados
+recargarEmpresas(): void {
+  this.cargarEmpresas();
+}
+
+hasEmpresas(): boolean {
+  return this.empresas().length > 0;
+}
+
+getEstado(): { loading: boolean; hasEmpresas: boolean; hasValue: boolean } {
+  return {
+    loading: this.isLoading(),
+    hasEmpresas: this.hasEmpresas(),
+    hasValue: !!this.empresaControl.value
+  };
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">✅ 5. Verificación de Implementación</h2>
+        
+        <h3>Task 5.4 Requirements Completados:</h3>
+        <ul class="feature-list">
+            <li><strong>Requirement 6.4:</strong> Loading state implementado con spinner y mensaje</li>
+            <li><strong>Requirement 6.5:</strong> Mensajes informativos para "no results" y estados vacíos</li>
+            <li><strong>Requirement 6.6:</strong> Indicador de campo requerido con asterisco y mensaje personalizado</li>
+        </ul>
+
+        <div class="improvement-box">
+            <strong>Estado:</strong> ✅ TASK 5.4 COMPLETADO
+            <br><br>
+            El componente EmpresaSelectorComponent ahora tiene una UX mejorada con:
+            <ul>
+                <li>Estados de carga visuales</li>
+                <li>Mensajes informativos claros</li>
+                <li>Indicadores de campos requeridos</li>
+                <li>Manejo de errores robusto</li>
+                <li>Mejor feedback visual para el usuario</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🔧 6. Archivos Modificados</h2>
+        <div class="code-block">
+📁 frontend/src/app/shared/empresa-selector.component.ts
+  ✅ Agregado isLoading signal
+  ✅ Agregado MatProgressSpinnerModule import
+  ✅ Mejorado template con loading states
+  ✅ Agregados mensajes de no-results
+  ✅ Mejorado indicador de campo requerido
+  ✅ Agregados métodos utilitarios
+  ✅ Mejorado manejo de errores
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2 class="test-title">🚀 7. Próximos Pasos</h2>
+        <p>El task 5.4 está completado. Los siguientes tasks en la lista son:</p>
+        <ul class="feature-list">
+            <li>5.5 Probar flujo completo de creación de resolución</li>
+            <li>6. Preparar FlujoTrabajoService para uso futuro</li>
+            <li>7. Agregar documentación JSDoc a componentes integrados</li>
+        </ul>
+    </div>
+</body>
+</html>

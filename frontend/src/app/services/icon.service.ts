@@ -1,12 +1,92 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
+import { Injectable, signal, effect } from '@angular/core';
 
+/**
+ * Interfaz que define la estructura de un fallback de icono.
+ * 
+ * Esta interfaz describe cómo se mapea un icono de Material Icons
+ * a su equivalente emoji cuando Material Icons no está disponible.
+ * 
+ * @interface IconFallback
+ * 
+ * @example
+ * ```typescript
+ * const homeFallback: IconFallback = {
+ *   name: 'home',
+ *   unicode: 'e88a',
+ *   fallback: '🏠',
+ *   description: 'Inicio'
+ * };
+ * ```
+ */
 export interface IconFallback {
+  /** Nombre del icono de Material Icons (ej: 'home', 'search', 'add') */
   name: string;
+  /** Código unicode del icono de Material Icons (ej: 'e88a') */
   unicode: string;
+  /** Emoji que se usa como fallback cuando Material Icons no está disponible */
   fallback: string;
+  /** Descripción legible del icono para tooltips y accesibilidad */
   description: string;
 }
 
+/**
+ * Servicio para gestión inteligente de iconos con fallbacks automáticos.
+ * 
+ * Este servicio detecta automáticamente si Material Icons está disponible
+ * en el navegador y proporciona fallbacks emoji cuando no lo está.
+ * Incluye más de 80 iconos comunes con sus respectivos fallbacks.
+ * 
+ * ## Proceso de Detección
+ * 
+ * 1. **Verificación DOM**: Crea un elemento de prueba con clase 'material-icons'
+ * 2. **Medición**: Mide el ancho del elemento renderizado
+ * 3. **Evaluación**: Si el ancho es > 10px, Material Icons está disponible
+ * 4. **Fallback**: Si no está disponible, activa modo fallback con emojis
+ * 5. **CSS Class**: Agrega 'material-icons-fallback' al body para estilos
+ * 
+ * ## Uso Básico
+ * 
+ * ```typescript
+ * // Inyectar el servicio
+ * private iconService = inject(IconService);
+ * 
+ * // Verificar si Material Icons está cargado
+ * if (this.iconService.materialIconsLoaded()) {
+ *   console.log('Material Icons disponible');
+ * }
+ * 
+ * // Obtener icono apropiado (Material Icons o emoji)
+ * const homeIcon = this.iconService.getIcon('home'); // 'home' o '🏠'
+ * 
+ * // Obtener información completa del icono
+ * const iconInfo = this.iconService.getIconInfo('home');
+ * console.log(iconInfo?.description); // 'Inicio'
+ * ```
+ * 
+ * ## Uso con SmartIconComponent
+ * 
+ * ```html
+ * <app-smart-icon 
+ *   [iconName]="'home'"
+ *   [tooltipText]="iconService.getIconInfo('home')?.description">
+ * </app-smart-icon>
+ * ```
+ * 
+ * ## Agregar Fallbacks Personalizados
+ * 
+ * ```typescript
+ * // Agregar un nuevo fallback
+ * this.iconService.addFallback('custom_icon', {
+ *   name: 'custom_icon',
+ *   unicode: 'e123',
+ *   fallback: '🎯',
+ *   description: 'Icono personalizado'
+ * });
+ * ```
+ * 
+ * @injectable
+ * @providedIn 'root'
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -103,6 +183,17 @@ export class IconService {
     ['table_chart', { name: 'table_chart', unicode: 'e9d6', fallback: '📊', description: 'Gráfico de tabla' }]
   ]);
 
+  /**
+   * Constructor del servicio.
+   * 
+   * Inicializa la detección automática de Material Icons y configura
+   * un effect para monitorear cambios en el estado de carga.
+   * 
+   * El proceso de inicialización:
+   * 1. Ejecuta checkMaterialIcons() para detectar disponibilidad
+   * 2. Configura effect reactivo para logging de estado
+   * 3. Agrega clase CSS al body si es necesario
+   */
   constructor() {
     // Verificar si Material Icons están cargados
     this.checkMaterialIcons();
@@ -118,7 +209,13 @@ export class IconService {
   }
 
   /**
-   * Verificar si Material Icons están cargados
+   * Verificar si Material Icons están cargados.
+   * 
+   * Método privado que inicia el proceso de detección de Material Icons.
+   * Espera a que el DOM esté completamente cargado antes de realizar
+   * la verificación para asegurar resultados precisos.
+   * 
+   * @private
    */
   private checkMaterialIcons(): void {
     // Esperar a que el DOM esté listo
@@ -132,7 +229,22 @@ export class IconService {
   }
 
   /**
-   * Realizar verificación de iconos
+   * Realizar verificación de iconos mediante elemento de prueba.
+   * 
+   * Método privado que implementa la lógica de detección de Material Icons:
+   * 
+   * 1. **Crear elemento de prueba**: Span con clase 'material-icons'
+   * 2. **Configurar estilos**: Posición absoluta fuera de la vista
+   * 3. **Insertar en DOM**: Agregar temporalmente al body
+   * 4. **Medir ancho**: Verificar si el icono se renderizó correctamente
+   * 5. **Limpiar DOM**: Remover elemento de prueba
+   * 6. **Actualizar estado**: Establecer signal según resultado
+   * 7. **Aplicar CSS**: Agregar clase fallback si es necesario
+   * 
+   * **Criterio de detección**: Si el ancho del elemento es > 10px,
+   * se considera que Material Icons está disponible.
+   * 
+   * @private
    */
   private performIconCheck(): void {
     // Crear un icono de prueba
@@ -159,7 +271,25 @@ export class IconService {
   }
 
   /**
-   * Obtener el icono apropiado (Material Icons o fallback)
+   * Obtener el icono apropiado según disponibilidad de Material Icons.
+   * 
+   * Método principal para obtener iconos. Retorna el nombre del icono
+   * de Material Icons si está disponible, o el emoji fallback si no lo está.
+   * 
+   * @param iconName - Nombre del icono de Material Icons (ej: 'home', 'search')
+   * @returns El nombre del icono o emoji fallback, o '•' si no hay fallback
+   * 
+   * @example
+   * ```typescript
+   * // Con Material Icons disponible
+   * const icon = iconService.getIcon('home'); // Retorna: 'home'
+   * 
+   * // Sin Material Icons disponible
+   * const icon = iconService.getIcon('home'); // Retorna: '🏠'
+   * 
+   * // Icono sin fallback definido
+   * const icon = iconService.getIcon('unknown'); // Retorna: '•'
+   * ```
    */
   getIcon(iconName: string): string {
     if (this._materialIconsLoaded()) {
@@ -173,7 +303,25 @@ export class IconService {
   }
 
   /**
-   * Obtener el texto del icono para usar en el DOM
+   * Obtener el texto del icono para insertar directamente en el DOM.
+   * 
+   * Similar a getIcon(), pero optimizado para uso directo en elementos HTML.
+   * Útil cuando se necesita insertar el contenido del icono como texto.
+   * 
+   * @param iconName - Nombre del icono de Material Icons
+   * @returns Texto del icono para insertar en el DOM
+   * 
+   * @example
+   * ```typescript
+   * // En un componente
+   * const iconText = this.iconService.getIconText('search');
+   * 
+   * // En template
+   * <span class="icon">{{ iconService.getIconText('search') }}</span>
+   * 
+   * // Con Material Icons: muestra el icono de búsqueda
+   * // Sin Material Icons: muestra '🔍'
+   * ```
    */
   getIconText(iconName: string): string {
     if (this._materialIconsLoaded()) {
@@ -187,42 +335,172 @@ export class IconService {
   }
 
   /**
-   * Obtener información completa del icono
+   * Obtener información completa del icono incluyendo metadatos.
+   * 
+   * Retorna el objeto IconFallback completo con toda la información
+   * disponible sobre el icono: nombre, unicode, fallback y descripción.
+   * 
+   * @param iconName - Nombre del icono de Material Icons
+   * @returns Objeto IconFallback con información completa, o null si no existe
+   * 
+   * @example
+   * ```typescript
+   * const iconInfo = this.iconService.getIconInfo('home');
+   * if (iconInfo) {
+   *   console.log(iconInfo.name);        // 'home'
+   *   console.log(iconInfo.unicode);     // 'e88a'
+   *   console.log(iconInfo.fallback);    // '🏠'
+   *   console.log(iconInfo.description); // 'Inicio'
+   * }
+   * 
+   * // Usar para tooltips
+   * const tooltip = iconInfo?.description || 'Icono';
+   * ```
    */
   getIconInfo(iconName: string): IconFallback | null {
     return this.iconFallbacks.get(iconName) || null;
   }
 
   /**
-   * Verificar si un icono específico tiene fallback
+   * Verificar si un icono específico tiene fallback definido.
+   * 
+   * Útil para validar si un icono tendrá un fallback apropiado
+   * cuando Material Icons no esté disponible.
+   * 
+   * @param iconName - Nombre del icono a verificar
+   * @returns true si el icono tiene fallback, false si no
+   * 
+   * @example
+   * ```typescript
+   * if (this.iconService.hasFallback('home')) {
+   *   // El icono 'home' tiene fallback '🏠'
+   *   console.log('Icono soportado');
+   * } else {
+   *   // El icono no tiene fallback, se mostrará '•'
+   *   console.log('Icono no soportado, considerar agregar fallback');
+   * }
+   * ```
    */
   hasFallback(iconName: string): boolean {
     return this.iconFallbacks.has(iconName);
   }
 
   /**
-   * Obtener todos los fallbacks disponibles
+   * Obtener lista de todos los fallbacks disponibles.
+   * 
+   * Retorna un array con todos los objetos IconFallback registrados
+   * en el servicio. Útil para debugging, documentación o UI de administración.
+   * 
+   * @returns Array de objetos IconFallback con todos los iconos disponibles
+   * 
+   * @example
+   * ```typescript
+   * const allIcons = this.iconService.getAllFallbacks();
+   * console.log(`Total de iconos disponibles: ${allIcons.length}`);
+   * 
+   * // Mostrar lista de iconos en consola
+   * allIcons.forEach(icon => {
+   *   console.log(`${icon.name}: ${icon.fallback} (${icon.description})`);
+   * });
+   * 
+   * // Crear selector de iconos
+   * const iconOptions = allIcons.map(icon => ({
+   *   value: icon.name,
+   *   label: `${icon.fallback} ${icon.description}`
+   * }));
+   * ```
    */
   getAllFallbacks(): IconFallback[] {
     return Array.from(this.iconFallbacks.values());
   }
 
   /**
-   * Agregar un nuevo fallback personalizado
+   * Agregar un nuevo fallback personalizado al servicio.
+   * 
+   * Permite extender el servicio con iconos personalizados o sobrescribir
+   * fallbacks existentes. El nuevo fallback estará disponible inmediatamente.
+   * 
+   * @param iconName - Nombre del icono (debe coincidir con el nombre en Material Icons)
+   * @param fallback - Objeto IconFallback con la información completa del icono
+   * 
+   * @example
+   * ```typescript
+   * // Agregar un icono personalizado
+   * this.iconService.addFallback('custom_star', {
+   *   name: 'custom_star',
+   *   unicode: 'e123',
+   *   fallback: '⭐',
+   *   description: 'Estrella personalizada'
+   * });
+   * 
+   * // Sobrescribir un fallback existente
+   * this.iconService.addFallback('home', {
+   *   name: 'home',
+   *   unicode: 'e88a',
+   *   fallback: '🏡', // Cambiar de 🏠 a 🏡
+   *   description: 'Casa'
+   * });
+   * 
+   * // Usar el nuevo icono
+   * const icon = this.iconService.getIcon('custom_star'); // '⭐'
+   * ```
    */
   addFallback(iconName: string, fallback: IconFallback): void {
     this.iconFallbacks.set(iconName, fallback);
   }
 
   /**
-   * Remover un fallback
+   * Remover un fallback del servicio.
+   * 
+   * Elimina un fallback específico del mapa de iconos. Una vez removido,
+   * el icono mostrará '•' cuando Material Icons no esté disponible.
+   * 
+   * @param iconName - Nombre del icono a remover
+   * @returns true si el fallback fue removido, false si no existía
+   * 
+   * @example
+   * ```typescript
+   * // Verificar si existe antes de remover
+   * if (this.iconService.hasFallback('custom_icon')) {
+   *   const removed = this.iconService.removeFallback('custom_icon');
+   *   console.log(removed ? 'Fallback removido' : 'Error al remover');
+   * }
+   * 
+   * // Remover múltiples fallbacks
+   * const iconsToRemove = ['icon1', 'icon2', 'icon3'];
+   * iconsToRemove.forEach(iconName => {
+   *   this.iconService.removeFallback(iconName);
+   * });
+   * ```
    */
   removeFallback(iconName: string): boolean {
     return this.iconFallbacks.delete(iconName);
   }
 
   /**
-   * Forzar recarga de Material Icons
+   * Forzar recarga y re-detección de Material Icons.
+   * 
+   * Útil cuando se sospecha que Material Icons se cargó después de la
+   * inicialización del servicio, o para debugging. Reinicia el proceso
+   * de detección completo.
+   * 
+   * @example
+   * ```typescript
+   * // En caso de problemas de carga
+   * if (!this.iconService.materialIconsLoaded()) {
+   *   console.log('Reintentando carga de Material Icons...');
+   *   this.iconService.forceReload();
+   * }
+   * 
+   * // En un botón de debug
+   * onDebugReload() {
+   *   this.iconService.forceReload();
+   *   setTimeout(() => {
+   *     const status = this.iconService.getIconStatus();
+   *     console.log('Estado después de recarga:', status);
+   *   }, 200);
+   * }
+   * ```
    */
   forceReload(): void {
     this._materialIconsLoaded.set(false);
@@ -232,7 +510,37 @@ export class IconService {
   }
 
   /**
-   * Obtener el estado actual de carga de iconos
+   * Obtener el estado actual completo del servicio de iconos.
+   * 
+   * Retorna un objeto con información detallada sobre el estado actual
+   * del servicio, útil para debugging, monitoreo y dashboards de administración.
+   * 
+   * @returns Objeto con el estado completo del servicio
+   * @returns loaded - Si Material Icons está cargado y disponible
+   * @returns fallbackMode - Si el servicio está usando fallbacks emoji
+   * @returns totalFallbacks - Número total de fallbacks registrados
+   * 
+   * @example
+   * ```typescript
+   * const status = this.iconService.getIconStatus();
+   * 
+   * console.log(`Material Icons: ${status.loaded ? 'Cargado' : 'No disponible'}`);
+   * console.log(`Modo fallback: ${status.fallbackMode ? 'Activo' : 'Inactivo'}`);
+   * console.log(`Fallbacks disponibles: ${status.totalFallbacks}`);
+   * 
+   * // En un componente de debug
+   * @Component({
+   *   template: `
+   *     <div class="icon-status">
+   *       <p>Material Icons: {{ status.loaded ? '✅' : '❌' }}</p>
+   *       <p>Fallbacks: {{ status.totalFallbacks }}</p>
+   *     </div>
+   *   `
+   * })
+   * export class IconDebugComponent {
+   *   status = this.iconService.getIconStatus();
+   * }
+   * ```
    */
   getIconStatus(): { loaded: boolean; fallbackMode: boolean; totalFallbacks: number } {
     return {

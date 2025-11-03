@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test SmartIconComponent Fallbacks - Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .icon-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+        .icon-name {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+        }
+        .material-icons {
+            font-size: 24px;
+            color: #333;
+        }
+        .fallback-icon {
+            font-size: 24px;
+        }
+        .toggle-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        .toggle-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .toggle-button:hover {
+            background: #5a6fd8;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status.enabled {
+            color: #28a745;
+        }
+        .status.disabled {
+            color: #dc3545;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .instructions h4 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .metric-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        .metric-icon {
+            font-size: 32px;
+        }
+        .metric-content h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+    <!-- Material Icons CSS - We'll disable this to test fallbacks -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" id="material-icons-css">
+</head>
+<body>
+    <div class="toggle-container">
+        <button class="toggle-button" onclick="toggleMaterialIcons()">
+            Toggle Material Icons
+        </button>
+        <div class="status enabled" id="status">Material Icons: Enabled</div>
+    </div>
+
+    <div class="test-container">
+        <h1>🧪 Test SmartIconComponent Fallbacks - Dashboard Icons</h1>
+        
+        <div class="instructions">
+            <h4>📋 Instrucciones de Prueba</h4>
+            <p><strong>1.</strong> Inicialmente verás los iconos de Material Icons (símbolos)</p>
+            <p><strong>2.</strong> Haz clic en "Toggle Material Icons" para deshabilitarlos</p>
+            <p><strong>3.</strong> Los iconos deberían cambiar automáticamente a emojis de fallback</p>
+            <p><strong>4.</strong> Vuelve a hacer clic para rehabilitar Material Icons</p>
+            <p><strong>5.</strong> Verifica que los iconos vuelvan a los símbolos originales</p>
+        </div>
+
+        <!-- Dashboard Header Icons -->
+        <div class="test-section">
+            <h3>🏠 Dashboard Header Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📊">dashboard</span>
+                    <span class="icon-name">dashboard</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🔄">refresh</span>
+                    <span class="icon-name">refresh</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📈">assessment</span>
+                    <span class="icon-name">assessment</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Cards Icons -->
+        <div class="test-section">
+            <h3>📊 Metric Cards Icons</h3>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <span class="material-icons" data-fallback="🏢">business</span>
+                </div>
+                <div class="metric-content">
+                    <h4>TOTAL EMPRESAS</h4>
+                    <div class="metric-value">1,234</div>
+                </div>
+            </div>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="✅">check_circle</span>
+                    <span class="icon-name">check_circle</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="⏳">pending</span>
+                    <span class="icon-name">pending</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🚫">block</span>
+                    <span class="icon-name">block</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🚗">directions_car</span>
+                    <span class="icon-name">directions_car</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="👤">person</span>
+                    <span class="icon-name">person</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🛣️">route</span>
+                    <span class="icon-name">route</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📄">description</span>
+                    <span class="icon-name">description</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📁">folder</span>
+                    <span class="icon-name">folder</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart and Analytics Icons -->
+        <div class="test-section">
+            <h3>📈 Chart and Analytics Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📊">bar_chart</span>
+                    <span class="icon-name">bar_chart</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📈">trending_up</span>
+                    <span class="icon-name">trending_up</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📉">trending_down</span>
+                    <span class="icon-name">trending_down</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🥧">pie_chart</span>
+                    <span class="icon-name">pie_chart</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📊">analytics</span>
+                    <span class="icon-name">analytics</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📈">show_chart</span>
+                    <span class="icon-name">show_chart</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action and Navigation Icons -->
+        <div class="test-section">
+            <h3>🎯 Action and Navigation Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="👁️">visibility</span>
+                    <span class="icon-name">visibility</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="✏️">edit</span>
+                    <span class="icon-name">edit</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="⋮">more_vert</span>
+                    <span class="icon-name">more_vert</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="➕">add</span>
+                    <span class="icon-name">add</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="⚠️">warning</span>
+                    <span class="icon-name">warning</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="❌">error</span>
+                    <span class="icon-name">error</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time and Schedule Icons -->
+        <div class="test-section">
+            <h3>⏰ Time and Schedule Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📅">schedule</span>
+                    <span class="icon-name">schedule</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="⏰">access_time</span>
+                    <span class="icon-name">access_time</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="⏱️">timer</span>
+                    <span class="icon-name">timer</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🔄">autorenew</span>
+                    <span class="icon-name">autorenew</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🔄">update</span>
+                    <span class="icon-name">update</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📈">timeline</span>
+                    <span class="icon-name">timeline</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Manager Dashboard Icons -->
+        <div class="test-section">
+            <h3>💾 Data Manager Dashboard Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="💾">storage</span>
+                    <span class="icon-name">storage</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🔗">link</span>
+                    <span class="icon-name">link</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📊">assessment</span>
+                    <span class="icon-name">assessment</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🔄">restore</span>
+                    <span class="icon-name">restore</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="📈">history</span>
+                    <span class="icon-name">history</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mesa de Partes Dashboard Icons -->
+        <div class="test-section">
+            <h3>📋 Mesa de Partes Dashboard Icons</h3>
+            <div class="icon-grid">
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🏢">domain</span>
+                    <span class="icon-name">domain</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🌳">account_tree</span>
+                    <span class="icon-name">account_tree</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="🍩">donut_small</span>
+                    <span class="icon-name">donut_small</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="❗">priority_high</span>
+                    <span class="icon-name">priority_high</span>
+                </div>
+                <div class="icon-item">
+                    <span class="material-icons" data-fallback="✅">done_all</span>
+                    <span class="icon-name">done_all</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let materialIconsEnabled = true;
+
+        function toggleMaterialIcons() {
+            const cssLink = document.getElementById('material-icons-css');
+            const statusElement = document.getElementById('status');
+            const icons = document.querySelectorAll('.material-icons');
+
+            if (materialIconsEnabled) {
+                // Disable Material Icons
+                cssLink.disabled = true;
+                statusElement.textContent = 'Material Icons: Disabled';
+                statusElement.className = 'status disabled';
+                
+                // Show fallback emojis
+                icons.forEach(icon => {
+                    const fallback = icon.getAttribute('data-fallback');
+                    if (fallback) {
+                        icon.textContent = fallback;
+                        icon.style.fontFamily = 'inherit';
+                    }
+                });
+                
+                materialIconsEnabled = false;
+                console.log('🚫 Material Icons disabled - showing emoji fallbacks');
+            } else {
+                // Enable Material Icons
+                cssLink.disabled = false;
+                statusElement.textContent = 'Material Icons: Enabled';
+                statusElement.className = 'status enabled';
+                
+                // Restore original icon names
+                icons.forEach(icon => {
+                    const originalName = icon.className.replace('material-icons', '').trim() || 
+                                       icon.getAttribute('data-original') || 
+                                       icon.parentElement.querySelector('.icon-name')?.textContent;
+                    if (originalName) {
+                        icon.textContent = originalName;
+                        icon.style.fontFamily = '';
+                    }
+                });
+                
+                materialIconsEnabled = true;
+                console.log('✅ Material Icons enabled - showing original icons');
+            }
+        }
+
+        // Store original icon names for restoration
+        document.addEventListener('DOMContentLoaded', function() {
+            const icons = document.querySelectorAll('.material-icons');
+            icons.forEach(icon => {
+                const iconName = icon.textContent.trim();
+                if (iconName && !icon.getAttribute('data-original')) {
+                    icon.setAttribute('data-original', iconName);
+                }
+            });
+            
+            console.log('🎯 Dashboard Icons Fallback Test initialized');
+            console.log('📝 Found', icons.length, 'icons to test');
+            console.log('💡 Click "Toggle Material Icons" to test fallbacks');
+        });
+
+        // Simulate IconService behavior
+        function checkMaterialIconsAvailability() {
+            const testElement = document.createElement('span');
+            testElement.className = 'material-icons';
+            testElement.textContent = 'home';
+            testElement.style.position = 'absolute';
+            testElement.style.left = '-9999px';
+            document.body.appendChild(testElement);
+            
+            const computedStyle = window.getComputedStyle(testElement);
+            const fontFamily = computedStyle.fontFamily;
+            
+            document.body.removeChild(testElement);
+            
+            const isAvailable = fontFamily.includes('Material Icons');
+            console.log('🔍 Material Icons availability check:', isAvailable ? '✅ Available' : '❌ Not available');
+            return isAvailable;
+        }
+
+        // Check availability on load
+        setTimeout(() => {
+            checkMaterialIconsAvailability();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test IconService - Material Icons Detection</title>
+    
+    <!-- Material Icons - Comentar esta línea para probar fallbacks -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1976d2;
+            margin-top: 0;
+        }
+        
+        h2 {
+            color: #424242;
+            border-bottom: 2px solid #1976d2;
+            padding-bottom: 10px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        
+        .status.warning {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        
+        .status.error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        
+        .icon-display {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 32px;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        
+        .icon-name {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            word-break: break-word;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #1565c0;
+        }
+        
+        button:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .info-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 200px;
+            color: #666;
+        }
+        
+        .browser-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test IconService - Material Icons Detection</h1>
+        <p>Esta página prueba la detección de Material Icons y los fallbacks del IconService.</p>
+        
+        <div class="test-controls">
+            <button onclick="testIconService()">🔄 Ejecutar Test</button>
+            <button onclick="forceReload()">🔄 Forzar Recarga</button>
+            <button onclick="toggleMaterialIcons()">🔀 Toggle Material Icons</button>
+        </div>
+        
+        <div id="status-container"></div>
+    </div>
+    
+    <div class="container">
+        <h2>📊 Información del Sistema</h2>
+        <table class="info-table">
+            <tr>
+                <td>Navegador:</td>
+                <td id="browser-info"></td>
+            </tr>
+            <tr>
+                <td>User Agent:</td>
+                <td id="user-agent"></td>
+            </tr>
+            <tr>
+                <td>Plataforma:</td>
+                <td id="platform"></td>
+            </tr>
+            <tr>
+                <td>Idioma:</td>
+                <td id="language"></td>
+            </tr>
+            <tr>
+                <td>Resolución:</td>
+                <td id="resolution"></td>
+            </tr>
+        </table>
+        
+        <div class="browser-info">
+            <strong>💡 Instrucciones para probar:</strong>
+            <ul>
+                <li>Haz clic en "Ejecutar Test" para verificar el estado de Material Icons</li>
+                <li>Haz clic en "Toggle Material Icons" para simular la carga/descarga de los iconos</li>
+                <li>Comenta la línea del link de Material Icons en el HTML para probar fallbacks</li>
+                <li>Prueba en diferentes navegadores: Chrome, Firefox, Edge, Safari</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>🎨 Muestra de Iconos</h2>
+        <p>Los siguientes iconos se muestran usando Material Icons o fallbacks según disponibilidad:</p>
+        <div id="icon-grid" class="icon-grid"></div>
+    </div>
+
+    <script>
+        // Simulación del IconService (versión simplificada para testing)
+        class IconServiceTest {
+            constructor() {
+                this.materialIconsLoaded = false;
+                this.iconFallbacks = new Map([
+                    ['home', { name: 'home', fallback: '🏠', description: 'Inicio' }],
+                    ['add', { name: 'add', fallback: '➕', description: 'Agregar' }],
+                    ['edit', { name: 'edit', fallback: '✏️', description: 'Editar' }],
+                    ['delete', { name: 'delete', fallback: '🗑️', description: 'Eliminar' }],
+                    ['search', { name: 'search', fallback: '🔍', description: 'Buscar' }],
+                    ['close', { name: 'close', fallback: '❌', description: 'Cerrar' }],
+                    ['check', { name: 'check', fallback: '✅', description: 'Verificar' }],
+                    ['warning', { name: 'warning', fallback: '⚠️', description: 'Advertencia' }],
+                    ['error', { name: 'error', fallback: '❌', description: 'Error' }],
+                    ['info', { name: 'info', fallback: 'ℹ️', description: 'Información' }],
+                    ['settings', { name: 'settings', fallback: '⚙️', description: 'Configuración' }],
+                    ['person', { name: 'person', fallback: '👤', description: 'Usuario' }],
+                    ['business', { name: 'business', fallback: '🏢', description: 'Empresa' }],
+                    ['directions_car', { name: 'directions_car', fallback: '🚗', description: 'Vehículo' }],
+                    ['route', { name: 'route', fallback: '🛣️', description: 'Ruta' }],
+                    ['description', { name: 'description', fallback: '📄', description: 'Documento' }],
+                    ['folder', { name: 'folder', fallback: '📁', description: 'Carpeta' }],
+                    ['download', { name: 'download', fallback: '⬇️', description: 'Descargar' }],
+                    ['upload', { name: 'upload', fallback: '⬆️', description: 'Subir' }],
+                    ['notifications', { name: 'notifications', fallback: '🔔', description: 'Notificaciones' }],
+                    ['dashboard', { name: 'dashboard', fallback: '📊', description: 'Dashboard' }],
+                    ['analytics', { name: 'analytics', fallback: '📈', description: 'Analíticas' }],
+                    ['calendar_today', { name: 'calendar_today', fallback: '📅', description: 'Calendario' }],
+                    ['schedule', { name: 'schedule', fallback: '🕐', description: 'Horario' }]
+                ]);
+            }
+
+            checkMaterialIcons() {
+                const testIcon = document.createElement('span');
+                testIcon.className = 'material-icons';
+                testIcon.textContent = 'home';
+                testIcon.style.position = 'absolute';
+                testIcon.style.left = '-9999px';
+                testIcon.style.visibility = 'hidden';
+                
+                document.body.appendChild(testIcon);
+                
+                const iconWidth = testIcon.offsetWidth;
+                document.body.removeChild(testIcon);
+                
+                this.materialIconsLoaded = iconWidth > 10;
+                
+                if (!this.materialIconsLoaded) {
+                    document.body.classList.add('material-icons-fallback');
+                } else {
+                    document.body.classList.remove('material-icons-fallback');
+                }
+                
+                return this.materialIconsLoaded;
+            }
+
+            getIcon(iconName) {
+                if (this.materialIconsLoaded) {
+                    return iconName;
+                } else {
+                    const fallback = this.iconFallbacks.get(iconName);
+                    return fallback ? fallback.fallback : '•';
+                }
+            }
+
+            getIconInfo(iconName) {
+                return this.iconFallbacks.get(iconName) || null;
+            }
+
+            getIconStatus() {
+                return {
+                    loaded: this.materialIconsLoaded,
+                    fallbackMode: !this.materialIconsLoaded,
+                    totalFallbacks: this.iconFallbacks.size
+                };
+            }
+        }
+
+        // Instancia global del servicio
+        const iconService = new IconServiceTest();
+
+        // Función para mostrar información del navegador
+        function displayBrowserInfo() {
+            const nav = navigator;
+            document.getElementById('browser-info').textContent = getBrowserName();
+            document.getElementById('user-agent').textContent = nav.userAgent;
+            document.getElementById('platform').textContent = nav.platform;
+            document.getElementById('language').textContent = nav.language;
+            document.getElementById('resolution').textContent = `${window.screen.width}x${window.screen.height}`;
+        }
+
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.indexOf('Firefox') > -1) return 'Mozilla Firefox';
+            if (ua.indexOf('Chrome') > -1) return 'Google Chrome';
+            if (ua.indexOf('Safari') > -1) return 'Apple Safari';
+            if (ua.indexOf('Edge') > -1) return 'Microsoft Edge';
+            if (ua.indexOf('MSIE') > -1 || ua.indexOf('Trident') > -1) return 'Internet Explorer';
+            return 'Desconocido';
+        }
+
+        // Función para ejecutar el test
+        function testIconService() {
+            const statusContainer = document.getElementById('status-container');
+            statusContainer.innerHTML = '<p>⏳ Ejecutando test...</p>';
+            
+            setTimeout(() => {
+                const isLoaded = iconService.checkMaterialIcons();
+                const status = iconService.getIconStatus();
+                
+                let html = '';
+                
+                if (isLoaded) {
+                    html += '<div class="status success">';
+                    html += '✅ Material Icons cargados correctamente';
+                    html += '</div>';
+                } else {
+                    html += '<div class="status warning">';
+                    html += '⚠️ Material Icons no disponibles, usando fallbacks';
+                    html += '</div>';
+                }
+                
+                html += '<table class="info-table">';
+                html += `<tr><td>Estado de carga:</td><td>${status.loaded ? '✅ Cargado' : '❌ No cargado'}</td></tr>`;
+                html += `<tr><td>Modo fallback:</td><td>${status.fallbackMode ? '✅ Activo' : '❌ Inactivo'}</td></tr>`;
+                html += `<tr><td>Total de fallbacks:</td><td>${status.totalFallbacks}</td></tr>`;
+                html += '</table>';
+                
+                statusContainer.innerHTML = html;
+                
+                // Actualizar la muestra de iconos
+                displayIconSamples();
+            }, 100);
+        }
+
+        // Función para mostrar muestra de iconos
+        function displayIconSamples() {
+            const iconGrid = document.getElementById('icon-grid');
+            iconGrid.innerHTML = '';
+            
+            const sampleIcons = [
+                'home', 'add', 'edit', 'delete', 'search', 'close', 
+                'check', 'warning', 'error', 'info', 'settings', 'person',
+                'business', 'directions_car', 'route', 'description', 
+                'folder', 'download', 'upload', 'notifications',
+                'dashboard', 'analytics', 'calendar_today', 'schedule'
+            ];
+            
+            sampleIcons.forEach(iconName => {
+                const iconInfo = iconService.getIconInfo(iconName);
+                const iconItem = document.createElement('div');
+                iconItem.className = 'icon-item';
+                
+                if (iconService.materialIconsLoaded) {
+                    iconItem.innerHTML = `
+                        <span class="material-icons icon-display">${iconName}</span>
+                        <div class="icon-name">${iconInfo ? iconInfo.description : iconName}</div>
+                    `;
+                } else {
+                    const fallback = iconService.getIcon(iconName);
+                    iconItem.innerHTML = `
+                        <div class="icon-display">${fallback}</div>
+                        <div class="icon-name">${iconInfo ? iconInfo.description : iconName}</div>
+                    `;
+                }
+                
+                iconGrid.appendChild(iconItem);
+            });
+        }
+
+        // Función para forzar recarga
+        function forceReload() {
+            testIconService();
+        }
+
+        // Función para toggle Material Icons (simulación)
+        function toggleMaterialIcons() {
+            const link = document.querySelector('link[href*="Material+Icons"]');
+            if (link) {
+                if (link.disabled) {
+                    link.disabled = false;
+                    alert('✅ Material Icons habilitado. Espera 1 segundo y haz clic en "Ejecutar Test".');
+                } else {
+                    link.disabled = true;
+                    alert('⚠️ Material Icons deshabilitado. Haz clic en "Ejecutar Test" para ver los fallbacks.');
+                }
+            } else {
+                alert('❌ No se encontró el link de Material Icons en el HTML.');
+            }
+        }
+
+        // Inicialización
+        window.addEventListener('load', () => {
+            displayBrowserInfo();
+            testIconService();
+        });
+    </script>
+</body>
+</html>

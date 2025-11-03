@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Runner - Flujo de Creación de Resolución</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976d2, #42a5f5);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        
+        .test-section h2 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 4px;
+            margin: 10px 10px 10px 0;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #1565c0;
+        }
+        
+        .button.secondary {
+            background: #757575;
+        }
+        
+        .button.success {
+            background: #4caf50;
+        }
+        
+        .button.warning {
+            background: #ff9800;
+        }
+        
+        .console-output {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #2196f3;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 5px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #4caf50;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        
+        .status.warning {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ff9800;
+        }
+        
+        .status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test Runner - Flujo de Creación de Resolución</h1>
+            <p>Herramienta para probar el EmpresaSelectorComponent integrado</p>
+        </div>
+        
+        <div class="content">
+            <div class="instructions">
+                <h3>📋 Instrucciones de Uso</h3>
+                <ol>
+                    <li><strong>Preparación:</strong> Asegúrate de que la aplicación Angular esté ejecutándose en <code>http://localhost:4200</code></li>
+                    <li><strong>Abrir DevTools:</strong> Presiona F12 para abrir las herramientas de desarrollador</li>
+                    <li><strong>Ir a la aplicación:</strong> Navega a <code>http://localhost:4200</code> en otra pestaña</li>
+                    <li><strong>Ejecutar test:</strong> Vuelve a esta pestaña y haz clic en "Ejecutar Test Completo"</li>
+                    <li><strong>Ver resultados:</strong> Los resultados aparecerán en la consola de DevTools y en esta página</li>
+                </ol>
+            </div>
+
+            <div class="test-section">
+                <h2>🚀 Ejecución de Tests</h2>
+                <p>Selecciona el tipo de test que deseas ejecutar:</p>
+                
+                <button class="button success" onclick="runFullTest()">
+                    🧪 Ejecutar Test Completo
+                </button>
+                
+                <button class="button warning" onclick="runStepByStep()">
+                    🔧 Modo Paso a Paso
+                </button>
+                
+                <button class="button secondary" onclick="clearConsole()">
+                    🗑️ Limpiar Consola
+                </button>
+                
+                <div id="status" class="status info" style="display: none;">
+                    Listo para ejecutar tests...
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h2>📊 Requisitos que se Verifican</h2>
+                <ul>
+                    <li><strong>Requirement 6.1:</strong> El campo de empresa debe ser un input de búsqueda con autocompletado</li>
+                    <li><strong>Requirement 6.2:</strong> Debe mostrar sugerencias filtradas por RUC, razón social o código de empresa</li>
+                    <li><strong>Requirement 6.3:</strong> Debe completar el campo con la empresa seleccionada y filtrar expedientes</li>
+                </ul>
+            </div>
+
+            <div class="test-section">
+                <h2>🔍 Pasos del Test</h2>
+                <ol>
+                    <li><strong>Preparación del Entorno:</strong> Verificar que la aplicación Angular está cargada</li>
+                    <li><strong>Abrir Modal:</strong> Navegar y abrir el modal de crear resolución</li>
+                    <li><strong>Búsqueda por RUC:</strong> Probar búsqueda parcial y completa por RUC</li>
+                    <li><strong>Búsqueda por Razón Social:</strong> Probar búsqueda por palabras clave y específica</li>
+                    <li><strong>Búsqueda por Código:</strong> Probar búsqueda por código de empresa</li>
+                    <li><strong>Casos Especiales:</strong> Probar manejo de errores y casos límite</li>
+                    <li><strong>Completar Formulario:</strong> Llenar todos los campos requeridos</li>
+                    <li><strong>Crear Resolución:</strong> Enviar formulario y verificar éxito</li>
+                </ol>
+            </div>
+
+            <div class="test-section">
+                <h2>📝 Consola de Resultados</h2>
+                <p>Los resultados del test aparecerán aquí:</p>
+                <div id="console" class="console-output">
+Esperando ejecución del test...
+
+Para ejecutar el test:
+1. Abre las DevTools (F12)
+2. Ve a la pestaña Console
+3. Haz clic en "Ejecutar Test Completo"
+4. Los resultados aparecerán tanto aquí como en la consola del navegador
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Redirigir console.log a nuestro div
+        const originalLog = console.log;
+        const consoleDiv = document.getElementById('console');
+        const statusDiv = document.getElementById('status');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            consoleDiv.textContent += message + '\n';
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        };
+
+        function updateStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function clearConsole() {
+            consoleDiv.textContent = 'Consola limpiada...\n';
+            updateStatus('Consola limpiada', 'info');
+        }
+
+        async function runFullTest() {
+            updateStatus('Ejecutando test completo...', 'warning');
+            
+            try {
+                // Verificar si estamos en la aplicación Angular
+                if (!window.location.href.includes('localhost:4200')) {
+                    updateStatus('⚠️ Debes ejecutar este test desde http://localhost:4200', 'error');
+                    console.log('❌ Error: Este test debe ejecutarse desde la aplicación Angular en http://localhost:4200');
+                    return;
+                }
+
+                // Cargar el script de test si no está cargado
+                if (typeof window.runResolutionFlowTest === 'undefined') {
+                    await loadTestScript();
+                }
+
+                // Ejecutar el test
+                console.log('🚀 Iniciando test completo del flujo de creación de resolución...');
+                const results = await window.runResolutionFlowTest();
+                
+                if (results.successRate >= 80) {
+                    updateStatus(`✅ Test completado exitosamente (${results.successRate}%)`, 'success');
+                } else {
+                    updateStatus(`⚠️ Test completado con advertencias (${results.successRate}%)`, 'warning');
+                }
+                
+            } catch (error) {
+                updateStatus(`❌ Error durante el test: ${error.message}`, 'error');
+                console.log('❌ Error durante el test:', error);
+            }
+        }
+
+        async function runStepByStep() {
+            updateStatus('Iniciando modo paso a paso...', 'info');
+            
+            try {
+                // Verificar si estamos en la aplicación Angular
+                if (!window.location.href.includes('localhost:4200')) {
+                    updateStatus('⚠️ Debes ejecutar este test desde http://localhost:4200', 'error');
+                    console.log('❌ Error: Este test debe ejecutarse desde la aplicación Angular en http://localhost:4200');
+                    return;
+                }
+
+                // Cargar el script de test si no está cargado
+                if (typeof window.runStepByStepTest === 'undefined') {
+                    await loadTestScript();
+                }
+
+                // Iniciar modo paso a paso
+                const tester = await window.runStepByStepTest();
+                updateStatus('✅ Modo paso a paso activado. Revisa la consola para instrucciones.', 'success');
+                
+            } catch (error) {
+                updateStatus(`❌ Error al iniciar modo paso a paso: ${error.message}`, 'error');
+                console.log('❌ Error:', error);
+            }
+        }
+
+        async function loadTestScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = './test-complete-resolution-flow.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Mostrar instrucciones iniciales
+        updateStatus('Listo para ejecutar tests. Lee las instrucciones arriba.', 'info');
+    </script>
+</body>
+</html>

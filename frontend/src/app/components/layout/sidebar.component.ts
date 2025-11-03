@@ -181,6 +181,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           }
         </a>
 
+        <!-- Mesa de Partes -->
+        <a mat-list-item 
+           routerLink="/mesa-partes" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Mesa de Partes' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'inbox'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Mesa de Partes</span>
+          }
+        </a>
+
         <!-- Separador -->
         @if (isExpanded()) {
           <mat-divider class="section-divider"></mat-divider>

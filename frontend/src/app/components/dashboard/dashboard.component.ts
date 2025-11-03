@@ -94,11 +94,11 @@ interface ActividadReciente {
         </div>
         <div class="header-actions">
           <button mat-raised-button color="primary" (click)="actualizarDashboard()" [disabled]="actualizando()">
-            <app-smart-icon [iconName]="'refresh'" [size]="20"></app-smart-icon>
+            <app-smart-icon [iconName]="'refresh'" [size]="20" [tooltipText]="'Actualizar datos del dashboard'"></app-smart-icon>
             {{ actualizando() ? 'Actualizando...' : 'Actualizar' }}
           </button>
           <button mat-raised-button color="accent" (click)="generarReporte()">
-            <app-smart-icon [iconName]="'assessment'" [size]="20"></app-smart-icon>
+            <app-smart-icon [iconName]="'assessment'" [size]="20" [tooltipText]="'Generar reporte del dashboard'"></app-smart-icon>
             Generar Reporte
           </button>
         </div>
@@ -117,7 +117,7 @@ interface ActividadReciente {
                   <h3 class="metrica-titulo">{{ metrica.titulo | uppercase }}</h3>
                   <div class="metrica-valor">{{ metrica.valor.toLocaleString() }}</div>
                   <div class="metrica-cambio" [class.positivo]="metrica.cambio >= 0" [class.negativo]="metrica.cambio < 0">
-                    <mat-icon>{{ metrica.cambio >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                    <app-smart-icon [iconName]="metrica.cambio >= 0 ? 'trending_up' : 'trending_down'" [size]="16"></app-smart-icon>
                     {{ metrica.cambio >= 0 ? '+' : '' }}{{ metrica.cambioPorcentual }}%
                   </div>
                 </div>
@@ -176,9 +176,7 @@ interface ActividadReciente {
                 @for (actividad of actividadReciente(); track actividad.id) {
                   <div class="actividad-item">
                     <div class="actividad-icono">
-                      <mat-icon [class]="getActividadIcon(actividad.tipo)">
-                        {{ getActividadIcon(actividad.tipo) }}
-                      </mat-icon>
+                      <app-smart-icon [iconName]="getActividadIcon(actividad.tipo)" [size]="20"></app-smart-icon>
                     </div>
                     <div class="actividad-contenido">
                       <div class="actividad-descripcion">{{ actividad.descripcion | uppercase }}</div>
@@ -215,9 +213,7 @@ interface ActividadReciente {
                 @for (notif of notificacionesImportantes(); track notif.id) {
                   <div class="notificacion-item" [class.critica]="notif.prioridad === 'CRITICA'">
                     <div class="notificacion-icono">
-                      <mat-icon [class]="getNotificacionIcon(notif.tipo)">
-                        {{ getNotificacionIcon(notif.tipo) }}
-                      </mat-icon>
+                      <app-smart-icon [iconName]="getNotificacionIcon(notif.tipo)" [size]="20"></app-smart-icon>
                     </div>
                     <div class="notificacion-contenido">
                       <div class="notificacion-titulo">{{ notif.titulo | uppercase }}</div>
@@ -281,7 +277,7 @@ interface ActividadReciente {
             </div>
           } @else if (expedientesPendientes().length === 0) {
             <div class="no-data">
-              <mat-icon>check_circle</mat-icon>
+              <app-smart-icon [iconName]="'check_circle'" [size]="48" [tooltipText]="'Todos los expedientes están al día'"></app-smart-icon>
               <p>No hay expedientes pendientes</p>
             </div>
           } @else {
@@ -321,15 +317,15 @@ interface ActividadReciente {
                 <th mat-header-cell *matHeaderCellDef>Acciones</th>
                 <td mat-cell *matCellDef="let expediente">
                   <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Más opciones">
-                    <mat-icon>more_vert</mat-icon>
+                    <app-smart-icon [iconName]="'more_vert'" [size]="20" [tooltipText]="'Opciones del expediente'"></app-smart-icon>
                   </button>
                   <mat-menu #menu="matMenu">
                     <button mat-menu-item (click)="verExpediente(expediente.id)">
-                      <mat-icon>visibility</mat-icon>
+                      <app-smart-icon [iconName]="'visibility'" [size]="20" [tooltipText]="'Ver detalle del expediente'"></app-smart-icon>
                       Ver detalle
                     </button>
                     <button mat-menu-item (click)="editarExpediente(expediente.id)">
-                      <mat-icon>edit</mat-icon>
+                      <app-smart-icon [iconName]="'edit'" [size]="20" [tooltipText]="'Editar expediente'"></app-smart-icon>
                       Editar
                     </button>
                   </mat-menu>
@@ -415,10 +411,8 @@ interface ActividadReciente {
       color: white;
     }
 
-    .metrica-icono mat-icon {
+    .metrica-icono app-smart-icon {
       font-size: 32px;
-      width: 32px;
-      height: 32px;
     }
 
     .metrica-info {
@@ -455,10 +449,8 @@ interface ActividadReciente {
       color: #dc3545;
     }
 
-    .metrica-cambio mat-icon {
+    .metrica-cambio app-smart-icon {
       font-size: 16px;
-      width: 16px;
-      height: 16px;
     }
 
     .dashboard-grid {
@@ -557,10 +549,8 @@ interface ActividadReciente {
       justify-content: center;
     }
 
-    .actividad-icono mat-icon {
+    .actividad-icono app-smart-icon {
       font-size: 20px;
-      width: 20px;
-      height: 20px;
       color: #6c757d;
     }
 
@@ -612,10 +602,8 @@ interface ActividadReciente {
       justify-content: center;
     }
 
-    .notificacion-icono mat-icon {
+    .notificacion-icono app-smart-icon {
       font-size: 20px;
-      width: 20px;
-      height: 20px;
       color: #6c757d;
     }
 
@@ -694,10 +682,8 @@ interface ActividadReciente {
       color: #6c757d;
     }
 
-    .no-data mat-icon {
+    .no-data app-smart-icon {
       font-size: 48px;
-      width: 48px;
-      height: 48px;
       margin-bottom: 16px;
     }
 

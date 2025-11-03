@@ -9,16 +9,22 @@ import { TipoEmpresa } from '../../models/empresa.model';
 /**
  * Componente para mostrar información visual y detallada del código de empresa.
  * 
+ * Este componente renderiza una tarjeta (card) que muestra el código de empresa dividido
+ * en sus componentes (número y letras), junto con chips de colores que representan
+ * los tipos de empresa y información detallada sobre el formato del código.
+ * 
  * El código de empresa tiene el formato XXXXYYY donde:
  * - XXXX: Número secuencial de 4 dígitos (0001-9999)
  * - YYY: Letras que representan tipos de empresa (P=Personas, R=Regional, T=Turismo)
  * 
  * @example
+ * Uso básico en template:
  * ```html
  * <app-codigo-empresa-info [codigoEmpresa]="'0123PRT'"></app-codigo-empresa-info>
  * ```
  * 
  * @example
+ * Uso con datos de empresa:
  * ```typescript
  * // En el componente padre
  * empresa = { codigoEmpresa: '0123PRT' };
@@ -26,6 +32,30 @@ import { TipoEmpresa } from '../../models/empresa.model';
  * // En el template
  * <app-codigo-empresa-info [codigoEmpresa]="empresa.codigoEmpresa || ''"></app-codigo-empresa-info>
  * ```
+ * 
+ * @example
+ * Uso con signal:
+ * ```typescript
+ * // En el componente padre
+ * codigoEmpresa = signal('0123PRT');
+ * 
+ * // En el template
+ * <app-codigo-empresa-info [codigoEmpresa]="codigoEmpresa()"></app-codigo-empresa-info>
+ * ```
+ * 
+ * @example
+ * Uso en vista de detalle de empresa:
+ * ```html
+ * <!-- Dentro del tab "Información General" -->
+ * <div class="empresa-info-section">
+ *   <app-codigo-empresa-info 
+ *     [codigoEmpresa]="empresa?.codigoEmpresa || ''">
+ *   </app-codigo-empresa-info>
+ * </div>
+ * ```
+ * 
+ * @since 1.0.0
+ * @author Sistema DRTC Puno
  */
 @Component({
   selector: 'app-codigo-empresa-info',
@@ -213,14 +243,42 @@ import { TipoEmpresa } from '../../models/empresa.model';
 })
 export class CodigoEmpresaInfoComponent {
   /**
-   * Código de empresa en formato XXXXYYY (4 dígitos + 3 letras)
-   * @example "0123PRT"
+   * Código de empresa en formato XXXXYYY (4 dígitos + 3 letras).
+   * 
+   * Este input recibe el código de empresa que será parseado y mostrado
+   * visualmente en el componente. Si está vacío o es null/undefined,
+   * se mostrará un mensaje indicando que no hay código asignado.
+   * 
+   * @param codigoEmpresa - Código de empresa válido o cadena vacía
+   * @example "0123PRT" - Empresa #123 con tipos Personas, Regional, Turismo
+   * @example "0001P" - Empresa #1 solo con tipo Personas
+   * @example "" - Sin código asignado (mostrará mensaje de "no código")
+   * 
+   * @default ""
+   * @since 1.0.0
    */
   @Input() codigoEmpresa: string = '';
   
   /**
-   * Extrae los primeros 4 dígitos del código de empresa (número secuencial)
-   * @returns Número secuencial como string (ej: "0123")
+   * Extrae los primeros 4 dígitos del código de empresa (número secuencial).
+   * 
+   * Este método parsea el código de empresa para obtener únicamente la parte
+   * numérica que representa el número secuencial único de la empresa.
+   * 
+   * @returns Número secuencial como string de 4 dígitos, o cadena vacía si no hay código
+   * @example
+   * ```typescript
+   * // Con código "0123PRT"
+   * component.codigoEmpresa = "0123PRT";
+   * component.obtenerNumero(); // Retorna "0123"
+   * 
+   * // Sin código
+   * component.codigoEmpresa = "";
+   * component.obtenerNumero(); // Retorna ""
+   * ```
+   * 
+   * @public
+   * @since 1.0.0
    */
   obtenerNumero(): string {
     if (!this.codigoEmpresa) return '';
@@ -228,8 +286,29 @@ export class CodigoEmpresaInfoComponent {
   }
   
   /**
-   * Extrae las últimas 3 letras del código de empresa (tipos de empresa)
-   * @returns Letras de tipos como string (ej: "PRT")
+   * Extrae las últimas 3 letras del código de empresa (tipos de empresa).
+   * 
+   * Este método parsea el código de empresa para obtener únicamente las letras
+   * que representan los tipos de empresa que maneja (P=Personas, R=Regional, T=Turismo).
+   * 
+   * @returns Letras de tipos como string (máximo 3 caracteres), o cadena vacía si no hay código
+   * @example
+   * ```typescript
+   * // Con código "0123PRT"
+   * component.codigoEmpresa = "0123PRT";
+   * component.obtenerLetras(); // Retorna "PRT"
+   * 
+   * // Con código parcial "0001P"
+   * component.codigoEmpresa = "0001P";
+   * component.obtenerLetras(); // Retorna "P"
+   * 
+   * // Sin código
+   * component.codigoEmpresa = "";
+   * component.obtenerLetras(); // Retorna ""
+   * ```
+   * 
+   * @public
+   * @since 1.0.0
    */
   obtenerLetras(): string {
     if (!this.codigoEmpresa) return '';
@@ -237,8 +316,40 @@ export class CodigoEmpresaInfoComponent {
   }
   
   /**
-   * Convierte las letras del código en información detallada de tipos de empresa
-   * @returns Array de objetos con información de cada tipo de empresa
+   * Convierte las letras del código en información detallada de tipos de empresa.
+   * 
+   * Este método procesa cada letra del código de empresa y la convierte en un objeto
+   * con información completa para mostrar chips de colores con iconos y descripciones.
+   * Solo procesa las letras válidas (P, R, T) según el enum TipoEmpresa.
+   * 
+   * @returns Array de objetos con información de cada tipo de empresa válido
+   * @example
+   * ```typescript
+   * // Con código "0123PRT"
+   * component.codigoEmpresa = "0123PRT";
+   * const tipos = component.obtenerTiposEmpresa();
+   * // Retorna:
+   * // [
+   * //   { letra: 'P', descripcion: 'Personas', color: 'primary', icono: 'people' },
+   * //   { letra: 'R', descripcion: 'Regional', color: 'accent', icono: 'location_on' },
+   * //   { letra: 'T', descripcion: 'Turismo', color: 'warn', icono: 'flight' }
+   * // ]
+   * 
+   * // Con código "0001P"
+   * component.codigoEmpresa = "0001P";
+   * const tipos = component.obtenerTiposEmpresa();
+   * // Retorna:
+   * // [
+   * //   { letra: 'P', descripcion: 'Personas', color: 'primary', icono: 'people' }
+   * // ]
+   * 
+   * // Sin código o código inválido
+   * component.codigoEmpresa = "";
+   * component.obtenerTiposEmpresa(); // Retorna []
+   * ```
+   * 
+   * @public
+   * @since 1.0.0
    */
   obtenerTiposEmpresa(): Array<{letra: string, descripcion: string, color: string, icono: string}> {
     if (!this.codigoEmpresa) return [];

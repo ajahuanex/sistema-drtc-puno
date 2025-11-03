@@ -11,6 +11,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { Router } from '@angular/router';
 import { EmpresaService } from '../../services/empresa.service';
 import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empresa.model';
@@ -31,7 +32,8 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
     MatTabsModule,
     MatExpansionModule,
     MatListModule,
-    MatTooltipModule
+    MatTooltipModule,
+    SmartIconComponent
   ],
   template: `
     <div class="page-header">
@@ -43,11 +45,11 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
       </div>
       <div class="header-actions">
         <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="action-button">
-          <mat-icon>add</mat-icon>
+          <app-smart-icon [iconName]="'add'" [size]="20" [tooltipText]="'Crear nueva empresa'"></app-smart-icon>
           NUEVA EMPRESA
         </button>
         <button mat-raised-button color="accent" (click)="generarReporte()" class="action-button">
-          <mat-icon>assessment</mat-icon>
+          <app-smart-icon [iconName]="'assessment'" [size]="20" [tooltipText]="'Generar reporte de empresas'"></app-smart-icon>
           GENERAR REPORTE
         </button>
       </div>
@@ -59,13 +61,13 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
         <div class="metrics-grid">
           <div class="metric-card total">
             <div class="metric-icon">
-              <mat-icon>business</mat-icon>
+              <app-smart-icon [iconName]="'business'" [size]="48" [tooltipText]="'Total de empresas registradas'"></app-smart-icon>
             </div>
             <div class="metric-content">
               <div class="metric-value">{{ estadisticas()?.totalEmpresas ?? 0 }}</div>
               <div class="metric-label">TOTAL EMPRESAS</div>
               <div class="metric-trend positive">
-                <mat-icon>trending_up</mat-icon>
+                <app-smart-icon [iconName]="'trending_up'" [size]="16" [tooltipText]="'Tendencia positiva'"></app-smart-icon>
                 <span>+{{ ((estadisticas()?.totalEmpresas ?? 0) * 0.05) | number:'1.0-0' }} este mes</span>
               </div>
             </div>
@@ -73,7 +75,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
 
           <div class="metric-card habilitadas">
             <div class="metric-icon">
-              <mat-icon>check_circle</mat-icon>
+              <app-smart-icon [iconName]="'check_circle'" [size]="48" [tooltipText]="'Empresas habilitadas'"></app-smart-icon>
             </div>
             <div class="metric-content">
               <div class="metric-value">{{ estadisticas()?.empresasHabilitadas ?? 0 }}</div>
@@ -86,7 +88,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
 
           <div class="metric-card en-tramite">
             <div class="metric-icon">
-              <mat-icon>pending</mat-icon>
+              <app-smart-icon [iconName]="'pending'" [size]="48" [tooltipText]="'Empresas en trámite'"></app-smart-icon>
             </div>
             <div class="metric-content">
               <div class="metric-value">{{ estadisticas()?.empresasEnTramite ?? 0 }}</div>
@@ -99,7 +101,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
 
           <div class="metric-card suspendidas">
             <div class="metric-icon">
-              <mat-icon>block</mat-icon>
+              <app-smart-icon [iconName]="'block'" [size]="48" [tooltipText]="'Empresas suspendidas'"></app-smart-icon>
             </div>
             <div class="metric-content">
               <div class="metric-value">{{ estadisticas()?.empresasSuspendidas ?? 0 }}</div>
@@ -124,7 +126,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>pie_chart</mat-icon>
+                    <app-smart-icon [iconName]="'pie_chart'" [size]="24" [tooltipText]="'Gráfico de estados de empresas'"></app-smart-icon>
                     ESTADO DE EMPRESAS
                   </mat-card-title>
                 </mat-card-header>
@@ -152,7 +154,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>timeline</mat-icon>
+                    <app-smart-icon [iconName]="'timeline'" [size]="24" [tooltipText]="'Línea de tiempo de actividades'"></app-smart-icon>
                     ACTIVIDAD RECIENTE
                   </mat-card-title>
                 </mat-card-header>
@@ -161,9 +163,12 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
                     @for (actividad of actividadesRecientes(); track actividad.id) {
                       <div class="actividad-item">
                         <div class="actividad-icon">
-                          <mat-icon [class]="'icono-' + actividad.tipo.toLowerCase()">
-                            {{ getIconoActividad(actividad.tipo) }}
-                          </mat-icon>
+                          <app-smart-icon 
+                            [iconName]="getIconoActividad(actividad.tipo)" 
+                            [size]="20" 
+                            [tooltipText]="'Actividad: ' + actividad.tipo"
+                            [class]="'icono-' + actividad.tipo.toLowerCase()">
+                          </app-smart-icon>
                         </div>
                         <div class="actividad-content">
                           <div class="actividad-titulo">{{ actividad.titulo }}</div>
@@ -187,7 +192,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>security</mat-icon>
+                    <app-smart-icon [iconName]="'security'" [size]="24" [tooltipText]="'Análisis de seguridad y riesgo'"></app-smart-icon>
                     DISTRIBUCIÓN DE RIESGO
                   </mat-card-title>
                 </mat-card-header>
@@ -216,7 +221,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>warning</mat-icon>
+                    <app-smart-icon [iconName]="'warning'" [size]="24" [tooltipText]="'Empresas que requieren atención especial'"></app-smart-icon>
                     EMPRESAS DE ALTO RIESGO
                   </mat-card-title>
                 </mat-card-header>
@@ -250,7 +255,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>schedule</mat-icon>
+                    <app-smart-icon [iconName]="'schedule'" [size]="24" [tooltipText]="'Documentos próximos a vencer'"></app-smart-icon>
                     DOCUMENTOS POR VENCER
                   </mat-card-title>
                 </mat-card-header>
@@ -277,7 +282,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
               <mat-card class="content-card">
                 <mat-card-header>
                   <mat-card-title>
-                    <mat-icon>description</mat-icon>
+                    <app-smart-icon [iconName]="'description'" [size]="24" [tooltipText]="'Tipos de documentos registrados'"></app-smart-icon>
                     TIPOS DE DOCUMENTOS
                   </mat-card-title>
                 </mat-card-header>
@@ -543,8 +548,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
       margin-top: 4px;
     }
 
-    .actividad-icon mat-icon {
-      font-size: 20px;
+    .actividad-icon app-smart-icon {
       color: #666;
     }
 

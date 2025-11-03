@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard SmartIcon Fallbacks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .icon-test {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .icon-test span {
+            font-size: 24px;
+        }
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+        }
+        .fallback-mode .material-icons {
+            font-family: Arial, sans-serif !important;
+        }
+        .toggle-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status.material-loaded {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        .status.fallback-active {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+    </style>
+    <!-- Material Icons CSS -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" id="material-icons-css">
+</head>
+<body>
+    <h1>Test Dashboard SmartIcon Fallbacks</h1>
+    
+    <button class="toggle-btn" onclick="toggleMaterialIcons()">
+        Alternar Material Icons
+    </button>
+    
+    <div id="status" class="status material-loaded">
+        ✅ Material Icons cargados - Mostrando iconos normales
+    </div>
+    
+    <div class="test-container">
+        <h2>Iconos del Dashboard (SmartIcon Simulation)</h2>
+        <p>Estos son los iconos que usa el DashboardComponent:</p>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="🔄">refresh</span>
+            <span>Actualizar Dashboard</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="📊">assessment</span>
+            <span>Generar Reporte</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="🏢">business</span>
+            <span>Empresas Activas</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="🚗">directions_car</span>
+            <span>Vehículos Registrados</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="👤">person</span>
+            <span>Conductores</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="🛣️">route</span>
+            <span>Rutas Activas</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="📄">description</span>
+            <span>Resoluciones</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="📁">folder</span>
+            <span>Expedientes</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="📈">trending_up</span>
+            <span>Tendencia Positiva</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="📉">trending_down</span>
+            <span>Tendencia Negativa</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="👁️">visibility</span>
+            <span>Ver Detalle</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="✏️">edit</span>
+            <span>Editar</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="⋮">more_vert</span>
+            <span>Más Opciones</span>
+        </div>
+        
+        <div class="icon-test">
+            <span class="material-icons" data-fallback="✅">check_circle</span>
+            <span>Sin Expedientes Pendientes</span>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Instrucciones de Prueba</h2>
+        <ol>
+            <li><strong>Estado Normal:</strong> Los iconos deben mostrarse como símbolos de Material Icons</li>
+            <li><strong>Hacer clic en "Alternar Material Icons"</strong> para simular cuando no se cargan</li>
+            <li><strong>Estado Fallback:</strong> Los iconos deben cambiar a emojis automáticamente</li>
+            <li><strong>Verificar:</strong> Que la funcionalidad no se rompe en ningún estado</li>
+            <li><strong>Tooltips:</strong> Pasar el mouse sobre los iconos para ver tooltips automáticos</li>
+        </ol>
+    </div>
+
+    <script>
+        let materialIconsEnabled = true;
+        
+        function toggleMaterialIcons() {
+            const body = document.body;
+            const status = document.getElementById('status');
+            const icons = document.querySelectorAll('.material-icons');
+            
+            if (materialIconsEnabled) {
+                // Deshabilitar Material Icons
+                body.classList.add('fallback-mode');
+                status.className = 'status fallback-active';
+                status.innerHTML = '⚠️ Material Icons deshabilitados - Mostrando fallbacks (emojis)';
+                
+                // Cambiar a fallbacks
+                icons.forEach(icon => {
+                    const fallback = icon.getAttribute('data-fallback');
+                    if (fallback) {
+                        icon.textContent = fallback;
+                        icon.title = `Fallback para: ${icon.getAttribute('data-icon') || 'icono'}`;
+                    }
+                });
+                
+                materialIconsEnabled = false;
+            } else {
+                // Habilitar Material Icons
+                body.classList.remove('fallback-mode');
+                status.className = 'status material-loaded';
+                status.innerHTML = '✅ Material Icons cargados - Mostrando iconos normales';
+                
+                // Restaurar iconos originales
+                icons.forEach(icon => {
+                    const originalIcon = icon.getAttribute('data-icon') || 
+                                       icon.textContent.replace(/[^\w]/g, '');
+                    if (originalIcon) {
+                        icon.textContent = originalIcon;
+                        icon.title = `Material Icon: ${originalIcon}`;
+                    }
+                });
+                
+                materialIconsEnabled = true;
+            }
+        }
+        
+        // Inicializar tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const icons = document.querySelectorAll('.material-icons');
+            icons.forEach(icon => {
+                const iconName = icon.textContent.trim();
+                icon.setAttribute('data-icon', iconName);
+                icon.title = `Material Icon: ${iconName}`;
+            });
+        });
+    </script>
+</body>
+</html>

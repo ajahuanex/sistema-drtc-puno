@@ -50,6 +50,7 @@ export const routes: Routes = [
       { path: 'expedientes/nuevo', loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent) },
       { path: 'expedientes/:id', loadComponent: () => import('./components/expedientes/expediente-detail.component').then(m => m.ExpedienteDetailComponent) },
       { path: 'expedientes/:id/editar', loadComponent: () => import('./components/expedientes/expediente-form.component').then(m => m.ExpedienteFormComponent) },
+      { path: 'mesa-partes', loadComponent: () => import('./components/mesa-partes/mesa-partes.component').then(m => m.MesaPartesComponent) },
       { path: 'oficinas', loadComponent: () => import('./components/oficinas/oficinas.component').then(m => m.OficinasComponent) },
       { path: 'oficinas/nueva', loadComponent: () => import('./components/oficinas/oficina-form.component').then(m => m.OficinaFormComponent) },
       { path: 'oficinas/:id', loadComponent: () => import('./components/oficinas/oficina-detail.component').then(m => m.OficinaDetailComponent) },

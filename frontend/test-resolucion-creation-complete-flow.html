@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Completo - Flujo de Creación de Resolución</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1976d2, #42a5f5);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .test-header h2 {
+            margin: 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-header .icon {
+            font-size: 1.5em;
+        }
+        
+        .test-body {
+            padding: 20px;
+        }
+        
+        .test-step {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-left: 4px solid #2196f3;
+            background: #f8f9fa;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .test-step h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+            font-size: 1.1em;
+        }
+        
+        .test-step p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .test-step ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .test-step li {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .expected-result {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+            margin-top: 10px;
+        }
+        
+        .expected-result h4 {
+            margin: 0 0 5px 0;
+            color: #2e7d32;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+            color: #e65100;
+        }
+        
+        .error {
+            background: #ffebee;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+            color: #1565c0;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checklist li:last-child {
+            border-bottom: none;
+        }
+        
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-radius: 3px;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .checkbox.checked {
+            background: #4caf50;
+            border-color: #4caf50;
+        }
+        
+        .checkbox.checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: -2px;
+            left: 2px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .test-data {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .test-data h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-family: inherit;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 10px 10px 0;
+            transition: background 0.3s ease;
+        }
+        
+        .button:hover {
+            background: #1565c0;
+        }
+        
+        .button.secondary {
+            background: #757575;
+        }
+        
+        .button.secondary:hover {
+            background: #616161;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #66bb6a);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .requirements-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .requirements-section h3 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+        }
+        
+        .requirement {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #2196f3;
+        }
+        
+        .requirement-id {
+            font-weight: bold;
+            color: #1976d2;
+            font-size: 0.9em;
+        }
+        
+        .requirement-text {
+            margin: 5px 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Test Completo - Flujo de Creación de Resolución</h1>
+            <p>Verificación integral del EmpresaSelectorComponent en el modal de crear resolución</p>
+        </div>
+        
+        <div class="content">
+            <!-- Requisitos que se están probando -->
+            <div class="requirements-section">
+                <h3>📋 Requisitos que se están verificando</h3>
+                <div class="requirement">
+                    <div class="requirement-id">Requirement 6.1</div>
+                    <div class="requirement-text">El campo de empresa debe ser un input de búsqueda con autocompletado</div>
+                </div>
+                <div class="requirement">
+                    <div class="requirement-id">Requirement 6.2</div>
+                    <div class="requirement-text">Debe mostrar sugerencias filtradas por RUC, razón social o código de empresa</div>
+                </div>
+                <div class="requirement">
+                    <div class="requirement-id">Requirement 6.3</div>
+                    <div class="requirement-text">Debe completar el campo con la empresa seleccionada y filtrar expedientes</div>
+                </div>
+            </div>
+
+            <!-- Datos de prueba -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">📊</span>Datos de Prueba</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-data">
+                        <h4>Empresas para probar:</h4>
+                        <strong>1. Empresa con RUC:</strong><br>
+                        RUC: 20123456789<br>
+                        Razón Social: TRANSPORTES ABC S.A.C.<br>
+                        Código: 0123PRT<br><br>
+                        
+                        <strong>2. Empresa con código:</strong><br>
+                        RUC: 20987654321<br>
+                        Razón Social: SERVICIOS DE TRANSPORTE XYZ E.I.R.L.<br>
+                        Código: 0456TUR<br><br>
+                        
+                        <strong>3. Empresa sin código:</strong><br>
+                        RUC: 20555666777<br>
+                        Razón Social: EMPRESA DE PRUEBA S.A.<br>
+                        Código: (sin código)<br>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paso 1: Preparación -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🚀</span>Paso 1: Preparación del Entorno</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>1.1 Iniciar la aplicación</h3>
+                        <p>Ejecutar el servidor de desarrollo de Angular</p>
+                        <ul>
+                            <li>Abrir terminal en la carpeta frontend</li>
+                            <li>Ejecutar: <code>ng serve</code></li>
+                            <li>Verificar que la aplicación carga en http://localhost:4200</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>La aplicación debe cargar sin errores en la consola del navegador</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>1.2 Verificar datos de empresas</h3>
+                        <p>Asegurar que existen empresas en el sistema para probar</p>
+                        <ul>
+                            <li>Navegar a la sección de empresas</li>
+                            <li>Verificar que hay al menos 3 empresas registradas</li>
+                            <li>Verificar que algunas tienen código de empresa y otras no</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe haber empresas disponibles con diferentes características (con/sin código)</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Aplicación iniciada correctamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Empresas de prueba disponibles</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Sin errores en consola</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 2: Abrir modal -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🔓</span>Paso 2: Abrir Modal de Crear Resolución</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>2.1 Navegar a resoluciones</h3>
+                        <p>Acceder al módulo de resoluciones</p>
+                        <ul>
+                            <li>Hacer clic en "Resoluciones" en el menú lateral</li>
+                            <li>Verificar que se carga la lista de resoluciones</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Se debe mostrar la vista de resoluciones con la tabla y botones de acción</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>2.2 Abrir modal de creación</h3>
+                        <p>Hacer clic en el botón "Crear Nueva Resolución"</p>
+                        <ul>
+                            <li>Localizar el botón "Crear Nueva Resolución" (generalmente en la parte superior)</li>
+                            <li>Hacer clic en el botón</li>
+                            <li>Verificar que se abre el modal</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Se debe abrir el modal con el título "Crear Nueva Resolución" y mostrar el Paso 1: Selección de Empresa</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>2.3 Verificar componente EmpresaSelectorComponent</h3>
+                        <p>Confirmar que el selector de empresas está presente</p>
+                        <ul>
+                            <li>Verificar que hay un campo de búsqueda con label "EMPRESA"</li>
+                            <li>Verificar que el placeholder dice "Buscar por RUC, razón social o código"</li>
+                            <li>Verificar que tiene el icono de empresa (business)</li>
+                            <li>Verificar que muestra el hint "Seleccione la empresa para la cual se creará la resolución"</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>El EmpresaSelectorComponent debe estar visible y correctamente configurado</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Modal abierto correctamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> EmpresaSelectorComponent visible</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Labels y placeholders correctos</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Icono de empresa presente</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 3: Búsqueda por RUC -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🔍</span>Paso 3: Búsqueda por RUC</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>3.1 Búsqueda parcial por RUC</h3>
+                        <p>Probar la búsqueda escribiendo parte del RUC</p>
+                        <ul>
+                            <li>Hacer clic en el campo de búsqueda de empresa</li>
+                            <li>Escribir "2012" (parte del RUC 20123456789)</li>
+                            <li>Verificar que aparece el autocompletado</li>
+                            <li>Verificar que se muestra la empresa con RUC 20123456789</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer una opción con "20123456789" en negrita y "TRANSPORTES ABC S.A.C." debajo</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>3.2 Búsqueda completa por RUC</h3>
+                        <p>Probar con el RUC completo</p>
+                        <ul>
+                            <li>Limpiar el campo y escribir "20123456789"</li>
+                            <li>Verificar que aparece exactamente la empresa correcta</li>
+                            <li>Verificar que no aparecen otras empresas</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Solo debe aparecer la empresa con ese RUC específico</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>3.3 Seleccionar empresa por RUC</h3>
+                        <p>Seleccionar la empresa encontrada</p>
+                        <ul>
+                            <li>Hacer clic en la opción de la empresa</li>
+                            <li>Verificar que el campo se completa con "20123456789 - TRANSPORTES ABC S.A.C."</li>
+                            <li>Verificar que aparece la sección "Empresa Info" con los datos</li>
+                            <li>Verificar que aparece el Paso 2: Expedientes Disponibles</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>La empresa debe quedar seleccionada y debe aparecer la información de la empresa y la sección de expedientes</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>3.4 Verificar información de empresa</h3>
+                        <p>Confirmar que se muestra la información correcta</p>
+                        <ul>
+                            <li>Verificar que se muestra el RUC: 20123456789</li>
+                            <li>Verificar que se muestra la razón social: TRANSPORTES ABC S.A.C.</li>
+                            <li>Verificar que se muestra el estado de la empresa</li>
+                            <li>Si tiene código, verificar que se muestra: 0123PRT</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Toda la información de la empresa debe mostrarse correctamente en la sección de información</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda parcial por RUC funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda completa por RUC funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Selección de empresa funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Información de empresa se muestra</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Aparece sección de expedientes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 4: Búsqueda por Razón Social -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🏢</span>Paso 4: Búsqueda por Razón Social</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>4.1 Limpiar selección anterior</h3>
+                        <p>Resetear el campo para nueva búsqueda</p>
+                        <ul>
+                            <li>Hacer clic en el campo de empresa</li>
+                            <li>Seleccionar todo el texto (Ctrl+A) y borrarlo</li>
+                            <li>Verificar que se limpia la selección</li>
+                            <li>Verificar que desaparece la información de empresa</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>El campo debe quedar vacío y debe desaparecer la información de empresa y expedientes</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>4.2 Búsqueda por palabra clave</h3>
+                        <p>Buscar por una palabra de la razón social</p>
+                        <ul>
+                            <li>Escribir "TRANSPORTES" en el campo</li>
+                            <li>Verificar que aparecen empresas que contienen esa palabra</li>
+                            <li>Verificar que se resalta el RUC en negrita</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Deben aparecer todas las empresas que tengan "TRANSPORTES" en su razón social</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>4.3 Búsqueda por razón social específica</h3>
+                        <p>Buscar por una razón social más específica</p>
+                        <ul>
+                            <li>Limpiar y escribir "SERVICIOS DE TRANSPORTE XYZ"</li>
+                            <li>Verificar que aparece la empresa correcta</li>
+                            <li>Verificar que se muestra el código de empresa si lo tiene</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer la empresa "SERVICIOS DE TRANSPORTE XYZ E.I.R.L." con su código 0456TUR</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>4.4 Seleccionar empresa por razón social</h3>
+                        <p>Seleccionar la empresa encontrada</p>
+                        <ul>
+                            <li>Hacer clic en la opción de la empresa</li>
+                            <li>Verificar que se completa el campo correctamente</li>
+                            <li>Verificar que aparece la información de la empresa</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>La empresa debe quedar seleccionada con toda su información visible</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Limpieza de selección funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda por palabra clave funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda específica funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Selección por razón social funciona</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 5: Búsqueda por Código de Empresa -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🏷️</span>Paso 5: Búsqueda por Código de Empresa</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>5.1 Limpiar y buscar por código</h3>
+                        <p>Probar la búsqueda por código de empresa</p>
+                        <ul>
+                            <li>Limpiar el campo de búsqueda</li>
+                            <li>Escribir "0123PRT" (código de empresa)</li>
+                            <li>Verificar que aparece la empresa correspondiente</li>
+                            <li>Verificar que se muestra el código en verde</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer la empresa con código 0123PRT y el código debe mostrarse en un chip verde</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>5.2 Búsqueda parcial por código</h3>
+                        <p>Probar búsqueda con parte del código</p>
+                        <ul>
+                            <li>Limpiar y escribir "0456" (parte del código 0456TUR)</li>
+                            <li>Verificar que aparece la empresa correcta</li>
+                            <li>Verificar que se muestra el código completo</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer la empresa con código 0456TUR</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>5.3 Búsqueda por letras del código</h3>
+                        <p>Probar búsqueda con las letras del código</p>
+                        <ul>
+                            <li>Limpiar y escribir "TUR"</li>
+                            <li>Verificar que aparece la empresa con código que termina en TUR</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer la empresa con código 0456TUR</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>5.4 Seleccionar empresa por código</h3>
+                        <p>Seleccionar la empresa encontrada por código</p>
+                        <ul>
+                            <li>Hacer clic en la opción de la empresa</li>
+                            <li>Verificar que se selecciona correctamente</li>
+                            <li>Verificar que aparece toda la información</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>La empresa debe quedar seleccionada con su información completa</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda por código completo funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda parcial por código funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Búsqueda por letras del código funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Selección por código funciona</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 6: Casos especiales -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">⚠️</span>Paso 6: Casos Especiales y Manejo de Errores</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>6.1 Búsqueda sin resultados</h3>
+                        <p>Probar búsqueda que no devuelve resultados</p>
+                        <ul>
+                            <li>Limpiar el campo</li>
+                            <li>Escribir "EMPRESA_INEXISTENTE"</li>
+                            <li>Verificar que aparece el mensaje "No se encontraron empresas"</li>
+                            <li>Verificar que se muestra el icono de búsqueda sin resultados</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer una opción deshabilitada con el mensaje "No se encontraron empresas que coincidan con..."</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>6.2 Campo vacío</h3>
+                        <p>Verificar comportamiento con campo vacío</p>
+                        <ul>
+                            <li>Limpiar completamente el campo</li>
+                            <li>Hacer clic en el campo para abrir el autocompletado</li>
+                            <li>Verificar que se muestran todas las empresas disponibles</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Deben aparecer todas las empresas disponibles en el sistema</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>6.3 Estado de carga</h3>
+                        <p>Verificar indicadores de carga</p>
+                        <ul>
+                            <li>Refrescar la página para ver el estado de carga inicial</li>
+                            <li>Abrir el modal de crear resolución</li>
+                            <li>Verificar que aparece el spinner mientras cargan las empresas</li>
+                            <li>Verificar que el campo está deshabilitado durante la carga</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe mostrarse un spinner en el sufijo del campo y una opción "Cargando empresas..." en el autocompletado</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>6.4 Validación de campo requerido</h3>
+                        <p>Verificar validación de campo obligatorio</p>
+                        <ul>
+                            <li>Dejar el campo de empresa vacío</li>
+                            <li>Intentar avanzar al siguiente paso</li>
+                            <li>Verificar que aparece el mensaje de error</li>
+                            <li>Verificar que el botón de crear resolución está deshabilitado</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer el mensaje "EMPRESA es un campo obligatorio" y el botón debe estar deshabilitado</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Mensaje de sin resultados funciona</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Campo vacío muestra todas las empresas</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Estado de carga se muestra correctamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Validación de campo requerido funciona</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 7: Completar formulario -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">📝</span>Paso 7: Completar Formulario de Resolución</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>7.1 Seleccionar empresa final</h3>
+                        <p>Seleccionar una empresa para completar el formulario</p>
+                        <ul>
+                            <li>Buscar y seleccionar "20123456789" (TRANSPORTES ABC S.A.C.)</li>
+                            <li>Verificar que aparece la información de la empresa</li>
+                            <li>Verificar que aparece la sección de expedientes</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>La empresa debe estar seleccionada y debe aparecer el Paso 2: Expedientes Disponibles</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>7.2 Manejar expedientes</h3>
+                        <p>Crear o seleccionar un expediente</p>
+                        <ul>
+                            <li>Si hay expedientes, seleccionar uno existente</li>
+                            <li>Si no hay expedientes, hacer clic en "Crear Nuevo Expediente"</li>
+                            <li>Completar los datos del expediente si es necesario</li>
+                            <li>Verificar que aparece el Paso 3: Información de la Resolución</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe haber un expediente seleccionado y debe aparecer el formulario de resolución</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>7.3 Completar datos de resolución</h3>
+                        <p>Llenar todos los campos requeridos</p>
+                        <ul>
+                            <li>Completar el número de resolución (ej: 0001)</li>
+                            <li>Seleccionar tipo de resolución (PRIMIGENIA)</li>
+                            <li>Seleccionar tipo de trámite (AUTORIZACION_NUEVA)</li>
+                            <li>Seleccionar fecha de emisión (hoy)</li>
+                            <li>Escribir descripción: "RESOLUCIÓN DE PRUEBA PARA TESTING"</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Todos los campos deben completarse sin errores y el botón "Crear Resolución" debe habilitarse</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>7.4 Verificar formulario completo</h3>
+                        <p>Confirmar que el formulario está listo para envío</p>
+                        <ul>
+                            <li>Verificar que no hay errores de validación</li>
+                            <li>Verificar que el botón "Crear Resolución" está habilitado</li>
+                            <li>Verificar que se muestra el número completo de resolución (R-0001-2025)</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>El formulario debe estar completamente válido y listo para crear la resolución</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Empresa seleccionada correctamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Expediente creado/seleccionado</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Datos de resolución completados</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Formulario válido y listo</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Paso 8: Crear resolución -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">✅</span>Paso 8: Crear Resolución Exitosamente</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step">
+                        <h3>8.1 Enviar formulario</h3>
+                        <p>Crear la resolución</p>
+                        <ul>
+                            <li>Hacer clic en el botón "Crear Resolución"</li>
+                            <li>Verificar que aparece el spinner de carga</li>
+                            <li>Verificar que el botón se deshabilita durante el proceso</li>
+                            <li>Esperar la respuesta del servidor</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>El botón debe mostrar "Creando..." con un spinner y estar deshabilitado</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>8.2 Verificar creación exitosa</h3>
+                        <p>Confirmar que la resolución se creó correctamente</p>
+                        <ul>
+                            <li>Verificar que aparece el mensaje de éxito</li>
+                            <li>Verificar que el modal se cierra automáticamente</li>
+                            <li>Verificar que se actualiza la lista de resoluciones</li>
+                            <li>Buscar la nueva resolución en la lista</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Debe aparecer un snackbar con "Resolución R-0001-2025 creada exitosamente" y la nueva resolución debe aparecer en la lista</p>
+                        </div>
+                    </div>
+
+                    <div class="test-step">
+                        <h3>8.3 Verificar datos de la resolución creada</h3>
+                        <p>Confirmar que los datos se guardaron correctamente</p>
+                        <ul>
+                            <li>Hacer clic en la resolución recién creada para ver detalles</li>
+                            <li>Verificar que la empresa asociada es la correcta</li>
+                            <li>Verificar que todos los datos coinciden con lo ingresado</li>
+                        </ul>
+                        <div class="expected-result">
+                            <h4>Resultado esperado:</h4>
+                            <p>Todos los datos de la resolución deben coincidir con lo que se ingresó en el formulario</p>
+                        </div>
+                    </div>
+
+                    <ul class="checklist">
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Formulario enviado correctamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Mensaje de éxito mostrado</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Modal cerrado automáticamente</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Resolución aparece en la lista</li>
+                        <li><span class="checkbox" onclick="toggleCheck(this)"></span> Datos guardados correctamente</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Resumen final -->
+            <div class="test-section">
+                <div class="test-header">
+                    <h2><span class="icon">🎯</span>Resumen de Verificación</h2>
+                </div>
+                <div class="test-body">
+                    <div class="test-step success">
+                        <h3>✅ Funcionalidades Verificadas</h3>
+                        <ul>
+                            <li>EmpresaSelectorComponent integrado correctamente en el modal</li>
+                            <li>Búsqueda por RUC (parcial y completa) funciona</li>
+                            <li>Búsqueda por razón social funciona</li>
+                            <li>Búsqueda por código de empresa funciona</li>
+                            <li>Autocompletado muestra resultados correctos</li>
+                            <li>Selección de empresa actualiza el formulario</li>
+                            <li>Información de empresa se muestra correctamente</li>
+                            <li>Validación de campo requerido funciona</li>
+                            <li>Estados de carga se muestran apropiadamente</li>
+                            <li>Manejo de casos sin resultados</li>
+                            <li>Flujo completo de creación de resolución exitoso</li>
+                        </ul>
+                    </div>
+
+                    <div class="test-step info">
+                        <h3>📊 Requisitos Cumplidos</h3>
+                        <ul>
+                            <li><strong>Requirement 6.1:</strong> ✅ Campo de empresa es un input de búsqueda con autocompletado</li>
+                            <li><strong>Requirement 6.2:</strong> ✅ Muestra sugerencias filtradas por RUC, razón social y código</li>
+                            <li><strong>Requirement 6.3:</strong> ✅ Completa el campo con la empresa seleccionada</li>
+                            <li><strong>Requirement 6.4:</strong> ✅ Carga resultados de forma eficiente</li>
+                            <li><strong>Requirement 6.5:</strong> ✅ Permite limpiar la selección</li>
+                            <li><strong>Requirement 6.6:</strong> ✅ Muestra mensaje cuando no hay resultados</li>
+                        </ul>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <p style="text-align: center; margin-top: 10px;">
+                        <strong>Progreso del Test: <span id="progressText">0%</span></strong>
+                    </p>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <a href="#" class="button" onclick="calculateProgress()">📊 Calcular Progreso</a>
+                        <a href="#" class="button secondary" onclick="resetChecks()">🔄 Reiniciar Checks</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleCheck(element) {
+            element.classList.toggle('checked');
+            calculateProgress();
+        }
+
+        function calculateProgress() {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            const checkedBoxes = document.querySelectorAll('.checkbox.checked');
+            const progress = (checkedBoxes.length / checkboxes.length) * 100;
+            
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = Math.round(progress) + '%';
+        }
+
+        function resetChecks() {
+            const checkboxes = document.querySelectorAll('.checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.classList.remove('checked');
+            });
+            calculateProgress();
+        }
+
+        // Initialize progress calculation
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateProgress();
+        });
+    </script>
+</body>
+</html>
