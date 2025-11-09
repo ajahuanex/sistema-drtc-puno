@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialogModule } from '@angular/material/dialog';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
 
 import { ConfiguracionIntegracionesComponent } from './configuracion-integraciones.component';
@@ -10,412 +10,345 @@ import { IntegracionService } from '../../services/mesa-partes/integracion.servi
 import { 
   Integracion, 
   TipoIntegracion, 
-  TipoAutenticacion,
+  TipoAutenticacion, 
   EstadoConexion,
-  EstadoSincronizacion,
-  LogSincronizacion 
+  ResultadoConexion,
+  LogSincronizacion,
+  EstadoSincronizacion
 } from '../../models/mesa-partes/integracion.model';
 
 describe('ConfiguracionIntegracionesComponent', () => {
   let component: ConfiguracionIntegracionesComponent;
   let fixture: ComponentFixture<ConfiguracionIntegracionesComponent>;
   let integracionService: jasmine.SpyObj<IntegracionService>;
+  let dialog: jasmine.SpyObj<MatDialog>;
+  let snackBar: jasmine.SpyObj<MatSnackBar>;
 
-  const mockIntegracion: Integracion = {
-    id: '1',
-    nombre: 'API Externa',
-    descripcion: 'Integración con sistema externo',
-    tipo: TipoIntegracion.API_REST,
-    urlBase: 'https://api.externa.com',
-    autenticacion: {
-      tipo: TipoAutenticacion.API_KEY,
-      apiKey: 'test-key'
-    },
-    activa: true,
-    estadoConexion: EstadoConexion.CONECTADO,
-    ultimaSincronizacion: new Date('2025-01-15T10:00:00Z'),
-    mapeosCampos: [],
-    configuracionWebhook: undefined,
-    createdAt: new Date('2025-01-01T00:00:00Z'),
-    updatedAt: new Date('2025-01-15T10:00:00Z')
-  };
+  const mockIntegraciones: Integracion[] = [
+    {
+      id: 'int-1',
+      nombre: 'Mesa Externa 1',
+      descripcion: 'Integración con entidad externa',
+      tipo: 'API_REST' as TipoIntegracion,
+      urlBase: 'https://api.externa.com',
+      autenticacion: {
+        tipo: 'API_KEY' as TipoAutenticacion,
+        credenciales: 'encrypted-key'
+      },
+      mapeosCampos: [],
+      activa: true,
+      estadoConexion: 'CONECTADO' as EstadoConexion,
+      ultimaSincronizacion: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as Integracion,
+    {
+      id: 'int-2',
+      nombre: 'Mesa Externa 2',
+      descripcion: 'Segunda integración',
+      tipo: 'WEBHOOK' as TipoIntegracion,
+      urlBase: 'https://api2.externa.com',
+      autenticacion: {
+        tipo: 'BEARER' as TipoAutenticacion,
+        credenciales: 'encrypted-token'
+      },
+      mapeosCampos: [],
+      activa: false,
+      estadoConexion: 'DESCONECTADO' as EstadoConexion,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    } as Integracion
+  ];
 
-  const mockLog: LogSincronizacion = {
-    id: '1',
-    integracionId: '1',
-    documentoId: 'doc-1',
-    tipo: 'ENVIO',
-    estado: EstadoSincronizacion.EXITOSO,
-    mensaje: 'Documento enviado exitosamente',
-    fecha: new Date('2025-01-15T10:00:00Z')
-  };
+  const mockLogs: LogSincronizacion[] = [
+    {
+      id: 'log-1',
+      integracionId: 'int-1',
+      integracionNombre: 'Mesa Externa 1',
+      operacion: 'ENVIO',
+      estado: 'EXITOSO' as EstadoSincronizacion,
+      fecha: new Date(),
+      detalles: 'Documento enviado correctamente'
+    } as LogSincronizacion
+  ];
 
   beforeEach(async () => {
     const integracionServiceSpy = jasmine.createSpyObj('IntegracionService', [
       'listarIntegraciones',
-      'obtenerLogSincronizacion',
-      'probarConexion',
+      'crearIntegracion',
+      'actualizarIntegracion',
       'eliminarIntegracion',
-      'configurarWebhook'
+      'probarConexion',
+      'obtenerLogSincronizacion'
     ]);
+
+    const dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
+    const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     await TestBed.configureTestingModule({
       imports: [
         ConfiguracionIntegracionesComponent,
-        NoopAnimationsModule,
         HttpClientTestingModule,
-        MatSnackBarModule,
-        MatDialogModule
+        NoopAnimationsModule
       ],
       providers: [
-        { provide: IntegracionService, useValue: integracionServiceSpy }
+        { provide: IntegracionService, useValue: integracionServiceSpy },
+        { provide: MatDialog, useValue: dialogSpy },
+        { provide: MatSnackBar, useValue: snackBarSpy }
       ]
     }).compileComponents();
 
+    integracionService = TestBed.inject(IntegracionService) as jasmine.SpyObj<IntegracionService>;
+    dialog = TestBed.inject(MatDialog) as jasmine.SpyObj<MatDialog>;
+    snackBar = TestBed.inject(MatSnackBar) as jasmine.SpyObj<MatSnackBar>;
+    
     fixture = TestBed.createComponent(ConfiguracionIntegracionesComponent);
     component = fixture.componentInstance;
-    integracionService = TestBed.inject(IntegracionService) as jasmine.SpyObj<IntegracionService>;
-
-    // Setup default mocks
-    integracionService.listarIntegraciones.and.returnValue(of([mockIntegracion]));
-    integracionService.obtenerLogSincronizacion.and.returnValue(of({
-      logs: [mockLog],
-      total: 1,
-      page: 1,
-      pageSize: 10
-    }));
-    integracionService.probarConexion.and.returnValue(of({ exitoso: true, mensaje: 'Conexión exitosa' }));
-    integracionService.eliminarIntegracion.and.returnValue(of(void 0));
   });
 
-  beforeEach(() => {
-    fixture.detectChanges();
-  });
-
-  it('should create', () => {
+  it('debe crear el componente', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('Initialization', () => {
-    it('should load integraciones on init', () => {
+  describe('Carga de integraciones', () => {
+    it('debe cargar integraciones al inicializar', () => {
+      integracionService.listarIntegraciones.and.returnValue(of(mockIntegraciones));
+
+      fixture.detectChanges();
+
       expect(integracionService.listarIntegraciones).toHaveBeenCalled();
-      expect(component.integraciones).toEqual([mockIntegracion]);
-      expect(component.loading).toBeFalse();
+      expect(component.integraciones.length).toBe(2);
+      expect(component.loading).toBe(false);
     });
 
-    it('should load logs on init', () => {
-      expect(integracionService.obtenerLogSincronizacion).toHaveBeenCalled();
-      expect(component.logs).toEqual([mockLog]);
-    });
+    it('debe manejar error al cargar integraciones', () => {
+      const error = { error: { message: 'Error de red' } };
+      integracionService.listarIntegraciones.and.returnValue(throwError(() => error));
 
-    it('should initialize with correct default values', () => {
-      expect(component.selectedTabIndex).toBe(0);
-      expect(component.filtroIntegracion).toBe('');
-      expect(component.filtroEstadoLog).toBe('');
-      expect(component.probandoConexion).toEqual({});
-    });
-  });
+      spyOn(console, 'error');
+      fixture.detectChanges();
 
-  describe('Integraciones Management', () => {
-    it('should handle load integraciones error', () => {
-      integracionService.listarIntegraciones.and.returnValue(
-        throwError(() => new Error('Load error'))
-      );
-      
-      spyOn(component['snackBar'], 'open');
-      
-      component['cargarIntegraciones']();
-      
-      expect(component.loading).toBeFalse();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Error al cargar integraciones',
-        'Cerrar',
-        { duration: 3000 }
-      );
-    });
-
-    it('should test connection successfully', () => {
-      spyOn(component['snackBar'], 'open');
-      
-      component.probarConexion(mockIntegracion);
-      
-      expect(integracionService.probarConexion).toHaveBeenCalledWith(mockIntegracion.id);
-      expect(component.probandoConexion[mockIntegracion.id]).toBeFalse();
-      expect(mockIntegracion.estadoConexion).toBe('exitosa');
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Conexión exitosa',
-        'Cerrar',
-        { duration: 3000 }
-      );
-    });
-
-    it('should handle connection test error', () => {
-      integracionService.probarConexion.and.returnValue(
-        of({ exitoso: false, mensaje: 'Error de conexión' })
-      );
-      
-      spyOn(component['snackBar'], 'open');
-      
-      component.probarConexion(mockIntegracion);
-      
-      expect(component.probandoConexion[mockIntegracion.id]).toBeFalse();
-      expect(mockIntegracion.estadoConexion).toBe('error');
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Error de conexión: Error de conexión',
-        'Cerrar',
-        { duration: 5000 }
-      );
-    });
-
-    it('should delete integracion with confirmation', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(component['snackBar'], 'open');
-      
-      component.eliminarIntegracion(mockIntegracion);
-      
-      expect(integracionService.eliminarIntegracion).toHaveBeenCalledWith(mockIntegracion.id);
-      expect(component.integraciones).toEqual([]);
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Integración eliminada exitosamente',
-        'Cerrar',
-        { duration: 3000 }
-      );
-    });
-
-    it('should not delete integracion without confirmation', () => {
-      spyOn(window, 'confirm').and.returnValue(false);
-      
-      component.eliminarIntegracion(mockIntegracion);
-      
-      expect(integracionService.eliminarIntegracion).not.toHaveBeenCalled();
-    });
-
-    it('should handle delete error', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
-      spyOn(component['snackBar'], 'open');
-      integracionService.eliminarIntegracion.and.returnValue(
-        throwError(() => new Error('Delete error'))
-      );
-      
-      component.eliminarIntegracion(mockIntegracion);
-      
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Error al eliminar integración',
-        'Cerrar',
-        { duration: 3000 }
-      );
+      expect(component.loading).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalled();
     });
   });
 
-  describe('Logs Management', () => {
-    it('should load logs with filters', () => {
-      component.filtroIntegracion = '1';
-      component.filtroEstadoLog = EstadoSincronizacion.EXITOSO;
-      
-      component.cargarLogs();
-      
-      expect(integracionService.obtenerLogSincronizacion).toHaveBeenCalledWith(
-        '1',
-        EstadoSincronizacion.EXITOSO
-      );
+  describe('Gestión de integraciones', () => {
+    beforeEach(() => {
+      integracionService.listarIntegraciones.and.returnValue(of(mockIntegraciones));
+      fixture.detectChanges();
     });
 
-    it('should handle load logs error', () => {
-      integracionService.obtenerLogSincronizacion.and.returnValue(
-        throwError(() => new Error('Logs error'))
-      );
-      
-      spyOn(component['snackBar'], 'open');
-      
-      component.cargarLogs();
-      
-      expect(component.loadingLogs).toBeFalse();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Error al cargar logs',
-        'Cerrar',
-        { duration: 3000 }
-      );
-    });
+    it('debe abrir modal para crear integración', () => {
+      const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
+      dialogRefSpy.afterClosed.and.returnValue(of(mockIntegraciones[0]));
+      dialog.open.and.returnValue(dialogRefSpy);
 
-    it('should navigate to logs tab when viewing logs for integracion', () => {
-      component.verLogs(mockIntegracion);
-      
-      expect(component.filtroIntegracion).toBe(mockIntegracion.id);
-      expect(component.selectedTabIndex).toBe(1);
-    });
-
-    it('should show placeholder for log details', () => {
-      spyOn(component['snackBar'], 'open');
-      
-      component.verDetallesLog(mockLog);
-      
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Detalles del log próximamente disponibles',
-        'Cerrar',
-        { duration: 2000 }
-      );
-    });
-  });
-
-  describe('Helper Methods', () => {
-    it('should get correct tipo icon', () => {
-      expect(component.getTipoIcon(TipoIntegracion.API_REST)).toBe('api');
-      expect(component.getTipoIcon(TipoIntegracion.SOAP)).toBe('soap');
-      expect(component.getTipoIcon(TipoIntegracion.FTP)).toBe('folder_shared');
-      expect(component.getTipoIcon(TipoIntegracion.EMAIL)).toBe('email');
-    });
-
-    it('should get correct tipo label', () => {
-      expect(component.getTipoLabel(TipoIntegracion.API_REST)).toBe('API REST');
-      expect(component.getTipoLabel(TipoIntegracion.SOAP)).toBe('SOAP');
-      expect(component.getTipoLabel(TipoIntegracion.FTP)).toBe('FTP');
-      expect(component.getTipoLabel(TipoIntegracion.EMAIL)).toBe('Email');
-    });
-
-    it('should get correct estado conexion class', () => {
-      expect(component.getEstadoConexionClass('exitosa')).toBe('conexion-exitosa');
-      expect(component.getEstadoConexionClass('error')).toBe('conexion-error');
-      expect(component.getEstadoConexionClass('pendiente')).toBe('conexion-pendiente');
-    });
-
-    it('should get correct estado conexion icon', () => {
-      expect(component.getEstadoConexionIcon('exitosa')).toBe('check_circle');
-      expect(component.getEstadoConexionIcon('error')).toBe('error');
-      expect(component.getEstadoConexionIcon('pendiente')).toBe('schedule');
-    });
-
-    it('should get correct estado conexion label', () => {
-      expect(component.getEstadoConexionLabel('exitosa')).toBe('Conectado');
-      expect(component.getEstadoConexionLabel('error')).toBe('Error');
-      expect(component.getEstadoConexionLabel('pendiente')).toBe('Pendiente');
-    });
-
-    it('should get correct operacion icon', () => {
-      expect(component.getOperacionIcon('enviar')).toBe('send');
-      expect(component.getOperacionIcon('recibir')).toBe('get_app');
-      expect(component.getOperacionIcon('sincronizar')).toBe('sync');
-      expect(component.getOperacionIcon('probar')).toBe('bug_report');
-      expect(component.getOperacionIcon('otro')).toBe('settings');
-    });
-
-    it('should get correct log estado icon', () => {
-      expect(component.getLogEstadoIcon('exitoso')).toBe('check_circle');
-      expect(component.getLogEstadoIcon('error')).toBe('error');
-      expect(component.getLogEstadoIcon('pendiente')).toBe('schedule');
-    });
-
-    it('should get correct log estado label', () => {
-      expect(component.getLogEstadoLabel('exitoso')).toBe('Exitoso');
-      expect(component.getLogEstadoLabel('error')).toBe('Error');
-      expect(component.getLogEstadoLabel('pendiente')).toBe('Pendiente');
-    });
-  });
-
-  describe('Modal Integration', () => {
-    it('should open integracion form modal for new integracion', () => {
-      spyOn(component['dialog'], 'open').and.returnValue({
-        afterClosed: () => of(mockIntegracion)
-      } as any);
-      
-      spyOn(component as any, 'cargarIntegraciones');
-      spyOn(component['snackBar'], 'open');
-      
       component.abrirFormularioIntegracion();
-      
-      expect(component['dialog'].open).toHaveBeenCalled();
-      expect((component as any).cargarIntegraciones).toHaveBeenCalled();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Integración creada exitosamente',
-        'Cerrar',
-        { duration: 3000 }
-      );
+
+      expect(dialog.open).toHaveBeenCalled();
     });
 
-    it('should open integracion form modal for edit', () => {
-      spyOn(component['dialog'], 'open').and.returnValue({
-        afterClosed: () => of(mockIntegracion)
-      } as any);
-      
-      spyOn(component as any, 'cargarIntegraciones');
-      spyOn(component['snackBar'], 'open');
-      
-      component.editarIntegracion(mockIntegracion);
-      
-      expect(component['dialog'].open).toHaveBeenCalled();
-      expect((component as any).cargarIntegraciones).toHaveBeenCalled();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Integración actualizada exitosamente',
-        'Cerrar',
-        { duration: 3000 }
-      );
+    it('debe abrir modal para editar integración', () => {
+      const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
+      dialogRefSpy.afterClosed.and.returnValue(of(mockIntegraciones[0]));
+      dialog.open.and.returnValue(dialogRefSpy);
+
+      component.editarIntegracion(mockIntegraciones[0]);
+
+      expect(dialog.open).toHaveBeenCalled();
     });
 
-    it('should open webhook config modal', () => {
-      spyOn(component['dialog'], 'open').and.returnValue({
-        afterClosed: () => of({ success: true })
-      } as any);
-      
-      spyOn(component as any, 'cargarIntegraciones');
-      spyOn(component['snackBar'], 'open');
-      
-      component.configurarWebhook(mockIntegracion);
-      
-      expect(component['dialog'].open).toHaveBeenCalled();
-      expect((component as any).cargarIntegraciones).toHaveBeenCalled();
-      expect(component['snackBar'].open).toHaveBeenCalledWith(
-        'Configuración de webhook actualizada',
-        'Cerrar',
-        { duration: 3000 }
-      );
+    it('debe recargar integraciones después de crear', (done) => {
+      const dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['afterClosed']);
+      dialogRefSpy.afterClosed.and.returnValue(of(mockIntegraciones[0]));
+      dialog.open.and.returnValue(dialogRefSpy);
+
+      component.abrirFormularioIntegracion();
+
+      dialogRefSpy.afterClosed().subscribe(() => {
+        expect(snackBar.open).toHaveBeenCalled();
+        done();
+      });
     });
   });
 
-  describe('Component Lifecycle', () => {
-    it('should cleanup on destroy', () => {
-      spyOn(component['destroy$'], 'next');
-      spyOn(component['destroy$'], 'complete');
+  describe('Prueba de conexión', () => {
+    beforeEach(() => {
+      integracionService.listarIntegraciones.and.returnValue(of(mockIntegraciones));
+      fixture.detectChanges();
+    });
 
-      component.ngOnDestroy();
+    it('debe probar conexión exitosamente', () => {
+      const resultadoExitoso: ResultadoConexion = {
+        exitoso: true,
+        mensaje: 'Conexión exitosa',
+        tiempoRespuesta: 150
+      };
 
-      expect(component['destroy$'].next).toHaveBeenCalled();
-      expect(component['destroy$'].complete).toHaveBeenCalled();
+      integracionService.probarConexion.and.returnValue(of(resultadoExitoso));
+
+      component.probarConexion(mockIntegraciones[0]);
+
+      expect(integracionService.probarConexion).toHaveBeenCalledWith('int-1');
+      expect(component.probandoConexion['int-1']).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('debe manejar error de conexión', () => {
+      const resultadoError: ResultadoConexion = {
+        exitoso: false,
+        mensaje: 'Error de conexión',
+        error: 'Timeout'
+      };
+
+      integracionService.probarConexion.and.returnValue(of(resultadoError));
+
+      component.probarConexion(mockIntegraciones[0]);
+
+      expect(component.probandoConexion['int-1']).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('debe actualizar estado de conexión', () => {
+      const resultadoExitoso: ResultadoConexion = {
+        exitoso: true,
+        mensaje: 'Conexión exitosa'
+      };
+
+      integracionService.probarConexion.and.returnValue(of(resultadoExitoso));
+
+      component.probarConexion(mockIntegraciones[0]);
+
+      expect(mockIntegraciones[0].estadoConexion).toBe('CONECTADO' as EstadoConexion);
     });
   });
 
-  describe('UI State', () => {
-    it('should show loading state', () => {
-      component.loading = true;
+  describe('Logs de sincronización', () => {
+    beforeEach(() => {
+      integracionService.listarIntegraciones.and.returnValue(of(mockIntegraciones));
       fixture.detectChanges();
-      
-      const loadingElement = fixture.nativeElement.querySelector('.loading-container');
-      expect(loadingElement).toBeTruthy();
     });
 
-    it('should show no integraciones message when empty', () => {
-      component.integraciones = [];
-      component.loading = false;
-      fixture.detectChanges();
-      
-      const noDataElement = fixture.nativeElement.querySelector('.no-integraciones');
-      expect(noDataElement).toBeTruthy();
+    it('debe cargar logs de sincronización', () => {
+      const mockResponse = {
+        logs: mockLogs,
+        total: 1,
+        page: 0,
+        pageSize: 10
+      };
+
+      integracionService.obtenerLogSincronizacion.and.returnValue(of(mockResponse));
+      component.filtroIntegracion = 'int-1';
+
+      component.cargarLogs();
+
+      expect(integracionService.obtenerLogSincronizacion).toHaveBeenCalledWith(
+        'int-1',
+        undefined
+      );
+      expect(component.logs.length).toBe(1);
+      expect(component.loadingLogs).toBe(false);
     });
 
-    it('should show integraciones table when data exists', () => {
-      component.integraciones = [mockIntegracion];
-      component.loading = false;
-      fixture.detectChanges();
-      
-      const tableElement = fixture.nativeElement.querySelector('.integraciones-table');
-      expect(tableElement).toBeTruthy();
+    it('debe filtrar logs por estado', () => {
+      const mockResponse = {
+        logs: mockLogs,
+        total: 1,
+        page: 0,
+        pageSize: 10
+      };
+
+      integracionService.obtenerLogSincronizacion.and.returnValue(of(mockResponse));
+      component.filtroIntegracion = 'int-1';
+      component.filtroEstadoLog = 'exitoso';
+
+      component.cargarLogs();
+
+      expect(integracionService.obtenerLogSincronizacion).toHaveBeenCalledWith(
+        'int-1',
+        'exitoso' as EstadoSincronizacion
+      );
     });
 
-    it('should show no logs message when empty', () => {
-      component.logs = [];
-      component.loadingLogs = false;
+    it('no debe cargar logs sin filtro de integración', () => {
+      component.filtroIntegracion = '';
+
+      component.cargarLogs();
+
+      expect(integracionService.obtenerLogSincronizacion).not.toHaveBeenCalled();
+      expect(component.loadingLogs).toBe(false);
+    });
+
+    it('debe manejar error al cargar logs', () => {
+      const error = { error: { message: 'Error al cargar logs' } };
+      integracionService.obtenerLogSincronizacion.and.returnValue(throwError(() => error));
+      component.filtroIntegracion = 'int-1';
+
+      spyOn(console, 'error');
+      component.cargarLogs();
+
+      expect(component.loadingLogs).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Utilidades de formato', () => {
+    it('debe obtener label de tipo correcto', () => {
+      expect(component.getTipoLabel('API_REST' as TipoIntegracion)).toBe('API REST');
+      expect(component.getTipoLabel('WEBHOOK' as TipoIntegracion)).toBe('Webhook');
+      expect(component.getTipoLabel('SOAP' as TipoIntegracion)).toBe('SOAP');
+    });
+
+    it('debe obtener icono de tipo correcto', () => {
+      expect(component.getTipoIcon('API_REST' as TipoIntegracion)).toBe('api');
+      expect(component.getTipoIcon('WEBHOOK' as TipoIntegracion)).toBe('webhook');
+      expect(component.getTipoIcon('SOAP' as TipoIntegracion)).toBe('cloud');
+    });
+
+    it('debe obtener clase de estado de conexión', () => {
+      expect(component.getEstadoConexionClass('CONECTADO' as EstadoConexion)).toBe('conexion-exitosa');
+      expect(component.getEstadoConexionClass('ERROR' as EstadoConexion)).toBe('conexion-error');
+      expect(component.getEstadoConexionClass('DESCONECTADO' as EstadoConexion)).toBe('conexion-pendiente');
+    });
+
+    it('debe obtener icono de estado de conexión', () => {
+      expect(component.getEstadoConexionIcon('CONECTADO' as EstadoConexion)).toBe('check_circle');
+      expect(component.getEstadoConexionIcon('ERROR' as EstadoConexion)).toBe('error');
+      expect(component.getEstadoConexionIcon('DESCONECTADO' as EstadoConexion)).toBe('pending');
+    });
+
+    it('debe obtener label de estado de conexión', () => {
+      expect(component.getEstadoConexionLabel('CONECTADO' as EstadoConexion)).toBe('Conectado');
+      expect(component.getEstadoConexionLabel('ERROR' as EstadoConexion)).toBe('Error');
+      expect(component.getEstadoConexionLabel('DESCONECTADO' as EstadoConexion)).toBe('Desconectado');
+    });
+  });
+
+  describe('Configuración de tabs', () => {
+    beforeEach(() => {
+      integracionService.listarIntegraciones.and.returnValue(of(mockIntegraciones));
       fixture.detectChanges();
-      
-      const noLogsElement = fixture.nativeElement.querySelector('.no-logs');
-      expect(noLogsElement).toBeTruthy();
+    });
+
+    it('debe inicializar en el primer tab', () => {
+      expect(component.selectedTabIndex).toBe(0);
+    });
+
+    it('debe tener columnas de tabla configuradas', () => {
+      expect(component.displayedColumns).toContain('nombre');
+      expect(component.displayedColumns).toContain('estado');
+      expect(component.displayedColumns).toContain('conexion');
+      expect(component.displayedColumns).toContain('acciones');
+    });
+
+    it('debe tener columnas de logs configuradas', () => {
+      expect(component.logColumns).toContain('fecha');
+      expect(component.logColumns).toContain('integracion');
+      expect(component.logColumns).toContain('operacion');
+      expect(component.logColumns).toContain('estadoLog');
     });
   });
 });

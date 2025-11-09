@@ -18,11 +18,18 @@ from app.models.mesa_partes.documento import Documento, EstadoDocumentoEnum, Pri
 from app.models.mesa_partes.derivacion import Derivacion, EstadoDerivacionEnum
 from app.models.mesa_partes.integracion import Integracion
 from app.schemas.mesa_partes.documento import FiltrosDocumento
+from app.core.cache import get_cache, cached, invalidate_cache
+from app.core.task_queue import get_task_queue
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ReporteService:
     def __init__(self, db: Session):
         self.db = db
+        self.cache = get_cache()
+        self.task_queue = get_task_queue()
 
     async def obtener_estadisticas(
         self,
@@ -31,8 +38,15 @@ class ReporteService:
         area_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Obtiene estadísticas generales del sistema
+        Obtiene estadísticas generales del sistema (with caching)
         """
+        # Check cache first
+        cache_key = self.cache._generate_key("reportes:estadisticas", fecha_inicio, fecha_fin, area_id)
+        cached_stats = self.cache.get(cache_key)
+        if cached_stats is not None:
+            logger.debug(f"Cache hit for estadisticas")
+            return cached_stats
+        
         # Establecer fechas por defecto (último mes)
         if not fecha_fin:
             fecha_fin = datetime.utcnow()
@@ -102,7 +116,7 @@ class ReporteService:
             .all()
         )
 
-        return {
+        result = {
             "periodo": {
                 "fecha_inicio": fecha_inicio.isoformat(),
                 "fecha_fin": fecha_fin.isoformat()
@@ -125,6 +139,11 @@ class ReporteService:
                 for fecha, cantidad in tendencia_diaria
             ]
         }
+        
+        # Cache result for 5 minutes
+        self.cache.set(cache_key, result, ttl=300)
+        
+        return result
 
     async def generar_reporte(
         self,
@@ -410,11 +429,23 @@ class ReporteService:
     async def exportar_excel(
         self,
         datos: Dict[str, Any],
-        nombre_archivo: str = "reporte"
+        nombre_archivo: str = "reporte",
+        async_mode: bool = False,
+        usuario_id: Optional[str] = None
     ) -> bytes:
         """
-        Exporta datos a formato Excel
+        Exporta datos a formato Excel (with async processing for large reports)
         """
+        # For large reports, process asynchronously
+        if async_mode and self.task_queue.enabled:
+            task_id = self.task_queue.enqueue(
+                'mesa_partes.generar_reporte_excel',
+                datos,
+                usuario_id
+            )
+            logger.info(f"Excel report queued for async processing: {task_id}")
+            return {"task_id": task_id, "status": "PENDING"}
+        
         output = io.BytesIO()
         
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -446,11 +477,23 @@ class ReporteService:
     async def exportar_pdf(
         self,
         datos: Dict[str, Any],
-        nombre_archivo: str = "reporte"
+        nombre_archivo: str = "reporte",
+        async_mode: bool = False,
+        usuario_id: Optional[str] = None
     ) -> bytes:
         """
-        Exporta datos a formato PDF
+        Exporta datos a formato PDF (with async processing for large reports)
         """
+        # For large reports, process asynchronously
+        if async_mode and self.task_queue.enabled:
+            task_id = self.task_queue.enqueue(
+                'mesa_partes.generar_reporte_pdf',
+                datos,
+                usuario_id
+            )
+            logger.info(f"PDF report queued for async processing: {task_id}")
+            return {"task_id": task_id, "status": "PENDING"}
+        
         output = io.BytesIO()
         doc = SimpleDocTemplate(output, pagesize=A4)
         styles = getSampleStyleSheet()
@@ -526,8 +569,15 @@ class ReporteService:
         fecha_fin: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """
-        Calcula métricas clave del sistema
+        Calcula métricas clave del sistema (with caching)
         """
+        # Check cache first
+        cache_key = self.cache._generate_key("reportes:metricas", fecha_inicio, fecha_fin)
+        cached_metricas = self.cache.get(cache_key)
+        if cached_metricas is not None:
+            logger.debug(f"Cache hit for metricas")
+            return cached_metricas
+        
         if not fecha_fin:
             fecha_fin = datetime.utcnow()
         if not fecha_inicio:
@@ -605,7 +655,7 @@ class ReporteService:
             .first()
         )
 
-        return {
+        result = {
             "periodo": {
                 "fecha_inicio": fecha_inicio.isoformat(),
                 "fecha_fin": fecha_fin.isoformat(),
@@ -622,3 +672,60 @@ class ReporteService:
                 }
             }
         }
+        
+        # Cache result for 10 minutes
+        self.cache.set(cache_key, result, ttl=600)
+        
+        return result
+    d
+ef generar_reporte_excel_sync(self, filtros: dict) -> str:
+        """
+        Synchronous version for task queue
+        """
+        import tempfile
+        import os
+        
+        # Generate report data
+        datos = self.generar_reporte(
+            tipo_reporte=filtros.get('tipo_reporte', 'documentos_por_area'),
+            filtros=FiltrosDocumento(**filtros) if filtros else None,
+            formato='json'
+        )
+        
+        # Generate Excel
+        excel_bytes = self.exportar_excel(datos, nombre_archivo=filtros.get('nombre_archivo', 'reporte'))
+        
+        # Save to temp file
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, f"reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
+        
+        with open(file_path, 'wb') as f:
+            f.write(excel_bytes)
+        
+        return file_path
+    
+    def generar_reporte_pdf_sync(self, filtros: dict) -> str:
+        """
+        Synchronous version for task queue
+        """
+        import tempfile
+        import os
+        
+        # Generate report data
+        datos = self.generar_reporte(
+            tipo_reporte=filtros.get('tipo_reporte', 'documentos_por_area'),
+            filtros=FiltrosDocumento(**filtros) if filtros else None,
+            formato='json'
+        )
+        
+        # Generate PDF
+        pdf_bytes = self.exportar_pdf(datos, nombre_archivo=filtros.get('nombre_archivo', 'reporte'))
+        
+        # Save to temp file
+        temp_dir = tempfile.gettempdir()
+        file_path = os.path.join(temp_dir, f"reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+        
+        with open(file_path, 'wb') as f:
+            f.write(pdf_bytes)
+        
+        return file_path

@@ -1,5 +1,5 @@
 """
-Repository for Documento model
+Repository for Documento model with caching support
 """
 from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session, joinedload
@@ -7,10 +7,14 @@ from sqlalchemy import and_, or_, func, text
 from datetime import datetime, date
 import uuid
 import re
+import logging
 
 from app.models.mesa_partes.documento import Documento, TipoDocumento, ArchivoAdjunto, EstadoDocumentoEnum, PrioridadEnum
 from app.schemas.mesa_partes.documento import FiltrosDocumento
+from app.core.cache import get_cache, cached, invalidate_cache
 from .base_repository import BaseRepository
+
+logger = logging.getLogger(__name__)
 
 class DocumentoRepository(BaseRepository[Documento]):
     """Repository for Documento operations"""
@@ -28,12 +32,28 @@ class DocumentoRepository(BaseRepository[Documento]):
         if 'codigo_qr' not in documento_data or not documento_data['codigo_qr']:
             documento_data['codigo_qr'] = self._generar_codigo_qr(documento_data['numero_expediente'])
         
-        return super().create(documento_data)
+        documento = super().create(documento_data)
+        
+        # Invalidate list caches
+        invalidate_cache("documentos:list:*")
+        
+        return documento
     
-    def get_by_id(self, id: str, include_relations: bool = True) -> Optional[Documento]:
-        """Get documento by ID with optional relations"""
+    def get_by_id(self, id: str, include_relations: bool = True, use_cache: bool = True) -> Optional[Documento]:
+        """Get documento by ID with optional relations and caching"""
         try:
             uuid_id = uuid.UUID(id) if isinstance(id, str) else id
+            
+            # Try cache first if enabled
+            if use_cache:
+                cache = get_cache()
+                cache_key = f"documento:{id}:relations:{include_relations}"
+                cached_doc = cache.get(cache_key)
+                if cached_doc is not None:
+                    logger.debug(f"Cache hit for documento: {id}")
+                    return cached_doc
+            
+            # Query database
             query = self.db.query(Documento).filter(Documento.id == uuid_id)
             
             if include_relations:
@@ -43,7 +63,15 @@ class DocumentoRepository(BaseRepository[Documento]):
                     joinedload(Documento.derivaciones)
                 )
             
-            return query.first()
+            documento = query.first()
+            
+            # Cache result if found
+            if documento and use_cache:
+                cache = get_cache()
+                cache_key = f"documento:{id}:relations:{include_relations}"
+                cache.set(cache_key, documento, ttl=300)  # 5 minutes
+            
+            return documento
         except (ValueError, TypeError):
             return None
     

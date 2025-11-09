@@ -16,6 +16,7 @@ from app.schemas.mesa_partes.derivacion import (
 )
 from app.repositories.mesa_partes.derivacion_repository import DerivacionRepository
 from app.repositories.mesa_partes.documento_repository import DocumentoRepository
+from app.services.mesa_partes.websocket_service import websocket_service
 from app.utils.exceptions import NotFoundError, ValidationError, BusinessLogicError
 
 
@@ -552,18 +553,45 @@ class DerivacionService:
     
     async def _send_derivation_notification(self, derivacion: Derivacion) -> None:
         """Send notification for new derivation"""
-        # TODO: Implement notification sending
-        pass
+        try:
+            documento = derivacion.documento
+            await websocket_service.notify_documento_derivado(
+                documento_id=str(documento.id),
+                numero_expediente=documento.numero_expediente,
+                area_destino_id=str(derivacion.area_destino_id),
+                usuario_deriva=str(derivacion.usuario_deriva_id),
+                es_urgente=derivacion.es_urgente
+            )
+        except Exception as e:
+            # Log error but don't fail the operation
+            print(f"Error sending derivation notification: {str(e)}")
     
     async def _send_reception_notification(self, derivacion: Derivacion, acepta: bool) -> None:
         """Send notification for derivation reception"""
-        # TODO: Implement notification sending
-        pass
+        try:
+            if acepta:
+                documento = derivacion.documento
+                await websocket_service.notify_documento_recibido(
+                    documento_id=str(documento.id),
+                    numero_expediente=documento.numero_expediente,
+                    usuario_id=str(derivacion.usuario_recibe_id),
+                    area_id=str(derivacion.area_destino_id)
+                )
+        except Exception as e:
+            print(f"Error sending reception notification: {str(e)}")
     
     async def _send_attention_notification(self, derivacion: Derivacion) -> None:
         """Send notification for derivation attention"""
-        # TODO: Implement notification sending
-        pass
+        try:
+            documento = derivacion.documento
+            await websocket_service.notify_documento_atendido(
+                documento_id=str(documento.id),
+                numero_expediente=documento.numero_expediente,
+                usuario_id=str(derivacion.usuario_deriva_id),
+                observaciones=derivacion.observaciones
+            )
+        except Exception as e:
+            print(f"Error sending attention notification: {str(e)}")
     
     async def _get_user_area(self, usuario_id: str) -> Optional[str]:
         """Get user's area ID"""

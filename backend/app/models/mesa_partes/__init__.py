@@ -5,6 +5,7 @@ from .documento import Documento, TipoDocumento, ArchivoAdjunto
 from .derivacion import Derivacion
 from .integracion import Integracion, LogSincronizacion
 from .notificacion import Notificacion, Alerta
+from .archivo import Archivo
 
 __all__ = [
     "Base",
@@ -19,5 +20,6 @@ __all__ = [
     "Integracion",
     "LogSincronizacion",
     "Notificacion",
-    "Alerta"
+    "Alerta",
+    "Archivo"
 ]

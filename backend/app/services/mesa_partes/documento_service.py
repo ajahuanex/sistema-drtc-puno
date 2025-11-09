@@ -23,7 +23,13 @@ from app.schemas.mesa_partes.documento import (
     ArchivoAdjuntoCreate, ArchivoAdjuntoResponse
 )
 from app.repositories.mesa_partes.documento_repository import DocumentoRepository
+from app.services.mesa_partes.websocket_service import websocket_service
 from app.utils.exceptions import NotFoundError, ValidationError, BusinessLogicError
+from app.core.cache import get_cache, cached, invalidate_cache
+from app.core.task_queue import get_task_queue
+from app.core.query_optimizer import QueryOptimizer
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentoService:
@@ -34,6 +40,9 @@ class DocumentoService:
         self.repository = DocumentoRepository(db)
         self.storage_path = os.getenv("STORAGE_PATH", "storage/documentos")
         self.base_url = os.getenv("BASE_URL", "http://localhost:8000")
+        self.cache = get_cache()
+        self.task_queue = get_task_queue()
+        self.query_optimizer = QueryOptimizer()
     
     async def crear_documento(self, documento_data: DocumentoCreate, usuario_id: str) -> DocumentoResponse:
         """
@@ -63,6 +72,22 @@ class DocumentoService:
             self.db.commit()
             self.db.refresh(documento)
             
+            # Invalidate caches
+            invalidate_cache("documentos:list:*")
+            invalidate_cache("documentos:stats:*")
+            
+            # Send WebSocket notification if urgent (async)
+            if documento.prioridad == PrioridadEnum.URGENTE and documento.area_actual_id:
+                try:
+                    await websocket_service.notify_documento_urgente(
+                        documento_id=str(documento.id),
+                        numero_expediente=documento.numero_expediente,
+                        area_id=str(documento.area_actual_id),
+                        remitente=documento.remitente
+                    )
+                except Exception as e:
+                    logger.error(f"Error sending urgent document notification: {str(e)}")
+            
             return DocumentoResponse.from_orm(documento)
             
         except Exception as e:
@@ -71,12 +96,13 @@ class DocumentoService:
                 raise
             raise BusinessLogicError(f"Error creating documento: {str(e)}")
     
+    @cached("documento", ttl=600)
     async def obtener_documento(self, documento_id: str, include_relations: bool = True) -> DocumentoResponse:
         """
-        Get documento by ID
+        Get documento by ID with caching
         Requirements: 1.1, 5.4, 5.5
         """
-        documento = self.repository.get_by_id(documento_id, include_relations)
+        documento = self.repository.get_by_id(documento_id, include_relations, use_cache=True)
         if not documento:
             raise NotFoundError(f"Documento with ID {documento_id} not found")
         
@@ -106,7 +132,7 @@ class DocumentoService:
     
     async def listar_documentos(self, filtros: FiltrosDocumento, usuario_id: Optional[str] = None) -> Tuple[List[DocumentoResumen], int]:
         """
-        List documentos with filters and pagination
+        List documentos with filters and pagination (optimized with caching)
         Requirements: 5.1, 5.2, 5.3
         """
         # If user is not admin, filter by their area or documents they registered
@@ -116,10 +142,23 @@ class DocumentoService:
                 # Show documents in user's area or registered by user
                 filtros.area_actual_id = user_area
         
+        # Try cache for frequently accessed lists
+        cache_key = self.cache._generate_key("documentos:list", filtros.dict(), usuario_id)
+        cached_result = self.cache.get(cache_key)
+        if cached_result is not None:
+            logger.debug(f"Cache hit for documentos list")
+            return cached_result
+        
+        # Query database with optimized pagination
         documentos, total = self.repository.list(filtros, include_relations=True)
         
         documentos_resumen = [DocumentoResumen.from_orm(doc) for doc in documentos]
-        return documentos_resumen, total
+        result = (documentos_resumen, total)
+        
+        # Cache result for 2 minutes
+        self.cache.set(cache_key, result, ttl=120)
+        
+        return result
     
     async def actualizar_documento(self, documento_id: str, documento_data: DocumentoUpdate, usuario_id: str) -> DocumentoResponse:
         """
@@ -199,7 +238,7 @@ class DocumentoService:
     
     async def adjuntar_archivo(self, documento_id: str, archivo_data: ArchivoAdjuntoCreate, file_content: bytes, usuario_id: str) -> ArchivoAdjuntoResponse:
         """
-        Attach file to documento
+        Attach file to documento (with async processing)
         Requirements: 1.3
         """
         try:
@@ -244,6 +283,17 @@ class DocumentoService:
             self.db.commit()
             self.db.refresh(archivo_adjunto)
             
+            # Invalidate caches
+            invalidate_cache(f"documento:{documento_id}:*")
+            
+            # Process file asynchronously (virus scan, thumbnail, etc.)
+            if self.task_queue.enabled:
+                self.task_queue.enqueue(
+                    'mesa_partes.procesar_archivo_adjunto',
+                    documento_id,
+                    file_url
+                )
+            
             return ArchivoAdjuntoResponse.from_orm(archivo_adjunto)
             
         except Exception as e:
@@ -254,9 +304,16 @@ class DocumentoService:
     
     async def generar_comprobante_pdf(self, documento_id: str) -> bytes:
         """
-        Generate PDF receipt for documento
+        Generate PDF receipt for documento (with caching)
         Requirements: 1.6, 9.1
         """
+        # Check cache first
+        cache_key = f"comprobante:pdf:{documento_id}"
+        cached_pdf = self.cache.get(cache_key)
+        if cached_pdf is not None:
+            logger.debug(f"Cache hit for PDF comprobante: {documento_id}")
+            return cached_pdf
+        
         documento = self.repository.get_by_id(documento_id)
         if not documento:
             raise NotFoundError(f"Documento with ID {documento_id} not found")
@@ -310,7 +367,12 @@ class DocumentoService:
         p.save()
         
         buffer.seek(0)
-        return buffer.getvalue()
+        pdf_bytes = buffer.getvalue()
+        
+        # Cache PDF for 1 hour
+        self.cache.set(cache_key, pdf_bytes, ttl=3600)
+        
+        return pdf_bytes
     
     async def generar_qr(self, documento_id: str) -> str:
         """
@@ -325,16 +387,28 @@ class DocumentoService:
     
     async def obtener_estadisticas(self, fecha_desde: Optional[datetime] = None, fecha_hasta: Optional[datetime] = None) -> DocumentoEstadisticas:
         """
-        Get documento statistics
+        Get documento statistics (with caching)
         Requirements: 6.1, 6.2, 6.3
         """
+        # Check cache first
+        cache_key = self.cache._generate_key("documentos:stats", fecha_desde, fecha_hasta)
+        cached_stats = self.cache.get(cache_key)
+        if cached_stats is not None:
+            logger.debug(f"Cache hit for documento statistics")
+            return cached_stats
+        
         stats = self.repository.get_estadisticas(fecha_desde, fecha_hasta)
         
         # Calculate average attention time
         promedio_tiempo = await self._calcular_tiempo_promedio_atencion(fecha_desde, fecha_hasta)
         stats["promedio_tiempo_atencion_dias"] = promedio_tiempo
         
-        return DocumentoEstadisticas(**stats)
+        result = DocumentoEstadisticas(**stats)
+        
+        # Cache stats for 5 minutes
+        self.cache.set(cache_key, result, ttl=300)
+        
+        return result
     
     async def buscar_documentos(self, search_term: str, limit: int = 50) -> List[DocumentoResumen]:
         """

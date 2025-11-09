@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import {
   Documento,
   DocumentoCreate,
@@ -8,12 +9,14 @@ import {
   FiltrosDocumento,
   ArchivoAdjunto
 } from '../../models/mesa-partes/documento.model';
+import { CacheService } from './cache.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DocumentoService {
   private http = inject(HttpClient);
+  private cache = inject(CacheService);
   private apiUrl = 'http://localhost:8000/api/v1/documentos';
 
   /**
@@ -21,15 +24,28 @@ export class DocumentoService {
    * Requirements: 1.1, 1.2
    */
   crearDocumento(documento: DocumentoCreate): Observable<Documento> {
-    return this.http.post<Documento>(this.apiUrl, documento);
+    return this.http.post<Documento>(this.apiUrl, documento).pipe(
+      tap(() => {
+        // Invalidar caché de listas al crear
+        this.cache.invalidatePattern('documentos_list_');
+      })
+    );
   }
 
   /**
-   * Obtener un documento por ID
+   * Obtener un documento por ID (con caché)
    * Requirements: 1.1, 5.4
    */
-  obtenerDocumento(id: string): Observable<Documento> {
-    return this.http.get<Documento>(`${this.apiUrl}/${id}`);
+  obtenerDocumento(id: string, useCache: boolean = true): Observable<Documento> {
+    if (!useCache) {
+      return this.http.get<Documento>(`${this.apiUrl}/${id}`);
+    }
+    
+    const cacheKey = `documento_${id}`;
+    return this.cache.get(
+      cacheKey,
+      () => this.http.get<Documento>(`${this.apiUrl}/${id}`)
+    );
   }
 
   /**
@@ -93,7 +109,13 @@ export class DocumentoService {
    * Requirements: 1.4
    */
   actualizarDocumento(id: string, datos: DocumentoUpdate): Observable<Documento> {
-    return this.http.put<Documento>(`${this.apiUrl}/${id}`, datos);
+    return this.http.put<Documento>(`${this.apiUrl}/${id}`, datos).pipe(
+      tap(() => {
+        // Invalidar caché del documento y listas
+        this.cache.invalidate(`documento_${id}`);
+        this.cache.invalidatePattern('documentos_list_');
+      })
+    );
   }
 
   /**
@@ -161,11 +183,17 @@ export class DocumentoService {
   }
 
   /**
-   * Obtener tipos de documento disponibles
+   * Obtener tipos de documento disponibles (con caché de larga duración)
    * Requirements: 2.1
    */
   obtenerTiposDocumento(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/tipos`);
+    const cacheKey = 'tipos_documento';
+    // Caché de 30 minutos para tipos de documento (cambian raramente)
+    return this.cache.get(
+      cacheKey,
+      () => this.http.get<any[]>(`${this.apiUrl}/tipos`),
+      30 * 60 * 1000
+    );
   }
 
   /**

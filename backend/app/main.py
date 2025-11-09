@@ -19,6 +19,7 @@ from app.routers.data_manager_router import router as data_manager_router
 # from app.routers.mesa_partes.permissions_router import router as permissions_router
 # from app.routers.mesa_partes.integration_security_router import router as integration_security_router
 # from app.routers.mesa_partes.integracion_externa_router import router as integracion_externa_router
+from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -100,6 +101,9 @@ app.include_router(data_manager_router)
 # app.include_router(permissions_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Permisos"])
 # app.include_router(integration_security_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Seguridad"])
 # app.include_router(integracion_externa_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Integración Externa"])
+
+# QR Consulta Pública - No requiere autenticación
+app.include_router(qr_consulta_router, tags=["Mesa de Partes - Consulta Pública"])
 
 # Endpoint de salud
 @app.get("/health")
