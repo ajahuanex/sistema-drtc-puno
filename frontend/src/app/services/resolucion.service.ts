@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { EmpresaService } from './empresa.service';
 import { Resolucion, ResolucionCreate, ResolucionUpdate, TipoTramite } from '../models/resolucion.model';
 import { ResolucionFiltros, ResolucionConEmpresa, EstadisticasResoluciones } from '../models/resolucion-table.model';
+import { PerformanceMonitor } from '../utils/performance-monitor';
 
 @Injectable({
   providedIn: 'root'
@@ -411,6 +412,27 @@ export class ResolucionService {
       );
   }
 
+  /**
+   * Valida que el número de resolución sea único para el año especificado
+   * @param numero - Número de resolución a validar
+   * @param fechaEmision - Fecha de emisión para determinar el año
+   * @returns true si el número es único, false si ya existe
+   */
+  private validarNumeroUnicoPorAnio(numero: string, fechaEmision: Date): boolean {
+    const anio = new Date(fechaEmision).getFullYear();
+    const numeroCompleto = `R-${numero}-${anio}`;
+    
+    // Verificar en datos mock
+    const existe = this.mockResoluciones.some(r => r.nroResolucion === numeroCompleto);
+    
+    if (existe) {
+      console.warn(`Ya existe una resolución con el número ${numeroCompleto}`);
+      return false;
+    }
+    
+    return true;
+  }
+
   createResolucion(resolucion: ResolucionCreate): Observable<Resolucion> {
     // Validar que el número sea único por año
     if (!this.validarNumeroUnicoPorAnio(resolucion.numero, resolucion.fechaEmision)) {
@@ -696,85 +718,310 @@ export class ResolucionService {
     console.log('Total de resoluciones mock:', this.mockResoluciones.length);
     console.log('Resoluciones por empresa:');
     
-    const empresas = [...new Set(this.mockResoluciones.map(r => r.empresaId))];
+    const empresas = Array.from(new Set(this.mockResoluciones.map(r => r.empresaId)));
     empresas.forEach(empresaId => {
       const resolucionesEmpresa = this.mockResoluciones.filter(r => r.empresaId === empresaId);
-      console.log(`Empresa ${empresaId}:`, resolucionesEmpresa.length, 'resoluciones');
-      resolucionesEmpresa.forEach(r => {
-        console.log(`  - ${r.nroResolucion} (${r.tipoResolucion}) - Padre: ${r.resolucionPadreId || 'N/A'}`);
-      });
+      console.log(`Empresa ${empresaId}:`, resolucionesEmpresa.length);
     });
-    
-    console.log('=== FIN DEBUG ===');
   }
 
   /**
-   * Validar que el número de resolución sea único por año
-   * @param numero Número de resolución (ej: "0001")
-   * @param fechaEmision Fecha de emisión para obtener el año
-   * @returns true si es único, false si ya existe
+   * Obtiene resoluciones filtradas según los criterios especificados
+   * @param filtros - Objeto con los criterios de filtrado
+   * @returns Observable con las resoluciones filtradas
    */
-  validarNumeroUnicoPorAnio(numero: string, fechaEmision: Date): boolean {
-    const anio = fechaEmision.getFullYear();
-    const numeroCompleto = `R-${numero}-${anio}`;
+  getResolucionesFiltradas(filtros: ResolucionFiltros): Observable<ResolucionConEmpresa[]> {
+    console.log('=== getResolucionesFiltradas ===');
+    console.log('Filtros recibidos:', filtros);
+
+    // Iniciar medición de rendimiento
+    PerformanceMonitor.startMeasure('getResolucionesFiltradas');
+
+    // Intentar obtener del backend primero
+    const url = `${this.apiUrl}/resoluciones/filtradas`;
     
-    console.log('=== VALIDACIÓN NÚMERO ÚNICO ===');
-    console.log('Número a validar:', numero);
-    console.log('Año:', anio);
-    console.log('Número completo generado:', numeroCompleto);
-    console.log('Resoluciones existentes:', this.mockResoluciones.map(r => r.nroResolucion));
-    
-    // Buscar si ya existe una resolución con el mismo número en el mismo año
-    const existe = this.mockResoluciones.find(r => r.nroResolucion === numeroCompleto);
-    console.log('¿Existe resolución con este número?', !!existe);
-    if (existe) {
-      console.log('Resolución encontrada:', existe);
-    }
-    
-    const esUnico = !existe;
-    console.log('Resultado de validación:', esUnico);
-    console.log('=== FIN VALIDACIÓN ===');
-    
-    return esUnico; // Retorna true si es único (no existe), false si ya existe
+    return this.http.post<Resolucion[]>(url, filtros, { headers: this.getHeaders() })
+      .pipe(
+        switchMap((resoluciones: Resolucion[]) => {
+          console.log('Resoluciones del backend:', resoluciones.length);
+          return this.enrichResolucionesConEmpresa(resoluciones);
+        }),
+        tap(resoluciones => {
+          // Finalizar medición y registrar métricas
+          const executionTime = PerformanceMonitor.endMeasure('getResolucionesFiltradas');
+          PerformanceMonitor.recordFilterMetrics({
+            filterType: 'backend',
+            executionTime,
+            resultCount: resoluciones.length,
+            datasetSize: this.mockResoluciones.length,
+            timestamp: new Date()
+          });
+        }),
+        catchError(error => {
+          console.error('Error fetching filtered resoluciones from backend:', error);
+          console.log('Usando datos mock con filtrado local...');
+          
+          // Reiniciar medición para filtrado local
+          PerformanceMonitor.startMeasure('getResolucionesFiltradas-local');
+          
+          // Aplicar filtros a los datos mock
+          let resolucionesFiltradas = [...this.mockResoluciones];
+
+          // Filtro por número de resolución
+          if (filtros.numeroResolucion) {
+            const numeroLower = filtros.numeroResolucion.toLowerCase();
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+              r.nroResolucion.toLowerCase().includes(numeroLower)
+            );
+          }
+
+          // Filtro por empresa
+          if (filtros.empresaId) {
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+              r.empresaId === filtros.empresaId
+            );
+          }
+
+          // Filtro por tipos de trámite (múltiple)
+          if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+              filtros.tiposTramite!.includes(r.tipoTramite)
+            );
+          }
+
+          // Filtro por estados (múltiple)
+          if (filtros.estados && filtros.estados.length > 0) {
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+              r.estado && filtros.estados!.includes(r.estado)
+            );
+          }
+
+          // Filtro por rango de fechas
+          if (filtros.fechaInicio) {
+            const fechaInicio = new Date(filtros.fechaInicio);
+            fechaInicio.setHours(0, 0, 0, 0);
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => {
+              const fechaEmision = new Date(r.fechaEmision);
+              fechaEmision.setHours(0, 0, 0, 0);
+              return fechaEmision >= fechaInicio;
+            });
+          }
+
+          if (filtros.fechaFin) {
+            const fechaFin = new Date(filtros.fechaFin);
+            fechaFin.setHours(23, 59, 59, 999);
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => {
+              const fechaEmision = new Date(r.fechaEmision);
+              return fechaEmision <= fechaFin;
+            });
+          }
+
+          // Filtro por activo
+          if (filtros.activo !== undefined) {
+            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+              r.estaActivo === filtros.activo
+            );
+          }
+
+          console.log('Resoluciones filtradas (mock):', resolucionesFiltradas.length);
+          
+          // Enriquecer con datos de empresa
+          return this.enrichResolucionesConEmpresa(resolucionesFiltradas).pipe(
+            tap(resoluciones => {
+              // Finalizar medición y registrar métricas
+              const executionTime = PerformanceMonitor.endMeasure('getResolucionesFiltradas-local');
+              PerformanceMonitor.recordFilterMetrics({
+                filterType: 'local-mock',
+                executionTime,
+                resultCount: resoluciones.length,
+                datasetSize: this.mockResoluciones.length,
+                timestamp: new Date()
+              });
+            })
+          );
+        })
+      );
   }
 
   /**
-   * Generar el siguiente número de resolución disponible para un año específico
-   * @param fechaEmision Fecha de emisión para obtener el año
-   * @returns Siguiente número disponible
+   * Obtiene resoluciones con datos de empresa incluidos
+   * @returns Observable con las resoluciones enriquecidas con datos de empresa
    */
-  generarSiguienteNumero(fechaEmision: Date): string {
-    const anio = fechaEmision.getFullYear();
+  getResolucionesConEmpresa(): Observable<ResolucionConEmpresa[]> {
+    console.log('=== getResolucionesConEmpresa ===');
     
-    console.log('=== GENERAR SIGUIENTE NÚMERO ===');
-    console.log('Año solicitado:', anio);
-    
-    // Obtener todas las resoluciones del año
-    const resolucionesDelAnio = this.mockResoluciones.filter((r: Resolucion) => {
-      const rAnio = parseInt(r.nroResolucion.split('-')[2]);
-      return rAnio === anio;
-    });
-    
-    console.log('Resoluciones del año', anio, ':', resolucionesDelAnio.map((r: Resolucion) => r.nroResolucion));
-    
-    if (resolucionesDelAnio.length === 0) {
-      console.log('No hay resoluciones este año, retornando 0001');
-      return '0001'; // Primera resolución del año
+    return this.getResoluciones().pipe(
+      switchMap((resoluciones: Resolucion[]) => {
+        return this.enrichResolucionesConEmpresa(resoluciones);
+      })
+    );
+  }
+
+  /**
+   * Enriquece las resoluciones con datos de empresa
+   * @param resoluciones - Array de resoluciones a enriquecer
+   * @returns Observable con las resoluciones enriquecidas
+   */
+  private enrichResolucionesConEmpresa(resoluciones: Resolucion[]): Observable<ResolucionConEmpresa[]> {
+    if (resoluciones.length === 0) {
+      return of([]);
     }
+
+    // Obtener IDs únicos de empresas
+    const empresaIds = Array.from(new Set(resoluciones.map(r => r.empresaId)));
     
-    // Obtener el número más alto del año
-    const numeros = resolucionesDelAnio.map((r: Resolucion) => {
-      const numero = r.nroResolucion.split('-')[1];
-      return parseInt(numero);
-    });
-    
-    console.log('Números encontrados:', numeros);
-    const siguienteNumero = Math.max(...numeros) + 1;
-    const resultado = siguienteNumero.toString().padStart(4, '0');
-    console.log('Siguiente número disponible:', resultado);
-    console.log('=== FIN GENERAR SIGUIENTE NÚMERO ===');
-    
-    return resultado;
+    // Obtener datos de todas las empresas en paralelo
+    const empresasObservables = empresaIds.map(id => 
+      this.empresaService.getEmpresa(id).pipe(
+        catchError(error => {
+          console.error(`Error fetching empresa ${id}:`, error);
+          return of(null);
+        })
+      )
+    );
+
+    return forkJoin(empresasObservables).pipe(
+      map(empresas => {
+        // Crear un mapa de empresas por ID
+        const empresaMap = new Map();
+        empresas.forEach((empresa, index) => {
+          if (empresa) {
+            empresaMap.set(empresaIds[index], empresa);
+          }
+        });
+
+        // Enriquecer resoluciones con datos de empresa
+        const resolucionesConEmpresa: ResolucionConEmpresa[] = resoluciones.map(resolucion => {
+          const empresa = empresaMap.get(resolucion.empresaId);
+          
+          if (empresa) {
+            return {
+              ...resolucion,
+              empresa: {
+                id: empresa.id,
+                razonSocial: {
+                  principal: empresa.razonSocial.principal,
+                  comercial: empresa.razonSocial.minimo
+                },
+                ruc: empresa.ruc
+              }
+            };
+          }
+          
+          // Si no se encuentra la empresa, retornar sin datos de empresa
+          return {
+            ...resolucion,
+            empresa: undefined
+          };
+        });
+
+        console.log('Resoluciones enriquecidas con empresa:', resolucionesConEmpresa.length);
+        return resolucionesConEmpresa;
+      })
+    );
+  }
+
+  /**
+   * Exporta resoluciones en el formato especificado
+   * @param filtros - Filtros aplicados a las resoluciones
+   * @param formato - Formato de exportación ('excel' o 'pdf')
+   * @returns Observable con el blob del archivo exportado
+   */
+  exportarResoluciones(filtros: ResolucionFiltros, formato: 'excel' | 'pdf' = 'excel'): Observable<Blob> {
+    console.log('=== exportarResoluciones ===');
+    console.log('Formato:', formato);
+    console.log('Filtros:', filtros);
+
+    const url = `${this.apiUrl}/resoluciones/exportar`;
+    const params = new URLSearchParams();
+    params.append('formato', formato);
+
+    return this.http.post(
+      `${url}?${params.toString()}`,
+      filtros,
+      {
+        headers: this.getHeaders(),
+        responseType: 'blob'
+      }
+    ).pipe(
+      catchError(error => {
+        console.error('Error exporting resoluciones:', error);
+        
+        // Fallback: generar exportación local simple
+        return this.getResolucionesFiltradas(filtros).pipe(
+          map(resoluciones => {
+            // Crear un CSV simple como fallback
+            const headers = ['Número', 'Empresa', 'Tipo Trámite', 'Fecha Emisión', 'Estado'];
+            const rows = resoluciones.map(r => [
+              r.nroResolucion,
+              r.empresa?.razonSocial.principal || 'Sin empresa',
+              r.tipoTramite,
+              new Date(r.fechaEmision).toLocaleDateString(),
+              r.estado
+            ]);
+            
+            const csvContent = [
+              headers.join(','),
+              ...rows.map(row => row.join(','))
+            ].join('\n');
+            
+            return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          })
+        );
+      })
+    );
+  }
+
+  /**
+   * Obtiene estadísticas de resoluciones según los filtros aplicados
+   * @param filtros - Filtros para calcular estadísticas
+   * @returns Observable con las estadísticas
+   */
+  getEstadisticasFiltros(filtros: ResolucionFiltros): Observable<EstadisticasResoluciones> {
+    console.log('=== getEstadisticasFiltros ===');
+    console.log('Filtros:', filtros);
+
+    return this.getResolucionesFiltradas(filtros).pipe(
+      map(resoluciones => {
+        const estadisticas: EstadisticasResoluciones = {
+          total: resoluciones.length,
+          porTipo: {},
+          porEstado: {},
+          porEmpresa: {}
+        };
+
+        // Calcular estadísticas por tipo de trámite
+        resoluciones.forEach(r => {
+          // Por tipo
+          if (!estadisticas.porTipo[r.tipoTramite]) {
+            estadisticas.porTipo[r.tipoTramite] = 0;
+          }
+          estadisticas.porTipo[r.tipoTramite]++;
+
+          // Por estado
+          if (r.estado) {
+            if (!estadisticas.porEstado[r.estado]) {
+              estadisticas.porEstado[r.estado] = 0;
+            }
+            estadisticas.porEstado[r.estado]++;
+          }
+
+          // Por empresa
+          if (r.empresa) {
+            if (!estadisticas.porEmpresa[r.empresaId]) {
+              estadisticas.porEmpresa[r.empresaId] = {
+                nombre: r.empresa.razonSocial.principal,
+                cantidad: 0
+              };
+            }
+            estadisticas.porEmpresa[r.empresaId].cantidad++;
+          }
+        });
+
+        console.log('Estadísticas calculadas:', estadisticas);
+        return estadisticas;
+      })
+    );
   }
 
   // ========================================
@@ -846,335 +1093,5 @@ export class ResolucionService {
         return throwError(() => new Error('Error al procesar el archivo'));
       })
     );
-  }
-
-  // ========================================
-  // MÉTODOS PARA TABLA AVANZADA DE RESOLUCIONES
-  // ========================================
-
-  /**
-   * Obtiene resoluciones filtradas según los criterios especificados
-   * Incluye información de empresa en cada resolución
-   */
-  getResolucionesFiltradas(filtros: ResolucionFiltros): Observable<ResolucionConEmpresa[]> {
-    console.log('🔍 Aplicando filtros a resoluciones:', filtros);
-    
-    return this.getResoluciones().pipe(
-      switchMap(resoluciones => {
-        let resolucionesFiltradas = [...resoluciones];
-
-        // Filtro por número de resolución
-        if (filtros.numeroResolucion) {
-          const termino = filtros.numeroResolucion.toLowerCase();
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            r.nroResolucion.toLowerCase().includes(termino)
-          );
-        }
-
-        // Filtro por empresa
-        if (filtros.empresaId) {
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            r.empresaId === filtros.empresaId
-          );
-        }
-
-        // Filtro por tipos de trámite (múltiple)
-        if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            filtros.tiposTramite!.includes(r.tipoTramite)
-          );
-        }
-
-        // Filtro por estados (múltiple)
-        if (filtros.estados && filtros.estados.length > 0) {
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            r.estado && filtros.estados!.includes(r.estado)
-          );
-        }
-
-        // Filtro por rango de fechas
-        if (filtros.fechaInicio) {
-          const fechaInicio = new Date(filtros.fechaInicio);
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            new Date(r.fechaEmision) >= fechaInicio
-          );
-        }
-
-        if (filtros.fechaFin) {
-          const fechaFin = new Date(filtros.fechaFin);
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            new Date(r.fechaEmision) <= fechaFin
-          );
-        }
-
-        // Filtro por activo
-        if (filtros.activo !== undefined) {
-          resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-            r.estaActivo === filtros.activo
-          );
-        }
-
-        console.log('✅ Resoluciones filtradas:', {
-          original: resoluciones.length,
-          filtradas: resolucionesFiltradas.length,
-          filtros: filtros
-        });
-
-        // Si no hay resoluciones filtradas, retornar array vacío
-        if (resolucionesFiltradas.length === 0) {
-          return of([]);
-        }
-
-        // Obtener IDs únicos de empresas
-        const empresaIds = [...new Set(resolucionesFiltradas.map(r => r.empresaId).filter(id => id))];
-
-        // Si no hay empresas, retornar resoluciones sin datos de empresa
-        if (empresaIds.length === 0) {
-          return of(resolucionesFiltradas.map(r => ({ ...r, empresa: undefined })));
-        }
-
-        // Obtener todas las empresas en paralelo
-        const empresasObservables = empresaIds.map(id => 
-          this.empresaService.getEmpresa(id).pipe(
-            catchError(() => of(null)) // Si falla, retornar null
-          )
-        );
-
-        return forkJoin(empresasObservables).pipe(
-          map(empresas => {
-            // Crear mapa de empresas por ID
-            const empresasMap = new Map();
-            empresas.forEach((empresa, index) => {
-              if (empresa) {
-                empresasMap.set(empresaIds[index], {
-                  id: empresa.id,
-                  razonSocial: empresa.razonSocial,
-                  ruc: empresa.ruc
-                });
-              }
-            });
-
-            // Mapear resoluciones con datos de empresa
-            return resolucionesFiltradas.map(resolucion => ({
-              ...resolucion,
-              empresa: empresasMap.get(resolucion.empresaId) || this.obtenerDatosEmpresaMock(resolucion.empresaId)
-            }));
-          })
-        );
-      }),
-      catchError(error => {
-        console.error('Error filtrando resoluciones:', error);
-        // Fallback a filtrado simple con datos mock de empresa
-        return this.getResoluciones().pipe(
-          map(resoluciones => {
-            let resolucionesFiltradas = [...resoluciones];
-
-            if (filtros.numeroResolucion) {
-              const termino = filtros.numeroResolucion.toLowerCase();
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                r.nroResolucion.toLowerCase().includes(termino)
-              );
-            }
-
-            if (filtros.empresaId) {
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                r.empresaId === filtros.empresaId
-              );
-            }
-
-            if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                filtros.tiposTramite!.includes(r.tipoTramite)
-              );
-            }
-
-            if (filtros.estados && filtros.estados.length > 0) {
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                r.estado && filtros.estados!.includes(r.estado)
-              );
-            }
-
-            if (filtros.fechaInicio) {
-              const fechaInicio = new Date(filtros.fechaInicio);
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                new Date(r.fechaEmision) >= fechaInicio
-              );
-            }
-
-            if (filtros.fechaFin) {
-              const fechaFin = new Date(filtros.fechaFin);
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                new Date(r.fechaEmision) <= fechaFin
-              );
-            }
-
-            if (filtros.activo !== undefined) {
-              resolucionesFiltradas = resolucionesFiltradas.filter(r => 
-                r.estaActivo === filtros.activo
-              );
-            }
-
-            return resolucionesFiltradas.map(r => ({ ...r, empresa: this.obtenerDatosEmpresaMock(r.empresaId) }));
-          })
-        );
-      })
-    );
-  }
-
-  /**
-   * Obtiene resoluciones con información de empresa incluida
-   */
-  getResolucionesConEmpresa(): Observable<ResolucionConEmpresa[]> {
-    return this.getResoluciones().pipe(
-      switchMap(resoluciones => {
-        // Si no hay resoluciones, retornar array vacío
-        if (resoluciones.length === 0) {
-          return of([]);
-        }
-
-        // Obtener IDs únicos de empresas
-        const empresaIds = [...new Set(resoluciones.map(r => r.empresaId).filter(id => id))];
-
-        // Si no hay empresas, retornar resoluciones sin datos de empresa
-        if (empresaIds.length === 0) {
-          return of(resoluciones.map(r => ({ ...r, empresa: undefined })));
-        }
-
-        // Obtener todas las empresas en paralelo
-        const empresasObservables = empresaIds.map(id => 
-          this.empresaService.getEmpresa(id).pipe(
-            catchError(() => of(null)) // Si falla, retornar null
-          )
-        );
-
-        return forkJoin(empresasObservables).pipe(
-          map(empresas => {
-            // Crear mapa de empresas por ID
-            const empresasMap = new Map();
-            empresas.forEach((empresa, index) => {
-              if (empresa) {
-                empresasMap.set(empresaIds[index], {
-                  id: empresa.id,
-                  razonSocial: empresa.razonSocial,
-                  ruc: empresa.ruc
-                });
-              }
-            });
-
-            // Mapear resoluciones con datos de empresa
-            return resoluciones.map(resolucion => ({
-              ...resolucion,
-              empresa: empresasMap.get(resolucion.empresaId) || this.obtenerDatosEmpresaMock(resolucion.empresaId)
-            }));
-          })
-        );
-      }),
-      catchError(error => {
-        console.error('Error obteniendo resoluciones con empresa:', error);
-        // Fallback a datos mock
-        return this.getResoluciones().pipe(
-          map(resoluciones => resoluciones.map(resolucion => ({
-            ...resolucion,
-            empresa: this.obtenerDatosEmpresaMock(resolucion.empresaId)
-          })))
-        );
-      })
-    );
-  }
-
-  /**
-   * Obtiene estadísticas de resoluciones para filtros
-   */
-  getEstadisticasFiltros(filtros: ResolucionFiltros = {}): Observable<EstadisticasResoluciones> {
-    return this.getResolucionesFiltradas(filtros).pipe(
-      map(resoluciones => {
-        const estadisticas = {
-          total: resoluciones.length,
-          porTipo: {} as { [key: string]: number },
-          porEstado: {} as { [key: string]: number },
-          porEmpresa: {} as { [key: string]: { nombre: string; cantidad: number } }
-        };
-
-        resoluciones.forEach(resolucion => {
-          // Estadísticas por tipo
-          estadisticas.porTipo[resolucion.tipoTramite] = 
-            (estadisticas.porTipo[resolucion.tipoTramite] || 0) + 1;
-
-          // Estadísticas por estado
-          if (resolucion.estado) {
-            estadisticas.porEstado[resolucion.estado] = 
-              (estadisticas.porEstado[resolucion.estado] || 0) + 1;
-          }
-
-          // Estadísticas por empresa
-          if (resolucion.empresaId) {
-            const empresa = this.obtenerDatosEmpresaMock(resolucion.empresaId);
-            if (empresa) {
-              if (!estadisticas.porEmpresa[resolucion.empresaId]) {
-                estadisticas.porEmpresa[resolucion.empresaId] = {
-                  nombre: empresa.razonSocial.principal,
-                  cantidad: 0
-                };
-              }
-              estadisticas.porEmpresa[resolucion.empresaId].cantidad++;
-            }
-          }
-        });
-
-        return estadisticas;
-      })
-    );
-  }
-
-  /**
-   * Exporta resoluciones en formato especificado
-   */
-  exportarResoluciones(filtros: ResolucionFiltros = {}, formato: 'excel' | 'pdf' = 'excel'): Observable<Blob> {
-    return this.getResolucionesFiltradas(filtros).pipe(
-      map(resoluciones => {
-        // Por ahora simulamos la exportación
-        const data = JSON.stringify(resoluciones, null, 2);
-        return new Blob([data], { type: 'application/json' });
-      })
-    );
-  }
-
-  /**
-   * Obtiene datos mock de empresa por ID
-   * TODO: Integrar con EmpresaService cuando esté disponible
-   */
-  private obtenerDatosEmpresaMock(empresaId?: string): any {
-    if (!empresaId) return null;
-
-    // Datos mock de empresas
-    const empresasMock: { [key: string]: any } = {
-      '1': {
-        id: '1',
-        razonSocial: { principal: 'TRANSPORTES LIMA S.A.C.' },
-        ruc: '20123456789'
-      },
-      '2': {
-        id: '2',
-        razonSocial: { principal: 'EMPRESA DE TRANSPORTES AREQUIPA S.R.L.' },
-        ruc: '20234567890'
-      },
-      '3': {
-        id: '3',
-        razonSocial: { principal: 'TRANSPORTES CUSCO E.I.R.L.' },
-        ruc: '20345678901'
-      },
-      '4': {
-        id: '4',
-        razonSocial: { principal: 'TRANSPORTES TRUJILLO S.A.' },
-        ruc: '20456789012'
-      },
-      '5': {
-        id: '5',
-        razonSocial: { principal: 'EMPRESA HUANCAYO TRANSPORTES S.A.C.' },
-        ruc: '20567890123'
-      }
-    };
-
-    return empresasMock[empresaId] || null;
   }
 } 

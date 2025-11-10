@@ -254,17 +254,24 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px;
+      padding: 12px;
       border: 1px solid #e0e0e0;
       border-radius: 6px;
       background-color: white;
       transition: all 0.2s ease;
       cursor: move;
+      min-height: 48px;
+      touch-action: none;
     }
 
     .column-item:hover {
       border-color: #1976d2;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .column-item:active {
+      transform: scale(1.02);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
 
     .column-item.column-visible {
@@ -290,10 +297,14 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     .drag-handle {
       color: rgba(0, 0, 0, 0.4);
       cursor: grab;
+      padding: 4px;
+      margin: -4px;
+      touch-action: none;
     }
 
     .drag-handle:active {
       cursor: grabbing;
+      color: #1976d2;
     }
 
     .column-checkbox {
@@ -420,9 +431,52 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     }
 
     /* Responsive */
+    @media (max-width: 768px) {
+      .column-selector-content {
+        width: 90vw;
+        max-width: 400px;
+      }
+      
+      .column-item {
+        padding: 14px;
+        min-height: 56px;
+      }
+      
+      .drag-handle {
+        padding: 8px;
+        margin: -8px;
+      }
+      
+      .column-checkbox {
+        transform: scale(1.2);
+      }
+    }
+
     @media (max-width: 480px) {
       .column-selector-content {
-        width: 320px;
+        width: 95vw;
+        max-width: 360px;
+      }
+      
+      .column-header {
+        padding: 12px;
+      }
+      
+      .column-title {
+        font-size: 14px;
+      }
+      
+      .column-subtitle {
+        font-size: 11px;
+      }
+      
+      .columns-list-container {
+        padding: 12px;
+      }
+      
+      .column-item {
+        padding: 16px 12px;
+        min-height: 60px;
       }
       
       .quick-buttons {
@@ -431,6 +485,10 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
       
       .column-actions {
         flex-direction: column;
+      }
+      
+      .action-button {
+        height: 44px;
       }
     }
   `]

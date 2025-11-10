@@ -818,3 +818,70 @@ Ver [CONTRIBUTING.md](../CONTRIBUTING.md) para detalles sobre cómo contribuir a
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver [LICENSE](../LICENSE) para más detalles.
+
+
+## 📊 Mejoras de Tabla de Resoluciones
+
+El sistema incluye mejoras avanzadas para la gestión de resoluciones con las siguientes características:
+
+### 🔍 Filtrado Avanzado
+- Filtro por número de resolución
+- Filtro por empresa con búsqueda inteligente
+- Filtro por tipo de trámite (múltiple)
+- Filtro por estado (múltiple)
+- Filtro por rango de fechas
+- Chips visuales de filtros activos
+
+### 📊 Tabla Personalizable
+- Selección de columnas visibles
+- Reordenamiento de columnas
+- Persistencia de configuración
+- Columna de empresa mejorada
+
+### 🔄 Ordenamiento Avanzado
+- Ordenamiento por cualquier columna
+- Ordenamiento múltiple con prioridad
+- Indicadores visuales de dirección
+
+### 📤 Exportación
+- Exportar a Excel
+- Exportar a PDF
+- Respeta filtros y ordenamiento
+
+### 📚 Documentación Completa
+
+- **[README Principal](../.kiro/specs/resoluciones-table-improvements/README.md)** - Descripción general y arquitectura
+- **[Guía de Usuario](../.kiro/specs/resoluciones-table-improvements/USER_GUIDE.md)** - Manual completo para usuarios finales
+- **[API Documentation](../.kiro/specs/resoluciones-table-improvements/API_DOCUMENTATION.md)** - Documentación de APIs y servicios
+- **[Ejemplos de Componentes](../.kiro/specs/resoluciones-table-improvements/COMPONENT_EXAMPLES.md)** - Ejemplos prácticos de uso
+- **[Guía de Testing](../.kiro/specs/resoluciones-table-improvements/TESTING_GUIDE.md)** - Guía de pruebas
+- **[Guía de Accesibilidad](../.kiro/specs/resoluciones-table-improvements/ACCESSIBILITY_GUIDE.md)** - Estándares de accesibilidad
+
+### 🚀 Inicio Rápido
+
+```typescript
+import { 
+  ResolucionesFiltersComponent,
+  ResolucionesTableComponent
+} from './shared';
+
+@Component({
+  template: `
+    <app-resoluciones-filters
+      [filtros]="filtros"
+      (filtrosChange)="onFiltrosChange($event)">
+    </app-resoluciones-filters>
+
+    <app-resoluciones-table
+      [resoluciones]="resoluciones"
+      [configuracion]="config"
+      (resolucionSeleccionada)="onSelect($event)">
+    </app-resoluciones-table>
+  `
+})
+export class MiComponente {
+  // Implementación
+}
+```
+
+Ver [ejemplos completos](../.kiro/specs/resoluciones-table-improvements/COMPONENT_EXAMPLES.md) para más detalles.

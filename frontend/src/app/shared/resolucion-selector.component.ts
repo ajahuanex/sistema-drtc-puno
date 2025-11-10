@@ -1,40 +1,78 @@
-import { Component, Input, Output, EventEmitter, inject, signal, effect, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { SmartIconComponent } from './smart-icon.component';
+import { Observable } from 'rxjs';
+import { map, startWith, finalize } from 'rxjs/operators';
+
 import { ResolucionService } from '../services/resolucion.service';
 import { Resolucion } from '../models/resolucion.model';
-import { Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { SmartIconComponent } from './smart-icon.component';
 
 /**
- * Componente selector de resoluciones con búsqueda avanzada.
+ * Componente selector de resoluciones con búsqueda y autocompletado
  * 
- * Permite buscar resoluciones por número o descripción con autocompletado en tiempo real.
- * Puede filtrar resoluciones por empresa cuando se proporciona empresaId.
+ * Este componente proporciona una interfaz de búsqueda inteligente para seleccionar resoluciones
+ * con capacidades de filtrado por número de resolución y descripción. Incluye estados
+ * de carga, manejo de errores, validación de campos requeridos y filtrado por empresa.
  * 
  * @example
  * ```html
  * <!-- Uso básico -->
  * <app-resolucion-selector
  *   [label]="'Resolución'"
- *   [placeholder]="'Buscar resolución'"
+ *   [placeholder]="'Buscar resolución...'"
  *   (resolucionSeleccionada)="onResolucionSelected($event)">
  * </app-resolucion-selector>
  * 
- * <!-- Con empresa filtrada -->
+ * <!-- Uso en modal de vehículo con filtrado por empresa -->
  * <app-resolucion-selector
- *   [label]="'Resolución'"
- *   [empresaId]="empresaSeleccionada?.id"
+ *   [label]="'RESOLUCIÓN'"
+ *   [placeholder]="'Buscar por número o descripción'"
+ *   [hint]="'Seleccione la resolución que autoriza el vehículo'"
  *   [required]="true"
- *   (resolucionSeleccionada)="onResolucionSelected($event)"
+ *   [empresaId]="vehiculoForm.get('empresaId')?.value"
+ *   [resolucionId]="vehiculoForm.get('resolucionId')?.value"
+ *   (resolucionSeleccionada)="onResolucionSeleccionada($event)"
+ *   (resolucionIdChange)="vehiculoForm.patchValue({ resolucionId: $event })">
+ * </app-resolucion-selector>
+ * 
+ * <!-- Uso con formulario reactivo -->
+ * <app-resolucion-selector
+ *   [label]="'Resolución Autorizante'"
+ *   [required]="true"
+ *   [disabled]="form.disabled"
+ *   [empresaId]="selectedEmpresaId"
+ *   [resolucionId]="form.get('resolucionId')?.value"
+ *   (resolucionSeleccionada)="updateSelectedResolucion($event)"
  *   (resolucionIdChange)="form.patchValue({ resolucionId: $event })">
  * </app-resolucion-selector>
  * ```
+ * 
+ * @example
+ * ```typescript
+ * // Manejo de eventos en el componente padre
+ * export class VehiculoModalComponent {
+ *   onResolucionSeleccionada(resolucion: Resolucion | null): void {
+ *     if (resolucion) {
+ *       this.resolucionSeleccionada.set(resolucion);
+ *       this.vehiculoForm.patchValue({ resolucionId: resolucion.id });
+ *       // Validar que la resolución esté vigente
+ *       this.validarResolucionVigente(resolucion);
+ *     } else {
+ *       this.resolucionSeleccionada.set(null);
+ *       this.vehiculoForm.patchValue({ resolucionId: '' });
+ *     }
+ *   }
+ * }
+ * ```
+ * 
+ * @since 1.0.0
+ * @author Sistema DRTC Puno
  */
 @Component({
   selector: 'app-resolucion-selector',
@@ -45,68 +83,84 @@ import { map, startWith } from 'rxjs/operators';
     MatFormFieldModule,
     MatInputModule,
     MatAutocompleteModule,
+    MatIconModule,
     MatProgressSpinnerModule,
-    SmartIconComponent,
+    SmartIconComponent
   ],
   template: `
-    <mat-form-field appearance="outline" [class.required]="required" class="resolucion-selector">
-      <mat-label>{{ label }}</mat-label>
+    <mat-form-field appearance="outline" class="form-field" [class.required]="required">
+      <mat-label>
+        {{ label }}
+        <span *ngIf="required" class="required-indicator">*</span>
+      </mat-label>
       <input matInput 
              [formControl]="resolucionControl"
              [placeholder]="placeholder"
              [matAutocomplete]="auto"
+             (input)="onInputChange($event)"
              [required]="required"
-             [disabled]="disabled || cargando()">
+             [disabled]="disabled || isLoading()">
       <mat-autocomplete #auto="matAutocomplete" 
-                       [displayWith]="displayResolucion"
-                       (optionSelected)="onResolucionSeleccionada($event)">
-        @if (cargando()) {
-          <mat-option disabled>
-            <div class="loading-option">
-              <mat-spinner diameter="20"></mat-spinner>
-              <span>Cargando resoluciones...</span>
+                       (optionSelected)="onResolucionSeleccionada($event)"
+                       [displayWith]="displayFn">
+        <!-- Loading option -->
+        <mat-option *ngIf="isLoading()" value="" disabled>
+          <div class="loading-option">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Cargando resoluciones...</span>
+          </div>
+        </mat-option>
+        
+        <!-- Resolucion options -->
+        <mat-option *ngFor="let resolucion of filteredResoluciones | async" [value]="resolucion.id">
+          <div class="resolucion-option">
+            <strong>{{ resolucion.nroResolucion }}</strong>
+            <span class="descripcion">{{ resolucion.descripcion }}</span>
+            <div class="resolucion-meta">
+              <small class="fecha">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</small>
+              <small class="estado" [class]="'estado-' + resolucion.estado?.toLowerCase()">
+                {{ resolucion.estado }}
+              </small>
             </div>
-          </mat-option>
-        } @else {
-          @for (resolucion of filteredResoluciones | async; track resolucion.id) {
-            <mat-option [value]="resolucion">
-              <div class="resolucion-option">
-                <div class="resolucion-header">
-                  <strong>{{ resolucion.nroResolucion }}</strong>
-                  <span class="resolucion-tipo">{{ resolucion.tipoTramite }}</span>
-                </div>
-                <div class="resolucion-details">
-                  <span class="resolucion-descripcion">{{ resolucion.descripcion || 'Sin descripción' }}</span>
-                  <span class="resolucion-fecha">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</span>
-                </div>
-              </div>
-            </mat-option>
-          } @empty {
-            <mat-option disabled>
-              <div class="no-results">
-                <app-smart-icon [iconName]="'search_off'" [size]="20"></app-smart-icon>
-                <span>No se encontraron resoluciones</span>
-              </div>
-            </mat-option>
-          }
-        }
+          </div>
+        </mat-option>
+        
+        <!-- No results option -->
+        <mat-option *ngIf="!isLoading() && (filteredResoluciones | async)?.length === 0 && resolucionControl.value && resolucionControl.value.length > 0" value="" disabled>
+          <div class="no-results-option">
+            <app-smart-icon [iconName]="'search_off'" [size]="18"></app-smart-icon>
+            <span>No se encontraron resoluciones que coincidan con "{{ resolucionControl.value }}"</span>
+          </div>
+        </mat-option>
+        
+        <!-- Empty state when no search term -->
+        <mat-option *ngIf="!isLoading() && resoluciones().length === 0 && (!resolucionControl.value || resolucionControl.value.length === 0)" value="" disabled>
+          <div class="empty-state-option">
+            <app-smart-icon [iconName]="'info'" [size]="18"></app-smart-icon>
+            <span>{{ empresaId ? 'No hay resoluciones disponibles para esta empresa' : 'No hay resoluciones disponibles' }}</span>
+          </div>
+        </mat-option>
       </mat-autocomplete>
-      <app-smart-icon [iconName]="'description'" [size]="20" matSuffix></app-smart-icon>
-      @if (hint) {
-        <mat-hint>{{ hint }}</mat-hint>
-      }
-      @if (resolucionControl.hasError('required') && resolucionControl.touched) {
-        <mat-error>La resolución es requerida</mat-error>
-      }
+      
+      <!-- Suffix icon with loading state -->
+      <mat-spinner *ngIf="isLoading()" matSuffix diameter="20"></mat-spinner>
+      <app-smart-icon *ngIf="!isLoading()" [iconName]="'description'" matSuffix></app-smart-icon>
+      
+      <mat-hint>{{ hint }}</mat-hint>
+      <mat-error *ngIf="resolucionControl.hasError('required') && required">
+        {{ label }} es un campo obligatorio
+      </mat-error>
     </mat-form-field>
   `,
   styles: [`
-    .resolucion-selector {
+    .form-field {
       width: 100%;
     }
 
-    .resolucion-selector.required ::ng-deep .mat-mdc-form-field-required-marker {
-      color: var(--warn-color, #f44336);
+    .required-indicator {
+      color: #f44336;
+      font-weight: bold;
+      margin-left: 2px;
     }
 
     .resolucion-option {
@@ -116,226 +170,477 @@ import { map, startWith } from 'rxjs/operators';
       padding: 4px 0;
     }
 
-    .resolucion-header {
+    .resolucion-option strong {
+      color: #1976d2;
+      font-weight: 600;
+      font-size: 0.95em;
+    }
+
+    .resolucion-option .descripcion {
+      color: #666;
+      font-size: 0.85em;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .resolucion-option .resolucion-meta {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
       gap: 8px;
+      align-items: center;
+      margin-top: 2px;
     }
 
-    .resolucion-header strong {
-      font-size: 14px;
-      color: var(--primary-color, #1976d2);
+    .resolucion-option .fecha {
+      color: #999;
+      font-size: 0.75em;
     }
 
-    .resolucion-tipo {
-      font-size: 11px;
+    .resolucion-option .estado {
+      font-size: 0.75em;
+      font-weight: 500;
       padding: 2px 6px;
-      background-color: var(--accent-color, #ff4081);
-      color: white;
       border-radius: 4px;
       text-transform: uppercase;
     }
 
-    .resolucion-details {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: rgba(0, 0, 0, 0.6);
+    .resolucion-option .estado-vigente {
+      color: #2e7d32;
+      background: #e8f5e9;
     }
 
-    .resolucion-descripcion {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .resolucion-option .estado-vencida {
+      color: #d32f2f;
+      background: #ffebee;
     }
 
-    .resolucion-fecha {
-      font-size: 11px;
-      color: rgba(0, 0, 0, 0.5);
+    .resolucion-option .estado-suspendida {
+      color: #f57c00;
+      background: #fff3e0;
     }
 
-    .loading-option,
-    .no-results {
+    .loading-option {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px;
-      color: rgba(0, 0, 0, 0.6);
+      gap: 12px;
+      padding: 8px 0;
+      color: #666;
     }
 
-    .no-results {
-      justify-content: center;
+    .no-results-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      color: #999;
+      font-style: italic;
     }
-  `]
+
+    .empty-state-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      color: #999;
+    }
+
+    /* Loading spinner in suffix */
+    .mat-form-field-suffix mat-spinner {
+      margin-right: 4px;
+    }
+
+    /* Disabled state styling */
+    .form-field .mat-form-field-disabled {
+      opacity: 0.6;
+    }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ResolucionSelectorComponent implements OnChanges {
-  private resolucionService = inject(ResolucionService);
-
-  /** Etiqueta del campo */
+export class ResolucionSelectorComponent implements OnInit {
+  /**
+   * Etiqueta del campo de entrada
+   * @default 'Resolución'
+   * @example 'RESOLUCIÓN', 'Resolución Autorizante', 'Seleccionar Resolución'
+   */
   @Input() label: string = 'Resolución';
-  
-  /** Placeholder del input */
-  @Input() placeholder: string = 'Buscar por número o descripción';
-  
-  /** Texto de ayuda debajo del campo */
-  @Input() hint: string = '';
-  
-  /** Si el campo es requerido */
-  @Input() required: boolean = false;
-  
-  /** Si el campo está deshabilitado */
-  @Input() disabled: boolean = false;
-  
-  /** ID de la empresa para filtrar resoluciones */
-  @Input() empresaId: string = '';
-  
-  /** ID de la resolución seleccionada (para binding bidireccional) */
-  @Input() resolucionId: string = '';
-  
-  /** Filtro por tipo de trámite específico */
-  @Input() filtroTipoTramite: string = '';
-  
-  /** Evento emitido cuando se selecciona una resolución */
-  @Output() resolucionSeleccionada = new EventEmitter<Resolucion | null>();
-  
-  /** Evento emitido cuando cambia el ID de la resolución */
-  @Output() resolucionIdChange = new EventEmitter<string>();
-
-  // Control del formulario
-  resolucionControl = new FormControl('');
-  
-  // Señales
-  resoluciones = signal<Resolucion[]>([]);
-  cargando = signal(false);
-  
-  // Observable para el autocompletado
-  filteredResoluciones!: Observable<Resolucion[]>;
-
-  constructor() {
-    // Cargar resoluciones al inicializar
-    this.cargarResoluciones();
-    
-    // Configurar autocompletado
-    this.filteredResoluciones = this.resolucionControl.valueChanges.pipe(
-      startWith(''),
-      map(value => this._filter(value))
-    );
-  }
 
   /**
-   * Detecta cambios en los inputs y recarga resoluciones si es necesario
+   * Texto de placeholder para el campo de entrada
+   * @default 'Buscar por número o descripción'
+   * @example 'Buscar resolución...', 'Ingrese número de resolución'
    */
-  ngOnChanges(changes: SimpleChanges): void {
-    // Si cambió empresaId o filtroTipoTramite, recargar resoluciones
-    if (changes['empresaId'] || changes['filtroTipoTramite']) {
-      console.log('🔄 Cambio detectado en ResolucionSelector:', {
-        empresaId: this.empresaId,
-        filtroTipoTramite: this.filtroTipoTramite,
-        changes: changes
-      });
-      this.cargarResoluciones();
+  @Input() placeholder: string = 'Buscar por número o descripción';
+
+  /**
+   * Texto de ayuda que se muestra debajo del campo
+   * @default 'Busca por número de resolución o descripción'
+   * @example 'Seleccione la resolución que autoriza el vehículo'
+   */
+  @Input() hint: string = 'Busca por número de resolución o descripción';
+
+  /**
+   * Indica si el campo es obligatorio
+   * @default false
+   * @example true para formularios de vehículo, false para filtros opcionales
+   */
+  @Input() required: boolean = false;
+
+  /**
+   * ID de la resolución preseleccionada
+   * @default ''
+   * @example 'resolucion-123', usado para establecer valor inicial del componente
+   */
+  @Input() resolucionId: string = '';
+
+  /**
+   * ID de la empresa para filtrar resoluciones
+   * @default ''
+   * @example 'empresa-123', filtra solo resoluciones de esa empresa
+   */
+  @Input() empresaId: string = '';
+
+  /**
+   * Tipo de trámite para filtrar resoluciones
+   * @default undefined
+   * @example 'PRIMIGENIA', filtra solo resoluciones de ese tipo de trámite
+   */
+  @Input() filtroTipoTramite?: string;
+
+  /**
+   * Indica si el componente está deshabilitado
+   * @default false
+   * @example true cuando el formulario padre está en modo solo lectura
+   */
+  @Input() disabled: boolean = false;
+  
+  /**
+   * Evento emitido cuando se selecciona una resolución
+   * @param resolucion - La resolución seleccionada o null si se limpia la selección
+   * @example
+   * ```typescript
+   * onResolucionSeleccionada(resolucion: Resolucion | null): void {
+   *   if (resolucion) {
+   *     console.log('Resolución seleccionada:', resolucion.nroResolucion);
+   *     this.form.patchValue({ resolucionId: resolucion.id });
+   *   }
+   * }
+   * ```
+   */
+  @Output() resolucionSeleccionada = new EventEmitter<Resolucion | null>();
+
+  /**
+   * Evento emitido cuando cambia el ID de la resolución seleccionada
+   * @param resolucionId - El ID de la resolución seleccionada o cadena vacía
+   * @example
+   * ```typescript
+   * onResolucionIdChange(resolucionId: string): void {
+   *   this.form.patchValue({ resolucionId });
+   *   if (resolucionId) {
+   *     this.loadVehiculosByResolucion(resolucionId);
+   *   }
+   * }
+   * ```
+   */
+  @Output() resolucionIdChange = new EventEmitter<string>();
+
+  /** Servicio para operaciones con resoluciones */
+  private resolucionService = inject(ResolucionService);
+
+  /** Signal que contiene la lista de todas las resoluciones cargadas */
+  resoluciones = signal<Resolucion[]>([]);
+  
+  /** Observable que contiene las resoluciones filtradas para el autocompletado */
+  filteredResoluciones: Observable<Resolucion[]> = new Observable<Resolucion[]>();
+  
+  /** Control del formulario para el campo de entrada */
+  resolucionControl = new FormControl<string>('');
+  
+  /** Signal que indica si se están cargando las resoluciones */
+  isLoading = signal<boolean>(false);
+
+  /**
+   * Inicializa el componente
+   * Carga las resoluciones, configura el autocompletado y establece valores iniciales
+   */
+  ngOnInit(): void {
+    this.cargarResoluciones();
+    this.configurarAutocompletado();
+    
+    if (this.resolucionId) {
+      this.resolucionControl.setValue(this.resolucionId);
+    }
+    
+    if (this.disabled) {
+      this.resolucionControl.disable();
     }
   }
 
   /**
    * Carga las resoluciones desde el servicio
+   * @private
+   * @description Realiza una petición HTTP para obtener todas las resoluciones disponibles
+   * y actualiza el signal de resoluciones. Si se proporciona empresaId, filtra por empresa.
+   * Maneja estados de carga y errores.
    */
   private cargarResoluciones(): void {
-    this.cargando.set(true);
-    
-    console.log('📋 Cargando resoluciones con filtros:', {
-      empresaId: this.empresaId,
-      filtroTipoTramite: this.filtroTipoTramite,
-      usarFiltroEmpresa: !!this.empresaId
-    });
+    this.isLoading.set(true);
     
     const observable = this.empresaId 
       ? this.resolucionService.getResolucionesPorEmpresa(this.empresaId)
       : this.resolucionService.getResoluciones();
     
-    observable.subscribe({
-      next: (resoluciones) => {
-        console.log('✅ Resoluciones cargadas:', {
-          total: resoluciones.length,
-          empresaId: this.empresaId,
-          resoluciones: resoluciones.map(r => ({ id: r.id, numero: r.nroResolucion, tipo: r.tipoTramite }))
-        });
-        this.resoluciones.set(resoluciones);
-        this.cargando.set(false);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar resoluciones:', error);
-        this.resoluciones.set([]);
-        this.cargando.set(false);
-      }
-    });
+    observable
+      .pipe(
+        finalize(() => this.isLoading.set(false))
+      )
+      .subscribe({
+        next: (resoluciones) => {
+          // Filtrar solo resoluciones activas y vigentes
+          const resolucionesActivas = resoluciones.filter(r => 
+            r.estaActivo && (r.estado === 'VIGENTE' || !r.estado)
+          );
+          this.resoluciones.set(resolucionesActivas);
+        },
+        error: (error) => {
+          console.error('Error al cargar resoluciones:', error);
+          this.resoluciones.set([]);
+        }
+      });
   }
 
   /**
-   * Filtra las resoluciones según el término de búsqueda
+   * Configura el autocompletado
+   * @private
+   * @description Establece el observable de resoluciones filtradas que reacciona
+   * a los cambios en el campo de entrada para proporcionar sugerencias en tiempo real
    */
-  private _filter(value: string | Resolucion | null): Resolucion[] {
-    let resoluciones = this.resoluciones();
-    
-    // Aplicar filtro por tipo de trámite si está especificado
-    if (this.filtroTipoTramite) {
-      resoluciones = resoluciones.filter(resolucion => 
-        resolucion.tipoTramite === this.filtroTipoTramite
-      );
-    }
-    
-    if (!value) {
-      return resoluciones;
-    }
-
-    const filterValue = typeof value === 'string' 
-      ? value.toLowerCase() 
-      : value.nroResolucion.toLowerCase();
-    
-    return resoluciones.filter(resolucion => 
-      resolucion.nroResolucion.toLowerCase().includes(filterValue) ||
-      (resolucion.descripcion && resolucion.descripcion.toLowerCase().includes(filterValue)) ||
-      resolucion.tipoTramite.toLowerCase().includes(filterValue)
+  private configurarAutocompletado(): void {
+    this.filteredResoluciones = this.resolucionControl.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value || ''))
     );
   }
 
   /**
-   * Maneja la selección de una resolución
+   * Filtra las resoluciones para el autocompletado
+   * @private
+   * @param value - Texto de búsqueda ingresado por el usuario
+   * @returns Array de resoluciones que coinciden con los criterios de búsqueda
+   * @description Busca por número de resolución y descripción.
+   * La búsqueda es insensible a mayúsculas y minúsculas y busca coincidencias parciales.
+   * También aplica filtro por tipo de trámite si está especificado.
+   * 
+   * Criterios de búsqueda:
+   * - Número de Resolución: Coincidencia parcial en el número (ej: R-0001-2025)
+   * - Descripción: Coincidencia parcial en la descripción de la resolución
+   * - Tipo de Trámite: Filtro exacto por tipo de trámite (si está especificado)
    */
-  onResolucionSeleccionada(event: any): void {
-    const resolucion = event.option.value as Resolucion;
-    this.resolucionSeleccionada.emit(resolucion);
-    this.resolucionIdChange.emit(resolucion.id);
+  private _filter(value: string): Resolucion[] {
+    if (typeof value !== 'string') return this.resoluciones();
+    
+    const filterValue = value.toLowerCase().trim();
+    
+    // Aplicar filtro por tipo de trámite primero si está especificado
+    let resolucionesFiltradas = this.resoluciones();
+    if (this.filtroTipoTramite) {
+      resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+        r.tipoTramite === this.filtroTipoTramite
+      );
+    }
+    
+    // Si no hay valor de búsqueda, retornar resoluciones filtradas por tipo
+    if (!filterValue) return resolucionesFiltradas;
+    
+    return resolucionesFiltradas.filter(resolucion => {
+      // Buscar por número de resolución
+      const matchNumero = resolucion.nroResolucion.toLowerCase().includes(filterValue);
+      
+      // Buscar por descripción
+      const matchDescripcion = resolucion.descripcion && 
+        resolucion.descripcion.toLowerCase().includes(filterValue);
+      
+      return matchNumero || matchDescripcion;
+    });
   }
 
   /**
-   * Función para mostrar el valor en el input
+   * Función para mostrar la resolución seleccionada en el input
+   * @param resolucionId - ID de la resolución seleccionada
+   * @returns Texto formateado para mostrar en el campo de entrada
+   * @description Convierte el ID de resolución en texto legible mostrando número y descripción
+   * @example "R-0001-2025 - Resolución PRIMIGENIA para autorización..."
    */
-  displayResolucion = (resolucion: Resolucion | null): string => {
-    return resolucion ? `${resolucion.nroResolucion} - ${resolucion.tipoTramite}` : '';
-  };
+  displayFn = (resolucionId: string): string => {
+    if (!resolucionId) return '';
+    const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+    if (!resolucion) return '';
+    
+    // Truncar descripción si es muy larga
+    const descripcionCorta = resolucion.descripcion.length > 50 
+      ? resolucion.descripcion.substring(0, 50) + '...'
+      : resolucion.descripcion;
+    
+    return `${resolucion.nroResolucion} - ${descripcionCorta}`;
+  }
+
+  /**
+   * Maneja la selección de una resolución desde el autocompletado
+   * @param event - Evento de selección de Material Autocomplete
+   * @description Procesa la selección del usuario y emite los eventos correspondientes.
+   * Si se selecciona una resolución válida, emite tanto el objeto resolución como su ID.
+   * Si se limpia la selección, emite valores null/vacíos.
+   * @example
+   * ```typescript
+   * // En el template
+   * <mat-autocomplete (optionSelected)="onResolucionSeleccionada($event)">
+   * 
+   * // El método procesará la selección y emitirá:
+   * // - resolucionSeleccionada: Resolucion | null
+   * // - resolucionIdChange: string
+   * ```
+   */
+  onResolucionSeleccionada(event: any): void {
+    const resolucionId = event.option.value;
+    
+    if (resolucionId) {
+      const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+      if (resolucion) {
+        this.resolucionIdChange.emit(resolucionId);
+        this.resolucionSeleccionada.emit(resolucion);
+      }
+    } else {
+      this.resolucionIdChange.emit('');
+      this.resolucionSeleccionada.emit(null);
+    }
+  }
+
+  /**
+   * Maneja cambios en el campo de entrada
+   * @param event - Evento de entrada del usuario
+   * @description Detecta cuando el usuario borra el contenido del campo
+   * y limpia la selección actual emitiendo valores null/vacíos
+   */
+  onInputChange(event: any): void {
+    const value = event.target.value;
+    if (!value) {
+      this.resolucionIdChange.emit('');
+      this.resolucionSeleccionada.emit(null);
+    }
+  }
+
+  /**
+   * Establece el valor del control programáticamente
+   * @param resolucionId - ID de la resolución a seleccionar
+   * @description Permite establecer la resolución seleccionada desde código.
+   * Útil para inicializar el componente con un valor predeterminado.
+   * @example
+   * ```typescript
+   * // Seleccionar resolución programáticamente
+   * this.resolucionSelector.setValue('resolucion-123');
+   * ```
+   */
+  setValue(resolucionId: string): void {
+    this.resolucionControl.setValue(resolucionId);
+  }
+
+  /**
+   * Obtiene el valor actual del control
+   * @returns ID de la resolución seleccionada o cadena vacía si no hay selección
+   * @description Permite obtener el valor actual del componente desde código
+   * @example
+   * ```typescript
+   * const resolucionId = this.resolucionSelector.getValue();
+   * if (resolucionId) {
+   *   console.log('Resolución seleccionada:', resolucionId);
+   * }
+   * ```
+   */
+  getValue(): string {
+    return this.resolucionControl.value || '';
+  }
 
   /**
    * Limpia la selección actual
+   * @description Resetea el componente a su estado inicial sin selección.
+   * Emite eventos de limpieza para notificar al componente padre.
+   * @example
+   * ```typescript
+   * // Limpiar selección programáticamente
+   * this.resolucionSelector.clear();
+   * 
+   * // En un botón de limpiar
+   * <button (click)="resolucionSelector.clear()">Limpiar</button>
+   * ```
    */
-  limpiar(): void {
+  clear(): void {
     this.resolucionControl.setValue('');
-    this.resolucionSeleccionada.emit(null);
     this.resolucionIdChange.emit('');
+    this.resolucionSeleccionada.emit(null);
   }
 
   /**
-   * Establece una resolución programáticamente
+   * Recarga las resoluciones desde el servicio
+   * @description Vuelve a cargar la lista de resoluciones desde el backend.
+   * Útil cuando se sabe que los datos han cambiado o en caso de error.
+   * @example
+   * ```typescript
+   * // Recargar después de crear una nueva resolución
+   * this.resolucionService.crearResolucion(nuevaResolucion).subscribe(() => {
+   *   this.resolucionSelector.recargarResoluciones();
+   * });
+   * 
+   * // En un botón de actualizar
+   * <button (click)="resolucionSelector.recargarResoluciones()">
+   *   <mat-icon>refresh</mat-icon> Actualizar
+   * </button>
+   * ```
    */
-  setResolucion(resolucion: Resolucion | null): void {
-    this.resolucionControl.setValue(resolucion as any);
-    if (resolucion) {
-      this.resolucionSeleccionada.emit(resolucion);
-      this.resolucionIdChange.emit(resolucion.id);
-    }
+  recargarResoluciones(): void {
+    this.cargarResoluciones();
+  }
+
+  /**
+   * Verifica si hay resoluciones cargadas
+   * @returns true si hay al menos una resolución cargada, false en caso contrario
+   * @description Útil para mostrar mensajes de estado o habilitar/deshabilitar funcionalidad
+   * @example
+   * ```typescript
+   * if (!this.resolucionSelector.hasResoluciones()) {
+   *   this.showMessage('No hay resoluciones disponibles');
+   * }
+   * ```
+   */
+  hasResoluciones(): boolean {
+    return this.resoluciones().length > 0;
+  }
+
+  /**
+   * Obtiene el estado actual del componente
+   * @returns Objeto con información del estado actual del componente
+   * @description Proporciona información completa sobre el estado del componente
+   * para debugging, logging o lógica condicional en el componente padre
+   * @example
+   * ```typescript
+   * const estado = this.resolucionSelector.getEstado();
+   * console.log('Estado del selector:', estado);
+   * // { loading: false, hasResoluciones: true, hasValue: true }
+   * 
+   * // Usar en lógica condicional
+   * if (estado.loading) {
+   *   this.showLoadingSpinner();
+   * } else if (!estado.hasResoluciones) {
+   *   this.showEmptyState();
+   * }
+   * ```
+   */
+  getEstado(): { loading: boolean; hasResoluciones: boolean; hasValue: boolean } {
+    return {
+      loading: this.isLoading(),
+      hasResoluciones: this.hasResoluciones(),
+      hasValue: !!this.resolucionControl.value
+    };
   }
 }

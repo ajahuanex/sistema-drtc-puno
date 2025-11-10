@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test: Vehiculos Dashboard Animations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #F44336;
+            color: white;
+        }
+
+        .btn-info {
+            background: #2196F3;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 4px solid;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.total {
+            border-left-color: #2196F3;
+            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+        }
+
+        .stat-card.activos {
+            border-left-color: #4CAF50;
+            background: linear-gradient(135deg, #ffffff 0%, #e8f5e9 100%);
+        }
+
+        .stat-card.suspendidos {
+            border-left-color: #FF9800;
+            background: linear-gradient(135deg, #ffffff 0%, #fff3e0 100%);
+        }
+
+        .stat-card.inactivos {
+            border-left-color: #F44336;
+            background: linear-gradient(135deg, #ffffff 0%, #ffebee 100%);
+        }
+
+        .stat-card.revision {
+            border-left-color: #9C27B0;
+            background: linear-gradient(135deg, #ffffff 0%, #f3e5f5 100%);
+        }
+
+        .stat-card.empresas {
+            border-left-color: #607D8B;
+            background: linear-gradient(135deg, #ffffff 0%, #eceff1 100%);
+        }
+
+        .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            flex-shrink: 0;
+            font-size: 32px;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .stat-card.total .stat-icon {
+            color: #2196F3;
+        }
+
+        .stat-card.activos .stat-icon {
+            color: #4CAF50;
+        }
+
+        .stat-card.suspendidos .stat-icon {
+            color: #FF9800;
+        }
+
+        .stat-card.inactivos .stat-icon {
+            color: #F44336;
+        }
+
+        .stat-card.revision .stat-icon {
+            color: #9C27B0;
+        }
+
+        .stat-card.empresas .stat-icon {
+            color: #607D8B;
+        }
+
+        .stat-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 8px;
+            color: #212121;
+            transition: all 0.3s ease;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #757575;
+            margin-bottom: 8px;
+        }
+
+        .stat-percentage {
+            font-size: 14px;
+            font-weight: 500;
+            color: #9E9E9E;
+            animation: fadeIn 0.6s ease-out;
+            animation-delay: 0.3s;
+            animation-fill-mode: both;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            animation: fadeIn 0.6s ease-out;
+            animation-delay: 0.3s;
+            animation-fill-mode: both;
+        }
+
+        .stat-trend.positive {
+            color: #4CAF50;
+        }
+
+        .stat-trend.negative {
+            color: #F44336;
+        }
+
+        .stat-trend.neutral {
+            color: #757575;
+        }
+
+        /* Animaciones */
+        @keyframes countUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .stat-value {
+            animation: countUp 0.5s ease-out;
+        }
+
+        .stat-card {
+            animation: slideIn 0.4s ease-out;
+            animation-fill-mode: both;
+        }
+
+        /* Stagger animation for cards */
+        .stat-card:nth-child(1) { animation-delay: 0.05s; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.15s; }
+        .stat-card:nth-child(4) { animation-delay: 0.2s; }
+        .stat-card:nth-child(5) { animation-delay: 0.25s; }
+        .stat-card:nth-child(6) { animation-delay: 0.3s; }
+
+        /* Pulse animation for active state */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .stat-card.active {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .status h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: #f5f5f5;
+        }
+
+        .status-icon {
+            font-size: 20px;
+        }
+
+        .status-icon.success {
+            color: #4CAF50;
+        }
+
+        .status-icon.error {
+            color: #F44336;
+        }
+
+        .status-icon.info {
+            color: #2196F3;
+        }
+
+        /* Soporte para prefers-reduced-motion */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+
+            .stat-card {
+                transition: none;
+                animation: none;
+            }
+
+            .stat-card:hover {
+                transform: none;
+            }
+
+            .stat-card:hover .stat-icon {
+                transform: none;
+            }
+
+            .stat-value,
+            .stat-percentage,
+            .stat-trend {
+                animation: none;
+            }
+
+            .stat-icon {
+                transition: none;
+            }
+        }
+
+        .reduced-motion-indicator {
+            background: #FFF3CD;
+            border: 2px solid #FFC107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .reduced-motion-indicator.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Test: Vehiculos Dashboard Animations</h1>
+            <p>Prueba de animaciones y transiciones del dashboard de vehículos</p>
+        </div>
+
+        <div class="reduced-motion-indicator" id="reducedMotionIndicator">
+            ⚠️ <strong>Modo de movimiento reducido detectado:</strong> Las animaciones están deshabilitadas según tus preferencias del sistema.
+        </div>
+
+        <div class="controls">
+            <h3>🎮 Controles de Prueba</h3>
+            <div class="button-group">
+                <button class="btn-primary" onclick="updateStats()">
+                    🔄 Actualizar Estadísticas
+                </button>
+                <button class="btn-success" onclick="incrementVehicles()">
+                    ➕ Agregar Vehículos
+                </button>
+                <button class="btn-warning" onclick="decrementVehicles()">
+                    ➖ Reducir Vehículos
+                </button>
+                <button class="btn-danger" onclick="resetStats()">
+                    🔄 Resetear
+                </button>
+                <button class="btn-info" onclick="randomizeStats()">
+                    🎲 Aleatorizar
+                </button>
+                <button class="btn-primary" onclick="testPulseAnimation()">
+                    💫 Test Pulse
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- Stats will be rendered here -->
+        </div>
+
+        <div class="status">
+            <h3>📊 Estado de las Pruebas</h3>
+            <div id="statusList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Check for prefers-reduced-motion
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+            document.getElementById('reducedMotionIndicator').classList.add('active');
+            addStatus('Modo de movimiento reducido activado', 'info');
+        } else {
+            addStatus('Animaciones completas habilitadas', 'success');
+        }
+
+        // Initial stats
+        let stats = {
+            total: 150,
+            activos: 120,
+            suspendidos: 20,
+            inactivos: 5,
+            revision: 5,
+            empresas: 25
+        };
+
+        // Render stats
+        function renderStats() {
+            const grid = document.getElementById('statsGrid');
+            
+            const statsConfig = [
+                {
+                    label: 'TOTAL VEHÍCULOS',
+                    value: stats.total,
+                    icon: '🚗',
+                    color: 'total',
+                    trend: { direction: 'positive', icon: '📈', text: `+${stats.activos} activos` }
+                },
+                {
+                    label: 'VEHÍCULOS ACTIVOS',
+                    value: stats.activos,
+                    icon: '✅',
+                    color: 'activos',
+                    percentage: (stats.activos / stats.total) * 100
+                },
+                {
+                    label: 'SUSPENDIDOS',
+                    value: stats.suspendidos,
+                    icon: '⚠️',
+                    color: 'suspendidos',
+                    percentage: (stats.suspendidos / stats.total) * 100
+                },
+                {
+                    label: 'INACTIVOS',
+                    value: stats.inactivos,
+                    icon: '❌',
+                    color: 'inactivos',
+                    percentage: (stats.inactivos / stats.total) * 100
+                },
+                {
+                    label: 'EN REVISIÓN',
+                    value: stats.revision,
+                    icon: '🔍',
+                    color: 'revision',
+                    percentage: (stats.revision / stats.total) * 100
+                },
+                {
+                    label: 'EMPRESAS',
+                    value: stats.empresas,
+                    icon: '🏢',
+                    color: 'empresas',
+                    trend: { direction: 'neutral', icon: '💼', text: 'Operando en el sistema' }
+                }
+            ];
+
+            grid.innerHTML = statsConfig.map(stat => `
+                <div class="stat-card ${stat.color}" onclick="handleCardClick('${stat.label}')">
+                    <div class="stat-icon">${stat.icon}</div>
+                    <div class="stat-content">
+                        <div class="stat-value" data-label="${stat.label}">${stat.value}</div>
+                        <div class="stat-label">${stat.label}</div>
+                        ${stat.percentage !== undefined ? `
+                            <div class="stat-percentage">
+                                ${stat.percentage.toFixed(1)}% del total
+                            </div>
+                        ` : ''}
+                        ${stat.trend ? `
+                            <div class="stat-trend ${stat.trend.direction}">
+                                <span>${stat.trend.icon}</span>
+                                <span>${stat.trend.text}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            // Animate values with countUp
+            if (!prefersReducedMotion) {
+                animateAllValues();
+            }
+        }
+
+        // Animate value with countUp effect
+        function animateValue(element, start, end, duration = 1000) {
+            if (prefersReducedMotion) {
+                element.textContent = end;
+                return;
+            }
+
+            const startTime = performance.now();
+            const difference = end - start;
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function (ease-out)
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const value = Math.round(start + (difference * easeOut));
+                
+                element.textContent = value;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Animate all values
+        function animateAllValues() {
+            const valueElements = document.querySelectorAll('.stat-value');
+            valueElements.forEach(element => {
+                const label = element.dataset.label;
+                const currentValue = parseInt(element.textContent) || 0;
+                let targetValue = 0;
+
+                switch(label) {
+                    case 'TOTAL VEHÍCULOS': targetValue = stats.total; break;
+                    case 'VEHÍCULOS ACTIVOS': targetValue = stats.activos; break;
+                    case 'SUSPENDIDOS': targetValue = stats.suspendidos; break;
+                    case 'INACTIVOS': targetValue = stats.inactivos; break;
+                    case 'EN REVISIÓN': targetValue = stats.revision; break;
+                    case 'EMPRESAS': targetValue = stats.empresas; break;
+                }
+
+                if (currentValue !== targetValue) {
+                    animateValue(element, currentValue, targetValue);
+                }
+            });
+        }
+
+        // Handle card click
+        function handleCardClick(label) {
+            const card = event.currentTarget;
+            
+            if (!prefersReducedMotion) {
+                card.classList.add('active');
+                setTimeout(() => card.classList.remove('active'), 600);
+            }
+            
+            addStatus(`Click en: ${label}`, 'info');
+        }
+
+        // Update stats
+        function updateStats() {
+            stats.activos = Math.min(stats.activos + 5, stats.total);
+            stats.suspendidos = Math.max(stats.suspendidos - 2, 0);
+            renderStats();
+            addStatus('Estadísticas actualizadas', 'success');
+        }
+
+        // Increment vehicles
+        function incrementVehicles() {
+            stats.total += 10;
+            stats.activos += 8;
+            stats.suspendidos += 2;
+            renderStats();
+            addStatus('Vehículos incrementados', 'success');
+        }
+
+        // Decrement vehicles
+        function decrementVehicles() {
+            stats.total = Math.max(stats.total - 10, 0);
+            stats.activos = Math.max(stats.activos - 8, 0);
+            stats.suspendidos = Math.max(stats.suspendidos - 2, 0);
+            renderStats();
+            addStatus('Vehículos reducidos', 'success');
+        }
+
+        // Reset stats
+        function resetStats() {
+            stats = {
+                total: 150,
+                activos: 120,
+                suspendidos: 20,
+                inactivos: 5,
+                revision: 5,
+                empresas: 25
+            };
+            renderStats();
+            addStatus('Estadísticas reseteadas', 'info');
+        }
+
+        // Randomize stats
+        function randomizeStats() {
+            stats.total = Math.floor(Math.random() * 200) + 50;
+            stats.activos = Math.floor(Math.random() * stats.total * 0.8);
+            stats.suspendidos = Math.floor(Math.random() * (stats.total - stats.activos));
+            stats.inactivos = Math.floor(Math.random() * (stats.total - stats.activos - stats.suspendidos));
+            stats.revision = stats.total - stats.activos - stats.suspendidos - stats.inactivos;
+            stats.empresas = Math.floor(Math.random() * 50) + 10;
+            renderStats();
+            addStatus('Estadísticas aleatorizadas', 'success');
+        }
+
+        // Test pulse animation
+        function testPulseAnimation() {
+            const cards = document.querySelectorAll('.stat-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    if (!prefersReducedMotion) {
+                        card.classList.add('active');
+                        setTimeout(() => card.classList.remove('active'), 600);
+                    }
+                }, index * 100);
+            });
+            addStatus('Animación pulse ejecutada', 'success');
+        }
+
+        // Add status message
+        function addStatus(message, type = 'info') {
+            const statusList = document.getElementById('statusList');
+            const timestamp = new Date().toLocaleTimeString();
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+            
+            const statusItem = document.createElement('div');
+            statusItem.className = 'status-item';
+            statusItem.innerHTML = `
+                <span class="status-icon ${type}">${icons[type]}</span>
+                <span><strong>${timestamp}</strong> - ${message}</span>
+            `;
+            
+            statusList.insertBefore(statusItem, statusList.firstChild);
+            
+            // Keep only last 10 items
+            while (statusList.children.length > 10) {
+                statusList.removeChild(statusList.lastChild);
+            }
+        }
+
+        // Initial render
+        renderStats();
+        addStatus('Dashboard inicializado correctamente', 'success');
+
+        // Listen for reduced motion changes
+        window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+            if (e.matches) {
+                document.getElementById('reducedMotionIndicator').classList.add('active');
+                addStatus('Modo de movimiento reducido activado', 'info');
+            } else {
+                document.getElementById('reducedMotionIndicator').classList.remove('active');
+                addStatus('Animaciones completas habilitadas', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

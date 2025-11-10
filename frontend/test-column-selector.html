@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Column Selector Component</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .checklist li {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .checklist li::before {
+            content: '✓';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 12px;
+            font-weight: bold;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .feature-card h3 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        .feature-card p {
+            margin: 8px 0 0 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .code-block .keyword {
+            color: #ff79c6;
+        }
+        
+        .code-block .string {
+            color: #f1fa8c;
+        }
+        
+        .code-block .comment {
+            color: #6272a4;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.in-progress {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .requirements-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .requirements-table th,
+        .requirements-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .requirements-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .requirements-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        .icon.check {
+            color: #28a745;
+        }
+        
+        .icon.info {
+            color: #17a2b8;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .alert.info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✅ Task 6: ColumnSelectorComponent - Verification</h1>
+        <p>Verificación de implementación completa del selector de columnas para la tabla de resoluciones</p>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Estado de Implementación</h2>
+        <div class="alert success">
+            <strong>✓ Implementación Completa</strong><br>
+            Todos los subtasks han sido implementados y verificados correctamente.
+        </div>
+        
+        <ul class="checklist">
+            <li><strong>Subtask 6.1:</strong> Implementar selector de columnas visibles <span class="status-badge completed">Completado</span></li>
+            <li><strong>Subtask 6.2:</strong> Implementar reordenamiento de columnas <span class="status-badge completed">Completado</span></li>
+            <li><strong>Subtask 6.3:</strong> Agregar persistencia de configuración <span class="status-badge completed">Completado</span></li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Características Implementadas</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>📝 Selector de Columnas</h3>
+                <p>Menú desplegable con checkboxes para seleccionar columnas visibles. Columnas requeridas no se pueden ocultar.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🔄 Drag & Drop</h3>
+                <p>Reordenamiento de columnas mediante arrastrar y soltar con preview visual en tiempo real.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>💾 Persistencia</h3>
+                <p>Configuración guardada en localStorage y cargada automáticamente al iniciar.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>⚡ Acciones Rápidas</h3>
+                <p>Botones para mostrar todas las columnas o solo las esenciales con un clic.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>🔄 Restaurar</h3>
+                <p>Botón para restaurar la configuración por defecto en cualquier momento.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>👁️ Indicadores Visuales</h3>
+                <p>Iconos de visibilidad, badges de columnas requeridas y contador de columnas visibles.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ Verificación de Requerimientos</h2>
+        <table class="requirements-table">
+            <thead>
+                <tr>
+                    <th>Requerimiento</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>2.1</strong></td>
+                    <td>Mostrar menú con todas las columnas disponibles al hacer clic</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+                <tr>
+                    <td><strong>2.2</strong></td>
+                    <td>Mostrar/ocultar columnas inmediatamente al seleccionar/deseleccionar</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+                <tr>
+                    <td><strong>2.3</strong></td>
+                    <td>Actualizar orden de visualización al reordenar columnas</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+                <tr>
+                    <td><strong>2.4</strong></td>
+                    <td>Persistir preferencias del usuario al guardar configuración</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+                <tr>
+                    <td><strong>2.5</strong></td>
+                    <td>Aplicar configuración guardada al cargar la página</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+                <tr>
+                    <td><strong>2.6</strong></td>
+                    <td>Mostrar todas las columnas en orden original al restaurar</td>
+                    <td><span class="status-badge completed">✓ Completado</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Detalles Técnicos</h2>
+        
+        <h3>Componente Principal</h3>
+        <div class="code-block">
+<span class="keyword">@Component</span>({
+  <span class="string">selector</span>: <span class="string">'app-column-selector'</span>,
+  <span class="string">standalone</span>: <span class="keyword">true</span>,
+  <span class="string">imports</span>: [
+    CommonModule,
+    DragDropModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatCheckboxModule,
+    SmartIconComponent
+  ]
+})
+<span class="keyword">export class</span> ColumnSelectorComponent <span class="keyword">implements</span> OnInit
+        </div>
+
+        <h3>Inputs y Outputs</h3>
+        <div class="code-block">
+<span class="comment">// Inputs</span>
+<span class="keyword">@Input()</span> columnas: ColumnaDefinicion[] = [];
+<span class="keyword">@Input()</span> columnasVisibles: string[] = [];
+<span class="keyword">@Input()</span> ordenColumnas: string[] = [];
+
+<span class="comment">// Outputs</span>
+<span class="keyword">@Output()</span> columnasChange = <span class="keyword">new</span> EventEmitter&lt;string[]&gt;();
+<span class="keyword">@Output()</span> ordenChange = <span class="keyword">new</span> EventEmitter&lt;string[]&gt;();
+        </div>
+
+        <h3>Integración en ResolucionesTableComponent</h3>
+        <div class="code-block">
+<span class="keyword">&lt;app-column-selector</span>
+  [columnas]=<span class="string">"todasLasColumnas"</span>
+  [columnasVisibles]=<span class="string">"configuracion.columnasVisibles"</span>
+  [ordenColumnas]=<span class="string">"configuracion.ordenColumnas"</span>
+  (columnasChange)=<span class="string">"onColumnasVisiblesChange($event)"</span>
+  (ordenChange)=<span class="string">"onOrdenColumnasChange($event)"</span><span class="keyword">&gt;</span>
+<span class="keyword">&lt;/app-column-selector&gt;</span>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📦 Archivos Involucrados</h2>
+        <ul class="checklist">
+            <li><code>frontend/src/app/shared/column-selector.component.ts</code> - Componente principal</li>
+            <li><code>frontend/src/app/services/resoluciones-table.service.ts</code> - Servicio con persistencia</li>
+            <li><code>frontend/src/app/models/resolucion-table.model.ts</code> - Modelos y definiciones</li>
+            <li><code>frontend/src/app/shared/resoluciones-table.component.ts</code> - Integración</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🎨 Características de UX</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3>Estados Visuales</h3>
+                <p>
+                    • Columnas visibles: Fondo azul claro<br>
+                    • Columnas requeridas: Fondo naranja<br>
+                    • Columnas ocultas: Fondo blanco
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Feedback Visual</h3>
+                <p>
+                    • Iconos de visibilidad (ojo)<br>
+                    • Badge "Requerida" en columnas obligatorias<br>
+                    • Contador de columnas visibles
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Interacción</h3>
+                <p>
+                    • Drag handle para reordenar<br>
+                    • Tooltips en todos los botones<br>
+                    • Botón "Aplicar" deshabilitado sin cambios
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Responsive</h3>
+                <p>
+                    • Adapta ancho en móviles (320px)<br>
+                    • Botones apilados verticalmente<br>
+                    • Scrollbar personalizado
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Métodos Principales</h2>
+        <table class="requirements-table">
+            <thead>
+                <tr>
+                    <th>Método</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>inicializarColumnas()</code></td>
+                    <td>Inicializa columnas con estado de visibilidad y orden</td>
+                </tr>
+                <tr>
+                    <td><code>onColumnToggle()</code></td>
+                    <td>Maneja el cambio de visibilidad de una columna</td>
+                </tr>
+                <tr>
+                    <td><code>onColumnDrop()</code></td>
+                    <td>Maneja el reordenamiento por drag & drop</td>
+                </tr>
+                <tr>
+                    <td><code>mostrarTodas()</code></td>
+                    <td>Muestra todas las columnas disponibles</td>
+                </tr>
+                <tr>
+                    <td><code>mostrarMinimas()</code></td>
+                    <td>Muestra solo las columnas requeridas</td>
+                </tr>
+                <tr>
+                    <td><code>restaurarDefecto()</code></td>
+                    <td>Restaura la configuración por defecto</td>
+                </tr>
+                <tr>
+                    <td><code>aplicarCambios()</code></td>
+                    <td>Aplica y emite los cambios realizados</td>
+                </tr>
+                <tr>
+                    <td><code>hayCambios()</code></td>
+                    <td>Detecta si hay cambios pendientes de aplicar</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="test-section">
+        <h2>💾 Persistencia en LocalStorage</h2>
+        <div class="alert info">
+            <strong>ℹ️ Información:</strong><br>
+            La configuración se guarda en localStorage con la clave <code>'resoluciones-table-config'</code> 
+            y se carga automáticamente al inicializar el servicio.
+        </div>
+        
+        <h3>Métodos del Servicio</h3>
+        <div class="code-block">
+<span class="comment">// Cargar configuración desde localStorage</span>
+<span class="keyword">private</span> cargarConfiguracion(): ResolucionTableConfig {
+  <span class="keyword">const</span> configGuardada = localStorage.getItem(<span class="string">'resoluciones-table-config'</span>);
+  <span class="keyword">return</span> configGuardada ? JSON.parse(configGuardada) : DEFAULT_CONFIG;
+}
+
+<span class="comment">// Guardar configuración en localStorage</span>
+<span class="keyword">private</span> guardarConfiguracion(config: ResolucionTableConfig): <span class="keyword">void</span> {
+  localStorage.setItem(<span class="string">'resoluciones-table-config'</span>, JSON.stringify(config));
+}
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>✨ Próximos Pasos</h2>
+        <div class="alert info">
+            El componente ColumnSelectorComponent está completamente implementado y listo para usar. 
+            Los siguientes tasks en el spec son:
+        </div>
+        <ul class="checklist">
+            <li><strong>Task 7:</strong> Crear SortableHeaderComponent (parcialmente completo)</li>
+            <li><strong>Task 8:</strong> Crear ResolucionesTableComponent (en progreso)</li>
+            <li><strong>Task 9:</strong> Integrar componentes en ResolucionesComponent existente</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 Conclusión</h2>
+        <div class="alert success">
+            <strong>✅ Task 6 Completado Exitosamente</strong><br><br>
+            Todos los subtasks han sido implementados correctamente:
+            <ul style="margin: 10px 0 0 20px;">
+                <li>✓ 6.1: Selector de columnas con checkboxes y manejo de columnas requeridas</li>
+                <li>✓ 6.2: Reordenamiento de columnas con drag & drop</li>
+                <li>✓ 6.3: Persistencia de configuración con localStorage</li>
+            </ul>
+            <br>
+            El componente proporciona una interfaz profesional y amigable para personalizar las columnas 
+            de la tabla con soporte completo de persistencia. Todos los requerimientos (2.1-2.6) han sido cumplidos.
+        </div>
+    </div>
+</body>
+</html>

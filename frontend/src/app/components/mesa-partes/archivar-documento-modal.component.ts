@@ -47,7 +47,7 @@ import { Documento } from '../../models/mesa-partes/documento.model';
 
     <mat-dialog-content>
       <div class="documento-info" *ngIf="documento">
-        <p><strong>Expediente:</strong> {{ documento.numero_expediente }}</p>
+        <p><strong>Expediente:</strong> {{ documento.numeroExpediente }}</p>
         <p><strong>Remitente:</strong> {{ documento.remitente }}</p>
         <p><strong>Asunto:</strong> {{ documento.asunto }}</p>
         <p><strong>Estado:</strong> {{ documento.estado }}</p>

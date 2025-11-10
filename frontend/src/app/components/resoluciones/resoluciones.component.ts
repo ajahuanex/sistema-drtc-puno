@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject, takeUntil, combineLatest, debounceTime } from 'rxjs';
+import { Subject, takeUntil, combineLatest, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ResolucionService } from '../../services/resolucion.service';
 import { ResolucionesTableService } from '../../services/resoluciones-table.service';
 import { 
@@ -88,6 +88,20 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         (limpiarFiltros)="onLimpiarFiltros()">
       </app-resoluciones-filters>
 
+      <!-- Contador de resultados -->
+      @if (tieneFiltrosActivos() && !isLoading()) {
+        <div class="results-counter">
+          <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
+          <span class="counter-text">
+            <strong>{{ resolucionesFiltradas().length }}</strong> 
+            {{ resolucionesFiltradas().length === 1 ? 'resultado encontrado' : 'resultados encontrados' }}
+          </span>
+          @if (resolucionesFiltradas().length !== resoluciones().length) {
+            <span class="total-text">de {{ resoluciones().length }} total</span>
+          }
+        </div>
+      }
+
       <!-- Tabla avanzada de resoluciones -->
       <app-resoluciones-table
         [resoluciones]="resolucionesFiltradas()"
@@ -108,6 +122,25 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
             <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
             Agregar Primera Resolución
           </button>
+        </div>
+      }
+
+      <!-- Estado sin resultados con filtros -->
+      @if (!isLoading() && resolucionesFiltradas().length === 0 && tieneFiltrosActivos()) {
+        <div class="no-results-state">
+          <app-smart-icon iconName="search_off" [size]="64"></app-smart-icon>
+          <h3>No se encontraron resultados</h3>
+          <p>No hay resoluciones que coincidan con los filtros aplicados</p>
+          <div class="no-results-actions">
+            <button mat-stroked-button (click)="onLimpiarFiltros()">
+              <app-smart-icon iconName="clear_all" [size]="20"></app-smart-icon>
+              Limpiar Filtros
+            </button>
+            <button mat-raised-button color="primary" (click)="nuevaResolucion()">
+              <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
+              Nueva Resolución
+            </button>
+          </div>
         </div>
       }
     </div>
@@ -237,6 +270,45 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
       box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
     }
 
+    .results-counter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      color: white;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .counter-text {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .counter-text strong {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .total-text {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      margin-left: 8px;
+    }
+
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -276,6 +348,63 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     .first-resolution-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(25, 118, 210, 0.3);
+    }
+
+    .no-results-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .no-results-state h3 {
+      margin: 16px 0 8px 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 24px;
+    }
+
+    .no-results-state p {
+      margin: 0 0 32px 0;
+      color: #6c757d;
+      font-size: 16px;
+      max-width: 400px;
+    }
+
+    .no-results-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .no-results-actions button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .no-results-actions button:hover {
+      transform: translateY(-2px);
     }
 
     /* Responsive design */
@@ -356,6 +485,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 })
 export class ResolucionesComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
   private resolucionService = inject(ResolucionService);
   private tableService = inject(ResolucionesTableService);
@@ -388,7 +518,48 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
     // Cargar configuración inicial de la tabla
     const configInicial = this.tableService.getConfiguracion();
     this.configuracionTabla.set(configInicial);
-    this.filtrosActuales.set(configInicial.filtros);
+    
+    // Cargar filtros desde URL params si existen
+    this.cargarFiltrosDesdeURL();
+  }
+
+  private cargarFiltrosDesdeURL(): void {
+    this.route.queryParams.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(params => {
+      const filtrosURL: ResolucionFiltros = {};
+      
+      if (params['numeroResolucion']) {
+        filtrosURL.numeroResolucion = params['numeroResolucion'];
+      }
+      if (params['empresaId']) {
+        filtrosURL.empresaId = params['empresaId'];
+      }
+      if (params['tiposTramite']) {
+        filtrosURL.tiposTramite = Array.isArray(params['tiposTramite']) 
+          ? params['tiposTramite'] 
+          : [params['tiposTramite']];
+      }
+      if (params['estados']) {
+        filtrosURL.estados = Array.isArray(params['estados']) 
+          ? params['estados'] 
+          : [params['estados']];
+      }
+      if (params['fechaInicio']) {
+        filtrosURL.fechaInicio = new Date(params['fechaInicio']);
+      }
+      if (params['fechaFin']) {
+        filtrosURL.fechaFin = new Date(params['fechaFin']);
+      }
+      
+      // Si hay filtros en la URL, aplicarlos
+      if (Object.keys(filtrosURL).length > 0) {
+        this.filtrosActuales.set(filtrosURL);
+        this.tableService.actualizarFiltros(filtrosURL);
+      } else {
+        this.filtrosActuales.set(this.tableService.getConfiguracion().filtros);
+      }
+    });
   }
 
   private configurarSuscripciones(): void {
@@ -398,11 +569,46 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
       this.tableService.config$
     ]).pipe(
       debounceTime(300),
+      distinctUntilChanged((prev, curr) => 
+        JSON.stringify(prev) === JSON.stringify(curr)
+      ),
       takeUntil(this.destroy$)
     ).subscribe(([filtros, config]) => {
       this.filtrosActuales.set(filtros);
       this.configuracionTabla.set(config);
+      this.actualizarURLParams(filtros);
       this.aplicarFiltrosYCargarDatos();
+    });
+  }
+
+  private actualizarURLParams(filtros: ResolucionFiltros): void {
+    const queryParams: any = {};
+    
+    if (filtros.numeroResolucion) {
+      queryParams.numeroResolucion = filtros.numeroResolucion;
+    }
+    if (filtros.empresaId) {
+      queryParams.empresaId = filtros.empresaId;
+    }
+    if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
+      queryParams.tiposTramite = filtros.tiposTramite;
+    }
+    if (filtros.estados && filtros.estados.length > 0) {
+      queryParams.estados = filtros.estados;
+    }
+    if (filtros.fechaInicio) {
+      queryParams.fechaInicio = filtros.fechaInicio.toISOString();
+    }
+    if (filtros.fechaFin) {
+      queryParams.fechaFin = filtros.fechaFin.toISOString();
+    }
+    
+    // Actualizar URL sin recargar la página
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true
     });
   }
 
@@ -426,12 +632,17 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
         this.cargarEstadisticas();
         this.isLoading.set(false);
         this.tableService.cargando.set(false);
+        
+        // Feedback visual de carga exitosa
+        if (resoluciones.length > 0) {
+          this.mostrarNotificacion(`✓ ${resoluciones.length} resoluciones cargadas`, 'success');
+        }
       },
       error: (error) => {
         console.error('❌ Error loading resoluciones:', error);
         this.isLoading.set(false);
         this.tableService.cargando.set(false);
-        this.snackBar.open('Error al cargar las resoluciones', 'Cerrar', { duration: 3000 });
+        this.mostrarNotificacion('Error al cargar las resoluciones. Por favor, intenta nuevamente.', 'error');
       }
     });
   }
@@ -440,16 +651,27 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
     const filtros = this.filtrosActuales();
     
     if (this.tieneFiltrosActivos()) {
+      // Mostrar loading durante filtrado
+      this.isLoading.set(true);
+      
       // Aplicar filtros
       this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
         next: (resolucionesFiltradas) => {
           console.log('🔍 Resoluciones filtradas:', resolucionesFiltradas.length);
           this.resolucionesFiltradas.set(resolucionesFiltradas);
           this.tableService.totalResultados.set(resolucionesFiltradas.length);
+          this.isLoading.set(false);
+          
+          // Feedback visual de filtrado
+          if (resolucionesFiltradas.length === 0) {
+            this.mostrarNotificacion('No se encontraron resultados con los filtros aplicados', 'info');
+          }
         },
         error: (error) => {
           console.error('❌ Error al filtrar resoluciones:', error);
           this.resolucionesFiltradas.set([]);
+          this.isLoading.set(false);
+          this.mostrarNotificacion('Error al aplicar filtros. Por favor, intenta nuevamente.', 'error');
         }
       });
     } else {
@@ -552,12 +774,12 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
     if (confirm('¿Estás seguro de que deseas eliminar esta resolución? Esta acción no se puede deshacer.')) {
       this.resolucionService.deleteResolucion(id).subscribe({
         next: () => {
-          this.snackBar.open('Resolución eliminada exitosamente', 'Cerrar', { duration: 3000 });
+          this.mostrarNotificacion('✓ Resolución eliminada exitosamente', 'success');
           this.cargarResoluciones();
         },
         error: (error) => {
           console.error('Error deleting resolucion:', error);
-          this.snackBar.open('Error al eliminar la resolución', 'Cerrar', { duration: 3000 });
+          this.mostrarNotificacion('Error al eliminar la resolución. Por favor, intenta nuevamente.', 'error');
         }
       });
     }
@@ -573,7 +795,7 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
       ? `Exportando ${resoluciones.length} resoluciones seleccionadas...`
       : 'Exportando todas las resoluciones...';
     
-    this.snackBar.open(mensaje, 'Cerrar', { duration: 2000 });
+    this.mostrarNotificacion(mensaje, 'info');
     
     this.resolucionService.exportarResoluciones(filtros, 'excel').subscribe({
       next: (blob) => {
@@ -585,13 +807,41 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
         link.click();
         window.URL.revokeObjectURL(url);
         
-        this.snackBar.open('Exportación completada', 'Cerrar', { duration: 3000 });
+        this.mostrarNotificacion('✓ Exportación completada exitosamente', 'success');
       },
       error: (error) => {
         console.error('Error al exportar:', error);
-        this.snackBar.open('Error al exportar resoluciones', 'Cerrar', { duration: 3000 });
+        this.mostrarNotificacion('Error al exportar resoluciones. Por favor, intenta nuevamente.', 'error');
       }
     });
+  }
+
+  // ========================================
+  // NOTIFICACIONES
+  // ========================================
+
+  private mostrarNotificacion(mensaje: string, tipo: 'success' | 'error' | 'info'): void {
+    const config: any = {
+      duration: 3000,
+      horizontalPosition: 'end',
+      verticalPosition: 'top'
+    };
+
+    // Configurar estilos según el tipo
+    switch (tipo) {
+      case 'success':
+        config.panelClass = ['snackbar-success'];
+        break;
+      case 'error':
+        config.panelClass = ['snackbar-error'];
+        config.duration = 5000; // Más tiempo para errores
+        break;
+      case 'info':
+        config.panelClass = ['snackbar-info'];
+        break;
+    }
+
+    this.snackBar.open(mensaje, 'Cerrar', config);
   }
 
   // ========================================

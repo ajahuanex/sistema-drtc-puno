@@ -55,7 +55,7 @@ import { Router } from '@angular/router';
             <div class="notification-content">
               <div class="notification-title">{{ notif.titulo }}</div>
               <div class="notification-message">{{ notif.mensaje }}</div>
-              <div class="notification-time">{{ formatTime(notif.fecha_creacion) }}</div>
+              <div class="notification-time">{{ formatTime(notif.fechaCreacion) }}</div>
             </div>
             
             <div class="notification-actions">
@@ -376,7 +376,10 @@ export class NotificacionesPanelComponent implements OnInit, OnDestroy {
   
   async loadNotifications(): Promise<void> {
     try {
-      this.notificaciones = await this.notificacionService.obtenerNotificaciones().toPromise() || [];
+      // Get current user ID - this should come from auth service
+      const usuarioId = 'current-user-id'; // TODO: Get from auth service
+      const response = await this.notificacionService.obtenerNotificaciones(usuarioId).toPromise();
+      this.notificaciones = response?.notificaciones || [];
       this.aplicarFiltro();
       this.updateUnreadCount();
     } catch (error) {

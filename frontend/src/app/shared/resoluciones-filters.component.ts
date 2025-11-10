@@ -10,6 +10,8 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatMenuModule } from '@angular/material/menu';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { 
@@ -21,6 +23,7 @@ import {
 import { EmpresaSelectorComponent } from './empresa-selector.component';
 import { DateRangePickerComponent, RangoFechas } from './date-range-picker.component';
 import { SmartIconComponent } from './smart-icon.component';
+import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
 
 /**
  * Componente de filtros avanzados para resoluciones
@@ -50,9 +53,12 @@ import { SmartIconComponent } from './smart-icon.component';
     MatIconModule,
     MatTooltipModule,
     MatDialogModule,
+    MatToolbarModule,
+    MatMenuModule,
     EmpresaSelectorComponent,
     DateRangePickerComponent,
-    SmartIconComponent
+    SmartIconComponent,
+    FiltrosMobileModalComponent
   ],
   template: `
     <!-- Versión desktop: Expansion Panel -->
@@ -60,21 +66,26 @@ import { SmartIconComponent } from './smart-icon.component';
       class="filtros-panel desktop-filters"
       [expanded]="panelExpandido()"
       (expandedChange)="onPanelToggle($event)"
-      [class.mobile-hidden]="esMobile()">
+      [class.mobile-hidden]="esMobile()"
+      role="region"
+      [attr.aria-label]="'Filtros de búsqueda avanzados'"
+      [attr.aria-expanded]="panelExpandido()">
       
       <mat-expansion-panel-header>
         <mat-panel-title>
           <div class="panel-title">
-            <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
+            <app-smart-icon iconName="filter_list" [size]="20" [attr.aria-hidden]="true"></app-smart-icon>
             <span>Filtros Avanzados</span>
             @if (contadorFiltros() > 0) {
-              <span class="filtros-badge">{{ contadorFiltros() }}</span>
+              <span class="filtros-badge" role="status" [attr.aria-label]="contadorFiltros() + ' filtros aplicados'">
+                {{ contadorFiltros() }}
+              </span>
             }
           </div>
         </mat-panel-title>
         <mat-panel-description>
           @if (contadorFiltros() > 0) {
-            <span>{{ contadorFiltros() }} filtro(s) aplicado(s)</span>
+            <span role="status">{{ contadorFiltros() }} filtro(s) aplicado(s)</span>
           } @else {
             <span>Haga clic para expandir filtros</span>
           }
@@ -92,9 +103,11 @@ import { SmartIconComponent } from './smart-icon.component';
               <input matInput 
                      formControlName="numeroResolucion"
                      placeholder="Ej: R-001-2025"
-                     autocomplete="off">
-              <app-smart-icon iconName="search" [size]="20" matSuffix></app-smart-icon>
-              <mat-hint>Buscar por número completo o parcial</mat-hint>
+                     autocomplete="off"
+                     [attr.aria-label]="'Buscar por número de resolución'"
+                     [attr.aria-describedby]="'hint-numero-resolucion'">
+              <app-smart-icon iconName="search" [size]="20" matSuffix [attr.aria-hidden]="true"></app-smart-icon>
+              <mat-hint id="hint-numero-resolucion">Buscar por número completo o parcial</mat-hint>
             </mat-form-field>
 
             <!-- Filtro por empresa -->
@@ -177,12 +190,14 @@ import { SmartIconComponent } from './smart-icon.component';
           </div>
 
           <!-- Botones de acción -->
-          <div class="filtros-actions">
+          <div class="filtros-actions" role="group" aria-label="Acciones de filtros">
             <button mat-stroked-button 
                     type="button"
                     (click)="limpiarTodosFiltros()"
-                    [disabled]="!tieneFiltrosActivos()">
-              <app-smart-icon iconName="clear_all" [size]="18"></app-smart-icon>
+                    [disabled]="!tieneFiltrosActivos()"
+                    [attr.aria-label]="'Limpiar todos los filtros'"
+                    [attr.aria-disabled]="!tieneFiltrosActivos()">
+              <app-smart-icon iconName="clear_all" [size]="18" [attr.aria-hidden]="true"></app-smart-icon>
               Limpiar Todo
             </button>
             
@@ -190,8 +205,10 @@ import { SmartIconComponent } from './smart-icon.component';
                     color="primary"
                     type="button"
                     (click)="aplicarFiltros()"
-                    [disabled]="!filtrosForm.dirty">
-              <app-smart-icon iconName="search" [size]="18"></app-smart-icon>
+                    [disabled]="!filtrosForm.dirty"
+                    [attr.aria-label]="'Aplicar filtros de búsqueda'"
+                    [attr.aria-disabled]="!filtrosForm.dirty">
+              <app-smart-icon iconName="search" [size]="18" [attr.aria-hidden]="true"></app-smart-icon>
               Aplicar Filtros
             </button>
           </div>
@@ -199,19 +216,21 @@ import { SmartIconComponent } from './smart-icon.component';
 
         <!-- Chips de filtros activos -->
         @if (filtrosActivos().length > 0) {
-          <div class="filtros-activos-section">
+          <div class="filtros-activos-section" role="region" aria-label="Filtros aplicados actualmente">
             <h4 class="filtros-activos-title">
-              <app-smart-icon iconName="local_offer" [size]="16"></app-smart-icon>
+              <app-smart-icon iconName="local_offer" [size]="16" [attr.aria-hidden]="true"></app-smart-icon>
               Filtros Aplicados
             </h4>
-            <mat-chip-set class="filtros-chips">
+            <mat-chip-set class="filtros-chips" role="list" [attr.aria-label]="'Lista de ' + filtrosActivos().length + ' filtros aplicados'">
               @for (filtro of filtrosActivos(); track filtro.key) {
                 <mat-chip 
                   [removable]="true"
                   (removed)="removerFiltro(filtro.key)"
-                  class="filtro-chip">
+                  class="filtro-chip"
+                  role="listitem"
+                  [attr.aria-label]="'Filtro: ' + filtro.label + '. Presione Enter o Espacio para remover'">
                   {{ filtro.label }}
-                  <app-smart-icon iconName="cancel" [size]="16" matChipRemove></app-smart-icon>
+                  <app-smart-icon iconName="cancel" [size]="16" matChipRemove [attr.aria-hidden]="true"></app-smart-icon>
                 </mat-chip>
               }
             </mat-chip-set>
@@ -220,18 +239,61 @@ import { SmartIconComponent } from './smart-icon.component';
       </div>
     </mat-expansion-panel>
 
-    <!-- Versión móvil: Botón flotante -->
+    <!-- Versión móvil: Toolbar con filtros rápidos -->
     <div class="mobile-filters" [class.mobile-visible]="esMobile()">
-      <button mat-fab 
-              color="primary"
-              (click)="abrirFiltrosMobile()"
-              class="mobile-filter-fab"
-              [matTooltip]="'Filtros (' + contadorFiltros() + ')'">
-        <app-smart-icon iconName="filter_list" [size]="24"></app-smart-icon>
-        @if (contadorFiltros() > 0) {
-          <span class="mobile-badge">{{ contadorFiltros() }}</span>
-        }
-      </button>
+      <!-- Toolbar de filtros rápidos -->
+      <mat-toolbar class="mobile-toolbar">
+        <div class="quick-filters-container">
+          <!-- Botón principal de filtros -->
+          <button mat-raised-button 
+                  color="primary"
+                  (click)="abrirFiltrosMobile()"
+                  class="mobile-filter-button">
+            <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
+            Filtros
+            @if (contadorFiltros() > 0) {
+              <span class="filter-count-badge">{{ contadorFiltros() }}</span>
+            }
+          </button>
+
+          <!-- Filtros rápidos -->
+          <button mat-button 
+                  [matMenuTriggerFor]="quickFiltersMenu"
+                  class="quick-filter-button">
+            <app-smart-icon iconName="flash_on" [size]="18"></app-smart-icon>
+            Rápidos
+          </button>
+
+          <mat-menu #quickFiltersMenu="matMenu">
+            <button mat-menu-item (click)="aplicarFiltroRapido('vigentes')">
+              <app-smart-icon iconName="check_circle" [size]="18"></app-smart-icon>
+              <span>Solo Vigentes</span>
+            </button>
+            <button mat-menu-item (click)="aplicarFiltroRapido('activos')">
+              <app-smart-icon iconName="toggle_on" [size]="18"></app-smart-icon>
+              <span>Solo Activos</span>
+            </button>
+            <button mat-menu-item (click)="aplicarFiltroRapido('recientes')">
+              <app-smart-icon iconName="schedule" [size]="18"></app-smart-icon>
+              <span>Últimos 30 días</span>
+            </button>
+            <button mat-menu-item (click)="aplicarFiltroRapido('proximos-vencer')">
+              <app-smart-icon iconName="warning" [size]="18"></app-smart-icon>
+              <span>Próximos a vencer</span>
+            </button>
+          </mat-menu>
+
+          <!-- Botón limpiar -->
+          @if (contadorFiltros() > 0) {
+            <button mat-icon-button 
+                    (click)="limpiarTodosFiltros()"
+                    matTooltip="Limpiar filtros"
+                    class="clear-button">
+              <app-smart-icon iconName="clear_all" [size]="20"></app-smart-icon>
+            </button>
+          }
+        </div>
+      </mat-toolbar>
       
       <!-- Chips de filtros activos en móvil -->
       @if (filtrosActivos().length > 0) {
@@ -353,13 +415,8 @@ import { SmartIconComponent } from './smart-icon.component';
     /* Mobile filters */
     .mobile-filters {
       display: none;
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 1000;
       flex-direction: column;
-      align-items: flex-end;
-      gap: 12px;
+      gap: 0;
     }
 
     .mobile-filters.mobile-visible {
@@ -370,44 +427,67 @@ import { SmartIconComponent } from './smart-icon.component';
       display: none;
     }
 
-    .mobile-filter-fab {
-      position: relative;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    .mobile-toolbar {
+      background-color: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 8px 16px;
+      min-height: 56px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .mobile-badge {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background-color: #f44336;
-      color: white;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
+    .quick-filters-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 10px;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .mobile-filter-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      padding: 0 16px;
+    }
+
+    .filter-count-badge {
+      background-color: white;
+      color: #1976d2;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 11px;
       font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .quick-filter-button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+    }
+
+    .clear-button {
+      margin-left: auto;
     }
 
     .mobile-chips-container {
-      max-width: 280px;
       background: white;
-      border-radius: 8px;
-      padding: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 8px 16px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
     .mobile-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 6px;
     }
 
     .mobile-chip {
       font-size: 11px;
       height: 28px;
+      background-color: #e3f2fd;
+      color: #1976d2;
     }
 
     /* Responsive design */
@@ -482,13 +562,34 @@ import { SmartIconComponent } from './smart-icon.component';
         padding: 1px 6px;
       }
       
-      .mobile-filter-fab {
-        width: 48px;
-        height: 48px;
+      .mobile-toolbar {
+        padding: 6px 12px;
+        min-height: 48px;
+      }
+      
+      .mobile-filter-button {
+        font-size: 13px;
+        padding: 0 12px;
+      }
+      
+      .quick-filter-button {
+        font-size: 12px;
       }
       
       .mobile-chips-container {
-        max-width: 240px;
+        padding: 6px 12px;
+      }
+    }
+
+    /* Estilos globales para el modal móvil */
+    :host ::ng-deep .mobile-fullscreen-dialog {
+      .mat-mdc-dialog-container {
+        padding: 0;
+        border-radius: 0;
+      }
+      
+      .mat-mdc-dialog-surface {
+        border-radius: 0;
       }
     }
   `]
@@ -832,17 +933,68 @@ export class ResolucionesFiltersComponent implements OnInit, OnDestroy {
    * Abre el modal de filtros en móvil
    */
   abrirFiltrosMobile(): void {
-    // Por ahora, simplemente expandir el panel
-    // En el futuro se puede implementar un modal completo
-    this.panelExpandido.set(true);
-    
-    // Scroll al panel de filtros
-    setTimeout(() => {
-      const panel = document.querySelector('.filtros-panel');
-      if (panel) {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const dialogRef = this.dialog.open(FiltrosMobileModalComponent, {
+      width: '100vw',
+      maxWidth: '100vw',
+      height: '100vh',
+      maxHeight: '100vh',
+      panelClass: 'mobile-fullscreen-dialog',
+      data: {
+        filtros: this.obtenerFiltrosActuales(),
+        empresas: this.empresas
       }
-    }, 100);
+    });
+
+    dialogRef.afterClosed().subscribe(filtros => {
+      if (filtros) {
+        this.cargarFiltros(filtros);
+        this.filtrosChange.emit(filtros);
+      }
+    });
+  }
+
+  /**
+   * Aplica un filtro rápido predefinido
+   */
+  aplicarFiltroRapido(tipo: string): void {
+    const hoy = new Date();
+    let filtros: ResolucionFiltros = {};
+
+    switch (tipo) {
+      case 'vigentes':
+        filtros = {
+          estados: ['VIGENTE']
+        };
+        break;
+      
+      case 'activos':
+        filtros = {
+          activo: true
+        };
+        break;
+      
+      case 'recientes':
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hoy.getDate() - 30);
+        filtros = {
+          fechaInicio: hace30Dias,
+          fechaFin: hoy
+        };
+        break;
+      
+      case 'proximos-vencer':
+        const en30Dias = new Date();
+        en30Dias.setDate(hoy.getDate() + 30);
+        filtros = {
+          estados: ['VIGENTE'],
+          fechaInicio: hoy,
+          fechaFin: en30Dias
+        };
+        break;
+    }
+
+    this.cargarFiltros(filtros);
+    this.filtrosChange.emit(filtros);
   }
 
   /**

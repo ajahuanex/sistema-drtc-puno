@@ -1,15 +1,19 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, AfterViewInit, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SelectionModel } from '@angular/cdk/collections';
+import { ScrollingModule } from '@angular/cdk/scrolling';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { 
   ResolucionConEmpresa, 
   ResolucionTableConfig, 
@@ -20,11 +24,14 @@ import {
 import { ColumnSelectorComponent } from './column-selector.component';
 import { SortableHeaderComponent, EventoOrdenamiento } from './sortable-header.component';
 import { SmartIconComponent } from './smart-icon.component';
+import { ResolucionCardMobileComponent, AccionCard } from './resolucion-card-mobile.component';
+import { ResolucionService } from '../services/resolucion.service';
 
 export interface AccionTabla {
   accion: 'ver' | 'editar' | 'eliminar' | 'exportar' | 'seleccionar';
   resolucion?: ResolucionConEmpresa;
   resoluciones?: ResolucionConEmpresa[];
+  formato?: 'excel' | 'pdf';
 }
 
 /**
@@ -54,11 +61,16 @@ export interface AccionTabla {
     MatTooltipModule,
     MatChipsModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatCheckboxModule,
+    MatSnackBarModule,
+    ScrollingModule,
     ColumnSelectorComponent,
     SortableHeaderComponent,
-    SmartIconComponent
+    SmartIconComponent,
+    ResolucionCardMobileComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="table-container">
       
@@ -111,24 +123,78 @@ export interface AccionTabla {
             (ordenChange)="onOrdenColumnasChange($event)">
           </app-column-selector>
           
-          <!-- Botón de exportar todo -->
+          <!-- Botón de exportar con menú de formatos -->
           <button mat-icon-button 
-                  (click)="ejecutarAccion('exportar')"
-                  matTooltip="Exportar todas las resoluciones"
+                  [matMenuTriggerFor]="exportMenu"
+                  [disabled]="cargando || exportando()"
+                  matTooltip="Exportar resoluciones"
                   class="export-button">
             <app-smart-icon iconName="file_download" [size]="20"></app-smart-icon>
           </button>
+          
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item (click)="exportarResoluciones('excel')">
+              <app-smart-icon iconName="table_chart" [size]="18"></app-smart-icon>
+              <span>Exportar a Excel</span>
+            </button>
+            <button mat-menu-item (click)="exportarResoluciones('pdf')">
+              <app-smart-icon iconName="picture_as_pdf" [size]="18"></app-smart-icon>
+              <span>Exportar a PDF</span>
+            </button>
+          </mat-menu>
         </div>
       </div>
+      
+      <!-- Barra de progreso de exportación -->
+      @if (exportando()) {
+        <mat-progress-bar mode="indeterminate" class="export-progress"></mat-progress-bar>
+      }
 
-      <!-- Tabla -->
-      <div class="table-wrapper" [class.loading]="cargando">
-        @if (cargando) {
-          <div class="loading-overlay">
-            <mat-spinner diameter="40"></mat-spinner>
-            <span>Cargando resoluciones...</span>
-          </div>
-        }
+      <!-- Vista móvil: Cards -->
+      @if (esMobile()) {
+        <div class="mobile-view" [class.loading]="cargando">
+          @if (cargando) {
+            <div class="loading-overlay" role="status" aria-live="polite" aria-busy="true">
+              <mat-spinner diameter="40" aria-label="Cargando datos"></mat-spinner>
+              <span class="loading-text">Cargando resoluciones...</span>
+            </div>
+          }
+          
+          @if (!cargando && dataSource.data.length > 0) {
+            <div class="cards-container">
+              @for (resolucion of dataSource.data; track resolucion.id) {
+                <app-resolucion-card-mobile
+                  [resolucion]="resolucion"
+                  [seleccionada]="seleccion.isSelected(resolucion)"
+                  [mostrarCheckbox]="seleccionMultiple"
+                  (accionEjecutada)="onAccionCard($event)"
+                  (seleccionChange)="onCardSeleccionChange(resolucion, $event)"
+                  (cardClick)="onFilaClick(resolucion)">
+                </app-resolucion-card-mobile>
+              }
+            </div>
+          }
+          
+          @if (!cargando && dataSource.data.length === 0) {
+            <div class="no-results" role="status" aria-live="polite">
+              <app-smart-icon iconName="search_off" [size]="48" class="no-results-icon"></app-smart-icon>
+              <h3>No se encontraron resoluciones</h3>
+              <p>No hay resoluciones que coincidan con los criterios de búsqueda.</p>
+              <p class="no-results-suggestion">Intenta ajustar los filtros o limpiar la búsqueda.</p>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Vista desktop/tablet: Tabla -->
+      @if (!esMobile()) {
+        <div class="table-wrapper" [class.loading]="cargando" [class.tablet-scroll]="esTablet()">
+          @if (cargando) {
+            <div class="loading-overlay" role="status" aria-live="polite" aria-busy="true">
+              <mat-spinner diameter="40" aria-label="Cargando datos"></mat-spinner>
+              <span class="loading-text">Cargando resoluciones...</span>
+            </div>
+          }
         
         <mat-table 
           [dataSource]="dataSource" 
@@ -380,26 +446,30 @@ export interface AccionTabla {
           </mat-row>
         </mat-table>
 
-        <!-- Estado sin resultados -->
-        @if (!cargando && dataSource.data.length === 0) {
-          <div class="no-results">
-            <app-smart-icon iconName="search_off" [size]="48"></app-smart-icon>
-            <h3>No se encontraron resoluciones</h3>
-            <p>No hay resoluciones que coincidan con los criterios de búsqueda.</p>
-          </div>
-        }
-      </div>
+          <!-- Estado sin resultados -->
+          @if (!cargando && dataSource.data.length === 0) {
+            <div class="no-results" role="status" aria-live="polite">
+              <app-smart-icon iconName="search_off" [size]="48" class="no-results-icon"></app-smart-icon>
+              <h3>No se encontraron resoluciones</h3>
+              <p>No hay resoluciones que coincidan con los criterios de búsqueda.</p>
+              <p class="no-results-suggestion">Intenta ajustar los filtros o limpiar la búsqueda.</p>
+            </div>
+          }
+        </div>
+      }
 
       <!-- Paginador -->
-      @if (dataSource.data.length > 0) {
+      @if (dataSource.data.length > 0 || configuracion.paginacion.paginaActual > 0) {
         <mat-paginator 
           [length]="totalResultados()"
           [pageSize]="configuracion.paginacion.tamanoPagina"
           [pageIndex]="configuracion.paginacion.paginaActual"
           [pageSizeOptions]="[10, 25, 50, 100]"
           [showFirstLastButtons]="true"
+          [disabled]="cargando"
           (page)="onPaginaChange($event)"
-          class="table-paginator">
+          class="table-paginator"
+          aria-label="Paginación de tabla de resoluciones">
         </mat-paginator>
       }
     </div>
@@ -479,6 +549,36 @@ export interface AccionTabla {
       background-color: rgba(25, 118, 210, 0.04);
     }
 
+    .export-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .export-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 11;
+    }
+
+    .mobile-view {
+      flex: 1;
+      position: relative;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .mobile-view.loading {
+      pointer-events: none;
+    }
+
+    .cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
     .table-wrapper {
       flex: 1;
       position: relative;
@@ -487,6 +587,15 @@ export interface AccionTabla {
 
     .table-wrapper.loading {
       pointer-events: none;
+    }
+
+    .table-wrapper.tablet-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper.tablet-scroll .resoluciones-table {
+      min-width: 900px;
     }
 
     .loading-overlay {
@@ -504,9 +613,10 @@ export interface AccionTabla {
       z-index: 10;
     }
 
-    .loading-overlay span {
+    .loading-overlay .loading-text {
       color: rgba(0, 0, 0, 0.6);
       font-size: 14px;
+      font-weight: 500;
     }
 
     .resoluciones-table {
@@ -777,21 +887,55 @@ export interface AccionTabla {
       color: rgba(0, 0, 0, 0.4);
     }
 
+    .no-results-icon {
+      color: rgba(0, 0, 0, 0.3);
+    }
+
+    .no-results-suggestion {
+      margin-top: 8px !important;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.5) !important;
+    }
+
     .table-paginator {
       border-top: 1px solid #e0e0e0;
     }
 
     /* Responsive */
+    @media (max-width: 1024px) and (min-width: 769px) {
+      /* Tablet: Scroll horizontal */
+      .table-wrapper {
+        overflow-x: auto;
+      }
+      
+      .resoluciones-table {
+        min-width: 900px;
+      }
+      
+      .toolbar-right {
+        gap: 4px;
+      }
+    }
+
     @media (max-width: 768px) {
       .table-toolbar {
         flex-direction: column;
         gap: 12px;
         align-items: stretch;
+        padding: 12px 16px;
       }
       
       .toolbar-left,
       .toolbar-right {
         justify-content: space-between;
+      }
+      
+      .table-title {
+        font-size: 16px;
+      }
+      
+      .results-count {
+        font-size: 12px;
       }
       
       .bulk-actions {
@@ -800,19 +944,31 @@ export interface AccionTabla {
         border-right: none;
       }
       
-      .empresa-column,
-      .fecha-column {
-        min-width: 120px;
+      .mobile-view {
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .table-toolbar {
+        padding: 8px 12px;
       }
       
-      .acciones-buttons {
-        flex-direction: column;
-        gap: 2px;
+      .table-title {
+        font-size: 14px;
+      }
+      
+      .toolbar-right {
+        flex-wrap: wrap;
+      }
+      
+      .mobile-view {
+        padding: 8px;
       }
     }
   `]
 })
-export class ResolucionesTableComponent implements OnInit, OnChanges {
+export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewInit {
   /** Lista de resoluciones a mostrar */
   @Input() resoluciones: ResolucionConEmpresa[] = [];
   
@@ -831,11 +987,25 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
   /** Si permite selección múltiple */
   @Input() seleccionMultiple: boolean = false;
   
+  /** Si usa virtual scrolling para tablas grandes (>100 items) */
+  @Input() virtualScrolling: boolean = false;
+  
+  /** Altura del item para virtual scrolling */
+  @Input() itemHeight: number = 56;
+  
   /** Evento emitido cuando cambia la configuración */
   @Output() configuracionChange = new EventEmitter<Partial<ResolucionTableConfig>>();
   
   /** Evento emitido cuando se ejecuta una acción */
   @Output() accionEjecutada = new EventEmitter<AccionTabla>();
+
+  // ViewChild para el paginador
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+
+  // Servicios inyectados
+  private resolucionService = inject(ResolucionService);
+  private snackBar = inject(MatSnackBar);
+  private breakpointObserver = inject(BreakpointObserver);
 
   // Datasource de Material Table
   dataSource = new MatTableDataSource<ResolucionConEmpresa>([]);
@@ -846,6 +1016,17 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
   // Definiciones de columnas
   todasLasColumnas = COLUMNAS_DEFINICIONES;
   
+  // Estado de exportación
+  exportando = signal(false);
+  
+  // Cache para memoización de ordenamiento
+  private sortCache = new Map<string, ResolucionConEmpresa[]>();
+  private lastSortKey = '';
+  
+  // Señales para responsive
+  esMobile = signal(false);
+  esTablet = signal(false);
+  
   // Señales computadas
   totalResultados = signal(0);
   columnasVisibles = computed(() => {
@@ -855,9 +1036,37 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
     }
     return columnas;
   });
+  
+  // Determina si debe usar virtual scrolling basado en el tamaño del dataset
+  usarVirtualScrolling = computed(() => {
+    return this.virtualScrolling && this.totalResultados() > 100;
+  });
 
   ngOnInit(): void {
     this.actualizarDataSource();
+    this.detectarDispositivo();
+  }
+
+  /**
+   * Detecta el tipo de dispositivo para responsive
+   */
+  private detectarDispositivo(): void {
+    // Detectar móvil
+    this.breakpointObserver.observe([Breakpoints.HandsetPortrait, Breakpoints.HandsetLandscape])
+      .subscribe(result => {
+        this.esMobile.set(result.matches);
+      });
+    
+    // Detectar tablet
+    this.breakpointObserver.observe([Breakpoints.TabletPortrait, Breakpoints.TabletLandscape])
+      .subscribe(result => {
+        this.esTablet.set(result.matches);
+      });
+  }
+
+  ngAfterViewInit(): void {
+    // Conectar el paginador al datasource
+    this.dataSource.paginator = this.paginator;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -866,6 +1075,11 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
     }
     
     if (changes['configuracion']) {
+      // Si cambió el ordenamiento, actualizar datasource
+      if (changes['configuracion'].currentValue?.ordenamiento) {
+        this.actualizarDataSource();
+      }
+      
       // Actualizar paginación si cambió
       if (changes['configuracion'].currentValue?.paginacion) {
         this.dataSource.paginator?.firstPage();
@@ -881,8 +1095,10 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
    * Actualiza el datasource con las nuevas resoluciones
    */
   private actualizarDataSource(): void {
-    this.dataSource.data = this.resoluciones;
-    this.totalResultados.set(this.resoluciones.length);
+    // Aplicar ordenamiento antes de asignar al datasource
+    const resolucionesOrdenadas = this.aplicarOrdenamiento([...this.resoluciones]);
+    this.dataSource.data = resolucionesOrdenadas;
+    this.totalResultados.set(resolucionesOrdenadas.length);
     
     // Limpiar selección si cambió el dataset
     this.seleccion.clear();
@@ -965,6 +1181,126 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
     this.configuracionChange.emit({
       ordenamiento: nuevoOrdenamiento
     });
+    
+    // Aplicar ordenamiento inmediatamente a los datos actuales
+    this.actualizarDataSource();
+  }
+
+  /**
+   * Aplica el ordenamiento configurado a las resoluciones
+   * Usa memoización para evitar recalcular ordenamientos idénticos
+   */
+  private aplicarOrdenamiento(resoluciones: ResolucionConEmpresa[]): ResolucionConEmpresa[] {
+    const ordenamiento = this.configuracion.ordenamiento;
+    
+    if (!ordenamiento || ordenamiento.length === 0) {
+      return resoluciones;
+    }
+    
+    // Crear clave de cache basada en el ordenamiento y los IDs de resoluciones
+    const resolucionIds = resoluciones.map(r => r.id).join(',');
+    const ordenamientoKey = ordenamiento
+      .map(o => `${o.columna}-${o.direccion}-${o.prioridad}`)
+      .join('|');
+    const cacheKey = `${resolucionIds}:${ordenamientoKey}`;
+    
+    // Verificar si ya tenemos este resultado en cache
+    if (this.lastSortKey === cacheKey && this.sortCache.has(cacheKey)) {
+      return this.sortCache.get(cacheKey)!;
+    }
+    
+    // Limpiar cache si es diferente (mantener solo el último)
+    if (this.lastSortKey !== cacheKey) {
+      this.sortCache.clear();
+    }
+    
+    // Ordenar por prioridad (menor prioridad = más importante)
+    const ordenamientoOrdenado = [...ordenamiento].sort((a, b) => a.prioridad - b.prioridad);
+    
+    const resultado = [...resoluciones].sort((a, b) => {
+      for (const orden of ordenamientoOrdenado) {
+        const comparacion = this.compararValores(a, b, orden.columna, orden.direccion);
+        if (comparacion !== 0) {
+          return comparacion;
+        }
+      }
+      return 0;
+    });
+    
+    // Guardar en cache
+    this.sortCache.set(cacheKey, resultado);
+    this.lastSortKey = cacheKey;
+    
+    return resultado;
+  }
+
+  /**
+   * Compara dos valores para ordenamiento
+   */
+  private compararValores(
+    a: ResolucionConEmpresa, 
+    b: ResolucionConEmpresa, 
+    columna: string, 
+    direccion: 'asc' | 'desc'
+  ): number {
+    let valorA: any;
+    let valorB: any;
+    
+    // Obtener valores según la columna
+    switch (columna) {
+      case 'nroResolucion':
+        valorA = a.nroResolucion;
+        valorB = b.nroResolucion;
+        break;
+      case 'empresa':
+        valorA = a.empresa?.razonSocial.principal || '';
+        valorB = b.empresa?.razonSocial.principal || '';
+        break;
+      case 'tipoTramite':
+        valorA = a.tipoTramite;
+        valorB = b.tipoTramite;
+        break;
+      case 'fechaEmision':
+        valorA = new Date(a.fechaEmision).getTime();
+        valorB = new Date(b.fechaEmision).getTime();
+        break;
+      case 'fechaVigenciaInicio':
+        valorA = a.fechaVigenciaInicio ? new Date(a.fechaVigenciaInicio).getTime() : 0;
+        valorB = b.fechaVigenciaInicio ? new Date(b.fechaVigenciaInicio).getTime() : 0;
+        break;
+      case 'fechaVigenciaFin':
+        valorA = a.fechaVigenciaFin ? new Date(a.fechaVigenciaFin).getTime() : 0;
+        valorB = b.fechaVigenciaFin ? new Date(b.fechaVigenciaFin).getTime() : 0;
+        break;
+      case 'estado':
+        valorA = a.estado;
+        valorB = b.estado;
+        break;
+      case 'estaActivo':
+        valorA = a.estaActivo ? 1 : 0;
+        valorB = b.estaActivo ? 1 : 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    // Comparar valores
+    let resultado = 0;
+    
+    if (typeof valorA === 'string' && typeof valorB === 'string') {
+      resultado = valorA.localeCompare(valorB, 'es', { sensitivity: 'base' });
+    } else if (typeof valorA === 'number' && typeof valorB === 'number') {
+      resultado = valorA - valorB;
+    } else {
+      // Manejar valores null/undefined
+      if (valorA === valorB) resultado = 0;
+      else if (valorA === null || valorA === undefined || valorA === '') resultado = 1;
+      else if (valorB === null || valorB === undefined || valorB === '') resultado = -1;
+      else resultado = valorA > valorB ? 1 : -1;
+    }
+    
+    // Aplicar dirección
+    return direccion === 'asc' ? resultado : -resultado;
   }
 
   // ========================================
@@ -981,6 +1317,19 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
         paginaActual: evento.pageIndex
       }
     });
+    
+    // Scroll to top cuando cambia la página
+    this.scrollToTop();
+  }
+
+  /**
+   * Hace scroll al inicio de la tabla
+   */
+  private scrollToTop(): void {
+    const tableWrapper = document.querySelector('.table-wrapper');
+    if (tableWrapper) {
+      tableWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   // ========================================
@@ -1040,16 +1389,27 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Ejecuta una acción en lote sobre las resoluciones seleccionadas
+   * Maneja las acciones desde las cards móviles
    */
-  ejecutarAccionLote(accion: 'exportar'): void {
-    if (this.seleccion.hasValue()) {
-      this.accionEjecutada.emit({
-        accion,
-        resoluciones: this.seleccion.selected
-      });
+  onAccionCard(evento: AccionCard): void {
+    this.accionEjecutada.emit({
+      accion: evento.accion,
+      resolucion: evento.resolucion
+    });
+  }
+
+  /**
+   * Maneja el cambio de selección en las cards móviles
+   */
+  onCardSeleccionChange(resolucion: ResolucionConEmpresa, seleccionada: boolean): void {
+    if (seleccionada) {
+      this.seleccion.select(resolucion);
+    } else {
+      this.seleccion.deselect(resolucion);
     }
   }
+
+
 
   // ========================================
   // UTILIDADES
@@ -1114,5 +1474,128 @@ export class ResolucionesTableComponent implements OnInit, OnChanges {
     };
     
     return estados[estado] || estado;
+  }
+
+  /**
+   * Obtiene información de paginación para mostrar al usuario
+   */
+  getPaginacionInfo(): string {
+    const inicio = this.configuracion.paginacion.paginaActual * this.configuracion.paginacion.tamanoPagina + 1;
+    const fin = Math.min(
+      (this.configuracion.paginacion.paginaActual + 1) * this.configuracion.paginacion.tamanoPagina,
+      this.totalResultados()
+    );
+    
+    return `Mostrando ${inicio}-${fin} de ${this.totalResultados()} resoluciones`;
+  }
+
+  // ========================================
+  // EXPORTACIÓN DE DATOS
+  // ========================================
+
+  /**
+   * Exporta las resoluciones en el formato especificado
+   * Respeta los filtros y ordenamiento aplicados
+   */
+  exportarResoluciones(formato: 'excel' | 'pdf'): void {
+    this.exportando.set(true);
+    
+    // Mostrar notificación de inicio
+    this.snackBar.open(
+      `Preparando exportación a ${formato.toUpperCase()}...`,
+      'Cerrar',
+      { duration: 2000 }
+    );
+
+    // Llamar al servicio de exportación con los filtros actuales
+    this.resolucionService.exportarResoluciones(this.configuracion.filtros, formato)
+      .subscribe({
+        next: (blob: Blob) => {
+          this.exportando.set(false);
+          
+          // Crear URL del blob y descargar
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          
+          // Generar nombre de archivo con timestamp
+          const timestamp = new Date().toISOString().split('T')[0];
+          const extension = formato === 'excel' ? 'xlsx' : 'pdf';
+          link.download = `resoluciones_${timestamp}.${extension}`;
+          
+          // Trigger download
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Limpiar URL del blob
+          window.URL.revokeObjectURL(url);
+          
+          // Mostrar notificación de éxito
+          this.snackBar.open(
+            `Exportación completada: ${this.totalResultados()} resoluciones`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+          
+          // Emitir evento de acción ejecutada
+          this.accionEjecutada.emit({
+            accion: 'exportar',
+            resoluciones: this.dataSource.data,
+            formato
+          });
+        },
+        error: (error) => {
+          this.exportando.set(false);
+          console.error('Error al exportar resoluciones:', error);
+          
+          // Mostrar notificación de error
+          this.snackBar.open(
+            'Error al exportar resoluciones. Por favor, intente nuevamente.',
+            'Cerrar',
+            { duration: 5000 }
+          );
+        }
+      });
+  }
+
+  /**
+   * Ejecuta una acción en lote sobre las resoluciones seleccionadas
+   */
+  ejecutarAccionLote(accion: string): void {
+    if (!this.seleccion.hasValue()) {
+      this.snackBar.open(
+        'No hay resoluciones seleccionadas',
+        'Cerrar',
+        { duration: 3000 }
+      );
+      return;
+    }
+
+    const resolucionesSeleccionadas = this.seleccion.selected;
+
+    switch (accion) {
+      case 'exportar':
+        this.exportarResolucionesSeleccionadas();
+        break;
+      default:
+        console.warn('Acción en lote no implementada:', accion);
+    }
+  }
+
+  /**
+   * Exporta solo las resoluciones seleccionadas
+   */
+  private exportarResolucionesSeleccionadas(): void {
+    // Por ahora, exportamos usando el mismo método pero con filtros
+    // En una implementación más avanzada, podríamos enviar los IDs específicos
+    this.snackBar.open(
+      `Exportando ${this.seleccion.selected.length} resoluciones seleccionadas...`,
+      'Cerrar',
+      { duration: 2000 }
+    );
+    
+    // Exportar a Excel por defecto para selecciones
+    this.exportarResoluciones('excel');
   }
 }

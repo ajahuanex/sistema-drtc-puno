@@ -125,12 +125,16 @@ import { PrioridadIndicatorComponent } from './shared/prioridad-indicator.compon
 
               <div class="info-item">
                 <label>Estado Actual</label>
-                <app-estado-badge [estado]="documento.estado"></app-estado-badge>
+                <span class="badge" [class]="'badge-' + documento.estado.toLowerCase()">
+                  {{ getEstadoLabel(documento.estado) }}
+                </span>
               </div>
 
               <div class="info-item">
                 <label>Prioridad</label>
-                <app-prioridad-indicator [prioridad]="documento.prioridad"></app-prioridad-indicator>
+                <span class="badge" [class]="'badge-prioridad-' + documento.prioridad.toLowerCase()">
+                  {{ documento.prioridad }}
+                </span>
               </div>
 
               <div class="info-item">
@@ -540,6 +544,49 @@ import { PrioridadIndicatorComponent } from './shared/prioridad-indicator.compon
     .timeline-badge.badge-atendido {
       background: #d4edda;
       color: #155724;
+    }
+
+    .badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .badge-registrado {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .badge-en_proceso {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge-finalizado {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-archivado {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .badge-prioridad-alta {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-prioridad-media {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .badge-prioridad-baja {
+      background: #e8f5e9;
+      color: #2e7d32;
     }
 
     .movement-info {

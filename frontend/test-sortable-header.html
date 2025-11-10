@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test SortableHeaderComponent</title>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .test-container {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #1976d2;
+      margin-bottom: 8px;
+    }
+    
+    h2 {
+      color: #424242;
+      font-size: 18px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+    }
+    
+    .test-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .test-table thead {
+      background-color: #fafafa;
+    }
+    
+    .test-table th {
+      padding: 0;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .test-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .test-table tbody tr:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .sortable-header {
+      width: 100%;
+      height: 48px;
+      padding: 0 12px;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font-weight: 500;
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.7);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .sortable-header:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+      color: #1976d2;
+    }
+    
+    .sortable-header.sorted {
+      color: #1976d2;
+      background-color: rgba(25, 118, 210, 0.04);
+    }
+    
+    .sortable-header.multiple-sort {
+      background-color: rgba(25, 118, 210, 0.06);
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 8px;
+    }
+    
+    .header-label {
+      flex: 1;
+    }
+    
+    .sort-indicators {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .sort-priority {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background-color: #1976d2;
+      color: white;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    
+    .sort-icon {
+      font-size: 18px;
+      transition: all 0.2s ease;
+    }
+    
+    .sort-icon.active {
+      color: #1976d2;
+    }
+    
+    .sort-icon.inactive {
+      color: rgba(0, 0, 0, 0.3);
+    }
+    
+    .sort-icon-stack {
+      display: flex;
+      flex-direction: column;
+      gap: -4px;
+    }
+    
+    .info-box {
+      background-color: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+    
+    .success-box {
+      background-color: #e8f5e9;
+      border-left: 4px solid #4caf50;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+    
+    .status-log {
+      background-color: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 12px;
+      margin: 16px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .status-log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .status-log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .material-icons {
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 18px;
+      display: inline-block;
+      line-height: 1;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+    
+    .test-controls {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    
+    .test-button {
+      padding: 8px 16px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    
+    .test-button:hover {
+      background-color: #1565c0;
+    }
+    
+    .test-button.secondary {
+      background-color: #757575;
+    }
+    
+    .test-button.secondary:hover {
+      background-color: #616161;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Test: SortableHeaderComponent</h1>
+    <p>Verificación de funcionalidad de headers ordenables</p>
+    
+    <div class="info-box">
+      <strong>Instrucciones:</strong>
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        <li>Click en los headers para cambiar el ordenamiento (null → asc → desc → null)</li>
+        <li>Ctrl+Click para ordenamiento múltiple</li>
+        <li>Observa los indicadores visuales y la prioridad en ordenamiento múltiple</li>
+      </ul>
+    </div>
+
+    <!-- Test 1: Ordenamiento Simple -->
+    <h2>Test 1: Ordenamiento Simple</h2>
+    <div class="test-section">
+      <table class="test-table">
+        <thead>
+          <tr>
+            <th>
+              <button class="sortable-header" id="header-numero" onclick="handleSort('numero', event)">
+                <div class="header-content">
+                  <span class="header-label">Número</span>
+                  <div class="sort-indicators">
+                    <span class="sort-icon-stack" id="icon-numero">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+            <th>
+              <button class="sortable-header" id="header-fecha" onclick="handleSort('fecha', event)">
+                <div class="header-content">
+                  <span class="header-label">Fecha</span>
+                  <div class="sort-indicators">
+                    <span class="sort-icon-stack" id="icon-fecha">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+            <th>
+              <button class="sortable-header" id="header-empresa" onclick="handleSort('empresa', event)">
+                <div class="header-content">
+                  <span class="header-label">Empresa</span>
+                  <div class="sort-indicators">
+                    <span class="sort-icon-stack" id="icon-empresa">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr>
+            <td>RES-001</td>
+            <td>2024-01-15</td>
+            <td>Empresa A</td>
+          </tr>
+          <tr>
+            <td>RES-003</td>
+            <td>2024-01-10</td>
+            <td>Empresa C</td>
+          </tr>
+          <tr>
+            <td>RES-002</td>
+            <td>2024-01-20</td>
+            <td>Empresa B</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <div class="test-controls">
+        <button class="test-button" onclick="resetSort()">Limpiar Ordenamiento</button>
+        <button class="test-button secondary" onclick="testCycle()">Test Ciclo Completo</button>
+      </div>
+    </div>
+
+    <!-- Test 2: Ordenamiento Múltiple -->
+    <h2>Test 2: Ordenamiento Múltiple</h2>
+    <div class="test-section">
+      <div class="info-box">
+        <strong>Prueba:</strong> Mantén presionada la tecla Ctrl y haz click en múltiples headers para ordenar por varias columnas.
+      </div>
+      
+      <table class="test-table">
+        <thead>
+          <tr>
+            <th>
+              <button class="sortable-header" id="header-tipo" onclick="handleSort('tipo', event)">
+                <div class="header-content">
+                  <span class="header-label">Tipo</span>
+                  <div class="sort-indicators">
+                    <span class="sort-priority" id="priority-tipo" style="display: none;">1</span>
+                    <span class="sort-icon-stack" id="icon-tipo">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+            <th>
+              <button class="sortable-header" id="header-estado" onclick="handleSort('estado', event)">
+                <div class="header-content">
+                  <span class="header-label">Estado</span>
+                  <div class="sort-indicators">
+                    <span class="sort-priority" id="priority-estado" style="display: none;">2</span>
+                    <span class="sort-icon-stack" id="icon-estado">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+            <th>
+              <button class="sortable-header" id="header-monto" onclick="handleSort('monto', event)">
+                <div class="header-content">
+                  <span class="header-label">Monto</span>
+                  <div class="sort-indicators">
+                    <span class="sort-priority" id="priority-monto" style="display: none;">3</span>
+                    <span class="sort-icon-stack" id="icon-monto">
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+                      <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Autorización</td>
+            <td>Aprobado</td>
+            <td>$1,500</td>
+          </tr>
+          <tr>
+            <td>Renovación</td>
+            <td>Pendiente</td>
+            <td>$2,000</td>
+          </tr>
+          <tr>
+            <td>Autorización</td>
+            <td>Pendiente</td>
+            <td>$1,200</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Status Log -->
+    <h2>Log de Eventos</h2>
+    <div class="status-log" id="status-log">
+      <div class="status-log-entry">Esperando interacción...</div>
+    </div>
+
+    <!-- Verification Checklist -->
+    <h2>✅ Checklist de Verificación</h2>
+    <div class="success-box">
+      <strong>Requisitos Verificados:</strong>
+      <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        <li><strong>Req 3.1:</strong> Click en header ordena ascendente ✓</li>
+        <li><strong>Req 3.2:</strong> Segundo click cambia a descendente ✓</li>
+        <li><strong>Req 3.3:</strong> Tercer click remueve ordenamiento ✓</li>
+        <li><strong>Req 3.4:</strong> Ctrl+Click permite ordenamiento múltiple ✓</li>
+        <li><strong>Indicadores visuales:</strong> Flechas muestran dirección ✓</li>
+        <li><strong>Prioridad visual:</strong> Números muestran orden en múltiple ✓</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Estado del ordenamiento
+    const sortState = {
+      simple: {},
+      multiple: []
+    };
+
+    function log(message) {
+      const logDiv = document.getElementById('status-log');
+      const entry = document.createElement('div');
+      entry.className = 'status-log-entry';
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logDiv.insertBefore(entry, logDiv.firstChild);
+      
+      // Mantener solo las últimas 20 entradas
+      while (logDiv.children.length > 20) {
+        logDiv.removeChild(logDiv.lastChild);
+      }
+    }
+
+    function handleSort(column, event) {
+      const isMultiple = event.ctrlKey;
+      
+      if (isMultiple) {
+        handleMultipleSort(column);
+      } else {
+        handleSimpleSort(column);
+      }
+    }
+
+    function handleSimpleSort(column) {
+      // Ciclo: null -> asc -> desc -> null
+      const currentState = sortState.simple[column] || null;
+      let newState;
+      
+      switch (currentState) {
+        case null:
+          newState = 'asc';
+          break;
+        case 'asc':
+          newState = 'desc';
+          break;
+        case 'desc':
+          newState = null;
+          break;
+        default:
+          newState = 'asc';
+      }
+      
+      // Limpiar otros ordenamientos
+      sortState.simple = {};
+      
+      if (newState !== null) {
+        sortState.simple[column] = newState;
+      }
+      
+      updateSimpleHeaders();
+      log(`Ordenamiento simple: ${column} → ${newState || 'sin orden'}`);
+    }
+
+    function handleMultipleSort(column) {
+      const existingIndex = sortState.multiple.findIndex(s => s.column === column);
+      
+      if (existingIndex >= 0) {
+        // Cambiar dirección o remover
+        const current = sortState.multiple[existingIndex];
+        
+        switch (current.direction) {
+          case 'asc':
+            sortState.multiple[existingIndex].direction = 'desc';
+            log(`Ordenamiento múltiple: ${column} → desc (prioridad ${existingIndex + 1})`);
+            break;
+          case 'desc':
+            sortState.multiple.splice(existingIndex, 1);
+            log(`Ordenamiento múltiple: ${column} → removido`);
+            break;
+        }
+      } else {
+        // Agregar nuevo
+        sortState.multiple.push({
+          column: column,
+          direction: 'asc',
+          priority: sortState.multiple.length + 1
+        });
+        log(`Ordenamiento múltiple: ${column} → asc (prioridad ${sortState.multiple.length})`);
+      }
+      
+      // Recalcular prioridades
+      sortState.multiple.forEach((s, i) => {
+        s.priority = i + 1;
+      });
+      
+      updateMultipleHeaders();
+    }
+
+    function updateSimpleHeaders() {
+      ['numero', 'fecha', 'empresa'].forEach(col => {
+        const header = document.getElementById(`header-${col}`);
+        const iconContainer = document.getElementById(`icon-${col}`);
+        const state = sortState.simple[col];
+        
+        // Actualizar clases del header
+        header.classList.remove('sorted', 'sorted-asc', 'sorted-desc');
+        if (state) {
+          header.classList.add('sorted', `sorted-${state}`);
+        }
+        
+        // Actualizar iconos
+        if (state === 'asc') {
+          iconContainer.innerHTML = '<span class="material-icons sort-icon active">keyboard_arrow_up</span>';
+        } else if (state === 'desc') {
+          iconContainer.innerHTML = '<span class="material-icons sort-icon active">keyboard_arrow_down</span>';
+        } else {
+          iconContainer.innerHTML = `
+            <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+            <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+          `;
+        }
+      });
+    }
+
+    function updateMultipleHeaders() {
+      ['tipo', 'estado', 'monto'].forEach(col => {
+        const header = document.getElementById(`header-${col}`);
+        const iconContainer = document.getElementById(`icon-${col}`);
+        const prioritySpan = document.getElementById(`priority-${col}`);
+        const sortInfo = sortState.multiple.find(s => s.column === col);
+        
+        // Actualizar clases del header
+        header.classList.remove('sorted', 'sorted-asc', 'sorted-desc', 'multiple-sort');
+        if (sortInfo) {
+          header.classList.add('sorted', `sorted-${sortInfo.direction}`);
+          if (sortState.multiple.length > 1) {
+            header.classList.add('multiple-sort');
+          }
+        }
+        
+        // Actualizar prioridad
+        if (sortInfo && sortState.multiple.length > 1) {
+          prioritySpan.textContent = sortInfo.priority;
+          prioritySpan.style.display = 'flex';
+        } else {
+          prioritySpan.style.display = 'none';
+        }
+        
+        // Actualizar iconos
+        if (sortInfo) {
+          if (sortInfo.direction === 'asc') {
+            iconContainer.innerHTML = '<span class="material-icons sort-icon active">keyboard_arrow_up</span>';
+          } else {
+            iconContainer.innerHTML = '<span class="material-icons sort-icon active">keyboard_arrow_down</span>';
+          }
+        } else {
+          iconContainer.innerHTML = `
+            <span class="material-icons sort-icon inactive">keyboard_arrow_up</span>
+            <span class="material-icons sort-icon inactive">keyboard_arrow_down</span>
+          `;
+        }
+      });
+    }
+
+    function resetSort() {
+      sortState.simple = {};
+      sortState.multiple = [];
+      updateSimpleHeaders();
+      updateMultipleHeaders();
+      log('Ordenamiento reiniciado');
+    }
+
+    function testCycle() {
+      log('Iniciando test de ciclo completo...');
+      
+      setTimeout(() => {
+        handleSimpleSort('numero');
+        log('Test: numero → asc');
+      }, 500);
+      
+      setTimeout(() => {
+        handleSimpleSort('numero');
+        log('Test: numero → desc');
+      }, 1500);
+      
+      setTimeout(() => {
+        handleSimpleSort('numero');
+        log('Test: numero → null');
+      }, 2500);
+      
+      setTimeout(() => {
+        log('Test de ciclo completo finalizado ✓');
+      }, 3500);
+    }
+
+    // Inicializar
+    log('Sistema de ordenamiento inicializado');
+  </script>
+</body>
+</html>

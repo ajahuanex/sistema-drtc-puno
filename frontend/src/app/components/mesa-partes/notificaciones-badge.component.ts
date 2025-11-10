@@ -137,8 +137,10 @@ export class NotificacionesBadgeComponent implements OnInit, OnDestroy {
   
   private async loadUnreadCount(): Promise<void> {
     try {
-      const notificaciones = await this.notificacionService.obtenerNotificaciones(false).toPromise();
-      this.unreadCount = notificaciones?.length || 0;
+      // Get current user ID - this should come from auth service
+      const usuarioId = 'current-user-id'; // TODO: Get from auth service
+      const response = await this.notificacionService.obtenerNotificaciones(usuarioId, false).toPromise();
+      this.unreadCount = response?.noLeidas || 0;
     } catch (error) {
       console.error('Error loading unread count:', error);
     }

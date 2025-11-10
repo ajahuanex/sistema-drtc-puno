@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, catchError, tap, shareReplay } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CriticalConfig {
   apiUrl: string;
@@ -386,7 +387,7 @@ export class EagerInitService {
 
     for (const key of additionalData) {
       try {
-        const data = await this.http.get(`/api/additional/${key}`).toPromise();
+        const data = await this.http.get(`${environment.apiUrl}/api/additional/${key}`).toPromise();
         this.setCacheItem(key, data, 10 * 60 * 1000); // 10 minutos
       } catch (error) {
         // Ignorar errores de pre-carga adicional

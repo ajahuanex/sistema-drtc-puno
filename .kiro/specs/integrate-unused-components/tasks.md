@@ -328,14 +328,23 @@
     - Probar flujos principales
     - _Requirements: 5.1, 5.2_
 
-- [ ] 10. Realizar pruebas manuales completas
-  - [ ] 10.1 Probar vista de detalle de empresa
+- [x] 10. Realizar pruebas manuales completas
+
+
+
+
+
+
+  - [x] 10.1 Probar vista de detalle de empresa
+
     - Navegar a detalle de empresa
     - Verificar que CodigoEmpresaInfoComponent se muestra
     - Verificar chips de tipos de empresa
     - Probar con empresa sin código
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
   
+
+
   - [ ] 10.2 Probar creación de resolución con nuevo selector
     - Abrir modal de crear resolución
     - Probar búsqueda por RUC
@@ -343,11 +352,15 @@
     - Probar búsqueda por código de empresa
     - Verificar autocompletado
     - Crear resolución completa
+
+
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
   
   - [ ] 10.3 Probar SmartIconComponent en diferentes escenarios
     - Verificar iconos en navegación
     - Verificar iconos en botones
+
+
     - Verificar tooltips
     - Probar con Material Icons deshabilitado
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_

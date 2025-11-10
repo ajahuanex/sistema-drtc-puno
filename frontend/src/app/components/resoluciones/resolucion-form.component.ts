@@ -971,52 +971,74 @@ export class ResolucionFormComponent {
   }
 
   private validarUnicidadConServicio(numero: string): void {
-    // Validar que el número sea único por año usando el servicio
+    // Validar que el número sea único por año
     const fechaActual = new Date();
-    const esUnico = this.resolucionService.validarNumeroUnicoPorAnio(numero, fechaActual);
+    const resolucionId = this.route.snapshot.params['id'];
     
-    if (!esUnico) {
-      // El número ya existe en este año
-      const numeroControl = this.resolucionForm.get('numero');
-      if (numeroControl) {
-        numeroControl.setErrors({ 
-          'duplicado': true
-        });
-      }
-      
-      // Obtener el siguiente número disponible para sugerir
-      const siguienteNumero = this.resolucionService.generarSiguienteNumero(fechaActual);
-      
-      // Mostrar error y sugerencia
-      this.snackBar.open(
-        `El número ${numero} ya existe en el año ${fechaActual.getFullYear()}. Siguiente número disponible: ${siguienteNumero}`, 
-        'Cerrar', 
-        { duration: 4000 }
+    // Check if number already exists
+    this.resolucionService.getResoluciones().subscribe(resoluciones => {
+      const year = fechaActual.getFullYear();
+      const existe = resoluciones.some(r => 
+        r.nroResolucion === numero && 
+        new Date(r.fechaEmision).getFullYear() === year &&
+        r.id !== resolucionId
       );
-    } else {
-      // El número es único, limpiar errores
-      const numeroControl = this.resolucionForm.get('numero');
-      if (numeroControl) {
-        numeroControl.setErrors(null);
+      
+      if (existe) {
+        // El número ya existe en este año
+        const numeroControl = this.resolucionForm.get('numero');
+        if (numeroControl) {
+          numeroControl.setErrors({ 
+            'duplicado': true
+          });
+        }
+        
+        // Calcular el siguiente número disponible
+        const numerosExistentes = resoluciones
+          .filter(r => new Date(r.fechaEmision).getFullYear() === year)
+          .map(r => parseInt(r.nroResolucion) || 0);
+        const maxNumero = Math.max(0, ...numerosExistentes);
+        const siguienteNumero = (maxNumero + 1).toString().padStart(4, '0');
+        
+        // Mostrar error y sugerencia
+        this.snackBar.open(
+          `El número ${numero} ya existe en el año ${year}. Siguiente número disponible: ${siguienteNumero}`, 
+          'Cerrar', 
+          { duration: 4000 }
+        );
+      } else {
+        // El número es único, limpiar errores
+        const numeroControl = this.resolucionForm.get('numero');
+        if (numeroControl) {
+          numeroControl.setErrors(null);
+        }
       }
-    }
+    });
   }
 
   usarSiguienteNumero(): void {
     const numeroControl = this.resolucionForm.get('numero');
     if (numeroControl) {
-      // Obtener el siguiente número disponible del servicio
+      // Obtener el siguiente número disponible
       const fechaActual = new Date();
-      const siguienteNumero = this.resolucionService.generarSiguienteNumero(fechaActual);
+      const year = fechaActual.getFullYear();
       
-      // Actualizar el formulario
-      numeroControl.setValue(siguienteNumero);
-      numeroControl.setErrors(null);
-      this.numero.set(siguienteNumero);
-      this.resolucionExistente.set(false);
-      this.numeroValido.set(true);
-      
-      this.snackBar.open(`Número actualizado a ${siguienteNumero}`, 'Cerrar', { duration: 3000 });
+      this.resolucionService.getResoluciones().subscribe(resoluciones => {
+        const numerosExistentes = resoluciones
+          .filter(r => new Date(r.fechaEmision).getFullYear() === year)
+          .map(r => parseInt(r.nroResolucion) || 0);
+        const maxNumero = Math.max(0, ...numerosExistentes);
+        const siguienteNumero = (maxNumero + 1).toString().padStart(4, '0');
+        
+        // Actualizar el formulario
+        numeroControl.setValue(siguienteNumero);
+        numeroControl.setErrors(null);
+        this.numero.set(siguienteNumero);
+        this.resolucionExistente.set(false);
+        this.numeroValido.set(true);
+        
+        this.snackBar.open(`Número actualizado a ${siguienteNumero}`, 'Cerrar', { duration: 3000 });
+      });
     }
   }
 

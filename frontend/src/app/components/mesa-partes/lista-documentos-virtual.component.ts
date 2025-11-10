@@ -22,6 +22,8 @@ import {
 } from '../../models/mesa-partes/documento.model';
 import { DocumentosFiltrosComponent } from './documentos-filters.component';
 import { DocumentoCardComponent } from './shared/documento-card.component';
+import { EstadoBadgeComponent } from './shared/estado-badge.component';
+import { PrioridadIndicatorComponent } from './shared/prioridad-indicator.component';
 
 /**
  * Componente optimizado con virtual scrolling para listas grandes de documentos
@@ -43,7 +45,9 @@ import { DocumentoCardComponent } from './shared/documento-card.component';
     MatDividerModule,
     MatCardModule,
     DocumentosFiltrosComponent,
-    DocumentoCardComponent
+    DocumentoCardComponent,
+    EstadoBadgeComponent,
+    PrioridadIndicatorComponent
   ],
   template: `
     <div class="lista-documentos-virtual-container">
