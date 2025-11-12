@@ -28,6 +28,15 @@ import { Ruta } from '../../models/ruta.model';
 import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
+import { 
+  placaPeruanaValidator, 
+  placaDuplicadaValidator,
+  anioFabricacionValidator,
+  capacidadPasajerosValidator,
+  numeroMotorValidator,
+  numeroChasisValidator,
+  numeroTucValidator
+} from '../../validators/vehiculo.validators';
 
 @Component({
   selector: 'app-vehiculo-form',
@@ -962,6 +971,392 @@ import { map, startWith } from 'rxjs/operators';
       font-size: 12px;
       margin-top: 8px;
     }
+
+    /* Responsive Design con breakpoints mejorados */
+    /* Tablets grandes y escritorio pequeño */
+    @media (max-width: 1024px) {
+      .content-section {
+        max-width: 100%;
+      }
+
+      .vehiculo-form {
+        padding: 24px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .datos-tecnicos {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+    }
+
+    /* Tablets */
+    @media (max-width: 768px) {
+      .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 20px;
+
+        .header-content {
+          margin-bottom: 16px;
+        }
+
+        .header-title h1 {
+          font-size: 24px;
+        }
+
+        .header-subtitle {
+          font-size: 14px;
+        }
+
+        .header-button {
+          width: 100%;
+        }
+      }
+
+      .vehiculo-form {
+        padding: 20px;
+      }
+
+      .form-card {
+        margin-bottom: 20px;
+      }
+
+      .card-header {
+        padding: 16px 20px 12px;
+      }
+
+      .card-title {
+        font-size: 16px;
+      }
+
+      .card-subtitle {
+        font-size: 13px;
+      }
+
+      .card-content {
+        padding: 20px;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .form-actions {
+        flex-direction: column-reverse;
+        gap: 12px;
+
+        button {
+          width: 100%;
+        }
+      }
+
+      .vehiculos-actions {
+        .gestionar-button {
+          width: 100%;
+          padding: 10px 20px;
+        }
+      }
+
+      .vehiculo-details {
+        .detail-row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+
+          .detail-label {
+            min-width: unset;
+          }
+
+          .detail-value {
+            text-align: left;
+          }
+        }
+      }
+
+      .datos-tecnicos {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .tuc-section,
+      .rutas-section,
+      .tecnica-section {
+        padding: 16px;
+        margin-bottom: 24px;
+
+        h4 {
+          font-size: 16px;
+        }
+      }
+    }
+
+    /* Móviles */
+    @media (max-width: 480px) {
+      .page-header {
+        padding: 16px;
+
+        .header-title {
+          gap: 8px;
+
+          h1 {
+            font-size: 20px;
+          }
+        }
+
+        .header-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+
+        .header-subtitle {
+          font-size: 13px;
+        }
+      }
+
+      .form-container {
+        border-radius: 8px;
+      }
+
+      .vehiculo-form {
+        padding: 16px;
+      }
+
+      .form-card {
+        margin-bottom: 16px;
+        border-radius: 6px;
+      }
+
+      .card-header {
+        padding: 14px 16px 10px;
+      }
+
+      .card-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      .card-title {
+        font-size: 15px;
+      }
+
+      .card-subtitle {
+        font-size: 12px;
+      }
+
+      .card-content {
+        padding: 16px;
+      }
+
+      .form-row {
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .form-field {
+        ::ng-deep .mat-form-field-label {
+          font-size: 13px;
+        }
+
+        ::ng-deep input,
+        ::ng-deep mat-select {
+          font-size: 14px;
+        }
+
+        ::ng-deep .mat-hint {
+          font-size: 11px;
+        }
+      }
+
+      .form-actions {
+        margin-top: 24px;
+        padding-top: 20px;
+
+        button {
+          min-height: 44px;
+          font-size: 14px;
+          padding: 0 24px;
+        }
+      }
+
+      .vehiculos-info {
+        padding: 16px;
+      }
+
+      .info-text {
+        font-size: 13px;
+      }
+
+      .vehiculos-actions {
+        .gestionar-button {
+          font-size: 13px;
+          padding: 10px 16px;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+
+        .action-hint {
+          font-size: 12px;
+        }
+      }
+
+      .vehiculo-info {
+        padding: 16px;
+      }
+
+      .vehiculo-header {
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+
+        h3 {
+          font-size: 20px;
+        }
+
+        .check-icon {
+          font-size: 40px;
+          width: 40px;
+          height: 40px;
+        }
+      }
+
+      .detail-row {
+        padding: 10px 0;
+
+        .detail-label,
+        .detail-value {
+          font-size: 13px;
+        }
+      }
+
+      .tuc-section,
+      .rutas-section,
+      .tecnica-section {
+        padding: 14px;
+        margin-bottom: 20px;
+        border-left-width: 3px;
+
+        h4 {
+          font-size: 15px;
+          margin-bottom: 12px;
+        }
+      }
+
+      .rutas-checkboxes {
+        max-height: 250px;
+        padding: 6px;
+      }
+
+      .ruta-checkbox-item {
+        padding: 6px 4px;
+      }
+
+      .ruta-info {
+        gap: 3px;
+      }
+
+      .ruta-codigo {
+        font-size: 13px;
+      }
+
+      .ruta-descripcion {
+        font-size: 12px;
+      }
+
+      .ruta-detalles {
+        font-size: 11px;
+      }
+
+      .no-vehiculo,
+      .no-resolucion {
+        padding: 32px 16px;
+
+        .info-icon,
+        .warning-icon {
+          font-size: 40px;
+          width: 40px;
+          height: 40px;
+          margin-bottom: 12px;
+        }
+
+        p {
+          font-size: 14px;
+        }
+
+        .subtitle {
+          font-size: 12px;
+        }
+      }
+    }
+
+    /* Móviles muy pequeños */
+    @media (max-width: 360px) {
+      .page-header {
+        padding: 12px;
+
+        .header-title h1 {
+          font-size: 18px;
+        }
+
+        .header-subtitle {
+          font-size: 12px;
+        }
+      }
+
+      .vehiculo-form {
+        padding: 12px;
+      }
+
+      .form-card {
+        margin-bottom: 12px;
+      }
+
+      .card-header {
+        padding: 12px 14px 8px;
+      }
+
+      .card-content {
+        padding: 14px;
+      }
+
+      .form-row {
+        gap: 12px;
+      }
+
+      .form-actions {
+        button {
+          min-height: 40px;
+          font-size: 13px;
+          padding: 0 20px;
+        }
+      }
+
+      .vehiculo-header {
+        flex-direction: column;
+        text-align: center;
+
+        .check-icon {
+          margin-bottom: 8px;
+        }
+      }
+
+      .datos-tecnicos {
+        .detail-row {
+          font-size: 12px;
+        }
+      }
+    }
   `]
 })
 export class VehiculoFormComponent implements OnInit {
@@ -1043,18 +1438,22 @@ export class VehiculoFormComponent implements OnInit {
     this.vehiculoForm = this.fb.group({
       empresaActualId: ['', Validators.required],
       resolucionId: [{ value: '', disabled: true }, Validators.required],
-      numeroTuc: [''],
+      numeroTuc: ['', [numeroTucValidator()]],
       rutasAsignadasIds: [[], Validators.required],
-      placa: ['', [Validators.required, Validators.pattern(/^[A-Z]{1,3}-\d{3,4}$/)]],
-      marca: [''],
+      placa: [
+        '', 
+        [Validators.required, placaPeruanaValidator()],
+        [placaDuplicadaValidator(this.vehiculoService, this.vehiculoId())]
+      ],
+      marca: ['', Validators.required],
       modelo: [''],
       categoria: ['M3'],
-      asientos: [''],
-      anioFabricacion: ['', [Validators.required, Validators.min(1900), Validators.max(new Date().getFullYear())]],
+      asientos: ['', [capacidadPasajerosValidator()]],
+      anioFabricacion: ['', [Validators.required, anioFabricacionValidator()]],
       estado: ['ACTIVO'],
       datosTecnicos: this.fb.group({
-        motor: [''],
-        chasis: [''],
+        motor: ['', [numeroMotorValidator()]],
+        chasis: ['', [numeroChasisValidator()]],
         cilindros: [''],
         ejes: [''],
         ruedas: [''],

@@ -13,11 +13,17 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { Vehiculo, VehiculoCreate } from '../../models/vehiculo.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
+import { 
+  placaPeruanaValidator, 
+  placaDuplicadaValidator,
+  anioFabricacionValidator
+} from '../../validators/vehiculo.validators';
 
 export interface VehiculosResolucionModalData {
   resolucion: Resolucion;
@@ -42,6 +48,7 @@ export interface VehiculosResolucionModalData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     ReactiveFormsModule
   ],
   template: `
@@ -175,19 +182,49 @@ export interface VehiculosResolucionModalData {
             <form [formGroup]="vehiculoForm" class="vehiculo-form">
               <div class="form-grid">
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>PLACA</mat-label>
-                  <input matInput formControlName="placa" placeholder="ABC-123" maxlength="10">
-                  <mat-icon matSuffix>directions_car</mat-icon>
+                  <mat-label>PLACA *</mat-label>
+                  <input matInput 
+                         formControlName="placa" 
+                         placeholder="ABC-123" 
+                         maxlength="10"
+                         (input)="convertirPlacaMayusculas($event)">
+                  <mat-icon matSuffix 
+                           [class.valid-icon]="vehiculoForm.get('placa')?.valid && vehiculoForm.get('placa')?.value"
+                           [class.invalid-icon]="vehiculoForm.get('placa')?.invalid && vehiculoForm.get('placa')?.touched">
+                    {{ getPlacaIcon() }}
+                  </mat-icon>
+                  <mat-hint>Formato: ABC-123, AB-1234 o A1B-234</mat-hint>
+                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('required')">
+                    La placa es obligatoria
+                  </mat-error>
+                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('placaInvalida')">
+                    {{ vehiculoForm.get('placa')?.errors?.['placaInvalida']?.message }}
+                  </mat-error>
+                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('placaDuplicada')">
+                    {{ vehiculoForm.get('placa')?.errors?.['placaDuplicada']?.message }}
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>MARCA</mat-label>
-                  <input matInput formControlName="marca" placeholder="MERCEDES-BENZ">
+                  <mat-label>MARCA *</mat-label>
+                  <input matInput 
+                         formControlName="marca" 
+                         placeholder="MERCEDES-BENZ"
+                         [matAutocomplete]="autoMarca">
+                  <mat-autocomplete #autoMarca="matAutocomplete">
+                    <mat-option *ngFor="let marca of marcasPopulares" [value]="marca">
+                      {{ marca }}
+                    </mat-option>
+                  </mat-autocomplete>
                   <mat-icon matSuffix>branding_watermark</mat-icon>
+                  <mat-hint>Selecciona o escribe una marca</mat-hint>
+                  <mat-error *ngIf="vehiculoForm.get('marca')?.hasError('required')">
+                    La marca es obligatoria
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>CATEGORÍA</mat-label>
+                  <mat-label>CATEGORÍA *</mat-label>
                   <mat-select formControlName="categoria">
                     <mat-option value="M3">M3 - Autobús</mat-option>
                     <mat-option value="N3">N3 - Camión</mat-option>
@@ -195,22 +232,41 @@ export interface VehiculosResolucionModalData {
                     <mat-option value="N2">N2 - Camión Mediano</mat-option>
                   </mat-select>
                   <mat-icon matSuffix>category</mat-icon>
+                  <mat-error *ngIf="vehiculoForm.get('categoria')?.hasError('required')">
+                    La categoría es obligatoria
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>AÑO DE FABRICACIÓN</mat-label>
-                  <input matInput formControlName="anioFabricacion" type="number" min="1990" max="2030">
+                  <mat-label>AÑO DE FABRICACIÓN *</mat-label>
+                  <input matInput formControlName="anioFabricacion" type="number">
                   <mat-icon matSuffix>calendar_today</mat-icon>
+                  <mat-hint>Entre 1990 y {{ getCurrentYear() + 1 }}</mat-hint>
+                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('required')">
+                    El año es obligatorio
+                  </mat-error>
+                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMinimo')">
+                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
+                  </mat-error>
+                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMaximo')">
+                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
+                  </mat-error>
+                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioInvalido')">
+                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
+                  </mat-error>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>ESTADO</mat-label>
+                  <mat-label>ESTADO *</mat-label>
                   <mat-select formControlName="estado">
                     <mat-option value="ACTIVO">ACTIVO</mat-option>
                     <mat-option value="MANTENIMIENTO">MANTENIMIENTO</mat-option>
                     <mat-option value="INACTIVO">INACTIVO</mat-option>
                   </mat-select>
                   <mat-icon matSuffix>info</mat-icon>
+                  <mat-error *ngIf="vehiculoForm.get('estado')?.hasError('required')">
+                    El estado es obligatorio
+                  </mat-error>
                 </mat-form-field>
               </div>
 
@@ -473,6 +529,44 @@ export interface VehiculosResolucionModalData {
       font-weight: 500;
     }
 
+    /* Estilos para iconos de validación */
+    .valid-icon {
+      color: #4caf50 !important;
+    }
+
+    .invalid-icon {
+      color: #f44336 !important;
+    }
+
+    mat-icon.mat-icon[matsuffix] {
+      transition: color 0.3s ease;
+    }
+
+    /* Estilos para campos con validación */
+    mat-form-field.mat-form-field-invalid .mat-form-field-outline {
+      border-color: #f44336 !important;
+    }
+
+    mat-form-field.mat-form-field-valid .mat-form-field-outline {
+      border-color: #4caf50 !important;
+    }
+
+    /* Animación para mensajes de error */
+    mat-error {
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     @media (max-width: 768px) {
       .modal-container {
         width: 95vw;
@@ -506,15 +600,38 @@ export class VehiculosResolucionModalComponent {
   // Columnas de la tabla
   displayedColumns = ['placa', 'marca', 'categoria', 'estado', 'anioFabricacion', 'rutas', 'acciones'];
 
+  // Marcas populares para autocompletado
+  marcasPopulares = [
+    'TOYOTA',
+    'HYUNDAI',
+    'MERCEDES-BENZ',
+    'VOLVO',
+    'SCANIA',
+    'IVECO',
+    'MITSUBISHI',
+    'ISUZU',
+    'HINO',
+    'JAC',
+    'YUTONG',
+    'KING LONG',
+    'GOLDEN DRAGON',
+    'ZHONGTONG',
+    'FOTON'
+  ];
+
   // Formulario
   vehiculoForm: FormGroup;
 
   constructor() {
     this.vehiculoForm = this.fb.group({
-      placa: ['', [Validators.required, Validators.maxLength(10)]],
+      placa: [
+        '', 
+        [Validators.required, placaPeruanaValidator()],
+        [placaDuplicadaValidator(this.vehiculoService, this.vehiculoEditando()?.id)]
+      ],
       marca: ['', [Validators.required, Validators.maxLength(50)]],
       categoria: ['', Validators.required],
-      anioFabricacion: ['', [Validators.required, Validators.min(1990), Validators.max(2030)]],
+      anioFabricacion: ['', [Validators.required, anioFabricacionValidator()]],
       estado: ['ACTIVO', Validators.required]
     });
 
@@ -538,6 +655,15 @@ export class VehiculosResolucionModalComponent {
 
   mostrarFormularioNuevo(): void {
     this.vehiculoEditando.set(null);
+    
+    // Resetear el validador asíncrono de placa para nuevo vehículo
+    const placaControl = this.vehiculoForm.get('placa');
+    if (placaControl) {
+      placaControl.clearAsyncValidators();
+      placaControl.setAsyncValidators([placaDuplicadaValidator(this.vehiculoService)]);
+      placaControl.updateValueAndValidity();
+    }
+    
     this.vehiculoForm.reset({
       estado: 'ACTIVO'
     });
@@ -546,6 +672,15 @@ export class VehiculosResolucionModalComponent {
 
   editarVehiculo(vehiculo: Vehiculo): void {
     this.vehiculoEditando.set(vehiculo);
+    
+    // Actualizar el validador asíncrono de placa con el ID del vehículo actual
+    const placaControl = this.vehiculoForm.get('placa');
+    if (placaControl) {
+      placaControl.clearAsyncValidators();
+      placaControl.setAsyncValidators([placaDuplicadaValidator(this.vehiculoService, vehiculo.id)]);
+      placaControl.updateValueAndValidity();
+    }
+    
     this.vehiculoForm.patchValue({
       placa: vehiculo.placa,
       marca: vehiculo.marca,
@@ -577,14 +712,19 @@ export class VehiculosResolucionModalComponent {
 
       this.vehiculoService.updateVehiculo(vehiculoUpdate.id, vehiculoUpdate).subscribe({
         next: () => {
-          this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
+          this.snackBar.open(
+            `✓ Vehículo ${formData.placa} actualizado exitosamente`, 
+            'Cerrar', 
+            { duration: 4000 }
+          );
           this.cargarVehiculos();
           this.ocultarFormulario();
           this.guardando.set(false);
         },
         error: (error: any) => {
           console.error('Error actualizando vehículo:', error);
-          this.snackBar.open('Error al actualizar vehículo', 'Cerrar', { duration: 3000 });
+          const errorMsg = error.error?.message || 'Error al actualizar vehículo';
+          this.snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
           this.guardando.set(false);
         }
       });
@@ -600,14 +740,19 @@ export class VehiculosResolucionModalComponent {
 
       this.vehiculoService.createVehiculo(nuevoVehiculo).subscribe({
         next: () => {
-          this.snackBar.open('Vehículo creado exitosamente', 'Cerrar', { duration: 3000 });
+          this.snackBar.open(
+            `✓ Vehículo ${formData.placa} (${formData.marca}) creado exitosamente`, 
+            'Cerrar', 
+            { duration: 4000 }
+          );
           this.cargarVehiculos();
           this.ocultarFormulario();
           this.guardando.set(false);
         },
         error: (error: any) => {
           console.error('Error creando vehículo:', error);
-          this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
+          const errorMsg = error.error?.message || 'Error al crear vehículo';
+          this.snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
           this.guardando.set(false);
         }
       });
@@ -636,5 +781,65 @@ export class VehiculosResolucionModalComponent {
   seleccionarVehiculo(vehiculo: Vehiculo): void {
     // Cerrar el modal y devolver el vehículo seleccionado
     this.dialogRef.close(vehiculo);
+  }
+
+  // ========================================
+  // MÉTODOS DE AYUDA PARA VALIDACIÓN
+  // ========================================
+
+  /**
+   * Convertir placa a mayúsculas automáticamente
+   */
+  convertirPlacaMayusculas(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.toUpperCase();
+    this.vehiculoForm.get('placa')?.setValue(value, { emitEvent: false });
+    input.value = value;
+  }
+
+  /**
+   * Obtener icono para el campo de placa según su estado de validación
+   */
+  getPlacaIcon(): string {
+    const placaControl = this.vehiculoForm.get('placa');
+    
+    if (!placaControl?.value) {
+      return 'directions_car';
+    }
+    
+    if (placaControl.pending) {
+      return 'hourglass_empty'; // Validación asíncrona en progreso
+    }
+    
+    if (placaControl.valid) {
+      return 'check_circle'; // Válido
+    }
+    
+    if (placaControl.invalid && placaControl.touched) {
+      return 'error'; // Inválido
+    }
+    
+    return 'directions_car';
+  }
+
+  /**
+   * Obtener año actual para validación
+   */
+  getCurrentYear(): number {
+    return new Date().getFullYear();
+  }
+
+  /**
+   * Mostrar resumen de datos antes de guardar
+   */
+  mostrarResumenDatos(): string {
+    const formData = this.vehiculoForm.value;
+    return `
+      Placa: ${formData.placa}
+      Marca: ${formData.marca}
+      Categoría: ${formData.categoria}
+      Año: ${formData.anioFabricacion}
+      Estado: ${formData.estado}
+    `;
   }
 } 

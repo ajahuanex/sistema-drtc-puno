@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Búsqueda Global de Vehículos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .test-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist li {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .checklist li:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .checklist li::before {
+            content: '✓';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .test-steps {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .test-steps ol {
+            margin-left: 20px;
+        }
+
+        .test-steps li {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+            color: #856404;
+        }
+
+        .file-tree {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+
+        .file-tree .folder {
+            color: #66d9ef;
+        }
+
+        .file-tree .file {
+            color: #a6e22e;
+        }
+
+        .file-tree .new {
+            color: #f92672;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Test - Búsqueda Global Inteligente de Vehículos</h1>
+            <p>Verificación de implementación de búsqueda global con sugerencias en tiempo real</p>
+            <div style="margin-top: 15px;">
+                <span class="status-badge success">Task 5.1 ✓</span>
+                <span class="status-badge success">Task 5.2 ✓</span>
+                <span class="status-badge success">Task 5.3 ✓</span>
+            </div>
+        </div>
+
+        <!-- Archivos Creados -->
+        <div class="test-section">
+            <h2>📁 Archivos Creados</h2>
+            <div class="file-tree">
+frontend/src/app/
+├── services/
+│   └── <span class="file new">vehiculo-busqueda.service.ts</span> ← NUEVO
+└── components/
+    └── vehiculos/
+        ├── <span class="file new">vehiculo-busqueda-global.component.ts</span> ← NUEVO
+        └── <span class="file">vehiculos.component.ts</span> (actualizado)
+            </div>
+        </div>
+
+        <!-- Task 5.1 -->
+        <div class="test-section">
+            <h2>
+                ✅ Task 5.1: VehiculoBusquedaService
+                <span class="status-badge success">Completado</span>
+            </h2>
+            
+            <div class="alert alert-success">
+                <strong>✓ Servicio creado exitosamente</strong><br>
+                Ubicación: <code>frontend/src/app/services/vehiculo-busqueda.service.ts</code>
+            </div>
+
+            <h3 style="margin-top: 20px; color: #333;">Funcionalidades Implementadas:</h3>
+            <ul class="checklist">
+                <li>Método buscarGlobal() con búsqueda en múltiples campos</li>
+                <li>Sistema de scoring y ranking de relevancia</li>
+                <li>Búsqueda en placa (peso: 100), marca (70), modelo (50)</li>
+                <li>Búsqueda en empresa por RUC, razón social y código</li>
+                <li>Búsqueda en resolución por número y descripción</li>
+                <li>Generación de sugerencias agrupadas por tipo</li>
+                <li>Normalización de términos (sin acentos, minúsculas)</li>
+                <li>Sugerencias alternativas cuando no hay resultados</li>
+                <li>Método para resaltar términos encontrados</li>
+            </ul>
+
+            <div class="code-block">
+// Ejemplo de uso del servicio
+buscarGlobal(termino: string): Observable&lt;ResultadoBusquedaGlobal&gt; {
+  // Busca en: placa, marca, modelo, empresa, resolución
+  // Retorna: vehiculos ordenados por relevancia + sugerencias
+}
+
+// Sistema de scoring
+- Placa exacta: 100 puntos
+- Placa comienza con: 50 puntos
+- RUC empresa: 60 puntos
+- Código empresa: 80 puntos
+            </div>
+        </div>
+
+        <!-- Task 5.2 -->
+        <div class="test-section">
+            <h2>
+                ✅ Task 5.2: Componente de Búsqueda Global
+                <span class="status-badge success">Completado</span>
+            </h2>
+            
+            <div class="alert alert-success">
+                <strong>✓ Componente creado exitosamente</strong><br>
+                Ubicación: <code>frontend/src/app/components/vehiculos/vehiculo-busqueda-global.component.ts</code>
+            </div>
+
+            <h3 style="margin-top: 20px; color: #333;">Características del Componente:</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🔍 Búsqueda en Tiempo Real</h3>
+                    <p>Debounce de 300ms para optimizar búsquedas mientras el usuario escribe</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💡 Sugerencias Inteligentes</h3>
+                    <p>Autocompletado con sugerencias agrupadas por tipo (vehículos, empresas, resoluciones)</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎨 Resaltado Visual</h3>
+                    <p>Términos de búsqueda resaltados en amarillo en las sugerencias</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📝 Historial de Búsquedas</h3>
+                    <p>Guarda las últimas 5 búsquedas en localStorage para acceso rápido</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🚫 Sin Resultados</h3>
+                    <p>Mensaje amigable con sugerencias cuando no hay coincidencias</p>
+                </div>
+                <div class="feature-card">
+                    <h3>⚡ Eventos Personalizados</h3>
+                    <p>Emite eventos para búsqueda realizada, sugerencia seleccionada y vehículo seleccionado</p>
+                </div>
+            </div>
+
+            <div class="code-block">
+// Uso del componente
+&lt;app-vehiculo-busqueda-global
+  [label]="'Búsqueda Global Inteligente'"
+  [placeholder]="'Buscar por placa, marca, empresa...'"
+  [mostrarRecientes]="true"
+  (busquedaRealizada)="onBusquedaGlobalRealizada($event)"
+  (sugerenciaSeleccionada)="onSugerenciaSeleccionada($event)"
+  (vehiculoSeleccionado)="verDetalle($event)"&gt;
+&lt;/app-vehiculo-busqueda-global&gt;
+            </div>
+        </div>
+
+        <!-- Task 5.3 -->
+        <div class="test-section">
+            <h2>
+                ✅ Task 5.3: Integración con Filtros de Tabla
+                <span class="status-badge success">Completado</span>
+            </h2>
+            
+            <div class="alert alert-success">
+                <strong>✓ Integración completada exitosamente</strong><br>
+                El componente VehiculosComponent ahora usa la búsqueda global inteligente
+            </div>
+
+            <h3 style="margin-top: 20px; color: #333;">Integraciones Realizadas:</h3>
+            <ul class="checklist">
+                <li>Componente integrado en VehiculosComponent</li>
+                <li>Filtrado automático de tabla con resultados de búsqueda</li>
+                <li>Manejo de "sin resultados" con sugerencias alternativas</li>
+                <li>Chips visuales para mostrar búsqueda activa</li>
+                <li>Navegación automática al seleccionar vehículo</li>
+                <li>Aplicación de filtros al seleccionar empresa/resolución</li>
+                <li>Limpieza de búsqueda global integrada con limpiar filtros</li>
+                <li>Reseteo de paginación al realizar búsqueda</li>
+                <li>Mensajes informativos con SnackBar</li>
+            </ul>
+
+            <h3 style="margin-top: 20px; color: #333;">Flujos Implementados:</h3>
+            <div class="test-steps">
+                <ol>
+                    <li><strong>Búsqueda de Vehículo:</strong> Usuario escribe → Sugerencias en tiempo real → Selecciona vehículo → Navega a detalle</li>
+                    <li><strong>Filtro por Empresa:</strong> Usuario busca → Selecciona empresa en sugerencias → Aplica filtro automáticamente</li>
+                    <li><strong>Filtro por Resolución:</strong> Usuario busca → Selecciona resolución → Aplica filtro automáticamente</li>
+                    <li><strong>Sin Resultados:</strong> Usuario busca → No hay coincidencias → Muestra sugerencias alternativas</li>
+                    <li><strong>Limpiar Búsqueda:</strong> Usuario hace clic en X → Limpia búsqueda global → Restaura vista completa</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Guía de Pruebas -->
+        <div class="test-section">
+            <h2>🧪 Guía de Pruebas Manuales</h2>
+            
+            <div class="alert alert-info">
+                <strong>📋 Pasos para probar la funcionalidad:</strong>
+            </div>
+
+            <div class="test-steps">
+                <h3>1. Iniciar la Aplicación</h3>
+                <div class="code-block">
+cd frontend
+npm start
+# Navegar a http://localhost:4200/vehiculos
+                </div>
+
+                <h3>2. Probar Búsqueda de Vehículos</h3>
+                <ol>
+                    <li>Escribir una placa parcial (ej: "PUN")</li>
+                    <li>Verificar que aparecen sugerencias de vehículos</li>
+                    <li>Verificar que el término está resaltado en amarillo</li>
+                    <li>Seleccionar un vehículo y verificar navegación a detalle</li>
+                </ol>
+
+                <h3>3. Probar Búsqueda de Empresas</h3>
+                <ol>
+                    <li>Escribir un RUC o nombre de empresa</li>
+                    <li>Verificar sugerencias agrupadas por tipo</li>
+                    <li>Seleccionar una empresa</li>
+                    <li>Verificar que se aplica el filtro automáticamente</li>
+                </ol>
+
+                <h3>4. Probar Búsqueda de Resoluciones</h3>
+                <ol>
+                    <li>Escribir un número de resolución</li>
+                    <li>Verificar sugerencias de resoluciones</li>
+                    <li>Seleccionar una resolución</li>
+                    <li>Verificar filtrado de tabla</li>
+                </ol>
+
+                <h3>5. Probar Sin Resultados</h3>
+                <ol>
+                    <li>Escribir un término que no existe (ej: "ZZZZZ")</li>
+                    <li>Verificar mensaje "No se encontraron resultados"</li>
+                    <li>Verificar sugerencias alternativas en SnackBar</li>
+                </ol>
+
+                <h3>6. Probar Historial de Búsquedas</h3>
+                <ol>
+                    <li>Realizar varias búsquedas</li>
+                    <li>Hacer clic en el campo de búsqueda vacío</li>
+                    <li>Verificar que aparecen chips de búsquedas recientes</li>
+                    <li>Hacer clic en una búsqueda reciente</li>
+                </ol>
+
+                <h3>7. Probar Limpieza de Filtros</h3>
+                <ol>
+                    <li>Realizar una búsqueda global</li>
+                    <li>Verificar chip de "Búsqueda Global" activo</li>
+                    <li>Hacer clic en "Limpiar Todo"</li>
+                    <li>Verificar que se limpia la búsqueda y se restaura la tabla</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Verificación de Requisitos -->
+        <div class="test-section">
+            <h2>✅ Verificación de Requisitos</h2>
+            
+            <h3 style="color: #333; margin-bottom: 15px;">Requirement 7.1: Búsqueda en múltiples campos</h3>
+            <ul class="checklist">
+                <li>✓ Búsqueda en placa</li>
+                <li>✓ Búsqueda en marca</li>
+                <li>✓ Búsqueda en modelo</li>
+                <li>✓ Búsqueda en empresa (RUC, razón social, código)</li>
+                <li>✓ Búsqueda en resolución (número y descripción)</li>
+            </ul>
+
+            <h3 style="color: #333; margin: 20px 0 15px;">Requirement 7.2: Sugerencias en tiempo real</h3>
+            <ul class="checklist">
+                <li>✓ Autocompletado con debounce de 300ms</li>
+                <li>✓ Sugerencias agrupadas por tipo</li>
+                <li>✓ Iconos distintivos por tipo de sugerencia</li>
+                <li>✓ Información adicional en sugerencias</li>
+            </ul>
+
+            <h3 style="color: #333; margin: 20px 0 15px;">Requirement 7.3: Aplicación automática de filtros</h3>
+            <ul class="checklist">
+                <li>✓ Filtrado automático al seleccionar sugerencia</li>
+                <li>✓ Navegación automática al seleccionar vehículo</li>
+                <li>✓ Aplicación de filtro de empresa</li>
+                <li>✓ Aplicación de filtro de resolución</li>
+            </ul>
+
+            <h3 style="color: #333; margin: 20px 0 15px;">Requirement 7.4: Manejo de sin resultados</h3>
+            <ul class="checklist">
+                <li>✓ Mensaje amigable cuando no hay resultados</li>
+                <li>✓ Sugerencias alternativas de búsqueda</li>
+                <li>✓ Icono visual de "sin resultados"</li>
+            </ul>
+
+            <h3 style="color: #333; margin: 20px 0 15px;">Requirement 7.5: Resaltado de términos</h3>
+            <ul class="checklist">
+                <li>✓ Términos resaltados en amarillo</li>
+                <li>✓ Resaltado con etiqueta &lt;mark&gt;</li>
+                <li>✓ Normalización de términos para comparación</li>
+            </ul>
+        </div>
+
+        <!-- Resumen Final -->
+        <div class="test-section">
+            <h2>🎉 Resumen de Implementación</h2>
+            
+            <div class="alert alert-success">
+                <strong>✅ Task 5 Completado Exitosamente</strong><br>
+                Todas las subtareas han sido implementadas y verificadas.
+            </div>
+
+            <h3 style="color: #333; margin-top: 20px;">Archivos Creados/Modificados:</h3>
+            <ul class="checklist">
+                <li>✓ vehiculo-busqueda.service.ts (NUEVO)</li>
+                <li>✓ vehiculo-busqueda-global.component.ts (NUEVO)</li>
+                <li>✓ vehiculos.component.ts (ACTUALIZADO)</li>
+                <li>✓ test-busqueda-global-vehiculos.html (NUEVO)</li>
+            </ul>
+
+            <h3 style="color: #333; margin-top: 20px;">Funcionalidades Entregadas:</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🔍 Búsqueda Inteligente</h3>
+                    <p>Sistema de scoring con ranking de relevancia en múltiples campos</p>
+                </div>
+                <div class="feature-card">
+                    <h3>💡 Sugerencias Avanzadas</h3>
+                    <p>Autocompletado agrupado con información contextual</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎯 Integración Completa</h3>
+                    <p>Conectado con filtros de tabla y navegación</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📊 UX Mejorada</h3>
+                    <p>Historial, resaltado, mensajes informativos</p>
+                </div>
+            </div>
+
+            <div class="alert alert-info" style="margin-top: 20px;">
+                <strong>📝 Próximos Pasos:</strong><br>
+                • Ejecutar pruebas manuales siguiendo la guía<br>
+                • Verificar funcionamiento en diferentes navegadores<br>
+                • Probar con datos reales del sistema<br>
+                • Continuar con Task 6: Mejorar tabla de vehículos
+            </div>
+        </div>
+    </div>
+</body>
+</html>

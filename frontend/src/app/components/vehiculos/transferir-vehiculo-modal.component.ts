@@ -19,8 +19,12 @@ import { EmpresaService } from '../../services/empresa.service';
 import { HistorialVehiculoService } from '../../services/historial-vehiculo.service';
 import { HistorialTransferenciaEmpresaService } from '../../services/historial-transferencia-empresa.service';
 import { VehiculoService } from '../../services/vehiculo.service';
+import { VehiculoNotificationService } from '../../services/vehiculo-notification.service';
+import { AuthService } from '../../services/auth.service';
 import { ArchivoUploadComponent } from '../../shared/archivo-upload.component';
 import { ArchivoSustentatorio } from '../../models/historial-transferencia-empresa.model';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 
 export interface TransferirVehiculoData {
   vehiculo: Vehiculo;
@@ -42,14 +46,16 @@ export interface TransferirVehiculoData {
     MatProgressSpinnerModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    ArchivoUploadComponent
+    ArchivoUploadComponent,
+    SmartIconComponent,
+    EmpresaSelectorComponent
   ],
   template: `
     <div class="transferir-vehiculo-modal">
       <mat-card>
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>swap_horiz</mat-icon>
+            <app-smart-icon [iconName]="'swap_horiz'" [size]="24"></app-smart-icon>
             TRANSFERIR VEHÍCULO
           </mat-card-title>
           <mat-card-subtitle>
@@ -84,21 +90,16 @@ export interface TransferirVehiculoData {
           <!-- Formulario de transferencia -->
           <form [formGroup]="transferenciaForm" class="transferencia-form">
             <div class="form-row">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>EMPRESA DESTINO</mat-label>
-                <mat-select formControlName="empresaDestinoId" required>
-                  <mat-option value="">Seleccionar empresa destino</mat-option>
-                  @for (empresa of empresasDisponibles(); track empresa.id) {
-                    <mat-option [value]="empresa.id">
-                      {{ empresa.ruc }} - {{ empresa.razonSocial.principal }}
-                    </mat-option>
-                  }
-                </mat-select>
-                <mat-icon matSuffix>business</mat-icon>
-                <mat-error *ngIf="transferenciaForm.get('empresaDestinoId')?.hasError('required')">
-                  La empresa destino es obligatoria
-                </mat-error>
-              </mat-form-field>
+              <!-- Empresa Destino Selector Component -->
+              <app-empresa-selector
+                [label]="'EMPRESA DESTINO'"
+                [placeholder]="'Buscar empresa destino por RUC, razón social o código'"
+                [hint]="'Seleccione la empresa a la que se transferirá el vehículo'"
+                [required]="true"
+                [empresaId]="transferenciaForm.get('empresaDestinoId')?.value"
+                (empresaSeleccionada)="onEmpresaDestinoSeleccionada($event)"
+                (empresaIdChange)="onEmpresaDestinoIdChange($event)">
+              </app-empresa-selector>
             </div>
 
             <div class="form-row">
@@ -110,7 +111,7 @@ export interface TransferirVehiculoData {
                        required>
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
-                <mat-icon matSuffix>event</mat-icon>
+                <app-smart-icon [iconName]="'event'" matPrefix [size]="20"></app-smart-icon>
                 <mat-error *ngIf="transferenciaForm.get('fechaTransferencia')?.hasError('required')">
                   La fecha de transferencia es obligatoria
                 </mat-error>
@@ -125,7 +126,7 @@ export interface TransferirVehiculoData {
                           rows="3"
                           placeholder="Describa el motivo de la transferencia..."
                           required></textarea>
-                <mat-icon matSuffix>description</mat-icon>
+                <app-smart-icon [iconName]="'description'" matSuffix [size]="20"></app-smart-icon>
                 <mat-error *ngIf="transferenciaForm.get('motivo')?.hasError('required')">
                   El motivo es obligatorio
                 </mat-error>
@@ -139,7 +140,7 @@ export interface TransferirVehiculoData {
                           formControlName="observaciones" 
                           rows="2"
                           placeholder="Observaciones adicionales (opcional)..."></textarea>
-                <mat-icon matSuffix>note</mat-icon>
+                <app-smart-icon [iconName]="'note'" matSuffix [size]="20"></app-smart-icon>
               </mat-form-field>
             </div>
 
@@ -149,30 +150,53 @@ export interface TransferirVehiculoData {
                 <input matInput 
                        formControlName="resolucionId"
                        placeholder="ID de la resolución (opcional)...">
-                <mat-icon matSuffix>description</mat-icon>
+                <app-smart-icon [iconName]="'description'" matSuffix [size]="20"></app-smart-icon>
                 <mat-hint>Si la transferencia está asociada a una resolución específica</mat-hint>
               </mat-form-field>
             </div>
           </form>
 
-          <!-- Resumen de la transferencia -->
+          <!-- Resumen de la transferencia con confirmación visual -->
           @if (empresaDestinoSeleccionada()) {
             <div class="resumen-transferencia">
-              <h4>RESUMEN DE LA TRANSFERENCIA</h4>
-              <div class="resumen-content">
-                <div class="resumen-item">
-                  <span class="resumen-label">DESDE:</span>
-                  <span class="resumen-value origen">{{ empresaActual()?.razonSocial?.principal }}</span>
-                </div>
-                <div class="resumen-item">
-                  <span class="resumen-label">HACIA:</span>
-                  <span class="resumen-value destino">{{ empresaDestinoSeleccionada()?.razonSocial?.principal }}</span>
-                </div>
-                <div class="resumen-item">
-                  <span class="resumen-label">FECHA:</span>
-                  <span class="resumen-value">{{ transferenciaForm.get('fechaTransferencia')?.value | date:'dd/MM/yyyy' }}</span>
-                </div>
-              </div>
+              <mat-card class="resumen-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <app-smart-icon [iconName]="'check_circle'" [size]="24"></app-smart-icon>
+                    RESUMEN DE LA TRANSFERENCIA
+                  </mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="resumen-content">
+                    <div class="resumen-item">
+                      <app-smart-icon [iconName]="'business'" [size]="20" class="resumen-icon"></app-smart-icon>
+                      <div class="resumen-details">
+                        <span class="resumen-label">DESDE:</span>
+                        <span class="resumen-value origen">{{ empresaActual()?.razonSocial?.principal }}</span>
+                        <small class="resumen-ruc">RUC: {{ empresaActual()?.ruc }}</small>
+                      </div>
+                    </div>
+                    <div class="resumen-arrow">
+                      <app-smart-icon [iconName]="'arrow_forward'" [size]="32"></app-smart-icon>
+                    </div>
+                    <div class="resumen-item">
+                      <app-smart-icon [iconName]="'business'" [size]="20" class="resumen-icon"></app-smart-icon>
+                      <div class="resumen-details">
+                        <span class="resumen-label">HACIA:</span>
+                        <span class="resumen-value destino">{{ empresaDestinoSeleccionada()?.razonSocial?.principal }}</span>
+                        <small class="resumen-ruc">RUC: {{ empresaDestinoSeleccionada()?.ruc }}</small>
+                      </div>
+                    </div>
+                    <div class="resumen-item">
+                      <app-smart-icon [iconName]="'event'" [size]="20" class="resumen-icon"></app-smart-icon>
+                      <div class="resumen-details">
+                        <span class="resumen-label">FECHA:</span>
+                        <span class="resumen-value">{{ transferenciaForm.get('fechaTransferencia')?.value | date:'dd/MM/yyyy' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
             </div>
           }
 
@@ -193,6 +217,7 @@ export interface TransferirVehiculoData {
           <button mat-button 
                   (click)="cancelar()"
                   [disabled]="procesando()">
+            <app-smart-icon [iconName]="'cancel'" [size]="20"></app-smart-icon>
             CANCELAR
           </button>
           <button mat-raised-button 
@@ -204,7 +229,7 @@ export interface TransferirVehiculoData {
               PROCESANDO...
             } @else {
               <ng-container>
-                <mat-icon>swap_horiz</mat-icon>
+                <app-smart-icon [iconName]="'swap_horiz'" [size]="20"></app-smart-icon>
                 CONFIRMAR TRANSFERENCIA
               </ng-container>
             }
@@ -222,6 +247,8 @@ export class TransferirVehiculoModalComponent {
   private historialService = inject(HistorialVehiculoService);
   private historialTransferenciaService = inject(HistorialTransferenciaEmpresaService);
   private vehiculoService = inject(VehiculoService);
+  private vehiculoNotificationService = inject(VehiculoNotificationService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   // Signals
@@ -292,6 +319,26 @@ export class TransferirVehiculoModalComponent {
     });
   }
 
+  // Nuevo método para manejar la selección desde EmpresaSelectorComponent
+  onEmpresaDestinoSeleccionada(empresa: Empresa | null): void {
+    if (empresa) {
+      this.transferenciaForm.patchValue({ empresaDestinoId: empresa.id });
+      this.empresaDestinoSeleccionada.set(empresa);
+    } else {
+      this.transferenciaForm.patchValue({ empresaDestinoId: '' });
+      this.empresaDestinoSeleccionada.set(null);
+    }
+  }
+
+  // Nuevo método para manejar cambios en el ID de empresa destino
+  onEmpresaDestinoIdChange(empresaId: string): void {
+    if (empresaId) {
+      this.transferenciaForm.patchValue({ empresaDestinoId: empresaId });
+      const empresa = this.empresasDisponibles().find(e => e.id === empresaId);
+      this.empresaDestinoSeleccionada.set(empresa || null);
+    }
+  }
+
   confirmarTransferencia(): void {
     if (this.transferenciaForm.valid) {
       this.procesando.set(true);
@@ -332,6 +379,27 @@ export class TransferirVehiculoModalComponent {
               this.vehiculoService.updateVehiculo(this.data.vehiculo.id, vehiculoActualizado).subscribe({
                 next: (vehiculo) => {
                   console.log('✅ Vehículo actualizado:', vehiculo);
+                  
+                  // 4. Enviar notificaciones de transferencia
+                  const empresaOrigen = this.empresaActual();
+                  const empresaDestino = this.empresaDestinoSeleccionada();
+                  const usuarioActual = this.authService.getCurrentUser();
+                  
+                  if (empresaOrigen && empresaDestino && usuarioActual) {
+                    // Notificar a supervisores y administradores
+                    const destinatariosIds = ['supervisor_1', 'admin_1']; // TODO: Obtener IDs reales de supervisores
+                    
+                    this.vehiculoNotificationService.notificarTransferencia(
+                      vehiculo,
+                      empresaOrigen,
+                      empresaDestino,
+                      usuarioActual.id,
+                      destinatariosIds
+                    );
+                    
+                    console.log('✅ Notificaciones de transferencia enviadas');
+                  }
+                  
                   this.snackBar.open('Vehículo transferido exitosamente', 'Cerrar', { duration: 3000 });
                   this.dialogRef.close({
                     success: true,

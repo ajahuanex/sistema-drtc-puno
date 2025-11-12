@@ -546,4 +546,37 @@ export class VehiculoService {
       headers: new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` })
     });
   }
+
+  // ========================================
+  // MÉTODOS DE VALIDACIÓN
+  // ========================================
+
+  /**
+   * Verificar si una placa está disponible (no duplicada)
+   * @param placa - Placa a verificar
+   * @param vehiculoIdActual - ID del vehículo actual (para edición)
+   * @returns Observable<boolean> - true si está disponible, false si está duplicada
+   */
+  verificarPlacaDisponible(placa: string, vehiculoIdActual?: string): Observable<boolean> {
+    if (environment.useDataManager) {
+      // Verificar en DataManager
+      return this.getVehiculosPersistentes().pipe(
+        map(vehiculos => {
+          const placaUpper = placa.toUpperCase().trim();
+          const vehiculoExistente = vehiculos.find(v => 
+            v.placa.toUpperCase() === placaUpper && v.id !== vehiculoIdActual
+          );
+          return !vehiculoExistente; // true si no existe (disponible)
+        }),
+        catchError(() => of(true)) // En caso de error, permitir continuar
+      );
+    } else {
+      // Verificar en mock
+      const placaUpper = placa.toUpperCase().trim();
+      const vehiculoExistente = this.mockVehiculos.find(v => 
+        v.placa.toUpperCase() === placaUpper && v.id !== vehiculoIdActual
+      );
+      return of(!vehiculoExistente);
+    }
+  }
 }

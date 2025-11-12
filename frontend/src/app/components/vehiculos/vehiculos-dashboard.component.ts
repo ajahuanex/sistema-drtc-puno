@@ -311,14 +311,42 @@ export interface FiltroEstadistica {
       transform: scale(1.1) rotate(5deg);
     }
 
-    /* Responsive */
+    /* Responsive con breakpoints mejorados */
+    /* Tablets grandes y escritorio pequeño */
+    @media (max-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+
+      .stat-card {
+        padding: 18px;
+      }
+
+      .stat-icon {
+        width: 56px;
+        height: 56px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
+    }
+
+    /* Tablets */
     @media (max-width: 768px) {
       .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
       }
 
       .stat-card {
         padding: 16px;
+        gap: 12px;
       }
 
       .stat-icon {
@@ -328,6 +356,89 @@ export interface FiltroEstadistica {
 
       .stat-value {
         font-size: 24px;
+      }
+
+      .stat-label {
+        font-size: 10px;
+      }
+
+      .stat-percentage,
+      .stat-trend {
+        font-size: 12px;
+      }
+    }
+
+    /* Móviles */
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .stat-card {
+        padding: 14px;
+        gap: 10px;
+      }
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+      }
+
+      .stat-value {
+        font-size: 22px;
+      }
+
+      .stat-label {
+        font-size: 10px;
+        letter-spacing: 0.3px;
+      }
+
+      .stat-percentage {
+        font-size: 11px;
+      }
+
+      .stat-trend {
+        font-size: 11px;
+      }
+    }
+
+    /* Móviles muy pequeños */
+    @media (max-width: 360px) {
+      .stats-section {
+        margin-bottom: 16px;
+      }
+
+      .stats-grid {
+        gap: 10px;
+      }
+
+      .stat-card {
+        padding: 12px;
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .stat-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 0;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+        margin-bottom: 6px;
+      }
+
+      .stat-percentage,
+      .stat-trend {
+        font-size: 10px;
       }
     }
 

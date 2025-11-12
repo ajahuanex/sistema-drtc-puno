@@ -18,6 +18,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
@@ -28,6 +30,15 @@ import { Resolucion } from '../../models/resolucion.model';
 import { Ruta } from '../../models/ruta.model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
+import { 
+  placaPeruanaValidator, 
+  placaDuplicadaValidator,
+  anioFabricacionValidator,
+  capacidadPasajerosValidator,
+  numeroMotorValidator,
+  numeroChasisValidator,
+  numeroTucValidator
+} from '../../validators/vehiculo.validators';
 
 export interface VehiculoModalData {
   empresaId?: string;
@@ -59,7 +70,9 @@ export interface VehiculoModalData {
     MatTooltipModule,
     MatSlideToggleModule,
     MatCheckboxModule,
-    SmartIconComponent
+    SmartIconComponent,
+    EmpresaSelectorComponent,
+    ResolucionSelectorComponent
   ],
   template: `
     <div class="vehiculo-modal">
@@ -114,64 +127,28 @@ export interface VehiculoModalData {
               </mat-card-header>
               <mat-card-content class="card-content">
                 <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Empresa Actual *</mat-label>
-                    <input matInput 
-                           [matAutocomplete]="empresaAuto" 
-                           [formControl]="empresaControl"
-                           placeholder="Buscar empresa por RUC o razón social"
-                           required>
-                    <mat-autocomplete #empresaAuto="matAutocomplete" 
-                                     [displayWith]="displayEmpresa"
-                                     (optionSelected)="onEmpresaSelected($event)">
-                      @for (empresa of empresasFiltradas | async; track empresa.id) {
-                        <mat-option [value]="empresa">
-                          {{ empresa.ruc }} - {{ empresa.razonSocial.principal || 'Sin razón social' }}
-                        </mat-option>
-                      }
-                    </mat-autocomplete>
-                    <app-smart-icon [iconName]="'business'" matSuffix></app-smart-icon>
-                    <button matSuffix mat-icon-button 
-                            type="button" 
-                            (click)="limpiarEmpresa()"
-                            *ngIf="empresaControl.value"
-                            matTooltip="Limpiar empresa">
-                      <app-smart-icon [iconName]="'clear'" [size]="20"></app-smart-icon>
-                    </button>
-                    @if (cantidadVehiculosEmpresa() > 0) {
-                      <mat-hint>
-                        <span class="vehiculos-count">
-                          <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
-                          {{ cantidadVehiculosEmpresa() }} vehículo(s) actual(es)
-                        </span>
-                      </mat-hint>
-                    } @else {
-                      <mat-hint>Empresa propietaria del vehículo</mat-hint>
-                    }
-                    <mat-error *ngIf="empresaControl.hasError('required')">
-                      La empresa es obligatoria
-                    </mat-error>
-                  </mat-form-field>
+                  <!-- Empresa Selector Component -->
+                  <app-empresa-selector
+                    [label]="'Empresa Actual'"
+                    [placeholder]="'Buscar empresa por RUC, razón social o código'"
+                    [hint]="cantidadVehiculosEmpresa() > 0 ? cantidadVehiculosEmpresa() + ' vehículo(s) actual(es)' : 'Empresa propietaria del vehículo'"
+                    [required]="true"
+                    [empresaId]="vehiculoForm.get('empresaActualId')?.value"
+                    (empresaSeleccionada)="onEmpresaSeleccionadaSelector($event)"
+                    (empresaIdChange)="onEmpresaIdChange($event)">
+                  </app-empresa-selector>
 
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Resolución *</mat-label>
-                    <mat-select formControlName="resolucionId" (selectionChange)="onResolucionChange()" required>
-                      <mat-option value="">Selecciona una resolución</mat-option>
-                      @for (resolucion of resoluciones(); track resolucion.id) {
-                        <mat-option [value]="resolucion.id">
-                          {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }}
-                          <span class="resolucion-tipo-badge" [class]="'tipo-' + (resolucion.tipoTramite === 'PRIMIGENIA' ? 'primigenia' : 'hija')">
-                            {{ resolucion.tipoTramite === 'PRIMIGENIA' ? 'PRIMIGENIA' : 'HIJA' }}
-                          </span>
-                        </mat-option>
-                      }
-                    </mat-select>
-                    <mat-icon matSuffix>description</mat-icon>
-                    <mat-hint>Resolución asociada al vehículo (primigenia o hija)</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('resolucionId')?.hasError('required')">
-                      La resolución es obligatoria
-                    </mat-error>
-                  </mat-form-field>
+                  <!-- Resolución Selector Component -->
+                  <app-resolucion-selector
+                    [label]="'Resolución'"
+                    [placeholder]="'Buscar por número o descripción'"
+                    [hint]="'Resolución asociada al vehículo (primigenia o hija)'"
+                    [required]="true"
+                    [empresaId]="vehiculoForm.get('empresaActualId')?.value"
+                    [resolucionId]="vehiculoForm.get('resolucionId')?.value"
+                    (resolucionSeleccionada)="onResolucionSeleccionadaSelector($event)"
+                    (resolucionIdChange)="onResolucionIdChange($event)">
+                  </app-resolucion-selector>
                 </div>
               </mat-card-content>
             </mat-card>
@@ -325,9 +302,15 @@ export interface VehiculoModalData {
                     <mat-label>Año de Fabricación</mat-label>
                     <input matInput formControlName="anioFabricacion" type="number" placeholder="Ej: 2020">
                     <app-smart-icon [iconName]="'calendar_today'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Año de fabricación</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('min') || vehiculoForm.get('anioFabricacion')?.hasError('max')">
-                      Año inválido
+                    <mat-hint>Entre 1990 y {{ getCurrentYear() + 1 }}</mat-hint>
+                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMinimo')">
+                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
+                    </mat-error>
+                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMaximo')">
+                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
+                    </mat-error>
+                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioInvalido')">
+                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
                     </mat-error>
                   </mat-form-field>
 
@@ -351,14 +334,26 @@ export interface VehiculoModalData {
                     <mat-label>Número de Asientos</mat-label>
                     <input matInput formControlName="asientos" type="number" placeholder="Ej: 45">
                     <app-smart-icon [iconName]="'airline_seat_recline_normal'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Número de asientos</mat-hint>
+                    <mat-hint>Capacidad de pasajeros (1-100)</mat-hint>
+                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMinima')">
+                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadMinima']?.message }}
+                    </mat-error>
+                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMaxima')">
+                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadMaxima']?.message }}
+                    </mat-error>
+                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadInvalida')">
+                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadInvalida']?.message }}
+                    </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Número de TUC</mat-label>
                     <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
                     <app-smart-icon [iconName]="'receipt'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Número del TUC</mat-hint>
+                    <mat-hint>Formato: T-123456-2025</mat-hint>
+                    <mat-error *ngIf="vehiculoForm.get('numeroTuc')?.hasError('numeroTucInvalido')">
+                      {{ vehiculoForm.get('numeroTuc')?.errors?.['numeroTucInvalido']?.message }}
+                    </mat-error>
                   </mat-form-field>
                 </div>
 
@@ -387,48 +382,84 @@ export interface VehiculoModalData {
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Motor</mat-label>
-                      <input matInput formControlName="motor" placeholder="Ej: 2.0L, 4 cilindros">
+                      <input matInput formControlName="motor" placeholder="Ej: ABC123DEF456">
                       <mat-icon matSuffix>settings</mat-icon>
-                      <mat-hint>Especificaciones del motor</mat-hint>
+                      <mat-hint>Número de motor (mínimo 6 caracteres)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.motor')?.hasError('numeroMotorCorto')">
+                        {{ vehiculoForm.get('datosTecnicos.motor')?.errors?.['numeroMotorCorto']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.motor')?.hasError('numeroMotorInvalido')">
+                        {{ vehiculoForm.get('datosTecnicos.motor')?.errors?.['numeroMotorInvalido']?.message }}
+                      </mat-error>
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Chasis</mat-label>
-                      <input matInput formControlName="chasis" placeholder="Número de chasis">
+                      <input matInput formControlName="chasis" placeholder="Ej: XYZ789GHI012">
                       <mat-icon matSuffix>fingerprint</mat-icon>
-                      <mat-hint>Número de chasis del vehículo</mat-hint>
+                      <mat-hint>Número de chasis (mínimo 6 caracteres)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.chasis')?.hasError('numeroChasisCorto')">
+                        {{ vehiculoForm.get('datosTecnicos.chasis')?.errors?.['numeroChasisCorto']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.chasis')?.hasError('numeroChasisInvalido')">
+                        {{ vehiculoForm.get('datosTecnicos.chasis')?.errors?.['numeroChasisInvalido']?.message }}
+                      </mat-error>
                     </mat-form-field>
                   </div>
 
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Cilindros</mat-label>
-                      <input matInput formControlName="cilindros" placeholder="Ej: 4, 6, 8">
+                      <input matInput formControlName="cilindros" type="number" placeholder="Ej: 4, 6, 8">
                       <mat-icon matSuffix>tune</mat-icon>
-                      <mat-hint>Número de cilindros</mat-hint>
+                      <mat-hint>Número de cilindros (1-16)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.cilindros')?.hasError('min')">
+                        Mínimo 1 cilindro
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.cilindros')?.hasError('max')">
+                        Máximo 16 cilindros
+                      </mat-error>
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Ejes</mat-label>
-                      <input matInput formControlName="ejes" placeholder="Ej: 2, 3, 4">
+                      <input matInput formControlName="ejes" type="number" placeholder="Ej: 2, 3, 4">
                       <mat-icon matSuffix>straighten</mat-icon>
-                      <mat-hint>Número de ejes</mat-hint>
+                      <mat-hint>Número de ejes (2-6)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ejes')?.hasError('min')">
+                        Mínimo 2 ejes
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ejes')?.hasError('max')">
+                        Máximo 6 ejes
+                      </mat-error>
                     </mat-form-field>
                   </div>
 
                   <div class="form-row">
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Ruedas</mat-label>
-                      <input matInput formControlName="ruedas" placeholder="Ej: 6, 8, 10">
+                      <input matInput formControlName="ruedas" type="number" placeholder="Ej: 6, 8, 10">
                       <mat-icon matSuffix>tire_repair</mat-icon>
-                      <mat-hint>Número de ruedas</mat-hint>
+                      <mat-hint>Número de ruedas (4-24)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ruedas')?.hasError('min')">
+                        Mínimo 4 ruedas
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ruedas')?.hasError('max')">
+                        Máximo 24 ruedas
+                      </mat-error>
                     </mat-form-field>
 
                     <mat-form-field appearance="outline" class="form-field">
                       <mat-label>Peso Neto (kg)</mat-label>
                       <input matInput formControlName="pesoNeto" type="number" placeholder="Ej: 5000">
                       <mat-icon matSuffix>scale</mat-icon>
-                      <mat-hint>Peso neto del vehículo</mat-hint>
+                      <mat-hint>Peso neto del vehículo (0-50000 kg)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoNeto')?.hasError('min')">
+                        El peso no puede ser negativo
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoNeto')?.hasError('max')">
+                        Peso máximo: 50000 kg
+                      </mat-error>
                     </mat-form-field>
                   </div>
 
@@ -437,7 +468,13 @@ export interface VehiculoModalData {
                       <mat-label>Peso Bruto (kg)</mat-label>
                       <input matInput formControlName="pesoBruto" type="number" placeholder="Ej: 8000">
                       <mat-icon matSuffix>scale</mat-icon>
-                      <mat-hint>Peso bruto del vehículo</mat-hint>
+                      <mat-hint>Peso bruto del vehículo (0-100000 kg)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoBruto')?.hasError('min')">
+                        El peso no puede ser negativo
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoBruto')?.hasError('max')">
+                        Peso máximo: 100000 kg
+                      </mat-error>
                     </mat-form-field>
                   </div>
 
@@ -1305,32 +1342,36 @@ export class VehiculoModalComponent {
   private initializeForm(): void {
     this.vehiculoForm = this.fb.group({
       // Campos obligatorios: solo placa y sede de registro
-      placa: ['', [Validators.required, Validators.pattern(/^[A-Z0-9]{3}-\d{3}$/)]],
+      placa: [
+        '', 
+        [Validators.required, placaPeruanaValidator()],
+        [placaDuplicadaValidator(this.vehiculoService, this.data.vehiculo?.id)]
+      ],
       sedeRegistro: ['', Validators.required],
       
       // Campos opcionales
       empresaActualId: [''],
       resolucionId: [''],
-      numeroTuc: [''],
+      numeroTuc: ['', [numeroTucValidator()]],
       rutasAsignadasIds: [[]],
       marca: [''],
       modelo: [''],
       categoria: ['M3'],
-      asientos: [''],
-      anioFabricacion: ['', [Validators.min(1900), Validators.max(new Date().getFullYear() + 1)]],
+      asientos: ['', [capacidadPasajerosValidator()]],
+      anioFabricacion: ['', [anioFabricacionValidator()]],
       estado: ['ACTIVO'],
       datosTecnicos: this.fb.group({
-        motor: [''],
-        chasis: [''],
-        cilindros: [''],
-        ejes: [''],
-        ruedas: [''],
-        pesoNeto: [''],
-        pesoBruto: [''],
+        motor: ['', [numeroMotorValidator()]],
+        chasis: ['', [numeroChasisValidator()]],
+        cilindros: ['', [Validators.min(1), Validators.max(16)]],
+        ejes: ['', [Validators.min(2), Validators.max(6)]],
+        ruedas: ['', [Validators.min(4), Validators.max(24)]],
+        pesoNeto: ['', [Validators.min(0), Validators.max(50000)]],
+        pesoBruto: ['', [Validators.min(0), Validators.max(100000)]],
         medidas: this.fb.group({
-          largo: [''],
-          ancho: [''],
-          alto: ['']
+          largo: ['', [Validators.min(0), Validators.max(30000)]],
+          ancho: ['', [Validators.min(0), Validators.max(5000)]],
+          alto: ['', [Validators.min(0), Validators.max(5000)]]
         })
       })
     });
@@ -1449,7 +1490,7 @@ export class VehiculoModalComponent {
     }
   }
 
-  // Método para manejar la selección de empresa (método existente)
+  // Método para manejar la selección de empresa (método existente - mantener para compatibilidad)
   onEmpresaSelected(event: any): void {
     const empresa = event.option.value;
     if (empresa && empresa.id) {
@@ -1463,6 +1504,75 @@ export class VehiculoModalComponent {
       
       this.onEmpresaChange();
     }
+  }
+
+  // Nuevo método para manejar la selección desde EmpresaSelectorComponent
+  onEmpresaSeleccionadaSelector(empresa: Empresa | null): void {
+    if (empresa) {
+      // Actualizar el formulario con la empresa seleccionada
+      this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
+      
+      // Habilitar el campo de resolución
+      this.vehiculoForm.get('resolucionId')?.enable();
+      
+      // Cargar resoluciones de la empresa
+      this.onEmpresaChange();
+      
+      // Actualizar contador de vehículos
+      this.actualizarContadorVehiculos(empresa.id);
+    } else {
+      // Limpiar selección
+      this.vehiculoForm.patchValue({ empresaActualId: '', resolucionId: '' });
+      this.vehiculoForm.get('resolucionId')?.disable();
+      this.resoluciones.set([]);
+      this.rutasDisponibles.set([]);
+    }
+  }
+
+  // Nuevo método para manejar cambios en el ID de empresa
+  onEmpresaIdChange(empresaId: string): void {
+    if (empresaId) {
+      this.vehiculoForm.patchValue({ empresaActualId: empresaId });
+    }
+  }
+
+  // Nuevo método para manejar la selección desde ResolucionSelectorComponent
+  onResolucionSeleccionadaSelector(resolucion: Resolucion | null): void {
+    if (resolucion) {
+      // Actualizar el formulario con la resolución seleccionada
+      this.vehiculoForm.patchValue({ resolucionId: resolucion.id });
+      
+      // Cargar rutas disponibles
+      this.loadRutasDisponibles(resolucion.id);
+      
+      // Habilitar el control de rutas
+      this.vehiculoForm.get('rutasAsignadasIds')?.enable();
+    } else {
+      // Limpiar selección
+      this.vehiculoForm.patchValue({ resolucionId: '' });
+      this.rutasDisponibles.set([]);
+      this.vehiculoForm.get('rutasAsignadasIds')?.disable();
+    }
+  }
+
+  // Nuevo método para manejar cambios en el ID de resolución
+  onResolucionIdChange(resolucionId: string): void {
+    if (resolucionId) {
+      this.vehiculoForm.patchValue({ resolucionId });
+    }
+  }
+
+  // Método auxiliar para actualizar el contador de vehículos
+  private actualizarContadorVehiculos(empresaId: string): void {
+    this.vehiculoService.getVehiculos().subscribe({
+      next: (vehiculos) => {
+        // Actualizar el signal de vehículos actuales para que el computed se recalcule
+        this.vehiculosActuales.set(vehiculos);
+      },
+      error: (error) => {
+        console.error('Error al contar vehículos:', error);
+      }
+    });
   }
 
   private onEmpresaChange(): void {
@@ -2245,6 +2355,13 @@ export class VehiculoModalComponent {
   close(): void {
     this.modalClosed.emit();
     this.dialogRef.close();
+  }
+
+  /**
+   * Obtener año actual para validación
+   */
+  getCurrentYear(): number {
+    return new Date().getFullYear();
   }
 }
 

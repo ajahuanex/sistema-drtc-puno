@@ -24,8 +24,11 @@ import {
 } from '../../models/baja-vehiculo.model';
 import { BajaVehiculoService } from '../../services/baja-vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
+import { VehiculoNotificationService } from '../../services/vehiculo-notification.service';
+import { AuthService } from '../../services/auth.service';
 import { ArchivoUploadComponent } from '../../shared/archivo-upload.component';
 import { ArchivoSustentatorio } from '../../models/historial-transferencia-empresa.model';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 
 export interface SolicitarBajaVehiculoData {
   vehiculo: Vehiculo;
@@ -49,14 +52,15 @@ export interface SolicitarBajaVehiculoData {
     MatNativeDateModule,
     MatExpansionModule,
     MatDividerModule,
-    ArchivoUploadComponent
+    ArchivoUploadComponent,
+    SmartIconComponent
   ],
   template: `
     <div class="solicitar-baja-modal">
       <mat-card>
         <mat-card-header>
           <mat-card-title>
-            <mat-icon>remove_circle</mat-icon>
+            <app-smart-icon [iconName]="'remove_circle'" [size]="24"></app-smart-icon>
             SOLICITAR BAJA DE VEHÍCULO
           </mat-card-title>
           <mat-card-subtitle>
@@ -112,7 +116,7 @@ export interface SolicitarBajaVehiculoData {
                       </mat-option>
                     }
                   </mat-select>
-                  <mat-icon matSuffix>category</mat-icon>
+                  <app-smart-icon [iconName]="'category'" matSuffix [size]="20"></app-smart-icon>
                   <mat-error *ngIf="bajaForm.get('tipoBaja')?.hasError('required')">
                     El tipo de baja es obligatorio
                   </mat-error>
@@ -128,7 +132,7 @@ export interface SolicitarBajaVehiculoData {
                          required>
                   <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                   <mat-datepicker #picker></mat-datepicker>
-                  <mat-icon matSuffix>event</mat-icon>
+                  <app-smart-icon [iconName]="'event'" matPrefix [size]="20"></app-smart-icon>
                   <mat-error *ngIf="bajaForm.get('fechaBaja')?.hasError('required')">
                     La fecha de baja es obligatoria
                   </mat-error>
@@ -143,7 +147,7 @@ export interface SolicitarBajaVehiculoData {
                             rows="3"
                             placeholder="Describa detalladamente el motivo de la baja..."
                             required></textarea>
-                  <mat-icon matSuffix>description</mat-icon>
+                  <app-smart-icon [iconName]="'description'" matSuffix [size]="20"></app-smart-icon>
                   <mat-error *ngIf="bajaForm.get('motivo')?.hasError('required')">
                     El motivo es obligatorio
                   </mat-error>
@@ -157,7 +161,7 @@ export interface SolicitarBajaVehiculoData {
                             formControlName="descripcion" 
                             rows="2"
                             placeholder="Descripción adicional (opcional)..."></textarea>
-                  <mat-icon matSuffix>note</mat-icon>
+                  <app-smart-icon [iconName]="'note'" matSuffix [size]="20"></app-smart-icon>
                 </mat-form-field>
               </div>
 
@@ -167,7 +171,7 @@ export interface SolicitarBajaVehiculoData {
                   <input matInput 
                          formControlName="resolucionId"
                          placeholder="ID de la resolución (opcional)...">
-                  <mat-icon matSuffix>description</mat-icon>
+                  <app-smart-icon [iconName]="'description'" matSuffix [size]="20"></app-smart-icon>
                   <mat-hint>Si la baja está asociada a una resolución específica</mat-hint>
                 </mat-form-field>
               </div>
@@ -177,7 +181,7 @@ export interface SolicitarBajaVehiculoData {
             <mat-expansion-panel class="campos-especificos" [expanded]="true">
               <mat-expansion-panel-header>
                 <mat-panel-title>
-                  <mat-icon>settings</mat-icon>
+                  <app-smart-icon [iconName]="'settings'" [size]="20"></app-smart-icon>
                   CAMPOS ESPECÍFICOS
                 </mat-panel-title>
                 <mat-panel-description>
@@ -193,7 +197,7 @@ export interface SolicitarBajaVehiculoData {
                     <input matInput 
                            formControlName="vehiculoSustitutoId"
                            placeholder="ID del vehículo que reemplaza...">
-                    <mat-icon matSuffix>swap_horiz</mat-icon>
+                    <app-smart-icon [iconName]="'swap_horiz'" matSuffix [size]="20"></app-smart-icon>
                     <mat-hint>ID del vehículo que sustituye al actual</mat-hint>
                   </mat-form-field>
                 </div>
@@ -209,7 +213,7 @@ export interface SolicitarBajaVehiculoData {
                            formControlName="fechaAccidente">
                     <mat-datepicker-toggle matSuffix [for]="pickerAccidente"></mat-datepicker-toggle>
                     <mat-datepicker #pickerAccidente></mat-datepicker>
-                    <mat-icon matSuffix>event</mat-icon>
+                    <app-smart-icon [iconName]="'event'" matPrefix [size]="20"></app-smart-icon>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="half-width">
@@ -217,7 +221,7 @@ export interface SolicitarBajaVehiculoData {
                     <input matInput 
                            formControlName="lugarAccidente"
                            placeholder="Ubicación del accidente...">
-                    <mat-icon matSuffix>location_on</mat-icon>
+                    <app-smart-icon [iconName]="'location_on'" matSuffix [size]="20"></app-smart-icon>
                   </mat-form-field>
                 </div>
               }
@@ -231,7 +235,7 @@ export interface SolicitarBajaVehiculoData {
                            type="number"
                            formControlName="valorVenta"
                            placeholder="0.00">
-                    <mat-icon matSuffix>attach_money</mat-icon>
+                    <app-smart-icon [iconName]="'attach_money'" matSuffix [size]="20"></app-smart-icon>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="half-width">
@@ -239,7 +243,7 @@ export interface SolicitarBajaVehiculoData {
                     <input matInput 
                            formControlName="comprador"
                            placeholder="Nombre del comprador...">
-                    <mat-icon matSuffix>person</mat-icon>
+                    <app-smart-icon [iconName]="'person'" matSuffix [size]="20"></app-smart-icon>
                   </mat-form-field>
                 </div>
               }
@@ -253,7 +257,7 @@ export interface SolicitarBajaVehiculoData {
                               formControlName="observaciones" 
                               rows="2"
                               placeholder="Detalles sobre la caducidad de vigencia..."></textarea>
-                    <mat-icon matSuffix>warning</mat-icon>
+                    <app-smart-icon [iconName]="'warning'" matSuffix [size]="20"></app-smart-icon>
                     <mat-hint>Especifique los detalles de la caducidad</mat-hint>
                   </mat-form-field>
                 </div>
@@ -303,6 +307,7 @@ export interface SolicitarBajaVehiculoData {
           <button mat-button 
                   (click)="cancelar()"
                   [disabled]="procesando()">
+            <app-smart-icon [iconName]="'cancel'" [size]="20"></app-smart-icon>
             CANCELAR
           </button>
           <button mat-raised-button 
@@ -314,7 +319,7 @@ export interface SolicitarBajaVehiculoData {
               PROCESANDO...
             } @else {
               <ng-container>
-                <mat-icon>send</mat-icon>
+                <app-smart-icon [iconName]="'send'" [size]="20"></app-smart-icon>
                 ENVIAR SOLICITUD
               </ng-container>
             }
@@ -330,6 +335,8 @@ export class SolicitarBajaVehiculoModalComponent {
   private fb = inject(FormBuilder);
   private bajaService = inject(BajaVehiculoService);
   private empresaService = inject(EmpresaService);
+  private vehiculoNotificationService = inject(VehiculoNotificationService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
   // Signals
@@ -410,6 +417,26 @@ export class SolicitarBajaVehiculoModalComponent {
       this.bajaService.crearBaja(solicitudBaja).subscribe({
         next: (baja) => {
           console.log('✅ Solicitud de baja creada:', baja);
+          
+          // Enviar notificaciones de solicitud de baja
+          const empresaActual = this.empresa();
+          const usuarioActual = this.authService.getCurrentUser();
+          
+          if (empresaActual && usuarioActual) {
+            // Notificar a supervisores
+            const supervisoresIds = ['supervisor_1', 'supervisor_2']; // TODO: Obtener IDs reales de supervisores
+            
+            this.vehiculoNotificationService.notificarSolicitudBaja(
+              this.data.vehiculo,
+              formData.motivo,
+              empresaActual,
+              usuarioActual.id,
+              supervisoresIds
+            );
+            
+            console.log('✅ Notificaciones de solicitud de baja enviadas');
+          }
+          
           this.snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', { duration: 3000 });
           this.dialogRef.close({
             success: true,
