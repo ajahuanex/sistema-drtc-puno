@@ -3,13 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Localidad } from '../models/ruta.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LocalidadService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/localidades';
+  private apiUrl = environment.apiUrl + '/localidades';
 
   // Datos mock para desarrollo
   private mockLocalidades: Localidad[] = [

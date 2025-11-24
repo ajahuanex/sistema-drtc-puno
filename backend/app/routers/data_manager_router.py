@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/data-manager", tags=["Data Manager"])
+router = APIRouter(prefix="/data-manager", tags=["Data Manager"])
 
 @router.get("/estadisticas", summary="Obtener estadísticas globales del sistema")
 async def obtener_estadisticas_globales():

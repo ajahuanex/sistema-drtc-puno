@@ -89,8 +89,7 @@ import { map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operato
                   color="warn"
                   [matMenuTriggerFor]="historialMenu"
                   aria-label="Abrir menú de historial"
-                  aria-haspopup="true"
-                  [attr.aria-expanded]="historialMenu.menuOpen">
+                  aria-haspopup="true">
             <app-smart-icon [iconName]="'history'" [size]="20" aria-hidden="true"></app-smart-icon>
             Historial
           </button>

@@ -112,7 +112,7 @@ export interface FlujoExpediente {
 })
 export class OficinaService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/v1/oficinas`;
+  private apiUrl = `${environment.apiUrl}/oficinas`;
 
   // BehaviorSubjects para estado reactivo
   private oficinasSubject = new BehaviorSubject<Oficina[]>([]);

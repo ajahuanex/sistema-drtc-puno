@@ -352,21 +352,23 @@
     - Probar búsqueda por código de empresa
     - Verificar autocompletado
     - Crear resolución completa
-
-
+    - **NOTA:** Usar `frontend/test-integration-final.html` para verificación interactiva
+    - **GUÍA:** Ver `.kiro/specs/integrate-unused-components/FINAL_VERIFICATION_GUIDE.md`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
   
   - [ ] 10.3 Probar SmartIconComponent en diferentes escenarios
     - Verificar iconos en navegación
     - Verificar iconos en botones
-
-
     - Verificar tooltips
     - Probar con Material Icons deshabilitado
+    - **NOTA:** Usar `frontend/test-integration-final.html` para verificación interactiva
+    - **GUÍA:** Ver `.kiro/specs/integrate-unused-components/FINAL_VERIFICATION_GUIDE.md`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
   
   - [ ] 10.4 Verificar que no hay regresiones
     - Probar flujos principales de la aplicación
     - Verificar que todos los módulos funcionan
     - Verificar que no hay errores en consola
+    - **NOTA:** Usar `frontend/test-integration-final.html` para verificación interactiva
+    - **GUÍA:** Ver `.kiro/specs/integrate-unused-components/FINAL_VERIFICATION_GUIDE.md`
     - _Requirements: 5.1, 5.2, 5.3, 5.4_

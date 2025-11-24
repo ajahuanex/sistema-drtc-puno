@@ -13,12 +13,13 @@ import {
   TipoDocumento
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EmpresaService {
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Datos mock para desarrollo
   private mockEmpresas: Empresa[] = [

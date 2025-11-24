@@ -5,12 +5,13 @@ import { map, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { Ruta, RutaCreate, RutaUpdate, ValidacionRuta, RespuestaValidacionRuta, EstadoRuta, TipoRuta } from '../models/ruta.model';
 import { LocalidadService } from './localidad.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RutaService {
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Datos mock para desarrollo
   private mockRutas: Ruta[] = [

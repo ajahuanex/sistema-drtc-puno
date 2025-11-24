@@ -5,8 +5,10 @@ from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
 from app.dependencies.auth import get_current_active_user
-from app.services.mock_empresa_service import MockEmpresaService
+from app.dependencies.db import get_database
+from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
+from app.repositories.empresa_repository import EmpresaRepository
 from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse
 from app.utils.exceptions import (
     EmpresaNotFoundException, 
@@ -15,6 +17,11 @@ from app.utils.exceptions import (
 )
 
 router = APIRouter(prefix="/empresas", tags=["empresas"])
+
+async def get_empresa_service():
+    """Dependency para obtener el servicio de empresas"""
+    db = await get_database()
+    return EmpresaService(db)
 
 def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
     """Función helper para crear respuestas completas de EmpresaResponse"""
@@ -46,14 +53,13 @@ def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
 
 @router.post("/", response_model=EmpresaResponse, status_code=201)
 async def create_empresa(
-    empresa_data: EmpresaCreate
+    empresa_data: EmpresaCreate,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Crear nueva empresa"""
     # Guard clauses al inicio
     if not empresa_data.ruc.strip():
         raise ValidationErrorException("RUC", "El RUC no puede estar vacío")
-    
-    empresa_service = MockEmpresaService()
     
     try:
         empresa = await empresa_service.create_empresa(empresa_data)
@@ -68,10 +74,10 @@ async def create_empresa(
 async def get_empresas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
-    estado: str = Query(None, description="Filtrar por estado")
+    estado: str = Query(None, description="Filtrar por estado"),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> List[EmpresaResponse]:
     """Obtener lista de empresas con filtros opcionales"""
-    empresa_service = MockEmpresaService()
     
     if estado:
         empresas = await empresa_service.get_empresas_por_estado(estado)
@@ -97,7 +103,7 @@ async def get_empresas_con_filtros(
     fecha_hasta: Optional[str] = Query(None)
 ) -> List[EmpresaResponse]:
     """Obtener empresas con filtros avanzados"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     
     # Construir filtros
     filtros = {}
@@ -123,7 +129,7 @@ async def get_empresas_con_filtros(
 @router.get("/estadisticas")
 async def get_estadisticas_empresas():
     """Obtener estadísticas de empresas"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     estadisticas = await empresa_service.get_estadisticas()
     
     return {
@@ -143,7 +149,7 @@ async def get_empresa(
     if not empresa_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.get_empresa_by_id(empresa_id)
     
     if not empresa:
@@ -156,7 +162,7 @@ async def get_empresa_by_ruc(
     ruc: str
 ) -> EmpresaResponse:
     """Obtener empresa por RUC"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.get_empresa_by_ruc(ruc)
     
     if not empresa:
@@ -167,7 +173,7 @@ async def get_empresa_by_ruc(
 @router.get("/validar-ruc/{ruc}")
 async def validar_ruc(ruc: str):
     """Validar si un RUC ya existe"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa_existente = await empresa_service.get_empresa_by_ruc(ruc)
     
     return {
@@ -188,7 +194,7 @@ async def update_empresa(
     if not empresa_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
     
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     updated_empresa = await empresa_service.update_empresa(empresa_id, empresa_data)
     
     if not updated_empresa:
@@ -205,7 +211,7 @@ async def delete_empresa(
     if not empresa_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     success = await empresa_service.soft_delete_empresa(empresa_id)
     
     if not success:
@@ -218,7 +224,7 @@ async def agregar_vehiculo_a_empresa(
     vehiculo_id: str
 ) -> EmpresaResponse:
     """Agregar vehículo a empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_vehiculo_a_empresa(empresa_id, vehiculo_id)
     
     if not empresa:
@@ -232,7 +238,7 @@ async def remover_vehiculo_de_empresa(
     vehiculo_id: str
 ) -> EmpresaResponse:
     """Remover vehículo de empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_vehiculo_de_empresa(empresa_id, vehiculo_id)
     
     if not empresa:
@@ -247,7 +253,7 @@ async def agregar_conductor_a_empresa(
     conductor_id: str
 ) -> EmpresaResponse:
     """Agregar conductor a empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_conductor_a_empresa(empresa_id, conductor_id)
     
     if not empresa:
@@ -261,7 +267,7 @@ async def remover_conductor_de_empresa(
     conductor_id: str
 ) -> EmpresaResponse:
     """Remover conductor de empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_conductor_de_empresa(empresa_id, conductor_id)
     
     if not empresa:
@@ -276,7 +282,7 @@ async def agregar_ruta_a_empresa(
     ruta_id: str
 ) -> EmpresaResponse:
     """Agregar ruta a empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_ruta_a_empresa(empresa_id, ruta_id)
     
     if not empresa:
@@ -290,7 +296,7 @@ async def remover_ruta_de_empresa(
     ruta_id: str
 ) -> EmpresaResponse:
     """Remover ruta de empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_ruta_de_empresa(empresa_id, ruta_id)
     
     if not empresa:
@@ -305,7 +311,7 @@ async def agregar_resolucion_a_empresa(
     resolucion_id: str
 ) -> EmpresaResponse:
     """Agregar resolución a empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_resolucion_a_empresa(empresa_id, resolucion_id)
     
     if not empresa:
@@ -319,7 +325,7 @@ async def remover_resolucion_de_empresa(
     resolucion_id: str
 ) -> EmpresaResponse:
     """Remover resolución de empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_resolucion_de_empresa(empresa_id, resolucion_id)
     
     if not empresa:
@@ -330,7 +336,7 @@ async def remover_resolucion_de_empresa(
 @router.get("/{empresa_id}/resoluciones")
 async def get_resoluciones_empresa(empresa_id: str):
     """Obtener resoluciones de una empresa"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     resoluciones = await empresa_service.get_resoluciones_empresa(empresa_id)
     
     return {
@@ -349,7 +355,7 @@ async def exportar_empresas(
     if formato not in ['pdf', 'excel', 'csv']:
         raise HTTPException(status_code=400, detail="Formato no soportado")
     
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     
     # Obtener empresas según filtros
     if estado:
@@ -369,7 +375,7 @@ async def exportar_empresas(
 @router.get("/siguiente-codigo", response_model=dict)
 async def obtener_siguiente_codigo_empresa() -> dict:
     """Obtener el siguiente código de empresa disponible"""
-    empresa_service = MockEmpresaService()
+    empresa_service: EmpresaService = Depends(get_empresa_service)
     
     try:
         siguiente_codigo = await empresa_service.generar_siguiente_codigo_empresa()

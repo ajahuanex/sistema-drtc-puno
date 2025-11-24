@@ -14,13 +14,14 @@ import {
   PeriodoReporte,
   ResultadoExportacion
 } from '../../models/mesa-partes/reporte.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReporteService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/reportes';
+  private apiUrl = `${environment.apiUrl}/reportes`;
 
   /**
    * Obtener estadísticas generales

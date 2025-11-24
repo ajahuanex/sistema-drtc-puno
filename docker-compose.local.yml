@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: resoluciones-postgres-local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-resoluciones_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=es_PE.UTF-8"
+    ports:
+      - "5435:5432"  # Puerto alternativo para evitar conflicto
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - resoluciones-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: resoluciones-redis-local
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    ports:
+      - "6380:6379"  # Puerto alternativo para evitar conflicto
+    volumes:
+      - redis_data_local:/data
+    networks:
+      - resoluciones-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resoluciones-backend-local
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-resoluciones_db}
+      
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
+      
+      # API Settings
+      API_V1_STR: /api/v1
+      PROJECT_NAME: "Sistema de Resoluciones"
+      BACKEND_CORS_ORIGINS: '["http://localhost:8080","http://localhost:4200"]'
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      
+      # Environment
+      ENVIRONMENT: local
+      DEBUG: "true"
+    ports:
+      - "8000:8000"  # Puerto estándar
+    volumes:
+      - ./backend/app:/app/app:ro
+      - backend_logs_local:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - resoluciones-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Frontend (Angular)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - API_URL=http://localhost:8000/api/v1
+    container_name: resoluciones-frontend-local
+    ports:
+      - "4201:4200"  # Mapear puerto 4200 del contenedor al 4201 del host
+    depends_on:
+      - backend
+    networks:
+      - resoluciones-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:4200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: resoluciones-nginx-local
+    ports:
+      - "8080:80"    # Puerto alternativo para HTTP
+      - "8443:443"   # Puerto alternativo para HTTPS
+    volumes:
+      - ./nginx/nginx.local.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs_local:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - resoluciones-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  resoluciones-network:
+    driver: bridge
+    name: resoluciones-network-local
+
+volumes:
+  postgres_data_local:
+    name: resoluciones-postgres-data-local
+  redis_data_local:
+    name: resoluciones-redis-data-local
+  backend_logs_local:
+    name: resoluciones-backend-logs-local
+  nginx_logs_local:
+    name: resoluciones-nginx-logs-local

@@ -1,5 +1,5 @@
 # Dockerfile para Frontend Angular
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Establecer directorio de trabajo
 WORKDIR /app

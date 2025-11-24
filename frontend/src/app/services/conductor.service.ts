@@ -23,7 +23,7 @@ import {
   providedIn: 'root'
 })
 export class ConductorService {
-  private apiUrl = `${environment.apiUrl}/api/v1/conductores`;
+  private apiUrl = `${environment.apiUrl}/conductores`;
   private conductoresSubject = new BehaviorSubject<Conductor[]>([]);
   private conductorSubject = new BehaviorSubject<Conductor | null>(null);
   private estadisticasSubject = new BehaviorSubject<ConductorEstadisticas | null>(null);

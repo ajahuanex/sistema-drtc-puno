@@ -1345,7 +1345,7 @@ export class VehiculoModalComponent {
       placa: [
         '', 
         [Validators.required, placaPeruanaValidator()],
-        [placaDuplicadaValidator(this.vehiculoService, this.data.vehiculo?.id)]
+        [placaDuplicadaValidator(this.vehiculoService, undefined)]
       ],
       sedeRegistro: ['', Validators.required],
       

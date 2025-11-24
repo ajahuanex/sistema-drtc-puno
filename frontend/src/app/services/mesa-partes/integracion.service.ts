@@ -11,13 +11,14 @@ import {
   EstadoSincronizacion,
   ConfiguracionWebhook
 } from '../../models/mesa-partes/integracion.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class IntegracionService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/integraciones';
+  private apiUrl = `${environment.apiUrl}/integraciones`;
 
   /**
    * Crear una nueva integración

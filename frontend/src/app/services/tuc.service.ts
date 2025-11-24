@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { VehiculoService } from './vehiculo.service';
 import { EmpresaService } from './empresa.service';
 import { ResolucionService } from './resolucion.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +23,7 @@ export class TucService {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
 
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Función helper para mapear TUCs del backend al frontend
   private mapearTucBackend(tucBackend: any): Tuc {

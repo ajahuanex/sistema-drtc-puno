@@ -10,6 +10,7 @@ import {
   ArchivoAdjunto
 } from '../../models/mesa-partes/documento.model';
 import { CacheService } from './cache.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,7 @@ import { CacheService } from './cache.service';
 export class DocumentoService {
   private http = inject(HttpClient);
   private cache = inject(CacheService);
-  private apiUrl = 'http://localhost:8000/api/v1/documentos';
+  private apiUrl = `${environment.apiUrl}/documentos`;
 
   /**
    * Crear un nuevo documento

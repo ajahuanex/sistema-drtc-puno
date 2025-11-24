@@ -8,13 +8,14 @@ import {
   TipoNotificacion,
   EventoNotificacion
 } from '../../models/mesa-partes/notificacion.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificacionService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/notificaciones';
+  private apiUrl = `${environment.apiUrl}/notificaciones`;
   private wsUrl = 'ws://localhost:8000/ws/notificaciones';
 
   // WebSocket

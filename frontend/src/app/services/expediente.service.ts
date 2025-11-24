@@ -3,13 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Expediente, ExpedienteCreate, ExpedienteUpdate, ExpedienteSincronizacion, RespuestaSincronizacion, SistemaOrigen, EstadoSincronizacion, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../models/expediente.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ExpedienteService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/expedientes';
+  private apiUrl = environment.apiUrl + '/expedientes';
 
   // Datos mock para desarrollo
   private mockExpedientes: Expediente[] = [

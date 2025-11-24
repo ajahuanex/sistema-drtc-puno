@@ -46,7 +46,7 @@ export class VehiculoService {
   private authService = inject(AuthService);
   private dataManager = inject(DataManagerClientService);
   
-  private apiUrl = environment.apiUrl + '/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Datos mock básicos para fallback
   private mockVehiculos: Vehiculo[] = [

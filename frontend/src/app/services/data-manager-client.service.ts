@@ -48,7 +48,7 @@ export interface DataManagerResponse<T = any> {
 })
 export class DataManagerClientService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl || 'http://localhost:8000'}/api/data-manager`;
+  private baseUrl = `${environment.apiUrl || 'http://localhost:8000/api/v1'}/data-manager`;
   
   // Subjects para mantener estado reactivo
   private statsSubject = new BehaviorSubject<DataManagerStats | null>(null);

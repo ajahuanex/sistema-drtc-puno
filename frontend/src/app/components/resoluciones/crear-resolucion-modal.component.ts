@@ -26,6 +26,7 @@ import { Empresa } from '../../models/empresa.model';
 import { Expediente } from '../../models/expediente.model';
 import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-modal.component';
 import { ResolucionNumberValidatorComponent } from '../../shared/resolucion-number-validator.component';
+import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 import { ResolucionValidationService } from '../../services/resolucion-validation.service';
 
 @Component({
@@ -49,7 +50,8 @@ import { ResolucionValidationService } from '../../services/resolucion-validatio
     MatTabsModule,
     MatExpansionModule,
     MatAutocompleteModule,
-    ResolucionNumberValidatorComponent
+    ResolucionNumberValidatorComponent,
+    EmpresaSelectorComponent
   ],
   template: `
     <div class="modal-container">
@@ -79,28 +81,15 @@ import { ResolucionValidationService } from '../../services/resolucion-validatio
             </mat-card-header>
             <mat-card-content>
               <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Empresa *</mat-label>
-                  <input matInput 
-                         [matAutocomplete]="empresaAuto" 
-                         [formControl]="empresaControl"
-                         placeholder="Buscar empresa por RUC o razón social"
-                         required>
-                  <mat-autocomplete #empresaAuto="matAutocomplete" 
-                                   [displayWith]="displayEmpresa"
-                                   (optionSelected)="onEmpresaSelected($event)">
-                    @for (empresa of empresasFiltradas; track empresa.id) {
-                      <mat-option [value]="empresa">
-                        {{ empresa.ruc }} - {{ empresa.razonSocial.principal || 'Sin razón social' }}
-                      </mat-option>
-                    }
-                  </mat-autocomplete>
-                  <mat-icon matSuffix>business</mat-icon>
-                  <mat-hint>Empresa propietaria de la resolución</mat-hint>
-                  <mat-error *ngIf="empresaControl.hasError('required')">
-                    La empresa es obligatoria
-                  </mat-error>
-                </mat-form-field>
+                <app-empresa-selector
+                  [label]="'EMPRESA'"
+                  [placeholder]="'Buscar por RUC, razón social o código'"
+                  [hint]="'Seleccione la empresa para la cual se creará la resolución'"
+                  [required]="true"
+                  [empresaId]="resolucionForm.get('empresaId')?.value"
+                  (empresaSeleccionada)="onEmpresaSeleccionadaBuscador($event)"
+                  (empresaIdChange)="resolucionForm.patchValue({ empresaId: $event })">
+                </app-empresa-selector>
               </div>
 
               @if (empresaSeleccionada()) {
@@ -710,7 +699,7 @@ export class CrearResolucionModalComponent {
   private dialogRef = inject(MatDialogRef<CrearResolucionModalComponent>);
   private data = inject(MAT_DIALOG_DATA);
   private dialog = inject(MatDialog);
-  
+
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
   private expedienteService = inject(ExpedienteService);
@@ -718,19 +707,18 @@ export class CrearResolucionModalComponent {
 
   isSubmitting = signal(false);
   isLoadingExpedientes = signal(false);
-  
+
   resolucionForm: FormGroup;
-  empresaControl = this.fb.control('', Validators.required);
-  
+
   empresaSeleccionada = signal<Empresa | null>(null);
   expedienteSeleccionado = signal<Expediente | null>(null);
   expedientes = signal<Expediente[]>([]);
   resolucionesPadre = signal<Resolucion[]>([]);
-  empresasFiltradas: Empresa[] = [];
 
   constructor() {
     this.resolucionForm = this.fb.group({
-              numero: ['', [Validators.required, Validators.minLength(1)]],
+      empresaId: ['', Validators.required],
+      numero: ['', [Validators.required, Validators.minLength(1)]],
       tipoResolucion: ['PRIMIGENIA', Validators.required],
       tipoTramite: ['AUTORIZACION_NUEVA', Validators.required],
       fechaEmision: ['', Validators.required],
@@ -753,34 +741,22 @@ export class CrearResolucionModalComponent {
       this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
     });
 
-    // Cargar empresas disponibles
-    this.cargarEmpresas();
   }
 
   /**
-   * Carga las empresas disponibles
+   * Cuando se selecciona una empresa desde el EmpresaSelectorComponent
    */
-  private cargarEmpresas(): void {
-    this.empresaService.getEmpresas().subscribe(empresas => {
-      this.empresasFiltradas = empresas;
-    });
-  }
-
-  /**
-   * Muestra la empresa en el autocomplete
-   */
-  displayEmpresa(empresa: Empresa): string {
-    return empresa ? `${empresa.ruc} - ${empresa.razonSocial?.principal || 'Sin razón social'}` : '';
-  }
-
-  /**
-   * Cuando se selecciona una empresa
-   */
-  onEmpresaSelected(event: any): void {
-    const empresa = event.option.value;
+  onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
     this.empresaSeleccionada.set(empresa);
     this.expedienteSeleccionado.set(null);
-    this.cargarExpedientes(empresa.id);
+    
+    if (empresa) {
+      this.resolucionForm.patchValue({ empresaId: empresa.id });
+      this.cargarExpedientes(empresa.id);
+    } else {
+      this.resolucionForm.patchValue({ empresaId: '' });
+      this.expedientes.set([]);
+    }
   }
 
   /**
@@ -788,7 +764,7 @@ export class CrearResolucionModalComponent {
    */
   private cargarExpedientes(empresaId: string): void {
     this.isLoadingExpedientes.set(true);
-    
+
     // TODO: Implementar carga real de expedientes
     setTimeout(() => {
       this.expedientes.set([]);
@@ -801,7 +777,7 @@ export class CrearResolucionModalComponent {
    */
   private cargarResolucionesPadre(): void {
     if (!this.empresaSeleccionada()) return;
-    
+
     // TODO: Implementar carga real de resoluciones padre
     this.resolucionesPadre.set([]);
   }
@@ -811,7 +787,7 @@ export class CrearResolucionModalComponent {
    */
   onNumeroResolucionValido(data: { numero: string; año: number; nroCompleto: string }): void {
     this.resolucionForm.get('numero')?.setValue(data.numero);
-    
+
     // Mostrar confirmación
     this.snackBar.open(`Número de resolución válido: ${data.nroCompleto}`, 'Cerrar', {
       duration: 2000
@@ -823,7 +799,7 @@ export class CrearResolucionModalComponent {
    */
   onNumeroResolucionInvalido(mensaje: string): void {
     this.resolucionForm.get('numero')?.setErrors({ duplicado: true });
-    
+
     // Mostrar error
     this.snackBar.open(mensaje, 'Cerrar', {
       duration: 4000,
@@ -844,27 +820,27 @@ export class CrearResolucionModalComponent {
    */
   seleccionarExpediente(expediente: Expediente): void {
     this.expedienteSeleccionado.set(expediente);
-    
+
     // Actualizar el tipo de trámite basado en el expediente
     const tipoTramite = expediente.tipoTramite;
     this.resolucionForm.patchValue({
       tipoTramite: tipoTramite
     });
-    
+
     // Determinar si es PADRE o HIJO basado en el tipo de trámite
     const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
     const tipoResolucion = esPadre ? 'PADRE' : 'HIJO';
-    
+
     this.resolucionForm.patchValue({
       tipoResolucion: tipoResolucion
     });
-    
+
     // Si es HIJO, buscar la resolución PRIMIGENIA del expediente
     if (!esPadre) {
       this.buscarYAsignarResolucionPrimigenia(expediente);
     }
   }
-  
+
   /**
    * Busca la resolución PRIMIGENIA asociada al expediente y la asigna como padre
    */
@@ -878,10 +854,10 @@ export class CrearResolucionModalComponent {
           this.resolucionForm.patchValue({
             resolucionPadreId: resolucionPrimigenia.id
           });
-          
+
           // Actualizar lista de resoluciones padre con solo esta
           this.resolucionesPadre.set([resolucionPrimigenia]);
-          
+
           this.snackBar.open(
             `Resolución primigenia ${resolucionPrimigenia.nroResolucion} asignada automáticamente como padre`,
             'Cerrar',
@@ -899,22 +875,22 @@ export class CrearResolucionModalComponent {
       this.cargarResolucionesPadreDisponibles();
     }
   }
-  
+
   /**
    * Carga todas las resoluciones PADRE disponibles de la empresa
    */
   private cargarResolucionesPadreDisponibles(): void {
     if (!this.empresaSeleccionada()) return;
-    
+
     this.resolucionService.getResolucionesPorEmpresa(this.empresaSeleccionada()!.id).subscribe({
       next: (resoluciones) => {
         // Filtrar solo resoluciones PADRE activas
-        const resolucionesPadreDisponibles = resoluciones.filter(r => 
+        const resolucionesPadreDisponibles = resoluciones.filter(r =>
           r.tipoResolucion === 'PADRE' && r.estaActivo
         );
-        
+
         this.resolucionesPadre.set(resolucionesPadreDisponibles);
-        
+
         if (resolucionesPadreDisponibles.length === 0) {
           this.snackBar.open(
             'No hay resoluciones padre disponibles. Debes crear primero una resolución PRIMIGENIA.',
@@ -972,21 +948,21 @@ export class CrearResolucionModalComponent {
       control.setValue(value, { emitEvent: false });
     }
   }
-  
+
   /**
    * Obtiene el número completo de la resolución reactivamente
    */
   getNumeroResolucionCompleto(): string {
     const numero = this.resolucionForm.get('numero')?.value || '';
     const fechaEmision = this.resolucionForm.get('fechaEmision')?.value;
-    
+
     if (!numero || !fechaEmision) {
       return 'R-XXXX-YYYY';
     }
-    
+
     const año = fechaEmision instanceof Date ? fechaEmision.getFullYear() : new Date(fechaEmision).getFullYear();
     const numeroFormateado = numero.padStart(4, '0');
-    
+
     return `R-${numeroFormateado}-${año}`;
   }
 
@@ -996,20 +972,20 @@ export class CrearResolucionModalComponent {
   puedeCrearResolucion(): boolean {
     // Debe haber empresa seleccionada
     if (!this.empresaSeleccionada()) return false;
-    
+
     // Debe haber expediente seleccionado
     if (!this.expedienteSeleccionado()) return false;
-    
+
     // El formulario debe ser válido
     if (!this.resolucionForm.valid) return false;
-    
+
     // Si es resolución HIJO, debe tener resolución padre
     const tipoResolucion = this.resolucionForm.get('tipoResolucion')?.value;
     if (tipoResolucion === 'HIJO') {
       const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
       if (!resolucionPadreId) return false;
     }
-    
+
     return true;
   }
 
@@ -1024,14 +1000,14 @@ export class CrearResolucionModalComponent {
       });
       return;
     }
-    
+
     this.isSubmitting.set(true);
-    
+
     const formValue = this.resolucionForm.value;
     const resolucionData: ResolucionCreate = {
       numero: formValue.numero,
       expedienteId: this.expedienteSeleccionado()!.id,
-      empresaId: this.empresaSeleccionada()!.id,
+      empresaId: formValue.empresaId,
       fechaEmision: formValue.fechaEmision,
       fechaVigenciaInicio: formValue.fechaVigenciaInicio || undefined,
       fechaVigenciaFin: formValue.fechaVigenciaFin || undefined,
@@ -1043,7 +1019,7 @@ export class CrearResolucionModalComponent {
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []
     };
-    
+
     this.resolucionService.createResolucion(resolucionData).subscribe({
       next: (resolucionCreada) => {
         this.isSubmitting.set(false);

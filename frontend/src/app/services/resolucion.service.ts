@@ -7,12 +7,13 @@ import { EmpresaService } from './empresa.service';
 import { Resolucion, ResolucionCreate, ResolucionUpdate, TipoTramite } from '../models/resolucion.model';
 import { ResolucionFiltros, ResolucionConEmpresa, EstadisticasResoluciones } from '../models/resolucion-table.model';
 import { PerformanceMonitor } from '../utils/performance-monitor';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ResolucionService {
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Datos mock para desarrollo
   private mockResoluciones: Resolucion[] = [];

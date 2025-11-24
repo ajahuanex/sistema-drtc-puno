@@ -10,31 +10,19 @@ router = APIRouter(prefix="/mock", tags=["datos mock"])
 @router.get("/info")
 async def get_mock_info() -> Dict:
     """Obtener información sobre los datos mock disponibles"""
-    return {
-        "message": "Datos mock para desarrollo",
-        "usuarios_disponibles": len(mock_service.usuarios),
-        "empresas_disponibles": len(mock_service.empresas),
-        "usuarios": [
-            {
-                "id": user.id,
-                "dni": user.dni,
-                "nombres": user.nombres,
-                "apellidos": user.apellidos,
-                "email": user.email,
-                "rol_id": user.rol_id
-            }
-            for user in mock_service.usuarios.values()
-        ],
-        "empresas": [
-            {
-                "id": empresa.id,
-                "ruc": empresa.ruc,
-                "razon_social": empresa.razon_social.principal,
-                "estado": empresa.estado
-            }
-            for empresa in mock_service.empresas.values()
-        ]
-    }
+    try:
+        return {
+            "message": "Datos mock para desarrollo",
+            "usuarios_disponibles": len(mock_service.usuarios) if hasattr(mock_service, 'usuarios') else 0,
+            "empresas_disponibles": len(mock_service.empresas) if hasattr(mock_service, 'empresas') else 0,
+            "nota": "Sistema configurado para usar base de datos real"
+        }
+    except Exception as e:
+        return {
+            "message": "Sistema configurado para usar base de datos real",
+            "nota": "Los datos mock no están disponibles",
+            "error": str(e)
+        }
 
 @router.get("/usuarios", response_model=List[UsuarioResponse])
 async def get_mock_usuarios(

@@ -14,6 +14,7 @@ import {
 } from '../models/resolucion.model';
 import { BajaVehiculo, TipoBajaVehiculo } from '../models/baja-vehiculo.model';
 import { Vehiculo } from '../models/vehiculo.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +23,7 @@ export class ResolucionBajasIntegrationService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   // Estado reactivo para la integración
   private _bajasIntegradas = signal<BajaVehiculoResolucion[]>([]);

@@ -77,7 +77,7 @@ export interface NotificacionFiltros {
 })
 export class NotificationService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/api/v1/notificaciones`;
+  private apiUrl = `${environment.apiUrl}/notificaciones`;
 
   // Signals para estado reactivo
   private notificacionesSubject = signal<Notificacion[]>([]);

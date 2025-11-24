@@ -1443,7 +1443,7 @@ export class VehiculoFormComponent implements OnInit {
       placa: [
         '', 
         [Validators.required, placaPeruanaValidator()],
-        [placaDuplicadaValidator(this.vehiculoService, this.vehiculoId())]
+        [placaDuplicadaValidator(this.vehiculoService, this.vehiculoId() || undefined)]
       ],
       marca: ['', Validators.required],
       modelo: [''],

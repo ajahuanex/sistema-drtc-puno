@@ -89,7 +89,7 @@ app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(mock_router, prefix=settings.API_V1_STR)
-app.include_router(data_manager_router)
+app.include_router(data_manager_router, prefix=settings.API_V1_STR)
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
 # app.include_router(documentos_router, prefix=settings.API_V1_STR, tags=["Mesa de Partes - Documentos"])

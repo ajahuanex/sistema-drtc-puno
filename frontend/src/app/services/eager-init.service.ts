@@ -387,7 +387,7 @@ export class EagerInitService {
 
     for (const key of additionalData) {
       try {
-        const data = await this.http.get(`${environment.apiUrl}/api/additional/${key}`).toPromise();
+        const data = await this.http.get(`${environment.apiUrl}/additional/${key}`).toPromise();
         this.setCacheItem(key, data, 10 * 60 * 1000); // 10 minutos
       } catch (error) {
         // Ignorar errores de pre-carga adicional

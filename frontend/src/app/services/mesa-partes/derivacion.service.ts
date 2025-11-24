@@ -10,13 +10,14 @@ import {
   EstadoDerivacion
 } from '../../models/mesa-partes/derivacion.model';
 import { Documento } from '../../models/mesa-partes/documento.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DerivacionService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8000/api/v1/derivaciones';
+  private apiUrl = `${environment.apiUrl}/derivaciones`;
 
   /**
    * Derivar un documento a otra área

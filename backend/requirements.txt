@@ -6,6 +6,11 @@ uvicorn[standard]>=0.24.0
 motor>=3.3.0
 pymongo>=4.6.0
 
+# Base de datos PostgreSQL
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+
 # Validación y configuración
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
