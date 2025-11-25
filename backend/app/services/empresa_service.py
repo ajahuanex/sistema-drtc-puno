@@ -60,14 +60,17 @@ class EmpresaService:
         
         # Crear registro de auditoría
         auditoria = AuditoriaEmpresa(
-            fecha_cambio=datetime.utcnow(),
-            usuario_id=usuario_id,
-            tipo_cambio="CREACION_EMPRESA",
-            campo_anterior=None,
-            campo_nuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="CREACION_EMPRESA",
+            campoAnterior=None,
+            campoNuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
             observaciones="Creación inicial de empresa"
         )
         empresa_dict["auditoria"] = [auditoria.model_dump()]
+        
+        # Eliminar el campo 'id' porque MongoDB usa '_id'
+        empresa_dict.pop('id', None)
         
         result = await self.collection.insert_one(empresa_dict)
         empresa_creada = await self.get_empresa_by_id(str(result.inserted_id))
@@ -256,11 +259,11 @@ class EmpresaService:
                 cambios_texto.append(f"{campo}: {valor_anterior} -> {valor}")
         
         return AuditoriaEmpresa(
-            fecha_cambio=datetime.utcnow(),
-            usuario_id=usuario_id,
-            tipo_cambio="ACTUALIZACION_EMPRESA",
-            campo_anterior=str(cambios_texto),
-            campo_nuevo="Actualización de datos",
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="ACTUALIZACION_EMPRESA",
+            campoAnterior=str(cambios_texto),
+            campoNuevo="Actualización de datos",
             observaciones=f"Actualización realizada por usuario {usuario_id}"
         )
 
@@ -291,11 +294,11 @@ class EmpresaService:
         
         # Crear auditoría
         auditoria = AuditoriaEmpresa(
-            fecha_cambio=datetime.utcnow(),
-            usuario_id=usuario_id,
-            tipo_cambio="DESACTIVACION_EMPRESA",
-            campo_anterior="Activa",
-            campo_nuevo="Inactiva",
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="DESACTIVACION_EMPRESA",
+            campoAnterior="Activa",
+            campoNuevo="Inactiva",
             observaciones="Empresa desactivada por usuario"
         )
         
@@ -319,11 +322,11 @@ class EmpresaService:
     async def agregar_documento(self, empresa_id: str, documento: DocumentoEmpresa, usuario_id: str) -> bool:
         """Agregar documento a empresa"""
         auditoria = AuditoriaEmpresa(
-            fecha_cambio=datetime.utcnow(),
-            usuario_id=usuario_id,
-            tipo_cambio="AGREGAR_DOCUMENTO",
-            campo_anterior=None,
-            campo_nuevo=f"Documento {documento.tipo}: {documento.numero}",
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="AGREGAR_DOCUMENTO",
+            campoAnterior=None,
+            campoNuevo=f"Documento {documento.tipo}: {documento.numero}",
             observaciones=f"Documento agregado: {documento.tipo}"
         )
         

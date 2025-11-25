@@ -79,19 +79,19 @@ class Empresa(BaseModel):
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
-    documentos: List[DocumentoEmpresa] = []
-    auditoria: List[AuditoriaEmpresa] = []
-    resolucionesPrimigeniasIds: List[str] = []
-    vehiculosHabilitadosIds: List[str] = []
-    conductoresHabilitadosIds: List[str] = []
-    rutasAutorizadasIds: List[str] = []
+    documentos: List[DocumentoEmpresa] = Field(default_factory=list)
+    auditoria: List[AuditoriaEmpresa] = Field(default_factory=list)
+    resolucionesPrimigeniasIds: List[str] = Field(default_factory=list)
+    vehiculosHabilitadosIds: List[str] = Field(default_factory=list)
+    conductoresHabilitadosIds: List[str] = Field(default_factory=list)
+    rutasAutorizadasIds: List[str] = Field(default_factory=list)
     datosSunat: Optional[DatosSunat] = None
     ultimaValidacionSunat: Optional[datetime] = None
     scoreRiesgo: Optional[float] = None
     observaciones: Optional[str] = None
 
 class EmpresaCreate(BaseModel):
-    codigoEmpresa: str = Field(..., description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
+    codigoEmpresa: Optional[str] = Field(None, description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT) - Se genera automáticamente si no se proporciona")
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str
@@ -99,7 +99,7 @@ class EmpresaCreate(BaseModel):
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
-    documentos: Optional[List[DocumentoEmpresa]] = []
+    documentos: Optional[List[DocumentoEmpresa]] = Field(default_factory=list)
 
 class EmpresaUpdate(BaseModel):
     codigoEmpresa: Optional[str] = Field(None, description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
