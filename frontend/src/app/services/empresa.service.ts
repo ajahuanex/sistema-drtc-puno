@@ -190,57 +190,6 @@ export class EmpresaService {
     );
   }
 
-  createEmpresa(empresaData: EmpresaCreate): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresaData, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.log('Error creando empresa, simulando con datos mock:', error);
-        const nuevaEmpresa: Empresa = {
-          id: (this.mockEmpresas.length + 1).toString(),
-          codigoEmpresa: empresaData.codigoEmpresa || '',
-          ruc: empresaData.ruc,
-          razonSocial: empresaData.razonSocial,
-          direccionFiscal: empresaData.direccionFiscal,
-          estado: EstadoEmpresa.EN_TRAMITE,
-          estaActivo: true,
-          fechaRegistro: new Date(),
-          representanteLegal: empresaData.representanteLegal,
-          emailContacto: empresaData.emailContacto,
-          telefonoContacto: empresaData.telefonoContacto,
-          sitioWeb: empresaData.sitioWeb,
-          documentos: [],
-          auditoria: [{
-            fechaCambio: new Date(),
-            usuarioId: this.authService.getCurrentUser()?.id || '1',
-            tipoCambio: 'CREACION_EMPRESA',
-            campoAnterior: undefined,
-            campoNuevo: `EMPRESA CREADA CON RUC: ${empresaData.ruc}`,
-            observaciones: 'CREACIÓN INICIAL DE EMPRESA'
-          }],
-          resolucionesPrimigeniasIds: [],
-          vehiculosHabilitadosIds: [],
-          conductoresHabilitadosIds: [],
-          rutasAutorizadasIds: [],
-          datosSunat: {
-            valido: false,
-            razonSocial: '',
-            estado: '',
-            condicion: '',
-            direccion: '',
-            fechaActualizacion: new Date()
-          },
-          ultimaValidacionSunat: new Date(),
-          scoreRiesgo: 0,
-          observaciones: 'EMPRESA NUEVA EN TRÁMITE'
-        };
-        this.mockEmpresas.push(nuevaEmpresa);
-        return of(nuevaEmpresa);
-      }),
-      map(empresa => this.transformEmpresaData(empresa))
-    );
-  }
-
   updateEmpresa(id: string, empresaData: EmpresaUpdate): Observable<Empresa> {
     return this.http.put<Empresa>(`${this.apiUrl}/empresas/${id}`, empresaData, {
       headers: this.getHeaders()

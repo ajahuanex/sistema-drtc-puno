@@ -127,13 +127,13 @@ class EmpresaService:
         # Validar documentos
         if empresa_data.documentos:
             documentos_vencidos = sum(1 for doc in empresa_data.documentos 
-                                   if doc.fecha_vencimiento and doc.fecha_vencimiento < datetime.utcnow())
+                                   if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
             score += documentos_vencidos * 15
         
         # Validar información de contacto
-        if empresa_data.email_contacto:
+        if empresa_data.emailContacto:
             score += 5
-        if empresa_data.telefono_contacto:
+        if empresa_data.telefonoContacto:
             score += 5
         
         return min(score, 100)  # Máximo 100
@@ -267,7 +267,7 @@ class EmpresaService:
     async def calcular_score_riesgo_actualizado(self, empresa: EmpresaInDB, cambios: Dict[str, Any]) -> int:
         """Recalcular score de riesgo con cambios"""
         # Implementar lógica de recálculo basada en cambios
-        score_base = empresa.score_riesgo or 50
+        score_base = empresa.scoreRiesgo or 50
         
         # Ajustar según cambios
         if "datosSunat" in cambios:
@@ -278,7 +278,7 @@ class EmpresaService:
         
         if "documentos" in cambios:
             documentos_vencidos = sum(1 for doc in cambios["documentos"] 
-                                   if doc.fecha_vencimiento and doc.fecha_vencimiento < datetime.utcnow())
+                                   if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
             score_base += documentos_vencidos * 10
         
         return max(0, min(score_base, 100))
@@ -348,7 +348,7 @@ class EmpresaService:
         
         documentos_vencidos = []
         for doc in empresa.documentos:
-            if doc.fecha_vencimiento and doc.fecha_vencimiento < datetime.utcnow() and doc.esta_activo:
+            if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow() and doc.estaActivo:
                 documentos_vencidos.append(doc)
         
         return documentos_vencidos
