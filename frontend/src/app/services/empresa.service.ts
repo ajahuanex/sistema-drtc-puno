@@ -3,11 +3,11 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of, catchError, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { 
-  Empresa, 
-  EmpresaCreate, 
-  EmpresaUpdate, 
-  EmpresaFiltros, 
+import {
+  Empresa,
+  EmpresaCreate,
+  EmpresaUpdate,
+  EmpresaFiltros,
   EmpresaEstadisticas,
   EstadoEmpresa,
   TipoDocumento
@@ -151,7 +151,7 @@ export class EmpresaService {
     private http: HttpClient,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
@@ -187,6 +187,20 @@ export class EmpresaService {
         return of(empresa);
       }),
       map(empresa => this.transformEmpresaData(empresa))
+    );
+  }
+
+  createEmpresa(empresaData: EmpresaCreate): Observable<Empresa> {
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas/`, empresaData, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error creando empresa:', error);
+        console.error('Status:', error.status);
+        console.error('Error detail:', error.error);
+        // Re-throw the error instead of returning mock data
+        return throwError(() => error);
+      })
     );
   }
 
@@ -248,37 +262,37 @@ export class EmpresaService {
       catchError(error => {
         console.log('Error aplicando filtros, usando datos mock:', error);
         let empresasFiltradas = [...this.mockEmpresas];
-        
+
         if (filtros.ruc) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
+          empresasFiltradas = empresasFiltradas.filter(emp =>
             emp.ruc.includes(filtros.ruc!)
           );
         }
-        
+
         if (filtros.razonSocial) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
+          empresasFiltradas = empresasFiltradas.filter(emp =>
             emp.razonSocial.principal.toLowerCase().includes(filtros.razonSocial!.toLowerCase())
           );
         }
-        
+
         if (filtros.estado) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
+          empresasFiltradas = empresasFiltradas.filter(emp =>
             emp.estado === filtros.estado
           );
         }
-        
+
         if (filtros.fechaDesde) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
+          empresasFiltradas = empresasFiltradas.filter(emp =>
             emp.fechaRegistro >= filtros.fechaDesde!
           );
         }
-        
+
         if (filtros.fechaHasta) {
-          empresasFiltradas = empresasFiltradas.filter(emp => 
+          empresasFiltradas = empresasFiltradas.filter(emp =>
             emp.fechaRegistro <= filtros.fechaHasta!
           );
         }
-        
+
         return of(empresasFiltradas);
       }),
       map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
@@ -298,24 +312,24 @@ export class EmpresaService {
         const empresasSuspendidas = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.SUSPENDIDA).length;
         const empresasCanceladas = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.CANCELADA).length;
         const empresasDadasDeBaja = this.mockEmpresas.filter(emp => emp.estado === EstadoEmpresa.DADA_DE_BAJA).length;
-        
+
         // Calcular estadísticas adicionales
-        const empresasConDocumentosVencidos = this.mockEmpresas.filter(emp => 
+        const empresasConDocumentosVencidos = this.mockEmpresas.filter(emp =>
           emp.documentos.some(doc => doc.fechaVencimiento && new Date(doc.fechaVencimiento) < new Date())
         ).length;
-        
-        const empresasConScoreAltoRiesgo = this.mockEmpresas.filter(emp => 
+
+        const empresasConScoreAltoRiesgo = this.mockEmpresas.filter(emp =>
           (emp.scoreRiesgo || 0) > 70
         ).length;
-        
-        const promedioVehiculosPorEmpresa = this.mockEmpresas.length > 0 
+
+        const promedioVehiculosPorEmpresa = this.mockEmpresas.length > 0
           ? this.mockEmpresas.reduce((sum, emp) => sum + emp.vehiculosHabilitadosIds.length, 0) / this.mockEmpresas.length
           : 0;
-        
+
         const promedioConductoresPorEmpresa = this.mockEmpresas.length > 0
           ? this.mockEmpresas.reduce((sum, emp) => sum + emp.conductoresHabilitadosIds.length, 0) / this.mockEmpresas.length
           : 0;
-        
+
         return of({
           totalEmpresas,
           empresasHabilitadas,
@@ -514,7 +528,7 @@ export class EmpresaService {
           'TELÉFONO': emp.telefonoContacto,
           EMAIL: emp.emailContacto
         }));
-        
+
         const csvContent = this.convertToCSV(data);
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         return of(blob);
@@ -538,10 +552,10 @@ export class EmpresaService {
   // Métodos auxiliares
   private convertToCSV(data: any[]): string {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [headers.join(',')];
-    
+
     for (const row of data) {
       const values = headers.map(header => {
         const value = row[header];
@@ -549,7 +563,7 @@ export class EmpresaService {
       });
       csvRows.push(values.join(','));
     }
-    
+
     return csvRows.join('\n');
   }
 
@@ -626,10 +640,10 @@ export class EmpresaService {
   }
 
   // Generar siguiente código de empresa disponible
-  generarSiguienteCodigoEmpresa(): Observable<{siguienteCodigo: string, descripcion: string, formato: string}> {
+  generarSiguienteCodigoEmpresa(): Observable<{ siguienteCodigo: string, descripcion: string, formato: string }> {
     const url = `${this.apiUrl}/empresas/siguiente-codigo`;
-    
-    return this.http.get<{siguienteCodigo: string, descripcion: string, formato: string}>(url, { headers: this.getHeaders() })
+
+    return this.http.get<{ siguienteCodigo: string, descripcion: string, formato: string }>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
           console.error('Error generando código de empresa:', error);
@@ -655,7 +669,7 @@ export class EmpresaService {
     error?: string;
   }> {
     const url = `${this.apiUrl}/empresas/validar-codigo/${codigo}`;
-    
+
     return this.http.get<{
       codigo: string;
       esValido: boolean;
@@ -710,7 +724,7 @@ export class EmpresaService {
 
     } catch (error) {
       console.error('Error descargando plantilla:', error);
-      
+
       // Fallback: generar plantilla CSV simple
       const csvContent = `Código Empresa,RUC,Razón Social Principal,Razón Social SUNAT,Razón Social Mínimo,Dirección Fiscal,Estado,DNI Representante,Nombres Representante,Apellidos Representante,Email Representante,Teléfono Representante,Dirección Representante,Email Contacto,Teléfono Contacto,Sitio Web,Observaciones
 0001TRP,20123456789,TRANSPORTES PUNO S.A.,TRANSPORTES PUNO SOCIEDAD ANONIMA,TRANSPORTES PUNO,AV. EJERCITO 123 PUNO,HABILITADA,12345678,JUAN CARLOS,MAMANI QUISPE,juan.mamani@transportespuno.com,951234567,AV. SIMON BOLIVAR 789 PUNO,contacto@transportespuno.com,051-123456,www.transportespuno.com,Empresa con 15 años de experiencia
@@ -737,7 +751,7 @@ export class EmpresaService {
       formData.append('archivo', archivo);
 
       const xhr = new XMLHttpRequest();
-      
+
       xhr.onload = () => {
         if (xhr.status === 200) {
           try {
@@ -777,7 +791,7 @@ export class EmpresaService {
       formData.append('archivo', archivo);
 
       const xhr = new XMLHttpRequest();
-      
+
       xhr.onload = () => {
         if (xhr.status === 200) {
           try {
