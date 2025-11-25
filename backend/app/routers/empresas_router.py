@@ -9,7 +9,7 @@ from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
 from app.repositories.empresa_repository import EmpresaRepository
-from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse
+from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas
 from app.utils.exceptions import (
     EmpresaNotFoundException, 
     EmpresaAlreadyExistsException,
@@ -62,7 +62,9 @@ async def create_empresa(
         raise ValidationErrorException("RUC", "El RUC no puede estar vacío")
     
     try:
-        empresa = await empresa_service.create_empresa(empresa_data)
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"  # Usuario de prueba por ahora
+        empresa = await empresa_service.create_empresa(empresa_data, usuario_id)
         return create_empresa_response(empresa)
     except ValueError as e:
         if "RUC" in str(e):
@@ -126,30 +128,23 @@ async def get_empresas_con_filtros(
         for empresa in empresas
     ]
 
-@router.get("/estadisticas")
-async def get_estadisticas_empresas():
-    """Obtener estadísticas de empresas"""
+@router.get("/estadisticas", response_model=EmpresaEstadisticas)
+async def get_estadisticas(
     empresa_service: EmpresaService = Depends(get_empresa_service)
-    estadisticas = await empresa_service.get_estadisticas()
-    
-    return {
-        "totalEmpresas": estadisticas['total'],
-        "empresasHabilitadas": estadisticas['habilitadas'],
-        "empresasEnTramite": estadisticas['en_tramite'],
-        "empresasSuspendidas": estadisticas['suspendidas'],
-        "empresasCanceladas": estadisticas['canceladas']
-    }
+) -> EmpresaEstadisticas:
+    """Obtener estadísticas de empresas"""
+    return await empresa_service.get_estadisticas()
 
 @router.get("/{empresa_id}", response_model=EmpresaResponse)
 async def get_empresa(
-    empresa_id: str
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Obtener empresa por ID"""
     # Guard clause
     if not empresa_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.get_empresa_by_id(empresa_id)
     
     if not empresa:
@@ -171,15 +166,15 @@ async def get_empresa_by_ruc(
     return create_empresa_response(empresa)
 
 @router.get("/validar-ruc/{ruc}")
-async def validar_ruc(ruc: str):
+async def validar_ruc(ruc: str, empresa_service: EmpresaService = Depends(get_empresa_service)):
     """Validar si un RUC ya existe"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa_existente = await empresa_service.get_empresa_by_ruc(ruc)
     
     return {
         "valido": not empresa_existente,
         "empresa": empresa_existente
     }
+
 
 @router.put("/{empresa_id}", response_model=EmpresaResponse)
 async def update_empresa(

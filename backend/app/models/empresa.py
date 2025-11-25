@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 # from bson import ObjectId
 from enum import Enum
 from app.utils.mock_utils import mock_id_factory

@@ -1,0 +1,21 @@
+{
+    "codigoEmpresa": "0001PRT",
+    "ruc": "20123456789",
+    "razonSocial": {
+        "principal": "TRANSPORTES PUNO S.A.C.",
+        "sunat": "TRANSPORTES PUNO SOCIEDAD ANONIMA CERRADA",
+        "minimo": "TRANSPORTES PUNO"
+    },
+    "direccionFiscal": "AV. EL SOL 123, PUNO, PUNO",
+    "representanteLegal": {
+        "dni": "12345678",
+        "nombres": "JUAN CARLOS",
+        "apellidos": "MAMANI QUISPE",
+        "email": "jmamani@transportespuno.com",
+        "telefono": "951234567"
+    },
+    "emailContacto": "info@transportespuno.com",
+    "telefonoContacto": "051-123456",
+    "sitioWeb": "www.transportespuno.com",
+    "documentos": []
+}

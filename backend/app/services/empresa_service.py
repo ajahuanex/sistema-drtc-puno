@@ -49,7 +49,7 @@ class EmpresaService:
         # Calcular score de riesgo
         score_riesgo = await self.calcular_score_riesgo(empresa_data, datos_sunat)
         
-        empresa_dict = empresa_data.model_dump()
+        empresa_dict = empresa_data.model_dump(by_alias=False)
         empresa_dict["fechaRegistro"] = datetime.utcnow()
         empresa_dict["estaActivo"] = True
         empresa_dict["estado"] = EstadoEmpresa.EN_TRAMITE
@@ -119,7 +119,7 @@ class EmpresaService:
             score += 80  # Alto riesgo si no es válido en SUNAT
         
         # Validar representante legal
-        if empresa_data.representante_legal.dni and len(empresa_data.representante_legal.dni) == 8:
+        if empresa_data.representanteLegal.dni and len(empresa_data.representanteLegal.dni) == 8:
             score += 10
         else:
             score += 30
@@ -375,29 +375,29 @@ class EmpresaService:
         if resultado:
             stats = resultado[0]
             return EmpresaEstadisticas(
-                total_empresas=stats["total_empresas"],
-                empresas_habilitadas=stats["empresas_habilitadas"],
-                empresas_en_tramite=stats["empresas_en_tramite"],
-                empresas_suspendidas=stats["empresas_suspendidas"],
-                empresas_canceladas=stats["empresas_canceladas"],
-                empresas_dadas_de_baja=stats["empresas_dadas_de_baja"],
-                empresas_con_documentos_vencidos=0,  # Calcular por separado
-                empresas_con_score_alto_riesgo=0,  # Calcular por separado
-                promedio_vehiculos_por_empresa=stats["promedio_vehiculos"],
-                promedio_conductores_por_empresa=stats["promedio_conductores"]
+                totalEmpresas=stats["total_empresas"],
+                empresasHabilitadas=stats["empresas_habilitadas"],
+                empresasEnTramite=stats["empresas_en_tramite"],
+                empresasSuspendidas=stats["empresas_suspendidas"],
+                empresasCanceladas=stats["empresas_canceladas"],
+                empresasDadasDeBaja=stats["empresas_dadas_de_baja"],
+                empresasConDocumentosVencidos=0,  # Calcular por separado
+                empresasConScoreAltoRiesgo=0,  # Calcular por separado
+                promedioVehiculosPorEmpresa=stats["promedio_vehiculos"],
+                promedioConductoresPorEmpresa=stats["promedio_conductores"]
             )
         
         return EmpresaEstadisticas(
-            total_empresas=0,
-            empresas_habilitadas=0,
-            empresas_en_tramite=0,
-            empresas_suspendidas=0,
-            empresas_canceladas=0,
-            empresas_dadas_de_baja=0,
-            empresas_con_documentos_vencidos=0,
-            empresas_con_score_alto_riesgo=0,
-            promedio_vehiculos_por_empresa=0.0,
-            promedio_conductores_por_empresa=0.0
+            totalEmpresas=0,
+            empresasHabilitadas=0,
+            empresasEnTramite=0,
+            empresasSuspendidas=0,
+            empresasCanceladas=0,
+            empresasDadasDeBaja=0,
+            empresasConDocumentosVencidos=0,
+            empresasConScoreAltoRiesgo=0,
+            promedioVehiculosPorEmpresa=0.0,
+            promedioConductoresPorEmpresa=0.0
         )
 
     async def crear_notificacion_empresa(self, empresa: EmpresaInDB, tipo: str):

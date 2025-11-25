@@ -69,6 +69,39 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
               </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
+              
+              <!-- 1. Empresa (Ahora al inicio) -->
+              <div class="form-row">
+                <app-empresa-selector
+                  label="Empresa *"
+                  placeholder="Buscar empresa por RUC o razón social"
+                  hint="Selecciona la empresa solicitante"
+                  [empresaId]="empresaId()"
+                  [required]="true"
+                  (empresaIdChange)="onEmpresaIdChange($event)"
+                  (empresaSeleccionada)="onEmpresaSeleccionada($event)">
+                </app-empresa-selector>
+              </div>
+
+              <!-- 2. Tipo de Expediente (Segundo orden) -->
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Tipo de Expediente *</mat-label>
+                  <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)" required>
+                    <mat-option value="PRIMIGENIA">Primigenia</mat-option>
+                    <mat-option value="RENOVACION">Renovación</mat-option>
+                    <mat-option value="INCREMENTO">Incremento</mat-option>
+                    <mat-option value="SUSTITUCION">Sustitución</mat-option>
+                    <mat-option value="OTROS">Otros</mat-option>
+                  </mat-select>
+                  <mat-icon matSuffix>category</mat-icon>
+                  <mat-hint>Tipo de trámite del expediente</mat-hint>
+                  <mat-error *ngIf="expedienteForm.get('tipoTramite')?.hasError('required')">
+                    El tipo de expediente es obligatorio
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
               <div class="form-row">
                 <app-expediente-number-validator
                   label="Número de Expediente *"
@@ -100,25 +133,7 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
                 </mat-form-field>
               </div>
 
-              <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Tipo de Expediente *</mat-label>
-                  <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)" required>
-                    <mat-option value="PRIMIGENIA">Primigenia</mat-option>
-                    <mat-option value="RENOVACION">Renovación</mat-option>
-                    <mat-option value="INCREMENTO">Incremento</mat-option>
-                    <mat-option value="SUSTITUCION">Sustitución</mat-option>
-                    <mat-option value="OTROS">Otros</mat-option>
-                  </mat-select>
-                  <mat-icon matSuffix>category</mat-icon>
-                  <mat-hint>Tipo de trámite del expediente</mat-hint>
-                  <mat-error *ngIf="expedienteForm.get('tipoTramite')?.hasError('required')">
-                    El tipo de expediente es obligatorio
-                  </mat-error>
-                </mat-form-field>
-              </div>
-
-              <!-- Resolución Primigenia - Solo para RENOVACION -->
+              <!-- Resolución Primigenia - Para RENOVACION, INCREMENTO, SUSTITUCION -->
               <div class="form-row" *ngIf="necesitaResolucionPrimigenia()">
                 <app-resolucion-selector
                   label="Resolución Primigenia *"
@@ -196,15 +211,6 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
 
 
               <div class="form-row">
-                <app-empresa-selector
-                  label="Empresa (Opcional)"
-                  placeholder="Buscar empresa por RUC o razón social"
-                  hint="Selecciona una empresa para crear dependencia (opcional)"
-                  [empresaId]="empresaId()"
-                  (empresaIdChange)="onEmpresaIdChange($event)"
-                  (empresaSeleccionada)="onEmpresaSeleccionada($event)">
-                </app-empresa-selector>
-
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Observaciones</mat-label>
                   <textarea matInput 
@@ -217,19 +223,6 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
                 </mat-form-field>
               </div>
 
-              <!-- Resolución Padre - Solo cuando hay empresa seleccionada -->
-              <div class="form-row" *ngIf="empresaSeleccionada()">
-                <app-resolucion-selector
-                  label="Resolución Padre (Opcional)"
-                  placeholder="Buscar resolución padre"
-                  hint="Seleccione una resolución padre si este expediente está relacionado con otra resolución"
-                  [required]="false"
-                  [empresaId]="empresaId()"
-                  [resolucionId]="expedienteForm.get('resolucionPadreId')?.value"
-                  (resolucionIdChange)="onResolucionPadreIdChange($event)"
-                  (resolucionSeleccionada)="onResolucionPadreSeleccionada($event)">
-                </app-resolucion-selector>
-              </div>
             </mat-card-content>
           </mat-card>
         </form>
@@ -371,12 +364,12 @@ export class CrearExpedienteModalComponent {
       numero: ['', [Validators.required, Validators.minLength(1)]],
       folio: [1, [Validators.required, Validators.min(1)]],
       tipoTramite: ['', Validators.required],
-      resolucionPrimigeniaId: [''], // Campo para resolución primigenia (solo para RENOVACION)
+      resolucionPrimigeniaId: [''], // Campo para resolución primigenia
       resolucionPadreId: [''], // Campo para resolución padre (opcional cuando hay empresa)
       descripcion: [''],
       fechaEmision: ['', Validators.required],
       prioridad: ['NORMAL', Validators.required],
-      empresaId: [''], // Campo opcional para empresa
+      empresaId: ['', Validators.required], // Ahora es obligatorio
       observaciones: ['']
     });
 
@@ -531,21 +524,21 @@ export class CrearExpedienteModalComponent {
    */
   necesitaResolucionPrimigenia(): boolean {
     const tipoTramite = this.expedienteForm.get('tipoTramite')?.value;
-    return tipoTramite === 'RENOVACION';
+    return ['RENOVACION', 'INCREMENTO', 'SUSTITUCION'].includes(tipoTramite);
   }
 
   /**
    * Obtiene el hint apropiado según el tipo de trámite
    */
   getHintResolucionPrimigenia(): string {
-    return 'Seleccione la resolución primigenia que se va a renovar';
+    return 'Seleccione la resolución primigenia relacionada';
   }
 
   /**
    * Obtiene el filtro de tipo de trámite apropiado
    */
   getFiltroTipoTramite(): string {
-    return 'PRIMIGENIA'; // Solo mostrar resoluciones primigenias para renovación
+    return 'PRIMIGENIA'; // Solo mostrar resoluciones primigenias
   }
 
   /**
@@ -620,4 +613,4 @@ export class CrearExpedienteModalComponent {
       this.resolucionPadreSeleccionada.set(null);
     }
   }
-} 
+}

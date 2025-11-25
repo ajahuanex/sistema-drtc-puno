@@ -75,7 +75,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
       @if (!isLoading()) {
         <div class="form-container">
           <form [formGroup]="empresaForm" (ngSubmit)="onSubmit()" class="empresa-form">
-            <mat-stepper #stepper linear class="stepper">
+            <mat-stepper #stepper class="stepper">
               <!-- Paso 1: Información Básica -->
               <mat-step [stepControl]="empresaForm" label="INFORMACIÓN BÁSICA">
                 <div class="step-content">
