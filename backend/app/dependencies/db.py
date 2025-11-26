@@ -14,6 +14,10 @@ db = Database()
 
 async def get_database() -> AsyncIOMotorClient:
     """Obtener instancia de la base de datos"""
+    """Obtener instancia de la base de datos"""
+    if db.client is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Base de datos no disponible")
     return db.client[db.database_name]
 
 @asynccontextmanager
