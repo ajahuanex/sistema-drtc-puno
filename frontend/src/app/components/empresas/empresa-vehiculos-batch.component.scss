@@ -1,0 +1,341 @@
+.page-container {
+    padding: 24px;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    gap: 16px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 24px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    color: #1976d2;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    color: #333;
+}
+
+.header-text p {
+    margin: 4px 0 0 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.header-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    min-height: 40px;
+    padding: 0 24px;
+    transition: all 0.3s ease;
+}
+
+.header-button:hover {
+    background-color: #f5f5f5;
+    transform: translateY(-1px);
+}
+
+.info-card,
+.form-card {
+    margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empresa-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.label {
+    font-weight: 500;
+    color: #666;
+}
+
+.value {
+    font-weight: 600;
+    color: #333;
+}
+
+.status-chip {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-chip.habilitada,
+.status-chip.activa {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+}
+
+.status-chip.en_tramite {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.status-chip.suspendida {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.status-chip.cancelada,
+.status-chip.vencida {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.header-actions {
+    margin-left: auto;
+}
+
+.action-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    min-height: 40px;
+    padding: 0 24px;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    background-color: #e3f2fd;
+    transform: translateY(-1px);
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.resoluciones-table,
+.vehiculos-table {
+    width: 100%;
+    background: white;
+}
+
+.resoluciones-table th,
+.vehiculos-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    color: #333;
+    padding: 12px 8px;
+}
+
+.resoluciones-table td,
+.vehiculos-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.resolucion-numero {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.hija-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #ff9800;
+}
+
+.tipo-chip {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.tipo-chip.padre {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.tipo-chip.hija {
+    background-color: #fff3e0;
+    color: #ff9800;
+}
+
+.resuelve-text {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.no-vigencia {
+    color: #999;
+    font-style: italic;
+}
+
+.vehiculos-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.count-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: #1976d2;
+}
+
+.count-number {
+    font-weight: 600;
+    color: #1976d2;
+}
+
+.action-icon {
+    margin-right: 4px;
+}
+
+.action-icon.danger {
+    color: #f44336;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #ccc;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-weight: 500;
+}
+
+.empty-state p {
+    margin: 0;
+    color: #999;
+}
+
+.placa-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.placa-text {
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-dot.activo {
+    background-color: #4caf50;
+}
+
+.status-dot.inactivo {
+    background-color: #f44336;
+}
+
+.marca-modelo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.marca {
+    font-weight: 600;
+    color: #333;
+}
+
+.modelo {
+    font-size: 12px;
+    color: #666;
+}
+
+.categoria-chip {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.resolucion-text {
+    font-weight: 500;
+    color: #1976d2;
+}
+
+.sin-resolucion {
+    color: #999;
+    font-style: italic;
+}
+
+.tuc-text {
+    font-family: monospace;
+    font-weight: 500;
+    color: #333;
+}
+
+.sin-tuc {
+    color: #999;
+    font-style: italic;
+}

@@ -16,8 +16,8 @@ if exist "venv\Scripts\activate.bat" (
 )
 
 echo.
-echo Iniciando servidor FastAPI en http://localhost:8003
+echo Iniciando servidor FastAPI en http://localhost:8000
 echo Presiona Ctrl+C para detener el servidor
 echo.
 
-uvicorn app.main:app --reload --port 8003 --host 0.0.0.0
+uvicorn app.main:app --reload --port 8000 --host 0.0.0.0

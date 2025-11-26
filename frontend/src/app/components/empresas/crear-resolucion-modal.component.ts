@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, ChangeDetectionStrategy, effect, OnDestroy } from '@angular/core';
+﻿import { Component, inject, signal, computed, ChangeDetectionStrategy, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
@@ -692,28 +692,28 @@ export class CrearResolucionModalComponent implements OnDestroy {
   expedientes = signal<Expediente[]>([]);
   expedientesFiltrados = signal<Expediente[]>([]);
   expedienteSeleccionado = signal<Expediente | null>(null);
-  
+
   // Detectar si se está abriendo desde detalles de empresa
   empresaSeleccionada = computed(() => {
     return this.data?.empresa || null;
   });
-  
+
   // Determinar si mostrar selector de empresa o información
   mostrarSelectorEmpresa = computed(() => {
     return !this.empresaSeleccionada();
   });
-  
+
   // Determinar si mostrar selector de resolución padre
   mostrarResolucionPadre = computed(() => {
     const expediente = this.expedienteSeleccionado();
     if (!expediente) return false;
-    
+
     // Mostrar para RENOVACION (siempre requiere padre)
     if (expediente.tipoTramite === 'RENOVACION') return true;
-    
+
     // Mostrar para tipos HIJO (INCREMENTO, SUSTITUCION, OTROS)
     if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') return true;
-    
+
     // No mostrar para PRIMIGENIA
     return false;
   });
@@ -739,9 +739,9 @@ export class CrearResolucionModalComponent implements OnDestroy {
   numeroResolucionCompleto = computed(() => {
     const numeroBase = this.numeroBaseSignal();
     const anio = this.anioEmision();
-    
+
     console.log('🔍 Debug numeroResolucionCompleto:', { numeroBase, anio });
-    
+
     if (numeroBase) {
       // Asegurar que siempre tenga 4 dígitos con ceros por delante
       const numeroFormateado = numeroBase.toString().padStart(4, '0');
@@ -762,19 +762,19 @@ export class CrearResolucionModalComponent implements OnDestroy {
   fechaVigenciaFinCalculada = computed(() => {
     const fechaInicio = this.fechaVigenciaInicioSignal();
     const aniosVigencia = this.aniosVigenciaSignal();
-    
+
     console.log('🔍 Debug fechaVigenciaFinCalculada:', {
       fechaInicio,
       aniosVigencia,
       mostrarFechaVigenciaFin: this.mostrarFechaVigenciaFin(),
       tipoTramite: this.tipoTramiteSignal()
     });
-    
+
     if (fechaInicio && aniosVigencia && this.mostrarFechaVigenciaFin()) {
       try {
         const fechaFin = new Date(fechaInicio);
         fechaFin.setFullYear(fechaFin.getFullYear() + parseInt(aniosVigencia.toString()));
-        
+
         // Formatear en español con formato "13 de Agosto de 2025"
         const resultado = this.formatearFechaEspanol(fechaFin);
         console.log('✅ Fecha calculada (Español):', resultado);
@@ -801,18 +801,18 @@ export class CrearResolucionModalComponent implements OnDestroy {
    */
   formatearFechaLima(fecha: Date | string | null): string {
     if (!fecha) return 'NO DISPONIBLE';
-    
+
     try {
       const fechaObj = new Date(fecha);
-      
+
       // Ajustar a zona horaria de Lima (UTC-5)
       const fechaLima = new Date(fechaObj.getTime() - (5 * 60 * 60 * 1000));
-      
+
       // Formatear como DD/MM/YYYY usando locale español
       const dia = fechaLima.getUTCDate().toString().padStart(2, '0');
       const mes = (fechaLima.getUTCMonth() + 1).toString().padStart(2, '0');
       const anio = fechaLima.getUTCFullYear();
-      
+
       // Asegurar formato español DD/MM/YYYY
       return `${dia}/${mes}/${anio}`;
     } catch (error) {
@@ -842,23 +842,23 @@ export class CrearResolucionModalComponent implements OnDestroy {
    */
   formatearFechaEspanol(fecha: Date | string | null): string {
     if (!fecha) return 'NO DISPONIBLE';
-    
+
     try {
       const fechaObj = new Date(fecha);
-      
+
       // Ajustar a zona horaria de Lima (UTC-5)
       const fechaLima = new Date(fechaObj.getTime() - (5 * 60 * 60 * 1000));
-      
+
       // Meses en español
       const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
       ];
-      
+
       const dia = fechaLima.getUTCDate();
       const mes = meses[fechaLima.getUTCMonth()];
       const anio = fechaLima.getUTCFullYear();
-      
+
       return `${dia} de ${mes} de ${anio}`;
     } catch (error) {
       console.error('Error formateando fecha en español:', error);
@@ -871,11 +871,11 @@ export class CrearResolucionModalComponent implements OnDestroy {
   constructor() {
     // Registrar locale español para fechas
     registerLocaleData(localeEs, 'es');
-    
+
     console.log('🚀 Modal inicializado con datos:', this.data);
     console.log('🏢 Empresa seleccionada:', this.data?.empresa);
     console.log('🆔 Empresa ID:', this.data?.empresa?.id);
-    
+
     this.resolucionForm = this.fb.group({
       empresaId: [this.data?.empresa?.id || '', [Validators.required]],
       expedienteId: ['', [Validators.required]], // Campo para expediente
@@ -894,7 +894,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       // Deshabilitar campos de vigencia para resoluciones hijas
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('aniosVigencia')?.disable();
-      
+
       // Obtener las fechas de vigencia de la resolución padre
       if (this.data?.resolucionPadreId) {
         this.resolucionService.getResolucionById(this.data.resolucionPadreId).subscribe(resolucionPadre => {
@@ -904,7 +904,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
               this.resolucionForm.get('fechaVigenciaInicio')?.setValue(resolucionPadre.fechaVigenciaInicio);
               this.fechaVigenciaInicioSignal.set(resolucionPadre.fechaVigenciaInicio);
             }
-            
+
             // Calcular años de vigencia basados en la fecha de fin del padre
             if (resolucionPadre.fechaVigenciaFin && resolucionPadre.fechaVigenciaInicio) {
               const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
@@ -913,7 +913,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
               this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
               this.aniosVigenciaSignal.set(aniosVigencia);
             }
-            
+
             console.log('🔗 Fechas de vigencia heredadas del padre:', {
               fechaInicio: resolucionPadre.fechaVigenciaInicio,
               fechaFin: resolucionPadre.fechaVigenciaFin
@@ -997,7 +997,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private cargarExpedientesEmpresa(empresaId: string): void {
     console.log('📋 Cargando expedientes para empresa:', empresaId);
-    
+
     this.expedienteService.getExpedientes().subscribe({
       next: (expedientes) => {
         console.log('📋 Expedientes cargados:', expedientes);
@@ -1020,14 +1020,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
       const empresaId = this.data?.empresa?.id || this.resolucionForm.get('empresaId')?.value;
       const tipoTramite = this.resolucionForm.get('tipoTramite')?.value;
       const descripcion = this.resolucionForm.get('descripcion')?.value || 'Expediente creado automáticamente para resolución';
-      
+
       // Generar número de expediente automático
       const expedientesExistentes = this.expedientes();
       const numeroExpediente = this.generarNumeroExpediente(expedientesExistentes);
-      
+
       // Extraer solo el número del expediente (sin E- y -2025)
       const numeroSolo = numeroExpediente.replace('E-', '').replace(`-${new Date().getFullYear()}`, '');
-      
+
       const expedienteData: ExpedienteCreate = {
         numero: numeroSolo, // Solo el número (1234)
         folio: 1, // Expediente básico
@@ -1041,22 +1041,22 @@ export class CrearResolucionModalComponent implements OnDestroy {
       };
 
       console.log('📋 Creando expediente automático:', expedienteData);
-      
+
       // Crear el expediente
       const expediente = await this.expedienteService.createExpediente(expedienteData).toPromise();
-      
+
       if (expediente) {
         console.log('✅ Expediente creado automáticamente:', expediente.id);
         // Actualizar la lista de expedientes
         this.expedientes.update(expedientes => [...expedientes, expediente]);
         this.expedientesFiltrados.update(expedientes => [...expedientes, expediente]);
-        
+
         // Actualizar el formulario
         this.resolucionForm.get('expedienteId')?.setValue(expediente.id);
-        
+
         return expediente.id;
       }
-      
+
       return null;
     } catch (error) {
       console.error('❌ Error creando expediente automático:', error);
@@ -1066,10 +1066,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private generarNumeroExpediente(expedientesExistentes: Expediente[]): string {
     const anioActual = new Date().getFullYear();
-    const expedientesAnio = expedientesExistentes.filter(e => 
+    const expedientesAnio = expedientesExistentes.filter(e =>
       new Date(e.fechaEmision).getFullYear() === anioActual
     );
-    
+
     const siguienteNumero = expedientesAnio.length + 1;
     return `E-${siguienteNumero.toString().padStart(4, '0')}-${anioActual}`;
   }
@@ -1083,7 +1083,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private cargarResolucionesPadre(): void {
     const empresaId = this.empresaSeleccionada()?.id || this.resolucionForm.get('empresaId')?.value;
-    
+
     if (!empresaId) {
       console.warn('⚠️ No hay empresa seleccionada para cargar resoluciones padre');
       return;
@@ -1100,43 +1100,43 @@ export class CrearResolucionModalComponent implements OnDestroy {
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
         console.log('📋 Todas las resoluciones recibidas:', resoluciones);
-        
+
         // Filtrar resoluciones de la empresa actual
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
         console.log('🏢 Resoluciones de la empresa:', resolucionesEmpresa);
-        
+
         let resolucionesPadre: Resolucion[] = [];
-        
+
         if (expediente.tipoTramite === 'RENOVACION') {
           // Para RENOVACION: mostrar solo resoluciones padre que estén próximas a vencer
-          resolucionesPadre = resolucionesEmpresa.filter(r => 
-            r.tipoResolucion === 'PADRE' && 
-            r.estaActivo && 
+          resolucionesPadre = resolucionesEmpresa.filter(r =>
+            r.tipoResolucion === 'PADRE' &&
+            r.estaActivo &&
             r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin && 
+            r.fechaVigenciaFin &&
             new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
           );
           console.log('🔄 Resoluciones padre disponibles para RENOVACIÓN:', resolucionesPadre);
-          
+
         } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
           // Para tipos HIJO: mostrar solo resoluciones padre vigentes
-          resolucionesPadre = resolucionesEmpresa.filter(r => 
-            r.tipoResolucion === 'PADRE' && 
-            r.estaActivo && 
+          resolucionesPadre = resolucionesEmpresa.filter(r =>
+            r.tipoResolucion === 'PADRE' &&
+            r.estaActivo &&
             r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin && 
+            r.fechaVigenciaFin &&
             new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
           );
           console.log('🔗 Resoluciones padre disponibles para resolución HIJA:', resolucionesPadre);
         }
-        
+
         this.resolucionesPadre.set(resolucionesPadre);
-        
+
         if (resolucionesPadre.length === 0) {
-          const mensaje = expediente.tipoTramite === 'RENOVACION' 
+          const mensaje = expediente.tipoTramite === 'RENOVACION'
             ? 'NO HAY RESOLUCIONES PADRE DISPONIBLES PARA RENOVAR'
             : 'NO HAY RESOLUCIONES PADRE DISPONIBLES PARA CREAR RESOLUCIÓN HIJA';
-          
+
           console.warn('⚠️ No se encontraron resoluciones padre:', mensaje);
           this.snackBar.open(mensaje, 'CERRAR', { duration: 3000 });
         }
@@ -1155,10 +1155,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
     if (numeroBase) {
       // Solo limpiar caracteres no numéricos y limitar a 4 dígitos
       const numeroLimpio = numeroBase.replace(/\D/g, '').slice(0, 4);
-      
+
       // Actualizar el signal para reactividad
       this.numeroBaseSignal.set(numeroLimpio);
-      
+
       // Solo actualizar si es diferente (evitar loops infinitos)
       if (numeroLimpio !== numeroBase) {
         this.resolucionForm.get('numeroBase')?.setValue(numeroLimpio);
@@ -1168,32 +1168,32 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private validarNumeroUnico(numeroBase: string): void {
     if (!numeroBase || numeroBase.length < 4) return;
-    
+
     // Obtener la fecha de emisión del formulario (no del signal)
     const fechaEmision = this.resolucionForm.get('fechaEmision')?.value;
     if (!fechaEmision) {
       console.log('⚠️ No se puede validar: fecha de emisión no establecida');
       return;
     }
-    
+
     const anio = new Date(fechaEmision).getFullYear();
     const numeroCompleto = `R-${numeroBase.padStart(4, '0')}-${anio}`;
-    
+
     console.log('🔍 Validando número único:', {
       numeroBase,
       fechaEmision,
       anio,
       numeroCompleto
     });
-    
+
     // Verificar si ya existe una resolución con este número para el año
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
-        const existe = resoluciones.some(r => 
-          r.nroResolucion === numeroCompleto && 
+        const existe = resoluciones.some(r =>
+          r.nroResolucion === numeroCompleto &&
           new Date(r.fechaEmision).getFullYear() === anio
         );
-        
+
         if (existe) {
           console.log('❌ Número duplicado encontrado:', numeroCompleto);
           this.resolucionForm.get('numeroBase')?.setErrors({ duplicate: true });
@@ -1215,20 +1215,20 @@ export class CrearResolucionModalComponent implements OnDestroy {
   onTipoTramiteChange(): void {
     const tipoTramite = this.resolucionForm.get('tipoTramite')?.value;
     this.tipoTramiteSignal.set(tipoTramite);
-    
+
     const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
-    
+
     if (tipoTramite === 'RENOVACION') {
       // Cargar resoluciones padre disponibles para renovación
       this.cargarResolucionesPadre();
-      
+
       // Habilitar campo de resolución padre
       this.resolucionForm.get('resolucionPadreId')?.enable();
-      
+
       // Habilitar campos de vigencia
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
       // Establecer valores por defecto si están vacíos
       if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
         const fechaDefault = this.obtenerFechaLima();
@@ -1243,11 +1243,11 @@ export class CrearResolucionModalComponent implements OnDestroy {
       // Para PRIMIGENIA, deshabilitar campo de resolución padre
       this.resolucionForm.get('resolucionPadreId')?.disable();
       this.resolucionForm.get('resolucionPadreId')?.setValue(null);
-      
+
       // Habilitar campos de vigencia para tipos PADRE
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
       // Establecer valores por defecto si están vacíos
       if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
         const fechaDefault = this.obtenerFechaLima();
@@ -1269,7 +1269,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.resolucionForm.get('resolucionPadreId')?.disable();
         this.resolucionForm.get('resolucionPadreId')?.setValue(null);
       }
-      
+
       // Deshabilitar campos de vigencia para tipos HIJO
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('fechaVigenciaInicio')?.setValue(null);
@@ -1283,20 +1283,20 @@ export class CrearResolucionModalComponent implements OnDestroy {
   onEmpresaSeleccionadaModal(empresa: Empresa | null): void {
     if (empresa) {
       console.log('🏢 Empresa seleccionada en modal:', empresa);
-      
+
       // Actualizar el formulario
       this.resolucionForm.patchValue({ empresaId: empresa.id });
-      
+
       // Limpiar expediente seleccionado ya que cambió la empresa
       this.expedienteSeleccionado.set(null);
       this.resolucionForm.patchValue({ expedienteId: '' });
-      
+
       // Cargar expedientes para la nueva empresa
       this.cargarExpedientesEmpresa(empresa.id);
     } else {
       console.log('🏢 Empresa deseleccionada en modal');
       this.expedienteSeleccionado.set(null);
-      this.resolucionForm.patchValue({ 
+      this.resolucionForm.patchValue({
         empresaId: '',
         expedienteId: ''
       });
@@ -1306,19 +1306,19 @@ export class CrearResolucionModalComponent implements OnDestroy {
   onExpedienteChange(event: any): void {
     const expedienteId = event.value;
     console.log('📋 Expediente seleccionado:', expedienteId);
-    
+
     if (expedienteId) {
       // Buscar el expediente seleccionado
       const expediente = this.expedientes().find(e => e.id === expedienteId);
       if (expediente) {
         this.expedienteSeleccionado.set(expediente);
-        
+
         // Actualizar el tipo de trámite automáticamente desde el expediente
         const tipoTramite = expediente.tipoTramite;
         this.tipoTramiteSignal.set(tipoTramite);
-        
+
         console.log('🔄 Tipo de trámite actualizado desde expediente:', tipoTramite);
-        
+
         // Actualizar la lógica del formulario basada en el nuevo tipo de trámite
         this.actualizarFormularioPorTipoTramite(tipoTramite);
       }
@@ -1330,26 +1330,26 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private actualizarFormularioPorTipoTramite(tipoTramite: string): void {
     console.log('🔄 Actualizando formulario para tipo de trámite:', tipoTramite);
-    
+
     // Determinar si es resolución PADRE o HIJA según el tipo de trámite
     const esResolucionPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
     const esResolucionHija = tipoTramite === 'INCREMENTO' || tipoTramite === 'SUSTITUCION' || tipoTramite === 'OTROS';
-    
+
     if (tipoTramite === 'RENOVACION') {
       console.log('🔄 Configurando formulario para RENOVACIÓN (requiere resolución padre)');
-      
+
       // Cargar resoluciones padre disponibles para renovación
       this.cargarResolucionesPadre();
-      
+
       // Habilitar y requerir campo de resolución padre
       this.resolucionForm.get('resolucionPadreId')?.enable();
       this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
       this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
-      
+
       // Habilitar campos de vigencia
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
       // Establecer valores por defecto si están vacíos
       if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
         const fechaDefault = this.obtenerFechaLima();
@@ -1360,20 +1360,20 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.resolucionForm.get('aniosVigencia')?.setValue(5);
         this.aniosVigenciaSignal.set(5);
       }
-      
+
     } else if (esResolucionPadre) {
       console.log('🔄 Configurando formulario para PRIMIGENIA (resolución padre)');
-      
+
       // Para PRIMIGENIA, deshabilitar campo de resolución padre
       this.resolucionForm.get('resolucionPadreId')?.disable();
       this.resolucionForm.get('resolucionPadreId')?.clearValidators();
       this.resolucionForm.get('resolucionPadreId')?.setValue(null);
       this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
-      
+
       // Habilitar campos de vigencia para tipos PADRE
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
       // Establecer valores por defecto si están vacíos
       if (!this.resolucionForm.get('fechaVigenciaInicio')?.value) {
         const fechaDefault = this.obtenerFechaLima();
@@ -1384,36 +1384,36 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.resolucionForm.get('aniosVigencia')?.setValue(5);
         this.aniosVigenciaSignal.set(5);
       }
-      
+
     } else if (esResolucionHija) {
       console.log('🔄 Configurando formulario para resolución HIJA (requiere resolución padre)');
-      
+
       // Para tipos HIJO, siempre requerir resolución padre
       this.cargarResolucionesPadre();
       this.resolucionForm.get('resolucionPadreId')?.enable();
       this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
       this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
-      
+
       // Los campos de vigencia se heredan del padre, pero los mostramos para información
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('aniosVigencia')?.disable();
-      
+
       // Si ya hay una resolución padre seleccionada (caso de resolución hija), configurar fechas
       if (this.data?.esResolucionHija && this.data?.resolucionPadreId) {
         this.configurarFechasHeredadasDelPadre(this.data.resolucionPadreId);
       }
-      
+
     } else {
       console.log('🔄 Tipo de trámite no reconocido:', tipoTramite);
     }
-    
+
     // Actualizar la validación del formulario
     this.resolucionForm.updateValueAndValidity();
   }
 
   private configurarFechasHeredadasDelPadre(resolucionPadreId: string): void {
     console.log('🔗 Configurando fechas heredadas del padre:', resolucionPadreId);
-    
+
     this.resolucionService.getResolucionById(resolucionPadreId).subscribe(resolucionPadre => {
       if (resolucionPadre) {
         // Heredar fechas de vigencia del padre
@@ -1421,7 +1421,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
           this.resolucionForm.get('fechaVigenciaInicio')?.setValue(resolucionPadre.fechaVigenciaInicio);
           this.fechaVigenciaInicioSignal.set(resolucionPadre.fechaVigenciaInicio);
         }
-        
+
         // Calcular años de vigencia basados en la fecha de fin del padre
         if (resolucionPadre.fechaVigenciaFin && resolucionPadre.fechaVigenciaInicio) {
           const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
@@ -1430,7 +1430,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
           this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
           this.aniosVigenciaSignal.set(aniosVigencia);
         }
-        
+
         console.log('🔗 Fechas de vigencia heredadas del padre:', {
           fechaInicio: resolucionPadre.fechaVigenciaInicio,
           fechaFin: resolucionPadre.fechaVigenciaFin
@@ -1452,19 +1452,19 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   private configurarFechasParaRenovacion(resolucionPadre: Resolucion): void {
     console.log('🔄 Configurando fechas para renovación:', resolucionPadre);
-    
+
     // Para renovación, las fechas se pueden ajustar manualmente
     // pero sugerimos fechas basadas en la resolución padre
-    
+
     if (resolucionPadre.fechaVigenciaFin) {
       // Sugerir fecha de inicio después de que venza la resolución padre
       const fechaVencimiento = new Date(resolucionPadre.fechaVigenciaFin);
       const fechaSugerida = new Date(fechaVencimiento);
       fechaSugerida.setDate(fechaSugerida.getDate() + 1); // Un día después
-      
+
       this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaSugerida);
       this.fechaVigenciaInicioSignal.set(fechaSugerida);
-      
+
       // Mantener los mismos años de vigencia
       if (resolucionPadre.fechaVigenciaInicio && resolucionPadre.fechaVigenciaFin) {
         const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
@@ -1473,7 +1473,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
         this.aniosVigenciaSignal.set(aniosVigencia);
       }
-      
+
       console.log('🔄 Fechas sugeridas para renovación:', {
         fechaInicio: fechaSugerida,
         aniosVigencia: this.aniosVigenciaSignal()
@@ -1487,7 +1487,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     if (fechaEmision) {
       this.fechaEmisionSignal.set(fechaEmision);
     }
-    
+
     // Revalidar número único cuando cambie el año de emisión
     const numeroBase = this.resolucionForm.get('numeroBase')?.value;
     if (numeroBase && numeroBase.length === 4) {
@@ -1503,7 +1503,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       if (numeroFormateado !== numeroBase) {
         this.resolucionForm.get('numeroBase')?.setValue(numeroFormateado);
       }
-      
+
       // Validar número único al salir del campo
       if (numeroFormateado.length === 4) {
         this.validarNumeroUnico(numeroFormateado);
@@ -1515,14 +1515,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
     // Sincronizar signals de vigencia
     const fechaVigenciaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
-    
+
     if (fechaVigenciaInicio) {
       this.fechaVigenciaInicioSignal.set(fechaVigenciaInicio);
     }
     if (aniosVigencia) {
       this.aniosVigenciaSignal.set(aniosVigencia);
     }
-    
+
     // Forzar recálculo de la fecha de vigencia fin
     // Esto se hace para asegurar que el computed se actualice
     const control = this.resolucionForm.get('aniosVigencia');
@@ -1533,14 +1533,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   onResolucionPadreChange(): void {
     const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
-    
+
     if (resolucionPadreId) {
       // Buscar la resolución padre seleccionada
       const resolucionPadre = this.resolucionesPadre().find(r => r.id === resolucionPadreId);
-      
+
       if (resolucionPadre) {
         console.log('🔍 Resolución padre seleccionada:', resolucionPadre);
-        
+
         const expediente = this.expedienteSeleccionado();
         if (expediente?.tipoTramite === 'RENOVACION') {
           // Para RENOVACION: copiar descripción y observaciones
@@ -1549,20 +1549,20 @@ export class CrearResolucionModalComponent implements OnDestroy {
               `RENOVACIÓN DE: ${resolucionPadre.nroResolucion}`
             );
           }
-          
+
           if (!this.resolucionForm.get('observaciones')?.value) {
             this.resolucionForm.get('observaciones')?.setValue(
               `Renovación de la resolución ${resolucionPadre.nroResolucion} emitida el ${this.formatearFechaLima(resolucionPadre.fechaEmision)}`
             );
           }
-          
+
           // Configurar fechas de vigencia para renovación
           this.configurarFechasParaRenovacion(resolucionPadre);
-          
+
         } else if (expediente?.tipoTramite === 'INCREMENTO' || expediente?.tipoTramite === 'SUSTITUCION' || expediente?.tipoTramite === 'OTROS') {
           // Para resoluciones HIJA: heredar fechas del padre
           this.configurarFechasHeredadasDelPadre(resolucionPadreId);
-          
+
           // Configurar descripción para resolución hija
           if (!this.resolucionForm.get('descripcion')?.value) {
             this.resolucionForm.get('descripcion')?.setValue(
@@ -1570,11 +1570,11 @@ export class CrearResolucionModalComponent implements OnDestroy {
             );
           }
         }
-        
+
         // Mostrar notificación
         this.snackBar.open(
-          `Resolución padre ${resolucionPadre.nroResolucion} seleccionada`, 
-          'CERRAR', 
+          `Resolución padre ${resolucionPadre.nroResolucion} seleccionada`,
+          'CERRAR',
           { duration: 3000 }
         );
       }
@@ -1599,7 +1599,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
     // Validar que se seleccione un expediente
     let expedienteId = this.resolucionForm.get('expedienteId')?.value;
-    
+
     // Si no hay expediente seleccionado, crear uno automáticamente
     if (!expedienteId) {
       expedienteId = await this.crearExpedienteAutomatico();
@@ -1621,7 +1621,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       });
       return;
     }
-    
+
     const tipoTramite = expediente.tipoTramite;
     if (tipoTramite === 'RENOVACION' && !this.resolucionForm.get('resolucionPadreId')?.value) {
       this.snackBar.open('DEBE SELECCIONAR LA RESOLUCIÓN PADRE A RENOVAR', 'CERRAR', {
@@ -1646,7 +1646,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     let fechaVigenciaFin: Date | undefined;
     let fechaInicio: Date | undefined;
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
-    
+
     // Si es resolución hija, heredar fechas del padre
     if (this.data?.esResolucionHija && this.data?.resolucionPadreId) {
       // Para resoluciones hijas, las fechas se heredan del padre
@@ -1659,7 +1659,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
           fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
         }
       }
-      
+
       console.log('🔗 Resolución hija - fechas heredadas del padre:', {
         fechaInicio,
         fechaVigenciaFin,
@@ -1672,7 +1672,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         fechaVigenciaFin = new Date(fechaInicio);
         fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
       }
-      
+
       console.log('🔗 Resolución padre - fechas del formulario:', {
         fechaInicio,
         fechaVigenciaFin,
@@ -1705,10 +1705,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
     this.resolucionService.createResolucion(resolucionData).subscribe({
       next: (resolucion) => {
         this.isLoading.set(false);
-        
-        // Debuggear el estado de los datos mock
-        this.resolucionService.debugMockData();
-        
+
+
+
+
         this.snackBar.open('RESOLUCIÓN CREADA EXITOSAMENTE', 'CERRAR', {
           duration: 3000,
           panelClass: ['success-snackbar']

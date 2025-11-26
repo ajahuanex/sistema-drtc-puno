@@ -179,7 +179,8 @@ async def validar_ruc(ruc: str, empresa_service: EmpresaService = Depends(get_em
 @router.put("/{empresa_id}", response_model=EmpresaResponse)
 async def update_empresa(
     empresa_id: str,
-    empresa_data: EmpresaUpdate
+    empresa_data: EmpresaUpdate,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Actualizar empresa"""
     # Guard clauses
@@ -189,8 +190,9 @@ async def update_empresa(
     if not empresa_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
     
-    empresa_service: EmpresaService = Depends(get_empresa_service)
-    updated_empresa = await empresa_service.update_empresa(empresa_id, empresa_data)
+    # TODO: Get usuario_id from authenticated user
+    usuario_id = "USR001"
+    updated_empresa = await empresa_service.update_empresa(empresa_id, empresa_data, usuario_id)
     
     if not updated_empresa:
         raise EmpresaNotFoundException(empresa_id)
@@ -199,15 +201,17 @@ async def update_empresa(
 
 @router.delete("/{empresa_id}", status_code=204)
 async def delete_empresa(
-    empresa_id: str
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
     """Desactivar empresa (borrado lógico)"""
     # Guard clause
     if not empresa_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
-    empresa_service: EmpresaService = Depends(get_empresa_service)
-    success = await empresa_service.soft_delete_empresa(empresa_id)
+    # TODO: Get usuario_id from authenticated user
+    usuario_id = "USR001"
+    success = await empresa_service.soft_delete_empresa(empresa_id, usuario_id)
     
     if not success:
         raise EmpresaNotFoundException(empresa_id)
