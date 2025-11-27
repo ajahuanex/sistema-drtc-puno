@@ -142,8 +142,8 @@ async def get_empresa(
 ) -> EmpresaResponse:
     """Obtener empresa por ID"""
     # Guard clause
-    if not empresa_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de empresa inválido")
+    # if not empresa_id.isdigit():
+    #    raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
     empresa = await empresa_service.get_empresa_by_id(empresa_id)
     
@@ -184,8 +184,8 @@ async def update_empresa(
 ) -> EmpresaResponse:
     """Actualizar empresa"""
     # Guard clauses
-    if not empresa_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de empresa inválido")
+    # if not empresa_id.isdigit():
+    #    raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
     if not empresa_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
@@ -206,8 +206,8 @@ async def delete_empresa(
 ):
     """Desactivar empresa (borrado lógico)"""
     # Guard clause
-    if not empresa_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de empresa inválido")
+    # if not empresa_id.isdigit():
+    #    raise HTTPException(status_code=400, detail="ID de empresa inválido")
     
     # TODO: Get usuario_id from authenticated user
     usuario_id = "USR001"

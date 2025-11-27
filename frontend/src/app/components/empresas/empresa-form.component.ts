@@ -156,6 +156,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                     CANCELAR
                   </button>
                   <button mat-raised-button color="primary" 
+                          type="button"
                           [disabled]="!isBasicInfoValid()"
                           (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
@@ -241,6 +242,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                     ANTERIOR
                   </button>
                   <button mat-raised-button color="primary" 
+                          type="button"
                           [disabled]="!isRepresentanteValid()"
                           (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
@@ -293,6 +295,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                     ANTERIOR
                   </button>
                   <button mat-raised-button color="primary" 
+                          type="button"
                           [disabled]="!isContactInfoValid()"
                           (click)="stepper.next()">
                     <mat-icon>arrow_forward</mat-icon>
@@ -768,7 +771,7 @@ export class EmpresaFormComponent implements OnInit {
   onSubmit(): void {
     if (this.empresaForm.valid) {
       this.isSubmitting.set(true);
-      
+
       const formData = this.empresaForm.value;
       const empresaData = {
         ruc: formData.ruc,
@@ -793,7 +796,7 @@ export class EmpresaFormComponent implements OnInit {
       };
 
       const id = this.empresaId();
-      const request = this.isEditing() 
+      const request = this.isEditing()
         ? this.empresaService.updateEmpresa(id!, empresaData)
         : this.empresaService.createEmpresa(empresaData);
 

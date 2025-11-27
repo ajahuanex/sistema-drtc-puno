@@ -4,24 +4,64 @@ from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
+
 from app.dependencies.auth import get_current_active_user
+from app.dependencies.db import get_database
+from app.services.expediente_service import ExpedienteService
 from app.services.expediente_excel_service import ExpedienteExcelService
 from app.models.expediente import ExpedienteCreate, ExpedienteUpdate, Expediente, ExpedienteResponse
-from app.utils.exceptions import (
-    ValidationErrorException
-)
+from app.utils.exceptions import ValidationErrorException
 
 router = APIRouter(prefix="/expedientes", tags=["expedientes"])
 
-@router.get("/")
-async def get_expedientes():
-    """Obtener lista de expedientes"""
-    return {"message": "Lista de expedientes - Endpoint básico"}
+async def get_expediente_service():
+    """Dependency para obtener el servicio de expedientes"""
+    db = await get_database()
+    return ExpedienteService(db)
 
-@router.post("/")
-async def create_expediente():
+# ========================================
+# ENDPOINTS CRUD
+# ========================================
+
+@router.get("/", response_model=List[Expediente])
+async def get_expedientes(
+    skip: int = 0, 
+    limit: int = 100,
+    service: ExpedienteService = Depends(get_expediente_service)
+):
+    """Obtener lista de expedientes"""
+    return await service.get_expedientes(skip=skip, limit=limit)
+
+@router.get("/{expediente_id}", response_model=Expediente)
+async def get_expediente(
+    expediente_id: str,
+    service: ExpedienteService = Depends(get_expediente_service)
+):
+    """Obtener expediente por ID"""
+    expediente = await service.get_expediente_by_id(expediente_id)
+    if not expediente:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+    return expediente
+
+@router.post("/", response_model=Expediente)
+async def create_expediente(
+    expediente: ExpedienteCreate,
+    service: ExpedienteService = Depends(get_expediente_service)
+):
     """Crear nuevo expediente"""
-    return {"message": "Crear expediente - Endpoint básico"}
+    return await service.create_expediente(expediente)
+
+@router.put("/{expediente_id}", response_model=Expediente)
+async def update_expediente(
+    expediente_id: str,
+    expediente_in: ExpedienteUpdate,
+    service: ExpedienteService = Depends(get_expediente_service)
+):
+    """Actualizar expediente"""
+    expediente = await service.update_expediente(expediente_id, expediente_in)
+    if not expediente:
+        raise HTTPException(status_code=404, detail="Expediente no encontrado")
+    return expediente
 
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL

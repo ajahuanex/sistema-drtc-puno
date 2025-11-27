@@ -109,22 +109,31 @@ app.include_router(qr_consulta_router, tags=["Mesa de Partes - Consulta Pública
 @app.get("/health")
 async def health_check():
     """Endpoint de verificación de salud del sistema"""
+    from app.dependencies.db import db
+    
+    db_status = "connected" if db.client else "disconnected"
+    mode = "database" if db.client else "mock_data_fallback"
+    
     return {
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "timestamp": time.time(),
-        "mode": "mock_data"
+        "mode": mode,
+        "database_status": db_status
     }
 
 # Endpoint raíz
 @app.get("/")
 async def root():
     """Endpoint raíz con información del sistema"""
+    from app.dependencies.db import db
+    mode = "database" if db.client else "mock_data_fallback"
+    
     return {
         "message": f"Bienvenido al {settings.PROJECT_NAME}",
         "version": settings.VERSION,
-        "mode": "mock_data",
+        "mode": mode,
         "docs": "/docs",
         "redoc": "/redoc",
         "health": "/health",
@@ -140,4 +149,4 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.DEBUG,
         log_level="info"
-    ) 
+    )

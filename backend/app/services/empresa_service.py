@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from bson import ObjectId
 import httpx
+import uuid
 import asyncio
 from app.models.empresa import (
     EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaEstadisticas, 
@@ -67,10 +68,13 @@ class EmpresaService:
             campoNuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
             observaciones="Creación inicial de empresa"
         )
-        empresa_dict["auditoria"] = [auditoria.model_dump()]
+        empresa_dict["auditoria"] = [auditoria.model_dump()]        
+        # Generar UUID para el campo 'id' si no existe
+        if "id" not in empresa_dict or not empresa_dict["id"]:
+            empresa_dict["id"] = str(uuid.uuid4())
         
         # Eliminar el campo 'id' porque MongoDB usa '_id'
-        empresa_dict.pop('id', None)
+        # empresa_dict.pop('id', None)  # Comentado para preservar ID
         
         result = await self.collection.insert_one(empresa_dict)
         empresa_creada = await self.get_empresa_by_id(str(result.inserted_id))
@@ -142,8 +146,20 @@ class EmpresaService:
         return min(score, 100)  # Máximo 100
 
     async def get_empresa_by_id(self, empresa_id: str) -> Optional[EmpresaInDB]:
-        """Obtener empresa por ID"""
-        empresa = await self.collection.find_one({"_id": ObjectId(empresa_id)})
+        """Obtener empresa por ID (soporta tanto UUID como ObjectId)"""
+        empresa = None
+        
+        # Primero intentar buscar por campo 'id' (UUID)
+        empresa = await self.collection.find_one({"id": empresa_id})
+        
+        # Si no se encuentra, intentar por '_id' (ObjectId de MongoDB)
+        if not empresa:
+            try:
+                empresa = await self.collection.find_one({"_id": ObjectId(empresa_id)})
+            except Exception:
+                # Si empresa_id no es un ObjectId válido, simplemente retornar None
+                pass
+        
         return EmpresaInDB(**empresa) if empresa else None
 
     async def get_empresa_by_ruc(self, ruc: str) -> Optional[EmpresaInDB]:
