@@ -1,21 +1,28 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 from bson import ObjectId
 import httpx
 import uuid
-import asyncio
+
 from app.models.empresa import (
-    EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaEstadisticas, 
-    EmpresaFiltros, EstadoEmpresa, AuditoriaEmpresa, DocumentoEmpresa
+    EmpresaCreate,
+    EmpresaUpdate,
+    EmpresaInDB,
+    EmpresaEstadisticas,
+    EmpresaFiltros,
+    EstadoEmpresa,
+    AuditoriaEmpresa,
+    DocumentoEmpresa,
 )
 from app.utils.exceptions import (
-    EmpresaNotFoundException, 
+    EmpresaNotFoundException,
     EmpresaAlreadyExistsException,
     ValidationErrorException,
-    SunatValidationError
+    SunatValidationError,
 )
 from app.utils.codigo_empresa_utils import CodigoEmpresaUtils
+
 
 class EmpresaService:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -23,33 +30,40 @@ class EmpresaService:
         self.collection = db.empresas
         self.auditoria_collection = db.empresas_auditoria
 
+    # ---------------------------------------------------------------------
+    # Helper methods
+    # ---------------------------------------------------------------------
+    async def _generate_uuid(self) -> str:
+        return str(uuid.uuid4())
+
+    # ---------------------------------------------------------------------
+    # CRUD operations
+    # ---------------------------------------------------------------------
     async def create_empresa(self, empresa_data: EmpresaCreate, usuario_id: str) -> EmpresaInDB:
         """Crear nueva empresa con validación SUNAT y auditoría"""
-        # Verificar si ya existe una empresa con el mismo RUC
-        existing_empresa = await self.get_empresa_by_ruc(empresa_data.ruc)
-        if existing_empresa:
+        # Verificar RUC duplicado
+        if await self.get_empresa_by_ruc(empresa_data.ruc):
             raise EmpresaAlreadyExistsException(f"Ya existe una empresa con RUC {empresa_data.ruc}")
         
-        # Verificar si ya existe una empresa con el mismo código
+        # Verificar código duplicado
         if empresa_data.codigoEmpresa:
-            existing_codigo = await self.get_empresa_by_codigo(empresa_data.codigoEmpresa)
-            if existing_codigo:
+            if await self.get_empresa_by_codigo(empresa_data.codigoEmpresa):
                 raise EmpresaAlreadyExistsException(f"Ya existe una empresa con código {empresa_data.codigoEmpresa}")
         else:
-            # Generar código automáticamente si no se proporciona
-            codigos_existentes = await self.obtener_codigos_empresas_existentes()
-            empresa_data.codigoEmpresa = CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
-        
-        # Validar formato del código de empresa
+            codigos = await self.obtener_codigos_empresas_existentes()
+            empresa_data.codigoEmpresa = CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos)
+            
+        # Validar formato código
         if not CodigoEmpresaUtils.validar_formato_codigo(empresa_data.codigoEmpresa):
             raise ValidationErrorException(f"Formato de código de empresa inválido: {empresa_data.codigoEmpresa}")
-        
-        # Validar RUC con SUNAT
+            
+        # Validar SUNAT
         datos_sunat = await self.validar_ruc_sunat(empresa_data.ruc)
         
         # Calcular score de riesgo
         score_riesgo = await self.calcular_score_riesgo(empresa_data, datos_sunat)
         
+        # Preparar documento
         empresa_dict = empresa_data.model_dump(by_alias=False)
         empresa_dict["fechaRegistro"] = datetime.utcnow()
         empresa_dict["estaActivo"] = True
@@ -59,30 +73,428 @@ class EmpresaService:
         empresa_dict["scoreRiesgo"] = score_riesgo
         empresa_dict["auditoria"] = []
         
-        # Crear registro de auditoría
+        # Auditoría de creación
         auditoria = AuditoriaEmpresa(
             fechaCambio=datetime.utcnow(),
             usuarioId=usuario_id,
             tipoCambio="CREACION_EMPRESA",
             campoAnterior=None,
             campoNuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
-            observaciones="Creación inicial de empresa"
+            observaciones="Creación inicial de empresa",
         )
-        empresa_dict["auditoria"] = [auditoria.model_dump()]        
-        # Generar UUID para el campo 'id' si no existe
+        empresa_dict["auditoria"].append(auditoria.model_dump())
+        
+        # Garantizar UUID en campo id
         if "id" not in empresa_dict or not empresa_dict["id"]:
-            empresa_dict["id"] = str(uuid.uuid4())
-        
-        # Eliminar el campo 'id' porque MongoDB usa '_id'
-        # empresa_dict.pop('id', None)  # Comentado para preservar ID
-        
+            empresa_dict["id"] = await self._generate_uuid()
+            
+        # Insertar
         result = await self.collection.insert_one(empresa_dict)
         empresa_creada = await self.get_empresa_by_id(str(result.inserted_id))
         
-        # Crear notificación
         await self.crear_notificacion_empresa(empresa_creada, "EMPRESA_CREADA")
         
         return empresa_creada
+
+    async def get_empresa_by_id(self, empresa_id: str) -> Optional[EmpresaInDB]:
+        """Obtener empresa por ID (UUID o ObjectId)"""
+        # Construir query para buscar por UUID 'id' O ObjectId '_id'
+        or_conditions = [{"id": empresa_id}]
+        
+        if ObjectId.is_valid(empresa_id):
+             or_conditions.append({"_id": ObjectId(empresa_id)})
+             
+        query = {"$or": or_conditions}
+        
+        empresa = await self.collection.find_one(query)
+        return EmpresaInDB(**empresa) if empresa else None
+
+    async def get_empresa_by_ruc(self, ruc: str) -> Optional[EmpresaInDB]:
+        empresa = await self.collection.find_one({"ruc": ruc})
+        return EmpresaInDB(**empresa) if empresa else None
+
+    async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
+        empresa = await self.collection.find_one({"codigoEmpresa": codigo})
+        return EmpresaInDB(**empresa) if empresa else None
+
+    async def get_empresas_activas(self) -> List[EmpresaInDB]:
+        cursor = self.collection.find({"estaActivo": True})
+        docs = await cursor.to_list(length=None)
+        return [EmpresaInDB(**doc) for doc in docs]
+
+    async def get_empresas_por_estado(self, estado: EstadoEmpresa) -> List[EmpresaInDB]:
+        cursor = self.collection.find({"estado": estado, "estaActivo": True})
+        docs = await cursor.to_list(length=None)
+        return [EmpresaInDB(**doc) for doc in docs]
+
+    async def get_empresas_con_filtros(self, filtros: EmpresaFiltros) -> List[EmpresaInDB]:
+        query: Dict[str, Any] = {"estaActivo": True}
+        
+        if filtros.ruc:
+            query["ruc"] = {"$regex": filtros.ruc, "$options": "i"}
+            
+        if filtros.razon_social:
+            query["razonSocial.principal"] = {"$regex": filtros.razon_social, "$options": "i"}
+            
+        if filtros.estado:
+            query["estado"] = filtros.estado
+            
+        if filtros.fecha_desde or filtros.fecha_hasta:
+            query["fechaRegistro"] = {}
+            if filtros.fecha_desde:
+                query["fechaRegistro"]["$gte"] = filtros.fecha_desde
+            if filtros.fecha_hasta:
+                query["fechaRegistro"]["$lte"] = filtros.fecha_hasta
+                
+        if filtros.score_riesgo_min is not None or filtros.score_riesgo_max is not None:
+            query["scoreRiesgo"] = {}
+            if filtros.score_riesgo_min is not None:
+                query["scoreRiesgo"]["$gte"] = filtros.score_riesgo_min
+            if filtros.score_riesgo_max is not None:
+                query["scoreRiesgo"]["$lte"] = filtros.score_riesgo_max
+                
+        if filtros.tiene_documentos_vencidos:
+            query["documentos"] = {"$elemMatch": {"fechaVencimiento": {"$lt": datetime.utcnow()}, "estaActivo": True}}
+            
+        if filtros.tiene_vehiculos:
+            query["vehiculosHabilitadosIds"] = {"$ne": []}
+            
+        if filtros.tiene_conductores:
+            query["conductoresHabilitadosIds"] = {"$ne": []}
+            
+        cursor = self.collection.find(query)
+        docs = await cursor.to_list(length=None)
+        return [EmpresaInDB(**doc) for doc in docs]
+
+    async def update_empresa(self, empresa_id: str, empresa_data: EmpresaUpdate, usuario_id: str) -> Optional[EmpresaInDB]:
+        empresa_actual = await self.get_empresa_by_id(empresa_id)
+        if not empresa_actual:
+            return None
+            
+        update_data = empresa_data.model_dump(exclude_unset=True)
+        if not update_data:
+            return None
+            
+        auditoria = await self.crear_auditoria_cambio(empresa_actual, update_data, usuario_id)
+        
+        update_data["fechaActualizacion"] = datetime.utcnow()
+        update_data["auditoria"] = empresa_actual.auditoria + [auditoria.model_dump()]
+        
+        if "ruc" in update_data:
+            datos_sunat = await self.validar_ruc_sunat(update_data["ruc"])
+            update_data["datosSunat"] = datos_sunat
+            update_data["ultimaValidacionSunat"] = datetime.utcnow()
+            
+        # Recalcular score
+        score_riesgo = await self.calcular_score_riesgo_actualizado(empresa_actual, update_data)
+        update_data["scoreRiesgo"] = score_riesgo
+        
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw:
+            return None
+            
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$set": update_data})
+        
+        if result.modified_count:
+            empresa_actualizada = await self.get_empresa_by_id(empresa_id)
+            await self.crear_notificacion_empresa(empresa_actualizada, "EMPRESA_ACTUALIZADA")
+            return empresa_actualizada
+            
+        return None
+
+    async def crear_auditoria_cambio(self, empresa_actual: EmpresaInDB, cambios: Dict[str, Any], usuario_id: str) -> AuditoriaEmpresa:
+        cambios_texto = []
+        for campo, valor in cambios.items():
+            if campo != "auditoria":
+                anterior = getattr(empresa_actual, campo, None)
+                cambios_texto.append(f"{campo}: {anterior} -> {valor}")
+                
+        return AuditoriaEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="ACTUALIZACION_EMPRESA",
+            campoAnterior=str(cambios_texto),
+            campoNuevo="Actualización de datos",
+            observaciones=f"Actualización realizada por usuario {usuario_id}",
+        )
+
+    # ---------------------------------------------------------------------
+    # Scoring
+    # ---------------------------------------------------------------------
+    async def calcular_score_riesgo(self, empresa_data: EmpresaCreate, datos_sunat: Dict[str, Any]) -> int:
+        score = 0
+        
+        # SUNAT
+        if datos_sunat.get("valido"):
+            score += 20
+        else:
+            score += 80
+            
+        # Representante legal
+        if empresa_data.representanteLegal.dni and len(empresa_data.representanteLegal.dni) == 8:
+            score += 10
+        else:
+            score += 30
+            
+        # Documentos vencidos
+        if empresa_data.documentos:
+            vencidos = sum(1 for doc in empresa_data.documentos if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
+            score += vencidos * 15
+            
+        # Contacto
+        if empresa_data.emailContacto:
+            score += 5
+        if empresa_data.telefonoContacto:
+            score += 5
+            
+        return score
+
+    async def calcular_score_riesgo_actualizado(self, empresa: EmpresaInDB, cambios: Dict[str, Any]) -> int:
+        base = empresa.scoreRiesgo or 50
+        
+        if "datosSunat" in cambios:
+            if cambios["datosSunat"].get("valido"):
+                base -= 20
+            else:
+                base += 30
+                
+        if "documentos" in cambios:
+            vencidos = sum(1 for doc in cambios["documentos"] if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
+            base += vencidos * 10
+            
+        if "emailContacto" in cambios:
+            base += 5
+            
+        if "telefonoContacto" in cambios:
+            base += 5
+            
+        return max(0, min(base, 100))
+
+    # ---------------------------------------------------------------------
+    # Soft delete
+    # ---------------------------------------------------------------------
+    async def soft_delete_empresa(self, empresa_id: str, usuario_id: str) -> bool:
+        empresa = await self.get_empresa_by_id(empresa_id)
+        if not empresa:
+            return False
+            
+        auditoria = AuditoriaEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="DESACTIVACION_EMPRESA",
+            campoAnterior="Activa",
+            campoNuevo="Inactiva",
+            observaciones="Empresa desactivada por usuario",
+        )
+        
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw:
+            return False
+
+        result = await self.collection.update_one(
+            {"_id": doc_raw["_id"]},
+            {"$set": {"estaActivo": False, "fechaActualizacion": datetime.utcnow()}, "$push": {"auditoria": auditoria.model_dump()}},
+        )
+        
+        if result.modified_count:
+            await self.crear_notificacion_empresa(empresa, "EMPRESA_DESACTIVADA")
+            return True
+            
+        return False
+
+    # ---------------------------------------------------------------------
+    # Document handling
+    # ---------------------------------------------------------------------
+    async def agregar_documento(self, empresa_id: str, documento: DocumentoEmpresa, usuario_id: str) -> bool:
+        auditoria = AuditoriaEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="AGREGAR_DOCUMENTO",
+            campoAnterior=None,
+            campoNuevo=f"Documento {documento.tipo}: {documento.numero}",
+            observaciones=f"Documento agregado: {documento.tipo}",
+        )
+        
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw:
+            return False
+            
+        result = await self.collection.update_one(
+            {"_id": doc_raw["_id"]},
+            {"$push": {"documentos": documento.model_dump(), "auditoria": auditoria.model_dump()}, "$set": {"fechaActualizacion": datetime.utcnow()}},
+        )
+        return result.modified_count > 0
+
+    async def get_documentos_vencidos(self, empresa_id: str) -> List[DocumentoEmpresa]:
+        empresa = await self.get_empresa_by_id(empresa_id)
+        if not empresa:
+            return []
+            
+        vencidos = []
+        for doc in empresa.documentos:
+            if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow() and doc.estaActivo:
+                vencidos.append(doc)
+        return vencidos
+
+    # ---------------------------------------------------------------------
+    # Statistics
+    # ---------------------------------------------------------------------
+    async def get_estadisticas(self) -> EmpresaEstadisticas:
+        pipeline = [
+            {"$match": {"estaActivo": True}},
+            {"$group": {
+                "_id": None,
+                "total_empresas": {"$sum": 1},
+                "empresas_habilitadas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.HABILITADA]}, 1, 0]}},
+                "empresas_en_tramite": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.EN_TRAMITE]}, 1, 0]}},
+                "empresas_suspendidas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.SUSPENDIDA]}, 1, 0]}},
+                "empresas_canceladas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.CANCELADA]}, 1, 0]}},
+                "empresas_dadas_de_baja": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.DADA_DE_BAJA]}, 1, 0]}},
+                "promedio_vehiculos": {"$avg": {"$size": {"$ifNull": ["$vehiculosHabilitadosIds", []]}}},
+                "promedio_conductores": {"$avg": {"$size": {"$ifNull": ["$conductoresHabilitadosIds", []]}}},
+            }},
+        ]
+        
+        resultado = await self.collection.aggregate(pipeline).to_list(1)
+        
+        if not resultado:
+            return EmpresaEstadisticas(
+                totalEmpresas=0,
+                empresasHabilitadas=0,
+                empresasEnTramite=0,
+                empresasSuspendidas=0,
+                empresasCanceladas=0,
+                empresasDadasDeBaja=0,
+                empresasConDocumentosVencidos=0,
+                empresasConScoreAltoRiesgo=0,
+                promedioVehiculosPorEmpresa=0.0,
+                promedioConductoresPorEmpresa=0.0,
+            )
+            
+        s = resultado[0]
+        return EmpresaEstadisticas(
+            totalEmpresas=s["total_empresas"],
+            empresasHabilitadas=s["empresas_habilitadas"],
+            empresasEnTramite=s["empresas_en_tramite"],
+            empresasSuspendidas=s["empresas_suspendidas"],
+            empresasCanceladas=s["empresas_canceladas"],
+            empresasDadasDeBaja=s["empresas_dadas_de_baja"],
+            empresasConDocumentosVencidos=0,
+            empresasConScoreAltoRiesgo=0,
+            promedioVehiculosPorEmpresa=s["promedio_vehiculos"],
+            promedioConductoresPorEmpresa=s["promedio_conductores"],
+        )
+
+    # ---------------------------------------------------------------------
+    # Notifications (placeholder)
+    # ---------------------------------------------------------------------
+    async def crear_notificacion_empresa(self, empresa: EmpresaInDB, tipo: str):
+        # Placeholder for notification logic
+        pass
+
+    # ---------------------------------------------------------------------
+    # Código empresa utilities
+    # ---------------------------------------------------------------------
+    async def obtener_codigos_empresas_existentes(self) -> List[str]:
+        cursor = self.collection.find({}, {"codigoEmpresa": 1})
+        docs = await cursor.to_list(length=None)
+        return [doc.get("codigoEmpresa") for doc in docs if doc.get("codigoEmpresa")]
+
+    async def generar_siguiente_codigo_empresa(self) -> str:
+        codigos = await self.obtener_codigos_empresas_existentes()
+        return CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos)
+
+    # ---------------------------------------------------------------------
+    # Relaciones
+    # ---------------------------------------------------------------------
+    async def agregar_vehiculo_habilitado(self, empresa_id: str, vehiculo_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+        
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$addToSet": {"vehiculosHabilitadosIds": vehiculo_id}})
+        return result.modified_count > 0
+
+    async def remover_vehiculo_habilitado(self, empresa_id: str, vehiculo_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$pull": {"vehiculosHabilitadosIds": vehiculo_id}})
+        return result.modified_count > 0
+
+    async def agregar_conductor_habilitado(self, empresa_id: str, conductor_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$addToSet": {"conductoresHabilitadosIds": conductor_id}})
+        return result.modified_count > 0
+
+    async def remover_conductor_habilitado(self, empresa_id: str, conductor_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$pull": {"conductoresHabilitadosIds": conductor_id}})
+        return result.modified_count > 0
+
+    async def agregar_ruta_autorizada(self, empresa_id: str, ruta_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$addToSet": {"rutasAutorizadasIds": ruta_id}})
+        return result.modified_count > 0
+
+    async def remover_ruta_autorizada(self, empresa_id: str, ruta_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$pull": {"rutasAutorizadasIds": ruta_id}})
+        return result.modified_count > 0
+
+    async def agregar_resolucion_primigenia(self, empresa_id: str, resolucion_id: str) -> bool:
+        # Resolver _id
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+             filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        if not doc_raw: return False
+
+        result = await self.collection.update_one({"_id": doc_raw["_id"]}, {"$addToSet": {"resolucionesPrimigeniasIds": resolucion_id}})
+        return result.modified_count > 0
 
     async def validar_ruc_sunat(self, ruc: str) -> Dict[str, Any]:
         """Validar RUC con SUNAT"""
@@ -114,389 +526,3 @@ class EmpresaService:
                 "error": f"Error al validar con SUNAT: {str(e)}",
                 "fecha_actualizacion": datetime.utcnow()
             }
-
-    async def calcular_score_riesgo(self, empresa_data: EmpresaCreate, datos_sunat: Dict[str, Any]) -> int:
-        """Calcular score de riesgo de la empresa"""
-        score = 0
-        
-        # Validar datos SUNAT
-        if datos_sunat.get("valido"):
-            score += 20
-        else:
-            score += 80  # Alto riesgo si no es válido en SUNAT
-        
-        # Validar representante legal
-        if empresa_data.representanteLegal.dni and len(empresa_data.representanteLegal.dni) == 8:
-            score += 10
-        else:
-            score += 30
-        
-        # Validar documentos
-        if empresa_data.documentos:
-            documentos_vencidos = sum(1 for doc in empresa_data.documentos 
-                                   if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
-            score += documentos_vencidos * 15
-        
-        # Validar información de contacto
-        if empresa_data.emailContacto:
-            score += 5
-        if empresa_data.telefonoContacto:
-            score += 5
-        
-        return min(score, 100)  # Máximo 100
-
-    async def get_empresa_by_id(self, empresa_id: str) -> Optional[EmpresaInDB]:
-        """Obtener empresa por ID (soporta tanto UUID como ObjectId)"""
-        empresa = None
-        
-        # Primero intentar buscar por campo 'id' (UUID)
-        empresa = await self.collection.find_one({"id": empresa_id})
-        
-        # Si no se encuentra, intentar por '_id' (ObjectId de MongoDB)
-        if not empresa:
-            try:
-                empresa = await self.collection.find_one({"_id": ObjectId(empresa_id)})
-            except Exception:
-                # Si empresa_id no es un ObjectId válido, simplemente retornar None
-                pass
-        
-        return EmpresaInDB(**empresa) if empresa else None
-
-    async def get_empresa_by_ruc(self, ruc: str) -> Optional[EmpresaInDB]:
-        """Obtener empresa por RUC"""
-        empresa = await self.collection.find_one({"ruc": ruc})
-        return EmpresaInDB(**empresa) if empresa else None
-
-    async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
-        """Obtener empresa por código de empresa"""
-        empresa = await self.collection.find_one({"codigoEmpresa": codigo})
-        return EmpresaInDB(**empresa) if empresa else None
-
-    async def get_empresas_activas(self) -> List[EmpresaInDB]:
-        """Obtener todas las empresas activas"""
-        cursor = self.collection.find({"estaActivo": True})
-        empresas = await cursor.to_list(length=None)
-        return [EmpresaInDB(**empresa) for empresa in empresas]
-
-    async def get_empresas_por_estado(self, estado: EstadoEmpresa) -> List[EmpresaInDB]:
-        """Obtener empresas por estado"""
-        cursor = self.collection.find({"estado": estado, "estaActivo": True})
-        empresas = await cursor.to_list(length=None)
-        return [EmpresaInDB(**empresa) for empresa in empresas]
-
-    async def get_empresas_con_filtros(self, filtros: EmpresaFiltros) -> List[EmpresaInDB]:
-        """Obtener empresas con filtros avanzados"""
-        query = {"estaActivo": True}
-        
-        if filtros.ruc:
-            query["ruc"] = {"$regex": filtros.ruc, "$options": "i"}
-        
-        if filtros.razon_social:
-            query["razonSocial.principal"] = {"$regex": filtros.razon_social, "$options": "i"}
-        
-        if filtros.estado:
-            query["estado"] = filtros.estado
-        
-        if filtros.fecha_desde or filtros.fecha_hasta:
-            query["fechaRegistro"] = {}
-            if filtros.fecha_desde:
-                query["fechaRegistro"]["$gte"] = filtros.fecha_desde
-            if filtros.fecha_hasta:
-                query["fechaRegistro"]["$lte"] = filtros.fecha_hasta
-        
-        if filtros.score_riesgo_min is not None or filtros.score_riesgo_max is not None:
-            query["scoreRiesgo"] = {}
-            if filtros.score_riesgo_min is not None:
-                query["scoreRiesgo"]["$gte"] = filtros.score_riesgo_min
-            if filtros.score_riesgo_max is not None:
-                query["scoreRiesgo"]["$lte"] = filtros.score_riesgo_max
-        
-        if filtros.tiene_documentos_vencidos:
-            query["documentos"] = {
-                "$elemMatch": {
-                    "fechaVencimiento": {"$lt": datetime.utcnow()},
-                    "estaActivo": True
-                }
-            }
-        
-        if filtros.tiene_vehiculos:
-            query["vehiculosHabilitadosIds"] = {"$ne": []}
-        
-        if filtros.tiene_conductores:
-            query["conductoresHabilitadosIds"] = {"$ne": []}
-        
-        cursor = self.collection.find(query)
-        empresas = await cursor.to_list(length=None)
-        return [EmpresaInDB(**empresa) for empresa in empresas]
-
-    async def update_empresa(self, empresa_id: str, empresa_data: EmpresaUpdate, usuario_id: str) -> Optional[EmpresaInDB]:
-        """Actualizar empresa con auditoría"""
-        empresa_actual = await self.get_empresa_by_id(empresa_id)
-        if not empresa_actual:
-            return None
-        
-        update_data = empresa_data.model_dump(exclude_unset=True)
-        
-        if update_data:
-            # Crear registro de auditoría
-            auditoria = await self.crear_auditoria_cambio(empresa_actual, update_data, usuario_id)
-            
-            update_data["fechaActualizacion"] = datetime.utcnow()
-            update_data["auditoria"] = empresa_actual.auditoria + [auditoria.model_dump()]
-            
-            # Si se actualiza el RUC, validar con SUNAT
-            if "ruc" in update_data:
-                datos_sunat = await self.validar_ruc_sunat(update_data["ruc"])
-                update_data["datosSunat"] = datos_sunat
-                update_data["ultimaValidacionSunat"] = datetime.utcnow()
-            
-            # Recalcular score de riesgo
-            score_riesgo = await self.calcular_score_riesgo_actualizado(empresa_actual, update_data)
-            update_data["scoreRiesgo"] = score_riesgo
-            
-            result = await self.collection.update_one(
-                {"_id": ObjectId(empresa_id)},
-                {"$set": update_data}
-            )
-            
-            if result.modified_count:
-                empresa_actualizada = await self.get_empresa_by_id(empresa_id)
-                await self.crear_notificacion_empresa(empresa_actualizada, "EMPRESA_ACTUALIZADA")
-                return empresa_actualizada
-        
-        return None
-
-    async def crear_auditoria_cambio(self, empresa_actual: EmpresaInDB, cambios: Dict[str, Any], usuario_id: str) -> AuditoriaEmpresa:
-        """Crear registro de auditoría para cambios"""
-        cambios_texto = []
-        for campo, valor in cambios.items():
-            if campo != "auditoria":  # Excluir el campo auditoría
-                valor_anterior = getattr(empresa_actual, campo, None)
-                cambios_texto.append(f"{campo}: {valor_anterior} -> {valor}")
-        
-        return AuditoriaEmpresa(
-            fechaCambio=datetime.utcnow(),
-            usuarioId=usuario_id,
-            tipoCambio="ACTUALIZACION_EMPRESA",
-            campoAnterior=str(cambios_texto),
-            campoNuevo="Actualización de datos",
-            observaciones=f"Actualización realizada por usuario {usuario_id}"
-        )
-
-    async def calcular_score_riesgo_actualizado(self, empresa: EmpresaInDB, cambios: Dict[str, Any]) -> int:
-        """Recalcular score de riesgo con cambios"""
-        # Implementar lógica de recálculo basada en cambios
-        score_base = empresa.scoreRiesgo or 50
-        
-        # Ajustar según cambios
-        if "datosSunat" in cambios:
-            if cambios["datosSunat"].get("valido"):
-                score_base -= 20
-            else:
-                score_base += 30
-        
-        if "documentos" in cambios:
-            documentos_vencidos = sum(1 for doc in cambios["documentos"] 
-                                   if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow())
-            score_base += documentos_vencidos * 10
-        
-        return max(0, min(score_base, 100))
-
-    async def soft_delete_empresa(self, empresa_id: str, usuario_id: str) -> bool:
-        """Desactivar empresa (borrado lógico) con auditoría"""
-        empresa = await self.get_empresa_by_id(empresa_id)
-        if not empresa:
-            return False
-        
-        # Crear auditoría
-        auditoria = AuditoriaEmpresa(
-            fechaCambio=datetime.utcnow(),
-            usuarioId=usuario_id,
-            tipoCambio="DESACTIVACION_EMPRESA",
-            campoAnterior="Activa",
-            campoNuevo="Inactiva",
-            observaciones="Empresa desactivada por usuario"
-        )
-        
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {
-                "$set": {
-                    "estaActivo": False,
-                    "fechaActualizacion": datetime.utcnow()
-                },
-                "$push": {"auditoria": auditoria.model_dump()}
-            }
-        )
-        
-        if result.modified_count:
-            await self.crear_notificacion_empresa(empresa, "EMPRESA_DESACTIVADA")
-            return True
-        
-        return False
-
-    async def agregar_documento(self, empresa_id: str, documento: DocumentoEmpresa, usuario_id: str) -> bool:
-        """Agregar documento a empresa"""
-        auditoria = AuditoriaEmpresa(
-            fechaCambio=datetime.utcnow(),
-            usuarioId=usuario_id,
-            tipoCambio="AGREGAR_DOCUMENTO",
-            campoAnterior=None,
-            campoNuevo=f"Documento {documento.tipo}: {documento.numero}",
-            observaciones=f"Documento agregado: {documento.tipo}"
-        )
-        
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {
-                "$push": {
-                    "documentos": documento.model_dump(),
-                    "auditoria": auditoria.model_dump()
-                },
-                "$set": {"fechaActualizacion": datetime.utcnow()}
-            }
-        )
-        
-        return result.modified_count > 0
-
-    async def get_documentos_vencidos(self, empresa_id: str) -> List[DocumentoEmpresa]:
-        """Obtener documentos vencidos de una empresa"""
-        empresa = await self.get_empresa_by_id(empresa_id)
-        if not empresa:
-            return []
-        
-        documentos_vencidos = []
-        for doc in empresa.documentos:
-            if doc.fechaVencimiento and doc.fechaVencimiento < datetime.utcnow() and doc.estaActivo:
-                documentos_vencidos.append(doc)
-        
-        return documentos_vencidos
-
-    async def get_estadisticas(self) -> EmpresaEstadisticas:
-        """Obtener estadísticas detalladas de empresas"""
-        pipeline = [
-            {"$match": {"estaActivo": True}},
-            {"$group": {
-                "_id": None,
-                "total_empresas": {"$sum": 1},
-                "empresas_habilitadas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.HABILITADA]}, 1, 0]}},
-                "empresas_en_tramite": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.EN_TRAMITE]}, 1, 0]}},
-                "empresas_suspendidas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.SUSPENDIDA]}, 1, 0]}},
-                "empresas_canceladas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.CANCELADA]}, 1, 0]}},
-                "empresas_dadas_de_baja": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.DADA_DE_BAJA]}, 1, 0]}},
-                "promedio_vehiculos": {"$avg": {"$size": {"$ifNull": ["$vehiculosHabilitadosIds", []]}}},
-                "promedio_conductores": {"$avg": {"$size": {"$ifNull": ["$conductoresHabilitadosIds", []]}}}
-            }}
-        ]
-        
-        resultado = await self.collection.aggregate(pipeline).to_list(1)
-        
-        if resultado:
-            stats = resultado[0]
-            return EmpresaEstadisticas(
-                totalEmpresas=stats["total_empresas"],
-                empresasHabilitadas=stats["empresas_habilitadas"],
-                empresasEnTramite=stats["empresas_en_tramite"],
-                empresasSuspendidas=stats["empresas_suspendidas"],
-                empresasCanceladas=stats["empresas_canceladas"],
-                empresasDadasDeBaja=stats["empresas_dadas_de_baja"],
-                empresasConDocumentosVencidos=0,  # Calcular por separado
-                empresasConScoreAltoRiesgo=0,  # Calcular por separado
-                promedioVehiculosPorEmpresa=stats["promedio_vehiculos"],
-                promedioConductoresPorEmpresa=stats["promedio_conductores"]
-            )
-        
-        return EmpresaEstadisticas(
-            totalEmpresas=0,
-            empresasHabilitadas=0,
-            empresasEnTramite=0,
-            empresasSuspendidas=0,
-            empresasCanceladas=0,
-            empresasDadasDeBaja=0,
-            empresasConDocumentosVencidos=0,
-            empresasConScoreAltoRiesgo=0,
-            promedioVehiculosPorEmpresa=0.0,
-            promedioConductoresPorEmpresa=0.0
-        )
-
-    async def crear_notificacion_empresa(self, empresa: EmpresaInDB, tipo: str):
-        """Crear notificación para cambios en empresa"""
-        # Implementar lógica de notificaciones
-        notificacion = {
-            "empresa_id": empresa.id,
-            "tipo": tipo,
-            "fecha": datetime.utcnow(),
-            "mensaje": f"Empresa {empresa.ruc} - {tipo}",
-            "leida": False
-        }
-        
-        # Aquí se insertaría en la colección de notificaciones
-        # await self.db.notificaciones.insert_one(notificacion)
-
-    async def obtener_codigos_empresas_existentes(self) -> List[str]:
-        """Obtener todos los códigos de empresas existentes"""
-        cursor = self.collection.find({}, {"codigoEmpresa": 1})
-        empresas = await cursor.to_list(length=None)
-        return [empresa.get("codigoEmpresa") for empresa in empresas if empresa.get("codigoEmpresa")]
-
-    async def generar_siguiente_codigo_empresa(self) -> str:
-        """Generar el siguiente código de empresa disponible"""
-        codigos_existentes = await self.obtener_codigos_empresas_existentes()
-        return CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos_existentes)
-
-    # Métodos existentes para gestión de relaciones
-    async def agregar_vehiculo_habilitado(self, empresa_id: str, vehiculo_id: str) -> bool:
-        """Agregar vehículo habilitado a la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$addToSet": {"vehiculosHabilitadosIds": vehiculo_id}}
-        )
-        return result.modified_count > 0
-
-    async def remover_vehiculo_habilitado(self, empresa_id: str, vehiculo_id: str) -> bool:
-        """Remover vehículo habilitado de la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$pull": {"vehiculosHabilitadosIds": vehiculo_id}}
-        )
-        return result.modified_count > 0
-
-    async def agregar_conductor_habilitado(self, empresa_id: str, conductor_id: str) -> bool:
-        """Agregar conductor habilitado a la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$addToSet": {"conductoresHabilitadosIds": conductor_id}}
-        )
-        return result.modified_count > 0
-
-    async def remover_conductor_habilitado(self, empresa_id: str, conductor_id: str) -> bool:
-        """Remover conductor habilitado de la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$pull": {"conductoresHabilitadosIds": conductor_id}}
-        )
-        return result.modified_count > 0
-
-    async def agregar_ruta_autorizada(self, empresa_id: str, ruta_id: str) -> bool:
-        """Agregar ruta autorizada a la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
-        )
-        return result.modified_count > 0
-
-    async def remover_ruta_autorizada(self, empresa_id: str, ruta_id: str) -> bool:
-        """Remover ruta autorizada de la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$pull": {"rutasAutorizadasIds": ruta_id}}
-        )
-        return result.modified_count > 0
-
-    async def agregar_resolucion_primigenia(self, empresa_id: str, resolucion_id: str) -> bool:
-        """Agregar resolución primigenia a la empresa"""
-        result = await self.collection.update_one(
-            {"_id": ObjectId(empresa_id)},
-            {"$addToSet": {"resolucionesPrimigeniasIds": resolucion_id}}
-        )
-        return result.modified_count > 0 
