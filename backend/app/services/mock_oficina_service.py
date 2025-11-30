@@ -205,7 +205,7 @@ class MockOficinaService:
         self.oficinas[oficina_fiscalizacion.id] = oficina_fiscalizacion
         self.oficinas[oficina_archivo.id] = oficina_archivo
         
-        print(f"🏢 Generadas {len(self.oficinas)} oficinas mock para el sistema DRTC Puno")
+        print(f"Generadas {len(self.oficinas)} oficinas mock para el sistema DRTC Puno")
     
     async def create_oficina(self, oficina_data: OficinaCreate) -> OficinaResponse:
         """Crear una nueva oficina"""
@@ -283,11 +283,11 @@ class MockOficinaService:
                               usuario_id: str, motivo: str, observaciones: str = None) -> bool:
         """Mover un expediente a otra oficina"""
         # Simular movimiento exitoso
-        print(f"📋 Expediente {expediente_id} movido a oficina {nueva_oficina_id}")
-        print(f"👤 Usuario: {usuario_id}")
-        print(f"📝 Motivo: {motivo}")
+        print(f"Expediente {expediente_id} movido a oficina {nueva_oficina_id}")
+        print(f"Usuario: {usuario_id}")
+        print(f"Motivo: {motivo}")
         if observaciones:
-            print(f"💬 Observaciones: {observaciones}")
+            print(f"Observaciones: {observaciones}")
         
         return True
     

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drtc-backend-local
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:admin123@drtc-mongodb-local:27017/
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - ALLOWED_ORIGINS=http://localhost:4200,http://localhost:4201,http://localhost:80
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    networks:
+      - drtc-network-local
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: drtc-frontend-local
+    restart: unless-stopped
+    ports:
+      - "4201:4200"
+    environment:
+      - API_URL=http://localhost:8000
+      - PRODUCTION=false
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - drtc-network-local
+
+networks:
+  drtc-network-local:
+    external: true
+    name: drtc-network-local

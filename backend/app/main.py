@@ -49,7 +49,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "*"  # Temporalmente permitir todos los orígenes para desarrollo
     ],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"]

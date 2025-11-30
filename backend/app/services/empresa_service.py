@@ -178,7 +178,8 @@ class EmpresaService:
         auditoria = await self.crear_auditoria_cambio(empresa_actual, update_data, usuario_id)
         
         update_data["fechaActualizacion"] = datetime.utcnow()
-        update_data["auditoria"] = empresa_actual.auditoria + [auditoria.model_dump()]
+        auditoria_existente = [a.model_dump() for a in empresa_actual.auditoria]
+        update_data["auditoria"] = auditoria_existente + [auditoria.model_dump()]
         
         if "ruc" in update_data:
             datos_sunat = await self.validar_ruc_sunat(update_data["ruc"])
