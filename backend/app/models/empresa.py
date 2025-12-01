@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 # from bson import ObjectId
 from enum import Enum
-from app.utils.mock_utils import mock_id_factory
 
 class EstadoEmpresa(str, Enum):
     HABILITADA = "HABILITADA"
@@ -66,7 +65,7 @@ class DatosSunat(BaseModel):
     error: Optional[str] = None
 
 class Empresa(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     codigoEmpresa: str = Field(..., description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
     ruc: str
     razonSocial: RazonSocial

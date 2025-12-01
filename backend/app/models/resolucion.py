@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 # from bson import ObjectId
 from enum import Enum
-from app.utils.mock_utils import mock_id_factory
 
 class EstadoResolucion(str, Enum):
     EN_PROCESO = "EN_PROCESO"
@@ -26,7 +25,7 @@ class TipoTramite(str, Enum):
     OTROS = "OTROS"
 
 class Resolucion(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     nroResolucion: str
     empresaId: str
     fechaEmision: datetime
@@ -156,7 +155,7 @@ class ResolucionResumen(BaseModel):
     ultimaActualizacion: datetime
 
 class ResolucionHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(mock_id_factory()))
+    id: Optional[str] = None
     resolucionId: str
     fechaCambio: datetime
     tipoCambio: str

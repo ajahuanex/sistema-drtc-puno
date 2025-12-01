@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 # from bson import ObjectId
 from enum import Enum
-from app.utils.mock_utils import mock_id_factory
 
 class EstadoTuc(str, Enum):
     VIGENTE = "VIGENTE"
@@ -18,7 +17,7 @@ class TipoTramite(str, Enum):
     OTROS = "OTROS"
 
 class Tuc(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     vehiculoId: str
     empresaId: str
     resolucionPadreId: str
@@ -138,7 +137,7 @@ class GeneracionTuc(BaseModel):
     observaciones: Optional[str] = None
 
 class TucHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     tucId: str
     fechaCambio: datetime
     tipoCambio: str

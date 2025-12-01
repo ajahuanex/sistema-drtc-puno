@@ -6,7 +6,6 @@ import logging
 import time
 from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router
-from app.routers.mock_router import router as mock_router
 from app.routers.data_manager_router import router as data_manager_router
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
@@ -88,7 +87,6 @@ app.include_router(tucs_router, prefix=settings.API_V1_STR)
 app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
-app.include_router(mock_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
@@ -136,9 +134,7 @@ async def root():
         "mode": mode,
         "docs": "/docs",
         "redoc": "/redoc",
-        "health": "/health",
-        "mock_info": f"{settings.API_V1_STR}/mock/info",
-        "mock_credentials": f"{settings.API_V1_STR}/mock/credenciales"
+        "health": "/health"
     }
 
 if __name__ == "__main__":

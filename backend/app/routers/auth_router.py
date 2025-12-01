@@ -2,18 +2,24 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict
 from app.dependencies.auth import create_access_token, get_current_active_user
-from app.services.mock_usuario_service import MockUsuarioService
+from app.dependencies.db import get_database
+from app.services.usuario_service import UsuarioService
 from app.models.usuario import UsuarioCreate, UsuarioResponse, LoginResponse
 from app.utils.exceptions import AuthenticationException, UsuarioAlreadyExistsException
 
 router = APIRouter(prefix="/auth", tags=["autenticación"])
 
+async def get_usuario_service():
+    """Dependency para obtener el servicio de usuarios"""
+    db = await get_database()
+    return UsuarioService(db)
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends()
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    usuario_service: UsuarioService = Depends(get_usuario_service)
 ) -> LoginResponse:
     """Iniciar sesión con DNI y contraseña"""
-    usuario_service = MockUsuarioService()
     
     # Autenticar usuario
     usuario = await usuario_service.authenticate_usuario(form_data.username, form_data.password)

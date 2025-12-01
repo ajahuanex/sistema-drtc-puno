@@ -433,7 +433,7 @@ export interface AccionTabla {
             role="row">
           </mat-header-row>
           <mat-row 
-            *matRowDef="let resolucion; columns: columnasVisibles(); let i = index; trackBy: trackByResolucion" 
+            *matRowDef="let resolucion; columns: columnasVisibles(); let i = index; " 
             (click)="onFilaClick(resolucion)"
             (keydown.enter)="onFilaClick(resolucion)"
             (keydown.space)="onFilaClick(resolucion)"

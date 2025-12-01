@@ -94,8 +94,7 @@ import { Empresa } from '../models/empresa.model';
              [placeholder]="placeholder"
              [matAutocomplete]="auto"
              (input)="onInputChange($event)"
-             [required]="required"
-             [disabled]="disabled || isLoading()">
+             [required]="required">
       <mat-autocomplete #auto="matAutocomplete" 
                        (optionSelected)="onEmpresaSeleccionada($event)"
                        [displayWith]="displayFn">
@@ -269,7 +268,7 @@ export class EmpresaSelectorComponent implements OnInit {
    * @example true cuando el formulario padre está en modo solo lectura
    */
   @Input() disabled: boolean = false;
-  
+
   /**
    * Evento emitido cuando se selecciona una empresa
    * @param empresa - La empresa seleccionada o null si se limpia la selección
@@ -305,13 +304,13 @@ export class EmpresaSelectorComponent implements OnInit {
 
   /** Signal que contiene la lista de todas las empresas cargadas */
   empresas = signal<Empresa[]>([]);
-  
+
   /** Observable que contiene las empresas filtradas para el autocompletado */
   filteredEmpresas: Observable<Empresa[]> = new Observable<Empresa[]>();
-  
+
   /** Control del formulario para el campo de entrada */
   empresaControl = new FormControl<string>('');
-  
+
   /** Signal que indica si se están cargando las empresas */
   isLoading = signal<boolean>(false);
 
@@ -322,11 +321,11 @@ export class EmpresaSelectorComponent implements OnInit {
   ngOnInit(): void {
     this.cargarEmpresas();
     this.configurarAutocompletado();
-    
+
     if (this.empresaId) {
       this.empresaControl.setValue(this.empresaId);
     }
-    
+
     if (this.disabled) {
       this.empresaControl.disable();
     }
@@ -340,12 +339,15 @@ export class EmpresaSelectorComponent implements OnInit {
    */
   private cargarEmpresas(): void {
     this.isLoading.set(true);
+
     this.empresaService.getEmpresas()
       .pipe(
         finalize(() => this.isLoading.set(false))
       )
       .subscribe({
         next: (empresas) => {
+          console.log('📋 Empresas cargadas en selector:', empresas.length);
+          console.log('📋 Primera empresa:', empresas[0]);
           this.empresas.set(empresas);
         },
         error: (error) => {
@@ -383,30 +385,42 @@ export class EmpresaSelectorComponent implements OnInit {
    * - Código de Empresa: Coincidencia parcial en el código (si existe)
    */
   private _filter(value: string): Empresa[] {
-    if (typeof value !== 'string') return this.empresas();
-    
+    console.log('🔍 Filtrando con valor:', value, 'Tipo:', typeof value);
+    console.log('🔍 Total empresas disponibles:', this.empresas().length);
+
+    if (typeof value !== 'string') {
+      console.log('⚠️ Valor no es string, retornando todas');
+      return this.empresas();
+    }
+
     const filterValue = value.toLowerCase().trim();
-    
+
     // Si no hay valor de búsqueda, retornar todas las empresas
-    if (!filterValue) return this.empresas();
-    
-    return this.empresas().filter(empresa => {
+    if (!filterValue) {
+      console.log('🔍 Sin filtro, retornando todas las empresas');
+      return this.empresas();
+    }
+
+    const filtered = this.empresas().filter(empresa => {
       // Buscar por RUC
       const matchRuc = empresa.ruc.toLowerCase().includes(filterValue);
-      
+
       // Buscar por razón social principal
       const matchRazonPrincipal = empresa.razonSocial.principal.toLowerCase().includes(filterValue);
-      
+
       // Buscar por razón social mínimo (si existe)
-      const matchRazonMinimo = empresa.razonSocial.minimo && 
+      const matchRazonMinimo = empresa.razonSocial.minimo &&
         empresa.razonSocial.minimo.toLowerCase().includes(filterValue);
-      
+
       // Buscar por código de empresa (si existe)
-      const matchCodigoEmpresa = empresa.codigoEmpresa && 
+      const matchCodigoEmpresa = empresa.codigoEmpresa &&
         empresa.codigoEmpresa.toLowerCase().includes(filterValue);
-      
+
       return matchRuc || matchRazonPrincipal || matchRazonMinimo || matchCodigoEmpresa;
     });
+
+    console.log('🔍 Empresas filtradas:', filtered.length);
+    return filtered;
   }
 
   /**
@@ -440,7 +454,7 @@ export class EmpresaSelectorComponent implements OnInit {
    */
   onEmpresaSeleccionada(event: any): void {
     const empresaId = event.option.value;
-    
+
     if (empresaId) {
       const empresa = this.empresas().find(e => e.id === empresaId);
       if (empresa) {

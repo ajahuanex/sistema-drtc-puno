@@ -3,7 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 # from bson import ObjectId
 from enum import Enum
-from app.utils.mock_utils import mock_id_factory
 
 class EstadoConductor(str, Enum):
     ACTIVO = "ACTIVO"
@@ -47,7 +46,7 @@ class EstadoCivil(str, Enum):
     CONVIVIENTE = "CONVIVIENTE"
 
 class Conductor(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     dni: str = Field(..., min_length=8, max_length=8, description="DNI del conductor")
     apellidoPaterno: str = Field(..., min_length=2, max_length=50)
     apellidoMaterno: str = Field(..., min_length=2, max_length=50)
@@ -260,7 +259,7 @@ class ConductorResumen(BaseModel):
     fechaUltimaVerificacion: Optional[datetime] = None
 
 class ConductorHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     conductorId: str
     fechaCambio: datetime
     tipoCambio: str
@@ -271,7 +270,7 @@ class ConductorHistorial(BaseModel):
     datosCompletos: dict
 
 class ConductorDocumento(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     conductorId: str
     tipoDocumento: str
     numeroDocumento: str
@@ -285,7 +284,7 @@ class ConductorDocumento(BaseModel):
     estaActivo: bool = True
 
 class ConductorVehiculo(BaseModel):
-    id: Optional[str] = Field(default_factory=mock_id_factory)
+    id: Optional[str] = None
     conductorId: str
     vehiculoId: str
     fechaAsignacion: datetime
