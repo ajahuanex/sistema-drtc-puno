@@ -112,7 +112,7 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
                   <mat-card-content>
                     <div class="indicator-content">
                       <mat-icon [class]="getIconoTipoResolucion()" class="indicator-icon">
-                        @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                        @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
                           new_releases
                         } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                           refresh
@@ -123,7 +123,7 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
                       <div class="indicator-text">
                         <h3>Creando Resolución de {{ expedienteSeleccionado()?.tipoTramite | uppercase }}</h3>
                         <p>
-                          @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                          @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
                             Esta será una resolución PADRE con fechas de vigencia propias
                           } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                             Esta será una resolución PADRE que renueva una autorización existente
@@ -726,7 +726,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   // Signals para reactividad del formulario
   numeroBaseSignal = signal('');
   fechaEmisionSignal = signal<Date>(new Date());
-  tipoTramiteSignal = signal('PRIMIGENIA');
+  tipoTramiteSignal = signal('AUTORIZACION_NUEVA');
   fechaVigenciaInicioSignal = signal<Date | null>(null);
   aniosVigenciaSignal = signal(5);
 
@@ -756,7 +756,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   mostrarFechaVigenciaFin = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION';
+    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
   });
 
   fechaVigenciaFinCalculada = computed(() => {
@@ -790,7 +790,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   tipoResolucionCalculado = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    if (expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION') {
+    if (expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION') {
       return 'PADRE';
     }
     return 'HIJO';
@@ -1029,15 +1029,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
       const numeroSolo = numeroExpediente.replace('E-', '').replace(`-${new Date().getFullYear()}`, '');
 
       const expedienteData: ExpedienteCreate = {
-        numero: numeroSolo, // Solo el número (1234)
-        folio: 1, // Expediente básico
+        nroExpediente: numeroExpediente,
+        folio: 1,
         fechaEmision: new Date(),
         tipoTramite: tipoTramite as TipoTramite,
-        tipoExpediente: TipoExpediente.OTROS,
-        tipoSolicitante: TipoSolicitante.EMPRESA,
         empresaId: empresaId,
         descripcion: descripcion,
-        observaciones: 'Expediente creado automáticamente al generar resolución'
+        observaciones: 'Expediente creado automáticamente al generar resolución',
+        estado: 'EN PROCESO'
       };
 
       console.log('📋 Creando expediente automático:', expedienteData);
@@ -1216,7 +1215,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     const tipoTramite = this.resolucionForm.get('tipoTramite')?.value;
     this.tipoTramiteSignal.set(tipoTramite);
 
-    const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const esPadre = tipoTramite === 'AUTORIZACION_NUEVA' || tipoTramite === 'RENOVACION';
 
     if (tipoTramite === 'RENOVACION') {
       // Cargar resoluciones padre disponibles para renovación
@@ -1324,7 +1323,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       }
     } else {
       this.expedienteSeleccionado.set(null);
-      this.tipoTramiteSignal.set('PRIMIGENIA'); // Valor por defecto
+      this.tipoTramiteSignal.set('AUTORIZACION_NUEVA'); // Valor por defecto
     }
   }
 
@@ -1332,7 +1331,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     console.log('🔄 Actualizando formulario para tipo de trámite:', tipoTramite);
 
     // Determinar si es resolución PADRE o HIJA según el tipo de trámite
-    const esResolucionPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const esResolucionPadre = tipoTramite === 'AUTORIZACION_NUEVA' || tipoTramite === 'RENOVACION';
     const esResolucionHija = tipoTramite === 'INCREMENTO' || tipoTramite === 'SUSTITUCION' || tipoTramite === 'OTROS';
 
     if (tipoTramite === 'RENOVACION') {
@@ -1441,7 +1440,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   getIconoTipoResolucion(): string {
     const tipoTramite = this.expedienteSeleccionado()?.tipoTramite;
-    if (tipoTramite === 'PRIMIGENIA') {
+    if (tipoTramite === 'AUTORIZACION_NUEVA') {
       return 'icono-primigenia';
     } else if (tipoTramite === 'RENOVACION') {
       return 'icono-renovacion';

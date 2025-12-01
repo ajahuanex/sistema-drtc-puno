@@ -120,7 +120,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                   <mat-card-content>
                     <div class="indicator-content">
                       <mat-icon [class]="getIconoTipoResolucion()" class="indicator-icon">
-                        @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                        @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
                           new_releases
                         } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                           refresh
@@ -131,7 +131,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                       <div class="indicator-text">
                         <h3>Creando Resolución de {{ expedienteSeleccionado()?.tipoTramite | uppercase }}</h3>
                         <p>
-                          @if (expedienteSeleccionado()?.tipoTramite === 'PRIMIGENIA') {
+                          @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
                             Esta será una resolución PADRE con fechas de vigencia propias
                           } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                             Esta será una resolución PADRE que renueva una autorización existente
@@ -883,7 +883,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   empresaIdForm = signal<string | null>(null);
   formularioListo = signal(false);
   resolucionId = signal<string | null>(null);
-  
+
   // Los signals fechaVigenciaInicioSignal y aniosVigenciaSignal ya existen más arriba
 
   // Debug: Log del estado de expedientesFiltrados
@@ -894,7 +894,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   });
 
 
-  
+
   // Detectar si se está abriendo desde detalles de empresa
   empresaSeleccionada = computed(() => {
     // Obtener empresa desde input o query params
@@ -903,7 +903,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       console.log('🔍 Empresa desde input empresaId:', this.empresaId, 'encontrada:', !!empresa);
       if (empresa) return empresa;
     }
-    
+
     const empresaId = this.route.snapshot.queryParams['empresaId'];
     if (empresaId) {
       const empresa = this.empresas().find(e => e.id === empresaId);
@@ -922,18 +922,18 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     console.log('🔍 No se encontró empresa seleccionada');
     return null;
   });
-  
+
   // Determinar si mostrar selector de resolución padre
   mostrarResolucionPadre = computed(() => {
     const expediente = this.expedienteSeleccionado();
     if (!expediente) return false;
-    
+
     // Mostrar para RENOVACION (siempre requiere padre)
     if (expediente.tipoTramite === 'RENOVACION') return true;
-    
+
     // Mostrar para tipos HIJO (INCREMENTO, SUSTITUCION, OTROS)
     if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') return true;
-    
+
     // No mostrar para PRIMIGENIA
     return false;
   });
@@ -946,7 +946,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   // Signals para reactividad del formulario
   numeroBaseSignal = signal('');
   fechaEmisionSignal = signal<Date>(new Date());
-  tipoTramiteSignal = signal('PRIMIGENIA');
+  tipoTramiteSignal = signal('AUTORIZACION_NUEVA');
   fechaVigenciaInicioSignal = signal<Date | null>(null);
   aniosVigenciaSignal = signal(5);
 
@@ -960,7 +960,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   numeroResolucionCompleto = computed(() => {
     const numeroBase = this.numeroBaseSignal();
     const anio = this.anioEmision();
-    
+
     if (numeroBase) {
       const numeroFormateado = numeroBase.toString().padStart(4, '0');
       return `R-${numeroFormateado}-${anio}`;
@@ -970,17 +970,17 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   mostrarFechaVigenciaInicio = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION';
+    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
   });
 
   mostrarAniosVigencia = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION';
+    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
   });
 
   mostrarFechaVigenciaFin = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION';
+    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
   });
 
   fechaVigenciaFinCalculada = computed(() => {
@@ -988,7 +988,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     const fechaInicio = this.fechaVigenciaInicioSignal();
     const aniosVigencia = this.aniosVigenciaSignal();
     const mostrarFecha = this.mostrarFechaVigenciaFin();
-    
+
     // Debug detallado para entender qué está pasando
     console.log('🔍 Computed fechaVigenciaFinCalculada (usando signals):', {
       fechaInicio: fechaInicio ? `PRESENTE: ${fechaInicio}` : 'AUSENTE',
@@ -997,7 +997,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       fechaInicioType: typeof fechaInicio,
       aniosVigenciaType: typeof aniosVigencia
     });
-    
+
     // Verificación simple: si tenemos fecha y años, calcular
     if (fechaInicio && aniosVigencia && mostrarFecha) {
       try {
@@ -1011,18 +1011,18 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         console.error('Error en cálculo del computed:', error);
       }
     }
-    
+
     // Si no se puede calcular, mostrar mensaje apropiado
     if (!fechaInicio) return 'SELECCIONE FECHA DE INICIO';
     if (!aniosVigencia) return 'SELECCIONE AÑOS DE VIGENCIA';
     if (!mostrarFecha) return 'NO APLICA PARA ESTE TRÁMITE';
-    
+
     return 'CALCULANDO...';
   });
 
   tipoResolucionCalculado = computed(() => {
     const expediente = this.expedienteSeleccionado();
-    if (expediente?.tipoTramite === 'PRIMIGENIA' || expediente?.tipoTramite === 'RENOVACION') {
+    if (expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION') {
       return 'PADRE';
     }
     return 'HIJO';
@@ -1040,20 +1040,20 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       resolucionPadreId: [null],
       fechaVigenciaInicio: [null],
       aniosVigencia: [
-        this.configuracionService.aniosVigenciaDefault(), 
+        this.configuracionService.aniosVigenciaDefault(),
         [
-          Validators.required, 
-          Validators.min(this.configuracionService.minAniosVigencia()), 
+          Validators.required,
+          Validators.min(this.configuracionService.minAniosVigencia()),
           Validators.max(this.configuracionService.maxAniosVigencia())
         ]
       ],
       descripcion: ['', Validators.required],
       observaciones: ['']
     });
-    
+
     // Inicializar signals con valores del formulario
     this.aniosVigenciaSignal.set(this.configuracionService.aniosVigenciaDefault());
-    
+
     // Suscribirse a cambios en las configuraciones para actualizar el formulario
     this.suscribirseACambiosEnConfiguraciones();
   }
@@ -1067,15 +1067,15 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       const aniosDefault = this.configuracionService.aniosVigenciaDefault();
       const minAnios = this.configuracionService.minAniosVigencia();
       const maxAnios = this.configuracionService.maxAniosVigencia();
-      
+
       return { aniosDefault, minAnios, maxAnios };
     });
-    
+
     // Suscribirse a cambios en las configuraciones
     effect(() => {
       const config = configuracionesWatcher();
       console.log('🔧 Configuraciones actualizadas:', config);
-      
+
       // Actualizar el formulario con los nuevos valores
       const aniosVigenciaControl = this.resolucionForm.get('aniosVigencia');
       if (aniosVigenciaControl) {
@@ -1086,7 +1086,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           this.aniosVigenciaSignal.set(config.aniosDefault);
           console.log('🔄 Campo aniosVigencia actualizado a:', config.aniosDefault);
         }
-        
+
         // Actualizar validadores
         aniosVigenciaControl.setValidators([
           Validators.required,
@@ -1100,14 +1100,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.cargarDatosIniciales();
-    
+
     // Verificar si estamos en modo edición
     const resolucionId = this.route.snapshot.params['id'];
     if (resolucionId) {
       this.resolucionId.set(resolucionId);
       this.cargarResolucionParaEdicion(resolucionId);
     }
-    
+
     // Si hay empresa en input o query params, configurar el formulario
     if (this.empresaId) {
       this.resolucionForm.get('empresaId')?.setValue(this.empresaId);
@@ -1126,7 +1126,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     this.resolucionForm.get('empresaId')?.valueChanges.subscribe(empresaId => {
       console.log('🔄 Cambio en empresaId del formulario:', empresaId);
       this.empresaIdForm.set(empresaId);
-      
+
       if (empresaId) {
         this.cargarExpedientesPorEmpresa(empresaId);
         // Limpiar expediente seleccionado cuando cambie la empresa
@@ -1167,7 +1167,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.expedienteSeleccionado.set(null);
       }
     });
-    
+
     // Marcar el formulario como listo después de la inicialización
     setTimeout(() => {
       this.formularioListo.set(true);
@@ -1182,7 +1182,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   cargarDatosIniciales(): void {
     this.loading.set(true);
-    
+
     // Cargar empresas
     this.empresaService.getEmpresas().subscribe(empresas => {
       this.empresas.set(empresas);
@@ -1199,25 +1199,25 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   cargarExpedientesPorEmpresa(empresaId: string): void {
     console.log('🔍 Cargando expedientes para empresa:', empresaId);
-    
+
     const expedientes = this.expedientes();
     console.log('📋 Total de expedientes disponibles:', expedientes.length);
-    
+
     const expedientesFiltrados = expedientes.filter(e => e.empresaId === empresaId);
-    
+
     console.log('📋 Expedientes encontrados para la empresa:', expedientesFiltrados.length);
     expedientesFiltrados.forEach(exp => {
       console.log(`  - ${exp.nroExpediente}: ${exp.descripcion} (${exp.tipoTramite})`);
     });
-    
+
     this.expedientesFiltrados.set(expedientesFiltrados);
     console.log('✅ Signal expedientesFiltrados actualizado:', this.expedientesFiltrados());
-    
+
     // Si no hay expedientes para esta empresa, mostrar mensaje
     if (expedientesFiltrados.length === 0) {
       this.snackBar.open(
-        'NO HAY EXPEDIENTES DISPONIBLES PARA ESTA EMPRESA', 
-        'CERRAR', 
+        'NO HAY EXPEDIENTES DISPONIBLES PARA ESTA EMPRESA',
+        'CERRAR',
         { duration: 3000 }
       );
     }
@@ -1228,11 +1228,11 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
    */
   cargarResolucionParaEdicion(resolucionId: string): void {
     this.loading.set(true);
-    
+
     this.resolucionService.getResolucionById(resolucionId).subscribe({
       next: (resolucion) => {
         console.log('📋 Resolución cargada para edición:', resolucion);
-        
+
         // Calcular años de vigencia basándose en las fechas
         let aniosVigencia = this.configuracionService.aniosVigenciaDefault();
         if (resolucion.fechaVigenciaInicio && resolucion.fechaVigenciaFin) {
@@ -1255,17 +1255,17 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           descripcion: resolucion.descripcion,
           observaciones: resolucion.observaciones
         });
-        
+
         // Actualizar signals
         this.empresaIdForm.set(resolucion.empresaId);
         this.numeroBaseSignal.set(resolucion.nroResolucion?.split('-')[1] || '');
         this.fechaEmisionSignal.set(new Date(resolucion.fechaEmision));
         this.fechaVigenciaInicioSignal.set(resolucion.fechaVigenciaInicio ? new Date(resolucion.fechaVigenciaInicio) : null);
         this.aniosVigenciaSignal.set(aniosVigencia);
-        
+
         // Cargar expedientes de la empresa
         this.cargarExpedientesPorEmpresa(resolucion.empresaId);
-        
+
         // Cargar expediente seleccionado
         if (resolucion.expedienteId) {
           const expediente = this.expedientes().find(e => e.id === resolucion.expedienteId);
@@ -1274,7 +1274,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
             this.tipoTramiteSignal.set(expediente.tipoTramite);
           }
         }
-        
+
         this.loading.set(false);
       },
       error: (error) => {
@@ -1288,20 +1288,20 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
     if (empresa) {
       console.log('🏢 Empresa seleccionada desde buscador:', empresa);
-      
+
       // Actualizar el formulario (esto hará que empresaSeleccionada computed se actualice)
       this.resolucionForm.patchValue({ empresaId: empresa.id });
-      
+
       // Limpiar expediente seleccionado ya que cambió la empresa
       this.expedienteSeleccionado.set(null);
       this.resolucionForm.patchValue({ expedienteId: '' });
-      
+
       // Filtrar expedientes por la nueva empresa
       this.filtrarExpedientesPorEmpresa(empresa.id);
     } else {
       console.log('🏢 Empresa deseleccionada');
       this.expedienteSeleccionado.set(null);
-      this.resolucionForm.patchValue({ 
+      this.resolucionForm.patchValue({
         empresaId: '',
         expedienteId: ''
       });
@@ -1316,7 +1316,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   onExpedienteChange(event: any): void {
     const expedienteId = event.value;
-    
+
     if (expedienteId) {
       // Buscar en los expedientes filtrados por empresa
       const expediente = this.expedientesFiltrados().find(e => e.id === expedienteId);
@@ -1331,27 +1331,27 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       }
     } else {
       this.expedienteSeleccionado.set(null);
-      this.tipoTramiteSignal.set('PRIMIGENIA');
+      this.tipoTramiteSignal.set('AUTORIZACION_NUEVA');
     }
   }
 
   private actualizarFormularioPorTipoTramite(tipoTramite: string): void {
-    const esResolucionPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const esResolucionPadre = tipoTramite === 'AUTORIZACION_NUEVA' || tipoTramite === 'RENOVACION';
     const esResolucionHija = tipoTramite === 'INCREMENTO' || tipoTramite === 'SUSTITUCION' || tipoTramite === 'OTROS';
-    
+
     if (tipoTramite === 'RENOVACION') {
       this.cargarResolucionesPadre();
       this.resolucionForm.get('resolucionPadreId')?.enable();
       this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
     } else if (esResolucionPadre) {
       this.resolucionForm.get('resolucionPadreId')?.disable();
       this.resolucionForm.get('resolucionPadreId')?.clearValidators();
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
-      
+
     } else if (esResolucionHija) {
       this.cargarResolucionesPadre();
       this.resolucionForm.get('resolucionPadreId')?.enable();
@@ -1359,7 +1359,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('aniosVigencia')?.disable();
     }
-    
+
     this.resolucionForm.updateValueAndValidity();
   }
 
@@ -1374,25 +1374,25 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       next: (resoluciones) => {
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
         let resolucionesPadre: Resolucion[] = [];
-        
+
         if (expediente.tipoTramite === 'RENOVACION') {
-          resolucionesPadre = resolucionesEmpresa.filter(r => 
-            r.tipoResolucion === 'PADRE' && 
-            r.estaActivo && 
+          resolucionesPadre = resolucionesEmpresa.filter(r =>
+            r.tipoResolucion === 'PADRE' &&
+            r.estaActivo &&
             r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin && 
+            r.fechaVigenciaFin &&
             new Date(r.fechaVigenciaFin) > new Date()
           );
         } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
-          resolucionesPadre = resolucionesEmpresa.filter(r => 
-            r.tipoResolucion === 'PADRE' && 
-            r.estaActivo && 
+          resolucionesPadre = resolucionesEmpresa.filter(r =>
+            r.tipoResolucion === 'PADRE' &&
+            r.estaActivo &&
             r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin && 
+            r.fechaVigenciaFin &&
             new Date(r.fechaVigenciaFin) > new Date()
           );
         }
-        
+
         this.resolucionesPadre.set(resolucionesPadre);
       }
     });
@@ -1400,10 +1400,10 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   onResolucionPadreChange(): void {
     const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
-    
+
     if (resolucionPadreId) {
       const resolucionPadre = this.resolucionesPadre().find(r => r.id === resolucionPadreId);
-      
+
       if (resolucionPadre) {
         const expediente = this.expedienteSeleccionado();
         if (expediente?.tipoTramite === 'RENOVACION') {
@@ -1420,10 +1420,10 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       const fechaVencimiento = new Date(resolucionPadre.fechaVigenciaFin);
       const fechaSugerida = new Date(fechaVencimiento);
       fechaSugerida.setDate(fechaSugerida.getDate() + 1);
-      
+
       this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaSugerida);
       this.fechaVigenciaInicioSignal.set(fechaSugerida);
-      
+
       if (resolucionPadre.fechaVigenciaInicio && resolucionPadre.fechaVigenciaFin) {
         const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
         const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
@@ -1441,7 +1441,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           this.resolucionForm.get('fechaVigenciaInicio')?.setValue(resolucionPadre.fechaVigenciaInicio);
           this.fechaVigenciaInicioSignal.set(resolucionPadre.fechaVigenciaInicio);
         }
-        
+
         if (resolucionPadre.fechaVigenciaFin && resolucionPadre.fechaVigenciaInicio) {
           const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
           const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
@@ -1458,7 +1458,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     if (numeroBase) {
       const numeroLimpio = numeroBase.replace(/\D/g, '').slice(0, 4);
       this.numeroBaseSignal.set(numeroLimpio);
-      
+
       if (numeroLimpio !== numeroBase) {
         this.resolucionForm.get('numeroBase')?.setValue(numeroLimpio);
       }
@@ -1484,7 +1484,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   getIconoTipoResolucion(): string {
     const tipoTramite = this.expedienteSeleccionado()?.tipoTramite;
-    if (tipoTramite === 'PRIMIGENIA') {
+    if (tipoTramite === 'AUTORIZACION_NUEVA') {
       return 'icono-primigenia';
     } else if (tipoTramite === 'RENOVACION') {
       return 'icono-renovacion';
@@ -1501,22 +1501,22 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     const empresa = this.empresaSeleccionada();
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
     const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
-    
+
     if (!expediente || !empresa) {
       return;
     }
 
     let descripcion = '';
-    
+
     switch (expediente.tipoTramite) {
-      case 'PRIMIGENIA':
+      case 'AUTORIZACION_NUEVA':
         descripcion = `AUTORIZACIÓN ${expediente.tipoTramite} para ${empresa.razonSocial.principal} `;
         descripcion += `para operar transporte público de pasajeros en rutas interprovinciales`;
         if (aniosVigencia && fechaInicio) {
           descripcion += ` por un período de ${aniosVigencia} año(s)`;
         }
         break;
-        
+
       case 'RENOVACION':
         descripcion = `RENOVACIÓN de autorización para ${empresa.razonSocial.principal} `;
         descripcion += `para continuar operando transporte público de pasajeros en rutas interprovinciales`;
@@ -1524,7 +1524,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           descripcion += ` por un período adicional de ${aniosVigencia} año(s)`;
         }
         break;
-        
+
       case 'OTROS':
         descripcion = `MODIFICACIÓN de autorización para ${empresa.razonSocial.principal} `;
         descripcion += `para ajustar operaciones de transporte público de pasajeros`;
@@ -1532,7 +1532,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           descripcion += ` manteniendo vigencia por ${aniosVigencia} año(s)`;
         }
         break;
-        
+
       default:
         descripcion = `AUTORIZACIÓN para ${empresa.razonSocial.principal} `;
         descripcion += `en materia de transporte público de pasajeros`;
@@ -1540,17 +1540,17 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           descripcion += ` por ${aniosVigencia} año(s)`;
         }
     }
-    
+
     // Actualizar el campo de descripción en el formulario
     this.resolucionForm.get('descripcion')?.setValue(descripcion);
-    
+
     // Mostrar notificación
     this.snackBar.open('Descripción generada automáticamente', 'Cerrar', { duration: 2000 });
   }
 
   formatearFechaLima(fecha: Date | string | null): string {
     if (!fecha) return 'NO DISPONIBLE';
-    
+
     try {
       const fechaObj = new Date(fecha);
       const fechaLima = new Date(fechaObj.getTime() - (5 * 60 * 60 * 1000));
@@ -1569,20 +1569,20 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   formatearFechaEspanol(fecha: Date | string | null): string {
     if (!fecha) return 'NO DISPONIBLE';
-    
+
     try {
       const fechaObj = new Date(fecha);
       const fechaLima = new Date(fechaObj.getTime() - (5 * 60 * 60 * 1000));
-      
+
       const meses = [
         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
       ];
-      
+
       const dia = fechaLima.getUTCDate();
       const mes = meses[fechaLima.getUTCMonth()];
       const anio = fechaLima.getUTCFullYear();
-      
+
       return `${dia} de ${mes} de ${anio}`;
     } catch (error) {
       return 'ERROR EN FECHA';
@@ -1591,7 +1591,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   private calcularFechaVigenciaFin(fechaInicio: Date | null, aniosVigencia: number | null): Date | undefined {
     if (!fechaInicio || !aniosVigencia) return undefined;
-    
+
     try {
       const fechaFin = new Date(fechaInicio);
       fechaFin.setFullYear(fechaFin.getFullYear() + aniosVigencia);
@@ -1622,21 +1622,21 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
     const mostrarFecha = this.mostrarFechaVigenciaFin();
-    
+
     console.log('Valores del formulario:');
     console.log('  - fechaVigenciaInicio:', fechaInicio);
     console.log('  - aniosVigencia:', aniosVigencia);
     console.log('  - mostrarFecha:', mostrarFecha);
-    
+
     console.log('Tipos de datos:');
     console.log('  - fechaInicio type:', typeof fechaInicio);
     console.log('  - aniosVigencia type:', typeof aniosVigencia);
-    
+
     console.log('Valores truthy:');
     console.log('  - !!fechaInicio:', !!fechaInicio);
     console.log('  - !!aniosVigencia:', !!aniosVigencia);
     console.log('  - !!mostrarFecha:', !!mostrarFecha);
-    
+
     if (fechaInicio && aniosVigencia && mostrarFecha) {
       console.log('✅ Condición cumplida, probando cálculo...');
       try {
@@ -1685,7 +1685,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       fechaVigenciaInicio: formValue.fechaVigenciaInicio,
       fechaVigenciaFin: this.calcularFechaVigenciaFin(formValue.fechaVigenciaInicio, formValue.aniosVigencia),
       tipoResolucion: this.tipoResolucionCalculado(),
-      tipoTramite: this.expedienteSeleccionado()?.tipoTramite || 'PRIMIGENIA',
+      tipoTramite: this.expedienteSeleccionado()?.tipoTramite || 'AUTORIZACION_NUEVA',
       descripcion: formValue.descripcion,
       observaciones: formValue.observaciones,
       vehiculosHabilitadosIds: [],
@@ -1728,10 +1728,10 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         next: (resolucion) => {
           this.submitting.set(false);
           this.snackBar.open('Resolución creada exitosamente', 'Cerrar', { duration: 3000 });
-          
+
           // Emitir evento para el modal
           this.resolucionCreada.emit(resolucion);
-          
+
           // Si no está en modal, navegar
           if (!this.esResolucionHija) {
             this.router.navigate(['/resoluciones']);

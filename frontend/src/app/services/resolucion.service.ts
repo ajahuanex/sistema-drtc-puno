@@ -53,18 +53,18 @@ export class ResolucionService {
   private obtenerTipoTramiteDesdeExpediente(expedienteId: string): TipoTramite {
     // Mapeo de expedientes a tipos de trámite según los datos mock
     const mapeoExpedientes: { [key: string]: TipoTramite } = {
-      '1': 'PRIMIGENIA',      // E-0001-2025
+      '1': 'AUTORIZACION_NUEVA',      // E-0001-2025
       '2': 'RENOVACION',      // E-0002-2025  
       '3': 'INCREMENTO',      // E-0003-2025
-      '4': 'PRIMIGENIA',      // E-0001-2026
+      '4': 'AUTORIZACION_NUEVA',      // E-0001-2026
       '5': 'RENOVACION',      // E-0002-2026
       '6': 'INCREMENTO',      // E-0003-2026
       '7': 'SUSTITUCION',     // E-0004-2026
       '8': 'OTROS',           // E-0005-2026
-      '9': 'PRIMIGENIA',      // E-0001-2027
+      '9': 'AUTORIZACION_NUEVA',      // E-0001-2027
       '10': 'RENOVACION'      // E-0002-2027
     };
-    
+
     return mapeoExpedientes[expedienteId] || 'OTROS';
   }
 
@@ -398,7 +398,7 @@ export class ResolucionService {
 
   getResolucionById(id: string): Observable<Resolucion> {
     const url = `${this.apiUrl}/resoluciones/${id}`;
-    
+
     return this.http.get<Resolucion>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
@@ -422,15 +422,15 @@ export class ResolucionService {
   private validarNumeroUnicoPorAnio(numero: string, fechaEmision: Date): boolean {
     const anio = new Date(fechaEmision).getFullYear();
     const numeroCompleto = `R-${numero}-${anio}`;
-    
+
     // Verificar en datos mock
     const existe = this.mockResoluciones.some(r => r.nroResolucion === numeroCompleto);
-    
+
     if (existe) {
       console.warn(`Ya existe una resolución con el número ${numeroCompleto}`);
       return false;
     }
-    
+
     return true;
   }
 
@@ -440,9 +440,9 @@ export class ResolucionService {
       const anio = new Date(resolucion.fechaEmision).getFullYear();
       return throwError(() => new Error(`Ya existe una resolución con el número ${resolucion.numero} en el año ${anio}`));
     }
-    
+
     const url = `${this.apiUrl}/resoluciones`;
-    
+
     // Preparar datos para el backend
     const resolucionBackend: any = {
       nroResolucion: `R-${resolucion.numero}-${new Date(resolucion.fechaEmision).getFullYear()}`,
@@ -472,11 +472,11 @@ export class ResolucionService {
       fechaAnulacion: null,
       usuarioAnulacionId: null
     };
-    
+
     console.log('Creando resolución en backend:', resolucionBackend);
     console.log('URL del backend:', url);
     console.log('Headers:', this.getHeaders());
-    
+
     return this.http.post<Resolucion>(url, resolucionBackend, { headers: this.getHeaders() })
       .pipe(
         tap(resolucionCreada => {
@@ -511,7 +511,7 @@ export class ResolucionService {
           this.mockResoluciones.push(nuevaResolucion);
           console.log('Resolución agregada a datos mock:', nuevaResolucion);
           console.log('Total de resoluciones mock después de agregar:', this.mockResoluciones.length);
-          
+
           // Si es resolución hija, actualizar la resolución padre
           if (nuevaResolucion.resolucionPadreId) {
             const indexPadre = this.mockResoluciones.findIndex(r => r.id === nuevaResolucion.resolucionPadreId);
@@ -525,10 +525,10 @@ export class ResolucionService {
         }),
         catchError(error => {
           console.error('Error creating resolucion in backend:', error);
-          
+
           // Fallback: crear en datos mock si falla el backend
           console.log('Usando fallback a datos mock...');
-          
+
           const numeroCompleto = `R-${resolucion.numero}-${new Date(resolucion.fechaEmision).getFullYear()}`;
           const nuevaResolucion: Resolucion = {
             id: Date.now().toString(), // Usar timestamp para ID único
@@ -556,11 +556,11 @@ export class ResolucionService {
             documentos: [],
             auditoria: []
           };
-          
+
           this.mockResoluciones.push(nuevaResolucion);
           console.log('Resolución agregada a datos mock (fallback):', nuevaResolucion);
           console.log('Total de resoluciones mock después de agregar (fallback):', this.mockResoluciones.length);
-          
+
           // Si es resolución hija, actualizar la resolución padre
           if (nuevaResolucion.resolucionPadreId) {
             const indexPadre = this.mockResoluciones.findIndex(r => r.id === nuevaResolucion.resolucionPadreId);
@@ -571,7 +571,7 @@ export class ResolucionService {
               console.warn('⚠️ No se encontró la resolución padre para actualizar (fallback):', nuevaResolucion.resolucionPadreId);
             }
           }
-          
+
           return of(nuevaResolucion);
         })
       );
@@ -579,7 +579,7 @@ export class ResolucionService {
 
   updateResolucion(id: string, resolucion: ResolucionUpdate): Observable<Resolucion> {
     const url = `${this.apiUrl}/resoluciones/${id}`;
-    
+
     return this.http.put<Resolucion>(url, resolucion, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
@@ -597,7 +597,7 @@ export class ResolucionService {
 
   deleteResolucion(id: string): Observable<void> {
     const url = `${this.apiUrl}/resoluciones/${id}`;
-    
+
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
@@ -616,7 +616,7 @@ export class ResolucionService {
     console.log('=== INICIO getResolucionesPorEmpresa ===');
     console.log('Empresa ID solicitada:', empresaId);
     console.log('Total de resoluciones mock disponibles:', this.mockResoluciones.length);
-    
+
     const url = `${this.apiUrl}/resoluciones`;
     const params = new URLSearchParams();
     params.append('empresa_id', empresaId);
@@ -629,7 +629,7 @@ export class ResolucionService {
           console.log('=== DATOS DEL BACKEND ===');
           console.log('Resoluciones recibidas del backend:', resoluciones);
           console.log('Total de resoluciones del backend:', resoluciones.length);
-          
+
           // Log detallado de cada resolución del backend
           resoluciones.forEach((r: Resolucion, index: number) => {
             console.log(`Resolución backend ${index + 1}:`, {
@@ -648,11 +648,11 @@ export class ResolucionService {
         catchError(error => {
           console.error('Error fetching resoluciones por empresa:', error);
           console.log('Usando datos mock como fallback...');
-          
+
           // Retornar resoluciones mock filtradas por empresa
           const resolucionesFiltradas = this.mockResoluciones.filter(r => r.empresaId === empresaId && r.estaActivo);
           console.log('Resoluciones mock filtradas por empresa:', empresaId, resolucionesFiltradas);
-          
+
           // Log detallado de cada resolución para debugging
           resolucionesFiltradas.forEach((r, index) => {
             console.log(`Resolución mock ${index + 1}:`, {
@@ -664,7 +664,7 @@ export class ResolucionService {
               estaActivo: r.estaActivo
             });
           });
-          
+
           console.log('=== FIN getResolucionesPorEmpresa (MOCK FALLBACK) ===');
           return of(resolucionesFiltradas);
         })
@@ -673,7 +673,7 @@ export class ResolucionService {
 
   agregarResolucionAEmpresa(empresaId: string, resolucionId: string): Observable<Resolucion> {
     const url = `${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`;
-    
+
     return this.http.post<Resolucion>(url, {}, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
@@ -690,7 +690,7 @@ export class ResolucionService {
 
   removerResolucionDeEmpresa(empresaId: string, resolucionId: string): Observable<void> {
     const url = `${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`;
-    
+
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
@@ -718,7 +718,7 @@ export class ResolucionService {
     console.log('=== DEBUG DATOS MOCK ===');
     console.log('Total de resoluciones mock:', this.mockResoluciones.length);
     console.log('Resoluciones por empresa:');
-    
+
     const empresas = Array.from(new Set(this.mockResoluciones.map(r => r.empresaId)));
     empresas.forEach(empresaId => {
       const resolucionesEmpresa = this.mockResoluciones.filter(r => r.empresaId === empresaId);
@@ -740,7 +740,7 @@ export class ResolucionService {
 
     // Intentar obtener del backend primero
     const url = `${this.apiUrl}/resoluciones/filtradas`;
-    
+
     return this.http.post<Resolucion[]>(url, filtros, { headers: this.getHeaders() })
       .pipe(
         switchMap((resoluciones: Resolucion[]) => {
@@ -761,38 +761,38 @@ export class ResolucionService {
         catchError(error => {
           console.error('Error fetching filtered resoluciones from backend:', error);
           console.log('Usando datos mock con filtrado local...');
-          
+
           // Reiniciar medición para filtrado local
           PerformanceMonitor.startMeasure('getResolucionesFiltradas-local');
-          
+
           // Aplicar filtros a los datos mock
           let resolucionesFiltradas = [...this.mockResoluciones];
 
           // Filtro por número de resolución
           if (filtros.numeroResolucion) {
             const numeroLower = filtros.numeroResolucion.toLowerCase();
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
               r.nroResolucion.toLowerCase().includes(numeroLower)
             );
           }
 
           // Filtro por empresa
           if (filtros.empresaId) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
               r.empresaId === filtros.empresaId
             );
           }
 
           // Filtro por tipos de trámite (múltiple)
           if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
               filtros.tiposTramite!.includes(r.tipoTramite)
             );
           }
 
           // Filtro por estados (múltiple)
           if (filtros.estados && filtros.estados.length > 0) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
               r.estado && filtros.estados!.includes(r.estado)
             );
           }
@@ -819,13 +819,13 @@ export class ResolucionService {
 
           // Filtro por activo
           if (filtros.activo !== undefined) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => 
+            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
               r.estaActivo === filtros.activo
             );
           }
 
           console.log('Resoluciones filtradas (mock):', resolucionesFiltradas.length);
-          
+
           // Enriquecer con datos de empresa
           return this.enrichResolucionesConEmpresa(resolucionesFiltradas).pipe(
             tap(resoluciones => {
@@ -850,7 +850,7 @@ export class ResolucionService {
    */
   getResolucionesConEmpresa(): Observable<ResolucionConEmpresa[]> {
     console.log('=== getResolucionesConEmpresa ===');
-    
+
     return this.getResoluciones().pipe(
       switchMap((resoluciones: Resolucion[]) => {
         return this.enrichResolucionesConEmpresa(resoluciones);
@@ -870,9 +870,9 @@ export class ResolucionService {
 
     // Obtener IDs únicos de empresas
     const empresaIds = Array.from(new Set(resoluciones.map(r => r.empresaId)));
-    
+
     // Obtener datos de todas las empresas en paralelo
-    const empresasObservables = empresaIds.map(id => 
+    const empresasObservables = empresaIds.map(id =>
       this.empresaService.getEmpresa(id).pipe(
         catchError(error => {
           console.error(`Error fetching empresa ${id}:`, error);
@@ -894,7 +894,7 @@ export class ResolucionService {
         // Enriquecer resoluciones con datos de empresa
         const resolucionesConEmpresa: ResolucionConEmpresa[] = resoluciones.map(resolucion => {
           const empresa = empresaMap.get(resolucion.empresaId);
-          
+
           if (empresa) {
             return {
               ...resolucion,
@@ -906,14 +906,14 @@ export class ResolucionService {
                 },
                 ruc: empresa.ruc
               }
-            };
+            } as ResolucionConEmpresa;
           }
-          
+
           // Si no se encuentra la empresa, retornar sin datos de empresa
           return {
             ...resolucion,
             empresa: undefined
-          };
+          } as ResolucionConEmpresa;
         });
 
         console.log('Resoluciones enriquecidas con empresa:', resolucionesConEmpresa.length);
@@ -947,7 +947,7 @@ export class ResolucionService {
     ).pipe(
       catchError(error => {
         console.error('Error exporting resoluciones:', error);
-        
+
         // Fallback: generar exportación local simple
         return this.getResolucionesFiltradas(filtros).pipe(
           map(resoluciones => {
@@ -960,12 +960,12 @@ export class ResolucionService {
               new Date(r.fechaEmision).toLocaleDateString(),
               r.estado
             ]);
-            
+
             const csvContent = [
               headers.join(','),
               ...rows.map(row => row.join(','))
             ].join('\n');
-            
+
             return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
           })
         );
@@ -1034,8 +1034,8 @@ export class ResolucionService {
    */
   descargarPlantillaExcel(): Observable<Blob> {
     const url = `${this.apiUrl}/resoluciones/carga-masiva/plantilla`;
-    
-    return this.http.get(url, { 
+
+    return this.http.get(url, {
       headers: this.getHeaders(),
       responseType: 'blob'
     }).pipe(
@@ -1074,7 +1074,7 @@ export class ResolucionService {
     const url = `${this.apiUrl}/resoluciones/carga-masiva/procesar`;
     const formData = new FormData();
     formData.append('archivo', archivo);
-    
+
     // Agregar parámetro de solo validar
     const params = new URLSearchParams();
     if (soloValidar) {

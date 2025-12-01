@@ -6,31 +6,31 @@ export interface Expediente {
   tipoTramite: TipoTramite;
   estado: EstadoExpediente;
   estaActivo: boolean;
-  
+
   // ========== RELACIONES PRINCIPALES ==========
   // El expediente PUEDE estar relacionado con diferentes tipos de solicitantes
   empresaId?: string; // Para expedientes empresariales (autorizaciones, renovaciones, etc.)
   solicitanteId?: string; // Para expedientes personales (ciudadanos, funcionarios, etc.)
   tipoSolicitante: TipoSolicitante; // EMPRESA, PERSONA_NATURAL, FUNCIONARIO, OTRO
-  
+
   // El expediente PUEDE generar diferentes tipos de documentos resultantes
   resolucionFinalId?: string; // ID de la resolución final emitida (para expedientes empresariales)
   constanciaFinalId?: string; // ID de la constancia emitida (para solicitudes de información)
   certificadoFinalId?: string; // ID del certificado emitido (para copias de documentos)
   documentoResultadoId?: string; // ID del documento final (genérico)
-  
+
   // Para expedientes de INCREMENTO/SUSTITUCION, pueden basarse en una resolución anterior
   resolucionPadreId?: string; // ID de la resolución padre para expedientes derivados
   // Para expedientes de RENOVACION, se basan en una resolución primigenia
   resolucionPrimigeniaId?: string; // ID de la resolución primigenia base para expedientes de renovación
-  
+
   // ========== CONTENIDO DEL EXPEDIENTE ==========
   descripcion?: string; // Descripción automática según tipo de trámite
   fechaRegistro?: Date;
   fechaActualizacion?: Date;
   documentos?: DocumentoExpediente[]; // Documentos adjuntos al expediente
   observaciones?: string;
-  
+
   // ========== FLUJO POR OFICINAS ==========
   // El expediente se mueve entre oficinas hasta su resolución final
   oficinaActual?: OficinaExpediente; // Oficina donde se encuentra actualmente
@@ -39,7 +39,7 @@ export interface Expediente {
   fechaLlegadaOficina?: Date; // Fecha cuando llegó a la oficina actual
   proximaRevision?: Date; // Fecha de la próxima revisión programada
   urgencia?: NivelUrgencia; // Nivel de urgencia del expediente
-  
+
   // ========== INTEGRACIÓN CON SISTEMAS EXTERNOS ==========
   // Campos para integración con sistemas externos de gestión documentaria
   sistemaOrigen?: SistemaOrigen; // Sistema del que proviene el expediente
@@ -185,7 +185,8 @@ export enum PrioridadExpediente {
   NORMAL = 'NORMAL',
   ALTA = 'ALTA',
   URGENTE = 'URGENTE',
-  CRITICA = 'CRITICA'
+  CRITICA = 'CRITICA',
+  MEDIA = 'MEDIA'
 }
 
 export enum CategoriaExpediente {
@@ -271,39 +272,36 @@ export enum NivelRiesgo {
 
 // Interfaces para creación y actualización
 export interface ExpedienteCreate {
-  numero: string; // Solo el número (1234), el sistema generará E-1234-2025
-  folio: number; // Cantidad de hojas/páginas del expediente
+  nroExpediente: string;
+  folio: number;
   fechaEmision: Date;
   tipoTramite: TipoTramite;
-  tipoExpediente: TipoExpediente; // Nuevo: tipo específico del expediente
-  
+  estado?: EstadoExpediente;
+
   // ========== SOLICITANTE ==========
-  // Solo uno de estos campos debe estar presente según el tipoSolicitante
-  empresaId?: string; // Para expedientes empresariales
-  solicitanteId?: string; // Para expedientes personales
-  tipoSolicitante: TipoSolicitante; // Tipo de solicitante (OBLIGATORIO)
-  
+  empresaId?: string;
+  representanteId?: string;
+
   // ========== DOCUMENTOS RESULTANTES ==========
-  resolucionPadreId?: string; // ID de la resolución padre para expedientes de INCREMENTO o SUSTITUCION
-  resolucionPrimigeniaId?: string; // ID de la resolución primigenia para expedientes de RENOVACION
-  tipoDocumentoResultado?: TipoDocumentoResultado; // Qué tipo de documento se generará
-  
+  resolucionPadreId?: string;
+  resolucionPrimigeniaId?: string;
+
   // ========== CONTENIDO ==========
   descripcion?: string;
   observaciones?: string;
-  
+
   // ========== SEGUIMIENTO POR OFICINA ==========
-  oficinaInicialId?: string; // ID de la oficina donde inicia el expediente
+  prioridad?: PrioridadExpediente;
+  oficinaInicialId?: string;
   urgencia?: NivelUrgencia;
   tiempoEstimadoOficina?: number;
-  
+
   // ========== CAMPOS OPCIONALES PARA SISTEMAS EXTERNOS ==========
   sistemaOrigen?: SistemaOrigen;
   idExterno?: string;
   codigoExterno?: string;
   metadatosExternos?: MetadatosExternos;
   urlExterna?: string;
-  prioridad?: PrioridadExpediente;
   categoria?: CategoriaExpediente;
   tags?: string[];
   costo?: number;
@@ -320,18 +318,18 @@ export interface ExpedienteUpdate {
   tipoTramite?: TipoTramite;
   estado?: EstadoExpediente;
   empresaId?: string;
-  resolucionPadreId?: string; // ID de la resolución padre para expedientes de INCREMENTO o SUSTITUCION
-  resolucionPrimigeniaId?: string; // ID de la resolución primigenia para expedientes de RENOVACION
+  resolucionPadreId?: string;
+  resolucionPrimigeniaId?: string;
   descripcion?: string;
   observaciones?: string;
-  
+
   // Campos para seguimiento por oficina
-  oficinaActualId?: string; // ID de la nueva oficina
+  oficinaActualId?: string;
   urgencia?: NivelUrgencia;
   tiempoEstimadoOficina?: number;
   proximaRevision?: Date;
-  motivoTransferencia?: string; // Motivo del cambio de oficina
-  
+  motivoTransferencia?: string;
+
   // Campos para actualización de expedientes externos
   sistemaOrigen?: SistemaOrigen;
   idExterno?: string;
@@ -396,7 +394,7 @@ export interface RespuestaValidacion {
 export type EstadoExpediente = 'EN PROCESO' | 'APROBADO' | 'RECHAZADO' | 'SUSPENDIDO' | 'ARCHIVADO';
 
 // Actualizar TipoTramite según el briefing consolidado
-export type TipoTramite = 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS'; 
+export type TipoTramite = 'AUTORIZACION_NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
 
 // Nuevos tipos para expedientes no empresariales
 export enum TipoSolicitante {
@@ -413,24 +411,24 @@ export enum TipoExpediente {
   RENOVACION_TRANSPORTE = 'RENOVACION_TRANSPORTE',
   INCREMENTO_FLOTA = 'INCREMENTO_FLOTA',
   SUSTITUCION_VEHICULOS = 'SUSTITUCION_VEHICULOS',
-  
+
   // Expedientes de información y documentación
   SOLICITUD_INFORMACION = 'SOLICITUD_INFORMACION',
   COPIA_DOCUMENTO = 'COPIA_DOCUMENTO',
   CERTIFICADO = 'CERTIFICADO',
   CONSTANCIA = 'CONSTANCIA',
-  
+
   // Expedientes administrativos
   SOLICITUD_ADMINISTRATIVA = 'SOLICITUD_ADMINISTRATIVA',
   RECLAMO = 'RECLAMO',
   SUGERENCIA = 'SUGERENCIA',
   CONSULTA = 'CONSULTA',
-  
+
   // Expedientes de fiscalización
   DENUNCIA = 'DENUNCIA',
   INSPECCION = 'INSPECCION',
   AUDITORIA = 'AUDITORIA',
-  
+
   // Categoría general para cualquier otro trámite
   OTROS = 'OTROS'
 }
@@ -561,4 +559,4 @@ export interface EstadisticasOficina {
   oficinaMasLenta: string;
   oficinaMasRapida: string;
   retrasos: number; // Cantidad de veces que se excedió el tiempo estimado
-} 
+}

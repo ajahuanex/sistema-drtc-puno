@@ -2,7 +2,7 @@ export type EstadoResolucion = 'VIGENTE' | 'VENCIDA' | 'SUSPENDIDA' | 'REVOCADA'
 
 export type TipoResolucion = 'PADRE' | 'HIJO';
 
-export type TipoTramite = 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
+export type TipoTramite = 'AUTORIZACION_NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
 
 export type TipoResolucionSimple = 'PRIMIGENIA' | 'AMPLIACION' | 'MODIFICACION';
 
@@ -52,7 +52,7 @@ export interface Resolucion {
   fechaVencimiento?: Date; // Para compatibilidad con el frontend
   documentos?: any[]; // Para compatibilidad con el servicio mock
   auditoria?: any[]; // Para compatibilidad con el servicio mock
-  
+
   // Nuevos campos para integración con bajas vehiculares
   bajasVehiculos?: BajaVehiculoResolucion[];
   vehiculosSustituidos?: string[]; // IDs de vehículos sustituidos
@@ -93,7 +93,7 @@ export interface ResolucionCreate {
   resolucionPadreId?: string;
   vehiculosHabilitadosIds?: string[];
   rutasAutorizadasIds?: string[];
-  
+
   // Nuevos campos para integración con bajas vehiculares
   vehiculosSustituidos?: string[];
   vehiculosRenovados?: string[];
@@ -115,7 +115,7 @@ export interface ResolucionUpdate {
   observaciones?: string;
   estaActivo?: boolean;
   resolucionPadreId?: string;
-  
+
   // Nuevos campos para integración con bajas vehiculares
   vehiculosSustituidos?: string[];
   vehiculosRenovados?: string[];
@@ -146,7 +146,7 @@ export interface ResolucionEstadisticas {
   resolucionesAmpliacion: number;
   resolucionesModificacion: number;
   proximasAVencer: number;
-} 
+}
 
 // Nueva interfaz para estadísticas de bajas vehiculares
 export interface ResolucionBajasEstadisticas {

@@ -69,6 +69,60 @@ class OficinaExpediente(BaseModel):
     horarioAtencion: str = "08:00 - 17:00"
     tiempoEstimadoProcesamiento: int = 5  # días hábiles
 
+class Expediente(BaseModel):
+    id: str
+    nroExpediente: str
+    folio: int
+    fechaEmision: datetime
+    tipoTramite: TipoTramite
+    estado: EstadoExpediente = EstadoExpediente.EN_PROCESO
+    estaActivo: bool = True
+    
+    # Relaciones
+    empresaId: Optional[str] = None
+    representanteId: Optional[str] = None
+    resolucionPrimigeniaId: Optional[str] = None
+    resolucionPadreId: Optional[str] = None
+    
+    # Contenido
+    descripcion: Optional[str] = None
+    observaciones: Optional[str] = None
+    prioridad: PrioridadExpediente = PrioridadExpediente.MEDIA
+    
+    # Seguimiento por oficina
+    oficinaActualId: Optional[str] = None
+    urgencia: NivelUrgencia = NivelUrgencia.NORMAL
+    tiempoEstimadoOficina: Optional[int] = None
+    fechaLlegadaOficina: Optional[datetime] = None
+    proximaRevision: Optional[datetime] = None
+    
+    # Fechas de auditoría
+    fechaRegistro: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fechaActualizacion: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ExpedienteCreate(BaseModel):
+    nroExpediente: str
+    folio: int
+    fechaEmision: datetime
+    tipoTramite: TipoTramite
+    estado: Optional[EstadoExpediente] = EstadoExpediente.EN_PROCESO
+    
+    # Relaciones
+    empresaId: Optional[str] = None
+    representanteId: Optional[str] = None
+    resolucionPrimigeniaId: Optional[str] = None
+    resolucionPadreId: Optional[str] = None
+    
+    # Contenido
+    descripcion: Optional[str] = None
+    observaciones: Optional[str] = None
+    prioridad: Optional[PrioridadExpediente] = PrioridadExpediente.MEDIA
+    
+    # Seguimiento por oficina
+    oficinaInicialId: Optional[str] = None
+    urgencia: Optional[NivelUrgencia] = NivelUrgencia.NORMAL
+    tiempoEstimadoOficina: Optional[int] = None
+
 class HistorialOficina(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
     oficinaId: str
@@ -78,66 +132,6 @@ class HistorialOficina(BaseModel):
     fechaLlegada: datetime
     fechaSalida: Optional[datetime] = None
     tiempoPermanencia: Optional[int] = None  # días
-    estado: EstadoHistorialOficina
-    observaciones: Optional[str] = None
-    usuarioId: str  # Usuario que realizó el movimiento
-    documentosRequeridos: List[str] = []
-    documentosEntregados: List[str] = []
-
-class Expediente(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
-    nroExpediente: str
-    fechaEmision: datetime
-    tipoTramite: TipoTramite
-    estado: EstadoExpediente
-    estaActivo: bool = True
-    fechaRegistro: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    fechaActualizacion: Optional[datetime] = None
-    resolucionFinalId: Optional[str] = None
-    empresaId: str
-    representanteId: str
-    vehiculosIds: List[str] = []
-    conductoresIds: List[str] = []
-    rutasIds: List[str] = []
-    documentosIds: List[str] = []
-    observaciones: Optional[str] = None
-    prioridad: PrioridadExpediente = PrioridadExpediente.MEDIA
-    fechaLimite: Optional[datetime] = None
-    usuarioAsignadoId: Optional[str] = None
-    historialIds: List[str] = []
-    comentarios: List[dict] = []  # {usuarioId, fecha, comentario, tipo}
-    seguimiento: List[dict] = []  # {fecha, estado, observacion, usuarioId}
-    
-    # Campos para seguimiento por oficina
-    oficinaActual: Optional[OficinaExpediente] = None
-    historialOficinas: List[HistorialOficina] = []
-    tiempoEstimadoOficina: Optional[int] = None  # días hábiles
-    fechaLlegadaOficina: Optional[datetime] = None
-    proximaRevision: Optional[datetime] = None
-    urgencia: NivelUrgencia = NivelUrgencia.NORMAL
-
-class ExpedienteCreate(BaseModel):
-    nroExpediente: str
-    tipoTramite: TipoTramite
-    empresaId: str
-    representanteId: str
-    vehiculosIds: List[str] = []
-    conductoresIds: List[str] = []
-    rutasIds: List[str] = []
-    documentosIds: List[str] = []
-    observaciones: Optional[str] = None
-    prioridad: PrioridadExpediente = PrioridadExpediente.MEDIA
-    fechaLimite: Optional[datetime] = None
-    usuarioAsignadoId: Optional[str] = None
-    
-    # Campos para seguimiento por oficina
-    oficinaInicial: Optional[str] = None  # ID de la oficina inicial
-    urgencia: NivelUrgencia = NivelUrgencia.NORMAL
-
-class ExpedienteUpdate(BaseModel):
-    tipoTramite: Optional[TipoTramite] = None
-    estado: Optional[EstadoExpediente] = None
-    vehiculosIds: Optional[List[str]] = None
     conductoresIds: Optional[List[str]] = None
     rutasIds: Optional[List[str]] = None
     documentosIds: Optional[List[str]] = None
@@ -146,12 +140,28 @@ class ExpedienteUpdate(BaseModel):
     fechaLimite: Optional[datetime] = None
     usuarioAsignadoId: Optional[str] = None
     resolucionFinalId: Optional[str] = None
+
+class ExpedienteUpdate(BaseModel):
+    nroExpediente: Optional[str] = None
+    folio: Optional[int] = None
+    fechaEmision: Optional[datetime] = None
+    tipoTramite: Optional[TipoTramite] = None
+    estado: Optional[EstadoExpediente] = None
+    empresaId: Optional[str] = None
+    representanteId: Optional[str] = None
+    resolucionPrimigeniaId: Optional[str] = None
+    resolucionPadreId: Optional[str] = None
+    descripcion: Optional[str] = None
+    observaciones: Optional[str] = None
+    prioridad: Optional[PrioridadExpediente] = None
+    usuarioAsignadoId: Optional[str] = None
+    fechaLimite: Optional[datetime] = None
     
     # Campos para seguimiento por oficina
-    oficinaActual: Optional[OficinaExpediente] = None
+    oficinaActualId: Optional[str] = None
+    urgencia: Optional[NivelUrgencia] = None
     tiempoEstimadoOficina: Optional[int] = None
     proximaRevision: Optional[datetime] = None
-    urgencia: Optional[NivelUrgencia] = None
 
 class ExpedienteFiltros(BaseModel):
     nroExpediente: Optional[str] = None
@@ -174,20 +184,6 @@ class ExpedienteResponse(BaseModel):
     id: str
     nroExpediente: str
     fechaEmision: datetime
-    tipoTramite: TipoTramite
-    estado: EstadoExpediente
-    estaActivo: bool
-    fechaRegistro: datetime
-    fechaActualizacion: Optional[datetime] = None
-    resolucionFinalId: Optional[str] = None
-    empresaId: str
-    representanteId: str
-    vehiculosIds: List[str]
-    conductoresIds: List[str]
-    rutasIds: List[str]
-    documentosIds: List[str]
-    observaciones: Optional[str] = None
-    prioridad: PrioridadExpediente
     fechaLimite: Optional[datetime] = None
     usuarioAsignadoId: Optional[str] = None
     historialIds: List[str]
@@ -313,4 +309,4 @@ class MovimientoOficina(BaseModel):
     documentosRequeridos: List[str] = []
     documentosEntregados: List[str] = []
     usuarioId: str
-    fechaMovimiento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc)) 
+    fechaMovimiento: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

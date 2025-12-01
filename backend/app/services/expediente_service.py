@@ -14,6 +14,7 @@ class ExpedienteService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.collection = db.expedientes
+        self.empresa_collection = db.empresas
 
     async def get_expedientes(self, skip: int = 0, limit: int = 100) -> List[Expediente]:
         cursor = self.collection.find().skip(skip).limit(limit)
@@ -60,6 +61,15 @@ class ExpedienteService:
             expediente_dict["estado"] = EstadoExpediente.EN_PROCESO
             
         expediente_dict["estaActivo"] = True
+
+        # Si no hay representanteId, intentar obtenerlo de la empresa
+        if not expediente_dict.get("representanteId") and expediente_dict.get("empresaId"):
+            empresa = await self.empresa_collection.find_one({"id": expediente_dict["empresaId"]})
+            if not empresa and ObjectId.is_valid(expediente_dict["empresaId"]):
+                 empresa = await self.empresa_collection.find_one({"_id": ObjectId(expediente_dict["empresaId"])})
+            
+            if empresa and "representanteLegal" in empresa:
+                expediente_dict["representanteId"] = empresa["representanteLegal"].get("dni")
         
         # Insertar en MongoDB
         await self.collection.insert_one(expediente_dict)

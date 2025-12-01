@@ -357,7 +357,7 @@ export class RutasComponent implements OnInit {
   private rutaService = inject(RutaService);
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
-  
+
   // Signals
   rutas = signal<Ruta[]>([]);
   todasLasRutas = signal<Ruta[]>([]); // Nueva signal para mantener todas las rutas
@@ -387,22 +387,22 @@ export class RutasComponent implements OnInit {
 
   private cargarTodasLasRutas(): void {
     console.log('🔄 CARGANDO TODAS LAS RUTAS...');
-    
+
     // Cargar todas las rutas del sistema
     this.rutaService.getRutas().subscribe({
       next: (rutas) => {
         console.log('✅ RUTAS CARGADAS EXITOSAMENTE:', {
           total: rutas.length,
-          rutas: rutas.map(r => ({ 
-            id: r.id, 
-            codigoRuta: r.codigoRuta, 
-            nombre: r.nombre, 
+          rutas: rutas.map(r => ({
+            id: r.id,
+            codigoRuta: r.codigoRuta,
+            nombre: r.nombre,
             origen: r.origen,
             destino: r.destino,
-            resolucionId: r.resolucionId 
+            resolucionId: r.resolucionId
           }))
         });
-        
+
         this.rutas.set(rutas);
         this.todasLasRutas.set(rutas); // Actualizar todasLasRutas
         this.totalRutas.set(rutas.length);
@@ -433,18 +433,18 @@ export class RutasComponent implements OnInit {
     this.empresaSearchValue.set(this.displayEmpresa(empresa));
     this.resolucionSeleccionada.set(null);
     this.resolucionSearchValue.set('');
-    
+
     // Cargar TODAS las rutas del sistema
     this.cargarTodasLasRutas();
-    
+
     // Cargar resoluciones de la empresa seleccionada
     this.cargarResolucionesPorEmpresa(empresa.id);
-    
+
     console.log('🏢 EMPRESA SELECCIONADA:', {
       empresa: empresa.razonSocial?.principal,
       empresaId: empresa.id
     });
-    
+
     // Filtrar las rutas por la empresa seleccionada
     this.filtrarRutasPorEmpresa(empresa.id);
   }
@@ -453,7 +453,7 @@ export class RutasComponent implements OnInit {
     const resolucion = event.option.value;
     this.resolucionSeleccionada.set(resolucion);
     this.resolucionSearchValue.set(this.displayResolucion(resolucion));
-    
+
     // Filtrar las rutas por la resolución seleccionada (de todas las rutas del sistema)
     this.filtrarRutasPorResolucion(resolucion.id);
   }
@@ -461,9 +461,9 @@ export class RutasComponent implements OnInit {
   private filtrarEmpresas(value: string): void {
     if (typeof value !== 'string') return;
     const filterValue = value.toLowerCase();
-    
+
     this.empresaService.getEmpresas().subscribe(empresas => {
-      const empresasFiltradas = empresas.filter(empresa => 
+      const empresasFiltradas = empresas.filter(empresa =>
         empresa.ruc.toLowerCase().includes(filterValue) ||
         (empresa.razonSocial?.principal || '').toLowerCase().includes(filterValue)
       );
@@ -474,11 +474,11 @@ export class RutasComponent implements OnInit {
   private filtrarResoluciones(value: string): void {
     if (typeof value !== 'string') return;
     const filterValue = value.toLowerCase();
-    
+
     const resoluciones = this.resolucionesFiltradas();
     if (resoluciones) {
       resoluciones.subscribe(resolucionesList => {
-        const resolucionesFiltradas = resolucionesList.filter(resolucion => 
+        const resolucionesFiltradas = resolucionesList.filter(resolucion =>
           resolucion.nroResolucion.toLowerCase().includes(filterValue) ||
           resolucion.tipoTramite.toLowerCase().includes(filterValue)
         );
@@ -490,7 +490,7 @@ export class RutasComponent implements OnInit {
   private cargarResolucionesPorEmpresa(empresaId: string): void {
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe(resoluciones => {
       // Filtrar solo resoluciones primigenias
-      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'PRIMIGENIA');
+      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'AUTORIZACION_NUEVA');
       this.resolucionesFiltradas.set(of(resolucionesPrimigenias));
     });
   }
@@ -506,15 +506,15 @@ export class RutasComponent implements OnInit {
 
   limpiarFiltros(): void {
     console.log('🧹 LIMPIANDO FILTROS...');
-    
+
     this.empresaSeleccionada.set(null);
     this.resolucionSeleccionada.set(null);
     this.empresaSearchValue.set('');
     this.resolucionSearchValue.set('');
-    
+
     // Cargar todas las rutas del sistema
     this.cargarTodasLasRutas();
-    
+
     console.log('✅ FILTROS LIMPIADOS, MOSTRANDO TODAS LAS RUTAS');
     this.snackBar.open('Filtros limpiados, mostrando todas las rutas del sistema', 'Cerrar', { duration: 3000 });
   }
@@ -533,9 +533,9 @@ export class RutasComponent implements OnInit {
         console.log('✅ RUTAS DE LA EMPRESA CARGADAS:', {
           total: rutas.length,
           empresa: this.empresaSeleccionada()!.razonSocial?.principal,
-          rutas: rutas.map(r => ({ 
-            id: r.id, 
-            codigoRuta: r.codigoRuta, 
+          rutas: rutas.map(r => ({
+            id: r.id,
+            codigoRuta: r.codigoRuta,
             nombre: r.nombre,
             origen: r.origen,
             destino: r.destino,
@@ -543,11 +543,11 @@ export class RutasComponent implements OnInit {
             empresaId: r.empresaId
           }))
         });
-        
+
         this.rutas.set(rutas);
         this.totalRutas.set(rutas.length);
         this.isLoading.set(false);
-        
+
         // Mostrar mensaje informativo
         this.snackBar.open(`Se cargaron ${rutas.length} ruta(s) de la empresa seleccionada`, 'Cerrar', { duration: 3000 });
       },
@@ -567,9 +567,9 @@ export class RutasComponent implements OnInit {
 
     console.log('📊 RUTAS DISPONIBLES ANTES DEL FILTRO POR RESOLUCIÓN:', {
       totalRutas: this.todasLasRutas().length,
-      todasLasRutas: this.todasLasRutas().map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
+      todasLasRutas: this.todasLasRutas().map(r => ({
+        id: r.id,
+        codigoRuta: r.codigoRuta,
         nombre: r.nombre,
         origen: r.origen,
         destino: r.destino,
@@ -579,27 +579,27 @@ export class RutasComponent implements OnInit {
     });
 
     // Filtrar todas las rutas del sistema por la resolución específica
-    const rutasFiltradas = this.todasLasRutas().filter(ruta => 
+    const rutasFiltradas = this.todasLasRutas().filter(ruta =>
       ruta.resolucionId === resolucionId
     );
 
     console.log('✅ RUTAS FILTRADAS POR RESOLUCIÓN:', {
       total: rutasFiltradas.length,
       resolucionId: resolucionId,
-      rutas: rutasFiltradas.map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
-        nombre: r.nombre, 
+      rutas: rutasFiltradas.map(r => ({
+        id: r.id,
+        codigoRuta: r.codigoRuta,
+        nombre: r.nombre,
         origen: r.origen,
         destino: r.destino,
-        resolucionId: r.resolucionId 
+        resolucionId: r.resolucionId
       }))
     });
-    
+
     // Solo actualizar la vista, no todasLasRutas
     this.rutas.set(rutasFiltradas);
     this.totalRutas.set(rutasFiltradas.length);
-    
+
     // Mostrar mensaje informativo
     this.snackBar.open(`Se encontraron ${rutasFiltradas.length} ruta(s) para la resolución seleccionada`, 'Cerrar', { duration: 3000 });
   }
@@ -614,8 +614,8 @@ export class RutasComponent implements OnInit {
     // Primero obtener las resoluciones de la empresa
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe(resoluciones => {
       // Obtener solo resoluciones primigenias
-      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'PRIMIGENIA');
-      
+      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'AUTORIZACION_NUEVA');
+
       console.log('📋 RESOLUCIONES DE LA EMPRESA:', {
         empresaId: empresaId,
         totalResoluciones: resolucionesPrimigenias.length,
@@ -628,12 +628,12 @@ export class RutasComponent implements OnInit {
 
       // Obtener los IDs de las resoluciones primigenias
       const resolucionIds = resolucionesPrimigenias.map(r => r.id);
-      
+
       console.log('📊 RUTAS DISPONIBLES ANTES DEL FILTRO POR EMPRESA:', {
         totalRutas: this.todasLasRutas().length,
-        todasLasRutas: this.todasLasRutas().map(r => ({ 
-          id: r.id, 
-          codigoRuta: r.codigoRuta, 
+        todasLasRutas: this.todasLasRutas().map(r => ({
+          id: r.id,
+          codigoRuta: r.codigoRuta,
           nombre: r.nombre,
           origen: r.origen,
           destino: r.destino,
@@ -643,7 +643,7 @@ export class RutasComponent implements OnInit {
       });
 
       // Filtrar rutas por las resoluciones de la empresa
-      const rutasFiltradasPorEmpresa = this.todasLasRutas().filter(ruta => 
+      const rutasFiltradasPorEmpresa = this.todasLasRutas().filter(ruta =>
         ruta.resolucionId && resolucionIds.includes(ruta.resolucionId)
       );
 
@@ -651,21 +651,21 @@ export class RutasComponent implements OnInit {
         total: rutasFiltradasPorEmpresa.length,
         empresaId: empresaId,
         resolucionesIncluidas: resolucionIds,
-        rutas: rutasFiltradasPorEmpresa.map(r => ({ 
-          id: r.id, 
-          codigoRuta: r.codigoRuta, 
-          nombre: r.nombre, 
+        rutas: rutasFiltradasPorEmpresa.map(r => ({
+          id: r.id,
+          codigoRuta: r.codigoRuta,
+          nombre: r.nombre,
           origen: r.origen,
           destino: r.destino,
           resolucionId: r.resolucionId,
           empresaId: r.empresaId
         }))
       });
-      
+
       // Solo actualizar la vista, no todasLasRutas
       this.rutas.set(rutasFiltradasPorEmpresa);
       this.totalRutas.set(rutasFiltradasPorEmpresa.length);
-      
+
       // Mostrar mensaje informativo
       this.snackBar.open(`Se encontraron ${rutasFiltradasPorEmpresa.length} ruta(s) para la empresa seleccionada`, 'Cerrar', { duration: 3000 });
     });
@@ -682,7 +682,7 @@ export class RutasComponent implements OnInit {
 
   getTipoDisplayName(tipo: TipoRuta | undefined): string {
     if (!tipo) return 'N/A';
-    
+
     const tipos: { [key in TipoRuta]: string } = {
       'INTERURBANA': 'Interurbana',
       'URBANA': 'Urbana',
@@ -690,13 +690,13 @@ export class RutasComponent implements OnInit {
       'NACIONAL': 'Nacional',
       'INTERNACIONAL': 'Internacional'
     };
-    
+
     return tipos[tipo] || tipo;
   }
 
   getEstadoDisplayName(estado: EstadoRuta | undefined): string {
     if (!estado) return 'N/A';
-    
+
     const estados: { [key in EstadoRuta]: string } = {
       'ACTIVA': 'Activa',
       'INACTIVA': 'Inactiva',
@@ -704,7 +704,7 @@ export class RutasComponent implements OnInit {
       'EN_MANTENIMIENTO': 'En Mantenimiento',
       'ARCHIVADA': 'Archivada'
     };
-    
+
     return estados[estado] || estado;
   }
 
@@ -729,7 +729,7 @@ export class RutasComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('🔄 RESULTADO DEL MODAL:', result);
-        
+
         // Agregar la nueva ruta a la lista
         const nuevaRuta: Ruta = {
           id: (this.rutas().length + 1).toString(),
@@ -757,12 +757,12 @@ export class RutasComponent implements OnInit {
 
         // Agregar a la lista de rutas
         this.rutas.update(rutas => [...rutas, nuevaRuta]);
-        
+
         console.log('📊 ESTADO ACTUAL DE RUTAS:', {
           totalRutas: this.rutas().length,
           rutas: this.rutas().map(r => ({ id: r.id, codigoRuta: r.codigoRuta, resolucionId: r.resolucionId }))
         });
-        
+
         this.snackBar.open('Ruta agregada exitosamente', 'Cerrar', { duration: 3000 });
       }
     });
@@ -774,7 +774,7 @@ export class RutasComponent implements OnInit {
 
   editarRuta(ruta: Ruta): void {
     console.log('✏️ EDITANDO RUTA:', ruta);
-    
+
     // Abrir modal de edición
     const dialogRef = this.dialog.open(AgregarRutaModalComponent, {
       width: '800px',
@@ -791,7 +791,7 @@ export class RutasComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('🔄 RESULTADO DEL MODAL DE EDICIÓN:', result);
-        
+
         // Actualizar la ruta existente
         const rutaActualizada: Ruta = {
           ...ruta,
@@ -813,10 +813,10 @@ export class RutasComponent implements OnInit {
         this.rutaService.updateRuta(ruta.id, rutaActualizada).subscribe({
           next: (rutaActualizada) => {
             console.log('✅ RUTA ACTUALIZADA EXITOSAMENTE:', rutaActualizada);
-            
+
             // Actualizar en las listas locales
             this.actualizarRutaEnLista(rutaActualizada);
-            
+
             this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
           },
           error: (error) => {
@@ -831,17 +831,17 @@ export class RutasComponent implements OnInit {
   eliminarRuta(ruta: Ruta): void {
     if (confirm('¿Estás seguro de que deseas eliminar esta ruta? Esta acción no se puede deshacer.')) {
       console.log('🗑️ ELIMINANDO RUTA:', ruta);
-      
+
       // Eliminar del servicio
       this.rutaService.deleteRuta(ruta.id).subscribe({
         next: () => {
           console.log('✅ RUTA ELIMINADA EXITOSAMENTE DEL SERVICIO');
-          
+
           // Eliminar de las listas locales
           this.rutas.update(rutas => rutas.filter(r => r.id !== ruta.id));
           this.todasLasRutas.update(todasLasRutas => todasLasRutas.filter(r => r.id !== ruta.id));
           this.totalRutas.update(total => total - 1);
-          
+
           this.snackBar.open('Ruta eliminada exitosamente', 'Cerrar', { duration: 3000 });
         },
         error: (error) => {
@@ -859,10 +859,10 @@ export class RutasComponent implements OnInit {
       maxWidth: '90vw',
       maxHeight: '90vh',
       data: {
-        empresa: { 
+        empresa: {
           id: 'general',
           codigoEmpresa: '0000SYS',
-          ruc: 'GENERAL', 
+          ruc: 'GENERAL',
           razonSocial: { principal: 'Sistema General' },
           direccionFiscal: 'Sistema General',
           estado: 'HABILITADA',
@@ -881,10 +881,10 @@ export class RutasComponent implements OnInit {
           conductoresHabilitadosIds: [],
           rutasAutorizadasIds: []
         } as Empresa,
-        resolucion: { 
-          id: 'general', 
-          nroResolucion: 'GENERAL', 
-          tipoTramite: 'PRIMIGENIA',
+        resolucion: {
+          id: 'general',
+          nroResolucion: 'GENERAL',
+          tipoTramite: 'AUTORIZACION_NUEVA',
           empresaId: 'general',
           expedienteId: 'general',
           fechaEmision: new Date(),
@@ -905,7 +905,7 @@ export class RutasComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('🔄 RESULTADO DEL MODAL GENERAL:', result);
-        
+
         // Agregar la nueva ruta a la lista
         const nuevaRuta: Ruta = {
           id: (this.rutas().length + 1).toString(),
@@ -933,12 +933,12 @@ export class RutasComponent implements OnInit {
 
         // Agregar a la lista de rutas
         this.rutas.update(rutas => [...rutas, nuevaRuta]);
-        
+
         console.log('📊 ESTADO ACTUAL DE RUTAS (DESPUÉS DE GENERAL):', {
           totalRutas: this.rutas().length,
           rutas: this.rutas().map(r => ({ id: r.id, codigoRuta: r.codigoRuta, resolucionId: r.resolucionId }))
         });
-        
+
         this.snackBar.open('Ruta general agregada exitosamente', 'Cerrar', { duration: 3000 });
       }
     });
@@ -1022,11 +1022,11 @@ export class RutasComponent implements OnInit {
 
   // Método auxiliar para actualizar una ruta en la lista
   private actualizarRutaEnLista(rutaActualizada: Ruta): void {
-    this.rutas.update(rutas => 
+    this.rutas.update(rutas =>
       rutas.map(r => r.id === rutaActualizada.id ? rutaActualizada : r)
     );
-    
-    this.todasLasRutas.update(todasLasRutas => 
+
+    this.todasLasRutas.update(todasLasRutas =>
       todasLasRutas.map(r => r.id === rutaActualizada.id ? rutaActualizada : r)
     );
   }
@@ -1038,7 +1038,7 @@ export class RutasComponent implements OnInit {
     console.log('📋 Resolución seleccionada:', this.resolucionSeleccionada()?.nroResolucion || 'Ninguna');
     console.log('📊 Total de rutas mostradas:', this.rutas().length);
     console.log('📈 Total de rutas en el sistema:', this.totalRutas());
-    
+
     // Mostrar también el estado del servicio
     this.rutaService.mostrarEstadoRutasMock();
   }
@@ -1054,7 +1054,7 @@ export class RutasComponent implements OnInit {
     console.log('🔍 ESTADO ACTUAL DE RUTAS EN EL COMPONENTE:');
     console.log('📊 RUTAS EN MEMORIA:', this.rutas());
     console.log('📊 TOTAL RUTAS:', this.rutas().length);
-    
+
     // Mostrar también el estado del servicio
     this.rutaService.mostrarEstadoRutasMock();
   }
@@ -1067,22 +1067,22 @@ export class RutasComponent implements OnInit {
   // Método para debug - mostrar estado completo
   mostrarEstadoCompleto(): void {
     console.log('🔍 === ESTADO COMPLETO DEL SISTEMA ===');
-    
+
     console.log('🏢 EMPRESA SELECCIONADA:', {
       empresa: this.empresaSeleccionada()?.razonSocial?.principal,
       empresaId: this.empresaSeleccionada()?.id
     });
-    
+
     console.log('📋 RESOLUCIÓN SELECCIONADA:', {
       resolucion: this.resolucionSeleccionada()?.nroResolucion,
       resolucionId: this.resolucionSeleccionada()?.id
     });
-    
+
     console.log('📊 TODAS LAS RUTAS EN MEMORIA:', {
       total: this.rutas().length,
-      rutas: this.rutas().map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
+      rutas: this.rutas().map(r => ({
+        id: r.id,
+        codigoRuta: r.codigoRuta,
         nombre: r.nombre,
         origen: r.origen,
         destino: r.destino,
@@ -1090,12 +1090,12 @@ export class RutasComponent implements OnInit {
         empresaId: r.empresaId
       }))
     });
-    
+
     console.log('🔍 FILTROS APLICADOS:', {
       empresaFiltrada: this.empresaSeleccionada()?.id,
       resolucionFiltrada: this.resolucionSeleccionada()?.id
     });
-    
+
     console.log('=== FIN ESTADO COMPLETO ===');
   }
 
@@ -1107,8 +1107,8 @@ export class RutasComponent implements OnInit {
     }
 
     // Obtener todas las rutas de la misma resolución
-    const rutasMismaResolucion = this.todasLasRutas().filter(r => 
-      r.id !== rutaOrigen.id && 
+    const rutasMismaResolucion = this.todasLasRutas().filter(r =>
+      r.id !== rutaOrigen.id &&
       r.resolucionId === rutaOrigen.resolucionId
     );
 

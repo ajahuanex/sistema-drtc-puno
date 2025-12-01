@@ -67,7 +67,7 @@ export class ExpedienteService {
 
   createExpediente(expediente: ExpedienteCreate): Observable<Expediente> {
     // Asegurar que el número de expediente se genere correctamente si no viene
-    if (!expediente.numero) {
+    if (!expediente.nroExpediente) {
       // Lógica de fallback o error
     }
     return this.http.post<Expediente>(this.apiUrl, expediente);

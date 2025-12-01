@@ -441,12 +441,11 @@ export class CrearExpedienteModalComponent {
       this.isSubmitting.set(true);
       
               const expedienteData: ExpedienteCreate = {
-          numero: this.expedienteForm.value.numero,
+          nroExpediente: this.expedienteForm.value.numero,
           folio: this.expedienteForm.value.folio,
           fechaEmision: this.expedienteForm.value.fechaEmision,
           tipoTramite: this.expedienteForm.value.tipoTramite,
-          tipoExpediente: TipoExpediente.OTROS,
-          tipoSolicitante: TipoSolicitante.EMPRESA,
+         
           empresaId: this.expedienteForm.value.empresaId || '',
           resolucionPrimigeniaId: this.expedienteForm.value.resolucionPrimigeniaId || undefined,
           resolucionPadreId: this.expedienteForm.value.resolucionPadreId || undefined,

@@ -28,8 +28,8 @@ import { Ruta } from '../../models/ruta.model';
 import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
-import { 
-  placaPeruanaValidator, 
+import {
+  placaPeruanaValidator,
   placaDuplicadaValidator,
   anioFabricacionValidator,
   capacidadPasajerosValidator,
@@ -142,19 +142,6 @@ import {
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Resolución *</mat-label>
-                    <mat-select formControlName="resolucionId" (selectionChange)="onResolucionChange()" required>
-                      <mat-option value="">Selecciona una resolución</mat-option>
-                      @for (resolucion of resoluciones(); track resolucion.id) {
-                        <mat-option [value]="resolucion.id">
-                          {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }}
-                          <span class="resolucion-tipo-badge" [class]="'tipo-' + (resolucion.tipoTramite === 'PRIMIGENIA' ? 'primigenia' : 'hija')">
-                            {{ resolucion.tipoTramite === 'PRIMIGENIA' ? 'PRIMIGENIA' : 'HIJA' }}
-                          </span>
-                        </mat-option>
-                      }
-                    </mat-select>
-                    <mat-icon matSuffix>description</mat-icon>
                     <mat-hint>Resolución asociada al vehículo (primigenia o hija)</mat-hint>
                     <mat-error *ngIf="vehiculoForm.get('resolucionId')?.hasError('required')">
                       La resolución es obligatoria
@@ -1383,15 +1370,15 @@ export class VehiculoFormComponent implements OnInit {
   isSubmitting = signal(false);
   isEditing = signal(false);
   vehiculoId = signal<string | null>(null);
-  
+
   // Datos de referencia
   empresas = signal<Empresa[]>([]);
   resoluciones = signal<Resolucion[]>([]);
   rutasDisponibles = signal<Ruta[]>([]);
-  
+
   // Autocompletado para empresas
   empresasFiltradas!: Observable<Empresa[]>;
-  
+
   // Getters para los controles del formulario
   get empresaControl(): FormControl {
     return this.vehiculoForm.get('empresaActualId') as FormControl;
@@ -1400,7 +1387,7 @@ export class VehiculoFormComponent implements OnInit {
   ngOnInit(): void {
     this.initializeForm();
     this.loadEmpresas();
-    
+
     if (!this.modalMode()) {
       this.loadVehiculo();
     } else {
@@ -1409,7 +1396,7 @@ export class VehiculoFormComponent implements OnInit {
         empresaActualId: this.empresaId(),
         resolucionId: this.resolucionId()
       });
-      
+
       // Cargar resoluciones y rutas si ya hay empresa y resolución
       if (this.empresaId()) {
         this.loadResoluciones(this.empresaId());
@@ -1424,11 +1411,11 @@ export class VehiculoFormComponent implements OnInit {
   limpiarEmpresa(): void {
     this.empresaControl.setValue('');
     this.vehiculoForm.patchValue({ empresaActualId: '' });
-    
+
     // Limpiar resoluciones y rutas
     this.resoluciones.set([]);
     this.rutasDisponibles.set([]);
-    
+
     // Limpiar y deshabilitar campo de resolución
     this.vehiculoForm.patchValue({ resolucionId: '' });
     this.vehiculoForm.get('resolucionId')?.disable();
@@ -1441,7 +1428,7 @@ export class VehiculoFormComponent implements OnInit {
       numeroTuc: ['', [numeroTucValidator()]],
       rutasAsignadasIds: [[], Validators.required],
       placa: [
-        '', 
+        '',
         [Validators.required, placaPeruanaValidator()],
         [placaDuplicadaValidator(this.vehiculoService, this.vehiculoId() || undefined)]
       ],
@@ -1508,11 +1495,11 @@ export class VehiculoFormComponent implements OnInit {
           this.vehiculoForm.patchValue({
             asientos: vehiculo.datosTecnicos.asientos
           });
-          
+
           // Cargar resoluciones y rutas para este vehículo
           this.loadResoluciones(vehiculo.empresaActualId);
           this.loadRutasDisponibles(vehiculo.resolucionId);
-          
+
           this.isLoading.set(false);
         },
         error: (error: any) => {
@@ -1553,7 +1540,7 @@ export class VehiculoFormComponent implements OnInit {
 
   private filtrarEmpresas(value: any): Empresa[] {
     if (!value) return this.empresas();
-    
+
     // Si el valor es un objeto Empresa, extraer el texto para filtrar
     let filterValue = '';
     if (typeof value === 'string') {
@@ -1561,7 +1548,7 @@ export class VehiculoFormComponent implements OnInit {
     } else if (value && typeof value === 'object') {
       filterValue = (value.razonSocial?.principal?.toLowerCase() || value.ruc?.toLowerCase() || '');
     }
-    
+
     return this.empresas().filter(empresa => {
       const rucMatch = empresa.ruc.toLowerCase().includes(filterValue);
       const razonSocialMatch = empresa.razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
@@ -1572,7 +1559,7 @@ export class VehiculoFormComponent implements OnInit {
   // Método para mostrar la empresa en el input (arrow function para preservar `this`)
   displayEmpresa = (empresa: Empresa | string | null | undefined): string => {
     if (!empresa) return '';
-    
+
     // Si es un string (ID), buscar la empresa en la lista
     if (typeof empresa === 'string') {
       const empresaEncontrada = this.empresas().find(e => e.id === empresa);
@@ -1582,7 +1569,7 @@ export class VehiculoFormComponent implements OnInit {
         return 'Empresa no encontrada';
       }
     }
-    
+
     // Verificar que razonSocial existe y tiene la propiedad principal
     if (empresa.razonSocial && empresa.razonSocial.principal) {
       return `${empresa.ruc} - ${empresa.razonSocial.principal}`;
@@ -1601,23 +1588,23 @@ export class VehiculoFormComponent implements OnInit {
       this.empresaControl.setValue(empresa);
       // También actualizar el valor del formulario con el ID
       this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
-      
+
       // Habilitar el campo de resolución
       this.vehiculoForm.get('resolucionId')?.enable();
-      
+
       this.onEmpresaChange();
     }
   }
 
   private loadResoluciones(empresaId: string): void {
     if (!empresaId) return;
-    
+
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
         // Filtrar resoluciones de la empresa seleccionada
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
         this.resoluciones.set(resolucionesEmpresa);
-        
+
         // Si no hay resolución seleccionada, limpiar el campo
         if (!this.vehiculoForm.get('resolucionId')?.value) {
           this.vehiculoForm.patchValue({ resolucionId: '' });
@@ -1632,7 +1619,7 @@ export class VehiculoFormComponent implements OnInit {
 
   private loadRutasDisponibles(resolucionId: string): void {
     if (!resolucionId) return;
-    
+
     this.rutaService.getRutas().subscribe({
       next: (rutas) => {
         // Filtrar rutas de la resolución seleccionada
@@ -1768,7 +1755,7 @@ export class VehiculoFormComponent implements OnInit {
   convertirAMayusculas(event: any, campo: string): void {
     const valor = event.target.value;
     const valorMayusculas = valor.toUpperCase();
-    
+
     if (valor !== valorMayusculas) {
       this.vehiculoForm.get(campo)?.setValue(valorMayusculas, { emitEvent: false });
     }
@@ -1776,13 +1763,13 @@ export class VehiculoFormComponent implements OnInit {
 
   onEmpresaChange(): void {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
-    
+
     // Limpiar campos dependientes
     this.vehiculoForm.patchValue({
       resolucionId: '',
       rutasAsignadasIds: []
     });
-    
+
     // Cargar resoluciones de la empresa seleccionada
     if (empresaId) {
       this.loadResoluciones(empresaId);
@@ -1794,12 +1781,12 @@ export class VehiculoFormComponent implements OnInit {
 
   onResolucionChange(): void {
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    
+
     // Limpiar rutas asignadas
     this.vehiculoForm.patchValue({
       rutasAsignadasIds: []
     });
-    
+
     // Cargar rutas disponibles de la resolución seleccionada
     if (resolucionId) {
       this.loadRutasDisponibles(resolucionId);
@@ -1818,26 +1805,26 @@ export class VehiculoFormComponent implements OnInit {
   getRutasHint(): string {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    
+
     if (!empresaId) {
       return 'Selecciona una empresa primero';
     }
-    
+
     if (!resolucionId) {
       return 'Selecciona una resolución primero';
     }
-    
+
     if (this.rutasDisponibles().length === 0) {
       return 'No hay rutas disponibles en esta resolución';
     }
-    
+
     return `Selecciona las rutas autorizadas (${this.rutasDisponibles().length} disponibles)`;
   }
 
   onRutaCheckboxChange(rutaId: string, checked: boolean): void {
     const rutasControl = this.vehiculoForm.get('rutasAsignadasIds');
     const currentValue = rutasControl?.value || [];
-    
+
     if (checked) {
       // Agregar la ruta si no está ya seleccionada
       if (!currentValue.includes(rutaId)) {
@@ -1847,7 +1834,7 @@ export class VehiculoFormComponent implements OnInit {
       // Remover la ruta si está seleccionada
       rutasControl?.setValue(currentValue.filter((id: string) => id !== rutaId));
     }
-    
+
     // Marcar el control como touched para activar validaciones
     rutasControl?.markAsTouched();
   }
@@ -1871,7 +1858,7 @@ export class VehiculoFormComponent implements OnInit {
   getEmpresaNombre(): string {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     if (!empresaId) return 'No seleccionada';
-    
+
     const empresa = this.empresas().find(e => e.id === empresaId);
     return empresa ? `${empresa.ruc} - ${empresa.razonSocial.principal}` : 'No encontrada';
   }
@@ -1879,7 +1866,7 @@ export class VehiculoFormComponent implements OnInit {
   getResolucionNumero(): string {
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
     if (!resolucionId) return 'No seleccionada';
-    
+
     const resolucion = this.resoluciones().find(r => r.id === resolucionId);
     return resolucion ? `${resolucion.nroResolucion} - ${resolucion.tipoTramite}` : 'No encontrada';
   }
@@ -1893,7 +1880,7 @@ export class VehiculoFormComponent implements OnInit {
   abrirModalVehiculos(): void {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    
+
     if (!empresaId || !resolucionId) {
       this.snackBar.open('Debes seleccionar una empresa y resolución primero', 'Cerrar', { duration: 3000 });
       return;
@@ -1901,7 +1888,7 @@ export class VehiculoFormComponent implements OnInit {
 
     const empresa = this.empresas().find(e => e.id === empresaId);
     const resolucion = this.resoluciones().find(r => r.id === resolucionId);
-    
+
     if (!empresa || !resolucion) {
       this.snackBar.open('Error: Empresa o resolución no encontrada', 'Cerrar', { duration: 3000 });
       return;

@@ -22,7 +22,7 @@ import { map, startWith } from 'rxjs/operators';
 import { ExpedienteService } from '../../services/expediente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
-import { Expediente, ExpedienteCreate, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
+import { Expediente, ExpedienteCreate, ExpedienteUpdate, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 
@@ -58,7 +58,7 @@ import { Resolucion } from '../../models/resolucion.model';
             {{ isEditMode() ? 'Editar Expediente' : 'Nuevo Expediente' }}
           </mat-card-title>
           <mat-card-subtitle>
-            {{ isEditMode() ? 'Modifica la información del expediente' : 'Crea un nuevo expediente en el sistema' }}
+            {{ isEditMode() ? 'Modifica la informaciÃ³n del expediente' : 'Crea un nuevo expediente en el sistema' }}
           </mat-card-subtitle>
         </mat-card-header>
         
@@ -66,7 +66,7 @@ import { Resolucion } from '../../models/resolucion.model';
           <form [formGroup]="expedienteForm" (ngSubmit)="onSubmit()" class="expediente-form">
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Número de Expediente</mat-label>
+                <mat-label>NÃºmero de Expediente</mat-label>
                 <input matInput 
                        formControlName="numero" 
                        [placeholder]="numeroCompleto()" 
@@ -74,15 +74,15 @@ import { Resolucion } from '../../models/resolucion.model';
                        (input)="onNumeroInput($event)"
                        (blur)="onNumeroBlur()">
                 @if (expedienteForm.get('numero')?.hasError('required')) {
-                  <mat-error>El número de expediente es requerido</mat-error>
+                  <mat-error>El nÃºmero de expediente es requerido</mat-error>
                 }
                 @if (expedienteForm.get('numero')?.hasError('pattern')) {
-                  <mat-error>Debe ser un número de 4 dígitos</mat-error>
+                  <mat-error>Debe ser un nÃºmero de 4 dÃ­gitos</mat-error>
                 }
                 @if (expedienteForm.get('numero')?.hasError('numeroDuplicado')) {
-                  <mat-error>Número duplicado en {{ fechaEmision().getFullYear() }}</mat-error>
+                  <mat-error>NÃºmero duplicado en {{ fechaEmision().getFullYear() }}</mat-error>
                 }
-                <mat-hint>Formato: {{ numeroCompleto() }} - Único por año</mat-hint>
+                <mat-hint>Formato: {{ numeroCompleto() }} - Ãnico por aÃ±o</mat-hint>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="form-field">
@@ -104,35 +104,35 @@ import { Resolucion } from '../../models/resolucion.model';
                   <mat-error>La cantidad de hojas no puede exceder 1000</mat-error>
                 }
                 @if (expedienteForm.get('folio')?.hasError('invalidFolio')) {
-                  <mat-error>La cantidad de hojas debe ser un número válido entre 1 y 1000</mat-error>
+                  <mat-error>La cantidad de hojas debe ser un nÃºmero vÃ¡lido entre 1 y 1000</mat-error>
                 }
 
               </mat-form-field>
             </div>
 
-            <!-- Tipo de Trámite - Movido arriba -->
+            <!-- Tipo de TrÃ¡mite - Movido arriba -->
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Tipo de Trámite</mat-label>
+                <mat-label>Tipo de TrÃ¡mite</mat-label>
                 <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)">
-                  <mat-option value="PRIMIGENIA">PRIMIGENIA</mat-option>
+                  <mat-option value="AUTORIZACION_NUEVA">AUTORIZACIÓN NUEVA</mat-option>
                   <mat-option value="RENOVACION">RENOVACION</mat-option>
                   <mat-option value="INCREMENTO">INCREMENTO</mat-option>
                   <mat-option value="SUSTITUCION">SUSTITUCION</mat-option>
                   <mat-option value="OTROS">OTROS</mat-option>
                 </mat-select>
                 @if (expedienteForm.get('tipoTramite')?.hasError('required')) {
-                  <mat-error>El tipo de trámite es requerido</mat-error>
+                  <mat-error>El tipo de trÃ¡mite es requerido</mat-error>
                 }
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Fecha de Emisión</mat-label>
+                <mat-label>Fecha de EmisiÃ³n</mat-label>
                 <input matInput [matDatepicker]="picker" formControlName="fechaEmision">
                 <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
                 @if (expedienteForm.get('fechaEmision')?.hasError('required')) {
-                  <mat-error>La fecha de emisión es requerida</mat-error>
+                  <mat-error>La fecha de emisiÃ³n es requerida</mat-error>
                 }
               </mat-form-field>
             </div>
@@ -143,7 +143,7 @@ import { Resolucion } from '../../models/resolucion.model';
                 <input matInput 
                        formControlName="empresaSearch" 
                        [matAutocomplete]="auto"
-                       placeholder="Buscar por RUC o razón social"
+                       placeholder="Buscar por RUC o razÃ³n social"
                        (input)="onEmpresaSearch()">
                 <mat-autocomplete #auto="matAutocomplete" 
                                  [displayWith]="displayEmpresa"
@@ -160,7 +160,7 @@ import { Resolucion } from '../../models/resolucion.model';
                 @if (expedienteForm.get('empresaSearch')?.hasError('required')) {
                   <mat-error>La empresa es requerida</mat-error>
                 }
-                <mat-hint>Busca por RUC o razón social de la empresa</mat-hint>
+                <mat-hint>Busca por RUC o razÃ³n social de la empresa</mat-hint>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="form-field">
@@ -177,15 +177,15 @@ import { Resolucion } from '../../models/resolucion.model';
               </mat-form-field>
             </div>
 
-            <!-- Resolución Padre - Solo para INCREMENTO y SUSTITUCION -->
+            <!-- ResoluciÃ³n Padre - Solo para INCREMENTO y SUSTITUCION -->
             @if (necesitaResolucionPadre()) {
               <div class="form-row">
-                <!-- Campo Resolución Padre funcionando correctamente -->
+                <!-- Campo ResoluciÃ³n Padre funcionando correctamente -->
                 
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Resolución Padre</mat-label>
+                  <mat-label>ResoluciÃ³n Padre</mat-label>
                   <mat-select formControlName="resolucionPadreId" required>
-                    <mat-option value="">Seleccione una resolución padre</mat-option>
+                    <mat-option value="">Seleccione una resoluciÃ³n padre</mat-option>
                     @for (resolucion of resolucionesPadre() | async; track resolucion.id) {
                       <mat-option [value]="resolucion.id">
                         <div class="resolucion-option">
@@ -197,9 +197,9 @@ import { Resolucion } from '../../models/resolucion.model';
                     }
                   </mat-select>
                   @if (expedienteForm.get('resolucionPadreId')?.hasError('required')) {
-                    <mat-error>Debe seleccionar una resolución padre</mat-error>
+                    <mat-error>Debe seleccionar una resoluciÃ³n padre</mat-error>
                   }
-                  <mat-hint>Seleccione la resolución padre para este expediente de incremento o sustitución</mat-hint>
+                  <mat-hint>Seleccione la resoluciÃ³n padre para este expediente de incremento o sustituciÃ³n</mat-hint>
                 </mat-form-field>
               </div>
             }
@@ -211,12 +211,12 @@ import { Resolucion } from '../../models/resolucion.model';
               </mat-form-field>
             </div>
 
-            <!-- Sección de Documentos -->
+            <!-- SecciÃ³n de Documentos -->
             <mat-divider class="section-divider"></mat-divider>
             
             <div class="documentos-section">
               <h3>Documentos del Expediente</h3>
-              <p class="section-description">Sube los documentos necesarios para el trámite</p>
+              <p class="section-description">Sube los documentos necesarios para el trÃ¡mite</p>
               
               <div class="upload-area" 
                    (click)="fileInput.click()" 
@@ -225,7 +225,7 @@ import { Resolucion } from '../../models/resolucion.model';
                    (drop)="onDrop($event)"
                    [class.drag-over]="isDragOver()">
                 <mat-icon>cloud_upload</mat-icon>
-                <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+                <p>Arrastra archivos aquÃ­ o haz clic para seleccionar</p>
                 <p class="upload-hint">Formatos permitidos: PDF, DOC, DOCX, JPG, PNG (Max: 10MB)</p>
               </div>
               
@@ -358,7 +358,7 @@ import { Resolucion } from '../../models/resolucion.model';
       }
     }
 
-    /* Estilos para la sección de documentos */
+    /* Estilos para la secciÃ³n de documentos */
     .section-divider {
       margin: 24px 0;
     }
@@ -473,11 +473,11 @@ export class ExpedienteFormComponent implements OnInit {
   isEditMode = signal(false);
   isSubmitting = signal(false);
   expedienteId = signal<string | null>(null);
-  
-  // Signal para el número del expediente (solo los 4 dígitos)
+
+  // Signal para el nÃºmero del expediente (solo los 4 dÃ­gitos)
   numero = signal('');
-  
-  // Signal para la fecha de emisión
+
+  // Signal para la fecha de emisiÃ³n
   fechaEmision = signal<Date>(new Date());
 
   // Signal para la empresa seleccionada
@@ -485,25 +485,25 @@ export class ExpedienteFormComponent implements OnInit {
 
   // Signal para las empresas filtradas
   empresasFiltradas = signal<Observable<Empresa[]>>(of([]));
-  
+
   // Propiedades para resoluciones padre
   resolucionesPadre = signal<Observable<Resolucion[]>>(of([]));
-  
+
   // Propiedades para archivos
   archivosSeleccionados = signal<File[]>([]);
   isDragOver = signal(false);
   uploadProgress = signal(0);
 
-  // Computed para el número completo del expediente
+  // Computed para el nÃºmero completo del expediente
   numeroCompleto = computed(() => {
     const numeroValue = this.numero();
     const fechaValue = this.fechaEmision();
-    
+
     if (!numeroValue) return 'E-XXXX-YYYY';
-    
-    const año = fechaValue ? fechaValue.getFullYear() : new Date().getFullYear();
+
+    const anio = fechaValue ? fechaValue.getFullYear() : new Date().getFullYear();
     const numeroFormateado = numeroValue.toString().padStart(4, '0');
-    return `E-${numeroFormateado}-${año}`;
+    return `E-${numeroFormateado}-${anio}`;
   });
 
   expedienteForm!: FormGroup;
@@ -512,8 +512,8 @@ export class ExpedienteFormComponent implements OnInit {
     this.initForm();
     this.checkEditMode();
     this.cargarEmpresas();
-    
-    // Si es modo modal y hay número predefinido, pre-llenarlo
+
+    // Si es modo modal y hay nÃºmero predefinido, pre-llenarlo
     if (this.isModalMode && this.numeroPredefinido) {
       const numero = this.numeroPredefinido.replace('E-', '').replace(/-2025$/, '');
       if (numero) {
@@ -521,7 +521,7 @@ export class ExpedienteFormComponent implements OnInit {
         this.numero.set(numero);
       }
     }
-    
+
     // Sincronizar signals con cambios del formulario
     this.expedienteForm.get('numero')?.valueChanges.subscribe(value => {
       if (value) {
@@ -563,45 +563,45 @@ export class ExpedienteFormComponent implements OnInit {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas habilitadas
       const empresasHabilitadas = empresas.filter(emp => emp.estado === 'HABILITADA');
-      
-              const empresaSearchControl = this.expedienteForm.get('empresaSearch');
-        if (empresaSearchControl) {
-          this.empresasFiltradas.set(
-            empresaSearchControl.valueChanges.pipe(
-              startWith(''),
-              map(value => this.filtrarEmpresas(value, empresasHabilitadas))
-            )
-          );
-        } else {
-          this.empresasFiltradas.set(of(empresasHabilitadas));
-        }
+
+      const empresaSearchControl = this.expedienteForm.get('empresaSearch');
+      if (empresaSearchControl) {
+        this.empresasFiltradas.set(
+          empresaSearchControl.valueChanges.pipe(
+            startWith(''),
+            map(value => this.filtrarEmpresas(value, empresasHabilitadas))
+          )
+        );
+      } else {
+        this.empresasFiltradas.set(of(empresasHabilitadas));
+      }
     });
   }
 
   private filtrarEmpresas(value: string, empresas: Empresa[]): Empresa[] {
     if (typeof value !== 'string') return empresas;
-    
+
     const filterValue = value.toLowerCase();
-    return empresas.filter(empresa => 
+    return empresas.filter(empresa =>
       empresa.ruc.toLowerCase().includes(filterValue) ||
       empresa.razonSocial.principal.toLowerCase().includes(filterValue)
     );
   }
 
   onEmpresaSearch(): void {
-    // El filtrado se maneja automáticamente por el autocomplete
+    // El filtrado se maneja automÃ¡ticamente por el autocomplete
   }
 
   onEmpresaSelected(event: any): void {
     const empresa = event.option.value;
-    
+
     this.empresaSeleccionada.set(empresa);
-    
-    // Actualizar el campo de búsqueda con la empresa seleccionada
+
+    // Actualizar el campo de bÃºsqueda con la empresa seleccionada
     this.expedienteForm.patchValue({
       empresaSearch: empresa
     });
-    
+
     // Cargar resoluciones padre si es necesario
     if (this.necesitaResolucionPadre()) {
       this.cargarResolucionesPadre(empresa.id);
@@ -610,13 +610,13 @@ export class ExpedienteFormComponent implements OnInit {
 
   onTipoTramiteChange(event: any): void {
     const tipoTramite = event.value;
-    
-    // Si cambia el tipo de trámite, limpiar la resolución padre seleccionada
+
+    // Si cambia el tipo de trÃ¡mite, limpiar la resoluciÃ³n padre seleccionada
     if (this.expedienteForm.get('resolucionPadreId')) {
       this.expedienteForm.patchValue({ resolucionPadreId: '' });
     }
-    
-    // Si ahora necesita resolución padre y hay empresa seleccionada, cargar las resoluciones
+
+    // Si ahora necesita resoluciÃ³n padre y hay empresa seleccionada, cargar las resoluciones
     if (this.necesitaResolucionPadre() && this.empresaSeleccionada()) {
       this.cargarResolucionesPadre(this.empresaSeleccionada()!.id);
     }
@@ -641,30 +641,30 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarResolucionesPadre(empresaId: string): void {
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe({
       next: (resoluciones) => {
-        console.log('📋 Resoluciones de la empresa:', resoluciones);
-        
+        console.log('ð Resoluciones de la empresa:', resoluciones);
+
         // Filtrar resoluciones que pueden ser padre
         const resolucionesPadre = resoluciones.filter(r => {
-          // Una resolución puede ser padre si:
+          // Una resoluciÃ³n puede ser padre si:
           // 1. Tiene tipoResolucion === 'PADRE'
           // 2. Es de tipo PRIMIGENIA o RENOVACION
-          // 3. No tiene resolucionPadreId (es una resolución raíz)
-          // 4. Está vigente y activa
+          // 3. No tiene resolucionPadreId (es una resoluciÃ³n raÃ­z)
+          // 4. EstÃ¡ vigente y activa
           const esPadre = r.tipoResolucion === 'PADRE';
-          const esPrimigeniaORenovacion = r.tipoTramite === 'PRIMIGENIA' || r.tipoTramite === 'RENOVACION';
+          const esPrimigeniaORenovacion = r.tipoTramite === 'AUTORIZACION_NUEVA' || r.tipoTramite === 'RENOVACION';
           const noTienePadre = !r.resolucionPadreId;
           const estaVigente = r.estaActivo && r.estado === 'VIGENTE';
-          
+
           return (esPadre || esPrimigeniaORenovacion || noTienePadre) && estaVigente;
         });
-        
-        console.log('✅ Resoluciones padre filtradas:', resolucionesPadre);
-        
+
+        console.log('â Resoluciones padre filtradas:', resolucionesPadre);
+
         // Actualizar el signal
         this.resolucionesPadre.set(of(resolucionesPadre));
       },
       error: (error) => {
-        console.error('❌ Error al cargar resoluciones padre:', error);
+        console.error('â Error al cargar resoluciones padre:', error);
         this.resolucionesPadre.set(of([]));
       }
     });
@@ -673,10 +673,10 @@ export class ExpedienteFormComponent implements OnInit {
   private loadExpediente(id: string): void {
     this.expedienteService.getExpediente(id).subscribe({
       next: (expediente) => {
-        // Extraer solo el número del formato completo E-1234-2025
+        // Extraer solo el nÃºmero del formato completo E-1234-2025
         const numeroMatch = expediente.nroExpediente.match(/^E-(\d{4})-\d{4}$/);
         const numero = numeroMatch ? numeroMatch[1] : '';
-        
+
         // Cargar la empresa asociada
         if (expediente.empresaId) {
           this.empresaService.getEmpresa(expediente.empresaId).subscribe({
@@ -685,15 +685,15 @@ export class ExpedienteFormComponent implements OnInit {
               this.expedienteForm.patchValue({
                 empresaSearch: empresa
               });
-              
-              // Si el expediente necesita resolución padre, cargarlas
+
+              // Si el expediente necesita resoluciÃ³n padre, cargarlas
               if (this.necesitaResolucionPadre()) {
                 this.cargarResolucionesPadre(empresa.id);
               }
             }
           });
         }
-        
+
         this.expedienteForm.patchValue({
           numero: numero,
           folio: expediente.folio,
@@ -704,12 +704,12 @@ export class ExpedienteFormComponent implements OnInit {
           descripcion: expediente.descripcion || '',
           observaciones: expediente.observaciones || ''
         });
-        
+
         // Actualizar signals
         this.numero.set(numero);
         this.fechaEmision.set(new Date(expediente.fechaEmision));
-        
-        // Limpiar errores de validación en modo edición
+
+        // Limpiar errores de validaciÃ³n en modo ediciÃ³n
         if (this.isEditMode()) {
           this.expedienteForm.get('numero')?.setErrors(null);
         }
@@ -723,18 +723,18 @@ export class ExpedienteFormComponent implements OnInit {
 
   onNumeroInput(event: Event): void {
     const input = event.target as HTMLInputElement;
-    let value = input.value.replace(/\D/g, ''); // Solo números
-    
-    // Limitar a 4 dígitos
+    let value = input.value.replace(/\D/g, ''); // Solo nÃºmeros
+
+    // Limitar a 4 dÃ­gitos
     if (value.length > 4) {
       value = value.substring(0, 4);
       input.value = value; // Actualizar el input directamente
     }
-    
+
     // Actualizar el signal para reactividad
     this.numero.set(value);
-    
-    // Limpiar errores si no está completo
+
+    // Limpiar errores si no estÃ¡ completo
     if (value.length < 4) {
       this.expedienteForm.get('numero')?.setErrors(null);
     }
@@ -742,21 +742,21 @@ export class ExpedienteFormComponent implements OnInit {
 
   onNumeroBlur(): void {
     const numero = this.expedienteForm.get('numero')?.value;
-    
-    // Validar que el número tenga 4 dígitos
+
+    // Validar que el nÃºmero tenga 4 dÃ­gitos
     if (!numero || numero.length !== 4) {
       return;
     }
-    
-    // Validar número único
+
+    // Validar nÃºmero Ãºnico
     this.validarNumeroUnico(numero);
   }
 
   onFolioInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     const value = parseInt(input.value);
-    
-    // Validar que sea un número válido
+
+    // Validar que sea un nÃºmero vÃ¡lido
     if (isNaN(value) || value < 1 || value > 1000) {
       this.expedienteForm.get('folio')?.setErrors({ invalidFolio: true });
     } else {
@@ -765,53 +765,53 @@ export class ExpedienteFormComponent implements OnInit {
   }
 
   private validarNumeroUnico(numero: string): void {
-    // Asegurar que el número tenga 4 dígitos
+    // Asegurar que el nÃºmero tenga 4 dÃ­gitos
     if (numero.length !== 4) {
       return;
     }
-    
+
     const fechaEmision = this.expedienteForm.get('fechaEmision')?.value || new Date();
-    
+
     const validacion: ValidacionExpediente = {
       numero: numero,
       folio: this.expedienteForm.get('folio')?.value || 1,
       empresaId: this.empresaSeleccionada()?.id,
-      tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'PRIMIGENIA',
+      tipoTramite: this.expedienteForm.get('tipoTramite')?.value || 'AUTORIZACION_NUEVA',
       fechaEmision: fechaEmision,
-      // En modo edición, excluir el expediente actual de la validación
+      // En modo ediciÃ³n, excluir el expediente actual de la validaciÃ³n
       expedienteIdExcluir: this.isEditMode() ? this.expedienteId() || undefined : undefined
     };
 
-    console.log('🔍 Validando número de expediente:', validacion);
+    console.log('ð Validando nÃºmero de expediente:', validacion);
 
     this.expedienteService.validarExpedienteUnico(validacion).subscribe({
       next: (respuesta) => {
-        console.log('✅ Respuesta de validación:', respuesta);
-        
+        console.log('â Respuesta de validaciÃ³n:', respuesta);
+
         if (!respuesta.valido) {
-          // Número duplicado
+          // NÃºmero duplicado
           this.expedienteForm.get('numero')?.setErrors({ numeroDuplicado: true });
-          this.snackBar.open('⚠️ Número duplicado', 'Cerrar', { duration: 3000 });
+          this.snackBar.open('â ï¸ NÃºmero duplicado', 'Cerrar', { duration: 3000 });
         } else {
-          // Número válido - limpiar errores de duplicado sin mostrar mensaje
+          // NÃºmero vÃ¡lido - limpiar errores de duplicado sin mostrar mensaje
           const numeroControl = this.expedienteForm.get('numero');
           if (numeroControl?.hasError('numeroDuplicado')) {
             const errors = { ...numeroControl.errors };
             delete errors['numeroDuplicado'];
             numeroControl.setErrors(Object.keys(errors).length > 0 ? errors : null);
           }
-          // No mostrar mensaje cuando el número es válido
+          // No mostrar mensaje cuando el nÃºmero es vÃ¡lido
         }
       },
       error: (error) => {
-        console.error('❌ Error en validación:', error);
-        // En caso de error, permitir el número pero mostrar advertencia corta
+        console.error('â Error en validaciÃ³n:', error);
+        // En caso de error, permitir el nÃºmero pero mostrar advertencia corta
         this.snackBar.open('Error al validar', 'Cerrar', { duration: 2000 });
       }
     });
   }
 
-  // Métodos para manejo de archivos
+  // MÃ©todos para manejo de archivos
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver.set(true);
@@ -825,7 +825,7 @@ export class ExpedienteFormComponent implements OnInit {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver.set(false);
-    
+
     const files = event.dataTransfer?.files;
     if (files) {
       this.procesarArchivos(Array.from(files));
@@ -845,17 +845,17 @@ export class ExpedienteFormComponent implements OnInit {
       const maxSize = 10 * 1024 * 1024; // 10MB
       const tiposPermitidos = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png'];
       const extension = '.' + file.name.split('.').pop()?.toLowerCase();
-      
+
       if (file.size > maxSize) {
-        this.snackBar.open(`El archivo ${file.name} excede el tamaño máximo de 10MB`, 'Cerrar', { duration: 3000 });
+        this.snackBar.open(`El archivo ${file.name} excede el tamaÃ±o mÃ¡ximo de 10MB`, 'Cerrar', { duration: 3000 });
         return false;
       }
-      
+
       if (!tiposPermitidos.includes(extension)) {
         this.snackBar.open(`El archivo ${file.name} no tiene un formato permitido`, 'Cerrar', { duration: 3000 });
         return false;
       }
-      
+
       return true;
     });
 
@@ -863,30 +863,30 @@ export class ExpedienteFormComponent implements OnInit {
   }
 
   removerArchivo(archivo: File): void {
-    this.archivosSeleccionados.update(current => 
+    this.archivosSeleccionados.update(current =>
       current.filter(f => f !== archivo)
     );
   }
 
   onSubmit(): void {
     if (this.expedienteForm.valid && this.empresaSeleccionada()) {
-      // Verificar que el número sea único antes de continuar
+      // Verificar que el nÃºmero sea Ãºnico antes de continuar
       const numero = this.expedienteForm.get('numero')?.value;
       if (numero && numero.length === 4) {
-        // En modo edición, solo validar si el número cambió
+        // En modo ediciÃ³n, solo validar si el nÃºmero cambiÃ³
         if (this.isEditMode() && numero === this.numero()) {
-          // Número no cambió en edición, proceder directamente
+          // NÃºmero no cambiÃ³ en ediciÃ³n, proceder directamente
           this.procesarEnvio();
         } else {
-          // Validar número único (nuevo expediente o número cambiado en edición)
+          // Validar nÃºmero Ãºnico (nuevo expediente o nÃºmero cambiado en ediciÃ³n)
           this.validarNumeroUnico(numero);
-          
-          // Esperar un momento para que la validación se complete
+
+          // Esperar un momento para que la validaciÃ³n se complete
           setTimeout(() => {
             const tieneError = this.expedienteForm.get('numero')?.hasError('numeroDuplicado');
             if (tieneError) {
-              const año = this.fechaEmision().getFullYear();
-              this.snackBar.open(`El número de expediente ya existe en el año ${año}. Use otro número o cambie el año.`, 'Cerrar', { duration: 4000 });
+              const anio = this.fechaEmision().getFullYear();
+              this.snackBar.open(`El número de expediente ya existe en el año ${anio}. Use otro número o cambie el año.`, 'Cerrar', { duration: 4000 });
               return;
             } else {
               this.procesarEnvio();
@@ -905,13 +905,13 @@ export class ExpedienteFormComponent implements OnInit {
 
   private procesarEnvio(): void {
     this.isSubmitting.set(true);
-    
+
     const formValue = this.expedienteForm.value;
-    
+
     if (this.isEditMode()) {
-      // Modo edición
+      // Modo ediciÃ³n
       const expedienteUpdate = {
-        nroExpediente: this.numeroCompleto(), // Usar el número completo
+        nroExpediente: this.numeroCompleto(), // Usar el nÃºmero completo
         fechaEmision: formValue.fechaEmision,
         tipoTramite: formValue.tipoTramite,
         empresaId: this.empresaSeleccionada()?.id,
@@ -919,34 +919,33 @@ export class ExpedienteFormComponent implements OnInit {
         descripcion: formValue.descripcion,
         observaciones: formValue.observaciones
       };
-      
-      // TODO: Implementar actualización en el servicio
+
+      // TODO: Implementar actualizaciÃ³n en el servicio
       console.log('Actualizando expediente:', expedienteUpdate);
-      
+
       setTimeout(() => {
         this.isSubmitting.set(false);
         this.snackBar.open('Expediente actualizado exitosamente', 'Cerrar', { duration: 3000 });
         this.router.navigate(['/expedientes']);
       }, 1000);
     } else {
-      // Modo creación
+      // Modo creaciÃ³n
       const expedienteCreate: ExpedienteCreate = {
-        numero: formValue.numero, // Solo el número (1234)
-        folio: formValue.folio, // Folio único
+        nroExpediente: this.numeroCompleto(),
+        folio: +formValue.folio,
         fechaEmision: formValue.fechaEmision,
+        estado: formValue.estado,
         tipoTramite: formValue.tipoTramite,
-        tipoExpediente: TipoExpediente.OTROS,
-        tipoSolicitante: TipoSolicitante.EMPRESA,
         empresaId: this.empresaSeleccionada()?.id,
         resolucionPadreId: formValue.resolucionPadreId || undefined,
         descripcion: formValue.descripcion,
         observaciones: formValue.observaciones
       };
-      
+
       this.expedienteService.createExpediente(expedienteCreate).subscribe({
         next: (expedienteCreado) => {
           this.isSubmitting.set(false);
-          
+
           if (this.isModalMode) {
             // Modo modal: emitir evento y cerrar
             this.expedienteCreado.emit(expedienteCreado);
@@ -967,7 +966,7 @@ export class ExpedienteFormComponent implements OnInit {
 
   cancelar(): void {
     if (this.isModalMode) {
-      // Modo modal: emitir evento de cancelación
+      // Modo modal: emitir evento de cancelaciÃ³n
       this.cancelado.emit();
     } else {
       // Modo normal: redirigir

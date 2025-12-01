@@ -771,13 +771,13 @@ export class ResolucionFormComponent {
   // Signals para el expediente
   expediente = signal<Expediente | null>(null);
   expedienteNoEncontrado = signal(false);
-  
+
   // Propiedades para empresa y resoluciones padre
   empresaSeleccionada = signal<Empresa | null>(null);
   empresasFiltradas = signal<Observable<Empresa[]>>(of([]));
   resolucionesPadre = signal<any[]>([]);
   resolucionesEmpresa = signal<any[]>([]);
-  
+
   // Propiedades para la nueva lógica de validación
   resolucionExistente = signal<boolean>(false);
   numeroValido = signal<boolean>(false);
@@ -786,9 +786,9 @@ export class ResolucionFormComponent {
   tipoResolucionAutomatico = computed(() => {
     const expedienteData = this.expediente();
     if (!expedienteData) return 'Seleccione un expediente';
-    
-            // PADRE para PRIMIGENIA y RENOVACION, HIJO para otros
-        if (expedienteData.tipoTramite === 'PRIMIGENIA' || expedienteData.tipoTramite === 'RENOVACION') {
+
+    // PADRE para PRIMIGENIA y RENOVACION, HIJO para otros
+    if (expedienteData.tipoTramite === 'AUTORIZACION_NUEVA' || expedienteData.tipoTramite === 'RENOVACION') {
       return 'PADRE';
     } else {
       return 'HIJO';
@@ -800,9 +800,9 @@ export class ResolucionFormComponent {
   numeroCompleto = computed(() => {
     const numeroValue = this.numero();
     const fechaValue = this.fechaEmision();
-    
+
     if (!numeroValue) return 'R-XXXX-YYYY';
-    
+
     const año = fechaValue ? fechaValue.getFullYear() : new Date().getFullYear();
     const numeroFormateado = numeroValue.toString().padStart(4, '0');
     return `R-${numeroFormateado}-${año}`;
@@ -857,7 +857,7 @@ export class ResolucionFormComponent {
       this.loadResolucion(resolucionId);
     }
     this.cargarEmpresas();
-    
+
     // Inicializar fecha de vigencia inicio con la fecha de emisión
     const fechaEmision = this.resolucionForm.get('fechaEmision')?.value;
     if (fechaEmision) {
@@ -880,16 +880,16 @@ export class ResolucionFormComponent {
   onNumeroInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     let value = input.value.replace(/\D/g, ''); // Solo números
-    
+
     // Limitar a 4 dígitos
     if (value.length > 4) {
       value = value.substring(0, 4);
       input.value = value; // Actualizar el input directamente
     }
-    
+
     // Actualizar el signal para reactividad
     this.numero.set(value);
-    
+
     // Limpiar error de validación anterior
     const numeroControl = this.resolucionForm.get('numero');
     if (numeroControl) {
@@ -899,7 +899,7 @@ export class ResolucionFormComponent {
 
   onFechaEmisionChange(event: any): void {
     this.fechaEmision.set(event.value);
-    
+
     // Actualizar fecha de vigencia inicio cuando cambie la fecha de emisión
     if (event.value) {
       this.resolucionForm.patchValue({
@@ -922,28 +922,28 @@ export class ResolucionFormComponent {
   private calcularFechaVigenciaFin(): void {
     const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
     const años = this.resolucionForm.get('añosVigencia')?.value;
-    
+
     if (fechaInicio && años) {
       // Crear la fecha exacta sumando años
       // Si la fecha de inicio es 15/01/2025 y son 10 años, la fecha fin será 15/01/2035
       const fechaFinExacta = new Date(fechaInicio);
       fechaFinExacta.setFullYear(fechaInicio.getFullYear() + años);
-      
+
       // Log para debugging
       console.log('=== CÁLCULO FECHA VIGENCIA ===');
       console.log('Fecha inicio:', fechaInicio.toLocaleDateString('es-ES'));
       console.log('Años de vigencia:', años);
       console.log('Fecha fin calculada:', fechaFinExacta.toLocaleDateString('es-ES'));
-      
+
       // Calcular diferencia exacta
       const diferenciaMs = fechaFinExacta.getTime() - fechaInicio.getTime();
       const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
       const diferenciaAños = diferenciaDias / 365.25;
-      
+
       console.log('Diferencia en días:', diferenciaDias);
       console.log('Diferencia en años (aproximada):', diferenciaAños.toFixed(2));
       console.log('=== FIN CÁLCULO ===');
-      
+
       this.resolucionForm.patchValue({
         fechaVigenciaFin: fechaFinExacta
       });
@@ -955,7 +955,7 @@ export class ResolucionFormComponent {
   onNumeroBlur(): void {
     const numeroValue = this.numero();
     const empresaSeleccionadaValue = this.empresaSeleccionada();
-    
+
     if (numeroValue && empresaSeleccionadaValue) {
       this.validarNumeroResolucionUnico(numeroValue, empresaSeleccionadaValue.id);
     }
@@ -963,7 +963,7 @@ export class ResolucionFormComponent {
 
   onNumeroResolucionBlur(): void {
     const numeroValue = this.numero();
-    
+
     if (numeroValue) {
       this.validarNumeroResolucionExistente(numeroValue);
       this.validarUnicidadConServicio(numeroValue);
@@ -974,36 +974,36 @@ export class ResolucionFormComponent {
     // Validar que el número sea único por año
     const fechaActual = new Date();
     const resolucionId = this.route.snapshot.params['id'];
-    
+
     // Check if number already exists
     this.resolucionService.getResoluciones().subscribe(resoluciones => {
       const year = fechaActual.getFullYear();
-      const existe = resoluciones.some(r => 
-        r.nroResolucion === numero && 
+      const existe = resoluciones.some(r =>
+        r.nroResolucion === numero &&
         new Date(r.fechaEmision).getFullYear() === year &&
         r.id !== resolucionId
       );
-      
+
       if (existe) {
         // El número ya existe en este año
         const numeroControl = this.resolucionForm.get('numero');
         if (numeroControl) {
-          numeroControl.setErrors({ 
+          numeroControl.setErrors({
             'duplicado': true
           });
         }
-        
+
         // Calcular el siguiente número disponible
         const numerosExistentes = resoluciones
           .filter(r => new Date(r.fechaEmision).getFullYear() === year)
           .map(r => parseInt(r.nroResolucion) || 0);
         const maxNumero = Math.max(0, ...numerosExistentes);
         const siguienteNumero = (maxNumero + 1).toString().padStart(4, '0');
-        
+
         // Mostrar error y sugerencia
         this.snackBar.open(
-          `El número ${numero} ya existe en el año ${year}. Siguiente número disponible: ${siguienteNumero}`, 
-          'Cerrar', 
+          `El número ${numero} ya existe en el año ${year}. Siguiente número disponible: ${siguienteNumero}`,
+          'Cerrar',
           { duration: 4000 }
         );
       } else {
@@ -1022,21 +1022,21 @@ export class ResolucionFormComponent {
       // Obtener el siguiente número disponible
       const fechaActual = new Date();
       const year = fechaActual.getFullYear();
-      
+
       this.resolucionService.getResoluciones().subscribe(resoluciones => {
         const numerosExistentes = resoluciones
           .filter(r => new Date(r.fechaEmision).getFullYear() === year)
           .map(r => parseInt(r.nroResolucion) || 0);
         const maxNumero = Math.max(0, ...numerosExistentes);
         const siguienteNumero = (maxNumero + 1).toString().padStart(4, '0');
-        
+
         // Actualizar el formulario
         numeroControl.setValue(siguienteNumero);
         numeroControl.setErrors(null);
         this.numero.set(siguienteNumero);
         this.resolucionExistente.set(false);
         this.numeroValido.set(true);
-        
+
         this.snackBar.open(`Número actualizado a ${siguienteNumero}`, 'Cerrar', { duration: 3000 });
       });
     }
@@ -1047,14 +1047,14 @@ export class ResolucionFormComponent {
   onEmpresaSelected(event: any): void {
     const empresa = event.option.value;
     this.empresaSeleccionada.set(empresa);
-    
+
     // Cargar resoluciones padre de la empresa
     this.cargarResolucionesPadre(empresa.id);
-    
+
     // Limpiar expediente anterior
     this.expediente.set(null);
     this.expedienteNoEncontrado.set(false);
-    
+
     // Limpiar número de resolución y validaciones anteriores
     this.resolucionForm.patchValue({ numero: '' });
     this.numero.set('');
@@ -1067,7 +1067,7 @@ export class ResolucionFormComponent {
   necesitaResolucionPadre(): boolean {
     const expedienteData = this.expediente();
     if (!expedienteData) return false;
-    
+
     return expedienteData.tipoTramite === 'INCREMENTO' || expedienteData.tipoTramite === 'SUSTITUCION';
   }
 
@@ -1076,7 +1076,7 @@ export class ResolucionFormComponent {
       next: (resoluciones) => {
         // Guardar todas las resoluciones de la empresa
         this.resolucionesEmpresa.set(resoluciones);
-        
+
         // Filtrar solo resoluciones padre (tipo PADRE)
         const resolucionesPadre = resoluciones.filter(r => r.tipoResolucion === 'PADRE' && r.estado === 'VIGENTE');
         this.resolucionesPadre.set(resolucionesPadre);
@@ -1093,7 +1093,7 @@ export class ResolucionFormComponent {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas habilitadas
       const empresasHabilitadas = empresas.filter(emp => emp.estado === 'HABILITADA');
-      
+
       const empresaSearchControl = this.resolucionForm.get('empresaSearch');
       if (empresaSearchControl) {
         this.empresasFiltradas.set(
@@ -1108,9 +1108,9 @@ export class ResolucionFormComponent {
 
   private filtrarEmpresas(value: string, empresas: Empresa[]): Empresa[] {
     if (typeof value !== 'string') return empresas;
-    
+
     const filterValue = value.toLowerCase();
-    return empresas.filter(empresa => 
+    return empresas.filter(empresa =>
       empresa.ruc.toLowerCase().includes(filterValue) ||
       (empresa.razonSocial.principal && empresa.razonSocial.principal.toLowerCase().includes(filterValue))
     );
@@ -1121,15 +1121,15 @@ export class ResolucionFormComponent {
     if (!numeroControl) return;
 
     const numeroCompleto = `R-${numero.padStart(4, '0')}-${new Date().getFullYear()}`;
-    
+
     // Verificar si ya existe una resolución con ese número para esa empresa
     const resolucionesEmpresa = this.resolucionesEmpresa();
-    const existeResolucion = resolucionesEmpresa.find(r => 
+    const existeResolucion = resolucionesEmpresa.find(r =>
       r.nroResolucion === numeroCompleto && r.empresaId === empresaId
     );
 
     if (existeResolucion) {
-      numeroControl.setErrors({ 
+      numeroControl.setErrors({
         numeroDuplicado: true,
         mensaje: `Ya existe una resolución con el número ${numeroCompleto} para esta empresa`
       });
@@ -1145,7 +1145,7 @@ export class ResolucionFormComponent {
     this.resolucionService.getResoluciones().subscribe({
       next: (todasResoluciones) => {
         const anioActual = new Date().getFullYear();
-        
+
         // Filtrar resoluciones del año actual
         const resolucionesDelAnio = todasResoluciones.filter(r => {
           const fechaResolucion = new Date(r.fechaEmision);
@@ -1153,12 +1153,12 @@ export class ResolucionFormComponent {
         });
 
         // Verificar si el número ya existe en el año (cualquier empresa)
-        const existeEnElAnio = resolucionesDelAnio.some(r => 
+        const existeEnElAnio = resolucionesDelAnio.some(r =>
           r.nroResolucion === numeroCompleto
         );
 
         if (existeEnElAnio) {
-          numeroControl.setErrors({ 
+          numeroControl.setErrors({
             numeroDuplicado: true,
             mensaje: `Ya existe una resolución con el número ${numeroCompleto} en el año ${anioActual}. El número debe ser único por año.`
           });
@@ -1174,12 +1174,12 @@ export class ResolucionFormComponent {
 
   private validarNumeroResolucionExistente(numero: string): void {
     const numeroCompleto = `R-${numero.padStart(4, '0')}-${new Date().getFullYear()}`;
-    
+
     // Verificar si ya existe una resolución con ese número
     this.resolucionService.getResoluciones().subscribe({
       next: (todasResoluciones) => {
         const existe = todasResoluciones.some(r => r.nroResolucion === numeroCompleto);
-        
+
         if (existe) {
           this.resolucionExistente.set(true);
           this.numeroValido.set(false);
@@ -1223,12 +1223,12 @@ export class ResolucionFormComponent {
         // El expediente fue creado exitosamente
         this.expediente.set(result);
         this.expedienteNoEncontrado.set(false);
-        
+
         // Actualizar el formulario con los datos del expediente
         this.resolucionForm.patchValue({
           empresaId: result.empresaId || ''
         });
-        
+
         this.snackBar.open('Expediente creado y seleccionado', 'Cerrar', { duration: 3000 });
       }
     });
@@ -1239,7 +1239,7 @@ export class ResolucionFormComponent {
   mostrarFechasVigencia(): boolean {
     const expedienteData = this.expediente();
     if (!expedienteData) return false;
-    
+
     // Solo mostrar fechas de vigencia para resoluciones PADRE
     return this.tipoResolucionAutomatico() === 'PADRE';
   }
@@ -1258,13 +1258,13 @@ export class ResolucionFormComponent {
   onSubmit(): void {
     if (this.resolucionForm.valid && this.expediente() && !this.resolucionExistente()) {
       this.isSubmitting.set(true);
-      
+
       const expedienteData = this.expediente()!;
       const formValue = this.resolucionForm.value;
-      
+
       // Obtener el ID de la empresa del expediente
       const empresaId = expedienteData.empresaId || '';
-      
+
       const resolucionData: ResolucionCreate = {
         numero: formValue.numero,
         empresaId: empresaId,
@@ -1301,7 +1301,7 @@ export class ResolucionFormComponent {
           error: (error) => {
             console.error('Error creating resolucion:', error);
             this.isSubmitting.set(false);
-            
+
             // Manejar errores específicos de validación
             if (error.message && error.message.includes('Ya existe una resolución')) {
               this.snackBar.open(error.message, 'Cerrar', { duration: 5000 });

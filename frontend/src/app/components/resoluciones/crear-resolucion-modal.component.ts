@@ -749,7 +749,7 @@ export class CrearResolucionModalComponent {
   onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
     this.empresaSeleccionada.set(empresa);
     this.expedienteSeleccionado.set(null);
-    
+
     if (empresa) {
       this.resolucionForm.patchValue({ empresaId: empresa.id });
       this.cargarExpedientes(empresa.id);
@@ -828,7 +828,7 @@ export class CrearResolucionModalComponent {
     });
 
     // Determinar si es PADRE o HIJO basado en el tipo de trámite
-    const esPadre = tipoTramite === 'PRIMIGENIA' || tipoTramite === 'RENOVACION';
+    const esPadre = tipoTramite === 'AUTORIZACION_NUEVA' || tipoTramite === 'RENOVACION';
     const tipoResolucion = esPadre ? 'PADRE' : 'HIJO';
 
     this.resolucionForm.patchValue({

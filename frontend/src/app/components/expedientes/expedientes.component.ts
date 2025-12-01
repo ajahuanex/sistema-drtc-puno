@@ -882,7 +882,7 @@ export class ExpedientesComponent implements OnInit {
    */
   private cargarExpedientes(): void {
     this.isLoading.set(true);
-    
+
     // Cargar expedientes desde el servicio
     this.expedienteService.getExpedientes().subscribe({
       next: (expedientes) => {
@@ -896,7 +896,7 @@ export class ExpedientesComponent implements OnInit {
         this.snackBar.open('Error al cargar expedientes', 'Cerrar', {
           duration: 3000
         });
-        
+
         // Fallback a datos mock en caso de error
         const expedientesMock: Expediente[] = [
           {
@@ -904,77 +904,77 @@ export class ExpedientesComponent implements OnInit {
             nroExpediente: 'E-0001-2025', // Formato correcto: E-NNNN-YYYY
             folio: 15,
             fechaEmision: new Date('2025-01-15'),
-          tipoTramite: 'PRIMIGENIA',
-          tipoSolicitante: TipoSolicitante.EMPRESA,
-          estado: 'EN PROCESO',
-          estaActivo: true,
-          fechaRegistro: new Date('2025-01-15'),
-          empresaId: 'EMP001',
-          descripcion: 'AUTORIZACIÓN PARA OPERACIÓN DE TRANSPORTE DE PASAJEROS EN RUTA PUNO - JULIACA',
-          observaciones: 'Expediente en revisión técnica',
-          prioridad: PrioridadExpediente.ALTA
-        },
-        {
-          id: '2',
-          nroExpediente: 'E-0002-2025',
-          folio: 8,
-          fechaEmision: new Date('2025-01-20'),
-          tipoTramite: 'RENOVACION',
-          tipoSolicitante: TipoSolicitante.EMPRESA,
-          estado: 'APROBADO',
-          estaActivo: true,
-          fechaRegistro: new Date('2025-01-20'),
-          empresaId: 'EMP002',
-          descripcion: 'RENOVACIÓN DE AUTORIZACIÓN PARA TRANSPORTE DE CARGA EN RUTA PUNO - AREQUIPA',
-          observaciones: 'Renovación aprobada exitosamente',
-          prioridad: PrioridadExpediente.NORMAL
-        },
-        {
-          id: '3',
-          nroExpediente: 'E-0003-2025',
-          folio: 12,
-          fechaEmision: new Date('2025-01-25'),
-          tipoTramite: 'INCREMENTO',
-          tipoSolicitante: TipoSolicitante.EMPRESA,
-          estado: 'EN PROCESO',
-          estaActivo: true,
-          fechaRegistro: new Date('2025-01-25'),
-          empresaId: 'EMP003',
-          descripcion: 'INCREMENTO DE UNIDADES PARA TRANSPORTE DE PASAJEROS EN RUTA PUNO - MOLLENDO',
-          observaciones: 'Solicitud de incremento en revisión',
-          prioridad: PrioridadExpediente.URGENTE
-        },
-        {
-          id: '4',
-          nroExpediente: 'E-0004-2025',
-          folio: 6,
-          fechaEmision: new Date('2025-01-30'),
-          tipoTramite: 'SUSTITUCION',
-          tipoSolicitante: TipoSolicitante.EMPRESA,
-          estado: 'SUSPENDIDO',
-          estaActivo: true,
-          fechaRegistro: new Date('2025-01-30'),
-          empresaId: 'EMP004',
-          descripcion: 'SUSTITUCIÓN DE VEHÍCULOS EN RUTA PUNO - TACNA',
-          observaciones: 'Solicitud suspendida por documentación incompleta',
-          prioridad: PrioridadExpediente.CRITICA
-        },
-        {
-          id: '5',
-          nroExpediente: 'E-0005-2025',
-          folio: 20,
-          fechaEmision: new Date('2025-02-05'),
-          tipoTramite: 'OTROS',
-          tipoSolicitante: TipoSolicitante.EMPRESA,
-          estado: 'RECHAZADO',
-          estaActivo: false,
-          fechaRegistro: new Date('2025-02-05'),
-          empresaId: 'EMP005',
-          descripcion: 'SOLICITUD ESPECIAL PARA TRANSPORTE DE MERCANCÍAS PELIGROSAS',
-          observaciones: 'Rechazado por no cumplir normativas de seguridad',
-          prioridad: PrioridadExpediente.ALTA
-        }
-      ];
+            tipoTramite: 'AUTORIZACION_NUEVA',
+            tipoSolicitante: TipoSolicitante.EMPRESA,
+            estado: 'EN PROCESO',
+            estaActivo: true,
+            fechaRegistro: new Date('2025-01-15'),
+            empresaId: 'EMP001',
+            descripcion: 'AUTORIZACIÓN PARA OPERACIÓN DE TRANSPORTE DE PASAJEROS EN RUTA PUNO - JULIACA',
+            observaciones: 'Expediente en revisión técnica',
+            prioridad: PrioridadExpediente.ALTA
+          },
+          {
+            id: '2',
+            nroExpediente: 'E-0002-2025',
+            folio: 8,
+            fechaEmision: new Date('2025-01-20'),
+            tipoTramite: 'RENOVACION',
+            tipoSolicitante: TipoSolicitante.EMPRESA,
+            estado: 'APROBADO',
+            estaActivo: true,
+            fechaRegistro: new Date('2025-01-20'),
+            empresaId: 'EMP002',
+            descripcion: 'RENOVACIÓN DE AUTORIZACIÓN PARA TRANSPORTE DE CARGA EN RUTA PUNO - AREQUIPA',
+            observaciones: 'Renovación aprobada exitosamente',
+            prioridad: PrioridadExpediente.NORMAL
+          },
+          {
+            id: '3',
+            nroExpediente: 'E-0003-2025',
+            folio: 12,
+            fechaEmision: new Date('2025-01-25'),
+            tipoTramite: 'INCREMENTO',
+            tipoSolicitante: TipoSolicitante.EMPRESA,
+            estado: 'EN PROCESO',
+            estaActivo: true,
+            fechaRegistro: new Date('2025-01-25'),
+            empresaId: 'EMP003',
+            descripcion: 'INCREMENTO DE UNIDADES PARA TRANSPORTE DE PASAJEROS EN RUTA PUNO - MOLLENDO',
+            observaciones: 'Solicitud de incremento en revisión',
+            prioridad: PrioridadExpediente.URGENTE
+          },
+          {
+            id: '4',
+            nroExpediente: 'E-0004-2025',
+            folio: 6,
+            fechaEmision: new Date('2025-01-30'),
+            tipoTramite: 'SUSTITUCION',
+            tipoSolicitante: TipoSolicitante.EMPRESA,
+            estado: 'SUSPENDIDO',
+            estaActivo: true,
+            fechaRegistro: new Date('2025-01-30'),
+            empresaId: 'EMP004',
+            descripcion: 'SUSTITUCIÓN DE VEHÍCULOS EN RUTA PUNO - TACNA',
+            observaciones: 'Solicitud suspendida por documentación incompleta',
+            prioridad: PrioridadExpediente.CRITICA
+          },
+          {
+            id: '5',
+            nroExpediente: 'E-0005-2025',
+            folio: 20,
+            fechaEmision: new Date('2025-02-05'),
+            tipoTramite: 'OTROS',
+            tipoSolicitante: TipoSolicitante.EMPRESA,
+            estado: 'RECHAZADO',
+            estaActivo: false,
+            fechaRegistro: new Date('2025-02-05'),
+            empresaId: 'EMP005',
+            descripcion: 'SOLICITUD ESPECIAL PARA TRANSPORTE DE MERCANCÍAS PELIGROSAS',
+            observaciones: 'Rechazado por no cumplir normativas de seguridad',
+            prioridad: PrioridadExpediente.ALTA
+          }
+        ];
 
         this.expedientes.set(expedientesMock);
         this.dataSource.data = expedientesMock;
@@ -987,10 +987,10 @@ export class ExpedientesComponent implements OnInit {
    */
   aplicarFiltros(): void {
     const filtros = this.filtrosForm.value;
-    
+
     this.dataSource.filterPredicate = (expediente: Expediente, filter: string) => {
       const searchStr = filter.toLowerCase();
-      
+
       return (
         (!filtros.numero || expediente.nroExpediente.toLowerCase().includes(filtros.numero.toLowerCase())) &&
         (!filtros.tipoTramite || expediente.tipoTramite === filtros.tipoTramite) &&
@@ -1024,7 +1024,7 @@ export class ExpedientesComponent implements OnInit {
    */
   toggleTodasColumnas(): void {
     const todasVisibles = this.todasColumnasVisibles();
-    this.columnas.update(cols => 
+    this.columnas.update(cols =>
       cols.map(col => ({ ...col, visible: !todasVisibles }))
     );
   }
@@ -1040,8 +1040,8 @@ export class ExpedientesComponent implements OnInit {
    * Toggle para mostrar/ocultar una columna específica
    */
   toggleColumna(columnaId: string, visible: boolean): void {
-    this.columnas.update(cols => 
-      cols.map(col => 
+    this.columnas.update(cols =>
+      cols.map(col =>
         col.id === columnaId ? { ...col, visible } : col
       )
     );
@@ -1091,16 +1091,16 @@ export class ExpedientesComponent implements OnInit {
       if (expedienteCreado) {
         // Agregar el expediente creado a la lista
         this.expedientes.update(current => [...current, expedienteCreado]);
-        
+
         // Actualizar el dataSource y notificar el cambio
         this.dataSource.data = this.expedientes();
-        
+
         // Forzar la actualización de la tabla
         this.dataSource._updateChangeSubscription();
-        
+
         // Recargar expedientes desde el servicio para asegurar sincronización
         this.recargarExpedientes();
-        
+
         this.snackBar.open('Expediente creado exitosamente', 'Cerrar', {
           duration: 3000
         });
