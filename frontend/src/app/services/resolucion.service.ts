@@ -377,21 +377,11 @@ export class ResolucionService {
     if (tipo) params.append('tipo_tramite', tipo);
 
     return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
+    return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
           console.error('Error fetching resoluciones:', error);
-          // Retornar datos mock en caso de error
-          let mockResoluciones = this.mockResoluciones;
-          if (estado) {
-            mockResoluciones = mockResoluciones.filter(r => r.estado === estado);
-          }
-          if (empresaId) {
-            mockResoluciones = mockResoluciones.filter(r => r.empresaId === empresaId);
-          }
-          if (tipo) {
-            mockResoluciones = mockResoluciones.filter(r => r.tipoTramite === tipo);
-          }
-          return of(mockResoluciones);
+          return throwError(() => error);
         })
       );
   }
@@ -525,54 +515,7 @@ export class ResolucionService {
         }),
         catchError(error => {
           console.error('Error creating resolucion in backend:', error);
-
-          // Fallback: crear en datos mock si falla el backend
-          console.log('Usando fallback a datos mock...');
-
-          const numeroCompleto = `R-${resolucion.numero}-${new Date(resolucion.fechaEmision).getFullYear()}`;
-          const nuevaResolucion: Resolucion = {
-            id: Date.now().toString(), // Usar timestamp para ID único
-            nroResolucion: numeroCompleto,
-            empresaId: resolucion.empresaId,
-            expedienteId: resolucion.expedienteId,
-            fechaEmision: resolucion.fechaEmision,
-            fechaVigenciaInicio: resolucion.fechaVigenciaInicio,
-            fechaVigenciaFin: resolucion.fechaVigenciaFin,
-            tipoResolucion: resolucion.tipoResolucion,
-            resolucionPadreId: resolucion.resolucionPadreId,
-            resolucionesHijasIds: [],
-            vehiculosHabilitadosIds: resolucion.vehiculosHabilitadosIds || [],
-            rutasAutorizadasIds: resolucion.rutasAutorizadasIds || [],
-            tipoTramite: resolucion.tipoTramite,
-            descripcion: resolucion.descripcion,
-            documentoId: undefined,
-            estaActivo: true,
-            estado: 'VIGENTE',
-            fechaRegistro: new Date(),
-            fechaActualizacion: new Date(),
-            usuarioEmisionId: 'user1',
-            usuarioAprobacionId: 'user1',
-            fechaAprobacion: new Date(),
-            documentos: [],
-            auditoria: []
-          };
-
-          this.mockResoluciones.push(nuevaResolucion);
-          console.log('Resolución agregada a datos mock (fallback):', nuevaResolucion);
-          console.log('Total de resoluciones mock después de agregar (fallback):', this.mockResoluciones.length);
-
-          // Si es resolución hija, actualizar la resolución padre
-          if (nuevaResolucion.resolucionPadreId) {
-            const indexPadre = this.mockResoluciones.findIndex(r => r.id === nuevaResolucion.resolucionPadreId);
-            if (indexPadre !== -1) {
-              this.mockResoluciones[indexPadre].resolucionesHijasIds.push(nuevaResolucion.id);
-              console.log('Resolución padre actualizada con nueva hija (fallback):', this.mockResoluciones[indexPadre]);
-            } else {
-              console.warn('⚠️ No se encontró la resolución padre para actualizar (fallback):', nuevaResolucion.resolucionPadreId);
-            }
-          }
-
-          return of(nuevaResolucion);
+          return throwError(() => error);
         })
       );
   }
@@ -584,13 +527,7 @@ export class ResolucionService {
       .pipe(
         catchError(error => {
           console.error('Error updating resolucion:', error);
-          // Actualizar resolución mock en caso de error
-          const index = this.mockResoluciones.findIndex(r => r.id === id);
-          if (index !== -1) {
-            this.mockResoluciones[index] = { ...this.mockResoluciones[index], ...resolucion };
-            return of(this.mockResoluciones[index]);
-          }
-          return throwError(() => new Error('Resolución no encontrada'));
+          return throwError(() => error);
         })
       );
   }
@@ -602,12 +539,7 @@ export class ResolucionService {
       .pipe(
         catchError(error => {
           console.error('Error deleting resolucion:', error);
-          // Eliminar resolución mock en caso de error
-          const index = this.mockResoluciones.findIndex(r => r.id === id);
-          if (index !== -1) {
-            this.mockResoluciones.splice(index, 1);
-          }
-          return of(void 0);
+          return throwError(() => error);
         })
       );
   }
@@ -647,26 +579,7 @@ export class ResolucionService {
         }),
         catchError(error => {
           console.error('Error fetching resoluciones por empresa:', error);
-          console.log('Usando datos mock como fallback...');
-
-          // Retornar resoluciones mock filtradas por empresa
-          const resolucionesFiltradas = this.mockResoluciones.filter(r => r.empresaId === empresaId && r.estaActivo);
-          console.log('Resoluciones mock filtradas por empresa:', empresaId, resolucionesFiltradas);
-
-          // Log detallado de cada resolución para debugging
-          resolucionesFiltradas.forEach((r, index) => {
-            console.log(`Resolución mock ${index + 1}:`, {
-              id: r.id,
-              nroResolucion: r.nroResolucion,
-              empresaId: r.empresaId,
-              tipoResolucion: r.tipoResolucion,
-              estado: r.estado,
-              estaActivo: r.estaActivo
-            });
-          });
-
-          console.log('=== FIN getResolucionesPorEmpresa (MOCK FALLBACK) ===');
-          return of(resolucionesFiltradas);
+          return throwError(() => error);
         })
       );
   }
@@ -760,86 +673,7 @@ export class ResolucionService {
         }),
         catchError(error => {
           console.error('Error fetching filtered resoluciones from backend:', error);
-          console.log('Usando datos mock con filtrado local...');
-
-          // Reiniciar medición para filtrado local
-          PerformanceMonitor.startMeasure('getResolucionesFiltradas-local');
-
-          // Aplicar filtros a los datos mock
-          let resolucionesFiltradas = [...this.mockResoluciones];
-
-          // Filtro por número de resolución
-          if (filtros.numeroResolucion) {
-            const numeroLower = filtros.numeroResolucion.toLowerCase();
-            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
-              r.nroResolucion.toLowerCase().includes(numeroLower)
-            );
-          }
-
-          // Filtro por empresa
-          if (filtros.empresaId) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
-              r.empresaId === filtros.empresaId
-            );
-          }
-
-          // Filtro por tipos de trámite (múltiple)
-          if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
-              filtros.tiposTramite!.includes(r.tipoTramite)
-            );
-          }
-
-          // Filtro por estados (múltiple)
-          if (filtros.estados && filtros.estados.length > 0) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
-              r.estado && filtros.estados!.includes(r.estado)
-            );
-          }
-
-          // Filtro por rango de fechas
-          if (filtros.fechaInicio) {
-            const fechaInicio = new Date(filtros.fechaInicio);
-            fechaInicio.setHours(0, 0, 0, 0);
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => {
-              const fechaEmision = new Date(r.fechaEmision);
-              fechaEmision.setHours(0, 0, 0, 0);
-              return fechaEmision >= fechaInicio;
-            });
-          }
-
-          if (filtros.fechaFin) {
-            const fechaFin = new Date(filtros.fechaFin);
-            fechaFin.setHours(23, 59, 59, 999);
-            resolucionesFiltradas = resolucionesFiltradas.filter(r => {
-              const fechaEmision = new Date(r.fechaEmision);
-              return fechaEmision <= fechaFin;
-            });
-          }
-
-          // Filtro por activo
-          if (filtros.activo !== undefined) {
-            resolucionesFiltradas = resolucionesFiltradas.filter(r =>
-              r.estaActivo === filtros.activo
-            );
-          }
-
-          console.log('Resoluciones filtradas (mock):', resolucionesFiltradas.length);
-
-          // Enriquecer con datos de empresa
-          return this.enrichResolucionesConEmpresa(resolucionesFiltradas).pipe(
-            tap(resoluciones => {
-              // Finalizar medición y registrar métricas
-              const executionTime = PerformanceMonitor.endMeasure('getResolucionesFiltradas-local');
-              PerformanceMonitor.recordFilterMetrics({
-                filterType: 'local-mock',
-                executionTime,
-                resultCount: resoluciones.length,
-                datasetSize: this.mockResoluciones.length,
-                timestamp: new Date()
-              });
-            })
-          );
+          return throwError(() => error);
         })
       );
   }

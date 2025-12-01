@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
 from app.dependencies.auth import get_current_active_user
-from app.services.mock_resolucion_service import MockResolucionService
+from app.dependencies.db import get_database
+from app.services.resolucion_service import ResolucionService
 from app.services.resolucion_excel_service import ResolucionExcelService
-from app.models.resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse
+from app.models.resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse, ResolucionFiltros
 from app.utils.exceptions import (
     ResolucionNotFoundException, 
     ResolucionAlreadyExistsException,
@@ -16,16 +17,20 @@ from app.utils.exceptions import (
 
 router = APIRouter(prefix="/resoluciones", tags=["resoluciones"])
 
+async def get_resolucion_service():
+    """Dependency para obtener el servicio de resoluciones"""
+    db = await get_database()
+    return ResolucionService(db)
+
 @router.post("/", response_model=ResolucionResponse, status_code=201)
 async def create_resolucion(
-    resolucion_data: ResolucionCreate
+    resolucion_data: ResolucionCreate,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> ResolucionResponse:
     """Crear nueva resolución"""
     # Guard clauses al inicio
     if not resolucion_data.nroResolucion.strip():
         raise ValidationErrorException("Número", "El número de resolución no puede estar vacío")
-    
-    resolucion_service = MockResolucionService()
     
     try:
         resolucion = await resolucion_service.create_resolucion(resolucion_data)
@@ -60,35 +65,24 @@ async def create_resolucion(
         else:
             raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=List[ResolucionResponse])
+@router.get("", response_model=List[ResolucionResponse])
 async def get_resoluciones(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
     empresa_id: str = Query(None, description="Filtrar por empresa"),
-    tipo_resolucion: str = Query(None, description="Filtrar por tipo de resolución")
+    tipo_resolucion: str = Query(None, description="Filtrar por tipo de resolución"),
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> List[ResolucionResponse]:
     """Obtener lista de resoluciones con filtros opcionales"""
-    resolucion_service = MockResolucionService()
     
-    if estado and empresa_id and tipo_resolucion:
-        resoluciones = await resolucion_service.get_resoluciones_por_estado(estado)
-        resoluciones = [r for r in resoluciones if r.empresaId == empresa_id and r.tipoResolucion == tipo_resolucion]
-    elif estado and empresa_id:
-        resoluciones = await resolucion_service.get_resoluciones_por_estado(estado)
-        resoluciones = [r for r in resoluciones if r.empresaId == empresa_id]
-    elif estado and tipo_resolucion:
-        resoluciones = await resolucion_service.get_resoluciones_por_estado(estado)
-        resoluciones = [r for r in resoluciones if r.tipoResolucion == tipo_resolucion]
-    elif empresa_id and tipo_resolucion:
-        resoluciones = await resolucion_service.get_resoluciones_por_empresa(empresa_id)
-        resoluciones = [r for r in resoluciones if r.tipoResolucion == tipo_resolucion]
-    elif estado:
-        resoluciones = await resolucion_service.get_resoluciones_por_estado(estado)
-    elif empresa_id:
-        resoluciones = await resolucion_service.get_resoluciones_por_empresa(empresa_id)
-    elif tipo_resolucion:
-        resoluciones = await resolucion_service.get_resoluciones_por_tipo(tipo_resolucion)
+    filtros = {}
+    if estado: filtros["estado"] = estado
+    if empresa_id: filtros["empresa_id"] = empresa_id
+    if tipo_resolucion: filtros["tipo"] = tipo_resolucion
+
+    if filtros:
+        resoluciones = await resolucion_service.get_resoluciones_con_filtros(filtros)
     else:
         resoluciones = await resolucion_service.get_resoluciones_activas()
     
@@ -134,27 +128,20 @@ async def get_resoluciones_con_filtros(
     empresa_id: Optional[str] = Query(None),
     expediente_id: Optional[str] = Query(None),
     fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None)
+    fecha_hasta: Optional[datetime] = Query(None),
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> List[ResolucionResponse]:
     """Obtener resoluciones con filtros avanzados"""
-    resolucion_service = MockResolucionService()
     
     # Construir filtros
     filtros = {}
-    if estado:
-        filtros['estado'] = estado
-    if numero:
-        filtros['numero'] = numero
-    if tipo_resolucion:
-        filtros['tipo'] = tipo_resolucion
-    if empresa_id:
-        filtros['empresa_id'] = empresa_id
-    if expediente_id:
-        filtros['expediente_id'] = expediente_id
-    if fecha_desde:
-        filtros['fecha_desde'] = fecha_desde
-    if fecha_hasta:
-        filtros['fecha_hasta'] = fecha_hasta
+    if estado: filtros['estado'] = estado
+    if numero: filtros['numero'] = numero
+    if tipo_resolucion: filtros['tipo'] = tipo_resolucion
+    if empresa_id: filtros['empresa_id'] = empresa_id
+    if expediente_id: filtros['expediente_id'] = expediente_id
+    if fecha_desde: filtros['fecha_desde'] = fecha_desde
+    if fecha_hasta: filtros['fecha_hasta'] = fecha_hasta
     
     resoluciones = await resolucion_service.get_resoluciones_con_filtros(filtros)
     resoluciones = resoluciones[skip:skip + limit]
@@ -162,38 +149,84 @@ async def get_resoluciones_con_filtros(
     return [
         ResolucionResponse(
             id=resolucion.id,
-            nro_resolucion=resolucion.nroResolucion,
-            fecha_emision=resolucion.fechaEmision,
-            fecha_vigencia_inicio=resolucion.fechaVigenciaInicio,
-            fecha_vigencia_fin=resolucion.fechaVigenciaFin,
-            tipo_resolucion=resolucion.tipoResolucion,
-            resolucion_padre_id=resolucion.resolucionPadreId,
-            tipo_tramite=resolucion.tipoTramite,
+            nroResolucion=resolucion.nroResolucion,
+            fechaEmision=resolucion.fechaEmision,
+            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
+            fechaVigenciaFin=resolucion.fechaVigenciaFin,
+            tipoResolucion=resolucion.tipoResolucion,
+            resolucionPadreId=resolucion.resolucionPadreId,
+            tipoTramite=resolucion.tipoTramite,
             descripcion=resolucion.descripcion,
-            empresa_id=resolucion.empresaId,
-            expediente_id=resolucion.expedienteId,
-            vehiculos_habilitados_ids=resolucion.vehiculosHabilitadosIds,
-            rutas_autorizadas_ids=resolucion.rutasAutorizadasIds,
+            empresaId=resolucion.empresaId,
+            expedienteId=resolucion.expedienteId,
+            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
+            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
             estado=resolucion.estado,
             observaciones=resolucion.observaciones,
-            esta_activo=resolucion.estaActivo,
-            fecha_registro=resolucion.fechaRegistro,
-            fecha_actualizacion=resolucion.fechaActualizacion,
-            resoluciones_hijas_ids=resolucion.resolucionesHijasIds,
-            documento_id=resolucion.documentoId,
-            usuario_emision_id=resolucion.usuarioEmisionId,
-            usuario_aprobacion_id=resolucion.usuarioAprobacionId,
-            fecha_aprobacion=resolucion.fechaAprobacion,
-            motivo_suspension=resolucion.motivoSuspension,
-            fecha_suspension=resolucion.fechaSuspension
+            estaActivo=resolucion.estaActivo,
+            fechaRegistro=resolucion.fechaRegistro,
+            fechaActualizacion=resolucion.fechaActualizacion,
+            resolucionesHijasIds=resolucion.resolucionesHijasIds,
+            documentoId=resolucion.documentoId,
+            usuarioEmisionId=resolucion.usuarioEmisionId,
+            motivoSuspension=resolucion.motivoSuspension,
+            fechaSuspension=resolucion.fechaSuspension
+        )
+        for resolucion in resoluciones
+    ]
+
+@router.post("/filtradas", response_model=List[ResolucionResponse])
+async def get_resoluciones_filtradas_post(
+    filtros: ResolucionFiltros,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Obtener resoluciones filtradas (POST)"""
+    
+    filtros_servicio = {}
+    if filtros.estado: filtros_servicio["estado"] = filtros.estado
+    if filtros.nroResolucion: filtros_servicio["numero"] = filtros.nroResolucion
+    if filtros.tipoResolucion: filtros_servicio["tipo"] = filtros.tipoResolucion
+    if filtros.empresaId: filtros_servicio["empresa_id"] = filtros.empresaId
+    if filtros.expedienteId: filtros_servicio["expediente_id"] = filtros.expedienteId
+    if filtros.fechaEmisionDesde: filtros_servicio["fecha_desde"] = filtros.fechaEmisionDesde
+    if filtros.fechaEmisionHasta: filtros_servicio["fecha_hasta"] = filtros.fechaEmisionHasta
+    
+    resoluciones = await resolucion_service.get_resoluciones_con_filtros(filtros_servicio)
+    
+    return [
+        ResolucionResponse(
+            id=resolucion.id,
+            nroResolucion=resolucion.nroResolucion,
+            fechaEmision=resolucion.fechaEmision,
+            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
+            fechaVigenciaFin=resolucion.fechaVigenciaFin,
+            tipoResolucion=resolucion.tipoResolucion,
+            resolucionPadreId=resolucion.resolucionPadreId,
+            tipoTramite=resolucion.tipoTramite,
+            descripcion=resolucion.descripcion,
+            empresaId=resolucion.empresaId,
+            expedienteId=resolucion.expedienteId,
+            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
+            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
+            estado=resolucion.estado,
+            observaciones=resolucion.observaciones,
+            estaActivo=resolucion.estaActivo,
+            fechaRegistro=resolucion.fechaRegistro,
+            fechaActualizacion=resolucion.fechaActualizacion,
+            resolucionesHijasIds=resolucion.resolucionesHijasIds,
+            documentoId=resolucion.documentoId,
+            usuarioEmisionId=resolucion.usuarioEmisionId,
+            motivoSuspension=resolucion.motivoSuspension,
+            fechaSuspension=resolucion.fechaSuspension
         )
         for resolucion in resoluciones
     ]
 
 @router.get("/estadisticas")
-async def get_estadisticas_resoluciones():
+async def get_estadisticas_resoluciones(
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
     """Obtener estadísticas de resoluciones"""
-    resolucion_service = MockResolucionService()
     estadisticas = await resolucion_service.get_estadisticas()
     
     return {
@@ -206,52 +239,48 @@ async def get_estadisticas_resoluciones():
     }
 
 @router.get("/vencidas", response_model=List[ResolucionResponse])
-async def get_resoluciones_vencidas():
+async def get_resoluciones_vencidas(
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
     """Obtener resoluciones vencidas"""
-    resolucion_service = MockResolucionService()
     resoluciones = await resolucion_service.get_resoluciones_vencidas()
     
     return [
         ResolucionResponse(
             id=resolucion.id,
-            nro_resolucion=resolucion.nro_resolucion,
-            fecha_emision=resolucion.fecha_emision,
-            fecha_vigencia_inicio=resolucion.fecha_vigencia_inicio,
-            fecha_vigencia_fin=resolucion.fecha_vigencia_fin,
-            tipo_resolucion=resolucion.tipo_resolucion,
-            resolucion_padre_id=resolucion.resolucion_padre_id,
-            tipo_tramite=resolucion.tipo_tramite,
+            nroResolucion=resolucion.nroResolucion,
+            fechaEmision=resolucion.fechaEmision,
+            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
+            fechaVigenciaFin=resolucion.fechaVigenciaFin,
+            tipoResolucion=resolucion.tipoResolucion,
+            resolucionPadreId=resolucion.resolucionPadreId,
+            tipoTramite=resolucion.tipoTramite,
             descripcion=resolucion.descripcion,
-            empresa_id=resolucion.empresa_id,
-            expediente_id=resolucion.expediente_id,
-            vehiculos_habilitados_ids=resolucion.vehiculos_habilitados_ids,
-            rutas_autorizadas_ids=resolucion.rutas_autorizadas_ids,
+            empresaId=resolucion.empresaId,
+            expedienteId=resolucion.expedienteId,
+            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
+            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
             estado=resolucion.estado,
             observaciones=resolucion.observaciones,
-            esta_activo=resolucion.esta_activo,
-            fecha_registro=resolucion.fecha_registro,
-            fecha_actualizacion=resolucion.fecha_actualizacion,
-            resoluciones_hijas_ids=resolucion.resoluciones_hijas_ids,
-            documento_id=resolucion.documento_id,
-            usuario_emision_id=resolucion.usuario_emision_id,
-            usuario_aprobacion_id=resolucion.usuario_aprobacion_id,
-            fecha_aprobacion=resolucion.fecha_aprobacion,
-            motivo_suspension=resolucion.motivo_suspension,
-            fecha_suspension=resolucion.fecha_suspension
+            estaActivo=resolucion.estaActivo,
+            fechaRegistro=resolucion.fechaRegistro,
+            fechaActualizacion=resolucion.fechaActualizacion,
+            resolucionesHijasIds=resolucion.resolucionesHijasIds,
+            documentoId=resolucion.documentoId,
+            usuarioEmisionId=resolucion.usuarioEmisionId,
+            motivoSuspension=resolucion.motivoSuspension,
+            fechaSuspension=resolucion.fechaSuspension
         )
         for resolucion in resoluciones
     ]
 
 @router.get("/{resolucion_id}", response_model=ResolucionResponse)
 async def get_resolucion(
-    resolucion_id: str
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> ResolucionResponse:
     """Obtener resolución por ID"""
-    # Guard clause
-    if not resolucion_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de resolución inválido")
     
-    resolucion_service = MockResolucionService()
     resolucion = await resolucion_service.get_resolucion_by_id(resolucion_id)
     
     if not resolucion:
@@ -285,10 +314,10 @@ async def get_resolucion(
 
 @router.get("/numero/{numero}", response_model=ResolucionResponse)
 async def get_resolucion_by_numero(
-    numero: str
+    numero: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> ResolucionResponse:
     """Obtener resolución por número"""
-    resolucion_service = MockResolucionService()
     resolucion = await resolucion_service.get_resolucion_by_numero(numero)
     
     if not resolucion:
@@ -312,16 +341,21 @@ async def get_resolucion_by_numero(
         observaciones=resolucion.observaciones,
         estaActivo=resolucion.estaActivo,
         fechaRegistro=resolucion.fechaRegistro,
-        usuarioEmisionId=resolucion.usuarioEmisionId
+        fechaActualizacion=resolucion.fechaActualizacion,
+        resolucionesHijasIds=resolucion.resolucionesHijasIds,
+        documentoId=resolucion.documentoId,
+        usuarioEmisionId=resolucion.usuarioEmisionId,
+        motivoSuspension=resolucion.motivoSuspension,
+        fechaSuspension=resolucion.fechaSuspension
     )
 
 @router.get("/validar-numero/{numero}")
 async def validar_numero_resolucion(
     numero: str,
-    fecha_emision: datetime = Query(..., description="Fecha de emisión para validar unicidad por año")
+    fecha_emision: datetime = Query(..., description="Fecha de emisión para validar unicidad por año"),
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ):
     """Validar si un número de resolución está disponible para un año específico"""
-    resolucion_service = MockResolucionService()
     
     try:
         # Validar que el número sea único por año
@@ -344,9 +378,11 @@ async def validar_numero_resolucion(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/siguiente-numero/{anio}")
-async def obtener_siguiente_numero(anio: int):
+async def obtener_siguiente_numero(
+    anio: int,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
     """Obtener el siguiente número de resolución disponible para un año específico"""
-    resolucion_service = MockResolucionService()
     
     try:
         fecha_emision = datetime(anio, 1, 1)  # Fecha de referencia para el año
@@ -363,17 +399,14 @@ async def obtener_siguiente_numero(anio: int):
 @router.put("/{resolucion_id}", response_model=ResolucionResponse)
 async def update_resolucion(
     resolucion_id: str,
-    resolucion_data: ResolucionUpdate
+    resolucion_data: ResolucionUpdate,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> ResolucionResponse:
     """Actualizar resolución"""
-    # Guard clauses
-    if not resolucion_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de resolución inválido")
     
     if not resolucion_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
     
-    resolucion_service = MockResolucionService()
     updated_resolucion = await resolucion_service.update_resolucion(resolucion_id, resolucion_data)
     
     if not updated_resolucion:
@@ -381,150 +414,52 @@ async def update_resolucion(
     
     return ResolucionResponse(
         id=updated_resolucion.id,
-        nro_resolucion=updated_resolucion.nro_resolucion,
-        fecha_emision=updated_resolucion.fecha_emision,
-        fecha_vigencia_inicio=updated_resolucion.fecha_vigencia_inicio,
-        fecha_vigencia_fin=updated_resolucion.fecha_vigencia_fin,
-        tipo_resolucion=updated_resolucion.tipo_resolucion,
-        resolucion_padre_id=updated_resolucion.resolucion_padre_id,
-        tipo_tramite=updated_resolucion.tipo_tramite,
+        nroResolucion=updated_resolucion.nroResolucion,
+        fechaEmision=updated_resolucion.fechaEmision,
+        fechaVigenciaInicio=updated_resolucion.fechaVigenciaInicio,
+        fechaVigenciaFin=updated_resolucion.fechaVigenciaFin,
+        tipoResolucion=updated_resolucion.tipoResolucion,
+        resolucionPadreId=updated_resolucion.resolucionPadreId,
+        tipoTramite=updated_resolucion.tipoTramite,
         descripcion=updated_resolucion.descripcion,
-        empresa_id=updated_resolucion.empresa_id,
-        expediente_id=updated_resolucion.expediente_id,
-        vehiculos_habilitados_ids=updated_resolucion.vehiculos_habilitados_ids,
-        rutas_autorizadas_ids=updated_resolucion.rutas_autorizadas_ids,
+        empresaId=updated_resolucion.empresaId,
+        expedienteId=updated_resolucion.expedienteId,
+        vehiculosHabilitadosIds=updated_resolucion.vehiculosHabilitadosIds,
+        rutasAutorizadasIds=updated_resolucion.rutasAutorizadasIds,
         estado=updated_resolucion.estado,
         observaciones=updated_resolucion.observaciones,
-        esta_activo=updated_resolucion.esta_activo,
-        fecha_registro=updated_resolucion.fecha_registro,
-        usuario_emision_id=updated_resolucion.usuario_emision_id
+        estaActivo=updated_resolucion.estaActivo,
+        fechaRegistro=updated_resolucion.fechaRegistro,
+        fechaActualizacion=updated_resolucion.fechaActualizacion,
+        resolucionesHijasIds=updated_resolucion.resolucionesHijasIds,
+        documentoId=updated_resolucion.documentoId,
+        usuarioEmisionId=updated_resolucion.usuarioEmisionId,
+        motivoSuspension=updated_resolucion.motivoSuspension,
+        fechaSuspension=updated_resolucion.fechaSuspension
     )
 
 @router.delete("/{resolucion_id}", status_code=204)
 async def delete_resolucion(
-    resolucion_id: str
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ):
     """Desactivar resolución (borrado lógico)"""
-    # Guard clause
-    if not resolucion_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de resolución inválido")
     
-    resolucion_service = MockResolucionService()
     success = await resolucion_service.soft_delete_resolucion(resolucion_id)
     
     if not success:
         raise ResolucionNotFoundException(resolucion_id)
 
-# Endpoints para gestión de estados
-@router.put("/{resolucion_id}/renovar", response_model=ResolucionResponse)
-async def renovar_resolucion(
-    resolucion_id: str,
-    nueva_fecha_vigencia_fin: datetime
-) -> ResolucionResponse:
-    """Renovar resolución con nueva fecha de vigencia fin"""
-    resolucion_service = MockResolucionService()
-    resolucion = await resolucion_service.renovar_resolucion(resolucion_id, nueva_fecha_vigencia_fin)
-    
-    if not resolucion:
-        raise ResolucionNotFoundException(resolucion_id)
-    
-    return ResolucionResponse(
-        id=resolucion.id,
-        nro_resolucion=resolucion.nro_resolucion,
-        fecha_emision=resolucion.fecha_emision,
-        fecha_vigencia_inicio=resolucion.fecha_vigencia_inicio,
-        fecha_vigencia_fin=resolucion.fecha_vigencia_fin,
-        tipo_resolucion=resolucion.tipo_resolucion,
-        resolucion_padre_id=resolucion.resolucion_padre_id,
-        tipo_tramite=resolucion.tipo_tramite,
-        descripcion=resolucion.descripcion,
-        empresa_id=resolucion.empresa_id,
-        expediente_id=resolucion.expediente_id,
-        vehiculos_habilitados_ids=resolucion.vehiculos_habilitados_ids,
-        rutas_autorizadas_ids=resolucion.rutas_autorizadas_ids,
-        estado=resolucion.estado,
-        observaciones=resolucion.observaciones,
-        esta_activo=resolucion.esta_activo,
-        fecha_registro=resolucion.fecha_registro,
-        usuario_emision_id=resolucion.usuario_emision_id
-    )
-
-@router.put("/{resolucion_id}/suspender", response_model=ResolucionResponse)
-async def suspender_resolucion(
-    resolucion_id: str,
-    motivo: str
-) -> ResolucionResponse:
-    """Suspender resolución"""
-    resolucion_service = MockResolucionService()
-    resolucion = await resolucion_service.suspender_resolucion(resolucion_id, motivo)
-    
-    if not resolucion:
-        raise ResolucionNotFoundException(resolucion_id)
-    
-    return ResolucionResponse(
-        id=resolucion.id,
-        nro_resolucion=resolucion.nro_resolucion,
-        fecha_emision=resolucion.fecha_emision,
-        fecha_vigencia_inicio=resolucion.fecha_vigencia_inicio,
-        fecha_vigencia_fin=resolucion.fecha_vigencia_fin,
-        tipo_resolucion=resolucion.tipo_resolucion,
-        resolucion_padre_id=resolucion.resolucion_padre_id,
-        tipo_tramite=resolucion.tipo_tramite,
-        descripcion=resolucion.descripcion,
-        empresa_id=resolucion.empresa_id,
-        expediente_id=resolucion.expediente_id,
-        vehiculos_habilitados_ids=resolucion.vehiculos_habilitados_ids,
-        rutas_autorizadas_ids=resolucion.rutas_autorizadas_ids,
-        estado=resolucion.estado,
-        observaciones=resolucion.observaciones,
-        esta_activo=resolucion.esta_activo,
-        fecha_registro=resolucion.fecha_registro,
-        usuario_emision_id=resolucion.usuario_emision_id
-    )
-
-@router.put("/{resolucion_id}/activar", response_model=ResolucionResponse)
-async def activar_resolucion(
-    resolucion_id: str
-) -> ResolucionResponse:
-    """Activar resolución suspendida"""
-    resolucion_service = MockResolucionService()
-    resolucion = await resolucion_service.activar_resolucion(resolucion_id)
-    
-    if not resolucion:
-        raise ResolucionNotFoundException(resolucion_id)
-    
-    return ResolucionResponse(
-        id=resolucion.id,
-        nro_resolucion=resolucion.nro_resolucion,
-        fecha_emision=resolucion.fecha_emision,
-        fecha_vigencia_inicio=resolucion.fecha_vigencia_inicio,
-        fecha_vigencia_fin=resolucion.fecha_vigencia_fin,
-        tipo_resolucion=resolucion.tipo_resolucion,
-        resolucion_padre_id=resolucion.resolucion_padre_id,
-        tipo_tramite=resolucion.tipo_tramite,
-        descripcion=resolucion.descripcion,
-        empresa_id=resolucion.empresa_id,
-        expediente_id=resolucion.expediente_id,
-        vehiculos_habilitados_ids=resolucion.vehiculos_habilitados_ids,
-        rutas_autorizadas_ids=resolucion.rutas_autorizadas_ids,
-        estado=resolucion.estado,
-        observaciones=resolucion.observaciones,
-        esta_activo=resolucion.esta_activo,
-        fecha_registro=resolucion.fecha_registro,
-        usuario_emision_id=resolucion.usuario_emision_id
-    )
-
 # Endpoints para exportación
 @router.get("/exportar/{formato}")
 async def exportar_resoluciones(
     formato: str,
-    estado: Optional[str] = Query(None)
+    estado: Optional[str] = Query(None),
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ):
     """Exportar resoluciones en diferentes formatos"""
     if formato not in ['pdf', 'excel', 'csv']:
         raise HTTPException(status_code=400, detail="Formato no soportado")
-    
-    resolucion_service = MockResolucionService()
     
     # Obtener resoluciones según filtros
     if estado:

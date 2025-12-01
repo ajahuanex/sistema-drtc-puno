@@ -88,7 +88,7 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Tipo de Expediente *</mat-label>
                   <mat-select formControlName="tipoTramite" (selectionChange)="onTipoTramiteChange($event)" required>
-                    <mat-option value="PRIMIGENIA">Primigenia</mat-option>
+                    <mat-option value="AUTORIZACION_NUEVA">Autorización Nueva (Primigenia)</mat-option>
                     <mat-option value="RENOVACION">Renovación</mat-option>
                     <mat-option value="INCREMENTO">Incremento</mat-option>
                     <mat-option value="SUSTITUCION">Sustitución</mat-option>
@@ -181,11 +181,9 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
                   <mat-label>Prioridad *</mat-label>
                   <mat-select formControlName="prioridad" required>
                     <mat-option value="BAJA">Baja</mat-option>
-                    <mat-option value="NORMAL">Normal</mat-option>
+                    <mat-option value="MEDIA">Normal</mat-option>
                     <mat-option value="ALTA">Alta</mat-option>
-                    <mat-option value="URGENTE">Urgente</mat-option>
-                    <mat-option value="CRITICA">Crítica</mat-option>
-                  </mat-select>
+                    <mat-option value="URGENTE">Urgente</mat-option>                  </mat-select>
                   <mat-icon matSuffix>priority_high</mat-icon>
                   <mat-hint>Nivel de prioridad del expediente</mat-hint>
                   <mat-error *ngIf="expedienteForm.get('prioridad')?.hasError('required')">
@@ -368,7 +366,7 @@ export class CrearExpedienteModalComponent {
       resolucionPadreId: [''], // Campo para resolución padre (opcional cuando hay empresa)
       descripcion: [''],
       fechaEmision: ['', Validators.required],
-      prioridad: ['NORMAL', Validators.required],
+      prioridad: ['MEDIA', Validators.required],
       empresaId: ['', Validators.required], // Ahora es obligatorio
       observaciones: ['']
     });
@@ -423,7 +421,7 @@ export class CrearExpedienteModalComponent {
    */
   generarDescripcionAutomatica(tipoTramite: string): string {
     const descripciones = {
-      'PRIMIGENIA': 'SOLICITUD DE AUTORIZACIÓN PRIMIGENIA PARA OPERAR TRANSPORTE PÚBLICO DE PASAJEROS EN RUTAS INTERPROVINCIALES',
+      'AUTORIZACION_NUEVA': 'SOLICITUD DE AUTORIZACIÓN PRIMIGENIA PARA OPERAR TRANSPORTE PÚBLICO DE PASAJEROS EN RUTAS INTERPROVINCIALES',
       'RENOVACION': 'SOLICITUD DE RENOVACIÓN DE AUTORIZACIÓN DE TRANSPORTE PÚBLICO DE PASAJEROS - VENCIMIENTO PRÓXIMO',
       'INCREMENTO': 'SOLICITUD DE INCREMENTO DE FLOTA VEHICULAR PARA AMPLIAR COBERTURA DE RUTAS AUTORIZADAS',
       'SUSTITUCION': 'SOLICITUD DE SUSTITUCIÓN DE VEHÍCULOS EN FLOTA EXISTENTE POR UNIDADES MÁS MODERNAS Y EFICIENTES',
@@ -537,7 +535,7 @@ export class CrearExpedienteModalComponent {
    * Obtiene el filtro de tipo de trámite apropiado
    */
   getFiltroTipoTramite(): string {
-    return 'PRIMIGENIA'; // Solo mostrar resoluciones primigenias
+    return 'AUTORIZACION_NUEVA'; // Solo mostrar resoluciones primigenias
   }
 
   /**
