@@ -12,7 +12,7 @@ from app.models.expediente import (
     TipoTramite, 
     PrioridadExpediente
 )
-from app.services.mock_data import get_mock_empresas
+# from app.services.mock_data import get_mock_empresas  # COMENTADO: mock eliminado
 
 class ExpedienteExcelService:
     def __init__(self):

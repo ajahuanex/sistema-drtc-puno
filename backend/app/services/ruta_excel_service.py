@@ -12,7 +12,7 @@ from app.models.ruta import (
     TipoRuta, 
     TipoServicio
 )
-from app.services.mock_data import get_mock_rutas
+# from app.services.mock_data import get_mock_rutas  # COMENTADO: mock eliminado
 
 class RutaExcelService:
     def __init__(self):

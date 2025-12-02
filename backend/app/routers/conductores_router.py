@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Optional
 from datetime import datetime, date
 from app.dependencies.auth import get_current_active_user
-from app.services.mock_conductor_service import MockConductorService
+# from app.services.mock_conductor_service import MockConductorService  # COMENTADO: mock eliminado
+# from app.dependencies.db import get_database
+# from app.services.conductor_service import ConductorService  # NO EXISTE AÚN
 from app.models.conductor import (
     ConductorCreate, 
     ConductorUpdate, 
@@ -19,6 +21,11 @@ from app.utils.exceptions import (
 )
 
 router = APIRouter(prefix="/conductores", tags=["conductores"])
+
+# async def get_conductor_service():
+#     """Dependency para obtener el servicio de conductores"""
+#     db = await get_database()
+#     return ConductorService(db)
 
 def build_conductor_response(conductor) -> ConductorResponse:
     """Función helper para construir ConductorResponse con todos los campos requeridos"""

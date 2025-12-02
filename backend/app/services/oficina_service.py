@@ -14,14 +14,14 @@ from app.utils.exceptions import (
     OficinaNotFoundException, OficinaAlreadyExistsException,
     ValidationErrorException, DatabaseErrorException
 )
-from app.services.mock_oficina_service import mock_oficina_service
+# from app.services.mock_oficina_service import mock_oficina_service  # COMENTADO: mock eliminado
 
 class OficinaService:
     """Servicio para gestión de oficinas y seguimiento de expedientes"""
     
     def __init__(self, db=None):
-        # Usar mock service para desarrollo
-        self.mock_service = mock_oficina_service
+        # Mock service eliminado - usar solo base de datos
+        # self.mock_service = mock_oficina_service  # COMENTADO
         self.db = db
         self.collection = db.oficinas if db is not None else None
         self.expedientes_collection = db.expedientes if db is not None else None
@@ -29,8 +29,8 @@ class OficinaService:
     async def create_oficina(self, oficina_data: OficinaCreate) -> OficinaResponse:
         """Crear una nueva oficina"""
         try:
-            # Usar mock service para desarrollo
-            return await self.mock_service.create_oficina(oficina_data)
+            # TODO: Implementar creación en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
         except Exception as e:
             if isinstance(e, (OficinaAlreadyExistsException, ValidationErrorException)):
                 raise e

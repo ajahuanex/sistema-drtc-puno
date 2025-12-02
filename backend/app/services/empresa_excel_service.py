@@ -14,7 +14,7 @@ from app.models.empresa import (
     DocumentoEmpresa,
     TipoDocumento
 )
-from app.services.mock_data import get_mock_empresas
+# from app.services.mock_data import get_mock_empresas  # COMENTADO: mock_data eliminado
 
 class EmpresaExcelService:
     def __init__(self):

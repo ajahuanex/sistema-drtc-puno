@@ -9,7 +9,8 @@ from .tucs_router import router as tucs_router
 from .infracciones_router import router as infracciones_router
 from .oficinas_router import router as oficinas_router
 from .notificaciones_router import router as notificaciones_router
-from .mock_router import router as mock_router
+from .additional_router import router as additional_router
+# from .mock_router import router as mock_router  # COMENTADO: mock_router eliminado
 
 __all__ = [
     "auth_router",
@@ -23,5 +24,6 @@ __all__ = [
     "infracciones_router",
     "oficinas_router",
     "notificaciones_router",
-    "mock_router"
+    "additional_router",
+    # "mock_router"  # COMENTADO
 ] 

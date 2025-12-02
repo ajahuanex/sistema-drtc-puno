@@ -3,7 +3,9 @@ from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
 from app.dependencies.auth import get_current_active_user
-from app.services.mock_tuc_service import MockTucService
+# from app.services.mock_tuc_service import MockTucService  # COMENTADO: mock eliminado
+# from app.dependencies.db import get_database
+# from app.services.tuc_service import TucService  # NO EXISTE AÚN
 from app.models.tuc import TucCreate, TucUpdate, TucInDB, TucResponse
 from app.utils.exceptions import (
     TucNotFoundException, 

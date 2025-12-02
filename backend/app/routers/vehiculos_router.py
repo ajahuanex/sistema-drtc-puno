@@ -6,7 +6,9 @@ from datetime import datetime
 import tempfile
 import os
 from app.dependencies.auth import get_current_active_user
-from app.services.mock_vehiculo_service import MockVehiculoService
+# from app.services.mock_vehiculo_service import MockVehiculoService  # COMENTADO: mock eliminado
+# from app.dependencies.db import get_database
+# from app.services.vehiculo_service import VehiculoService  # NO EXISTE AÚN
 # Importación condicional para evitar errores al iniciar el servidor
 try:
     from app.services.vehiculo_excel_service import VehiculoExcelService

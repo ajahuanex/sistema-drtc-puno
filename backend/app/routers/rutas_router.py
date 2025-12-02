@@ -6,7 +6,9 @@ from datetime import datetime
 from io import BytesIO
 from app.dependencies.auth import get_current_active_user
 from app.services.ruta_excel_service import RutaExcelService
-from app.services.mock_ruta_service import MockRutaService
+# from app.services.mock_ruta_service import MockRutaService  # COMENTADO: mock eliminado
+# from app.dependencies.db import get_database
+# from app.services.ruta_service import RutaService  # NO EXISTE AÚN
 from app.models.ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
 from app.utils.exceptions import (
     RutaNotFoundException, 

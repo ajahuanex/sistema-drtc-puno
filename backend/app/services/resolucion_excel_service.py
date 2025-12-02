@@ -12,7 +12,7 @@ from app.models.resolucion import (
     TipoTramite, 
     EstadoResolucion
 )
-from app.services.mock_data import get_mock_resoluciones, get_mock_empresas
+# from app.services.mock_data import get_mock_resoluciones, get_mock_empresas  # COMENTADO: mock eliminado
 
 class ResolucionExcelService:
     def __init__(self):

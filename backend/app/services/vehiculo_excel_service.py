@@ -6,8 +6,8 @@ from app.models.vehiculo import (
     VehiculoExcel, VehiculoCargaMasivaResponse, VehiculoValidacionExcel,
     VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro, MotivoSustitucion
 )
-from app.services.mock_vehiculo_service import MockVehiculoService
-from app.services.mock_data import mock_service
+# from app.services.mock_vehiculo_service import MockVehiculoService  # COMENTADO: mock eliminado
+# from app.services.mock_data import mock_service  # COMENTADO: mock eliminado
 
 class VehiculoExcelService:
     """Servicio para procesar archivos Excel de vehículos"""
