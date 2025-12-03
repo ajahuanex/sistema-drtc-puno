@@ -41,9 +41,24 @@ class ResolucionService:
         if "id" not in resolucion_dict or not resolucion_dict["id"]:
             resolucion_dict["id"] = await self._generate_uuid()
 
+        # Si es una RENOVACIÓN y tiene resolución padre, marcar la padre como VENCIDA
+        if resolucion_data.tipoTramite == TipoTramite.RENOVACION and resolucion_data.resolucionPadreId:
+            await self.collection.update_one(
+                {"id": resolucion_data.resolucionPadreId},
+                {
+                    "$set": {
+                        "estado": EstadoResolucion.VENCIDA,
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                }
+            )
+
         result = await self.collection.insert_one(resolucion_dict)
         # Buscar por _id ya que acabamos de insertar
         resolucion_creada = await self.collection.find_one({"_id": result.inserted_id})
+        if resolucion_creada:
+            if "_id" in resolucion_creada and "id" not in resolucion_creada:
+                resolucion_creada["id"] = str(resolucion_creada.pop("_id"))
         return ResolucionInDB(**resolucion_creada)
 
     async def get_resolucion_by_id(self, resolucion_id: str) -> Optional[ResolucionInDB]:
@@ -57,7 +72,11 @@ class ResolucionService:
 
     async def get_resolucion_by_numero(self, numero: str) -> Optional[ResolucionInDB]:
         resolucion = await self.collection.find_one({"nroResolucion": numero})
-        return ResolucionInDB(**resolucion) if resolucion else None
+        if resolucion:
+            if "_id" in resolucion and "id" not in resolucion:
+                resolucion["id"] = str(resolucion.pop("_id"))
+            return ResolucionInDB(**resolucion)
+        return None
 
     async def get_resoluciones_activas(self) -> List[ResolucionInDB]:
         cursor = self.collection.find({"estaActivo": True})

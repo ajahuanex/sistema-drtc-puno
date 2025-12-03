@@ -14,22 +14,21 @@ def probar_login():
     print("  PRUEBA DE LOGIN")
     print("="*70 + "\n")
     
-    # Credenciales
+    # Credenciales (OAuth2PasswordRequestForm espera form-data)
     credenciales = {
-        "nombre_usuario": "admin",
+        "username": "12345678",  # DNI
         "password": "admin123"
     }
     
     print("🔐 Intentando login...")
-    print(f"   Usuario: {credenciales['nombre_usuario']}")
+    print(f"   DNI: {credenciales['username']}")
     print(f"   URL: {API_URL}/auth/login\n")
     
     try:
-        # Hacer login
+        # Hacer login (usando form-data, no JSON)
         response = requests.post(
             f"{API_URL}/auth/login",
-            json=credenciales,
-            headers={"Content-Type": "application/json"}
+            data=credenciales  # form-data en lugar de json
         )
         
         if response.status_code == 200:

@@ -188,7 +188,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                     <mat-option value="">SELECCIONE UN EXPEDIENTE</mat-option>
                     @for (expediente of expedientesFiltrados(); track expediente.id) {
                       <mat-option [value]="expediente.id">
-                        {{ expediente.nroExpediente }} - {{ expediente.descripcion || 'Sin descripción' }}
+                        {{ expediente.nroExpediente }} - {{ expediente.tipoTramite | uppercase }} - {{ expediente.descripcion || 'Sin descripción' }}
                         @if (expediente.estado) {
                           ({{ expediente.estado }})
                         }
@@ -197,7 +197,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                   </mat-select>
                   <mat-hint>
                     @if (expedienteSeleccionado()) {
-                      Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
+                      Expediente: {{ expedienteSeleccionado()?.nroExpediente }} | Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
                     } @else if (expedientesFiltrados().length > 0) {
                       {{ expedientesFiltrados().length }} expediente(s) disponible(s) para {{ empresaSeleccionada()?.razonSocial?.principal | uppercase }}
                     } @else {
@@ -256,12 +256,12 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>
                     @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                      RESOLUCIÓN PADRE A RENOVAR
+                      RESOLUCIÓN PADRE A RENOVAR (OPCIONAL)
                     } @else {
                       RESOLUCIÓN PADRE (requerida para {{ expedienteSeleccionado()?.tipoTramite | uppercase }})
                     }
                   </mat-label>
-                  <mat-select formControlName="resolucionPadreId" required (selectionChange)="onResolucionPadreChange()">
+                  <mat-select formControlName="resolucionPadreId" [required]="expedienteSeleccionado()?.tipoTramite !== 'RENOVACION'" (selectionChange)="onResolucionPadreChange()">
                     <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
                     @for (resolucion of resolucionesPadre(); track resolucion.id) {
                       <mat-option [value]="resolucion.id">
@@ -274,7 +274,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                   </mat-select>
                   <mat-hint>
                     @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                      Seleccione la resolución padre que desea renovar
+                      Opcional: Seleccione la resolución padre que desea renovar (si aplica)
                     } @else {
                       Seleccione la resolución padre de la cual heredará las fechas de vigencia
                     }
@@ -1342,7 +1342,8 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     if (tipoTramite === 'RENOVACION') {
       this.cargarResolucionesPadre();
       this.resolucionForm.get('resolucionPadreId')?.enable();
-      this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
+      // CAMBIO: Hacer opcional para RENOVACION
+      this.resolucionForm.get('resolucionPadreId')?.clearValidators();
       this.resolucionForm.get('fechaVigenciaInicio')?.enable();
       this.resolucionForm.get('aniosVigencia')?.enable();
 
@@ -1472,7 +1473,48 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       if (numeroFormateado !== numeroBase) {
         this.resolucionForm.get('numeroBase')?.setValue(numeroFormateado);
       }
+      
+      // Validar si el número ya existe
+      this.validarNumeroResolucion(numeroFormateado);
     }
+  }
+
+  private validarNumeroResolucion(numeroBase: string): void {
+    const anio = this.anioEmision();
+    const numeroCompleto = `R-${numeroBase}-${anio}`;
+    
+    // Llamar al servicio para verificar si existe
+    this.resolucionService.getResoluciones().subscribe({
+      next: (resoluciones) => {
+        const existe = resoluciones.some(r => r.nroResolucion === numeroCompleto);
+        
+        if (existe) {
+          // Marcar el campo como inválido
+          this.resolucionForm.get('numeroBase')?.setErrors({
+            duplicate: true,
+            message: `Ya existe una resolución con el número ${numeroCompleto}`
+          });
+          
+          this.snackBar.open(
+            `⚠️ Ya existe una resolución con el número ${numeroCompleto}`,
+            'Cerrar',
+            { duration: 5000 }
+          );
+        } else {
+          // Limpiar el error de duplicado si existía
+          const errors = this.resolucionForm.get('numeroBase')?.errors;
+          if (errors && errors['duplicate']) {
+            delete errors['duplicate'];
+            delete errors['message'];
+            const hasOtherErrors = Object.keys(errors).length > 0;
+            this.resolucionForm.get('numeroBase')?.setErrors(hasOtherErrors ? errors : null);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al validar número de resolución:', error);
+      }
+    });
   }
 
   onFechaEmisionChange(): void {

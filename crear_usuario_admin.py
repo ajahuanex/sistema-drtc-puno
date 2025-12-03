@@ -31,14 +31,15 @@ def crear_usuario_admin():
         
         # Datos del usuario administrador
         usuario_admin = {
-            "nombre_usuario": "admin",
+            "dni": "00000000",
+            "nombres": "Administrador",
+            "apellidos": "del Sistema",
             "email": "admin@drtc.gob.pe",
-            "nombre_completo": "Administrador del Sistema",
-            "hashed_password": pwd_context.hash("admin123"),
-            "rol": "administrador",
-            "activo": True,
-            "fecha_creacion": datetime.utcnow(),
-            "fecha_actualizacion": datetime.utcnow(),
+            "passwordHash": pwd_context.hash("admin123"),
+            "rolId": "administrador",
+            "estaActivo": True,
+            "fechaCreacion": datetime.utcnow(),
+            "fechaActualizacion": datetime.utcnow(),
             "permisos": [
                 "usuarios.crear",
                 "usuarios.leer",
@@ -69,15 +70,16 @@ def crear_usuario_admin():
         
         # Verificar si ya existe el usuario
         usuarios_collection = db["usuarios"]
-        usuario_existente = usuarios_collection.find_one({"nombre_usuario": "admin"})
+        usuario_existente = usuarios_collection.find_one({"dni": "00000000"})
         
         if usuario_existente:
-            print("⚠️  El usuario 'admin' ya existe en la base de datos")
+            print("⚠️  El usuario administrador ya existe en la base de datos")
+            print(f"   DNI: {usuario_existente.get('dni')}")
             print(f"   Email: {usuario_existente.get('email')}")
-            print(f"   Rol: {usuario_existente.get('rol')}")
-            print(f"   Activo: {usuario_existente.get('activo')}")
-            print("\n💡 Si olvidaste la contraseña, elimina el usuario y ejecuta este script nuevamente")
-            return
+            print(f"   Rol: {usuario_existente.get('rolId')}")
+            print(f"   Activo: {usuario_existente.get('estaActivo')}")
+            print("\n🔄 Eliminando usuario anterior y creando uno nuevo...")
+            usuarios_collection.delete_one({"dni": "00000000"})
         
         # Insertar usuario
         print("📝 Creando usuario administrador...")

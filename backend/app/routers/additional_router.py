@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends
 from typing import Dict, Any, List
 from datetime import datetime
 from app.dependencies.auth import get_current_user
-from app.models.usuario import Usuario
+from app.models.usuario import UsuarioInDB
 
 router = APIRouter(prefix="/additional", tags=["Additional"])
 
 @router.get("/estadisticasGenerales")
 async def get_estadisticas_generales(
-    current_user: Usuario = Depends(get_current_user)
+    current_user: UsuarioInDB = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Obtiene estadísticas generales del sistema
@@ -34,7 +34,7 @@ async def get_estadisticas_generales(
 
 @router.get("/notificacionesPendientes")
 async def get_notificaciones_pendientes(
-    current_user: Usuario = Depends(get_current_user)
+    current_user: UsuarioInDB = Depends(get_current_user)
 ) -> List[Dict[str, Any]]:
     """
     Obtiene notificaciones pendientes del usuario
@@ -44,7 +44,7 @@ async def get_notificaciones_pendientes(
 
 @router.get("/configuracionTema")
 async def get_configuracion_tema(
-    current_user: Usuario = Depends(get_current_user)
+    current_user: UsuarioInDB = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Obtiene configuración del tema del usuario
@@ -61,7 +61,7 @@ async def get_configuracion_tema(
 @router.put("/configuracionTema")
 async def update_configuracion_tema(
     configuracion: Dict[str, Any],
-    current_user: Usuario = Depends(get_current_user)
+    current_user: UsuarioInDB = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Actualiza configuración del tema del usuario

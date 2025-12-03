@@ -22,12 +22,18 @@ async def get_resolucion_service():
     db = await get_database()
     return ResolucionService(db)
 
+@router.post("", response_model=ResolucionResponse, status_code=201)
 @router.post("/", response_model=ResolucionResponse, status_code=201)
 async def create_resolucion(
     resolucion_data: ResolucionCreate,
     resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ) -> ResolucionResponse:
     """Crear nueva resolución"""
+    # Log para debugging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"📝 Recibiendo datos para crear resolución: {resolucion_data.model_dump()}")
+    
     # Guard clauses al inicio
     if not resolucion_data.nroResolucion.strip():
         raise ValidationErrorException("Número", "El número de resolución no puede estar vacío")

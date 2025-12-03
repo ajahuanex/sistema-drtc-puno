@@ -69,6 +69,9 @@ export class ResolucionService {
   }
 
   private inicializarDatosMock(): void {
+    // COMENTADO: No usar datos mock, solo MongoDB
+    this.mockResoluciones = [];
+    /*
     this.mockResoluciones = [
       {
         id: '1',
@@ -357,6 +360,7 @@ export class ResolucionService {
         auditoria: []
       }
     ];
+    */
   }
 
   private getHeaders(): HttpHeaders {
@@ -413,25 +417,32 @@ export class ResolucionService {
     const anio = new Date(fechaEmision).getFullYear();
     const numeroCompleto = `R-${numero}-${anio}`;
 
-    // Verificar en datos mock
-    const existe = this.mockResoluciones.some(r => r.nroResolucion === numeroCompleto);
+    // COMENTADO: No validar en mock, dejar que el backend valide desde MongoDB
+    // const existe = this.mockResoluciones.some(r => r.nroResolucion === numeroCompleto);
+    // if (existe) {
+    //   console.warn(`Ya existe una resolución con el número ${numeroCompleto}`);
+    //   return false;
+    // }
 
-    if (existe) {
-      console.warn(`Ya existe una resolución con el número ${numeroCompleto}`);
-      return false;
-    }
-
+    // Siempre retornar true, el backend validará contra la base de datos real
     return true;
   }
 
   createResolucion(resolucion: ResolucionCreate): Observable<Resolucion> {
-    // Validar que el número sea único por año
-    if (!this.validarNumeroUnicoPorAnio(resolucion.numero, resolucion.fechaEmision)) {
-      const anio = new Date(resolucion.fechaEmision).getFullYear();
-      return throwError(() => new Error(`Ya existe una resolución con el número ${resolucion.numero} en el año ${anio}`));
-    }
+    // COMENTADO: No validar en frontend, dejar que el backend valide contra MongoDB
+    // if (!this.validarNumeroUnicoPorAnio(resolucion.numero, resolucion.fechaEmision)) {
+    //   const anio = new Date(resolucion.fechaEmision).getFullYear();
+    //   return throwError(() => new Error(`Ya existe una resolución con el número ${resolucion.numero} en el año ${anio}`));
+    // }
 
     const url = `${this.apiUrl}/resoluciones`;
+
+    // Mapear tipoTramite del frontend al backend
+    // Frontend usa AUTORIZACION_NUEVA, backend usa PRIMIGENIA
+    let tipoTramiteBackend: string = resolucion.tipoTramite;
+    if (tipoTramiteBackend === 'AUTORIZACION_NUEVA') {
+      tipoTramiteBackend = 'PRIMIGENIA';
+    }
 
     // Preparar datos para el backend
     const resolucionBackend: any = {
@@ -446,13 +457,13 @@ export class ResolucionService {
       resolucionesHijasIds: [],
       vehiculosHabilitadosIds: resolucion.vehiculosHabilitadosIds || [],
       rutasAutorizadasIds: resolucion.rutasAutorizadasIds || [],
-      tipoTramite: resolucion.tipoTramite,
+      tipoTramite: tipoTramiteBackend,
       descripcion: resolucion.descripcion,
       documentoId: null,
       estaActivo: true,
       fechaRegistro: new Date(),
       fechaActualizacion: null,
-      usuarioEmisionId: '1', // Usuario por defecto
+      usuarioEmisionId: this.authService.getCurrentUserId() || 'admin', // Usuario autenticado
       observaciones: resolucion.observaciones || null,
       estado: 'VIGENTE',
       motivoSuspension: null,

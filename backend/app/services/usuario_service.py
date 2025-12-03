@@ -2,10 +2,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
-from passlib.context import CryptContext
+import bcrypt
 from app.models.usuario import UsuarioCreate, UsuarioUpdate, UsuarioInDB
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UsuarioService:
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -13,12 +11,26 @@ class UsuarioService:
         self.collection = db.usuarios
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verificar contraseña"""
-        return pwd_context.verify(plain_password, hashed_password)
+        """Verificar contraseña usando bcrypt directamente"""
+        try:
+            # Convertir contraseña a bytes (bcrypt maneja el límite de 72 bytes automáticamente)
+            password_bytes = plain_password.encode('utf-8')
+            hashed_bytes = hashed_password.encode('utf-8')
+            return bcrypt.checkpw(password_bytes, hashed_bytes)
+        except Exception as e:
+            print(f"Error verificando contraseña: {e}")
+            return False
 
     def get_password_hash(self, password: str) -> str:
-        """Generar hash de contraseña"""
-        return pwd_context.hash(password)
+        """Generar hash de contraseña usando bcrypt directamente"""
+        try:
+            password_bytes = password.encode('utf-8')
+            salt = bcrypt.gensalt()
+            hashed = bcrypt.hashpw(password_bytes, salt)
+            return hashed.decode('utf-8')
+        except Exception as e:
+            print(f"Error generando hash: {e}")
+            raise
 
     async def create_usuario(self, usuario_data: UsuarioCreate) -> UsuarioInDB:
         """Crear nuevo usuario"""
@@ -42,16 +54,22 @@ class UsuarioService:
     async def get_usuario_by_id(self, usuario_id: str) -> Optional[UsuarioInDB]:
         """Obtener usuario por ID"""
         usuario = await self.collection.find_one({"_id": ObjectId(usuario_id)})
+        if usuario:
+            usuario["id"] = str(usuario.pop("_id"))
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuario_by_dni(self, dni: str) -> Optional[UsuarioInDB]:
         """Obtener usuario por DNI"""
         usuario = await self.collection.find_one({"dni": dni})
+        if usuario:
+            usuario["id"] = str(usuario.pop("_id"))
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuario_by_email(self, email: str) -> Optional[UsuarioInDB]:
         """Obtener usuario por email"""
         usuario = await self.collection.find_one({"email": email})
+        if usuario:
+            usuario["id"] = str(usuario.pop("_id"))
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuarios_activos(self) -> List[UsuarioInDB]:
@@ -96,7 +114,7 @@ class UsuarioService:
         if not usuario:
             return None
         
-        if not self.verify_password(password, usuario.password_hash):
+        if not self.verify_password(password, usuario.passwordHash):
             return None
         
         return usuario 
