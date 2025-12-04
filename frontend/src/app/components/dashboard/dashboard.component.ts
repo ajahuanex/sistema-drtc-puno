@@ -854,7 +854,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   });
 
   expedientesPendientes = computed(() => {
-    return this.expedientes().filter(e => e.estado === 'EN PROCESO').slice(0, 10);
+    return this.expedientes().filter(e => e.estado === 'EN_PROCESO').slice(0, 10);
   });
 
   // Columnas para la tabla

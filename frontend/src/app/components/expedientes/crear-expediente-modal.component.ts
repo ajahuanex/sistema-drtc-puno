@@ -133,19 +133,26 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
                 </mat-form-field>
               </div>
 
-              <!-- Resolución Primigenia - Para RENOVACION, INCREMENTO, SUSTITUCION -->
-              <div class="form-row" *ngIf="necesitaResolucionPrimigenia()">
-                <app-resolucion-selector
-                  label="Resolución Primigenia *"
-                  placeholder="Buscar resolución primigenia"
-                  [hint]="getHintResolucionPrimigenia()"
-                  [required]="true"
-                  [empresaId]="empresaId()"
-                  [resolucionId]="expedienteForm.get('resolucionPrimigeniaId')?.value"
-                  [filtroTipoTramite]="getFiltroTipoTramite()"
-                  (resolucionIdChange)="onResolucionPrimigeniaIdChange($event)"
-                  (resolucionSeleccionada)="onResolucionPrimigeniaSeleccionada($event)">
-                </app-resolucion-selector>
+              <!-- Expediente Relacionado - Opcional para vincular expedientes que se tramitan juntos -->
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Expediente Relacionado (Opcional)</mat-label>
+                  <mat-select formControlName="expedienteRelacionadoId">
+                    <mat-option value="">Ninguno</mat-option>
+                    <mat-option *ngFor="let exp of expedientesDisponibles()" [value]="exp.id">
+                      {{ exp.nroExpediente }} - {{ exp.tipoTramite }} - {{ exp.descripcion?.substring(0, 40) }}...
+                    </mat-option>
+                  </mat-select>
+                  <mat-hint *ngIf="expedientesDisponibles().length === 0 && empresaId()">
+                    No hay expedientes en trámite de esta empresa para relacionar
+                  </mat-hint>
+                  <mat-hint *ngIf="expedientesDisponibles().length > 0">
+                    Vincule con otro expediente en trámite de la misma empresa
+                  </mat-hint>
+                  <mat-hint *ngIf="!empresaId()">
+                    Seleccione primero una empresa
+                  </mat-hint>
+                </mat-form-field>
               </div>
 
               <div class="form-row">
@@ -352,8 +359,9 @@ export class CrearExpedienteModalComponent {
   isSubmitting = signal(false);
   empresaSeleccionada = signal<any>(null);
   empresaId = signal<string>(''); // Señal reactiva para el ID de empresa
-  resolucionPrimigeniaSeleccionada = signal<any>(null);
+  expedienteRelacionadoSeleccionado = signal<any>(null);
   resolucionPadreSeleccionada = signal<any>(null);
+  expedientesDisponibles = signal<any[]>([]); // Lista de expedientes disponibles para relacionar
   
   expedienteForm: FormGroup;
 
@@ -362,7 +370,7 @@ export class CrearExpedienteModalComponent {
       numero: ['', [Validators.required, Validators.minLength(1)]],
       folio: [1, [Validators.required, Validators.min(1)]],
       tipoTramite: ['', Validators.required],
-      resolucionPrimigeniaId: [''], // Campo para resolución primigenia
+      expedienteRelacionadoId: [''], // Campo para expediente relacionado (opcional)
       resolucionPadreId: [''], // Campo para resolución padre (opcional cuando hay empresa)
       descripcion: [''],
       fechaEmision: ['', Validators.required],
@@ -379,12 +387,20 @@ export class CrearExpedienteModalComponent {
         
         // Limpiar resoluciones cuando cambia el tipo
         this.expedienteForm.patchValue({ 
-          resolucionPrimigeniaId: '',
+          expedienteRelacionadoId: '',
           resolucionPadreId: ''
         });
-        this.resolucionPrimigeniaSeleccionada.set(null);
+        this.expedienteRelacionadoSeleccionado.set(null);
         this.resolucionPadreSeleccionada.set(null);
+        
+        // Cargar expedientes disponibles según el tipo de trámite
+        this.cargarExpedientesDisponibles();
       }
+    });
+    
+    // Suscribirse a cambios en la empresa para recargar expedientes
+    this.expedienteForm.get('empresaId')?.valueChanges.subscribe(() => {
+      this.cargarExpedientesDisponibles();
     });
   }
 
@@ -438,14 +454,21 @@ export class CrearExpedienteModalComponent {
     if (this.expedienteForm.valid) {
       this.isSubmitting.set(true);
       
-              const expedienteData: ExpedienteCreate = {
-          nroExpediente: this.expedienteForm.value.numero,
+      // Generar el número completo de expediente
+      const numero = this.expedienteForm.value.numero;
+      const fechaEmision = this.expedienteForm.value.fechaEmision;
+      const año = fechaEmision instanceof Date ? fechaEmision.getFullYear() : new Date(fechaEmision).getFullYear();
+      const numeroFormateado = numero.padStart(4, '0');
+      const nroExpedienteCompleto = `E-${numeroFormateado}-${año}`;
+      
+      const expedienteData: ExpedienteCreate = {
+          nroExpediente: nroExpedienteCompleto,
           folio: this.expedienteForm.value.folio,
           fechaEmision: this.expedienteForm.value.fechaEmision,
           tipoTramite: this.expedienteForm.value.tipoTramite,
          
           empresaId: this.expedienteForm.value.empresaId || '',
-          resolucionPrimigeniaId: this.expedienteForm.value.resolucionPrimigeniaId || undefined,
+          expedienteRelacionadoId: this.expedienteForm.value.expedienteRelacionadoId || undefined,
           resolucionPadreId: this.expedienteForm.value.resolucionPadreId || undefined,
           descripcion: this.expedienteForm.value.descripcion,
           observaciones: this.expedienteForm.value.observaciones,
@@ -517,18 +540,24 @@ export class CrearExpedienteModalComponent {
   }
 
   /**
-   * Verifica si el tipo de trámite necesita resolución primigenia
+   * Maneja el cambio del ID de expediente relacionado
    */
-  necesitaResolucionPrimigenia(): boolean {
-    const tipoTramite = this.expedienteForm.get('tipoTramite')?.value;
-    return ['RENOVACION', 'INCREMENTO', 'SUSTITUCION'].includes(tipoTramite);
+  onExpedienteRelacionadoIdChange(expedienteId: string): void {
+    this.expedienteForm.get('expedienteRelacionadoId')?.setValue(expedienteId, { emitEvent: false });
   }
 
   /**
-   * Obtiene el hint apropiado según el tipo de trámite
+   * Maneja la selección de un expediente relacionado
    */
-  getHintResolucionPrimigenia(): string {
-    return 'Seleccione la resolución primigenia relacionada';
+  onExpedienteRelacionadoSeleccionado(expediente: any): void {
+    if (expediente) {
+      this.expedienteRelacionadoSeleccionado.set(expediente);
+      this.snackBar.open(`Expediente relacionado vinculado: ${expediente.nroExpediente}`, 'Cerrar', {
+        duration: 2000
+      });
+    } else {
+      this.expedienteRelacionadoSeleccionado.set(null);
+    }
   }
 
   /**
@@ -539,22 +568,37 @@ export class CrearExpedienteModalComponent {
   }
 
   /**
-   * Maneja el cambio del ID de resolución primigenia
+   * Carga los expedientes disponibles para relacionar
+   * Regla: Se puede relacionar con cualquier expediente de la misma empresa
+   * que esté en estado EN_PROCESO
    */
-  onResolucionPrimigeniaIdChange(resolucionId: string): void {
-    this.expedienteForm.get('resolucionPrimigeniaId')?.setValue(resolucionId, { emitEvent: false });
-  }
-
-  /**
-   * Maneja la selección de una resolución primigenia
-   */
-  onResolucionPrimigeniaSeleccionada(resolucion: any): void {
-    if (resolucion) {
-      this.resolucionPrimigeniaSeleccionada.set(resolucion);
-      this.snackBar.open(`Resolución primigenia seleccionada: ${resolucion.nroResolucion}`, 'Cerrar', {
-        duration: 2000
-      });
+  cargarExpedientesDisponibles(): void {
+    const empresaId = this.expedienteForm.get('empresaId')?.value;
+    
+    // Si no hay empresa, no cargar expedientes
+    if (!empresaId) {
+      this.expedientesDisponibles.set([]);
+      return;
     }
+    
+    // Cargar expedientes de la empresa que estén en proceso
+    this.expedienteService.getExpedientesByEmpresa(empresaId).subscribe({
+      next: (expedientes) => {
+        // Filtrar solo expedientes en estado EN_PROCESO
+        const expedientesFiltrados = expedientes.filter(exp => 
+          exp.estado === 'EN_PROCESO'
+        );
+        
+        console.log('📋 Expedientes de la empresa:', expedientes.length);
+        console.log('📋 Expedientes filtrados (EN_PROCESO):', expedientesFiltrados.length);
+        
+        this.expedientesDisponibles.set(expedientesFiltrados);
+      },
+      error: (error) => {
+        console.error('Error al cargar expedientes:', error);
+        this.expedientesDisponibles.set([]);
+      }
+    });
   }
 
   /**

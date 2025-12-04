@@ -26,7 +26,7 @@ export class ConfiguracionService {
   private configuracionesCargadasSignal = signal(false);
 
   // BehaviorSubject para configuraciones específicas
-  private aniosVigenciaDefaultSubject = new BehaviorSubject<number>(5);
+  private aniosVigenciaDefaultSubject = new BehaviorSubject<number>(4);
   private maxAniosVigenciaSubject = new BehaviorSubject<number>(10);
   private minAniosVigenciaSubject = new BehaviorSubject<number>(1);
 
@@ -37,7 +37,7 @@ export class ConfiguracionService {
   // Configuraciones específicas como computed
   aniosVigenciaDefault = computed(() => {
     const config = this.configuraciones().find(c => c.nombre === 'ANIOS_VIGENCIA_DEFAULT');
-    return config ? parseInt(config.valor) : 5;
+    return config ? parseInt(config.valor) : 4;
   });
 
   maxAniosVigencia = computed(() => {
@@ -63,6 +63,26 @@ export class ConfiguracionService {
   paginacionDefault = computed(() => {
     const config = this.configuraciones().find(c => c.nombre === 'PAGINACION_DEFAULT');
     return config ? parseInt(config.valor) : 20;
+  });
+
+  zonaHoraria = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'ZONA_HORARIA');
+    return config ? config.valor : 'America/Lima';
+  });
+
+  offsetZonaHoraria = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'OFFSET_ZONA_HORARIA');
+    return config ? parseInt(config.valor) : -5;
+  });
+
+  formatoFecha = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'FORMATO_FECHA');
+    return config ? config.valor : 'DD/MM/YYYY';
+  });
+
+  formatoFechaHora = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'FORMATO_FECHA_HORA');
+    return config ? config.valor : 'DD/MM/YYYY HH:mm';
   });
 
   constructor() {
@@ -430,4 +450,68 @@ export class ConfiguracionService {
       throw error;
     }
   }
-} 
+
+  /**
+   * Formatea una fecha según la configuración del sistema
+   * Usa la zona horaria y formato configurados
+   */
+  formatearFecha(fecha: Date | string | null): string {
+    if (!fecha) return 'NO DISPONIBLE';
+
+    try {
+      const fechaObj = new Date(fecha);
+      const offset = this.offsetZonaHoraria();
+      
+      // Ajustar a zona horaria configurada
+      const fechaAjustada = new Date(fechaObj.getTime() + (offset * 60 * 60 * 1000));
+      
+      const dia = fechaAjustada.getDate().toString().padStart(2, '0');
+      const mes = (fechaAjustada.getMonth() + 1).toString().padStart(2, '0');
+      const anio = fechaAjustada.getFullYear();
+      
+      // Por ahora usar formato fijo DD/MM/YYYY
+      // TODO: Implementar parser dinámico del formato configurado
+      return `${dia}/${mes}/${anio}`;
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'FECHA INVÁLIDA';
+    }
+  }
+
+  /**
+   * Formatea una fecha con hora según la configuración del sistema
+   */
+  formatearFechaHora(fecha: Date | string | null): string {
+    if (!fecha) return 'NO DISPONIBLE';
+
+    try {
+      const fechaObj = new Date(fecha);
+      const offset = this.offsetZonaHoraria();
+      
+      // Ajustar a zona horaria configurada
+      const fechaAjustada = new Date(fechaObj.getTime() + (offset * 60 * 60 * 1000));
+      
+      const dia = fechaAjustada.getDate().toString().padStart(2, '0');
+      const mes = (fechaAjustada.getMonth() + 1).toString().padStart(2, '0');
+      const anio = fechaAjustada.getFullYear();
+      const hora = fechaAjustada.getHours().toString().padStart(2, '0');
+      const minutos = fechaAjustada.getMinutes().toString().padStart(2, '0');
+      
+      // Por ahora usar formato fijo DD/MM/YYYY HH:mm
+      // TODO: Implementar parser dinámico del formato configurado
+      return `${dia}/${mes}/${anio} ${hora}:${minutos}`;
+    } catch (error) {
+      console.error('Error formateando fecha con hora:', error);
+      return 'FECHA INVÁLIDA';
+    }
+  }
+
+  /**
+   * Obtiene la fecha actual ajustada a la zona horaria configurada
+   */
+  obtenerFechaActual(): Date {
+    const ahora = new Date();
+    const offset = this.offsetZonaHoraria();
+    return new Date(ahora.getTime() + (offset * 60 * 60 * 1000));
+  }
+}

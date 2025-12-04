@@ -23,7 +23,7 @@ class ExpedienteService:
             # Asegurar que el campo id esté presente (UUID)
             if "id" not in doc and "_id" in doc:
                 doc["id"] = str(doc["_id"])
-            expedientes.append(Expediente(**doc))
+            expedientes.append(Expediente.parse_obj(doc))
         return expedientes
 
     async def get_expediente_by_id(self, expediente_id: str) -> Optional[Expediente]:
@@ -41,11 +41,16 @@ class ExpedienteService:
         if expediente:
             if "id" not in expediente and "_id" in expediente:
                 expediente["id"] = str(expediente["_id"])
-            return Expediente(**expediente)
+            return Expediente.parse_obj(expediente)
         return None
 
+    async def get_expediente_by_numero(self, nro_expediente: str) -> Optional[dict]:
+        """Buscar expediente por número completo (ej: E-0001-2025)"""
+        expediente = await self.collection.find_one({"nro_expediente": nro_expediente})
+        return expediente
+
     async def create_expediente(self, expediente_in: ExpedienteCreate) -> Expediente:
-        expediente_dict = expediente_in.dict()
+        expediente_dict = expediente_in.dict(by_alias=True)
         
         # Generar UUID para el campo id explícitamente
         expediente_dict["id"] = str(uuid.uuid4())
@@ -74,15 +79,15 @@ class ExpedienteService:
         # Insertar en MongoDB
         await self.collection.insert_one(expediente_dict)
         
-        return Expediente(**expediente_dict)
+        return Expediente.parse_obj(expediente_dict)
 
     async def update_expediente(self, expediente_id: str, expediente_in: ExpedienteUpdate) -> Optional[Expediente]:
         expediente = await self.get_expediente_by_id(expediente_id)
         if not expediente:
             return None
             
-        update_data = expediente_in.dict(exclude_unset=True)
-        update_data["fechaActualizacion"] = datetime.utcnow()
+        update_data = expediente_in.dict(exclude_unset=True, by_alias=True)
+        update_data["fecha_actualizacion"] = datetime.utcnow()
         
         # Buscar por id (UUID) o _id (ObjectId)
         query = {"id": expediente.id}

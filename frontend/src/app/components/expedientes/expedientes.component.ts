@@ -147,7 +147,7 @@ interface ColumnaExpediente {
                 <mat-label>Estado</mat-label>
                 <mat-select formControlName="estado" (selectionChange)="aplicarFiltros()">
                   <mat-option value="">Todos los estados</mat-option>
-                  <mat-option value="EN PROCESO">En Proceso</mat-option>
+                  <mat-option value="EN_PROCESO">En Proceso</mat-option>
                   <mat-option value="APROBADO">Aprobado</mat-option>
                   <mat-option value="RECHAZADO">Rechazado</mat-option>
                   <mat-option value="SUSPENDIDO">Suspendido</mat-option>
@@ -906,7 +906,7 @@ export class ExpedientesComponent implements OnInit {
             fechaEmision: new Date('2025-01-15'),
             tipoTramite: 'AUTORIZACION_NUEVA',
             tipoSolicitante: TipoSolicitante.EMPRESA,
-            estado: 'EN PROCESO',
+            estado: 'EN_PROCESO',
             estaActivo: true,
             fechaRegistro: new Date('2025-01-15'),
             empresaId: 'EMP001',
@@ -936,7 +936,7 @@ export class ExpedientesComponent implements OnInit {
             fechaEmision: new Date('2025-01-25'),
             tipoTramite: 'INCREMENTO',
             tipoSolicitante: TipoSolicitante.EMPRESA,
-            estado: 'EN PROCESO',
+            estado: 'EN_PROCESO',
             estaActivo: true,
             fechaRegistro: new Date('2025-01-25'),
             empresaId: 'EMP003',

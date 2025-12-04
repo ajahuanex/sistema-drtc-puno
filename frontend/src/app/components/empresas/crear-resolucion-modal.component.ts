@@ -1036,7 +1036,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         empresaId: empresaId,
         descripcion: descripcion,
         observaciones: 'Expediente creado automáticamente al generar resolución',
-        estado: 'EN PROCESO'
+        estado: 'EN_PROCESO'
       };
 
       console.log('📋 Creando expediente automático:', expedienteData);

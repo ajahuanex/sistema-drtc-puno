@@ -71,18 +71,18 @@ class OficinaExpediente(BaseModel):
 
 class Expediente(BaseModel):
     id: str
-    nroExpediente: str
+    nroExpediente: str = Field(..., alias="nro_expediente")
     folio: int
-    fechaEmision: datetime
-    tipoTramite: TipoTramite
+    fechaEmision: datetime = Field(..., alias="fecha_emision")
+    tipoTramite: TipoTramite = Field(..., alias="tipo_tramite")
     estado: EstadoExpediente = EstadoExpediente.EN_PROCESO
-    estaActivo: bool = True
+    estaActivo: bool = Field(True, alias="esta_activo")
     
     # Relaciones
-    empresaId: Optional[str] = None
-    representanteId: Optional[str] = None
-    resolucionPrimigeniaId: Optional[str] = None
-    resolucionPadreId: Optional[str] = None
+    empresaId: Optional[str] = Field(None, alias="empresa_id")
+    representanteId: Optional[str] = Field(None, alias="representante_id")
+    resolucionPrimigeniaId: Optional[str] = Field(None, alias="resolucion_primigenia_id")
+    resolucionPadreId: Optional[str] = Field(None, alias="resolucion_padre_id")
     
     # Contenido
     descripcion: Optional[str] = None
@@ -90,28 +90,32 @@ class Expediente(BaseModel):
     prioridad: PrioridadExpediente = PrioridadExpediente.MEDIA
     
     # Seguimiento por oficina
-    oficinaActualId: Optional[str] = None
+    oficinaActualId: Optional[str] = Field(None, alias="oficina_actual_id")
     urgencia: NivelUrgencia = NivelUrgencia.NORMAL
-    tiempoEstimadoOficina: Optional[int] = None
-    fechaLlegadaOficina: Optional[datetime] = None
-    proximaRevision: Optional[datetime] = None
+    tiempoEstimadoOficina: Optional[int] = Field(None, alias="tiempo_estimado_oficina")
+    fechaLlegadaOficina: Optional[datetime] = Field(None, alias="fecha_llegada_oficina")
+    proximaRevision: Optional[datetime] = Field(None, alias="proxima_revision")
     
     # Fechas de auditoría
-    fechaRegistro: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    fechaActualizacion: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fechaRegistro: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="fecha_registro")
+    fechaActualizacion: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="fecha_actualizacion")
+    
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}
 
 class ExpedienteCreate(BaseModel):
-    nroExpediente: str
+    nroExpediente: str = Field(..., alias="nro_expediente")
     folio: int
-    fechaEmision: datetime
-    tipoTramite: TipoTramite
+    fechaEmision: datetime = Field(..., alias="fecha_emision")
+    tipoTramite: TipoTramite = Field(..., alias="tipo_tramite")
     estado: Optional[EstadoExpediente] = EstadoExpediente.EN_PROCESO
     
     # Relaciones
-    empresaId: Optional[str] = None
-    representanteId: Optional[str] = None
-    resolucionPrimigeniaId: Optional[str] = None
-    resolucionPadreId: Optional[str] = None
+    empresaId: Optional[str] = Field(None, alias="empresa_id")
+    representanteId: Optional[str] = Field(None, alias="representante_id")
+    resolucionPrimigeniaId: Optional[str] = Field(None, alias="resolucion_primigenia_id")
+    resolucionPadreId: Optional[str] = Field(None, alias="resolucion_padre_id")
     
     # Contenido
     descripcion: Optional[str] = None
@@ -119,9 +123,12 @@ class ExpedienteCreate(BaseModel):
     prioridad: Optional[PrioridadExpediente] = PrioridadExpediente.MEDIA
     
     # Seguimiento por oficina
-    oficinaInicialId: Optional[str] = None
+    oficinaInicialId: Optional[str] = Field(None, alias="oficina_inicial_id")
     urgencia: Optional[NivelUrgencia] = NivelUrgencia.NORMAL
-    tiempoEstimadoOficina: Optional[int] = None
+    tiempoEstimadoOficina: Optional[int] = Field(None, alias="tiempo_estimado_oficina")
+    
+    class Config:
+        populate_by_name = True
 
 class HistorialOficina(BaseModel):
     id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
@@ -142,12 +149,15 @@ class HistorialOficina(BaseModel):
     resolucionFinalId: Optional[str] = None
 
 class ExpedienteUpdate(BaseModel):
-    nroExpediente: Optional[str] = None
+    nroExpediente: Optional[str] = Field(None, alias="nro_expediente")
     folio: Optional[int] = None
-    fechaEmision: Optional[datetime] = None
-    tipoTramite: Optional[TipoTramite] = None
+    fechaEmision: Optional[datetime] = Field(None, alias="fecha_emision")
+    tipoTramite: Optional[TipoTramite] = Field(None, alias="tipo_tramite")
     estado: Optional[EstadoExpediente] = None
-    empresaId: Optional[str] = None
+    empresaId: Optional[str] = Field(None, alias="empresa_id")
+    
+    class Config:
+        populate_by_name = True
     representanteId: Optional[str] = None
     resolucionPrimigeniaId: Optional[str] = None
     resolucionPadreId: Optional[str] = None

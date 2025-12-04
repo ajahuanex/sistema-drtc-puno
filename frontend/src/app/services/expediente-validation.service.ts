@@ -1,8 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { ExpedienteService } from './expediente.service';
 import { Expediente } from '../models/expediente.model';
+import { environment } from '../../environments/environment';
 
 export interface ValidacionExpediente {
   numero: string;
@@ -29,6 +31,8 @@ export interface ResultadoValidacionExpediente {
   providedIn: 'root'
 })
 export class ExpedienteValidationService {
+  private http = inject(HttpClient);
+  private apiUrl = environment.apiUrl + '/expedientes';
 
   constructor(private expedienteService: ExpedienteService) {}
 
@@ -38,8 +42,21 @@ export class ExpedienteValidationService {
    * @returns Observable con el resultado de la validación
    */
   validarUnicidadExpediente(validacion: ValidacionExpediente): Observable<ResultadoValidacionExpediente> {
-    return this.expedienteService.getExpedientes().pipe(
-      map(expedientes => this.validarUnicidadLocal(expedientes, validacion)),
+    const { numero, año, empresaId, expedienteIdExcluir } = validacion;
+    
+    // Construir parámetros de consulta
+    let params = `numero=${numero}&anio=${año}`;
+    if (empresaId) {
+      params += `&empresaId=${empresaId}`;
+    }
+    if (expedienteIdExcluir) {
+      params += `&expedienteIdExcluir=${expedienteIdExcluir}`;
+    }
+    
+    // Llamar al endpoint de validación del backend
+    const url = `${this.apiUrl}/validar/numero?${params}`;
+    
+    return this.http.get<ResultadoValidacionExpediente>(url).pipe(
       catchError(error => {
         console.error('Error al validar unicidad de expediente:', error);
         return of({

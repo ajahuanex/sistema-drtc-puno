@@ -23,6 +23,8 @@ export interface Expediente {
   resolucionPadreId?: string; // ID de la resolución padre para expedientes derivados
   // Para expedientes de RENOVACION, se basan en una resolución primigenia
   resolucionPrimigeniaId?: string; // ID de la resolución primigenia base para expedientes de renovación
+  // Para expedientes relacionados con otros expedientes
+  expedienteRelacionadoId?: string; // ID del expediente relacionado
 
   // ========== CONTENIDO DEL EXPEDIENTE ==========
   descripcion?: string; // Descripción automática según tipo de trámite
@@ -285,6 +287,7 @@ export interface ExpedienteCreate {
   // ========== DOCUMENTOS RESULTANTES ==========
   resolucionPadreId?: string;
   resolucionPrimigeniaId?: string;
+  expedienteRelacionadoId?: string; // ID del expediente relacionado
 
   // ========== CONTENIDO ==========
   descripcion?: string;
@@ -320,6 +323,7 @@ export interface ExpedienteUpdate {
   empresaId?: string;
   resolucionPadreId?: string;
   resolucionPrimigeniaId?: string;
+  expedienteRelacionadoId?: string;
   descripcion?: string;
   observaciones?: string;
 
@@ -391,7 +395,7 @@ export interface RespuestaValidacion {
   conflictos?: string[];
 }
 
-export type EstadoExpediente = 'EN PROCESO' | 'APROBADO' | 'RECHAZADO' | 'SUSPENDIDO' | 'ARCHIVADO';
+export type EstadoExpediente = 'EN_PROCESO' | 'EN_REVISION' | 'APROBADO' | 'RECHAZADO' | 'SUSPENDIDO' | 'ARCHIVADO' | 'DADO_DE_BAJA';
 
 // Actualizar TipoTramite según el briefing consolidado
 export type TipoTramite = 'AUTORIZACION_NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';

@@ -23,7 +23,7 @@ async def get_expediente_service():
 # ENDPOINTS CRUD
 # ========================================
 
-@router.get("/", response_model=List[Expediente])
+@router.get("/", response_model=List[Expediente], response_model_by_alias=False)
 async def get_expedientes(
     skip: int = 0, 
     limit: int = 100,
@@ -32,7 +32,7 @@ async def get_expedientes(
     """Obtener lista de expedientes"""
     return await service.get_expedientes(skip=skip, limit=limit)
 
-@router.get("/{expediente_id}", response_model=Expediente)
+@router.get("/{expediente_id}", response_model=Expediente, response_model_by_alias=False)
 async def get_expediente(
     expediente_id: str,
     service: ExpedienteService = Depends(get_expediente_service)
@@ -43,7 +43,7 @@ async def get_expediente(
         raise HTTPException(status_code=404, detail="Expediente no encontrado")
     return expediente
 
-@router.post("/", response_model=Expediente)
+@router.post("/", response_model=Expediente, response_model_by_alias=False)
 async def create_expediente(
     expediente: ExpedienteCreate,
     service: ExpedienteService = Depends(get_expediente_service)
@@ -51,7 +51,7 @@ async def create_expediente(
     """Crear nuevo expediente"""
     return await service.create_expediente(expediente)
 
-@router.put("/{expediente_id}", response_model=Expediente)
+@router.put("/{expediente_id}", response_model=Expediente, response_model_by_alias=False)
 async def update_expediente(
     expediente_id: str,
     expediente_in: ExpedienteUpdate,
@@ -62,6 +62,62 @@ async def update_expediente(
     if not expediente:
         raise HTTPException(status_code=404, detail="Expediente no encontrado")
     return expediente
+
+# ========================================
+# ENDPOINTS DE VALIDACIÓN
+# ========================================
+
+@router.get("/validar/numero")
+async def validar_numero_expediente(
+    numero: str = Query(..., description="Número del expediente (ej: 0001)"),
+    anio: int = Query(..., description="Año del expediente"),
+    empresaId: Optional[str] = Query(None, description="ID de la empresa (opcional)"),
+    expedienteIdExcluir: Optional[str] = Query(None, description="ID del expediente a excluir (para edición)"),
+    service: ExpedienteService = Depends(get_expediente_service)
+):
+    """Validar que el número de expediente no esté duplicado"""
+    
+    # Formatear el número completo
+    numero_formateado = numero.zfill(4)
+    nro_expediente_completo = f"E-{numero_formateado}-{anio}"
+    
+    # Buscar expediente existente con ese número
+    expediente_existente = await service.get_expediente_by_numero(nro_expediente_completo)
+    
+    # Si existe y no es el que estamos excluyendo, es inválido
+    if expediente_existente:
+        if expedienteIdExcluir and str(expediente_existente.get("_id")) == expedienteIdExcluir:
+            # Es el mismo expediente que estamos editando, es válido
+            return {
+                "valido": True,
+                "mensaje": f"El número de expediente {numero} está disponible para el año {año}"
+            }
+        else:
+            # Es un expediente diferente, es inválido
+            return {
+                "valido": False,
+                "mensaje": f"Ya existe un expediente con el número {numero} en el año {anio}",
+                "expedienteExistente": {
+                    "id": str(expediente_existente.get("_id")),
+                    "nroExpediente": expediente_existente.get("nro_expediente"),
+                    "empresaId": expediente_existente.get("empresa_id"),
+                    "estado": expediente_existente.get("estado", "EN PROCESO"),
+                    "fechaEmision": expediente_existente.get("fecha_emision"),
+                    "tipoTramite": expediente_existente.get("tipo_tramite")
+                },
+                "conflictos": [
+                    f"Expediente {nro_expediente_completo} ya existe",
+                    f"Empresa ID: {expediente_existente.get('empresa_id', 'No especificada')}",
+                    f"Estado: {expediente_existente.get('estado', 'EN PROCESO')}",
+                    f"Tipo de Trámite: {expediente_existente.get('tipo_tramite', 'OTROS')}"
+                ]
+            }
+    
+    # No existe, es válido
+    return {
+        "valido": True,
+        "mensaje": f"El número de expediente {numero} está disponible para el año {anio}"
+    }
 
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL

@@ -538,11 +538,11 @@ export class FlujoExpedientesComponent implements OnInit, OnDestroy {
 
   // Métricas calculadas
   expedientesPendientes = computed(() => 
-    this.expedientes().filter(e => e.estado === 'EN PROCESO').length
+    this.expedientes().filter(e => e.estado === 'EN_PROCESO').length
   );
   
   expedientesEnProceso = computed(() => 
-    this.expedientes().filter(e => e.estado === 'EN PROCESO').length
+    this.expedientes().filter(e => e.estado === 'EN_PROCESO').length
   );
   
   expedientesUrgentes = computed(() => 
@@ -598,7 +598,7 @@ export class FlujoExpedientesComponent implements OnInit, OnDestroy {
 
   private configurarEstadosExpediente(): void {
     this.estadosExpediente.set([
-      { id: 'EN PROCESO', nombre: 'En Proceso', descripcion: 'Expediente siendo procesado', color: 'accent', icono: 'hourglass_empty', orden: 1, accionRequerida: 'Continuar procesamiento', tiempoEstimado: 3 },
+      { id: 'EN_PROCESO', nombre: 'En Proceso', descripcion: 'Expediente siendo procesado', color: 'accent', icono: 'hourglass_empty', orden: 1, accionRequerida: 'Continuar procesamiento', tiempoEstimado: 3 },
       { id: 'APROBADO', nombre: 'Aprobado', descripcion: 'Expediente aprobado exitosamente', color: 'primary', icono: 'check_circle', orden: 2, accionRequerida: 'Archivar', tiempoEstimado: 0 },
       { id: 'RECHAZADO', nombre: 'Rechazado', descripcion: 'Expediente rechazado', color: 'warn', icono: 'cancel', orden: 3, accionRequerida: 'Notificar rechazo', tiempoEstimado: 0 },
       { id: 'SUSPENDIDO', nombre: 'Suspendido', descripcion: 'Expediente suspendido temporalmente', color: 'warn', icono: 'pause_circle', orden: 4, accionRequerida: 'Revisar motivo', tiempoEstimado: 0 },

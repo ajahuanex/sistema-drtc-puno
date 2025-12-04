@@ -188,7 +188,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                     <mat-option value="">SELECCIONE UN EXPEDIENTE</mat-option>
                     @for (expediente of expedientesFiltrados(); track expediente.id) {
                       <mat-option [value]="expediente.id">
-                        {{ expediente.nroExpediente }} - {{ expediente.tipoTramite | uppercase }} - {{ expediente.descripcion || 'Sin descripción' }}
+                        {{ expediente.nroExpediente }} - {{ expediente.tipoTramite | uppercase }}
                         @if (expediente.estado) {
                           ({{ expediente.estado }})
                         }
@@ -265,9 +265,9 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                     <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
                     @for (resolucion of resolucionesPadre(); track resolucion.id) {
                       <mat-option [value]="resolucion.id">
-                        {{ resolucion.nroResolucion }} - {{ resolucion.descripcion || 'Sin descripción' }}
+                        {{ resolucion.nroResolucion }}
                         @if (resolucion.fechaVigenciaFin) {
-                          (Vence: {{ formatearFechaLima(resolucion.fechaVigenciaFin) }})
+                          - Vence: {{ formatearFechaLima(resolucion.fechaVigenciaFin) }}
                         }
                       </mat-option>
                     }
@@ -948,7 +948,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   fechaEmisionSignal = signal<Date>(new Date());
   tipoTramiteSignal = signal('AUTORIZACION_NUEVA');
   fechaVigenciaInicioSignal = signal<Date | null>(null);
-  aniosVigenciaSignal = signal(5);
+  aniosVigenciaSignal = signal(4);
 
   // Computed properties
   esEdicion = computed(() => !!this.resolucionId());
@@ -1135,7 +1135,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         // Limpiar campos dependientes
         this.resolucionForm.get('resolucionPadreId')?.setValue(null);
         this.resolucionForm.get('fechaVigenciaInicio')?.setValue(null);
-        this.resolucionForm.get('aniosVigencia')?.setValue(5);
+        this.resolucionForm.get('aniosVigencia')?.setValue(4);
       } else {
         // Si no hay empresa seleccionada, limpiar expedientes
         this.expedientesFiltrados.set([]);
@@ -1417,22 +1417,17 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   }
 
   private configurarFechasParaRenovacion(resolucionPadre: Resolucion): void {
+    // Para renovaciones, la fecha de inicio de vigencia es el mismo día que vence el padre
     if (resolucionPadre.fechaVigenciaFin) {
       const fechaVencimiento = new Date(resolucionPadre.fechaVigenciaFin);
-      const fechaSugerida = new Date(fechaVencimiento);
-      fechaSugerida.setDate(fechaSugerida.getDate() + 1);
 
-      this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaSugerida);
-      this.fechaVigenciaInicioSignal.set(fechaSugerida);
-
-      if (resolucionPadre.fechaVigenciaInicio && resolucionPadre.fechaVigenciaFin) {
-        const fechaInicio = new Date(resolucionPadre.fechaVigenciaInicio);
-        const fechaFin = new Date(resolucionPadre.fechaVigenciaFin);
-        const aniosVigencia = fechaFin.getFullYear() - fechaInicio.getFullYear();
-        this.resolucionForm.get('aniosVigencia')?.setValue(aniosVigencia);
-        this.aniosVigenciaSignal.set(aniosVigencia);
-      }
+      this.resolucionForm.get('fechaVigenciaInicio')?.setValue(fechaVencimiento);
+      this.fechaVigenciaInicioSignal.set(fechaVencimiento);
     }
+
+    // Establecer años de vigencia por defecto en 4 años (editable)
+    this.resolucionForm.get('aniosVigencia')?.setValue(4);
+    this.aniosVigenciaSignal.set(4);
   }
 
   private configurarFechasHeredadasDelPadre(resolucionPadreId: string): void {

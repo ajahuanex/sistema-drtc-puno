@@ -150,6 +150,34 @@ export const CONFIGURACIONES_DEFAULT = {
     categoria: CategoriaConfiguracion.SISTEMA,
     esEditable: true
   },
+  ZONA_HORARIA: {
+    nombre: 'ZONA_HORARIA',
+    valor: 'America/Lima',
+    descripcion: 'Zona horaria del sistema (UTC-5 para Lima, Perú). Todas las fechas y horas se mostrarán y almacenarán según esta configuración. Afecta la visualización de fechas de emisión, vigencia y vencimiento.',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
+  OFFSET_ZONA_HORARIA: {
+    nombre: 'OFFSET_ZONA_HORARIA',
+    valor: '-5',
+    descripcion: 'Diferencia en horas respecto a UTC para la zona horaria configurada. Lima, Perú está en UTC-5. Este valor se usa para ajustar las fechas al guardar y mostrar.',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
+  FORMATO_FECHA: {
+    nombre: 'FORMATO_FECHA',
+    valor: 'DD/MM/YYYY',
+    descripcion: 'Formato de visualización de fechas en todo el sistema. DD=día, MM=mes, YYYY=año. Ejemplo: 04/12/2025. Este formato se aplica en reportes, formularios y listados.',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
+  FORMATO_FECHA_HORA: {
+    nombre: 'FORMATO_FECHA_HORA',
+    valor: 'DD/MM/YYYY HH:mm',
+    descripcion: 'Formato de visualización de fechas con hora en el sistema. HH=hora (24h), mm=minutos. Ejemplo: 04/12/2025 14:30. Se usa en logs, auditoría y timestamps.',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
   
   // Notificaciones
   NOTIFICACIONES_EMAIL: {
