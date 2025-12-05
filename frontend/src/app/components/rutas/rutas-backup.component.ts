@@ -92,7 +92,12 @@ import { forkJoin } from 'rxjs';
             <mat-icon>add</mat-icon>
             Nueva Ruta
           </button>
-          <!-- Botón de Ruta General eliminado - Se requiere empresa y resolución válidas -->
+          <button mat-stroked-button 
+                  color="secondary" 
+                  (click)="agregarRutaGeneral()">
+            <mat-icon>add_circle</mat-icon>
+            Ruta General
+          </button>
         </div>
       </div>
 
@@ -327,9 +332,12 @@ import { forkJoin } from 'rxjs';
                 <mat-icon class="empty-icon">route</mat-icon>
                 <h3>No hay rutas en el sistema</h3>
                 <p>No se encontraron rutas registradas. Comienza agregando la primera ruta.</p>
-                <p class="empty-message">
-                  Selecciona una empresa y resolución para agregar rutas
-                </p>
+                <button mat-raised-button 
+                        color="primary" 
+                        (click)="agregarRutaGeneral()">
+                  <mat-icon>add</mat-icon>
+                  Agregar Primera Ruta
+                </button>
               }
             </div>
           }
@@ -898,11 +906,97 @@ export class RutasComponent implements OnInit {
     }
   }
 
-  // Método agregarRutaGeneral() eliminado - Se requiere empresa y resolución válidas
-  // El backend no acepta IDs 'general', solo ObjectIds válidos de MongoDB
+  agregarRutaGeneral(): void {
+    // Para rutas generales, no necesitamos empresa y resolución
+    const dialogRef = this.dialog.open(AgregarRutaModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: {
+        empresa: {
+          id: 'general',
+          codigoEmpresa: '0000SYS',
+          ruc: 'GENERAL',
+          razonSocial: { principal: 'Sistema General' },
+          direccionFiscal: 'Sistema General',
+          estado: 'HABILITADA',
+          estaActivo: true,
+          fechaRegistro: new Date(),
+          fechaActualizacion: new Date(),
+          representanteLegal: {
+            dni: 'GENERAL',
+            nombres: 'Sistema',
+            apellidos: 'General'
+          },
+          documentos: [],
+          auditoria: [],
+          resolucionesPrimigeniasIds: [],
+          vehiculosHabilitadosIds: [],
+          conductoresHabilitadosIds: [],
+          rutasAutorizadasIds: []
+        } as Empresa,
+        resolucion: {
+          id: 'general',
+          nroResolucion: 'GENERAL',
           tipoTramite: 'AUTORIZACION_NUEVA',
           empresaId: 'general',
+          expedienteId: 'general',
+          fechaEmision: new Date(),
+          tipoResolucion: 'PADRE',
+          resolucionesHijasIds: [],
+          vehiculosHabilitadosIds: [],
+          rutasAutorizadasIds: [],
+          descripcion: 'Resolución general del sistema',
+          estaActivo: true,
+          estado: 'VIGENTE',
+          fechaRegistro: new Date(),
+          fechaActualizacion: new Date()
+        } as Resolucion,
+        modo: 'creacion'
+      } as AgregarRutaData
+    });
 
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('🔄 RESULTADO DEL MODAL GENERAL:', result);
+
+        // Agregar la nueva ruta a la lista
+        const nuevaRuta: Ruta = {
+          id: (this.rutas().length + 1).toString(),
+          codigoRuta: result.codigoRuta,
+          nombre: `${result.origen} - ${result.destino}`,
+          origenId: result.origen,
+          destinoId: result.destino,
+          origen: result.origen,
+          destino: result.destino,
+          distancia: 0,
+          tiempoEstimado: 0,
+          itinerarioIds: [],
+          frecuencias: result.frecuencias,
+          estado: 'ACTIVA',
+          estaActivo: true,
+          empresaId: 'general',
+          resolucionId: 'general',
+          fechaRegistro: new Date(),
+          fechaActualizacion: new Date(),
+          observaciones: result.observaciones || '',
+          tipoRuta: result.tipoRuta || 'INTERPROVINCIAL'
+        };
+
+        console.log('➕ AGREGANDO NUEVA RUTA GENERAL A LA LISTA:', JSON.stringify(nuevaRuta, null, 2));
+
+        // Agregar a la lista de rutas
+        this.rutas.update(rutas => [...rutas, nuevaRuta]);
+
+        console.log('📊 ESTADO ACTUAL DE RUTAS (DESPUÉS DE GENERAL):', {
+          totalRutas: this.rutas().length,
+          rutas: this.rutas().map(r => ({ id: r.id, codigoRuta: r.codigoRuta, resolucionId: r.resolucionId }))
+        });
+
+        this.snackBar.open('Ruta general agregada exitosamente', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
 
   // Método para intercambiar códigos entre rutas
   intercambiarCodigos(ruta1: Ruta, ruta2: Ruta): void {

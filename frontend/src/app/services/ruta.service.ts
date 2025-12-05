@@ -13,30 +13,12 @@ import { environment } from '../../environments/environment';
 export class RutaService {
   private apiUrl = environment.apiUrl;
 
-  // Datos mock eliminados - usando únicamente MongoDB
-  private mockRutas: Ruta[] = [];
-
   private localidadService = inject(LocalidadService);
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
-  ) {
-    console.log('🚀 CONSTRUCTOR RUTA SERVICE INICIALIZADO');
-    console.log('📊 ESTADO INICIAL DE MOCK RUTAS:', {
-      totalRutas: this.mockRutas.length,
-      rutas: this.mockRutas.map(r => ({
-        id: r.id,
-        codigoRuta: r.codigoRuta,
-        nombre: r.nombre,
-        resolucionId: r.resolucionId,
-        empresaId: r.empresaId
-      }))
-    });
-    
-    // Mostrar estado detallado
-    this.mostrarEstadoMockRutas();
-  }
+  ) {}
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
@@ -47,124 +29,66 @@ export class RutaService {
   }
 
   getRutas(): Observable<Ruta[]> {
-    console.log('🔍 GET RUTAS LLAMADO');
-    console.log('📊 TOTAL RUTAS MOCK DISPONIBLES:', this.mockRutas.length);
+    console.log('🔍 GET RUTAS LLAMADO - Usando API');
+    const url = `${this.apiUrl}/rutas`;
     
-    // En modo desarrollo, devolver directamente las rutas mock
-    const rutasMock = [...this.mockRutas]; // Crear una copia del array
-    
-    console.log('📋 RUTAS A DEVOLVER:', {
-      total: rutasMock.length,
-      rutas: rutasMock.map(r => ({
-        id: r.id,
-        codigoRuta: r.codigoRuta,
-        nombre: r.nombre,
-        origen: r.origen,
-        destino: r.destino,
-        resolucionId: r.resolucionId,
-        empresaId: r.empresaId
-      }))
-    });
-    
-    return of(rutasMock);
+    return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Error obteniendo rutas del backend:', error);
+          console.log('📊 Fallback a rutas mock vacías');
+          return of([]);
+        })
+      );
   }
 
   getRutaById(id: string): Observable<Ruta> {
-    // Funcionamiento offline - usar datos mock directamente
-    const mockRuta = this.mockRutas.find(r => r.id === id);
-    if (mockRuta) {
-      return of(mockRuta);
-    }
-    return throwError(() => new Error('Ruta no encontrada'));
+    const url = `${this.apiUrl}/rutas/${id}`;
+    
+    return this.http.get<Ruta>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error obteniendo ruta:', error);
+          return throwError(() => new Error('Ruta no encontrada'));
+        })
+      );
   }
 
   createRuta(ruta: RutaCreate): Observable<Ruta> {
     const url = `${this.apiUrl}/rutas`;
+    console.log('📤 Creando ruta en backend:', ruta);
     
     return this.http.post<Ruta>(url, ruta, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error creating ruta:', error);
-          // Crear ruta mock en caso de error
-          const newRuta: Ruta = {
-            id: (this.mockRutas.length + 1).toString(),
-            codigoRuta: ruta.codigoRuta,
-            nombre: ruta.nombre,
-            origenId: ruta.origenId,
-            destinoId: ruta.destinoId,
-            origen: ruta.origen,
-            destino: ruta.destino,
-            distancia: ruta.distancia,
-            tiempoEstimado: ruta.tiempoEstimado,
-            tipoRuta: ruta.tipoRuta,
-            empresaId: ruta.empresaId,
-            fechaActualizacion: new Date(),
-            observaciones: ruta.observaciones,
-            descripcion: ruta.descripcion,
-            capacidadMaxima: ruta.capacidadMaxima,
-            tarifaBase: ruta.tarifaBase,
-            itinerarioIds: ruta.itinerarioIds || [],
-            frecuencias: ruta.frecuencias || '',
-            estado: ruta.estado || 'ACTIVA',
-            estaActivo: true,
-            fechaRegistro: new Date()
-          };
-          this.mockRutas.push(newRuta);
-          return of(newRuta);
+          console.error('❌ Error creating ruta:', error);
+          return throwError(() => error);
         })
       );
   }
 
   updateRuta(id: string, ruta: RutaUpdate): Observable<Ruta> {
     const url = `${this.apiUrl}/rutas/${id}`;
+    console.log('📤 Actualizando ruta en backend:', id, ruta);
     
     return this.http.put<Ruta>(url, ruta, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error updating ruta:', error);
-          // Actualizar ruta mock en caso de error
-          const index = this.mockRutas.findIndex(r => r.id === id);
-          if (index !== -1) {
-            const rutaActualizada = { ...this.mockRutas[index] };
-            if (ruta.codigoRuta !== undefined) rutaActualizada.codigoRuta = ruta.codigoRuta;
-            if (ruta.nombre !== undefined) rutaActualizada.nombre = ruta.nombre;
-            if (ruta.origenId !== undefined) rutaActualizada.origenId = ruta.origenId;
-            if (ruta.destinoId !== undefined) rutaActualizada.destinoId = ruta.destinoId;
-            if (ruta.origen !== undefined) rutaActualizada.origen = ruta.origen;
-            if (ruta.destino !== undefined) rutaActualizada.destino = ruta.destino;
-            if (ruta.distancia !== undefined) rutaActualizada.distancia = ruta.distancia;
-            if (ruta.tiempoEstimado !== undefined) rutaActualizada.tiempoEstimado = ruta.tiempoEstimado;
-            if (ruta.tipoRuta !== undefined) rutaActualizada.tipoRuta = ruta.tipoRuta;
-            if (ruta.empresaId !== undefined) rutaActualizada.empresaId = ruta.empresaId;
-            if (ruta.observaciones !== undefined) rutaActualizada.observaciones = ruta.observaciones;
-            if (ruta.descripcion !== undefined) rutaActualizada.descripcion = ruta.descripcion;
-            if (ruta.capacidadMaxima !== undefined) rutaActualizada.capacidadMaxima = ruta.capacidadMaxima;
-            if (ruta.tarifaBase !== undefined) rutaActualizada.tarifaBase = ruta.tarifaBase;
-            if (ruta.itinerarioIds !== undefined) rutaActualizada.itinerarioIds = ruta.itinerarioIds;
-            if (ruta.frecuencias !== undefined) rutaActualizada.frecuencias = ruta.frecuencias;
-            if (ruta.estado !== undefined) rutaActualizada.estado = ruta.estado;
-            
-            this.mockRutas[index] = rutaActualizada;
-            return of(this.mockRutas[index]);
-          }
-          return throwError(() => new Error('Ruta no encontrada'));
+          console.error('❌ Error updating ruta:', error);
+          return throwError(() => error);
         })
       );
   }
 
   deleteRuta(id: string): Observable<void> {
     const url = `${this.apiUrl}/rutas/${id}`;
+    console.log('📤 Eliminando ruta en backend:', id);
     
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error deleting ruta:', error);
-          // Eliminar ruta mock en caso de error
-          const index = this.mockRutas.findIndex(r => r.id === id);
-          if (index !== -1) {
-            this.mockRutas.splice(index, 1);
-          }
-          return of(void 0);
+          console.error('❌ Error deleting ruta:', error);
+          return throwError(() => error);
         })
       );
   }
@@ -184,8 +108,8 @@ export class RutaService {
         rutaExistente: {
           id: rutaExistente.id,
           codigoRuta: rutaExistente.codigoRuta,
-          origen: rutaExistente.origen,
-          destino: rutaExistente.destino,
+          origen: rutaExistente.origen || rutaExistente.origenId,
+          destino: rutaExistente.destino || rutaExistente.destinoId,
           empresaId: rutaExistente.empresaId,
           estado: rutaExistente.estado
         },
@@ -341,24 +265,15 @@ export class RutaService {
 
   getRutasPorEmpresa(empresaId: string): Observable<Ruta[]> {
     console.log('🏢 OBTENIENDO RUTAS POR EMPRESA:', empresaId);
+    const url = `${this.apiUrl}/empresas/${empresaId}/rutas`;
     
-    // En modo desarrollo, usar directamente las rutas mock
-    const rutasDeEmpresa = this.mockRutas.filter(r => r.empresaId === empresaId && r.estaActivo);
-    
-    console.log('📊 RUTAS DE LA EMPRESA ENCONTRADAS:', {
-      empresaId,
-      totalRutas: rutasDeEmpresa.length,
-      rutas: rutasDeEmpresa.map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
-        nombre: r.nombre, 
-        origen: r.origen,
-        destino: r.destino,
-        resolucionId: r.resolucionId 
-      }))
-    });
-    
-    return of(rutasDeEmpresa);
+    return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Error obteniendo rutas por empresa:', error);
+          return of([]);
+        })
+      );
   }
 
   // Método para obtener rutas por empresa y resolución
@@ -392,66 +307,48 @@ export class RutaService {
   // Método para obtener rutas por resolución específica
   getRutasPorResolucion(resolucionId: string): Observable<Ruta[]> {
     console.log('🔍 OBTENIENDO RUTAS POR RESOLUCIÓN:', resolucionId);
+    const url = `${this.apiUrl}/resoluciones/${resolucionId}/rutas`;
     
-    const rutasDeResolucion = this.mockRutas.filter(r => {
-      return r.estaActivo && r.resolucionId === resolucionId;
-    });
-
-    console.log('📊 RUTAS ENCONTRADAS:', {
-      resolucionId,
-      totalRutas: rutasDeResolucion.length,
-      rutas: rutasDeResolucion.map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
-        nombre: r.nombre,
-        origen: r.origen,
-        destino: r.destino
-      }))
-    });
-
-    return of(rutasDeResolucion);
+    return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Error obteniendo rutas por resolución:', error);
+          return of([]);
+        })
+      );
   }
 
   // Método para obtener el siguiente código disponible en una resolución
   getSiguienteCodigoDisponible(resolucionId: string): Observable<string> {
     console.log('🔧 OBTENIENDO SIGUIENTE CÓDIGO DISPONIBLE PARA RESOLUCIÓN:', resolucionId);
+    const url = `${this.apiUrl}/rutas/siguiente-codigo/${resolucionId}`;
     
-    return this.getRutasPorResolucion(resolucionId).pipe(
-      map(rutas => {
-        // Obtener todos los códigos existentes
-        const codigosExistentes = rutas.map(r => r.codigoRuta).sort();
-        
-        console.log('📊 CÓDIGOS EXISTENTES EN LA RESOLUCIÓN:', {
-          resolucionId,
-          codigosExistentes,
-          totalRutas: rutas.length
-        });
-        
-        // Buscar el siguiente número disponible
-        let numero = 1;
-        let codigoGenerado = numero.toString().padStart(2, '0');
-        
-        while (codigosExistentes.includes(codigoGenerado)) {
-          numero++;
-          codigoGenerado = numero.toString().padStart(2, '0');
-          
-          // Protección contra bucles infinitos
-          if (numero > 99) {
-            console.error('❌ ERROR: No se pueden generar más códigos de ruta (límite 99)');
-            break;
-          }
-        }
-        
-        console.log('✅ SIGUIENTE CÓDIGO DISPONIBLE:', {
-          resolucionId,
-          codigoGenerado,
-          codigosExistentes,
-          totalRutasExistentes: rutas.length
-        });
-        
-        return codigoGenerado;
-      })
-    );
+    return this.http.get<{codigo: string}>(url, { headers: this.getHeaders() })
+      .pipe(
+        map(response => {
+          console.log('✅ SIGUIENTE CÓDIGO DISPONIBLE:', response.codigo);
+          return response.codigo;
+        }),
+        catchError(error => {
+          console.error('❌ Error obteniendo siguiente código, usando fallback:', error);
+          // Fallback: obtener rutas y calcular
+          return this.getRutasPorResolucion(resolucionId).pipe(
+            map(rutas => {
+              const codigosExistentes = rutas.map(r => r.codigoRuta).sort();
+              let numero = 1;
+              let codigoGenerado = numero.toString().padStart(2, '0');
+              
+              while (codigosExistentes.includes(codigoGenerado)) {
+                numero++;
+                codigoGenerado = numero.toString().padStart(2, '0');
+                if (numero > 99) break;
+              }
+              
+              return codigoGenerado;
+            })
+          );
+        })
+      );
   }
 
   agregarRutaAEmpresa(empresaId: string, rutaId: string): Observable<Ruta> {
@@ -602,26 +499,24 @@ export class RutaService {
     const nuevaRuta: Ruta = {
       id: nuevoId,
       codigoRuta: ruta.codigoRuta,
-      nombre: `${ruta.origen} - ${ruta.destino}`,
-      origenId: ruta.origenId || ruta.origen,
-      destinoId: ruta.destinoId || ruta.destino,
-      origen: ruta.origen,
-      destino: ruta.destino,
-      distancia: ruta.distancia || 0,
-      tiempoEstimado: ruta.tiempoEstimado || 0,
-      itinerarioIds: ruta.itinerarioIds || [],
-      frecuencias: ruta.frecuencias || '',
+      nombre: ruta.nombre,
+      origenId: ruta.origenId,
+      destinoId: ruta.destinoId,
+      distancia: ruta.distancia,
+      tiempoEstimado: ruta.tiempoEstimado,
+      itinerarioIds: ruta.itinerarioIds,
+      frecuencias: ruta.frecuencias,
       estado: 'ACTIVA',
       estaActivo: true,
       empresaId: ruta.empresaId,
       resolucionId: resolucionId,
-      fechaRegistro: new Date(),
-      fechaActualizacion: new Date(),
-      observaciones: ruta.observaciones || '',
-      descripcion: ruta.descripcion || '',
       tipoRuta: ruta.tipoRuta,
+      tipoServicio: ruta.tipoServicio,
+      observaciones: ruta.observaciones,
       capacidadMaxima: ruta.capacidadMaxima,
-      tarifaBase: ruta.tarifaBase
+      tarifaBase: ruta.tarifaBase,
+      fechaRegistro: new Date(),
+      fechaActualizacion: new Date()
     };
 
     // Agregar a la lista mock

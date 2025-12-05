@@ -28,6 +28,8 @@ class Ruta(BaseModel):
     nombre: str
     origenId: str
     destinoId: str
+    origen: Optional[str] = None  # Nombre del origen (opcional)
+    destino: Optional[str] = None  # Nombre del destino (opcional)
     itinerarioIds: List[str] = []
     frecuencias: str
     estado: EstadoRuta
@@ -56,6 +58,8 @@ class RutaCreate(BaseModel):
     nombre: str
     origenId: str
     destinoId: str
+    origen: Optional[str] = None  # Nombre del origen (opcional)
+    destino: Optional[str] = None  # Nombre del destino (opcional)
     itinerarioIds: List[str] = []
     frecuencias: str
     tipoRuta: TipoRuta
@@ -115,6 +119,8 @@ class RutaResponse(BaseModel):
     nombre: str
     origenId: str
     destinoId: str
+    origen: Optional[str] = None  # Nombre del origen (opcional)
+    destino: Optional[str] = None  # Nombre del destino (opcional)
     itinerarioIds: List[str]
     frecuencias: str
     estado: EstadoRuta

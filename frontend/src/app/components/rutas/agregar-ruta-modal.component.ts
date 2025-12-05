@@ -11,11 +11,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Ruta, TipoRuta } from '../../models/ruta.model';
+import { Ruta, TipoRuta, RutaCreate, RutaUpdate } from '../../models/ruta.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { RutaService } from '../../services/ruta.service';
-import { RutaCreate } from '../../models/ruta.model';
 import { Subscription } from 'rxjs';
 
 export interface AgregarRutaData {
@@ -160,7 +159,7 @@ export interface AgregarRutaData {
             Cancelar
           </button>
           <button mat-raised-button 
-                  type="submit" 
+                  (click)="onSubmit()"
                   color="primary" 
                   [disabled]="rutaForm.invalid || isSubmitting"
                   class="submit-button">
@@ -202,6 +201,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       destino: ['', [Validators.required]],
       frecuencias: ['', [Validators.required]],
       tipoRuta: ['INTERPROVINCIAL'],
+      tipoServicio: ['PASAJEROS'], // Campo requerido por el backend
       itinerario: [''],
       observaciones: ['']
     });
@@ -353,7 +353,22 @@ export class AgregarRutaModalComponent implements OnDestroy {
   }
 
   onSubmit(): void {
+    console.log('🚀 ONSUBMIT LLAMADO');
+    console.log('📋 ESTADO DEL FORMULARIO:', {
+      valid: this.rutaForm.valid,
+      invalid: this.rutaForm.invalid,
+      values: this.rutaForm.value,
+      errors: this.rutaForm.errors
+    });
+
     if (this.rutaForm.invalid) {
+      console.error('❌ FORMULARIO INVÁLIDO');
+      Object.keys(this.rutaForm.controls).forEach(key => {
+        const control = this.rutaForm.get(key);
+        if (control?.invalid) {
+          console.error(`  - Campo ${key}:`, control.errors);
+        }
+      });
       this.snackBar.open('Por favor complete todos los campos obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -362,6 +377,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
     const resolucionId = this.data.resolucion?.id;
     
     if (!resolucionId) {
+      console.error('❌ NO HAY RESOLUCIÓN SELECCIONADA');
       this.snackBar.open('Debe seleccionar una resolución', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -372,31 +388,42 @@ export class AgregarRutaModalComponent implements OnDestroy {
       empresaId: this.data.empresa?.id
     });
     
+    // Deshabilitar el botón durante la validación
+    this.isSubmitting = true;
+    
     // Validar que el código de ruta sea único dentro de la resolución
     this.rutaService.validarCodigoRutaUnico(
       resolucionId,
       codigoRuta
-    ).subscribe(esUnico => {
-      console.log('✅ RESULTADO VALIDACIÓN:', {
-        codigoRuta,
-        resolucionId,
-        esUnico
-      });
-      
-      if (!esUnico) {
-        console.error('❌ CÓDIGO DUPLICADO DETECTADO:', {
+    ).subscribe({
+      next: (esUnico) => {
+        console.log('✅ RESULTADO VALIDACIÓN:', {
           codigoRuta,
-          resolucionId
+          resolucionId,
+          esUnico
         });
-        this.snackBar.open('El código de ruta ya existe en esta resolución. Debe ser único.', 'Cerrar', { duration: 5000 });
         
-        // Regenerar código automáticamente
-        this.regenerarCodigoRuta();
-        return;
-      }
+        if (!esUnico) {
+          console.error('❌ CÓDIGO DUPLICADO DETECTADO:', {
+            codigoRuta,
+            resolucionId
+          });
+          this.snackBar.open('El código de ruta ya existe en esta resolución. Debe ser único.', 'Cerrar', { duration: 5000 });
+          
+          // Regenerar código automáticamente
+          this.regenerarCodigoRuta();
+          this.isSubmitting = false; // Rehabilitar el botón
+          return;
+        }
 
-      console.log('✅ CÓDIGO VÁLIDO, PROCEDIENDO A GUARDAR');
-      this.guardarRuta();
+        console.log('✅ CÓDIGO VÁLIDO, PROCEDIENDO A GUARDAR');
+        this.guardarRuta();
+      },
+      error: (error) => {
+        console.error('❌ ERROR EN VALIDACIÓN:', error);
+        this.snackBar.open('Error al validar el código de ruta', 'Cerrar', { duration: 3000 });
+        this.isSubmitting = false; // Rehabilitar el botón
+      }
     });
   }
 
@@ -405,7 +432,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
 
     if (this.data.modo === 'edicion_codigo' && this.data.ruta) {
       // Modo edición de código: actualizar solo el código
-      const rutaActualizada: Partial<Ruta> = {
+      const rutaActualizada: RutaUpdate = {
         codigoRuta: this.rutaForm.get('codigoRuta')?.value,
         fechaActualizacion: new Date()
       };
@@ -427,14 +454,17 @@ export class AgregarRutaModalComponent implements OnDestroy {
     } else if (this.data.modo === 'edicion' && this.data.ruta) {
       // Modo edición: actualizar ruta existente
       const formValue = this.rutaForm.value;
-      const rutaActualizada: Partial<Ruta> = {
-        ...formValue,
-        descripcion: formValue.itinerario, // Guardar itinerario en descripción
+      const rutaActualizada: RutaUpdate = {
+        codigoRuta: formValue.codigoRuta,
+        origen: formValue.origen,
+        destino: formValue.destino,
+        frecuencias: formValue.frecuencias,
+        tipoRuta: formValue.tipoRuta,
+        tipoServicio: formValue.tipoServicio,
+        descripcion: formValue.itinerario,
+        observaciones: formValue.observaciones,
         fechaActualizacion: new Date()
       };
-      
-      // Remover el campo itinerario del objeto final
-      delete (rutaActualizada as any).itinerario;
 
       console.log('✏️ ACTUALIZANDO RUTA EXISTENTE:', JSON.stringify(rutaActualizada, null, 2));
 
@@ -451,38 +481,48 @@ export class AgregarRutaModalComponent implements OnDestroy {
         }
       });
     } else {
-      // Modo creación: crear nueva ruta
+      // Modo creación: crear nueva ruta usando el backend
       const formValue = this.rutaForm.value;
-      const nuevaRuta: Partial<Ruta> = {
-        ...formValue,
-        descripcion: formValue.itinerario, // Guardar itinerario en descripción
-        empresaId: this.data.empresa?.id,
-        resolucionId: this.data.resolucion?.id,
-        estado: 'ACTIVA',
-        estaActivo: true,
-        fechaRegistro: new Date(),
-        fechaActualizacion: new Date()
-      };
       
-      // Remover el campo itinerario del objeto final
-      delete (nuevaRuta as any).itinerario;
+      console.log('📝 VALORES DEL FORMULARIO:', {
+        formValue,
+        origen: formValue.origen,
+        destino: formValue.destino,
+        codigoRuta: formValue.codigoRuta,
+        frecuencias: formValue.frecuencias
+      });
+      
+      const nuevaRuta: RutaCreate = {
+        codigoRuta: formValue.codigoRuta,
+        nombre: `${formValue.origen} - ${formValue.destino}`,
+        origenId: formValue.origen, // Usar el nombre como ID temporal
+        destinoId: formValue.destino, // Usar el nombre como ID temporal
+        origen: formValue.origen, // Nombre del origen
+        destino: formValue.destino, // Nombre del destino
+        frecuencias: formValue.frecuencias,
+        tipoRuta: formValue.tipoRuta,
+        tipoServicio: formValue.tipoServicio || 'PASAJEROS', // Campo requerido por el backend
+        observaciones: formValue.observaciones || '',
+        empresaId: this.data.empresa?.id || '',
+        resolucionId: this.data.resolucion?.id || '',
+        itinerarioIds: []
+      };
 
       console.log('💾 GUARDANDO NUEVA RUTA:', JSON.stringify(nuevaRuta, null, 2));
 
-      // Usar el servicio para agregar la ruta y actualizar la lista mock
-      this.rutaService.agregarRutaMock(nuevaRuta as RutaCreate, this.data.resolucion!.id)
-        .subscribe({
-          next: (rutaGuardada) => {
-            console.log('✅ RUTA GUARDADA EXITOSAMENTE:', rutaGuardada);
-            this.snackBar.open('Ruta guardada exitosamente', 'Cerrar', { duration: 3000 });
-            this.dialogRef.close(rutaGuardada);
-          },
-          error: (error) => {
-            console.error('❌ ERROR AL GUARDAR RUTA:', error);
-            this.snackBar.open('Error al guardar la ruta', 'Cerrar', { duration: 3000 });
-            this.isSubmitting = false;
-          }
-        });
+      // Usar el método createRuta del servicio que hace petición HTTP al backend
+      this.rutaService.createRuta(nuevaRuta).subscribe({
+        next: (rutaGuardada) => {
+          console.log('✅ RUTA GUARDADA EXITOSAMENTE:', rutaGuardada);
+          this.snackBar.open('Ruta guardada exitosamente', 'Cerrar', { duration: 3000 });
+          this.dialogRef.close(rutaGuardada);
+        },
+        error: (error) => {
+          console.error('❌ ERROR AL GUARDAR RUTA:', error);
+          this.snackBar.open('Error al guardar la ruta', 'Cerrar', { duration: 3000 });
+          this.isSubmitting = false;
+        }
+      });
     }
   }
 

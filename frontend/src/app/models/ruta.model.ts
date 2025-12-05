@@ -4,10 +4,10 @@ export interface Ruta {
   nombre: string;
   origenId: string;
   destinoId: string;
-  origen: string;           // Nombre de la localidad de origen
-  destino: string;          // Nombre de la localidad de destino
-  distancia: number;        // Distancia en kilómetros
-  tiempoEstimado: number;   // Tiempo estimado en horas
+  origen?: string;           // Nombre de la localidad de origen (opcional)
+  destino?: string;          // Nombre de la localidad de destino (opcional)
+  distancia?: number;        // Distancia en kilómetros
+  tiempoEstimado?: string | number;   // Tiempo estimado (HH:MM o horas)
   itinerarioIds: string[];
   frecuencias: string;
   estado: EstadoRuta;
@@ -19,8 +19,15 @@ export interface Ruta {
   observaciones?: string;
   descripcion?: string;     // Descripción de la ruta
   tipoRuta: TipoRuta;      // Tipo de ruta (INTERURBANA, URBANA, etc.)
+  tipoServicio?: TipoServicio; // Tipo de servicio
   capacidadMaxima?: number; // Capacidad máxima de pasajeros
   tarifaBase?: number;      // Tarifa base del pasaje
+  horarios?: any[];
+  restricciones?: string[];
+  empresasAutorizadasIds?: string[];
+  vehiculosAsignadosIds?: string[];
+  documentosIds?: string[];
+  historialIds?: string[];
 }
 
 export interface RutaCreate {
@@ -28,21 +35,21 @@ export interface RutaCreate {
   nombre: string;
   origenId: string;
   destinoId: string;
-  origen: string;
-  destino: string;
-  distancia: number;
-  tiempoEstimado: number;
-  itinerarioIds?: string[];
-  frecuencias?: string;
-  empresaId?: string;
-  resolucionId?: string;    // Resolución primigenia asociada
-  estado?: EstadoRuta;
-  estaActivo?: boolean;
-  observaciones?: string;
-  descripcion?: string;
+  origen?: string; // Nombre del origen (opcional)
+  destino?: string; // Nombre del destino (opcional)
+  itinerarioIds: string[];
+  frecuencias: string;
   tipoRuta: TipoRuta;
-  capacidadMaxima?: number;
+  tipoServicio: TipoServicio; // Campo requerido por el backend
+  distancia?: number;
+  tiempoEstimado?: string; // Formato HH:MM
   tarifaBase?: number;
+  capacidadMaxima?: number;
+  horarios?: any[];
+  restricciones?: string[];
+  observaciones?: string;
+  empresaId: string; // Obligatorio
+  resolucionId: string; // Obligatorio
 }
 
 export interface RutaUpdate {
@@ -53,7 +60,7 @@ export interface RutaUpdate {
   origen?: string;
   destino?: string;
   distancia?: number;
-  tiempoEstimado?: number;
+  tiempoEstimado?: string | number;
   itinerarioIds?: string[];
   frecuencias?: string;
   estado?: EstadoRuta;
@@ -61,15 +68,21 @@ export interface RutaUpdate {
   observaciones?: string;
   descripcion?: string;
   tipoRuta?: TipoRuta;
+  tipoServicio?: TipoServicio;
   capacidadMaxima?: number;
   tarifaBase?: number;
   empresaId?: string;
+  horarios?: any[];
+  restricciones?: string[];
+  fechaActualizacion?: Date;
 }
 
 // Enums para el estado y tipo de ruta
-export type EstadoRuta = 'ACTIVA' | 'INACTIVA' | 'SUSPENDIDA' | 'EN_MANTENIMIENTO' | 'ARCHIVADA';
+export type EstadoRuta = 'ACTIVA' | 'INACTIVA' | 'SUSPENDIDA' | 'EN_MANTENIMIENTO' | 'ARCHIVADA' | 'DADA_DE_BAJA';
 
-export type TipoRuta = 'INTERURBANA' | 'URBANA' | 'INTERPROVINCIAL' | 'NACIONAL' | 'INTERNACIONAL';
+export type TipoRuta = 'URBANA' | 'INTERURBANA' | 'INTERPROVINCIAL' | 'INTERREGIONAL' | 'RURAL';
+
+export type TipoServicio = 'PASAJEROS' | 'CARGA' | 'MIXTO';
 
 // Interfaz para localidades (origen y destino)
 export interface Localidad {
