@@ -48,185 +48,8 @@ export class TucService {
     };
   }
 
-  // Datos mock para desarrollo
-  private mockTucs: Tuc[] = [
-    {
-      id: '1',
-      vehiculoId: '1',
-      empresaId: '1',
-      expedienteId: '1',
-      nroTuc: 'T-123456-2025',
-      fechaEmision: '2025-01-15T10:00:00Z',
-      fechaVencimiento: '2025-12-15T10:00:00Z',
-      estado: 'VIGENTE',
-      estaActivo: true,
-      documentoId: 'DOC-001',
-      qrVerificationUrl: 'https://verificacion.tucs.gob.pe/verify/T-123456-2025',
-      observaciones: 'TUC para Mercedes-Benz',
-      // Información relacionada incluida directamente
-      vehiculo: {
-        id: '1',
-        placa: 'V1A-123',
-        marca: 'Mercedes-Benz',
-        modelo: 'Sprinter',
-        año: 2023,
-        capacidad: 15,
-        tipo: 'PASAJEROS'
-      },
-      empresa: {
-        id: '1',
-        razonSocial: 'TRANSPORTES MERCEDES S.A.',
-        ruc: '20123456789',
-        direccion: 'Av. Principal 123, Lima',
-        telefono: '+51 1 234-5678',
-        email: 'info@mercedes-transportes.pe'
-      },
-      resolucion: {
-        id: '1',
-        numero: 'R-0001-2024',
-        fechaEmision: new Date('2024-01-15'),
-        fechaVencimiento: new Date('2025-01-15'),
-        estado: 'VIGENTE',
-        tipo: 'PRIMIGENIA',
-        empresaId: '1',
-        descripcion: 'Resolución principal de autorización para transporte de pasajeros',
-        observaciones: 'Resolución principal de autorización',
-        estaActivo: true
-      }
-    },
-    {
-      id: '2',
-      vehiculoId: '2',
-      empresaId: '1',
-      expedienteId: '1',
-      nroTuc: 'T-123457-2025',
-      fechaEmision: '2025-02-20T14:30:00Z',
-      fechaVencimiento: '2025-12-20T14:30:00Z',
-      estado: 'VIGENTE',
-      estaActivo: true,
-      documentoId: 'DOC-002',
-      qrVerificationUrl: 'https://verificacion.tucs.gob.pe/verify/T-123457-2025',
-      observaciones: 'TUC para Volvo',
-      // Información relacionada incluida directamente
-      vehiculo: {
-        id: '2',
-        placa: 'V2B-456',
-        marca: 'Volvo',
-        modelo: 'B12M',
-        año: 2022,
-        capacidad: 45,
-        tipo: 'PASAJEROS'
-      },
-      empresa: {
-        id: '1',
-        razonSocial: 'TRANSPORTES MERCEDES S.A.',
-        ruc: '20123456789',
-        direccion: 'Av. Principal 123, Lima',
-        telefono: '+51 1 234-5678',
-        email: 'info@mercedes-transportes.pe'
-      },
-      resolucion: {
-        id: '1',
-        numero: 'R-0001-2024',
-        fechaEmision: new Date('2024-01-15'),
-        fechaVencimiento: new Date('2025-01-15'),
-        estado: 'VIGENTE',
-        tipo: 'PRIMIGENIA',
-        empresaId: '1',
-        descripcion: 'Resolución principal de autorización para transporte de pasajeros',
-        observaciones: 'Resolución principal de autorización',
-        estaActivo: true
-      }
-    },
-    {
-      id: '3',
-      vehiculoId: '3',
-      empresaId: '2',
-      expedienteId: '2',
-      nroTuc: 'T-123458-2025',
-      fechaEmision: '2025-03-10T09:15:00Z',
-      fechaVencimiento: '2025-12-10T09:15:00Z',
-      estado: 'VIGENTE',
-      estaActivo: true,
-      documentoId: 'DOC-003',
-      qrVerificationUrl: 'https://verificacion.tucs.gob.pe/verify/T-123458-2025',
-      observaciones: 'TUC para Toyota',
-      // Información relacionada incluida directamente
-      vehiculo: {
-        id: '3',
-        placa: 'V3C-789',
-        marca: 'Toyota',
-        modelo: 'Coaster',
-        año: 2024,
-        capacidad: 25,
-        tipo: 'PASAJEROS'
-      },
-      empresa: {
-        id: '2',
-        razonSocial: 'TRANSPORTES TOYOTA E.I.R.L.',
-        ruc: '20234567890',
-        direccion: 'Jr. Comercial 456, Arequipa',
-        telefono: '+51 54 345-6789',
-        email: 'contacto@toyota-transportes.pe'
-      },
-      resolucion: {
-        id: '2',
-        numero: 'R-0002-2024',
-        fechaEmision: new Date('2024-02-20'),
-        fechaVencimiento: new Date('2025-02-20'),
-        estado: 'VIGENTE',
-        tipo: 'AMPLIACION',
-        empresaId: '2',
-        descripcion: 'Ampliación de rutas autorizadas',
-        observaciones: 'Ampliación de rutas',
-        estaActivo: true
-      }
-    },
-    {
-      id: '4',
-      vehiculoId: '4',
-      empresaId: '3',
-      expedienteId: '3',
-      nroTuc: 'T-123459-2025',
-      fechaEmision: '2025-04-26T07:30:00Z',
-      fechaVencimiento: '2025-12-26T07:30:00Z',
-      estado: 'VIGENTE',
-      estaActivo: true,
-      documentoId: 'DOC-004',
-      qrVerificationUrl: 'https://verificacion.tucs.gob.pe/verify/T-123459-2025',
-      observaciones: 'TUC para Scania',
-      // Información relacionada incluida directamente
-      vehiculo: {
-        id: '4',
-        placa: 'V4D-012',
-        marca: 'Scania',
-        modelo: 'K420',
-        año: 2023,
-        capacidad: 50,
-        tipo: 'PASAJEROS'
-      },
-      empresa: {
-        id: '3',
-        razonSocial: 'TRANSPORTES SCANIA S.A.C.',
-        ruc: '20345678901',
-        direccion: 'Av. Industrial 789, Trujillo',
-        telefono: '+51 44 456-7890',
-        email: 'ventas@scania-transportes.pe'
-      },
-      resolucion: {
-        id: '3',
-        numero: 'R-0003-2024',
-        fechaEmision: new Date('2024-03-10'),
-        fechaVencimiento: new Date('2025-03-10'),
-        estado: 'VIGENTE',
-        tipo: 'RENOVACION',
-        empresaId: '3',
-        descripcion: 'Resolución de renovación para transporte de carga',
-        observaciones: 'Renovación anual',
-        estaActivo: true
-      }
-    }
-  ];
+  // Datos mock eliminados - usando únicamente MongoDB
+  private mockTucs: Tuc[] = [];
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
@@ -240,10 +63,7 @@ export class TucService {
   getTucs(skip: number = 0, limit: number = 100, estado?: EstadoTuc): Observable<Tuc[]> {
     console.log('AuthService.isAuthenticated():', this.authService.isAuthenticated());
     
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       console.log('Intentando obtener TUCs desde API...');
       const params: any = { skip, limit };
       if (estado) params.estado = estado;
@@ -255,175 +75,108 @@ export class TucService {
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
           console.error('Error obteniendo TUCs desde API:', error);
-          console.log('Fallback a datos mock...');
-          return of(this.mockTucs);
+          return throwError(() => error);
         })
       );
     }
     
-    console.log('Usando datos mock directamente...');
-    console.log('Datos mock disponibles:', this.mockTucs);
-    return of(this.mockTucs);
+    // Si no está autenticado, retornar array vacío
+    return of([]);
   }
 
   // Obtener TUC por ID
   getTucById(id: string): Observable<Tuc> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.get<any>(`${this.apiUrl}/tucs/${id}`, { 
         headers: this.getHeaders() 
       }).pipe(
         map(tucBackend => this.mapearTucBackend(tucBackend)),
         catchError(error => {
           console.error('Error obteniendo TUC desde API:', error);
-          // Fallback a datos mock
-          const mockTuc = this.mockTucs.find(t => t.id === id);
-          if (mockTuc) {
-            return of(mockTuc);
-          }
-          return throwError(() => new Error('TUC no encontrado'));
+          return throwError(() => error);
         })
       );
     }
-    const mockTuc = this.mockTucs.find(t => t.id === id);
-    if (mockTuc) {
-      return of(mockTuc);
-    }
-    return throwError(() => new Error('TUC no encontrado'));
+    return throwError(() => new Error('No autenticado'));
   }
 
   // Obtener TUC por número
   getTucByNumero(nroTuc: string): Observable<Tuc> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.get<any>(`${this.apiUrl}/tucs/numero/${nroTuc}`, { 
         headers: this.getHeaders() 
       }).pipe(
         map(tucBackend => this.mapearTucBackend(tucBackend)),
         catchError(error => {
           console.error('Error obteniendo TUC por número desde API:', error);
-          // Fallback a datos mock
-          const mockTuc = this.mockTucs.find(t => t.nroTuc === nroTuc);
-          if (mockTuc) {
-            return of(mockTuc);
-          }
-          return throwError(() => new Error('TUC no encontrado'));
+          return throwError(() => error);
         })
       );
     }
-    const mockTuc = this.mockTucs.find(t => t.nroTuc === nroTuc);
-    if (mockTuc) {
-      return of(mockTuc);
-    }
-    return throwError(() => new Error('TUC no encontrado'));
+    return throwError(() => new Error('No autenticado'));
   }
 
   // Obtener TUCs por empresa
   getTucsByEmpresa(empresaId: string): Observable<Tuc[]> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.get<any[]>(`${this.apiUrl}/tucs/empresa/${empresaId}`, { 
         headers: this.getHeaders() 
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
           console.error('Error obteniendo TUCs por empresa desde API:', error);
-          // Fallback a datos mock
-          return of(this.mockTucs.filter(t => t.empresaId === empresaId));
+          return of([]);
         })
       );
     }
-    return of(this.mockTucs.filter(t => t.empresaId === empresaId));
+    return of([]);
   }
 
   // Obtener TUCs por vehículo
   getTucsByVehiculo(vehiculoId: string): Observable<Tuc[]> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.get<any[]>(`${this.apiUrl}/tucs/vehiculo/${vehiculoId}`, { 
         headers: this.getHeaders() 
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
           console.error('Error obteniendo TUCs por vehículo desde API:', error);
-          // Fallback a datos mock
-          return of(this.mockTucs.filter(t => t.vehiculoId === vehiculoId));
+          return of([]);
         })
       );
     }
-    return of(this.mockTucs.filter(t => t.vehiculoId === vehiculoId));
+    return of([]);
   }
 
   // Obtener TUCs por resolución
   getTucsByResolucion(resolucionId: string): Observable<Tuc[]> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.get<any[]>(`${this.apiUrl}/tucs/resolucion/${resolucionId}`, { 
         headers: this.getHeaders() 
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
           console.error('Error obteniendo TUCs por resolución desde API:', error);
-          // Fallback a datos mock
-          return of(this.mockTucs.filter(t => t.expedienteId === resolucionId));
+          return of([]);
         })
       );
     }
-    return of(this.mockTucs.filter(t => t.expedienteId === resolucionId));
+    return of([]);
   }
 
   // Crear nuevo TUC
   createTuc(tuc: TucCreate): Observable<Tuc> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-    
-    if (this.authService.isAuthenticated() && !usarMock) {
+    if (this.authService.isAuthenticated()) {
       return this.http.post<Tuc>(`${this.apiUrl}/tucs`, tuc, { 
         headers: this.getHeaders() 
       }).pipe(
         catchError(error => {
           console.error('Error creando TUC desde API:', error);
-          // Fallback a datos mock
-          const newTuc: Tuc = {
-            id: Date.now().toString(),
-            ...tuc,
-            fechaEmision: new Date().toISOString(),
-            fechaVencimiento: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 año después
-            estado: 'VIGENTE',
-            estaActivo: true,
-            documentoId: `DOC-${Date.now()}`,
-            qrVerificationUrl: `https://verificacion.tucs.gob.pe/verify/${tuc.nroTuc}`,
-            observaciones: 'TUC creado en modo mock'
-          };
-          this.mockTucs.push(newTuc);
-          return of(newTuc);
+          return throwError(() => error);
         })
       );
     }
-    // Crear en datos mock
-    const newTuc: Tuc = {
-      id: Date.now().toString(),
-      ...tuc,
-      fechaEmision: new Date().toISOString(),
-      fechaVencimiento: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 año después
-      estado: 'VIGENTE',
-      estaActivo: true,
-      documentoId: `DOC-${Date.now()}`,
-      qrVerificationUrl: `https://verificacion.tucs.gob.pe/verify/${tuc.nroTuc}`,
-      observaciones: 'TUC creado en modo mock'
-    };
-    this.mockTucs.push(newTuc);
-    return of(newTuc);
+    return throwError(() => new Error('No autenticado'));
   }
 
   // Actualizar TUC
@@ -434,23 +187,11 @@ export class TucService {
       }).pipe(
         catchError(error => {
           console.error('Error actualizando TUC desde API:', error);
-          // Fallback a datos mock
-          const index = this.mockTucs.findIndex(t => t.id === id);
-          if (index !== -1) {
-            this.mockTucs[index] = { ...this.mockTucs[index], ...tuc };
-            return of(this.mockTucs[index]);
-          }
-          return throwError(() => new Error('TUC no encontrado'));
+          return throwError(() => error);
         })
       );
     }
-    // Actualizar en datos mock
-    const index = this.mockTucs.findIndex(t => t.id === id);
-    if (index !== -1) {
-      this.mockTucs[index] = { ...this.mockTucs[index], ...tuc };
-      return of(this.mockTucs[index]);
-    }
-    return throwError(() => new Error('TUC no encontrado'));
+    return throwError(() => new Error('No autenticado'));
   }
 
   // Eliminar TUC
@@ -461,21 +202,11 @@ export class TucService {
       }).pipe(
         catchError(error => {
           console.error('Error eliminando TUC desde API:', error);
-          // Fallback a datos mock
-          const index = this.mockTucs.findIndex(t => t.id === id);
-          if (index !== -1) {
-            this.mockTucs.splice(index, 1);
-          }
-          return of(void 0);
+          return throwError(() => error);
         })
       );
     }
-    // Eliminar de datos mock
-    const index = this.mockTucs.findIndex(t => t.id === id);
-    if (index !== -1) {
-      this.mockTucs.splice(index, 1);
-    }
-    return of(void 0);
+    return throwError(() => new Error('No autenticado'));
   }
 
   // Cambiar estado del TUC
@@ -548,33 +279,6 @@ export class TucService {
     empresa: Empresa;
     resolucion: Resolucion;
   }> {
-    // TEMPORAL: Forzar uso de datos mock durante desarrollo
-    const usarMock = true; // Cambiar a false cuando la API esté lista
-
-    if (usarMock) {
-      console.log('Usando datos mock para getTucCompleto...');
-      const tuc = this.mockTucs.find(t => t.id === id);
-      
-      if (tuc && tuc.vehiculo && tuc.empresa && tuc.resolucion) {
-        console.log('TUC completo encontrado en mock data:', tuc);
-        return of({
-          tuc,
-          vehiculo: tuc.vehiculo,
-          empresa: tuc.empresa,
-          resolucion: tuc.resolucion
-        });
-      } else {
-        console.warn('TUC no encontrado o incompleto en mock data, ID:', id);
-        return of({
-          tuc: {} as Tuc,
-          vehiculo: {} as Vehiculo,
-          empresa: {} as Empresa,
-          resolucion: {} as Resolucion
-        });
-      }
-    }
-
-    // Lógica original para cuando la API esté lista
     return this.getTucById(id).pipe(
       switchMap(tuc => {
         // Verificar que el TUC tenga los IDs necesarios

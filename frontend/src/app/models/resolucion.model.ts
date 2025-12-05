@@ -2,7 +2,7 @@ export type EstadoResolucion = 'VIGENTE' | 'VENCIDA' | 'SUSPENDIDA' | 'REVOCADA'
 
 export type TipoResolucion = 'PADRE' | 'HIJO';
 
-export type TipoTramite = 'AUTORIZACION_NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
+export type TipoTramite = 'AUTORIZACION_NUEVA' | 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
 
 export type TipoResolucionSimple = 'PRIMIGENIA' | 'AMPLIACION' | 'MODIFICACION';
 

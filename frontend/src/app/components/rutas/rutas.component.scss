@@ -392,3 +392,75 @@
     line-height: 18px;
   }
 } 
+
+
+// Estilos para opciones de resolución con badges
+.resolucion-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.resolucion-info {
+  flex: 1;
+}
+
+.resolucion-numero {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.resolucion-tipo {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.resolucion-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-vigente {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.badge-padre {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+// Estilos para opciones de empresa
+.empresa-option {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.empresa-ruc {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.empresa-razon {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 2px;
+}

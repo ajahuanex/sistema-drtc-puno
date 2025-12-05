@@ -142,385 +142,43 @@ class DataManagerService:
         for empresa in empresas_data:
             self.agregar_empresa(empresa)
         
-        # 2. VEHÍCULOS
-        vehiculos_data = [
-            {
-                "id": "1",
-                "empresaId": "1",
-                "placa": "ABC-123",
-                "numeroTarjetaCirculacion": "TC001",
-                "marca": "MERCEDES BENZ",
-                "modelo": "OH-1628",
-                "año": 2020,
-                "numeroAsientos": 45,
-                "numeroMotor": "OM906LA001",
-                "numeroChasis": "8JMOH1628LA001",
-                "combustible": "DIESEL",
-                "cilindrada": 6374,
-                "potencia": 280,
-                "pesoSeco": 8500,
-                "pesoBruto": 16000,
-                "cargaUtil": 7500,
-                "estado": "ACTIVO",
-                "fechaFabricacion": "2020-05-15",
-                "fechaImportacion": "2020-06-20"
-            },
-            {
-                "id": "2",
-                "empresaId": "1", 
-                "placa": "DEF-456",
-                "numeroTarjetaCirculacion": "TC002",
-                "marca": "VOLVO",
-                "modelo": "B7R",
-                "año": 2019,
-                "numeroAsientos": 42,
-                "numeroMotor": "D7E290002",
-                "numeroChasis": "YV3R4X20XKA002",
-                "combustible": "DIESEL",
-                "cilindrada": 7142,
-                "potencia": 290,
-                "pesoSeco": 9200,
-                "pesoBruto": 17000,
-                "cargaUtil": 7800,
-                "estado": "ACTIVO",
-                "fechaFabricacion": "2019-08-10",
-                "fechaImportacion": "2019-09-15"
-            },
-            {
-                "id": "3",
-                "empresaId": "2",
-                "placa": "GHI-789",
-                "numeroTarjetaCirculacion": "TC003",
-                "marca": "SCANIA",
-                "modelo": "K360IB",
-                "año": 2021,
-                "numeroAsientos": 48,
-                "numeroMotor": "DC09108003",
-                "numeroChasis": "9BSK4X2X0MA003",
-                "combustible": "DIESEL",
-                "cilindrada": 8870,
-                "potencia": 360,
-                "pesoSeco": 9800,
-                "pesoBruto": 18000,
-                "cargaUtil": 8200,
-                "estado": "ACTIVO",
-                "fechaFabricacion": "2021-02-20",
-                "fechaImportacion": "2021-03-25"
-            },
-            {
-                "id": "4",
-                "empresaId": "2",
-                "placa": "JKL-012",
-                "numeroTarjetaCirculacion": "TC004",
-                "marca": "MERCEDES BENZ",
-                "modelo": "OH-1721",
-                "año": 2018,
-                "numeroAsientos": 40,
-                "numeroMotor": "OM906LA004",
-                "numeroChasis": "8JMOH1721JA004",
-                "combustible": "DIESEL",
-                "cilindrada": 6374,
-                "potencia": 280,
-                "pesoSeco": 8200,
-                "pesoBruto": 15500,
-                "cargaUtil": 7300,
-                "estado": "MANTENIMIENTO",
-                "fechaFabricacion": "2018-11-05",
-                "fechaImportacion": "2018-12-10"
-            },
-            {
-                "id": "5",
-                "empresaId": "3",
-                "placa": "MNO-345",
-                "numeroTarjetaCirculacion": "TC005",
-                "marca": "IVECO",
-                "modelo": "MAGELYS PRO",
-                "año": 2022,
-                "numeroAsientos": 35,
-                "numeroMotor": "F4AE3681D005",
-                "numeroChasis": "ZCFC4A1A0NA005",
-                "combustible": "DIESEL",
-                "cilindrada": 5880,
-                "potencia": 320,
-                "pesoSeco": 8800,
-                "pesoBruto": 16500,
-                "cargaUtil": 7700,
-                "estado": "ACTIVO",
-                "fechaFabricacion": "2022-01-15",
-                "fechaImportacion": "2022-02-20"
-            }
-        ]
+        # 2. VEHÍCULOS - Datos mock eliminados, usar solo MongoDB
+        vehiculos_data = []
         
         for vehiculo in vehiculos_data:
             self.agregar_vehiculo(vehiculo)
         
-        # 3. CONDUCTORES
-        conductores_data = [
-            {
-                "id": "1",
-                "empresaId": "1",
-                "codigoConductor": "COND001",
-                "nombres": "Juan Carlos",
-                "apellidoPaterno": "García",
-                "apellidoMaterno": "López",
-                "dni": "12345678",
-                "fechaNacimiento": "1985-03-15",
-                "telefono": "987654321",
-                "email": "juan.garcia@email.com",
-                "numeroLicencia": "P12345678",
-                "categoria": "B-III",
-                "fechaVencimiento": "2025-01-15",
-                "tipoConductor": "TITULAR",
-                "estado": "ACTIVO",
-                "vehiculosAsignadosIds": ["1"],
-                "vehiculoPrincipalId": "1",
-                "fechaIngreso": "2023-01-01",
-                "salario": 1500.0
-            },
-            {
-                "id": "2",
-                "empresaId": "1",
-                "codigoConductor": "COND002",
-                "nombres": "Ana María",
-                "apellidoPaterno": "Quispe",
-                "apellidoMaterno": "Mamani",
-                "dni": "87654321",
-                "fechaNacimiento": "1990-07-22",
-                "telefono": "912345678",
-                "email": "ana.quispe@email.com",
-                "numeroLicencia": "P87654321",
-                "categoria": "B-IIA",
-                "fechaVencimiento": "2026-05-10",
-                "tipoConductor": "SUPLENTE",
-                "estado": "ACTIVO",
-                "vehiculosAsignadosIds": ["2"],
-                "fechaIngreso": "2023-06-15",
-                "salario": 1200.0
-            },
-            {
-                "id": "3",
-                "empresaId": "2",
-                "codigoConductor": "COND003",
-                "nombres": "Carlos Alberto",
-                "apellidoPaterno": "Mamani",
-                "apellidoMaterno": "Choque",
-                "dni": "11223344",
-                "fechaNacimiento": "1988-12-05",
-                "telefono": "998877665",
-                "email": "carlos.mamani@email.com",
-                "numeroLicencia": "P11223344",
-                "categoria": "B-III",
-                "fechaVencimiento": "2024-08-20",
-                "tipoConductor": "TITULAR",
-                "estado": "ACTIVO",
-                "vehiculosAsignadosIds": ["3", "4"],
-                "vehiculoPrincipalId": "3",
-                "fechaIngreso": "2022-03-10",
-                "salario": 1800.0
-            },
-            {
-                "id": "4",
-                "empresaId": "3",
-                "codigoConductor": "COND004",
-                "nombres": "Luis Fernando",
-                "apellidoPaterno": "Condori",
-                "apellidoMaterno": "Apaza",
-                "dni": "55667788",
-                "fechaNacimiento": "1995-04-18",
-                "telefono": "955443322",
-                "email": "luis.condori@email.com",
-                "numeroLicencia": "P55667788",
-                "categoria": "B-I",
-                "fechaVencimiento": "2027-01-15",
-                "tipoConductor": "PRACTICANTE",
-                "estado": "ACTIVO",
-                "vehiculosAsignadosIds": ["5"],
-                "fechaIngreso": "2024-01-15",
-                "salario": 900.0
-            }
-        ]
+        # 3. CONDUCTORES - Datos mock eliminados, usar solo MongoDB
+        conductores_data = []
         
         for conductor in conductores_data:
             self.agregar_conductor(conductor)
         
-        # 4. RUTAS
-        rutas_data = [
-            {
-                "id": "1",
-                "empresaId": "1",
-                "codigoRuta": "R001",
-                "nombre": "Puno - Juliaca",
-                "origen": "Puno",
-                "destino": "Juliaca",
-                "distanciaKm": 45.5,
-                "tiempoEstimado": 60,
-                "estado": "ACTIVA",
-                "vehiculosAsignadosIds": ["1", "2"],
-                "tarifaAdulto": 8.50,
-                "tarifaNiño": 4.25,
-                "frecuenciaDiaria": 12
-            },
-            {
-                "id": "2",
-                "empresaId": "2",
-                "codigoRuta": "R002",
-                "nombre": "Juliaca - Arequipa",
-                "origen": "Juliaca",
-                "destino": "Arequipa",
-                "distanciaKm": 280.0,
-                "tiempoEstimado": 300,
-                "estado": "ACTIVA",
-                "vehiculosAsignadosIds": ["3"],
-                "tarifaAdulto": 35.00,
-                "tarifaNiño": 17.50,
-                "frecuenciaDiaria": 4
-            },
-            {
-                "id": "3",
-                "empresaId": "3",
-                "codigoRuta": "R003",
-                "nombre": "Puno - Cusco (Turístico)",
-                "origen": "Puno",
-                "destino": "Cusco",
-                "distanciaKm": 390.0,
-                "tiempoEstimado": 420,
-                "estado": "ACTIVA",
-                "vehiculosAsignadosIds": ["5"],
-                "tarifaAdulto": 85.00,
-                "tarifaNiño": 42.50,
-                "frecuenciaDiaria": 2,
-                "tipoServicio": "TURISTICO"
-            }
-        ]
+        # 4. RUTAS - Datos mock eliminados, usar solo MongoDB
+        rutas_data = []
         
         for ruta in rutas_data:
             self.agregar_ruta(ruta)
         
-        # 5. EXPEDIENTES
-        expedientes_data = [
-            {
-                "id": "1",
-                "vehiculoId": "1",
-                "numeroExpediente": "EXP-2024-001",
-                "tipoTramite": "ALTA",
-                "fechaInicio": "2024-01-15",
-                "estado": "APROBADO",
-                "observaciones": "Expediente de alta inicial del vehículo"
-            },
-            {
-                "id": "2",
-                "vehiculoId": "2",
-                "numeroExpediente": "EXP-2024-002",
-                "tipoTramite": "MODIFICACION",
-                "fechaInicio": "2024-02-10",
-                "estado": "EN_PROCESO",
-                "observaciones": "Modificación de datos técnicos"
-            },
-            {
-                "id": "3",
-                "vehiculoId": "3",
-                "numeroExpediente": "EXP-2024-003",
-                "tipoTramite": "ALTA",
-                "fechaInicio": "2024-01-20",
-                "estado": "APROBADO",
-                "observaciones": "Alta de vehículo nuevo"
-            }
-        ]
+        # 5. EXPEDIENTES - Datos mock eliminados, usar solo MongoDB
+        expedientes_data = []
         
         for expediente in expedientes_data:
             self.agregar_expediente(expediente)
         
-        # 6. RESOLUCIONES
-        resoluciones_data = [
-            {
-                "id": "1",
-                "expedienteId": "1",
-                "numeroResolucion": "RES-001-2024",
-                "fechaEmision": "2024-01-20",
-                "tipoResolucion": "APROBACION",
-                "estado": "VIGENTE",
-                "observaciones": "Resolución de aprobación de alta"
-            },
-            {
-                "id": "2",
-                "expedienteId": "3",
-                "numeroResolucion": "RES-002-2024",
-                "fechaEmision": "2024-01-25",
-                "tipoResolucion": "APROBACION",
-                "estado": "VIGENTE",
-                "observaciones": "Resolución de aprobación de alta"
-            }
-        ]
+        # 6. RESOLUCIONES - Datos mock eliminados, usar solo MongoDB
+        resoluciones_data = []
         
         for resolucion in resoluciones_data:
             self.agregar_resolucion(resolucion)
         
-        # 7. HISTORIAL DE VALIDACIONES
-        self._generar_historial_validaciones()
+        # 7. HISTORIAL DE VALIDACIONES - Datos mock eliminados
+        # self._generar_historial_validaciones()
         
         # Actualizar estadísticas
         self._actualizar_estadisticas()
         
         self._log_operacion("INICIALIZACION", "Sistema inicializado con datos relacionados")
-    
-    def _generar_historial_validaciones(self):
-        """Generar historial de validaciones para los vehículos"""
-        
-        validaciones_data = [
-            {
-                "vehiculoId": "1",
-                "validaciones": [
-                    {
-                        "id": "1",
-                        "numeroSecuencial": 1,
-                        "fechaValidacion": "2024-01-15",
-                        "tipoValidacion": "INICIAL",
-                        "estado": "APROBADO",
-                        "observaciones": "Validación inicial exitosa",
-                        "resolucionId": "1"
-                    },
-                    {
-                        "id": "2",
-                        "numeroSecuencial": 2,
-                        "fechaValidacion": "2024-06-15",
-                        "tipoValidacion": "RENOVACION",
-                        "estado": "APROBADO",
-                        "observaciones": "Renovación semestral"
-                    }
-                ]
-            },
-            {
-                "vehiculoId": "2",
-                "validaciones": [
-                    {
-                        "id": "3",
-                        "numeroSecuencial": 1,
-                        "fechaValidacion": "2024-02-10",
-                        "tipoValidacion": "INICIAL",
-                        "estado": "PENDIENTE",
-                        "observaciones": "En proceso de validación"
-                    }
-                ]
-            },
-            {
-                "vehiculoId": "3",
-                "validaciones": [
-                    {
-                        "id": "4",
-                        "numeroSecuencial": 1,
-                        "fechaValidacion": "2024-01-20",
-                        "tipoValidacion": "INICIAL",
-                        "estado": "APROBADO",
-                        "observaciones": "Validación inicial exitosa",
-                        "resolucionId": "2"
-                    }
-                ]
-            }
-        ]
-        
-        for item in validaciones_data:
-            vehiculo_id = item["vehiculoId"]
-            self.validaciones_historial[vehiculo_id] = item["validaciones"]
     
     # MÉTODOS PARA AGREGAR DATOS
     

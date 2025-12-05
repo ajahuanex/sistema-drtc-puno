@@ -47,6 +47,9 @@ class Ruta(BaseModel):
     vehiculosAsignadosIds: List[str] = []
     documentosIds: List[str] = []
     historialIds: List[str] = []
+    # Campos de relación con empresa y resolución
+    empresaId: Optional[str] = None  # Empresa propietaria de la ruta
+    resolucionId: Optional[str] = None  # Resolución primigenia asociada (debe ser PADRE y VIGENTE)
 
 class RutaCreate(BaseModel):
     codigoRuta: str
@@ -64,6 +67,9 @@ class RutaCreate(BaseModel):
     horarios: List[dict] = []
     restricciones: List[str] = []
     observaciones: Optional[str] = None
+    # Campos obligatorios de relación
+    empresaId: str  # Empresa propietaria (obligatorio)
+    resolucionId: str  # Resolución primigenia (obligatorio, debe ser PADRE y VIGENTE)
 
 class RutaUpdate(BaseModel):
     codigoRuta: Optional[str] = None  # Agregado para permitir cambios de código
@@ -83,6 +89,7 @@ class RutaUpdate(BaseModel):
     empresasAutorizadasIds: Optional[List[str]] = None
     vehiculosAsignadosIds: Optional[List[str]] = None
     documentosIds: Optional[List[str]] = None
+    # Nota: empresaId y resolucionId NO se pueden actualizar una vez creada la ruta
 
 class RutaInDB(Ruta):
     """Modelo para ruta en base de datos con campos adicionales de seguridad"""

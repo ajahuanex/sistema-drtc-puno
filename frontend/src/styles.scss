@@ -578,3 +578,32 @@ body {
     min-height: 44px;
   }
 }
+
+
+/* ============================================
+   SOLUCIÓN PARA MODALES TAPADOS POR MENÚ
+   Reducir z-index del sidebar y toolbar
+   Sin tocar los z-index de los modales
+   ============================================ */
+
+/* Sidebar/Menú lateral - debe estar por debajo de los modales */
+.mat-sidenav,
+.mat-drawer,
+.mat-sidenav-container,
+.mat-drawer-container {
+  z-index: 1 !important;
+}
+
+/* Toolbar/Header - debe estar por debajo de los modales */
+.mat-toolbar {
+  z-index: 2 !important;
+}
+
+/* Contenido principal */
+.mat-sidenav-content,
+.mat-drawer-content {
+  z-index: 0 !important;
+}
+
+/* Los modales de Material Design ya tienen z-index alto por defecto (1000+) */
+/* No necesitamos modificarlos, solo asegurar que el menú esté por debajo */

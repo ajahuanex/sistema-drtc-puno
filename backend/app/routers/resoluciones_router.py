@@ -575,3 +575,113 @@ async def procesar_carga_masiva_resoluciones(
             status_code=500, 
             detail=f"Error al procesar archivo: {str(e)}"
         )
+
+# ========================================
+# ENDPOINTS DE RELACIONES
+# ========================================
+
+@router.get("/{resolucion_id}/vehiculos")
+async def get_vehiculos_resolucion(
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Obtener todos los vehículos habilitados en una resolución"""
+    try:
+        vehiculos = await resolucion_service.get_vehiculos_resolucion(resolucion_id)
+        return vehiculos
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener vehículos: {str(e)}")
+
+@router.get("/{resolucion_id}/rutas")
+async def get_rutas_resolucion(
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Obtener todas las rutas autorizadas en una resolución"""
+    try:
+        rutas = await resolucion_service.get_rutas_resolucion(resolucion_id)
+        return rutas
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener rutas: {str(e)}")
+
+@router.post("/{resolucion_id}/vehiculos/{vehiculo_id}")
+async def agregar_vehiculo_resolucion(
+    resolucion_id: str,
+    vehiculo_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Agregar un vehículo a la resolución"""
+    try:
+        resultado = await resolucion_service.agregar_vehiculo(resolucion_id, vehiculo_id)
+        return {"message": "Vehículo agregado exitosamente", "resolucion": resultado}
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationErrorException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al agregar vehículo: {str(e)}")
+
+@router.delete("/{resolucion_id}/vehiculos/{vehiculo_id}")
+async def remover_vehiculo_resolucion(
+    resolucion_id: str,
+    vehiculo_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Remover un vehículo de la resolución"""
+    try:
+        resultado = await resolucion_service.remover_vehiculo(resolucion_id, vehiculo_id)
+        return {"message": "Vehículo removido exitosamente", "resolucion": resultado}
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al remover vehículo: {str(e)}")
+
+@router.post("/{resolucion_id}/rutas/{ruta_id}")
+async def agregar_ruta_resolucion(
+    resolucion_id: str,
+    ruta_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Agregar una ruta a la resolución"""
+    try:
+        resultado = await resolucion_service.agregar_ruta(resolucion_id, ruta_id)
+        return {"message": "Ruta agregada exitosamente", "resolucion": resultado}
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationErrorException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al agregar ruta: {str(e)}")
+
+@router.delete("/{resolucion_id}/rutas/{ruta_id}")
+async def remover_ruta_resolucion(
+    resolucion_id: str,
+    ruta_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Remover una ruta de la resolución"""
+    try:
+        resultado = await resolucion_service.remover_ruta(resolucion_id, ruta_id)
+        return {"message": "Ruta removida exitosamente", "resolucion": resultado}
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al remover ruta: {str(e)}")
+
+@router.get("/{resolucion_id}/resumen")
+async def get_resumen_resolucion(
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Obtener resumen completo de una resolución con sus vehículos y rutas"""
+    try:
+        resumen = await resolucion_service.get_resumen_completo(resolucion_id)
+        return resumen
+    except ResolucionNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener resumen: {str(e)}")

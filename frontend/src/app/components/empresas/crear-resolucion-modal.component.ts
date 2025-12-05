@@ -1107,13 +1107,11 @@ export class CrearResolucionModalComponent implements OnDestroy {
         let resolucionesPadre: Resolucion[] = [];
 
         if (expediente.tipoTramite === 'RENOVACION') {
-          // Para RENOVACION: mostrar solo resoluciones padre que estén próximas a vencer
+          // Para RENOVACION: mostrar resoluciones padre VIGENTES o VENCIDAS (para renovar)
           resolucionesPadre = resolucionesEmpresa.filter(r =>
             r.tipoResolucion === 'PADRE' &&
             r.estaActivo &&
-            r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin &&
-            new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
+            (r.estado === 'VIGENTE' || r.estado === 'VENCIDA') // Permitir renovar VENCIDAS
           );
           console.log('🔄 Resoluciones padre disponibles para RENOVACIÓN:', resolucionesPadre);
 

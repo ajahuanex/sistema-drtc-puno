@@ -18,6 +18,7 @@ class TipoResolucion(str, Enum):
     HIJO = "HIJO"
 
 class TipoTramite(str, Enum):
+    AUTORIZACION_NUEVA = "AUTORIZACION_NUEVA"  # Autorización nueva (primigenia)
     PRIMIGENIA = "PRIMIGENIA"
     RENOVACION = "RENOVACION"
     INCREMENTO = "INCREMENTO"
@@ -38,12 +39,12 @@ class Resolucion(BaseModel):
     rutasAutorizadasIds: List[str] = []
     tipoTramite: TipoTramite
     descripcion: str
-    expedienteId: str
+    expedienteId: Optional[str] = None  # Opcional porque no todas las resoluciones tienen expediente
     documentoId: Optional[str] = None
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
-    usuarioEmisionId: str
+    usuarioEmisionId: Optional[str] = None  # Opcional
     observaciones: Optional[str] = None
     estado: Optional[EstadoResolucion] = None
     motivoSuspension: Optional[str] = None
@@ -99,7 +100,7 @@ class ResolucionFiltros(BaseModel):
     tieneRutas: Optional[bool] = None
 
 class ResolucionResponse(BaseModel):
-    id: str
+    id: Optional[str] = None  # Opcional para compatibilidad
     nroResolucion: str
     empresaId: str
     fechaEmision: datetime
@@ -112,13 +113,13 @@ class ResolucionResponse(BaseModel):
     rutasAutorizadasIds: List[str]
     tipoTramite: TipoTramite
     descripcion: str
-    expedienteId: str
+    expedienteId: Optional[str] = None  # Opcional
     documentoId: Optional[str] = None
     estaActivo: bool
     estado: Optional[EstadoResolucion] = None
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
-    usuarioEmisionId: str
+    usuarioEmisionId: Optional[str] = None  # Opcional
     observaciones: Optional[str] = None
     motivoSuspension: Optional[str] = None
     fechaSuspension: Optional[datetime] = None

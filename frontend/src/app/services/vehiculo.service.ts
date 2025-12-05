@@ -48,37 +48,7 @@ export class VehiculoService {
   
   private apiUrl = environment.apiUrl;
 
-  // Datos mock básicos para fallback
-  private mockVehiculos: Vehiculo[] = [
-    {
-      id: '1',
-      placa: 'PUN-001',
-      empresaActualId: '1',
-      resolucionId: '1',
-      marca: 'MERCEDES BENZ',
-      modelo: 'OH-1628',
-      anioFabricacion: 2020,
-      estado: 'ACTIVO',
-      estaActivo: true,
-      rutasAsignadasIds: ['1'],
-      categoria: 'M3',
-      datosTecnicos: {
-        motor: 'OM906LA001',
-        chasis: '8JMOH1628LA001',
-        cilindros: 6,
-        ejes: 2,
-        ruedas: 6,
-        asientos: 45,
-        pesoNeto: 8500,
-        pesoBruto: 16000,
-        medidas: {
-          largo: 12000,
-          ancho: 2500,
-          alto: 3200
-        }
-      }
-    }
-  ];
+  // Datos mock eliminados - usando únicamente MongoDB
 
   // Constructor removido - usando inject() en las propiedades
 
@@ -103,7 +73,7 @@ export class VehiculoService {
       }).pipe(
         catchError(error => {
           console.error('Error obteniendo vehículos:', error);
-          return of(this.mockVehiculos);
+          return of([]);
         })
       );
     }
@@ -118,8 +88,7 @@ export class VehiculoService {
       }).pipe(
         catchError(error => {
           console.error('Error obteniendo vehículo:', error);
-          const vehiculo = this.mockVehiculos.find(v => v.id === id);
-          return of(vehiculo || null);
+          return of(null);
         })
       );
     }
@@ -176,11 +145,11 @@ export class VehiculoService {
         map(vehicles => vehicles.map(v => this.mapToVehiculo(v))),
         catchError(error => {
           console.error('❌ Error obteniendo vehículos persistentes:', error);
-          return of(this.mockVehiculos);
+          return of([]);
         })
       );
     } else {
-      return of(this.mockVehiculos);
+      return of([]);
     }
   }
 
@@ -207,15 +176,7 @@ export class VehiculoService {
       );
     } else {
       // Fallback a mock
-      const nuevoVehiculo: Vehiculo = {
-        ...vehiculoData,
-        id: (this.mockVehiculos.length + 1).toString(),
-        estado: 'ACTIVO',
-        estaActivo: true
-      };
-      
-      this.mockVehiculos.push(nuevoVehiculo);
-      return of(nuevoVehiculo);
+      return throwError(() => new Error('Error al crear vehículo - Backend no disponible'));
     }
   }
 
@@ -233,8 +194,7 @@ export class VehiculoService {
         })
       );
     } else {
-      const vehiculo = this.mockVehiculos.find(v => v.id === vehiculoId);
-      return of(vehiculo || null);
+      return of(null);
     }
   }
 
@@ -252,8 +212,7 @@ export class VehiculoService {
         })
       );
     } else {
-      const vehiculo = this.mockVehiculos.find(v => v.id === vehiculoId);
-      return of(vehiculo || null);
+      return of(null);
     }
   }
 
@@ -271,8 +230,7 @@ export class VehiculoService {
         })
       );
     } else {
-      const vehiculos = this.mockVehiculos.filter(v => v.empresaActualId === empresaId);
-      return of(vehiculos);
+      return of([]);
     }
   }
 
@@ -571,12 +529,8 @@ export class VehiculoService {
         catchError(() => of(true)) // En caso de error, permitir continuar
       );
     } else {
-      // Verificar en mock
-      const placaUpper = placa.toUpperCase().trim();
-      const vehiculoExistente = this.mockVehiculos.find(v => 
-        v.placa.toUpperCase() === placaUpper && v.id !== vehiculoIdActual
-      );
-      return of(!vehiculoExistente);
+      // Sin datos mock - siempre retornar true (placa disponible)
+      return of(true);
     }
   }
 }

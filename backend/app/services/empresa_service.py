@@ -107,25 +107,37 @@ class EmpresaService:
         query = {"$or": or_conditions}
         
         empresa = await self.collection.find_one(query)
+        if empresa:
+            empresa = self._convert_id(empresa)
         return EmpresaInDB(**empresa) if empresa else None
 
     async def get_empresa_by_ruc(self, ruc: str) -> Optional[EmpresaInDB]:
         empresa = await self.collection.find_one({"ruc": ruc})
+        if empresa:
+            empresa = self._convert_id(empresa)
         return EmpresaInDB(**empresa) if empresa else None
 
     async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
         empresa = await self.collection.find_one({"codigoEmpresa": codigo})
+        if empresa:
+            empresa = self._convert_id(empresa)
         return EmpresaInDB(**empresa) if empresa else None
+
+    def _convert_id(self, doc: dict) -> dict:
+        """Convierte _id de MongoDB a id string"""
+        if "_id" in doc:
+            doc["id"] = str(doc.pop("_id"))
+        return doc
 
     async def get_empresas_activas(self) -> List[EmpresaInDB]:
         cursor = self.collection.find({"estaActivo": True})
         docs = await cursor.to_list(length=None)
-        return [EmpresaInDB(**doc) for doc in docs]
+        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
 
     async def get_empresas_por_estado(self, estado: EstadoEmpresa) -> List[EmpresaInDB]:
         cursor = self.collection.find({"estado": estado, "estaActivo": True})
         docs = await cursor.to_list(length=None)
-        return [EmpresaInDB(**doc) for doc in docs]
+        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
 
     async def get_empresas_con_filtros(self, filtros: EmpresaFiltros) -> List[EmpresaInDB]:
         query: Dict[str, Any] = {"estaActivo": True}

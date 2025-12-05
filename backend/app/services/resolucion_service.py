@@ -54,6 +54,20 @@ class ResolucionService:
             )
 
         result = await self.collection.insert_one(resolucion_dict)
+        resolucion_id = resolucion_dict.get("id", str(result.inserted_id))
+        
+        # IMPORTANTE: Actualizar la empresa con la nueva resolución
+        if resolucion_data.empresaId:
+            try:
+                empresas_collection = self.db["empresas"]
+                await empresas_collection.update_one(
+                    {"_id": ObjectId(resolucion_data.empresaId)},
+                    {"$addToSet": {"resolucionesPrimigeniasIds": resolucion_id}}
+                )
+                print(f"✅ Resolución {resolucion_id} agregada a empresa {resolucion_data.empresaId}")
+            except Exception as e:
+                print(f"⚠️ Error actualizando empresa: {e}")
+        
         # Buscar por _id ya que acabamos de insertar
         resolucion_creada = await self.collection.find_one({"_id": result.inserted_id})
         if resolucion_creada:
@@ -71,7 +85,11 @@ class ResolucionService:
         return ResolucionInDB(**resolucion) if resolucion else None
 
     async def get_resolucion_by_numero(self, numero: str) -> Optional[ResolucionInDB]:
-        resolucion = await self.collection.find_one({"nroResolucion": numero})
+        # Solo buscar resoluciones activas para validar duplicados
+        resolucion = await self.collection.find_one({
+            "nroResolucion": numero,
+            "estaActivo": True  # Solo validar contra resoluciones activas
+        })
         if resolucion:
             if "_id" in resolucion and "id" not in resolucion:
                 resolucion["id"] = str(resolucion.pop("_id"))
@@ -81,14 +99,41 @@ class ResolucionService:
     async def get_resoluciones_activas(self) -> List[ResolucionInDB]:
         cursor = self.collection.find({"estaActivo": True})
         docs = await cursor.to_list(length=None)
+        
+        # Convertir _id a id para cada documento
+        for doc in docs:
+            if "_id" in doc:
+                if "id" not in doc or not doc.get("id"):
+                    doc["id"] = str(doc["_id"])
+                # No eliminar _id aquí para mantener compatibilidad
+        
         return [ResolucionInDB(**doc) for doc in docs]
 
     async def get_resoluciones_por_estado(self, estado: str) -> List[ResolucionInDB]:
         cursor = self.collection.find({"estado": estado, "estaActivo": True})
         docs = await cursor.to_list(length=None)
+        
+        # Convertir _id a id para cada documento
+        for doc in docs:
+            if "_id" in doc:
+                if "id" not in doc or not doc.get("id"):
+                    doc["id"] = str(doc["_id"])
+        
         return [ResolucionInDB(**doc) for doc in docs]
 
     async def get_resoluciones_por_empresa(self, empresa_id: str) -> List[ResolucionInDB]:
+        cursor = self.collection.find({"empresaId": empresa_id, "estaActivo": True})
+        docs = await cursor.to_list(length=None)
+        
+        # Convertir _id a id para cada documento
+        for doc in docs:
+            if "_id" in doc:
+                if "id" not in doc or not doc.get("id"):
+                    doc["id"] = str(doc["_id"])
+        
+        return [ResolucionInDB(**doc) for doc in docs]
+    
+    async def get_resoluciones_por_empresa_old(self, empresa_id: str) -> List[ResolucionInDB]:
         cursor = self.collection.find({"empresaId": empresa_id, "estaActivo": True})
         docs = await cursor.to_list(length=None)
         return [ResolucionInDB(**doc) for doc in docs]
@@ -216,3 +261,230 @@ class ResolucionService:
         cursor = self.collection.find({"estado": EstadoResolucion.VENCIDA, "estaActivo": True})
         docs = await cursor.to_list(length=None)
         return [ResolucionInDB(**doc) for doc in docs]
+
+
+    # ========================================
+    # MÉTODOS DE GESTIÓN DE RELACIONES
+    # ========================================
+
+    async def get_vehiculos_resolucion(self, resolucion_id: str) -> List[Dict[str, Any]]:
+        """Obtener todos los vehículos habilitados en una resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        vehiculos_collection = self.db["vehiculos"]
+        vehiculos = []
+        
+        for vehiculo_id in resolucion.vehiculosHabilitadosIds:
+            # Buscar por id o _id
+            or_conditions = [{"id": vehiculo_id}]
+            if ObjectId.is_valid(vehiculo_id):
+                or_conditions.append({"_id": ObjectId(vehiculo_id)})
+            
+            vehiculo = await vehiculos_collection.find_one({"$or": or_conditions})
+            if vehiculo:
+                if "_id" in vehiculo:
+                    vehiculo["id"] = str(vehiculo.pop("_id"))
+                vehiculos.append(vehiculo)
+        
+        return vehiculos
+
+    async def get_rutas_resolucion(self, resolucion_id: str) -> List[Dict[str, Any]]:
+        """Obtener todas las rutas autorizadas en una resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        rutas_collection = self.db["rutas"]
+        rutas = []
+        
+        for ruta_id in resolucion.rutasAutorizadasIds:
+            # Buscar por id o _id
+            or_conditions = [{"id": ruta_id}]
+            if ObjectId.is_valid(ruta_id):
+                or_conditions.append({"_id": ObjectId(ruta_id)})
+            
+            ruta = await rutas_collection.find_one({"$or": or_conditions})
+            if ruta:
+                if "_id" in ruta:
+                    ruta["id"] = str(ruta.pop("_id"))
+                rutas.append(ruta)
+        
+        return rutas
+
+    async def agregar_vehiculo(self, resolucion_id: str, vehiculo_id: str) -> ResolucionInDB:
+        """Agregar un vehículo a la resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        # Verificar que el vehículo existe
+        vehiculos_collection = self.db["vehiculos"]
+        or_conditions = [{"id": vehiculo_id}]
+        if ObjectId.is_valid(vehiculo_id):
+            or_conditions.append({"_id": ObjectId(vehiculo_id)})
+        
+        vehiculo = await vehiculos_collection.find_one({"$or": or_conditions})
+        if not vehiculo:
+            raise ValidationErrorException("Vehículo", f"No se encontró el vehículo con ID {vehiculo_id}")
+        
+        # Verificar que el vehículo pertenece a la misma empresa
+        vehiculo_empresa_id = vehiculo.get("empresaActualId")
+        if vehiculo_empresa_id != resolucion.empresaId:
+            raise ValidationErrorException(
+                "Vehículo", 
+                f"El vehículo no pertenece a la empresa de la resolución"
+            )
+        
+        # Agregar vehículo si no está ya en la lista
+        if vehiculo_id not in resolucion.vehiculosHabilitadosIds:
+            await self.collection.update_one(
+                {"id": resolucion_id},
+                {
+                    "$addToSet": {"vehiculosHabilitadosIds": vehiculo_id},
+                    "$set": {"fechaActualizacion": datetime.utcnow()}
+                }
+            )
+            
+            # Actualizar el vehículo con la resolución
+            await vehiculos_collection.update_one(
+                {"$or": or_conditions},
+                {"$set": {"resolucionId": resolucion_id}}
+            )
+        
+        return await self.get_resolucion_by_id(resolucion_id)
+
+    async def remover_vehiculo(self, resolucion_id: str, vehiculo_id: str) -> ResolucionInDB:
+        """Remover un vehículo de la resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        # Remover vehículo de la lista
+        await self.collection.update_one(
+            {"id": resolucion_id},
+            {
+                "$pull": {"vehiculosHabilitadosIds": vehiculo_id},
+                "$set": {"fechaActualizacion": datetime.utcnow()}
+            }
+        )
+        
+        # Actualizar el vehículo (remover resolución)
+        vehiculos_collection = self.db["vehiculos"]
+        or_conditions = [{"id": vehiculo_id}]
+        if ObjectId.is_valid(vehiculo_id):
+            or_conditions.append({"_id": ObjectId(vehiculo_id)})
+        
+        await vehiculos_collection.update_one(
+            {"$or": or_conditions},
+            {"$set": {"resolucionId": None}}
+        )
+        
+        return await self.get_resolucion_by_id(resolucion_id)
+
+    async def agregar_ruta(self, resolucion_id: str, ruta_id: str) -> ResolucionInDB:
+        """Agregar una ruta a la resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        # Verificar que la ruta existe
+        rutas_collection = self.db["rutas"]
+        or_conditions = [{"id": ruta_id}]
+        if ObjectId.is_valid(ruta_id):
+            or_conditions.append({"_id": ObjectId(ruta_id)})
+        
+        ruta = await rutas_collection.find_one({"$or": or_conditions})
+        if not ruta:
+            raise ValidationErrorException("Ruta", f"No se encontró la ruta con ID {ruta_id}")
+        
+        # Verificar que la ruta pertenece a la misma empresa
+        ruta_empresa_id = ruta.get("empresaId")
+        if ruta_empresa_id != resolucion.empresaId:
+            raise ValidationErrorException(
+                "Ruta", 
+                f"La ruta no pertenece a la empresa de la resolución"
+            )
+        
+        # Agregar ruta si no está ya en la lista
+        if ruta_id not in resolucion.rutasAutorizadasIds:
+            await self.collection.update_one(
+                {"id": resolucion_id},
+                {
+                    "$addToSet": {"rutasAutorizadasIds": ruta_id},
+                    "$set": {"fechaActualizacion": datetime.utcnow()}
+                }
+            )
+            
+            # Actualizar la ruta con la resolución
+            await rutas_collection.update_one(
+                {"$or": or_conditions},
+                {"$set": {"resolucionId": resolucion_id}}
+            )
+        
+        return await self.get_resolucion_by_id(resolucion_id)
+
+    async def remover_ruta(self, resolucion_id: str, ruta_id: str) -> ResolucionInDB:
+        """Remover una ruta de la resolución"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        # Remover ruta de la lista
+        await self.collection.update_one(
+            {"id": resolucion_id},
+            {
+                "$pull": {"rutasAutorizadasIds": ruta_id},
+                "$set": {"fechaActualizacion": datetime.utcnow()}
+            }
+        )
+        
+        # Actualizar la ruta (remover resolución)
+        rutas_collection = self.db["rutas"]
+        or_conditions = [{"id": ruta_id}]
+        if ObjectId.is_valid(ruta_id):
+            or_conditions.append({"_id": ObjectId(ruta_id)})
+        
+        await rutas_collection.update_one(
+            {"$or": or_conditions},
+            {"$set": {"resolucionId": None}}
+        )
+        
+        return await self.get_resolucion_by_id(resolucion_id)
+
+    async def get_resumen_completo(self, resolucion_id: str) -> Dict[str, Any]:
+        """Obtener resumen completo de una resolución con sus vehículos y rutas"""
+        resolucion = await self.get_resolucion_by_id(resolucion_id)
+        if not resolucion:
+            raise ResolucionNotFoundException(resolucion_id)
+        
+        # Obtener vehículos y rutas
+        vehiculos = await self.get_vehiculos_resolucion(resolucion_id)
+        rutas = await self.get_rutas_resolucion(resolucion_id)
+        
+        # Obtener empresa
+        empresas_collection = self.db["empresas"]
+        or_conditions = [{"id": resolucion.empresaId}]
+        if ObjectId.is_valid(resolucion.empresaId):
+            or_conditions.append({"_id": ObjectId(resolucion.empresaId)})
+        
+        empresa = await empresas_collection.find_one({"$or": or_conditions})
+        if empresa and "_id" in empresa:
+            empresa["id"] = str(empresa.pop("_id"))
+        
+        # Construir resumen
+        resumen = {
+            "resolucion": resolucion.model_dump(),
+            "empresa": empresa,
+            "vehiculos": vehiculos,
+            "rutas": rutas,
+            "estadisticas": {
+                "totalVehiculos": len(vehiculos),
+                "totalRutas": len(rutas),
+                "vehiculosActivos": len([v for v in vehiculos if v.get("estado") == "ACTIVO"]),
+                "rutasActivas": len([r for r in rutas if r.get("estado") == "ACTIVA"])
+            }
+        }
+        
+        return resumen

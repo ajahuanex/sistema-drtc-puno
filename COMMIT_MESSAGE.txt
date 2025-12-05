@@ -1,0 +1,65 @@
+feat: Solución completa del problema de resoluciones en módulo de rutas
+
+PROBLEMA RESUELTO:
+- Las resoluciones no aparecían al seleccionar empresa en el módulo de Rutas
+
+CAMBIOS EN BACKEND:
+- Corregido EmpresaService para devolver ObjectIds correctos en lugar de UUIDs
+- Agregada función _convert_id() en todos los métodos de empresa
+- Implementados 7 nuevos endpoints para gestión de relaciones resolución-vehículo-ruta
+- Agregados métodos en ResolucionService para gestionar relaciones
+- Actualizado VehiculoService para actualizar resolución automáticamente
+- RutaService ya actualizaba resolución correctamente
+
+CAMBIOS EN FRONTEND:
+- Corregido filtro en rutas.component.ts para aceptar PRIMIGENIA y AUTORIZACION_NUEVA
+- Actualizado tipo TipoTramite en resolucion.model.ts para incluir PRIMIGENIA
+- Actualizado tipo TipoTramite en expediente.model.ts para incluir PRIMIGENIA
+- Modificado cargarResolucionesPorEmpresa() para filtrar ambos tipos
+- Modificado filtrarRutasPorEmpresa() para filtrar ambos tipos
+
+SCRIPTS CREADOS:
+- diagnosticar_problema_rutas.py: Diagnostica relaciones empresa-resolución
+- corregir_empresaid_resolucion.py: Corrige empresaId de resoluciones
+- crear_resolucion_empresa_123465.py: Crea resolución para empresa
+- verificar_empresas_api.py: Verifica ObjectIds de empresas
+- verificar_resoluciones_api.py: Verifica resoluciones por empresa
+- probar_filtro_resoluciones.py: Prueba filtros del backend
+- probar_endpoint_resoluciones.py: Prueba endpoints
+- mostrar_empresa_correcta.py: Muestra empresas con resoluciones
+- limpiar_usuario_viejo.py: Limpia usuarios duplicados
+- verificar_usuarios.py: Lista usuarios
+- verificar_empresas.py: Lista empresas
+
+DOCUMENTACIÓN:
+- RESUMEN_SESION_04_DIC_2024.md: Resumen completo de la sesión
+- SOLUCION_PROBLEMA_RUTAS.md: Solución detallada
+- ANALISIS_ESTRUCTURA_RESOLUCIONES.md: Análisis de estructura de datos
+- IMPLEMENTACION_GESTION_RELACIONES.md: Documentación de nuevos endpoints
+- PARA_MAÑANA.md: Instrucciones para próxima sesión
+- Múltiples archivos de documentación adicionales
+
+ESTADO ACTUAL:
+✅ Resoluciones aparecen correctamente en selector de rutas
+✅ Backend devuelve datos correctos
+✅ Frontend filtra correctamente
+✅ Modal de crear ruta se abre
+⚠️  Pendiente: Guardar ruta no funciona (para mañana)
+
+ARCHIVOS MODIFICADOS:
+Backend:
+- backend/app/services/empresa_service.py
+- backend/app/services/resolucion_service.py
+- backend/app/services/vehiculo_service.py
+- backend/app/routers/resoluciones_router.py
+
+Frontend:
+- frontend/src/app/components/rutas/rutas.component.ts
+- frontend/src/app/models/resolucion.model.ts
+- frontend/src/app/models/expediente.model.ts
+
+BREAKING CHANGES: Ninguno
+
+TESTED: ✅ Backend probado con scripts Python
+        ✅ Frontend compila sin errores
+        ✅ Resoluciones aparecen en selector

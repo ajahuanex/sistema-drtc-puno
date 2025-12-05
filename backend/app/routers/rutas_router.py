@@ -5,10 +5,9 @@ from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
 from app.dependencies.auth import get_current_active_user
+from app.dependencies.db import get_database
+from app.services.ruta_service import RutaService
 from app.services.ruta_excel_service import RutaExcelService
-# from app.services.mock_ruta_service import MockRutaService  # COMENTADO: mock eliminado
-# from app.dependencies.db import get_database
-# from app.services.ruta_service import RutaService  # NO EXISTE AÚN
 from app.models.ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
 from app.utils.exceptions import (
     RutaNotFoundException, 
@@ -51,31 +50,113 @@ def build_ruta_response(ruta) -> RutaResponse:
 
 @router.post("/", response_model=RutaResponse, status_code=201)
 async def create_ruta(
-    ruta_data: RutaCreate
+    ruta_data: RutaCreate,
+    db = Depends(get_database)
 ) -> RutaResponse:
-    """Crear nueva ruta"""
+    """Crear nueva ruta con validaciones completas"""
     # Guard clauses al inicio
     if not ruta_data.codigoRuta.strip():
         raise ValidationErrorException("Código de Ruta", "El código de ruta no puede estar vacío")
     
-    ruta_service = MockRutaService()
+    if not ruta_data.empresaId:
+        raise ValidationErrorException("Empresa", "La empresa es obligatoria")
+    
+    if not ruta_data.resolucionId:
+        raise ValidationErrorException("Resolución", "La resolución es obligatoria")
+    
+    ruta_service = RutaService(db)
     
     try:
         ruta = await ruta_service.create_ruta(ruta_data)
         return build_ruta_response(ruta)
-    except ValueError as e:
-        if "código" in str(e).lower():
-            raise RutaAlreadyExistsException(ruta_data.codigoRuta)
-        else:
-            raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear ruta: {str(e)}")
+
+@router.get("/empresa/{empresa_id}/resolucion/{resolucion_id}", response_model=List[RutaResponse])
+async def get_rutas_por_empresa_y_resolucion(
+    empresa_id: str,
+    resolucion_id: str,
+    db = Depends(get_database)
+) -> List[RutaResponse]:
+    """Obtener rutas filtradas por empresa y resolución"""
+    ruta_service = RutaService(db)
+    rutas = await ruta_service.get_rutas_por_empresa_y_resolucion(empresa_id, resolucion_id)
+    return [build_ruta_response(r) for r in rutas]
+
+@router.get("/empresa/{empresa_id}", response_model=List[RutaResponse])
+async def get_rutas_por_empresa(
+    empresa_id: str,
+    db = Depends(get_database)
+) -> List[RutaResponse]:
+    """Obtener rutas de una empresa"""
+    ruta_service = RutaService(db)
+    rutas = await ruta_service.get_rutas_por_empresa(empresa_id)
+    return [build_ruta_response(r) for r in rutas]
+
+@router.get("/resolucion/{resolucion_id}", response_model=List[RutaResponse])
+async def get_rutas_por_resolucion(
+    resolucion_id: str,
+    db = Depends(get_database)
+) -> List[RutaResponse]:
+    """Obtener rutas de una resolución"""
+    ruta_service = RutaService(db)
+    rutas = await ruta_service.get_rutas_por_resolucion(resolucion_id)
+    return [build_ruta_response(r) for r in rutas]
+
+@router.get("/resolucion/{resolucion_id}/validar")
+async def validar_resolucion(
+    resolucion_id: str,
+    db = Depends(get_database)
+):
+    """Validar que una resolución sea válida para asociar rutas"""
+    ruta_service = RutaService(db)
+    
+    try:
+        es_valida = await ruta_service.validar_resolucion_vigente(resolucion_id)
+        return {
+            "valida": es_valida,
+            "mensaje": "Resolución válida para asociar rutas (VIGENTE y PADRE)"
+        }
+    except HTTPException as e:
+        return {
+            "valida": False,
+            "mensaje": e.detail
+        }
+
+@router.get("/resolucion/{resolucion_id}/siguiente-codigo")
+async def get_siguiente_codigo(
+    resolucion_id: str,
+    db = Depends(get_database)
+):
+    """Obtener el siguiente código disponible para una resolución"""
+    ruta_service = RutaService(db)
+    codigo = await ruta_service.generar_siguiente_codigo(resolucion_id)
+    return {
+        "resolucionId": resolucion_id,
+        "siguienteCodigo": codigo
+    }
 
 @router.get("/", response_model=List[RutaResponse])
 async def get_rutas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
-    estado: str = Query(None, description="Filtrar por estado")
+    estado: str = Query(None, description="Filtrar por estado"),
+    db = Depends(get_database)
 ) -> List[RutaResponse]:
     """Obtener lista de rutas con filtros opcionales"""
+    ruta_service = RutaService(db)
+    rutas = await ruta_service.get_rutas(skip=skip, limit=limit, estado=estado)
+    return [build_ruta_response(r) for r in rutas]
+
+@router.get("/mock", response_model=List[RutaResponse])
+async def get_rutas_mock(
+    skip: int = Query(0, ge=0, description="Número de registros a omitir"),
+    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
+    estado: str = Query(None, description="Filtrar por estado")
+) -> List[RutaResponse]:
+    """Obtener lista de rutas MOCK (solo para desarrollo)"""
     try:
         # Datos mock simplificados para evitar errores
         mock_rutas = [

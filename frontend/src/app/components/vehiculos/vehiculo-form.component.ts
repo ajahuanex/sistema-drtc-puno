@@ -1599,11 +1599,15 @@ export class VehiculoFormComponent implements OnInit {
   private loadResoluciones(empresaId: string): void {
     if (!empresaId) return;
 
-    this.resolucionService.getResoluciones().subscribe({
+    console.log('🔍 Cargando resoluciones para empresaId:', empresaId);
+
+    // Usar el método específico que filtra por empresa en el backend
+    this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
       next: (resoluciones) => {
-        // Filtrar resoluciones de la empresa seleccionada
-        const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
-        this.resoluciones.set(resolucionesEmpresa);
+        console.log('📋 Resoluciones recibidas:', resoluciones.length);
+        console.log('   Detalle:', resoluciones.map(r => ({ numero: r.nroResolucion, tipo: r.tipoResolucion })));
+        
+        this.resoluciones.set(resoluciones);
 
         // Si no hay resolución seleccionada, limpiar el campo
         if (!this.vehiculoForm.get('resolucionId')?.value) {

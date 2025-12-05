@@ -114,8 +114,12 @@ import { SmartIconComponent } from './smart-icon.component';
         <!-- Resolucion options -->
         <mat-option *ngFor="let resolucion of filteredResoluciones | async" [value]="resolucion.id">
           <div class="resolucion-option">
-            <strong>{{ resolucion.nroResolucion }}</strong>
-            <span class="descripcion">{{ resolucion.descripcion }}</span>
+            <div class="resolucion-header">
+              <strong>{{ resolucion.nroResolucion }}</strong>
+              <span class="tipo-badge" [class]="'tipo-' + resolucion.tipoResolucion?.toLowerCase()">
+                {{ resolucion.tipoResolucion }}
+              </span>
+            </div>
             <div class="resolucion-meta">
               <small class="fecha">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</small>
               <small class="estado" [class]="'estado-' + resolucion.estado?.toLowerCase()">
@@ -123,8 +127,7 @@ import { SmartIconComponent } from './smart-icon.component';
               </small>
             </div>
           </div>
-        </mat-option>
-        
+        </mat-option>        
         <!-- No results option -->
         <mat-option *ngIf="!isLoading() && (filteredResoluciones | async)?.length === 0 && resolucionControl.value && resolucionControl.value.length > 0" value="" disabled>
           <div class="no-results-option">
@@ -170,21 +173,35 @@ import { SmartIconComponent } from './smart-icon.component';
       padding: 4px 0;
     }
 
+    .resolucion-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .resolucion-option strong {
       color: #1976d2;
       font-weight: 600;
       font-size: 0.95em;
     }
 
-    .resolucion-option .descripcion {
-      color: #666;
-      font-size: 0.85em;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .tipo-badge {
+      font-size: 0.7em;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tipo-padre {
+      color: #1565c0;
+      background: #e3f2fd;
+    }
+
+    .tipo-hijo {
+      color: #f57c00;
+      background: #fff3e0;
     }
 
     .resolucion-option .resolucion-meta {
@@ -398,10 +415,17 @@ export class ResolucionSelectorComponent implements OnInit {
       )
       .subscribe({
         next: (resoluciones) => {
-          // Filtrar solo resoluciones activas y vigentes
-          const resolucionesActivas = resoluciones.filter(r => 
-            r.estaActivo && (r.estado === 'VIGENTE' || !r.estado)
-          );
+          // Mostrar todas las resoluciones activas (sin filtrar por estado VIGENTE)
+          // Un vehículo puede estar en cualquier resolución, solo cambian las rutas
+          const resolucionesActivas = resoluciones.filter(r => r.estaActivo);
+          
+          console.log('📋 Resoluciones cargadas en selector:', resolucionesActivas.length);
+          console.log('   Detalle:', resolucionesActivas.map(r => ({ 
+            numero: r.nroResolucion, 
+            tipo: r.tipoResolucion,
+            estado: r.estado 
+          })));
+          
           this.resoluciones.set(resolucionesActivas);
         },
         error: (error) => {

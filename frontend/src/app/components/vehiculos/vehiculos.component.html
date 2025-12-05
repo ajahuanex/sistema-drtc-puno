@@ -1,0 +1,366 @@
+<div class="page-header">
+    <div class="header-content">
+        <div class="header-title">
+            <h1>VEHÍCULOS REGISTRADOS</h1>
+        </div>
+        <p class="header-subtitle">GESTIÓN INTEGRAL DE VEHÍCULOS DE TRANSPORTE</p>
+    </div>
+    <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="action-button">
+            <mat-icon>add</mat-icon>
+            NUEVO VEHÍCULO
+        </button>
+        <button mat-raised-button color="warn" (click)="cargaMasivaVehiculos()" class="action-button">
+            <mat-icon>upload_file</mat-icon>
+            CARGA MASIVA
+        </button>
+        <button mat-button color="accent" [matMenuTriggerFor]="historialMenu" class="action-button">
+            <mat-icon>history</mat-icon>
+            HISTORIAL
+        </button>
+        <mat-menu #historialMenu="matMenu">
+            <button mat-menu-item (click)="actualizarHistorialTodos()">
+                <mat-icon>refresh</mat-icon>
+                <span>ACTUALIZAR HISTORIAL</span>
+            </button>
+            <button mat-menu-item (click)="verEstadisticasHistorial()">
+                <mat-icon>analytics</mat-icon>
+                <span>ESTADÍSTICAS HISTORIAL</span>
+            </button>
+            <button mat-menu-item (click)="marcarVehiculosActuales()">
+                <mat-icon>visibility</mat-icon>
+                <span>MARCAR ACTUALES</span>
+            </button>
+            <button mat-menu-item (click)="verEstadisticasFiltrado()">
+                <mat-icon>filter_list</mat-icon>
+                <span>ESTADÍSTICAS FILTRADO</span>
+            </button>
+        </mat-menu>
+        <button mat-button color="accent" (click)="exportarVehiculos()" class="action-button">
+            <mat-icon>download</mat-icon>
+            EXPORTAR
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+@if (!cargando()) {
+<div class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-icon">
+                <mat-icon>directions_car</mat-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ vehiculos().length }}</div>
+                <div class="stat-label">TOTAL VEHÍCULOS</div>
+            </div>
+        </div>
+        <div class="stat-card activos">
+            <div class="stat-icon">
+                <mat-icon>check_circle</mat-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ getVehiculosActivos() }}</div>
+                <div class="stat-label">ACTIVOS</div>
+            </div>
+        </div>
+        <div class="stat-card suspendidos">
+            <div class="stat-icon">
+                <mat-icon>warning</mat-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ getVehiculosPorEstado('SUSPENDIDO') }}</div>
+                <div class="stat-label">SUSPENDIDOS</div>
+            </div>
+        </div>
+        <div class="stat-card empresas">
+            <div class="stat-icon">
+                <mat-icon>business</mat-icon>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value">{{ empresas().length }}</div>
+                <div class="stat-label">EMPRESAS</div>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+<div class="content-section">
+    <!-- Filtros Avanzados -->
+    <mat-expansion-panel class="filters-panel">
+        <mat-expansion-panel-header>
+            <mat-panel-title>
+                <mat-icon>filter_list</mat-icon>
+                FILTROS AVANZADOS
+            </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <form [formGroup]="filtrosForm" class="filters-form">
+            <div class="filters-grid">
+                <mat-form-field appearance="outline">
+                    <mat-label>PLACA</mat-label>
+                    <input matInput formControlName="placa" placeholder="BUSCAR POR PLACA">
+                    <mat-icon matSuffix>directions_car</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>MARCA</mat-label>
+                    <input matInput formControlName="marca" placeholder="BUSCAR POR MARCA">
+                    <mat-icon matSuffix>local_shipping</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>EMPRESA</mat-label>
+                    <mat-select formControlName="empresaId">
+                        <mat-option value="">TODAS LAS EMPRESAS</mat-option>
+                        @for (empresa of empresas(); track empresa.id) {
+                            <mat-option [value]="empresa.id">{{ empresa.razonSocial.principal }}</mat-option>
+                        }
+                    </mat-select>
+                    <mat-icon matSuffix>business</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>ESTADO</mat-label>
+                    <mat-select formControlName="estado">
+                        <mat-option value="">TODOS LOS ESTADOS</mat-option>
+                        <mat-option value="ACTIVO">ACTIVO</mat-option>
+                        <mat-option value="INACTIVO">INACTIVO</mat-option>
+                        <mat-option value="SUSPENDIDO">SUSPENDIDO</mat-option>
+                        <mat-option value="EN_REVISION">EN REVISIÓN</mat-option>
+                    </mat-select>
+                    <mat-icon matSuffix>info</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline">
+                    <mat-label>CATEGORÍA</mat-label>
+                    <mat-select formControlName="categoria">
+                        <mat-option value="">TODAS LAS CATEGORÍAS</mat-option>
+                        <mat-option value="M1">M1</mat-option>
+                        <mat-option value="M2">M2</mat-option>
+                        <mat-option value="M3">M3</mat-option>
+                        <mat-option value="N1">N1</mat-option>
+                        <mat-option value="N2">N2</mat-option>
+                        <mat-option value="N3">N3</mat-option>
+                    </mat-select>
+                    <mat-icon matSuffix>category</mat-icon>
+                </mat-form-field>
+            </div>
+
+            <div class="filters-actions">
+                <button mat-raised-button color="primary" (click)="aplicarFiltros()">
+                    <mat-icon>search</mat-icon>
+                    BUSCAR
+                </button>
+                <button mat-button (click)="limpiarFiltros()">
+                    <mat-icon>clear</mat-icon>
+                    LIMPIAR
+                </button>
+            </div>
+        </form>
+    </mat-expansion-panel>
+
+    <!-- Loading State -->
+    @if (cargando()) {
+    <div class="loading-container">
+        <div class="loading-content">
+            <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
+            <h3>CARGANDO VEHÍCULOS...</h3>
+            <p>OBTENIENDO INFORMACIÓN DE LOS VEHÍCULOS REGISTRADOS</p>
+        </div>
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (!cargando() && vehiculos().length === 0) {
+    <div class="empty-container">
+        <div class="empty-content">
+            <div class="empty-icon-container">
+                <mat-icon class="empty-icon">directions_car</mat-icon>
+            </div>
+            <h2>NO HAY VEHÍCULOS REGISTRADOS</h2>
+            <p>COMIENZA AGREGANDO EL PRIMER VEHÍCULO AL SISTEMA.</p>
+            <div class="empty-actions">
+                <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="primary-action">
+                    <mat-icon>add</mat-icon>
+                    AGREGAR PRIMER VEHÍCULO
+                </button>
+                <button mat-button color="accent" (click)="recargarVehiculos()" class="secondary-action">
+                    <mat-icon>refresh</mat-icon>
+                    RECARGAR
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Data Table -->
+    @if (!cargando() && vehiculos().length > 0) {
+    <div class="table-section">
+        <div class="table-header">
+            <div class="table-info">
+                <h3>VEHÍCULOS REGISTRADOS</h3>
+                <p class="table-subtitle">SE ENCONTRARON {{vehiculosFiltrados().length}} VEHÍCULOS</p>
+            </div>
+            <div class="table-actions">
+                <button mat-button color="accent" (click)="recargarVehiculos()">
+                    <mat-icon>refresh</mat-icon>
+                    RECARGAR
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table mat-table [dataSource]="getPaginatedVehiculos()" class="modern-table">
+                <!-- Placa Column -->
+                <ng-container matColumnDef="placa">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>PLACA</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.placa }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Marca/Modelo Column -->
+                <ng-container matColumnDef="marca">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>MARCA / MODELO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.marca }} {{ vehiculo.modelo || '' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Empresa Column -->
+                <ng-container matColumnDef="empresa">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>EMPRESA</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getEmpresaNombre(vehiculo.empresaActualId) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Categoría Column -->
+                <ng-container matColumnDef="categoria">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>CATEGORÍA</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.categoria }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Estado Column -->
+                <ng-container matColumnDef="estado">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>ESTADO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="status-badge" [class]="'status-' + vehiculo.estado.toLowerCase()">
+                                {{ vehiculo.estado }}
+                            </span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Año Column -->
+                <ng-container matColumnDef="anio">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>AÑO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.anioFabricacion || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Acciones Column -->
+                <ng-container matColumnDef="acciones">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>ACCIONES</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content actions-content">
+                            <button mat-icon-button [matMenuTriggerFor]="menu" class="action-button"
+                                matTooltip="MÁS ACCIONES">
+                                <mat-icon>more_vert</mat-icon>
+                            </button>
+                            <mat-menu #menu="matMenu">
+                                <button mat-menu-item (click)="verDetalle(vehiculo)">
+                                    <mat-icon>visibility</mat-icon>
+                                    <span>VER DETALLES</span>
+                                </button>
+                                <button mat-menu-item (click)="editarVehiculo(vehiculo)">
+                                    <mat-icon>edit</mat-icon>
+                                    <span>EDITAR VEHÍCULO</span>
+                                </button>
+                                <button mat-menu-item (click)="verHistorial(vehiculo)">
+                                    <mat-icon>history</mat-icon>
+                                    <span>VER HISTORIAL</span>
+                                </button>
+                                <button mat-menu-item (click)="transferirVehiculo(vehiculo)">
+                                    <mat-icon>swap_horiz</mat-icon>
+                                    <span>TRANSFERIR EMPRESA</span>
+                                </button>
+                                <button mat-menu-item (click)="duplicarVehiculo(vehiculo)">
+                                    <mat-icon>content_copy</mat-icon>
+                                    <span>DUPLICAR VEHÍCULO</span>
+                                </button>
+                                <button mat-menu-item (click)="solicitarBajaVehiculo(vehiculo)">
+                                    <mat-icon>remove_circle</mat-icon>
+                                    <span>SOLICITAR BAJA</span>
+                                </button>
+                                <mat-divider></mat-divider>
+                                <button mat-menu-item color="warn" (click)="eliminarVehiculo(vehiculo)">
+                                    <mat-icon>delete</mat-icon>
+                                    <span>ELIMINAR VEHÍCULO</span>
+                                </button>
+                            </mat-menu>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header-row"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+            </table>
+        </div>
+
+        <!-- Paginador -->
+        <mat-paginator [length]="vehiculosFiltrados().length"
+                      [pageSize]="pageSize"
+                      [pageSizeOptions]="[5, 10, 25, 50, 100]"
+                      [pageIndex]="currentPage"
+                      (page)="onPageChange($event)"
+                      showFirstLastButtons>
+        </mat-paginator>
+    </div>
+    }
+</div>

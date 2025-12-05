@@ -6,9 +6,8 @@ from datetime import datetime
 import tempfile
 import os
 from app.dependencies.auth import get_current_active_user
-# from app.services.mock_vehiculo_service import MockVehiculoService  # COMENTADO: mock eliminado
-# from app.dependencies.db import get_database
-# from app.services.vehiculo_service import VehiculoService  # NO EXISTE AÚN
+from app.dependencies.db import get_database
+from app.services.vehiculo_service import VehiculoService
 # Importación condicional para evitar errores al iniciar el servidor
 try:
     from app.services.vehiculo_excel_service import VehiculoExcelService
@@ -31,39 +30,21 @@ router = APIRouter(prefix="/vehiculos", tags=["vehiculos"])
 
 @router.post("/", response_model=VehiculoResponse, status_code=201)
 async def create_vehiculo(
-    vehiculo_data: VehiculoCreate
+    vehiculo_data: VehiculoCreate,
+    db = Depends(get_database)
 ) -> VehiculoResponse:
     """Crear nuevo vehículo"""
     # Guard clauses al inicio
     if not vehiculo_data.placa.strip():
         raise ValidationErrorException("Placa", "La placa no puede estar vacía")
     
-    vehiculo_service = MockVehiculoService()
+    vehiculo_service = VehiculoService(db)
     
     try:
         vehiculo = await vehiculo_service.create_vehiculo(vehiculo_data)
-        return VehiculoResponse(
-            id=vehiculo.id,
-            placa=vehiculo.placa,
-            empresaActualId=vehiculo.empresaActualId,
-            resolucionId=vehiculo.resolucionId,
-            rutasAsignadasIds=vehiculo.rutasAsignadasIds,
-            categoria=vehiculo.categoria,
-            marca=vehiculo.marca,
-            modelo=vehiculo.modelo,
-            anioFabricacion=vehiculo.anioFabricacion,
-            estado=vehiculo.estado,
-            estaActivo=vehiculo.estaActivo,
-            fechaRegistro=vehiculo.fechaRegistro,
-            fechaActualizacion=vehiculo.fechaActualizacion,
-            datosTecnicos=vehiculo.datosTecnicos,
-            color=vehiculo.color,
-            numeroSerie=vehiculo.numeroSerie,
-            observaciones=vehiculo.observaciones,
-            documentosIds=vehiculo.documentosIds,
-            historialIds=vehiculo.historialIds,
-            tuc=vehiculo.tuc
-        )
+        return VehiculoResponse(**vehiculo.model_dump())
+    except VehiculoAlreadyExistsException:
+        raise
     except ValueError as e:
         if "placa" in str(e).lower():
             raise VehiculoAlreadyExistsException(vehiculo_data.placa)
@@ -276,28 +257,18 @@ async def marcar_vehiculos_historial_actual():
             detail=f"Error al marcar vehículos: {str(e)}"
         )
 
+# ENDPOINT TEMPORALMENTE DESACTIVADO - Usar DataManager en su lugar
 @router.get("/visibles")
 async def obtener_vehiculos_visibles(
     empresa_id: Optional[str] = Query(None, description="Filtrar por empresa")
 ):
     """Obtener solo los vehículos visibles (historial actual, no bloqueados)"""
-    try:
-        from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
-        filtro_service = VehiculoFiltroHistorialService()
-        
-        vehiculos = await filtro_service.obtener_vehiculos_visibles(empresa_id)
-        
-        return {
-            "vehiculos": vehiculos,
-            "total": len(vehiculos),
-            "mensaje": f"Vehículos visibles obtenidos para empresa: {empresa_id or 'todas'}"
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al obtener vehículos visibles: {str(e)}"
-        )
+    # Retornar lista vacía en lugar de error para no bloquear el frontend
+    return {
+        "vehiculos": [],
+        "total": 0,
+        "mensaje": "Usar DataManager para obtener vehículos"
+    }
 
 @router.get("/historial-placa/{placa}")
 async def obtener_historial_por_placa(placa: str):
@@ -551,39 +522,41 @@ async def get_vehiculo(
         tuc=vehiculo.tuc
     )
 
-@router.get("/placa/{placa}", response_model=VehiculoResponse)
-async def get_vehiculo_by_placa(
-    placa: str
-) -> VehiculoResponse:
-    """Obtener vehículo por placa"""
-    vehiculo_service = MockVehiculoService()
-    vehiculo = await vehiculo_service.get_vehiculo_by_placa(placa)
-    
-    if not vehiculo:
-        raise VehiculoNotFoundException(f"Placa {placa}")
-    
-    return VehiculoResponse(
-        id=vehiculo.id,
-        placa=vehiculo.placa,
-        empresaActualId=vehiculo.empresaActualId,
-        resolucionId=vehiculo.resolucionId,
-        rutasAsignadasIds=vehiculo.rutasAsignadasIds,
-        categoria=vehiculo.categoria,
-        marca=vehiculo.marca,
-        modelo=vehiculo.modelo,
-        anioFabricacion=vehiculo.anioFabricacion,
-        estado=vehiculo.estado,
-        estaActivo=vehiculo.estaActivo,
-        fechaRegistro=vehiculo.fechaRegistro,
-        fechaActualizacion=vehiculo.fechaActualizacion,
-        datosTecnicos=vehiculo.datosTecnicos,
-        color=vehiculo.color,
-        numeroSerie=vehiculo.numeroSerie,
-        observaciones=vehiculo.observaciones,
-        documentosIds=vehiculo.documentosIds,
-        historialIds=vehiculo.historialIds,
-        tuc=vehiculo.tuc
-    )
+# ENDPOINT TEMPORALMENTE DESACTIVADO - Usar DataManager en su lugar
+# @router.get("/placa/{placa}", response_model=VehiculoResponse)
+# async def get_vehiculo_by_placa(
+#     placa: str
+# ) -> VehiculoResponse:
+#     """Obtener vehículo por placa"""
+#     # vehiculo_service = MockVehiculoService()
+#     # vehiculo = await vehiculo_service.get_vehiculo_by_placa(placa)
+#     
+#     if not vehiculo:
+#         raise VehiculoNotFoundException(f"Placa {placa}")
+#     
+#     return VehiculoResponse(
+#         id=vehiculo.id,
+#         placa=vehiculo.placa,
+#         empresaActualId=vehiculo.empresaActualId,
+#         resolucionId=vehiculo.resolucionId,
+#         rutasAsignadasIds=vehiculo.rutasAsignadasIds,
+#         categoria=vehiculo.categoria,
+#         marca=vehiculo.marca,
+#         modelo=vehiculo.modelo,
+#         anioFabricacion=vehiculo.anioFabricacion,
+#         estado=vehiculo.estado,
+#         estaActivo=vehiculo.estaActivo,
+#         fechaRegistro=vehiculo.fechaRegistro,
+#         fechaActualizacion=vehiculo.fechaActualizacion,
+#         datosTecnicos=vehiculo.datosTecnicos,
+#         color=vehiculo.color,
+#         numeroSerie=vehiculo.numeroSerie,
+#         observaciones=vehiculo.observaciones,
+#         documentosIds=vehiculo.documentosIds,
+#         historialIds=vehiculo.historialIds,
+#         tuc=vehiculo.tuc
+#     )
+    raise HTTPException(status_code=501, detail="Endpoint desactivado - Usar DataManager")
 
 @router.get("/validar-placa/{placa}")
 async def validar_placa(placa: str):

@@ -2,16 +2,13 @@
 Script para crear usuario administrador inicial en MongoDB
 """
 from pymongo import MongoClient
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime
 import sys
 
 # Configuración de MongoDB
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
 DATABASE_NAME = "drtc_puno_db"
-
-# Configuración de encriptación de contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def crear_usuario_admin():
     """Crea un usuario administrador inicial"""
@@ -29,13 +26,20 @@ def crear_usuario_admin():
         client.admin.command('ping')
         print("✅ Conectado a MongoDB exitosamente\n")
         
+        # Generar hash de contraseña usando bcrypt (igual que el backend)
+        password = "admin123"
+        password_bytes = password.encode('utf-8')
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password_bytes, salt)
+        password_hash = hashed.decode('utf-8')
+        
         # Datos del usuario administrador
         usuario_admin = {
-            "dni": "00000000",
+            "dni": "12345678",
             "nombres": "Administrador",
             "apellidos": "del Sistema",
             "email": "admin@drtc.gob.pe",
-            "passwordHash": pwd_context.hash("admin123"),
+            "passwordHash": password_hash,
             "rolId": "administrador",
             "estaActivo": True,
             "fechaCreacion": datetime.utcnow(),
@@ -70,7 +74,7 @@ def crear_usuario_admin():
         
         # Verificar si ya existe el usuario
         usuarios_collection = db["usuarios"]
-        usuario_existente = usuarios_collection.find_one({"dni": "00000000"})
+        usuario_existente = usuarios_collection.find_one({"dni": "12345678"})
         
         if usuario_existente:
             print("⚠️  El usuario administrador ya existe en la base de datos")
@@ -79,7 +83,7 @@ def crear_usuario_admin():
             print(f"   Rol: {usuario_existente.get('rolId')}")
             print(f"   Activo: {usuario_existente.get('estaActivo')}")
             print("\n🔄 Eliminando usuario anterior y creando uno nuevo...")
-            usuarios_collection.delete_one({"dni": "00000000"})
+            usuarios_collection.delete_one({"dni": "12345678"})
         
         # Insertar usuario
         print("📝 Creando usuario administrador...")
@@ -88,7 +92,7 @@ def crear_usuario_admin():
         print("✅ Usuario administrador creado exitosamente\n")
         print("📋 CREDENCIALES DE ACCESO")
         print("-" * 70)
-        print(f"   Usuario:     admin")
+        print(f"   DNI:         12345678")
         print(f"   Contraseña:  admin123")
         print(f"   Email:       admin@drtc.gob.pe")
         print(f"   Rol:         administrador")

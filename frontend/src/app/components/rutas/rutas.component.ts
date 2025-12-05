@@ -141,8 +141,18 @@ import { forkJoin } from 'rxjs';
                 @for (resolucion of resolucionesFiltradas() | async; track resolucion.id) {
                   <mat-option [value]="resolucion">
                     <div class="resolucion-option">
-                      <div class="resolucion-numero">{{ resolucion.nroResolucion }}</div>
-                      <div class="resolucion-tipo">{{ resolucion.tipoTramite }}</div>
+                      <div class="resolucion-info">
+                        <div class="resolucion-numero">{{ resolucion.nroResolucion }}</div>
+                        <div class="resolucion-tipo">{{ resolucion.tipoTramite }}</div>
+                      </div>
+                      <div class="resolucion-badges">
+                        <span class="badge badge-vigente" *ngIf="resolucion.estado === 'VIGENTE'">
+                          VIGENTE
+                        </span>
+                        <span class="badge badge-padre" *ngIf="resolucion.tipoResolucion === 'PADRE'">
+                          PADRE
+                        </span>
+                      </div>
                     </div>
                   </mat-option>
                 }
@@ -488,11 +498,36 @@ export class RutasComponent implements OnInit {
   }
 
   private cargarResolucionesPorEmpresa(empresaId: string): void {
-    this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe(resoluciones => {
-      // Filtrar solo resoluciones primigenias
-      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'AUTORIZACION_NUEVA');
-      this.resolucionesFiltradas.set(of(resolucionesPrimigenias));
-    });
+    this.resolucionService.getResolucionesPorEmpresa(empresaId)
+      .pipe(
+        map(resoluciones => resoluciones.filter(r => 
+          r.estado === 'VIGENTE' && 
+          r.tipoResolucion === 'PADRE' &&
+          (r.tipoTramite === 'AUTORIZACION_NUEVA' || r.tipoTramite === 'PRIMIGENIA')
+        ))
+      )
+      .subscribe(resoluciones => {
+        this.resolucionesFiltradas.set(of(resoluciones));
+        
+        if (resoluciones.length === 0) {
+          this.snackBar.open(
+            'La empresa no tiene resoluciones VIGENTES disponibles para agregar rutas',
+            'Cerrar',
+            { duration: 5000 }
+          );
+        }
+        
+        console.log('📋 RESOLUCIONES VIGENTES Y PADRE CARGADAS:', {
+          empresaId,
+          total: resoluciones.length,
+          resoluciones: resoluciones.map(r => ({
+            id: r.id,
+            nroResolucion: r.nroResolucion,
+            estado: r.estado,
+            tipoResolucion: r.tipoResolucion
+          }))
+        });
+      });
   }
 
   aplicarFiltros(): void {
@@ -613,8 +648,10 @@ export class RutasComponent implements OnInit {
 
     // Primero obtener las resoluciones de la empresa
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe(resoluciones => {
-      // Obtener solo resoluciones primigenias
-      const resolucionesPrimigenias = resoluciones.filter(r => r.tipoTramite === 'AUTORIZACION_NUEVA');
+      // Obtener solo resoluciones primigenias (AUTORIZACION_NUEVA o PRIMIGENIA)
+      const resolucionesPrimigenias = resoluciones.filter(r => 
+        r.tipoTramite === 'AUTORIZACION_NUEVA' || r.tipoTramite === 'PRIMIGENIA'
+      );
 
       console.log('📋 RESOLUCIONES DE LA EMPRESA:', {
         empresaId: empresaId,
@@ -709,9 +746,43 @@ export class RutasComponent implements OnInit {
   }
 
   nuevaRuta(): void {
-    // Si no hay empresa y resolución seleccionadas, mostrar mensaje
-    if (!this.empresaSeleccionada() || !this.resolucionSeleccionada()) {
-      this.snackBar.open('Para agregar rutas específicas, seleccione empresa y resolución primigenia. Para agregar rutas generales, use el botón de la tabla principal.', 'Cerrar', { duration: 5000 });
+    // Validar empresa seleccionada
+    if (!this.empresaSeleccionada()) {
+      this.snackBar.open(
+        'Debe seleccionar una empresa antes de agregar rutas',
+        'Cerrar',
+        { duration: 3000 }
+      );
+      return;
+    }
+    
+    // Validar resolución seleccionada
+    if (!this.resolucionSeleccionada()) {
+      this.snackBar.open(
+        'Debe seleccionar una resolución VIGENTE antes de agregar rutas',
+        'Cerrar',
+        { duration: 3000 }
+      );
+      return;
+    }
+    
+    // Validar que la resolución sea VIGENTE
+    if (this.resolucionSeleccionada()!.estado !== 'VIGENTE') {
+      this.snackBar.open(
+        'La resolución seleccionada no está VIGENTE. Solo se pueden agregar rutas a resoluciones VIGENTES.',
+        'Cerrar',
+        { duration: 5000 }
+      );
+      return;
+    }
+    
+    // Validar que la resolución sea PADRE
+    if (this.resolucionSeleccionada()!.tipoResolucion !== 'PADRE') {
+      this.snackBar.open(
+        'Solo se pueden agregar rutas a resoluciones PADRE (primigenias)',
+        'Cerrar',
+        { duration: 5000 }
+      );
       return;
     }
 

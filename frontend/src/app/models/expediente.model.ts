@@ -398,7 +398,7 @@ export interface RespuestaValidacion {
 export type EstadoExpediente = 'EN_PROCESO' | 'EN_REVISION' | 'APROBADO' | 'RECHAZADO' | 'SUSPENDIDO' | 'ARCHIVADO' | 'DADO_DE_BAJA';
 
 // Actualizar TipoTramite según el briefing consolidado
-export type TipoTramite = 'AUTORIZACION_NUEVA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
+export type TipoTramite = 'AUTORIZACION_NUEVA' | 'PRIMIGENIA' | 'RENOVACION' | 'INCREMENTO' | 'SUSTITUCION' | 'OTROS';
 
 // Nuevos tipos para expedientes no empresariales
 export enum TipoSolicitante {
