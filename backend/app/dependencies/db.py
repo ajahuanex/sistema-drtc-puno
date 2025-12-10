@@ -12,8 +12,7 @@ class Database:
 
 db = Database()
 
-async def get_database() -> AsyncIOMotorClient:
-    """Obtener instancia de la base de datos"""
+async def get_database():
     """Obtener instancia de la base de datos"""
     if db.client is None:
         from fastapi import HTTPException
@@ -21,8 +20,11 @@ async def get_database() -> AsyncIOMotorClient:
     return db.client[db.database_name]
 
 @asynccontextmanager
-async def lifespan_startup():
-    """Conectar a MongoDB"""
+async def lifespan(app):
+    """Gestión del ciclo de vida de la aplicación"""
+    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
+    
+    # Startup
     try:
         logger.info("🔌 Conectando a MongoDB...")
         logger.info(f"📍 URL: {settings.MONGODB_URL}")
@@ -42,22 +44,11 @@ async def lifespan_startup():
         db.client = None
     
     yield
-
-@asynccontextmanager
-async def lifespan_shutdown():
-    """Cerrar conexión a MongoDB"""
+    
+    # Shutdown
     if db.client:
         logger.info("🔌 Cerrando conexión a MongoDB...")
         db.client.close()
         logger.info("✅ Conexión cerrada")
-    yield
-
-@asynccontextmanager
-async def lifespan(app):
-    """Gestión del ciclo de vida de la aplicación"""
-    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
-    async with lifespan_startup():
-        yield
-    async with lifespan_shutdown():
-        pass
+    
     logger.info("🛑 Sistema cerrado") 

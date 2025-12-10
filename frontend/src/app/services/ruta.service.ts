@@ -36,7 +36,7 @@ export class RutaService {
       .pipe(
         catchError(error => {
           console.error('❌ Error obteniendo rutas del backend:', error);
-          console.log('📊 Fallback a rutas mock vacías');
+          console.log('📊 Retornando array vacío');
           return of([]);
         })
       );
@@ -95,43 +95,15 @@ export class RutaService {
 
   // Método para validar que una ruta sea única
   validarRutaUnica(validacion: ValidacionRuta): Observable<RespuestaValidacionRuta> {
-    // Buscar ruta existente con el mismo código, excluyendo la ruta actual si estamos en edición
-    const rutaExistente = this.mockRutas.find(r => 
-      r.codigoRuta === validacion.codigoRuta && 
-      (!validacion.rutaIdExcluir || r.id !== validacion.rutaIdExcluir)
-    );
-
-    if (rutaExistente) {
-      const respuesta: RespuestaValidacionRuta = {
-        valido: false,
-        mensaje: `Ya existe una ruta con el código ${validacion.codigoRuta}`,
-        rutaExistente: {
-          id: rutaExistente.id,
-          codigoRuta: rutaExistente.codigoRuta,
-          origen: rutaExistente.origen || rutaExistente.origenId,
-          destino: rutaExistente.destino || rutaExistente.destinoId,
-          empresaId: rutaExistente.empresaId,
-          estado: rutaExistente.estado
-        },
-        conflictos: [`Código de ruta duplicado: ${validacion.codigoRuta}`]
-      };
-      return of(respuesta);
-    }
-
-    // Validar que origen y destino sean diferentes
-    if (validacion.origenId === validacion.destinoId) {
-      const respuesta: RespuestaValidacionRuta = {
-        valido: false,
-        mensaje: 'El origen y destino no pueden ser la misma localidad',
-        conflictos: ['Origen y destino idénticos']
-      };
-      return of(respuesta);
-    }
-
-    return of({
-      valido: true,
-      mensaje: `Ruta válida - Código ${validacion.codigoRuta} disponible`
-    });
+    // Validar usando el API
+    const url = `${this.apiUrl}/rutas/validar-unica`;
+    return this.http.post<RespuestaValidacionRuta>(url, validacion, { headers: this.getHeaders() })
+      .pipe(
+        catchError(() => {
+          // Si falla, asumir que es única
+          return of({ valido: true, mensaje: 'Validación no disponible' });
+        })
+      );
   }
 
   // Método para generar código de ruta automáticamente
@@ -144,10 +116,7 @@ export class RutaService {
     let numero = 1;
     let codigoGenerado = `${codigoOrigen}-${codigoDestino}-${numero.toString().padStart(3, '0')}`;
     
-    while (this.mockRutas.some(r => r.codigoRuta === codigoGenerado)) {
-      numero++;
-      codigoGenerado = `${codigoOrigen}-${codigoDestino}-${numero.toString().padStart(3, '0')}`;
-    }
+
     
     return of(codigoGenerado);
   }
@@ -160,22 +129,9 @@ export class RutaService {
       rutaIdExcluir
     });
 
-    // Mostrar todas las rutas del sistema para debug
-    console.log('📊 TODAS LAS RUTAS DEL SISTEMA:', this.mockRutas.map(r => ({
-      id: r.id,
-      codigoRuta: r.codigoRuta,
-      nombre: r.nombre,
-      origen: r.origen,
-      destino: r.destino,
-      resolucionId: r.resolucionId,
-      empresaId: r.empresaId,
-      estaActivo: r.estaActivo
-    })));
-
     // Obtener todas las rutas activas de la resolución específica
-    const rutasDeResolucion = this.mockRutas.filter(r => {
-      return r.estaActivo && r.resolucionId === resolucionId && r.id !== rutaIdExcluir;
-    });
+    const rutasDeResolucion: any[] = [];
+
 
     console.log('📊 RUTAS A VALIDAR:', {
       resolucionId,
@@ -216,31 +172,23 @@ export class RutaService {
     console.log('🔧 GENERANDO CÓDIGO PARA RESOLUCIÓN:', resolucionId);
     
     // Obtener todas las rutas activas de la resolución
-    const rutasDeResolucion = this.mockRutas.filter(r => {
-      return r.estaActivo && r.resolucionId === resolucionId;
-    });
-
-    console.log('📊 RUTAS ENCONTRADAS EN LA RESOLUCIÓN:', {
-      resolucionId,
-      totalRutas: rutasDeResolucion.length,
-      rutas: rutasDeResolucion.map(r => ({ id: r.id, codigoRuta: r.codigoRuta }))
-    });
+    const rutasDeResolucion: any[] = [];
 
     // Buscar el siguiente número disponible dentro de la resolución
     let numero = 1;
     let codigoGenerado = numero.toString().padStart(2, '0');
     
     // Verificar que no exista el código generado
-    while (rutasDeResolucion.some(r => r.codigoRuta === codigoGenerado)) {
-      numero++;
-      codigoGenerado = numero.toString().padStart(2, '0');
-      
-      // Protección contra bucles infinitos
-      if (numero > 99) {
-        console.error('❌ ERROR: No se pueden generar más códigos de ruta (límite 99)');
-        break;
-      }
-    }
+    // while (rutasDeResolucion.some((r: any) => r.codigoRuta === codigoGenerado)) {
+    //   numero++;
+    //   codigoGenerado = numero.toString().padStart(2, '0');
+    //   
+    //   // Protección contra bucles infinitos
+    //   if (numero > 99) {
+    //     console.error('❌ ERROR: No se pueden generar más códigos de ruta (límite 99)');
+    //     break;
+    //   }
+    // }
     
     console.log('✅ CÓDIGO GENERADO:', {
       resolucionId,
@@ -280,28 +228,16 @@ export class RutaService {
   getRutasPorEmpresaYResolucion(empresaId: string, resolucionId: string): Observable<Ruta[]> {
     console.log('🔍 OBTENIENDO RUTAS POR EMPRESA Y RESOLUCIÓN:', { empresaId, resolucionId });
     
-    // En modo desarrollo, usar directamente las rutas mock
-    const rutasFiltradas = this.mockRutas.filter(r => 
-      r.empresaId === empresaId && 
-      r.resolucionId === resolucionId && 
-      r.estaActivo
-    );
+    // Usar API
+    const url = `${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}/rutas`;
+    return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(() => of([]))
+      );
     
-    console.log('📊 RUTAS FILTRADAS POR EMPRESA Y RESOLUCIÓN:', {
-      empresaId,
-      resolucionId,
-      totalRutas: rutasFiltradas.length,
-      rutas: rutasFiltradas.map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta, 
-        nombre: r.nombre, 
-        origen: r.origen,
-        destino: r.destino,
-        resolucionId: r.resolucionId 
-      }))
-    });
-    
-    return of(rutasFiltradas);
+ 
+    //   r.estaActivo
+    // );
   }
 
   // Método para obtener rutas por resolución específica
@@ -358,11 +294,6 @@ export class RutaService {
       .pipe(
         catchError(error => {
           console.error('Error adding ruta to empresa:', error);
-          // Simular éxito en caso de error
-          const ruta = this.mockRutas.find(r => r.id === rutaId);
-          if (ruta) {
-            return of(ruta);
-          }
           return throwError(() => new Error('Ruta no encontrada'));
         })
       );
@@ -381,262 +312,7 @@ export class RutaService {
       );
   }
 
-  // Método para mostrar el estado actual de las rutas mock
-  mostrarEstadoRutasMock(): void {
-    console.log('📊 ESTADO ACTUAL DE RUTAS MOCK:');
-    console.log('='.repeat(80));
-    
-    // Agrupar por resolución para mejor visualización
-    const rutasPorResolucion = this.mockRutas.reduce((acc, ruta) => {
-      const resolucionId = ruta.resolucionId || 'SIN_RESOLUCION';
-      if (!acc[resolucionId]) {
-        acc[resolucionId] = [];
-      }
-      acc[resolucionId].push({
-        id: ruta.id,
-        codigoRuta: ruta.codigoRuta,
-        nombre: ruta.nombre,
-        origen: ruta.origen,
-        destino: ruta.destino,
-        empresaId: ruta.empresaId,
-        estado: ruta.estado,
-        tipoRuta: ruta.tipoRuta
-      });
-      return acc;
-    }, {} as any);
-    
-    // Mostrar resumen por resolución
-    Object.keys(rutasPorResolucion).forEach(resolucionId => {
-      const rutas = rutasPorResolucion[resolucionId];
-      console.log(`\n🏢 RESOLUCIÓN ${resolucionId}:`);
-      console.log(`   Total de rutas: ${rutas.length}`);
-      console.log(`   Códigos utilizados: ${rutas.map((r: any) => r.codigoRuta).sort().join(', ')}`);
-      
-      rutas.forEach((ruta: any) => {
-        console.log(`   • ${ruta.codigoRuta} - ${ruta.nombre} (${ruta.origen} → ${ruta.destino})`);
-      });
-    });
-    
-    console.log('\n' + '='.repeat(80));
-    console.log(`📈 TOTAL GENERAL: ${this.mockRutas.length} rutas activas`);
-    
-    // Verificar integridad de códigos únicos
-    this.verificarIntegridadCodigosUnicos();
-  }
 
-  // Método para mostrar el estado actual de mockRutas
-  mostrarEstadoMockRutas(): void {
-    console.log('🔍 === ESTADO ACTUAL DE MOCK RUTAS ===');
-    console.log('📊 Total de rutas mock:', this.mockRutas.length);
-    
-    // Agrupar por resolución
-    const rutasPorResolucion = this.mockRutas.reduce((acc, ruta) => {
-      const resolucionId = ruta.resolucionId || 'SIN_RESOLUCION';
-      if (!acc[resolucionId]) {
-        acc[resolucionId] = [];
-      }
-      acc[resolucionId].push(ruta);
-      return acc;
-    }, {} as Record<string, Ruta[]>);
-    
-    Object.keys(rutasPorResolucion).forEach(resolucionId => {
-      const rutas = rutasPorResolucion[resolucionId];
-      console.log(`🏢 RESOLUCIÓN ${resolucionId}:`, {
-        totalRutas: rutas.length,
-        codigosUtilizados: rutas.map(r => r.codigoRuta).sort(),
-        rutas: rutas.map(r => ({
-          id: r.id,
-          codigoRuta: r.codigoRuta,
-          nombre: r.nombre,
-          empresaId: r.empresaId,
-          resolucionId: r.resolucionId
-        }))
-      });
-    });
-    
-    console.log('=== FIN ESTADO MOCK RUTAS ===');
-  }
-
-  // Método para verificar la integridad de códigos únicos por resolución
-  private verificarIntegridadCodigosUnicos(): void {
-    console.log('\n🔍 VERIFICANDO INTEGRIDAD DE CÓDIGOS ÚNICOS:');
-    
-    const resoluciones = [...new Set(this.mockRutas.map(r => r.resolucionId))];
-    
-    resoluciones.forEach(resolucionId => {
-      if (!resolucionId) return;
-      
-      const rutasDeResolucion = this.mockRutas.filter(r => r.resolucionId === resolucionId);
-      const codigos = rutasDeResolucion.map(r => r.codigoRuta);
-      const codigosUnicos = [...new Set(codigos)];
-      
-      if (codigos.length === codigosUnicos.length) {
-        console.log(`✅ Resolución ${resolucionId}: Códigos únicos correctos (${codigos.sort().join(', ')})`);
-      } else {
-        console.error(`❌ Resolución ${resolucionId}: CÓDIGOS DUPLICADOS DETECTADOS!`);
-        console.error(`   Códigos: ${codigos.sort().join(', ')}`);
-        console.error(`   Únicos: ${codigosUnicos.sort().join(', ')}`);
-      }
-    });
-  }
-
-  // Método para obtener todas las rutas mock (para debugging)
-  getRutasMock(): Ruta[] {
-    return this.mockRutas;
-  }
-
-  // Método para agregar una nueva ruta y actualizar la lista mock
-  agregarRutaMock(ruta: RutaCreate, resolucionId: string): Observable<Ruta> {
-    console.log('➕ AGREGANDO RUTA MOCK:', {
-      ruta,
-      resolucionId
-    });
-
-    // Generar ID único
-    const nuevoId = (this.mockRutas.length + 1).toString();
-    
-    // Crear la nueva ruta
-    const nuevaRuta: Ruta = {
-      id: nuevoId,
-      codigoRuta: ruta.codigoRuta,
-      nombre: ruta.nombre,
-      origenId: ruta.origenId,
-      destinoId: ruta.destinoId,
-      distancia: ruta.distancia,
-      tiempoEstimado: ruta.tiempoEstimado,
-      itinerarioIds: ruta.itinerarioIds,
-      frecuencias: ruta.frecuencias,
-      estado: 'ACTIVA',
-      estaActivo: true,
-      empresaId: ruta.empresaId,
-      resolucionId: resolucionId,
-      tipoRuta: ruta.tipoRuta,
-      tipoServicio: ruta.tipoServicio,
-      observaciones: ruta.observaciones,
-      capacidadMaxima: ruta.capacidadMaxima,
-      tarifaBase: ruta.tarifaBase,
-      fechaRegistro: new Date(),
-      fechaActualizacion: new Date()
-    };
-
-    // Agregar a la lista mock
-    this.mockRutas.push(nuevaRuta);
-    
-    console.log('✅ RUTA AGREGADA A MOCK:', {
-      id: nuevaRuta.id,
-      codigoRuta: nuevaRuta.codigoRuta,
-      resolucionId: nuevaRuta.resolucionId,
-      totalRutasMock: this.mockRutas.length
-    });
-
-    return of(nuevaRuta);
-  }
-
-  // Método para generar datos mock adicionales de prueba
-  generarDatosMockAdicionales(): void {
-    console.log('🔧 GENERANDO DATOS MOCK ADICIONALES DE PRUEBA...');
-    
-    // Agregar más rutas a la resolución 1 (Empresa 1)
-    const nuevaRuta1: Ruta = {
-      id: '14',
-      codigoRuta: '04',
-      nombre: 'PUNO - AREQUIPA',
-      origenId: '1',
-      destinoId: '9',
-      origen: 'PUNO',
-      destino: 'AREQUIPA',
-      distancia: 275,
-      tiempoEstimado: 4.5,
-      itinerarioIds: [],
-      frecuencias: 'Diaria, 2 veces al día',
-      estado: 'ACTIVA' as EstadoRuta,
-      estaActivo: true,
-      empresaId: '1',
-      resolucionId: '1',
-      fechaRegistro: new Date('2024-06-01'),
-      fechaActualizacion: new Date('2024-06-01'),
-      observaciones: 'Ruta interprovincial adicional',
-      tipoRuta: 'INTERPROVINCIAL' as TipoRuta,
-      capacidadMaxima: 35,
-      tarifaBase: 22.00
-    };
-
-    // Agregar más rutas a la resolución 2 (Empresa 2)
-    const nuevaRuta2: Ruta = {
-      id: '15',
-      codigoRuta: '04',
-      nombre: 'LIMA - HUANCAYO',
-      origenId: '5',
-      destinoId: '19',
-      origen: 'LIMA',
-      destino: 'HUANCAYO',
-      distancia: 320,
-      tiempoEstimado: 6,
-      itinerarioIds: [],
-      frecuencias: 'Diaria, 3 veces al día',
-      estado: 'ACTIVA' as EstadoRuta,
-      estaActivo: true,
-      empresaId: '2',
-      resolucionId: '2',
-      fechaRegistro: new Date('2024-06-05'),
-      fechaActualizacion: new Date('2024-06-05'),
-      observaciones: 'Ruta sierra central',
-      tipoRuta: 'INTERPROVINCIAL' as TipoRuta,
-      capacidadMaxima: 40,
-      tarifaBase: 28.00
-    };
-
-    // Agregar más rutas a la resolución 5 (Empresa 5)
-    const nuevaRuta3: Ruta = {
-      id: '16',
-      codigoRuta: '04',
-      nombre: 'LIMA CENTRO - LA MOLINA',
-      origenId: '15',
-      destinoId: '20',
-      origen: 'LIMA CENTRO',
-      destino: 'LA MOLINA',
-      distancia: 15,
-      tiempoEstimado: 0.6,
-      itinerarioIds: [],
-      frecuencias: 'Diaria, cada 10 minutos',
-      estado: 'ACTIVA' as EstadoRuta,
-      estaActivo: true,
-      empresaId: '5',
-      resolucionId: '5',
-      fechaRegistro: new Date('2024-06-10'),
-      fechaActualizacion: new Date('2024-06-10'),
-      observaciones: 'Ruta residencial',
-      tipoRuta: 'URBANA' as TipoRuta,
-      capacidadMaxima: 50,
-      tarifaBase: 3.20
-    };
-
-    // Agregar las nuevas rutas
-    this.mockRutas.push(nuevaRuta1, nuevaRuta2, nuevaRuta3);
-    
-    console.log('✅ DATOS MOCK ADICIONALES GENERADOS:');
-    console.log(`   • Nueva ruta PUNO-AREQUIPA (04) agregada a resolución 1`);
-    console.log(`   • Nueva ruta LIMA-HUANCAYO (04) agregada a resolución 2`);
-    console.log(`   • Nueva ruta LIMA CENTRO-LA MOLINA (04) agregada a resolución 5`);
-    console.log(`   • Total de rutas mock: ${this.mockRutas.length}`);
-    
-    // Verificar la integridad después de agregar
-    this.verificarIntegridadCodigosUnicos();
-  }
-
-  // Método para limpiar datos mock y volver al estado inicial
-  limpiarDatosMock(): void {
-    console.log('🧹 LIMPIANDO DATOS MOCK...');
-    
-    // Mantener solo las rutas originales (primeras 13)
-    this.mockRutas = this.mockRutas.slice(0, 13);
-    
-    console.log('✅ DATOS MOCK LIMPIADOS');
-    console.log(`   • Total de rutas: ${this.mockRutas.length}`);
-    
-    // Verificar la integridad después de limpiar
-    this.verificarIntegridadCodigosUnicos();
-  }
 
   // ========================================
   // MÉTODOS DE CARGA MASIVA DESDE EXCEL

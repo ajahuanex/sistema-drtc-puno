@@ -10,8 +10,8 @@ Este servicio se encarga de:
 
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
-from app.services.mock_vehiculo_service import MockVehiculoService
-from app.services.mock_resolucion_service import MockResolucionService
+from app.services.vehiculo_service import VehiculoService
+from app.services.resolucion_service import ResolucionService
 from app.models.vehiculo import Vehiculo, VehiculoUpdate
 from app.models.resolucion import Resolucion
 import logging
@@ -21,9 +21,17 @@ logger = logging.getLogger(__name__)
 class VehiculoHistorialService:
     """Servicio para gestionar el historial de validaciones de vehículos"""
     
-    def __init__(self):
-        self.vehiculo_service = MockVehiculoService()
-        self.resolucion_service = MockResolucionService()
+    def __init__(self, db=None):
+        from app.dependencies.db import get_database
+        if db is None:
+            # Para uso en tests o cuando no se pasa db
+            import asyncio
+            try:
+                db = asyncio.get_event_loop().run_until_complete(get_database())
+            except:
+                db = None
+        self.vehiculo_service = VehiculoService(db) if db else None
+        self.resolucion_service = ResolucionService(db) if db else None
     
     async def calcular_historial_validaciones_todos(self) -> Dict[str, int]:
         """

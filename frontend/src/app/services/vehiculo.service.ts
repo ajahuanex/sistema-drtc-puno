@@ -48,7 +48,7 @@ export class VehiculoService {
   
   private apiUrl = environment.apiUrl;
 
-  // Datos mock eliminados - usando únicamente MongoDB
+
 
   // Constructor removido - usando inject() en las propiedades
 
@@ -175,7 +175,7 @@ export class VehiculoService {
         })
       );
     } else {
-      // Fallback a mock
+      // Backend no disponible
       return throwError(() => new Error('Error al crear vehículo - Backend no disponible'));
     }
   }
@@ -529,7 +529,7 @@ export class VehiculoService {
         catchError(() => of(true)) // En caso de error, permitir continuar
       );
     } else {
-      // Sin datos mock - siempre retornar true (placa disponible)
+      // Backend no disponible - asumir placa disponible
       return of(true);
     }
   }

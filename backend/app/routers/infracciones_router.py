@@ -8,7 +8,7 @@ from app.models.infraccion import (
     Fiscalizacion, FiscalizacionCreate, FiscalizacionUpdate, FiscalizacionResponse,
     FiscalizacionFiltros, FiscalizacionEstadisticas
 )
-# from app.services.mock_data import MockDataService  # COMENTADO: mock eliminado
+
 from app.dependencies.auth import get_current_user
 # from app.dependencies.db import get_database
 # from app.services.infraccion_service import InfraccionService  # NO EXISTE AÚN

@@ -575,13 +575,13 @@ export class CrearRutaModalComponent {
       };
 
       // Usar el servicio para crear la ruta
-      this.rutaService.agregarRutaMock(nuevaRuta as RutaCreate, this.resolucionSeleccionada!.id)
+      this.rutaService.createRuta(nuevaRuta as RutaCreate)
         .subscribe({
-          next: (rutaGuardada) => {
+          next: (rutaGuardada: any) => {
             this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { duration: 3000 });
             this.dialogRef.close(rutaGuardada);
           },
-          error: (error) => {
+          error: (error: any) => {
             this.snackBar.open('Error al crear la ruta', 'Cerrar', { duration: 3000 });
             this.isSubmitting = false;
           }

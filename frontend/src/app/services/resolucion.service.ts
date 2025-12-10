@@ -15,8 +15,7 @@ import { environment } from '../../environments/environment';
 export class ResolucionService {
   private apiUrl = environment.apiUrl;
 
-  // Datos mock para desarrollo
-  private mockResoluciones: Resolucion[] = [];
+
 
   private empresaService = inject(EmpresaService);
 
@@ -24,7 +23,6 @@ export class ResolucionService {
     private http: HttpClient,
     private authService: AuthService
   ) {
-    this.inicializarDatosMock();
   }
 
   /**
@@ -51,7 +49,7 @@ export class ResolucionService {
    * - E-0002-2027 (ID: 10) → RENOVACION → Resolución HIJO (depende de ID: 12)
    */
   private obtenerTipoTramiteDesdeExpediente(expedienteId: string): TipoTramite {
-    // Mapeo de expedientes a tipos de trámite según los datos mock
+    // Mapeo de expedientes a tipos de trámite
     const mapeoExpedientes: { [key: string]: TipoTramite } = {
       '1': 'AUTORIZACION_NUEVA',      // E-0001-2025
       '2': 'RENOVACION',      // E-0002-2025  
@@ -68,300 +66,7 @@ export class ResolucionService {
     return mapeoExpedientes[expedienteId] || 'OTROS';
   }
 
-  private inicializarDatosMock(): void {
-    // COMENTADO: No usar datos mock, solo MongoDB
-    this.mockResoluciones = [];
-    /*
-    this.mockResoluciones = [
-      {
-        id: '1',
-        nroResolucion: 'R-0001-2025',
-        empresaId: '1',
-        expedienteId: '1',
-        fechaEmision: new Date('2025-01-15'),
-        fechaVigenciaInicio: new Date('2025-01-15'),
-        fechaVigenciaFin: new Date('2030-01-15'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: ['2', '3'],
-        vehiculosHabilitadosIds: ['1', '2'],
-        rutasAutorizadasIds: ['1'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('1'),
-        descripcion: 'Resolución PRIMIGENIA para autorización de transporte público de pasajeros - autorización inicial por 5 años',
-        documentoId: 'doc1',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2025-01-15'),
-        fechaActualizacion: new Date('2025-01-15'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2025-01-15'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '2',
-        nroResolucion: 'R-0002-2025',
-        empresaId: '1',
-        expedienteId: '2',
-        fechaEmision: new Date('2025-06-01'),
-        fechaVigenciaInicio: new Date('2025-06-01'),
-        fechaVigenciaFin: new Date('2030-06-01'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['3'],
-        rutasAutorizadasIds: ['2'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('2'),
-        descripcion: 'Resolución de RENOVACIÓN de autorización de transporte público de pasajeros - ampliación de vigencia por 5 años',
-        documentoId: 'doc2',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2025-06-01'),
-        fechaActualizacion: new Date('2025-06-01'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2025-06-01'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '3',
-        nroResolucion: 'R-0003-2025',
-        empresaId: '1',
-        expedienteId: '3',
-        fechaEmision: new Date('2025-08-15'),
-        fechaVigenciaInicio: new Date('2025-08-15'),
-        fechaVigenciaFin: new Date('2030-08-15'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: ['11'],
-        vehiculosHabilitadosIds: ['4'],
-        rutasAutorizadasIds: ['3'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('3'),
-        descripcion: 'Resolución de INCREMENTO de flota vehicular para ampliar cobertura de rutas autorizadas',
-        documentoId: 'doc3',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2025-08-15'),
-        fechaActualizacion: new Date('2025-08-15'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2025-08-15'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '4',
-        nroResolucion: 'R-0001-2026',
-        empresaId: '2',
-        expedienteId: '4',
-        fechaEmision: new Date('2026-01-10'),
-        fechaVigenciaInicio: new Date('2026-01-10'),
-        fechaVigenciaFin: new Date('2031-01-10'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: ['10'],
-        vehiculosHabilitadosIds: ['5', '6'],
-        rutasAutorizadasIds: ['4', '5'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('4'),
-        descripcion: 'Resolución PRIMIGENIA para nueva empresa de transporte de carga pesada - autorización inicial',
-        documentoId: 'doc4',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2026-01-10'),
-        fechaActualizacion: new Date('2026-01-10'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2026-01-10'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '5',
-        nroResolucion: 'R-0002-2026',
-        empresaId: '2',
-        expedienteId: '5',
-        fechaEmision: new Date('2026-02-15'),
-        fechaVigenciaInicio: new Date('2026-02-15'),
-        fechaVigenciaFin: new Date('2031-02-15'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['7'],
-        rutasAutorizadasIds: ['6'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('5'),
-        descripcion: 'Resolución de RENOVACIÓN para empresa de transporte de carga pesada - ampliación de vigencia por 5 años',
-        documentoId: 'doc7',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2026-02-15'),
-        fechaActualizacion: new Date('2026-02-15'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2026-02-15'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '6',
-        nroResolucion: 'R-0003-2026',
-        empresaId: '2',
-        expedienteId: '6',
-        fechaEmision: new Date('2026-02-15'),
-        fechaVigenciaInicio: new Date('2026-02-15'),
-        fechaVigenciaFin: new Date('2031-02-15'),
-        tipoResolucion: 'HIJO',
-        resolucionPadreId: '4',
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['7'],
-        rutasAutorizadasIds: ['6'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('6'),
-        descripcion: 'Resolución HIJA de INCREMENTO de flota vehicular - ampliación de capacidad de transporte',
-        documentoId: 'doc10',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2026-02-15'),
-        fechaActualizacion: new Date('2026-02-15'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2026-02-15'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '7',
-        nroResolucion: 'R-0004-2026',
-        empresaId: '3',
-        expedienteId: '7',
-        fechaEmision: new Date('2026-03-10'),
-        fechaVigenciaInicio: new Date('2026-03-10'),
-        fechaVigenciaFin: new Date('2031-03-10'),
-        tipoResolucion: 'HIJO',
-        resolucionPadreId: '3',
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['8'],
-        rutasAutorizadasIds: ['7'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('7'),
-        descripcion: 'Resolución HIJA de SUSTITUCIÓN de vehículos en flota existente - modernización de unidades',
-        documentoId: 'doc11',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2026-03-10'),
-        fechaActualizacion: new Date('2026-03-10'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2026-03-10'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '8',
-        nroResolucion: 'R-0004-2025',
-        empresaId: '1',
-        expedienteId: '8',
-        fechaEmision: new Date('2025-10-01'),
-        fechaVigenciaInicio: new Date('2025-10-01'),
-        fechaVigenciaFin: new Date('2030-10-01'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['5'],
-        rutasAutorizadasIds: ['4'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('8'),
-        descripcion: 'Resolución de modificación de rutas autorizadas - ampliación de cobertura urbana',
-        documentoId: 'doc8',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2025-10-01'),
-        fechaActualizacion: new Date('2025-10-01'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2025-10-01'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '9',
-        nroResolucion: 'R-0005-2025',
-        empresaId: '1',
-        expedienteId: '9',
-        fechaEmision: new Date('2025-12-01'),
-        fechaVigenciaInicio: new Date('2025-12-01'),
-        fechaVigenciaFin: new Date('2030-12-01'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['6'],
-        rutasAutorizadasIds: ['5'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('9'),
-        descripcion: 'Resolución de nueva ruta interprovincial - ampliación de servicios de transporte',
-        documentoId: 'doc9',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2025-12-01'),
-        fechaActualizacion: new Date('2025-12-01'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2025-12-01'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '10',
-        nroResolucion: 'R-0001-2027',
-        empresaId: '6',
-        expedienteId: '9',
-        fechaEmision: new Date('2027-01-20'),
-        fechaVigenciaInicio: new Date('2027-01-20'),
-        fechaVigenciaFin: new Date('2032-01-20'),
-        tipoResolucion: 'PADRE',
-        resolucionPadreId: undefined,
-        resolucionesHijasIds: ['13'],
-        vehiculosHabilitadosIds: ['10', '11'],
-        rutasAutorizadasIds: ['9', '10'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('9'),
-        descripcion: 'Resolución PRIMIGENIA para empresa de transporte turístico especializado - autorización inicial',
-        documentoId: 'doc12',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2027-01-20'),
-        fechaActualizacion: new Date('2027-01-20'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2027-01-20'),
-        documentos: [],
-        auditoria: []
-      },
-      {
-        id: '11',
-        nroResolucion: 'R-0002-2027',
-        empresaId: '6',
-        expedienteId: '10',
-        fechaEmision: new Date('2027-02-15'),
-        fechaVigenciaInicio: new Date('2027-02-15'),
-        fechaVigenciaFin: new Date('2032-02-15'),
-        tipoResolucion: 'HIJO',
-        resolucionPadreId: '10',
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: ['12'],
-        rutasAutorizadasIds: ['11'],
-        tipoTramite: this.obtenerTipoTramiteDesdeExpediente('10'),
-        descripcion: 'Resolución HIJA de RENOVACIÓN para empresa de transporte turístico - mantenimiento de servicios',
-        documentoId: 'doc13',
-        estaActivo: true,
-        estado: 'VIGENTE',
-        fechaRegistro: new Date('2027-02-15'),
-        fechaActualizacion: new Date('2027-02-15'),
-        usuarioEmisionId: 'user1',
-        usuarioAprobacionId: 'user1',
-        fechaAprobacion: new Date('2027-02-15'),
-        documentos: [],
-        auditoria: []
-      }
-    ];
-    */
-  }
+
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
@@ -397,11 +102,7 @@ export class ResolucionService {
       .pipe(
         catchError(error => {
           console.error('Error fetching resolucion:', error);
-          // Retornar resolución mock en caso de error
-          const mockResolucion = this.mockResoluciones.find(r => r.id === id);
-          if (mockResolucion) {
-            return of(mockResolucion);
-          }
+          // No hay fallback disponible
           return throwError(() => new Error('Resolución no encontrada'));
         })
       );
@@ -417,14 +118,7 @@ export class ResolucionService {
     const anio = new Date(fechaEmision).getFullYear();
     const numeroCompleto = `R-${numero}-${anio}`;
 
-    // COMENTADO: No validar en mock, dejar que el backend valide desde MongoDB
-    // const existe = this.mockResoluciones.some(r => r.nroResolucion === numeroCompleto);
-    // if (existe) {
-    //   console.warn(`Ya existe una resolución con el número ${numeroCompleto}`);
-    //   return false;
-    // }
-
-    // Siempre retornar true, el backend validará contra la base de datos real
+    // El backend validará contra la base de datos real
     return true;
   }
 
@@ -482,9 +176,9 @@ export class ResolucionService {
       .pipe(
         tap(resolucionCreada => {
           console.log('Resolución creada exitosamente en backend:', resolucionCreada);
-          // Agregar también a los datos mock para consistencia
+          // Resolución creada exitosamente
           const nuevaResolucion: Resolucion = {
-            id: resolucionCreada.id || (this.mockResoluciones.length + 1).toString(),
+            id: resolucionCreada.id || Date.now().toString(),
             nroResolucion: resolucionCreada.nroResolucion,
             empresaId: resolucionCreada.empresaId,
             expedienteId: resolucionCreada.expedienteId,
@@ -509,20 +203,9 @@ export class ResolucionService {
             documentos: resolucionCreada.documentos || [],
             auditoria: resolucionCreada.auditoria || []
           };
-          this.mockResoluciones.push(nuevaResolucion);
-          console.log('Resolución agregada a datos mock:', nuevaResolucion);
-          console.log('Total de resoluciones mock después de agregar:', this.mockResoluciones.length);
+          console.log('Resolución creada:', nuevaResolucion);
 
-          // Si es resolución hija, actualizar la resolución padre
-          if (nuevaResolucion.resolucionPadreId) {
-            const indexPadre = this.mockResoluciones.findIndex(r => r.id === nuevaResolucion.resolucionPadreId);
-            if (indexPadre !== -1) {
-              this.mockResoluciones[indexPadre].resolucionesHijasIds.push(nuevaResolucion.id);
-              console.log('Resolución padre actualizada con nueva hija:', this.mockResoluciones[indexPadre]);
-            } else {
-              console.warn('⚠️ No se encontró la resolución padre para actualizar:', nuevaResolucion.resolucionPadreId);
-            }
-          }
+          // Las relaciones padre-hijo se manejan en el backend
         }),
         catchError(error => {
           console.error('Error creating resolucion in backend:', error);
@@ -558,7 +241,7 @@ export class ResolucionService {
   getResolucionesPorEmpresa(empresaId: string): Observable<Resolucion[]> {
     console.log('=== INICIO getResolucionesPorEmpresa ===');
     console.log('Empresa ID solicitada:', empresaId);
-    console.log('Total de resoluciones mock disponibles:', this.mockResoluciones.length);
+    console.log('Consultando resoluciones desde backend');
 
     const url = `${this.apiUrl}/resoluciones`;
     const params = new URLSearchParams();
@@ -602,11 +285,7 @@ export class ResolucionService {
       .pipe(
         catchError(error => {
           console.error('Error adding resolucion to empresa:', error);
-          // Simular éxito en caso de error
-          const resolucion = this.mockResoluciones.find(r => r.id === resolucionId);
-          if (resolucion) {
-            return of(resolucion);
-          }
+          // Error al agregar resolución a empresa
           return throwError(() => new Error('Resolución no encontrada'));
         })
       );
@@ -626,27 +305,28 @@ export class ResolucionService {
   }
 
   getResolucionesByTipo(tipo: string): Observable<Resolucion[]> {
-    // Filtrar por tipo de resolución (PADRE o HIJO)
-    const mockResoluciones = this.mockResoluciones.filter(r => r.tipoResolucion === tipo);
-    return of(mockResoluciones);
+    // Usar endpoint del backend para filtrar por tipo
+    const url = `${this.apiUrl}/resoluciones/filtros?tipo_resolucion=${tipo}`;
+    return this.http.get<Resolucion[]>(url, { headers: this.getHeaders() });
   }
 
   getResolucionesByTipoTramite(tipoTramite: string): Observable<Resolucion[]> {
-    // Filtrar por tipo de trámite
-    const mockResoluciones = this.mockResoluciones.filter(r => r.tipoTramite === tipoTramite);
-    return of(mockResoluciones);
+    // Usar endpoint del backend para filtrar por tipo de trámite
+    const url = `${this.apiUrl}/resoluciones/filtros?tipo_tramite=${tipoTramite}`;
+    return this.http.get<Resolucion[]>(url, { headers: this.getHeaders() });
   }
 
   // Método para debuggear el estado actual de los datos mock
-  debugMockData(): void {
-    console.log('=== DEBUG DATOS MOCK ===');
-    console.log('Total de resoluciones mock:', this.mockResoluciones.length);
-    console.log('Resoluciones por empresa:');
-
-    const empresas = Array.from(new Set(this.mockResoluciones.map(r => r.empresaId)));
-    empresas.forEach(empresaId => {
-      const resolucionesEmpresa = this.mockResoluciones.filter(r => r.empresaId === empresaId);
-      console.log(`Empresa ${empresaId}:`, resolucionesEmpresa.length);
+  debugData(): void {
+    console.log('=== DEBUG DATOS BACKEND ===');
+    this.getResoluciones().subscribe(resoluciones => {
+      console.log('Total de resoluciones en backend:', resoluciones.length);
+      const empresas = Array.from(new Set(resoluciones.map(r => r.empresaId)));
+      empresas.forEach(empresaId => {
+        const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
+        console.log(`Empresa ${empresaId}:`, resolucionesEmpresa.length);
+      });
+      console.log('========================');
     });
   }
 
@@ -678,7 +358,7 @@ export class ResolucionService {
             filterType: 'backend',
             executionTime,
             resultCount: resoluciones.length,
-            datasetSize: this.mockResoluciones.length,
+            datasetSize: resoluciones.length,
             timestamp: new Date()
           });
         }),

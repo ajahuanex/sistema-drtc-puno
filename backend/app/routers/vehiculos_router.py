@@ -28,6 +28,11 @@ from app.utils.exceptions import (
 
 router = APIRouter(prefix="/vehiculos", tags=["vehiculos"])
 
+async def get_vehiculo_service():
+    """Dependency para obtener el servicio de vehículos"""
+    db = await get_database()
+    return VehiculoService(db)
+
 @router.post("/", response_model=VehiculoResponse, status_code=201)
 async def create_vehiculo(
     vehiculo_data: VehiculoCreate,
@@ -57,10 +62,10 @@ async def get_vehiculos(
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
     empresa_id: str = Query(None, description="Filtrar por empresa"),
-    solo_visibles: bool = Query(True, description="Mostrar solo vehículos visibles (historial actual)")
+    solo_visibles: bool = Query(True, description="Mostrar solo vehículos visibles (historial actual)"),
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> List[VehiculoResponse]:
     """Obtener lista de vehículos con filtros opcionales"""
-    vehiculo_service = MockVehiculoService()
     
     # Si se solicitan solo vehículos visibles, usar el servicio de filtrado
     if solo_visibles:
@@ -128,11 +133,10 @@ async def get_vehiculos_con_filtros(
     categoria: Optional[str] = Query(None),
     empresa_id: Optional[str] = Query(None),
     anio_desde: Optional[int] = Query(None),
-    anio_hasta: Optional[int] = Query(None)
+    anio_hasta: Optional[int] = Query(None),
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> List[VehiculoResponse]:
     """Obtener vehículos con filtros avanzados"""
-    vehiculo_service = MockVehiculoService()
-    
     # Construir filtros
     filtros = {}
     if estado:
@@ -180,9 +184,10 @@ async def get_vehiculos_con_filtros(
     ]
 
 @router.get("/estadisticas")
-async def get_estadisticas_vehiculos():
+async def get_estadisticas_vehiculos(
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
+):
     """Obtener estadísticas de vehículos"""
-    vehiculo_service = MockVehiculoService()
     estadisticas = await vehiculo_service.get_estadisticas()
     
     return {
@@ -486,14 +491,13 @@ async def obtener_historial_detallado(vehiculo_id: str):
 
 @router.get("/{vehiculo_id}", response_model=VehiculoResponse)
 async def get_vehiculo(
-    vehiculo_id: str
+    vehiculo_id: str,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Obtener vehículo por ID"""
     # Guard clause
     if not vehiculo_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de vehículo inválido")
-    
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.get_vehiculo_by_id(vehiculo_id)
     
     if not vehiculo:
@@ -559,9 +563,11 @@ async def get_vehiculo(
     raise HTTPException(status_code=501, detail="Endpoint desactivado - Usar DataManager")
 
 @router.get("/validar-placa/{placa}")
-async def validar_placa(placa: str):
+async def validar_placa(
+    placa: str,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
+):
     """Validar si una placa ya existe"""
-    vehiculo_service = MockVehiculoService()
     vehiculo_existente = await vehiculo_service.get_vehiculo_by_placa(placa)
     
     return {
@@ -572,7 +578,8 @@ async def validar_placa(placa: str):
 @router.put("/{vehiculo_id}", response_model=VehiculoResponse)
 async def update_vehiculo(
     vehiculo_id: str,
-    vehiculo_data: VehiculoUpdate
+    vehiculo_data: VehiculoUpdate,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Actualizar vehículo"""
     # Guard clauses
@@ -581,8 +588,6 @@ async def update_vehiculo(
     
     if not vehiculo_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
-    
-    vehiculo_service = MockVehiculoService()
     updated_vehiculo = await vehiculo_service.update_vehiculo(vehiculo_id, vehiculo_data)
     
     if not updated_vehiculo:
@@ -613,14 +618,13 @@ async def update_vehiculo(
 
 @router.delete("/{vehiculo_id}", status_code=204)
 async def delete_vehiculo(
-    vehiculo_id: str
+    vehiculo_id: str,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ):
     """Desactivar vehículo (borrado lógico)"""
     # Guard clause
     if not vehiculo_id.isdigit():
         raise HTTPException(status_code=400, detail="ID de vehículo inválido")
-    
-    vehiculo_service = MockVehiculoService()
     success = await vehiculo_service.soft_delete_vehiculo(vehiculo_id)
     
     if not success:
@@ -631,9 +635,10 @@ async def delete_vehiculo(
 async def agregar_ruta_a_vehiculo(
     vehiculo_id: str,
     ruta_id: str
+,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Agregar ruta a vehículo"""
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.agregar_ruta_a_vehiculo(vehiculo_id, ruta_id)
     
     if not vehiculo:
@@ -666,9 +671,10 @@ async def agregar_ruta_a_vehiculo(
 async def remover_ruta_de_vehiculo(
     vehiculo_id: str,
     ruta_id: str
+,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Remover ruta de vehículo"""
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.remover_ruta_de_vehiculo(vehiculo_id, ruta_id)
     
     if not vehiculo:
@@ -702,9 +708,10 @@ async def remover_ruta_de_vehiculo(
 async def asignar_tuc(
     vehiculo_id: str,
     tuc_data: dict
+,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Asignar TUC a vehículo"""
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.asignar_tuc(vehiculo_id, tuc_data)
     
     if not vehiculo:
@@ -736,9 +743,10 @@ async def asignar_tuc(
 @router.delete("/{vehiculo_id}/tuc", response_model=VehiculoResponse)
 async def remover_tuc(
     vehiculo_id: str
+,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Remover TUC de vehículo"""
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.remover_tuc(vehiculo_id)
     
     if not vehiculo:
@@ -772,9 +780,10 @@ async def remover_tuc(
 async def cambiar_empresa_vehiculo(
     vehiculo_id: str,
     nueva_empresa_id: str
+,
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Cambiar empresa del vehículo"""
-    vehiculo_service = MockVehiculoService()
     vehiculo = await vehiculo_service.cambiar_empresa(vehiculo_id, nueva_empresa_id)
     
     if not vehiculo:
@@ -807,13 +816,12 @@ async def cambiar_empresa_vehiculo(
 @router.get("/exportar/{formato}")
 async def exportar_vehiculos(
     formato: str,
-    estado: Optional[str] = Query(None)
+    estado: Optional[str] = Query(None),
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ):
     """Exportar vehículos en diferentes formatos"""
     if formato not in ['pdf', 'excel', 'csv']:
         raise HTTPException(status_code=400, detail="Formato no soportado")
-    
-    vehiculo_service = MockVehiculoService()
     
     # Obtener vehículos según filtros
     if estado:

@@ -111,7 +111,7 @@ async def health_check():
     from app.dependencies.db import db
     
     db_status = "connected" if db.client else "disconnected"
-    mode = "database" if db.client else "mock_data_fallback"
+    mode = "database" if db.client else "no_database"
     
     return {
         "status": "healthy",
@@ -127,7 +127,7 @@ async def health_check():
 async def root():
     """Endpoint raíz con información del sistema"""
     from app.dependencies.db import db
-    mode = "database" if db.client else "mock_data_fallback"
+    mode = "database" if db.client else "no_database"
     
     return {
         "message": f"Bienvenido al {settings.PROJECT_NAME}",

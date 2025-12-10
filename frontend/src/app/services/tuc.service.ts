@@ -48,8 +48,7 @@ export class TucService {
     };
   }
 
-  // Datos mock eliminados - usando únicamente MongoDB
-  private mockTucs: Tuc[] = [];
+
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();

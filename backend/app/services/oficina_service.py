@@ -14,14 +14,10 @@ from app.utils.exceptions import (
     OficinaNotFoundException, OficinaAlreadyExistsException,
     ValidationErrorException, DatabaseErrorException
 )
-# from app.services.mock_oficina_service import mock_oficina_service  # COMENTADO: mock eliminado
-
 class OficinaService:
     """Servicio para gestión de oficinas y seguimiento de expedientes"""
     
     def __init__(self, db=None):
-        # Mock service eliminado - usar solo base de datos
-        # self.mock_service = mock_oficina_service  # COMENTADO
         self.db = db
         self.collection = db.oficinas if db is not None else None
         self.expedientes_collection = db.expedientes if db is not None else None
@@ -39,8 +35,8 @@ class OficinaService:
     async def get_oficina(self, oficina_id: str) -> OficinaResponse:
         """Obtener una oficina por ID"""
         try:
-            # Usar mock service para desarrollo
-            oficina = await self.mock_service.get_oficina(oficina_id)
+            # TODO: Implementar búsqueda en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
             if not oficina:
                 raise OficinaNotFoundException(f"Oficina no encontrada con ID: {oficina_id}")
             return oficina
@@ -52,16 +48,16 @@ class OficinaService:
     async def get_oficinas(self, skip: int = 0, limit: int = 100, filtros: Optional[OficinaFiltros] = None) -> List[OficinaResponse]:
         """Obtener lista de oficinas con filtros opcionales"""
         try:
-            # Usar mock service para desarrollo
-            return await self.mock_service.get_oficinas(skip, limit)
+            # TODO: Implementar búsqueda en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
         except Exception as e:
             raise DatabaseErrorException(f"Error al obtener oficinas: {str(e)}")
     
     async def update_oficina(self, oficina_id: str, oficina_data: OficinaUpdate) -> OficinaResponse:
         """Actualizar una oficina existente"""
         try:
-            # Usar mock service para desarrollo
-            oficina = await self.mock_service.update_oficina(oficina_id, oficina_data)
+            # TODO: Implementar actualización en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
             if not oficina:
                 raise OficinaNotFoundException(f"Oficina no encontrada con ID: {oficina_id}")
             return oficina
@@ -73,8 +69,8 @@ class OficinaService:
     async def delete_oficina(self, oficina_id: str) -> bool:
         """Eliminar una oficina (desactivar)"""
         try:
-            # Usar mock service para desarrollo
-            return await self.mock_service.delete_oficina(oficina_id)
+            # TODO: Implementar eliminación en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
         except Exception as e:
             if isinstance(e, (OficinaNotFoundException, ValidationErrorException)):
                 raise e
@@ -83,8 +79,8 @@ class OficinaService:
     async def get_expedientes_por_oficina(self, oficina_id: str, skip: int = 0, limit: int = 100) -> List[ExpedienteResponse]:
         """Obtener expedientes que están en una oficina específica"""
         try:
-            # Usar mock service para desarrollo
-            expedientes_mock = await self.mock_service.get_expedientes_por_oficina(oficina_id, skip, limit)
+            # TODO: Implementar búsqueda en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
             # Convertir a ExpedienteResponse
             expedientes = []
             for exp in expedientes_mock:
@@ -109,10 +105,8 @@ class OficinaService:
                               documentos_entregados: List[str] = None) -> bool:
         """Mover un expediente de una oficina a otra"""
         try:
-            # Usar mock service para desarrollo
-            return await self.mock_service.mover_expediente(
-                expediente_id, nueva_oficina_id, usuario_id, motivo, observaciones
-            )
+            # TODO: Implementar movimiento en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
         except Exception as e:
             if isinstance(e, ValidationErrorException):
                 raise e
@@ -121,8 +115,8 @@ class OficinaService:
     async def get_estadisticas_oficina(self, oficina_id: str) -> OficinaEstadisticas:
         """Obtener estadísticas detalladas de una oficina"""
         try:
-            # Usar mock service para desarrollo
-            estadisticas_mock = await self.mock_service.get_estadisticas_oficina(oficina_id)
+            # TODO: Implementar estadísticas en base de datos
+            raise NotImplementedError("Servicio de oficinas pendiente de implementación")
             
             # Convertir a OficinaEstadisticas
             return OficinaEstadisticas(

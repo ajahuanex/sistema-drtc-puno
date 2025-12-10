@@ -10,7 +10,7 @@ Este servicio implementa la lógica donde:
 
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
-from app.services.mock_vehiculo_service import MockVehiculoService
+from app.services.vehiculo_service import VehiculoService
 from app.services.vehiculo_historial_service import VehiculoHistorialService
 from app.models.vehiculo import Vehiculo, VehiculoUpdate, EstadoVehiculo
 import logging
@@ -20,9 +20,17 @@ logger = logging.getLogger(__name__)
 class VehiculoFiltroHistorialService:
     """Servicio para filtrar vehículos basado en historial de validaciones"""
     
-    def __init__(self):
-        self.vehiculo_service = MockVehiculoService()
-        self.historial_service = VehiculoHistorialService()
+    def __init__(self, db=None):
+        from app.dependencies.db import get_database
+        if db is None:
+            # Para uso en tests o cuando no se pasa db
+            import asyncio
+            try:
+                db = asyncio.get_event_loop().run_until_complete(get_database())
+            except:
+                db = None
+        self.vehiculo_service = VehiculoService(db) if db else None
+        self.historial_service = VehiculoHistorialService(db)
     
     async def marcar_vehiculos_historial_actual(self) -> Dict[str, any]:
         """

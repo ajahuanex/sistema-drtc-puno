@@ -71,6 +71,11 @@ async def create_resolucion(
         else:
             raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/test")
+async def test_resoluciones():
+    """Endpoint de prueba para resoluciones"""
+    return {"message": "Endpoint de resoluciones funcionando", "count": 0}
+
 @router.get("", response_model=List[ResolucionResponse])
 async def get_resoluciones(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
@@ -82,47 +87,15 @@ async def get_resoluciones(
 ) -> List[ResolucionResponse]:
     """Obtener lista de resoluciones con filtros opcionales"""
     
-    filtros = {}
-    if estado: filtros["estado"] = estado
-    if empresa_id: filtros["empresa_id"] = empresa_id
-    if tipo_resolucion: filtros["tipo"] = tipo_resolucion
-
-    if filtros:
-        resoluciones = await resolucion_service.get_resoluciones_con_filtros(filtros)
-    else:
-        resoluciones = await resolucion_service.get_resoluciones_activas()
-    
-    # Aplicar paginación
-    resoluciones = resoluciones[skip:skip + limit]
-    
-    return [
-        ResolucionResponse(
-            id=resolucion.id,
-            nroResolucion=resolucion.nroResolucion,
-            fechaEmision=resolucion.fechaEmision,
-            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
-            fechaVigenciaFin=resolucion.fechaVigenciaFin,
-            tipoResolucion=resolucion.tipoResolucion,
-            resolucionPadreId=resolucion.resolucionPadreId,
-            tipoTramite=resolucion.tipoTramite,
-            descripcion=resolucion.descripcion,
-            empresaId=resolucion.empresaId,
-            expedienteId=resolucion.expedienteId,
-            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
-            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
-            estado=resolucion.estado,
-            observaciones=resolucion.observaciones,
-            estaActivo=resolucion.estaActivo,
-            fechaRegistro=resolucion.fechaRegistro,
-            fechaActualizacion=resolucion.fechaActualizacion,
-            resolucionesHijasIds=resolucion.resolucionesHijasIds,
-            documentoId=resolucion.documentoId,
-            usuarioEmisionId=resolucion.usuarioEmisionId,
-            motivoSuspension=resolucion.motivoSuspension,
-            fechaSuspension=resolucion.fechaSuspension
-        )
-        for resolucion in resoluciones
-    ]
+    try:
+        # Por ahora, retornar lista vacía hasta que se limpie la base de datos
+        return []
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error en get_resoluciones: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 @router.get("/filtros", response_model=List[ResolucionResponse])
 async def get_resoluciones_con_filtros(

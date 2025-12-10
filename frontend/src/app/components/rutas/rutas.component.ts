@@ -900,9 +900,6 @@ export class RutasComponent implements OnInit {
 
   // Método agregarRutaGeneral() eliminado - Se requiere empresa y resolución válidas
   // El backend no acepta IDs 'general', solo ObjectIds válidos de MongoDB
-          tipoTramite: 'AUTORIZACION_NUEVA',
-          empresaId: 'general',
-
 
   // Método para intercambiar códigos entre rutas
   intercambiarCodigos(ruta1: Ruta, ruta2: Ruta): void {
@@ -1000,7 +997,7 @@ export class RutasComponent implements OnInit {
     console.log('📈 Total de rutas en el sistema:', this.totalRutas());
 
     // Mostrar también el estado del servicio
-    this.rutaService.mostrarEstadoRutasMock();
+    // this.rutaService.mostrarEstadoRutasMock();
   }
 
   // Método para mostrar todas las rutas del sistema
@@ -1016,7 +1013,7 @@ export class RutasComponent implements OnInit {
     console.log('📊 TOTAL RUTAS:', this.rutas().length);
 
     // Mostrar también el estado del servicio
-    this.rutaService.mostrarEstadoRutasMock();
+    // this.rutaService.mostrarEstadoRutasMock();
   }
 
   forzarCargaRutas(): void {

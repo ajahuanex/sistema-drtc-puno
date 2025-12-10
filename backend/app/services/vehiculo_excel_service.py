@@ -6,17 +6,27 @@ from app.models.vehiculo import (
     VehiculoExcel, VehiculoCargaMasivaResponse, VehiculoValidacionExcel,
     VehiculoCreate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro, MotivoSustitucion
 )
-# from app.services.mock_vehiculo_service import MockVehiculoService  # COMENTADO: mock eliminado
-# from app.services.mock_data import mock_service  # COMENTADO: mock eliminado
+from app.services.vehiculo_service import VehiculoService
+from app.services.empresa_service import EmpresaService
+from app.services.resolucion_service import ResolucionService
+from app.services.ruta_service import RutaService
 
 class VehiculoExcelService:
     """Servicio para procesar archivos Excel de vehículos"""
     
-    def __init__(self):
-        self.vehiculo_service = MockVehiculoService()
-        self.empresas = mock_service.empresas
-        self.resoluciones = mock_service.resoluciones
-        self.rutas = mock_service.rutas
+    def __init__(self, db=None):
+        from app.dependencies.db import get_database
+        if db is None:
+            # Para uso en tests o cuando no se pasa db
+            import asyncio
+            try:
+                db = asyncio.get_event_loop().run_until_complete(get_database())
+            except:
+                db = None
+        self.vehiculo_service = VehiculoService(db) if db else None
+        self.empresa_service = EmpresaService(db) if db else None
+        self.resolucion_service = ResolucionService(db) if db else None
+        self.ruta_service = RutaService(db) if db else None
         
         # Configuración de auto-creación
         self.auto_crear_empresas = True  # Auto-crear empresas si no existen

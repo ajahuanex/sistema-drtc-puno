@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 import logging
 
-from app.services.mock_vehiculo_service import MockVehiculoService
+from app.services.vehiculo_service import VehiculoService
 from app.services.vehiculo_filtro_historial_service import VehiculoFiltroHistorialService
 from app.models.vehiculo import Vehiculo
 
@@ -49,9 +49,17 @@ class ResultadoPaginado:
 class VehiculoPerformanceService:
     """Servicio optimizado para rendimiento con grandes volúmenes"""
     
-    def __init__(self):
-        self.vehiculo_service = MockVehiculoService()
-        self.filtro_service = VehiculoFiltroHistorialService()
+    def __init__(self, db=None):
+        from app.dependencies.db import get_database
+        if db is None:
+            # Para uso en tests o cuando no se pasa db
+            import asyncio
+            try:
+                db = asyncio.get_event_loop().run_until_complete(get_database())
+            except:
+                db = None
+        self.vehiculo_service = VehiculoService(db) if db else None
+        self.filtro_service = VehiculoFiltroHistorialService(db)
         
         # Cache inteligente
         self._cache = {}

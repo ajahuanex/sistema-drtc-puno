@@ -416,10 +416,11 @@ async def get_rutas_con_filtros(
     codigo: Optional[str] = Query(None),
     nombre: Optional[str] = Query(None),
     origen_id: Optional[str] = Query(None),
-    destino_id: Optional[str] = Query(None)
+    destino_id: Optional[str] = Query(None),
+    db = Depends(get_database)
 ) -> List[RutaResponse]:
     """Obtener rutas con filtros avanzados"""
-    ruta_service = MockRutaService()
+    ruta_service = RutaService(db)
     
     # Construir filtros
     filtros = {}
@@ -440,9 +441,11 @@ async def get_rutas_con_filtros(
     return [build_ruta_response(ruta) for ruta in rutas]
 
 @router.get("/estadisticas")
-async def get_estadisticas_rutas():
+async def get_estadisticas_rutas(
+    db = Depends(get_database)
+):
     """Obtener estadísticas de rutas"""
-    ruta_service = MockRutaService()
+    ruta_service = RutaService(db)
     estadisticas = await ruta_service.get_estadisticas()
     
     return {
@@ -454,14 +457,11 @@ async def get_estadisticas_rutas():
 
 @router.get("/{ruta_id}", response_model=RutaResponse)
 async def get_ruta(
-    ruta_id: str
+    ruta_id: str,
+    db = Depends(get_database)
 ) -> RutaResponse:
     """Obtener ruta por ID"""
-    # Guard clause
-    if not ruta_id.isdigit():
-        raise HTTPException(status_code=400, detail="ID de ruta inválido")
-    
-    ruta_service = MockRutaService()
+    ruta_service = RutaService(db)
     ruta = await ruta_service.get_ruta_by_id(ruta_id)
     
     if not ruta:
@@ -471,10 +471,11 @@ async def get_ruta(
 
 @router.get("/codigo/{codigo}", response_model=RutaResponse)
 async def get_ruta_by_codigo(
-    codigo: str
+    codigo: str,
+    db = Depends(get_database)
 ) -> RutaResponse:
     """Obtener ruta por código"""
-    ruta_service = MockRutaService()
+    ruta_service = RutaService(db)
     ruta = await ruta_service.get_ruta_by_codigo(codigo)
     
     if not ruta:

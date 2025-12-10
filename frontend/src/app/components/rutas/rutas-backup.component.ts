@@ -1094,7 +1094,7 @@ export class RutasComponent implements OnInit {
     console.log('📈 Total de rutas en el sistema:', this.totalRutas());
 
     // Mostrar también el estado del servicio
-    this.rutaService.mostrarEstadoRutasMock();
+    // this.rutaService.mostrarEstadoRutasMock();
   }
 
   // Método para mostrar todas las rutas del sistema
@@ -1110,7 +1110,7 @@ export class RutasComponent implements OnInit {
     console.log('📊 TOTAL RUTAS:', this.rutas().length);
 
     // Mostrar también el estado del servicio
-    this.rutaService.mostrarEstadoRutasMock();
+    // this.rutaService.mostrarEstadoRutasMock();
   }
 
   forzarCargaRutas(): void {
