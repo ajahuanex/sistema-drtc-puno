@@ -129,14 +129,14 @@ class EmpresaService:
             doc["id"] = str(doc.pop("_id"))
         return doc
 
-    async def get_empresas_activas(self) -> List[EmpresaInDB]:
-        cursor = self.collection.find({"estaActivo": True})
-        docs = await cursor.to_list(length=None)
+    async def get_empresas_activas(self, skip: int = 0, limit: int = 100) -> List[EmpresaInDB]:
+        cursor = self.collection.find({"estaActivo": True}).skip(skip).limit(limit)
+        docs = await cursor.to_list(length=limit)
         return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
 
-    async def get_empresas_por_estado(self, estado: EstadoEmpresa) -> List[EmpresaInDB]:
-        cursor = self.collection.find({"estado": estado, "estaActivo": True})
-        docs = await cursor.to_list(length=None)
+    async def get_empresas_por_estado(self, estado: EstadoEmpresa, skip: int = 0, limit: int = 100) -> List[EmpresaInDB]:
+        cursor = self.collection.find({"estado": estado, "estaActivo": True}).skip(skip).limit(limit)
+        docs = await cursor.to_list(length=limit)
         return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
 
     async def get_empresas_con_filtros(self, filtros: EmpresaFiltros) -> List[EmpresaInDB]:

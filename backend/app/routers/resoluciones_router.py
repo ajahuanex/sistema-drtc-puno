@@ -88,8 +88,50 @@ async def get_resoluciones(
     """Obtener lista de resoluciones con filtros opcionales"""
     
     try:
-        # Por ahora, retornar lista vacía hasta que se limpie la base de datos
-        return []
+        # Obtener resoluciones del servicio
+        resoluciones = await resolucion_service.get_resoluciones_activas()
+        
+        # Aplicar filtros si se especifican
+        if estado:
+            resoluciones = [r for r in resoluciones if r.estado == estado]
+        if empresa_id:
+            resoluciones = [r for r in resoluciones if r.empresaId == empresa_id]
+        if tipo_resolucion:
+            resoluciones = [r for r in resoluciones if r.tipoResolucion == tipo_resolucion]
+        
+        # Aplicar paginación
+        total = len(resoluciones)
+        resoluciones_paginadas = resoluciones[skip:skip + limit]
+        
+        # Convertir a ResolucionResponse
+        return [
+            ResolucionResponse(
+                id=r.id,
+                nroResolucion=r.nroResolucion,
+                fechaEmision=r.fechaEmision,
+                fechaVigenciaInicio=r.fechaVigenciaInicio,
+                fechaVigenciaFin=r.fechaVigenciaFin,
+                tipoResolucion=r.tipoResolucion,
+                resolucionPadreId=r.resolucionPadreId,
+                tipoTramite=r.tipoTramite,
+                descripcion=r.descripcion,
+                empresaId=r.empresaId,
+                expedienteId=r.expedienteId,
+                vehiculosHabilitadosIds=r.vehiculosHabilitadosIds or [],
+                rutasAutorizadasIds=r.rutasAutorizadasIds or [],
+                estado=r.estado,
+                observaciones=r.observaciones,
+                estaActivo=r.estaActivo,
+                fechaRegistro=r.fechaRegistro,
+                fechaActualizacion=r.fechaActualizacion,
+                resolucionesHijasIds=r.resolucionesHijasIds or [],
+                documentoId=r.documentoId,
+                usuarioEmisionId=r.usuarioEmisionId,
+                motivoSuspension=r.motivoSuspension,
+                fechaSuspension=r.fechaSuspension
+            )
+            for r in resoluciones_paginadas
+        ]
         
     except Exception as e:
         import logging

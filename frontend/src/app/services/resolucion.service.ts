@@ -86,7 +86,6 @@ export class ResolucionService {
     if (tipo) params.append('tipo_tramite', tipo);
 
     return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
-    return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
           console.error('Error fetching resoluciones:', error);
@@ -139,8 +138,10 @@ export class ResolucionService {
     }
 
     // Preparar datos para el backend
+    // Formato: R-0123-2025 (número con 4 dígitos con ceros a la izquierda)
+    const numeroFormateado = resolucion.numero.toString().padStart(4, '0');
     const resolucionBackend: any = {
-      nroResolucion: `R-${resolucion.numero}-${new Date(resolucion.fechaEmision).getFullYear()}`,
+      nroResolucion: `R-${numeroFormateado}-${new Date(resolucion.fechaEmision).getFullYear()}`,
       empresaId: resolucion.empresaId,
       expedienteId: resolucion.expedienteId,
       fechaEmision: resolucion.fechaEmision,
@@ -316,7 +317,7 @@ export class ResolucionService {
     return this.http.get<Resolucion[]>(url, { headers: this.getHeaders() });
   }
 
-  // Método para debuggear el estado actual de los datos mock
+  // Método para debuggear el estado actual de los datos del backend
   debugData(): void {
     console.log('=== DEBUG DATOS BACKEND ===');
     this.getResoluciones().subscribe(resoluciones => {

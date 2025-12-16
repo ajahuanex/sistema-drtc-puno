@@ -82,12 +82,9 @@ async def get_empresas(
     """Obtener lista de empresas con filtros opcionales"""
     
     if estado:
-        empresas = await empresa_service.get_empresas_por_estado(estado)
+        empresas = await empresa_service.get_empresas_por_estado(estado, skip, limit)
     else:
-        empresas = await empresa_service.get_empresas_activas()
-    
-    # Aplicar paginación
-    empresas = empresas[skip:skip + limit]
+        empresas = await empresa_service.get_empresas_activas(skip, limit)
     
     return [
         create_empresa_response(empresa)
@@ -102,10 +99,10 @@ async def get_empresas_con_filtros(
     ruc: Optional[str] = Query(None),
     razon_social: Optional[str] = Query(None),
     fecha_desde: Optional[str] = Query(None),
-    fecha_hasta: Optional[str] = Query(None)
+    fecha_hasta: Optional[str] = Query(None),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> List[EmpresaResponse]:
     """Obtener empresas con filtros avanzados"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     
     # Construir filtros
     filtros = {}
@@ -154,10 +151,10 @@ async def get_empresa(
 
 @router.get("/ruc/{ruc}", response_model=EmpresaResponse)
 async def get_empresa_by_ruc(
-    ruc: str
+    ruc: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Obtener empresa por RUC"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.get_empresa_by_ruc(ruc)
     
     if not empresa:
@@ -220,10 +217,10 @@ async def delete_empresa(
 @router.post("/{empresa_id}/vehiculos/{vehiculo_id}", response_model=EmpresaResponse)
 async def agregar_vehiculo_a_empresa(
     empresa_id: str,
-    vehiculo_id: str
+    vehiculo_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Agregar vehículo a empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_vehiculo_a_empresa(empresa_id, vehiculo_id)
     
     if not empresa:
@@ -234,10 +231,10 @@ async def agregar_vehiculo_a_empresa(
 @router.delete("/{empresa_id}/vehiculos/{vehiculo_id}", response_model=EmpresaResponse)
 async def remover_vehiculo_de_empresa(
     empresa_id: str,
-    vehiculo_id: str
+    vehiculo_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Remover vehículo de empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_vehiculo_de_empresa(empresa_id, vehiculo_id)
     
     if not empresa:
@@ -249,10 +246,10 @@ async def remover_vehiculo_de_empresa(
 @router.post("/{empresa_id}/conductores/{conductor_id}", response_model=EmpresaResponse)
 async def agregar_conductor_a_empresa(
     empresa_id: str,
-    conductor_id: str
+    conductor_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Agregar conductor a empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_conductor_a_empresa(empresa_id, conductor_id)
     
     if not empresa:
@@ -263,10 +260,10 @@ async def agregar_conductor_a_empresa(
 @router.delete("/{empresa_id}/conductores/{conductor_id}", response_model=EmpresaResponse)
 async def remover_conductor_de_empresa(
     empresa_id: str,
-    conductor_id: str
+    conductor_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Remover conductor de empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_conductor_de_empresa(empresa_id, conductor_id)
     
     if not empresa:
@@ -278,10 +275,10 @@ async def remover_conductor_de_empresa(
 @router.post("/{empresa_id}/rutas/{ruta_id}", response_model=EmpresaResponse)
 async def agregar_ruta_a_empresa(
     empresa_id: str,
-    ruta_id: str
+    ruta_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Agregar ruta a empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_ruta_a_empresa(empresa_id, ruta_id)
     
     if not empresa:
@@ -292,10 +289,10 @@ async def agregar_ruta_a_empresa(
 @router.delete("/{empresa_id}/rutas/{ruta_id}", response_model=EmpresaResponse)
 async def remover_ruta_de_empresa(
     empresa_id: str,
-    ruta_id: str
+    ruta_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Remover ruta de empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_ruta_de_empresa(empresa_id, ruta_id)
     
     if not empresa:
@@ -307,10 +304,10 @@ async def remover_ruta_de_empresa(
 @router.post("/{empresa_id}/resoluciones/{resolucion_id}", response_model=EmpresaResponse)
 async def agregar_resolucion_a_empresa(
     empresa_id: str,
-    resolucion_id: str
+    resolucion_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Agregar resolución a empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.agregar_resolucion_a_empresa(empresa_id, resolucion_id)
     
     if not empresa:
@@ -321,10 +318,10 @@ async def agregar_resolucion_a_empresa(
 @router.delete("/{empresa_id}/resoluciones/{resolucion_id}", response_model=EmpresaResponse)
 async def remover_resolucion_de_empresa(
     empresa_id: str,
-    resolucion_id: str
+    resolucion_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> EmpresaResponse:
     """Remover resolución de empresa"""
-    empresa_service: EmpresaService = Depends(get_empresa_service)
     empresa = await empresa_service.remover_resolucion_de_empresa(empresa_id, resolucion_id)
     
     if not empresa:
@@ -333,9 +330,11 @@ async def remover_resolucion_de_empresa(
     return create_empresa_response(empresa)
 
 @router.get("/{empresa_id}/resoluciones")
-async def get_resoluciones_empresa(empresa_id: str):
-    """Obtener resoluciones de una empresa"""
+async def get_resoluciones_empresa(
+    empresa_id: str,
     empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Obtener resoluciones de una empresa"""
     resoluciones = await empresa_service.get_resoluciones_empresa(empresa_id)
     
     return {
@@ -348,19 +347,18 @@ async def get_resoluciones_empresa(empresa_id: str):
 @router.get("/exportar/{formato}")
 async def exportar_empresas(
     formato: str,
-    estado: Optional[str] = Query(None)
+    estado: Optional[str] = Query(None),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
     """Exportar empresas en diferentes formatos"""
     if formato not in ['pdf', 'excel', 'csv']:
         raise HTTPException(status_code=400, detail="Formato no soportado")
     
-    empresa_service: EmpresaService = Depends(get_empresa_service)
-    
-    # Obtener empresas según filtros
+    # Obtener empresas según filtros (sin paginación para exportar todas)
     if estado:
-        empresas = await empresa_service.get_empresas_por_estado(estado)
+        empresas = await empresa_service.get_empresas_por_estado(estado, 0, 10000)
     else:
-        empresas = await empresa_service.get_empresas_activas()
+        empresas = await empresa_service.get_empresas_activas(0, 10000)
     
     # Simular exportación
     if formato == 'excel':
@@ -372,9 +370,10 @@ async def exportar_empresas(
         return {"message": f"Exportando {len(empresas)} empresas a CSV"} 
 
 @router.get("/siguiente-codigo", response_model=dict)
-async def obtener_siguiente_codigo_empresa() -> dict:
-    """Obtener el siguiente código de empresa disponible"""
+async def obtener_siguiente_codigo_empresa(
     empresa_service: EmpresaService = Depends(get_empresa_service)
+) -> dict:
+    """Obtener el siguiente código de empresa disponible"""
     
     try:
         siguiente_codigo = await empresa_service.generar_siguiente_codigo_empresa()
