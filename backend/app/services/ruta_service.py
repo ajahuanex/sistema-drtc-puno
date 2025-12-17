@@ -423,3 +423,100 @@ class RutaService:
                 status_code=500,
                 detail=f"Error al generar código: {str(e)}"
             )
+    
+    async def get_estadisticas(self) -> Dict[str, Any]:
+        """Obtener estadísticas de rutas"""
+        try:
+            pipeline = [
+                {"$match": {"estaActivo": True}},
+                {"$group": {
+                    "_id": None,
+                    "total": {"$sum": 1},
+                    "activas": {"$sum": {"$cond": [{"$eq": ["$estado", "ACTIVA"]}, 1, 0]}},
+                    "inactivas": {"$sum": {"$cond": [{"$eq": ["$estado", "INACTIVA"]}, 1, 0]}},
+                    "suspendidas": {"$sum": {"$cond": [{"$eq": ["$estado", "SUSPENDIDA"]}, 1, 0]}},
+                    "en_mantenimiento": {"$sum": {"$cond": [{"$eq": ["$estado", "EN_MANTENIMIENTO"]}, 1, 0]}},
+                    "urbanas": {"$sum": {"$cond": [{"$eq": ["$tipoRuta", "URBANA"]}, 1, 0]}},
+                    "interurbanas": {"$sum": {"$cond": [{"$eq": ["$tipoRuta", "INTERURBANA"]}, 1, 0]}},
+                    "interprovinciales": {"$sum": {"$cond": [{"$eq": ["$tipoRuta", "INTERPROVINCIAL"]}, 1, 0]}},
+                    "interregionales": {"$sum": {"$cond": [{"$eq": ["$tipoRuta", "INTERREGIONAL"]}, 1, 0]}},
+                    "pasajeros": {"$sum": {"$cond": [{"$eq": ["$tipoServicio", "PASAJEROS"]}, 1, 0]}},
+                    "carga": {"$sum": {"$cond": [{"$eq": ["$tipoServicio", "CARGA"]}, 1, 0]}},
+                    "mixto": {"$sum": {"$cond": [{"$eq": ["$tipoServicio", "MIXTO"]}, 1, 0]}},
+                    "distancia_promedio": {"$avg": "$distancia"},
+                    "tarifa_promedio": {"$avg": "$tarifaBase"}
+                }}
+            ]
+            
+            resultado = await self.rutas_collection.aggregate(pipeline).to_list(1)
+            
+            if not resultado:
+                return {
+                    "total": 0,
+                    "activas": 0,
+                    "inactivas": 0,
+                    "suspendidas": 0,
+                    "en_mantenimiento": 0,
+                    "urbanas": 0,
+                    "interurbanas": 0,
+                    "interprovinciales": 0,
+                    "interregionales": 0,
+                    "pasajeros": 0,
+                    "carga": 0,
+                    "mixto": 0,
+                    "distancia_promedio": 0.0,
+                    "tarifa_promedio": 0.0
+                }
+            
+            stats = resultado[0]
+            return {
+                "total": stats.get("total", 0),
+                "activas": stats.get("activas", 0),
+                "inactivas": stats.get("inactivas", 0),
+                "suspendidas": stats.get("suspendidas", 0),
+                "en_mantenimiento": stats.get("en_mantenimiento", 0),
+                "urbanas": stats.get("urbanas", 0),
+                "interurbanas": stats.get("interurbanas", 0),
+                "interprovinciales": stats.get("interprovinciales", 0),
+                "interregionales": stats.get("interregionales", 0),
+                "pasajeros": stats.get("pasajeros", 0),
+                "carga": stats.get("carga", 0),
+                "mixto": stats.get("mixto", 0),
+                "distancia_promedio": round(stats.get("distancia_promedio", 0.0), 2),
+                "tarifa_promedio": round(stats.get("tarifa_promedio", 0.0), 2)
+            }
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al obtener estadísticas: {str(e)}"
+            )
+    
+    async def get_rutas_con_filtros(self, filtros: Dict[str, Any]) -> List[Ruta]:
+        """Obtener rutas con filtros avanzados"""
+        try:
+            query = {"estaActivo": True}
+            
+            if filtros.get("estado"):
+                query["estado"] = filtros["estado"]
+            if filtros.get("codigo"):
+                query["codigoRuta"] = {"$regex": filtros["codigo"], "$options": "i"}
+            if filtros.get("nombre"):
+                query["nombre"] = {"$regex": filtros["nombre"], "$options": "i"}
+            if filtros.get("origen_id"):
+                query["origenId"] = filtros["origen_id"]
+            if filtros.get("destino_id"):
+                query["destinoId"] = filtros["destino_id"]
+            
+            rutas = await self.rutas_collection.find(query).to_list(length=None)
+            
+            for ruta in rutas:
+                ruta["id"] = str(ruta.pop("_id"))
+            
+            return [Ruta(**ruta) for ruta in rutas]
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al obtener rutas con filtros: {str(e)}"
+            )

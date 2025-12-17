@@ -138,6 +138,98 @@ async def get_siguiente_codigo(
         "siguienteCodigo": codigo
     }
 
+@router.get("/empresa/{empresa_id}/resoluciones-primigenias")
+async def get_resoluciones_primigenias_empresa(
+    empresa_id: str,
+    db = Depends(get_database)
+):
+    """Obtener resoluciones primigenias (PADRE y VIGENTE) de una empresa"""
+    try:
+        resoluciones_collection = db.resoluciones
+        
+        # Buscar resoluciones PADRE y VIGENTE de la empresa
+        resoluciones = await resoluciones_collection.find({
+            "empresaId": empresa_id,
+            "tipoResolucion": "PADRE",
+            "estado": "VIGENTE",
+            "estaActivo": True
+        }).to_list(length=None)
+        
+        # Convertir ObjectId a string
+        for resolucion in resoluciones:
+            resolucion["id"] = str(resolucion.pop("_id"))
+        
+        return {
+            "empresaId": empresa_id,
+            "resoluciones": resoluciones,
+            "total": len(resoluciones)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener resoluciones primigenias: {str(e)}"
+        )
+
+@router.get("/resoluciones-primigenias")
+async def get_todas_resoluciones_primigenias(
+    db = Depends(get_database)
+):
+    """Obtener todas las resoluciones primigenias (PADRE y VIGENTE) con datos de empresa"""
+    try:
+        resoluciones_collection = db.resoluciones
+        empresas_collection = db.empresas
+        
+        # Buscar todas las resoluciones PADRE y VIGENTE
+        resoluciones = await resoluciones_collection.find({
+            "tipoResolucion": "PADRE",
+            "estado": "VIGENTE",
+            "estaActivo": True
+        }).to_list(length=None)
+        
+        # Enriquecer con datos de empresa
+        resoluciones_enriquecidas = []
+        for resolucion in resoluciones:
+            resolucion["id"] = str(resolucion.pop("_id"))
+            
+            # Obtener datos de la empresa
+            if resolucion.get("empresaId"):
+                # Buscar empresa por ObjectId
+                empresa = None
+                empresa_id = resolucion["empresaId"]
+                
+                if ObjectId.is_valid(empresa_id):
+                    empresa = await empresas_collection.find_one({"_id": ObjectId(empresa_id)})
+                
+                if not empresa:
+                    # Buscar por campo id si no se encontró por _id
+                    empresa = await empresas_collection.find_one({"id": empresa_id})
+                
+                if empresa:
+                    empresa_id_str = str(empresa.get("_id", empresa.get("id", "")))
+                    resolucion["empresa"] = {
+                        "id": empresa_id_str,
+                        "ruc": empresa.get("ruc", ""),
+                        "razonSocial": empresa.get("razonSocial", {}).get("principal", "Sin razón social")
+                    }
+                else:
+                    resolucion["empresa"] = None
+            else:
+                resolucion["empresa"] = None
+            
+            resoluciones_enriquecidas.append(resolucion)
+        
+        return {
+            "resoluciones": resoluciones_enriquecidas,
+            "total": len(resoluciones_enriquecidas)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener resoluciones primigenias: {str(e)}"
+        )
+
 @router.get("/", response_model=List[RutaResponse])
 async def get_rutas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),

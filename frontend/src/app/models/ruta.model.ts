@@ -47,6 +47,7 @@ export interface RutaCreate {
   capacidadMaxima?: number;
   horarios?: any[];
   restricciones?: string[];
+  descripcion?: string; // Descripción/itinerario de la ruta
   observaciones?: string;
   empresaId: string; // Obligatorio
   resolucionId: string; // Obligatorio

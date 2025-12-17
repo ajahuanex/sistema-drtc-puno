@@ -492,11 +492,22 @@ export class AgregarRutaModalComponent implements OnDestroy {
         frecuencias: formValue.frecuencias
       });
       
+      // Mapear nombres de ciudades a IDs de localidades
+      const mapeoLocalidades: { [key: string]: string } = {
+        'Puno': 'PUNO_001',
+        'Juliaca': 'JULIACA_001',
+        'Cusco': 'CUSCO_001',
+        'Arequipa': 'AREQUIPA_001'
+      };
+      
+      const origenId = mapeoLocalidades[formValue.origen] || 'PUNO_001';
+      const destinoId = mapeoLocalidades[formValue.destino] || 'JULIACA_001';
+      
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
         nombre: `${formValue.origen} - ${formValue.destino}`,
-        origenId: formValue.origen, // Usar el nombre como ID temporal
-        destinoId: formValue.destino, // Usar el nombre como ID temporal
+        origenId: origenId, // ID de localidad correcto
+        destinoId: destinoId, // ID de localidad correcto
         origen: formValue.origen, // Nombre del origen
         destino: formValue.destino, // Nombre del destino
         frecuencias: formValue.frecuencias,

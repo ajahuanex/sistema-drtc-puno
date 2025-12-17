@@ -335,13 +335,43 @@ async def get_resoluciones_empresa(
     empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
     """Obtener resoluciones de una empresa"""
-    resoluciones = await empresa_service.get_resoluciones_empresa(empresa_id)
+    from app.services.resolucion_service import ResolucionService
+    
+    # Verificar que la empresa existe
+    empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa:
+        raise EmpresaNotFoundException(empresa_id)
+    
+    # Obtener resoluciones usando el servicio de resoluciones
+    db = await get_database()
+    resolucion_service = ResolucionService(db)
+    resoluciones = await resolucion_service.get_resoluciones_por_empresa(empresa_id)
     
     return {
         "empresa_id": empresa_id,
-        "resoluciones": resoluciones,
+        "resoluciones": [resolucion.model_dump() for resolucion in resoluciones],
         "total": len(resoluciones)
     }
+
+@router.get("/{empresa_id}/rutas")
+async def get_rutas_empresa(
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Obtener rutas de una empresa"""
+    from app.services.ruta_service import RutaService
+    
+    # Verificar que la empresa existe
+    empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa:
+        raise EmpresaNotFoundException(empresa_id)
+    
+    # Obtener rutas usando el servicio de rutas
+    db = await get_database()
+    ruta_service = RutaService(db)
+    rutas = await ruta_service.get_rutas_por_empresa(empresa_id)
+    
+    return rutas
 
 # Endpoints para exportación
 @router.get("/exportar/{formato}")

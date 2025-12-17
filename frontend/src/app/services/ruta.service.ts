@@ -228,11 +228,14 @@ export class RutaService {
   getRutasPorEmpresaYResolucion(empresaId: string, resolucionId: string): Observable<Ruta[]> {
     console.log('🔍 OBTENIENDO RUTAS POR EMPRESA Y RESOLUCIÓN:', { empresaId, resolucionId });
     
-    // Usar API
-    const url = `${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}/rutas`;
+    // Usar API correcta
+    const url = `${this.apiUrl}/rutas/empresa/${empresaId}/resolucion/${resolucionId}`;
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
-        catchError(() => of([]))
+        catchError(error => {
+          console.error('❌ Error obteniendo rutas por empresa y resolución:', error);
+          return of([]);
+        })
       );
     
  
@@ -295,6 +298,32 @@ export class RutaService {
         catchError(error => {
           console.error('Error adding ruta to empresa:', error);
           return throwError(() => new Error('Ruta no encontrada'));
+        })
+      );
+  }
+
+  // Método para obtener resoluciones primigenias de una empresa específica
+  getResolucionesPrimigeniasEmpresa(empresaId: string): Observable<any> {
+    const url = `${this.apiUrl}/rutas/empresa/${empresaId}/resoluciones-primigenias`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Error obteniendo resoluciones primigenias de empresa:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  // Método para obtener todas las resoluciones primigenias con datos de empresa
+  getTodasResolucionesPrimigenias(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/resoluciones-primigenias`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('❌ Error obteniendo todas las resoluciones primigenias:', error);
+          return throwError(() => error);
         })
       );
   }
