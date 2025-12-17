@@ -520,3 +520,101 @@ class RutaService:
                 status_code=500,
                 detail=f"Error al obtener rutas con filtros: {str(e)}"
             )
+    async def get_rutas_filtro_avanzado(self, filtros: Dict[str, Any]) -> List[Dict]:
+        """
+        Obtener rutas con filtro avanzado por origen y destino
+        
+        Args:
+            filtros: Diccionario con filtros (origen, destino)
+            
+        Returns:
+            Lista de rutas que coinciden con los filtros
+        """
+        try:
+            # Construir query de MongoDB
+            query = {"estaActivo": True}
+            
+            # Filtro por origen
+            if filtros.get('origen'):
+                # Buscar tanto en campo 'origen' como 'origenId'
+                query["$or"] = [
+                    {"origen": {"$regex": filtros['origen'], "$options": "i"}},
+                    {"origenId": {"$regex": filtros['origen'], "$options": "i"}}
+                ]
+            
+            # Filtro por destino
+            if filtros.get('destino'):
+                destino_query = [
+                    {"destino": {"$regex": filtros['destino'], "$options": "i"}},
+                    {"destinoId": {"$regex": filtros['destino'], "$options": "i"}}
+                ]
+                
+                if "$or" in query:
+                    # Combinar con filtro de origen usando $and
+                    query = {
+                        "$and": [
+                            {"$or": query["$or"]},
+                            {"$or": destino_query},
+                            {"estaActivo": True}
+                        ]
+                    }
+                else:
+                    query["$or"] = destino_query
+            
+            print(f"🔍 QUERY FILTRO AVANZADO: {query}")
+            
+            # Ejecutar consulta
+            cursor = self.rutas_collection.find(query)
+            rutas = await cursor.to_list(length=None)
+            
+            # Convertir ObjectId a string
+            for ruta in rutas:
+                if "_id" in ruta:
+                    ruta["id"] = str(ruta["_id"])
+                    del ruta["_id"]
+            
+            print(f"✅ RUTAS ENCONTRADAS: {len(rutas)}")
+            return rutas
+            
+        except Exception as e:
+            print(f"❌ ERROR EN FILTRO AVANZADO: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al aplicar filtro avanzado: {str(e)}"
+            )
+    
+    async def get_origenes_destinos_unicos(self) -> Dict[str, List[str]]:
+        """
+        Obtener lista única de orígenes y destinos de todas las rutas
+        
+        Returns:
+            Diccionario con listas de orígenes y destinos únicos
+        """
+        try:
+            # Obtener todas las rutas activas
+            rutas = await self.rutas_collection.find({"estaActivo": True}).to_list(length=None)
+            
+            origenes = set()
+            destinos = set()
+            
+            for ruta in rutas:
+                # Agregar origen
+                origen = ruta.get('origen') or ruta.get('origenId')
+                if origen:
+                    origenes.add(origen)
+                
+                # Agregar destino
+                destino = ruta.get('destino') or ruta.get('destinoId')
+                if destino:
+                    destinos.add(destino)
+            
+            return {
+                "origenes": sorted(list(origenes)),
+                "destinos": sorted(list(destinos))
+            }
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al obtener orígenes y destinos: {str(e)}"
+            )

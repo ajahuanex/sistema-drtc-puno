@@ -547,6 +547,361 @@ async def get_estadisticas_rutas(
         "rutasSuspendidas": estadisticas['suspendidas']
     }
 
+# ========================================
+# ENDPOINTS FILTRO AVANZADO ORIGEN-DESTINO
+# ========================================
+
+@router.get("/filtro-avanzado", response_model=dict)
+async def filtro_avanzado_origen_destino(
+    origen: Optional[str] = Query(None, description="Filtrar por origen"),
+    destino: Optional[str] = Query(None, description="Filtrar por destino"),
+    incluir_empresas: bool = Query(True, description="Incluir información de empresas"),
+    incluir_estadisticas: bool = Query(True, description="Incluir estadísticas"),
+    db = Depends(get_database)
+):
+    """
+    Filtro avanzado por origen y destino con información de empresas para informes
+    
+    Casos de uso:
+    - /rutas/filtro-avanzado?origen=PUNO_001 (todas las rutas desde Puno)
+    - /rutas/filtro-avanzado?destino=JULIACA_001 (todas las rutas hacia Juliaca)
+    - /rutas/filtro-avanzado?origen=PUNO_001&destino=JULIACA_001 (ruta específica)
+    """
+    try:
+        ruta_service = RutaService(db)
+        
+        # Construir filtros
+        filtros = {}
+        if origen:
+            filtros['origen'] = origen
+        if destino:
+            filtros['destino'] = destino
+        
+        # Obtener rutas filtradas
+        rutas = await ruta_service.get_rutas_filtro_avanzado(filtros)
+        
+        # Procesar resultados
+        resultado = {
+            "filtros_aplicados": {
+                "origen": origen,
+                "destino": destino
+            },
+            "total_rutas": len(rutas),
+            "rutas": []
+        }
+        
+        # Agrupar por empresa si se solicita
+        if incluir_empresas:
+            empresas_collection = db.empresas
+            empresas_info = {}
+            rutas_por_empresa = {}
+            
+            for ruta in rutas:
+                empresa_id = ruta.get('empresaId')
+                if empresa_id:
+                    # Obtener info de empresa si no la tenemos
+                    if empresa_id not in empresas_info:
+                        empresa = None
+                        if ObjectId.is_valid(empresa_id):
+                            empresa = await empresas_collection.find_one({"_id": ObjectId(empresa_id)})
+                        if not empresa:
+                            empresa = await empresas_collection.find_one({"id": empresa_id})
+                        
+                        if empresa:
+                            empresas_info[empresa_id] = {
+                                "id": str(empresa.get("_id", empresa.get("id", ""))),
+                                "ruc": empresa.get("ruc", ""),
+                                "razonSocial": empresa.get("razonSocial", {}).get("principal", "Sin razón social")
+                            }
+                        else:
+                            empresas_info[empresa_id] = {
+                                "id": empresa_id,
+                                "ruc": "No encontrado",
+                                "razonSocial": "Empresa no encontrada"
+                            }
+                    
+                    # Agrupar rutas por empresa
+                    if empresa_id not in rutas_por_empresa:
+                        rutas_por_empresa[empresa_id] = []
+                    
+                    rutas_por_empresa[empresa_id].append({
+                        "id": ruta.get('id', str(ruta.get('_id', ''))),
+                        "codigoRuta": ruta.get('codigoRuta', ''),
+                        "nombre": ruta.get('nombre', ''),
+                        "origen": ruta.get('origen', ruta.get('origenId', '')),
+                        "destino": ruta.get('destino', ruta.get('destinoId', '')),
+                        "estado": ruta.get('estado', ''),
+                        "resolucionId": ruta.get('resolucionId', '')
+                    })
+            
+            # Estructurar resultado por empresas
+            resultado["empresas"] = []
+            for empresa_id, rutas_empresa in rutas_por_empresa.items():
+                resultado["empresas"].append({
+                    "empresa": empresas_info.get(empresa_id, {}),
+                    "total_rutas": len(rutas_empresa),
+                    "rutas": rutas_empresa
+                })
+            
+            resultado["total_empresas"] = len(rutas_por_empresa)
+        
+        # Agregar estadísticas si se solicita
+        if incluir_estadisticas:
+            # Obtener orígenes y destinos únicos
+            origenes_unicos = set()
+            destinos_unicos = set()
+            estados_rutas = {}
+            
+            for ruta in rutas:
+                origen_ruta = ruta.get('origen', ruta.get('origenId', ''))
+                destino_ruta = ruta.get('destino', ruta.get('destinoId', ''))
+                estado_ruta = ruta.get('estado', 'DESCONOCIDO')
+                
+                if origen_ruta:
+                    origenes_unicos.add(origen_ruta)
+                if destino_ruta:
+                    destinos_unicos.add(destino_ruta)
+                
+                estados_rutas[estado_ruta] = estados_rutas.get(estado_ruta, 0) + 1
+            
+            resultado["estadisticas"] = {
+                "origenes_unicos": sorted(list(origenes_unicos)),
+                "destinos_unicos": sorted(list(destinos_unicos)),
+                "total_origenes": len(origenes_unicos),
+                "total_destinos": len(destinos_unicos),
+                "estados_rutas": estados_rutas,
+                "cobertura_geografica": f"{len(origenes_unicos)} orígenes → {len(destinos_unicos)} destinos"
+            }
+        
+        # Si no se agrupó por empresas, incluir lista simple de rutas
+        if not incluir_empresas:
+            resultado["rutas"] = [
+                {
+                    "id": ruta.get('id', str(ruta.get('_id', ''))),
+                    "codigoRuta": ruta.get('codigoRuta', ''),
+                    "nombre": ruta.get('nombre', ''),
+                    "origen": ruta.get('origen', ruta.get('origenId', '')),
+                    "destino": ruta.get('destino', ruta.get('destinoId', '')),
+                    "estado": ruta.get('estado', ''),
+                    "empresaId": ruta.get('empresaId', ''),
+                    "resolucionId": ruta.get('resolucionId', '')
+                }
+                for ruta in rutas
+            ]
+        
+        return resultado
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en filtro avanzado: {str(e)}"
+        )
+
+@router.get("/origenes-destinos", response_model=dict)
+async def get_origenes_destinos_disponibles(
+    db = Depends(get_database)
+):
+    """
+    Obtener lista de orígenes y destinos disponibles para los filtros
+    """
+    try:
+        ruta_service = RutaService(db)
+        rutas = await ruta_service.get_rutas()
+        
+        origenes = set()
+        destinos = set()
+        combinaciones = set()
+        
+        for ruta in rutas:
+            # Convertir a dict si es necesario
+            if hasattr(ruta, '__dict__'):
+                ruta_dict = ruta.__dict__
+            else:
+                ruta_dict = ruta
+            
+            origen = ruta_dict.get('origen', ruta_dict.get('origenId', ''))
+            destino = ruta_dict.get('destino', ruta_dict.get('destinoId', ''))
+            
+            if origen:
+                origenes.add(origen)
+            if destino:
+                destinos.add(destino)
+            if origen and destino:
+                combinaciones.add(f"{origen} → {destino}")
+        
+        return {
+            "origenes": sorted(list(origenes)),
+            "destinos": sorted(list(destinos)),
+            "combinaciones": sorted(list(combinaciones)),
+            "total_origenes": len(origenes),
+            "total_destinos": len(destinos),
+            "total_combinaciones": len(combinaciones)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener orígenes y destinos: {str(e)}"
+        )
+
+@router.get("/combinaciones-rutas", response_model=dict)
+async def get_combinaciones_rutas(
+    busqueda: Optional[str] = Query(None, description="Término de búsqueda para filtrar combinaciones"),
+    db = Depends(get_database)
+):
+    """
+    Obtener combinaciones de rutas con búsqueda inteligente
+    Si busco 'PUNO' devuelve: PUNO → JULIACA, PUNO → YUNGUYO, YUNGUYO → PUNO, etc.
+    """
+    try:
+        ruta_service = RutaService(db)
+        rutas = await ruta_service.get_rutas()
+        
+        combinaciones_completas = []
+        
+        for ruta in rutas:
+            # Convertir a dict si es necesario
+            if hasattr(ruta, '__dict__'):
+                ruta_dict = ruta.__dict__
+            else:
+                ruta_dict = ruta
+            
+            origen = ruta_dict.get('origen', ruta_dict.get('origenId', ''))
+            destino = ruta_dict.get('destino', ruta_dict.get('destinoId', ''))
+            
+            if origen and destino:
+                combinacion = {
+                    "id": ruta_dict.get('id', str(ruta_dict.get('_id', ''))),
+                    "origen": origen,
+                    "destino": destino,
+                    "combinacion": f"{origen} → {destino}",
+                    "codigoRuta": ruta_dict.get('codigoRuta', ''),
+                    "empresaId": ruta_dict.get('empresaId', ''),
+                    "resolucionId": ruta_dict.get('resolucionId', ''),
+                    "estado": ruta_dict.get('estado', '')
+                }
+                combinaciones_completas.append(combinacion)
+        
+        # Filtrar por búsqueda si se proporciona
+        if busqueda:
+            busqueda_lower = busqueda.lower()
+            combinaciones_filtradas = []
+            
+            for comb in combinaciones_completas:
+                # Buscar en origen, destino o combinación completa
+                if (busqueda_lower in comb["origen"].lower() or 
+                    busqueda_lower in comb["destino"].lower() or
+                    busqueda_lower in comb["combinacion"].lower()):
+                    combinaciones_filtradas.append(comb)
+            
+            combinaciones_completas = combinaciones_filtradas
+        
+        # Agrupar por combinación única para evitar duplicados
+        combinaciones_unicas = {}
+        for comb in combinaciones_completas:
+            key = comb["combinacion"]
+            if key not in combinaciones_unicas:
+                combinaciones_unicas[key] = {
+                    "combinacion": comb["combinacion"],
+                    "origen": comb["origen"],
+                    "destino": comb["destino"],
+                    "rutas": []
+                }
+            
+            combinaciones_unicas[key]["rutas"].append({
+                "id": comb["id"],
+                "codigoRuta": comb["codigoRuta"],
+                "empresaId": comb["empresaId"],
+                "resolucionId": comb["resolucionId"],
+                "estado": comb["estado"]
+            })
+        
+        # Convertir a lista y ordenar
+        resultado = list(combinaciones_unicas.values())
+        resultado.sort(key=lambda x: x["combinacion"])
+        
+        return {
+            "combinaciones": resultado,
+            "total_combinaciones": len(resultado),
+            "busqueda": busqueda,
+            "mensaje": f"Se encontraron {len(resultado)} combinaciones" + (f" para '{busqueda}'" if busqueda else "")
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener combinaciones: {str(e)}"
+        )
+
+@router.get("/filtro-avanzado/exportar/{formato}")
+async def exportar_filtro_avanzado(
+    formato: str,
+    origen: Optional[str] = Query(None),
+    destino: Optional[str] = Query(None),
+    db = Depends(get_database)
+):
+    """
+    Exportar resultados del filtro avanzado en diferentes formatos
+    Formatos soportados: excel, pdf, csv
+    """
+    if formato not in ['excel', 'pdf', 'csv']:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato no soportado. Use: excel, pdf, csv"
+        )
+    
+    try:
+        # Obtener datos del filtro avanzado
+        filtro_resultado = await filtro_avanzado_origen_destino(
+            origen=origen,
+            destino=destino,
+            incluir_empresas=True,
+            incluir_estadisticas=True,
+            db=db
+        )
+        
+        # Generar nombre del archivo
+        filtro_nombre = []
+        if origen:
+            filtro_nombre.append(f"origen-{origen}")
+        if destino:
+            filtro_nombre.append(f"destino-{destino}")
+        
+        nombre_base = "rutas-" + "-".join(filtro_nombre) if filtro_nombre else "todas-rutas"
+        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{nombre_base}_{fecha_actual}"
+        
+        if formato == 'excel':
+            # Simular generación de Excel
+            return {
+                "mensaje": f"Exportando a Excel: {nombre_archivo}.xlsx",
+                "datos": filtro_resultado,
+                "formato": "excel",
+                "archivo": f"{nombre_archivo}.xlsx"
+            }
+        elif formato == 'pdf':
+            # Simular generación de PDF
+            return {
+                "mensaje": f"Exportando a PDF: {nombre_archivo}.pdf",
+                "datos": filtro_resultado,
+                "formato": "pdf",
+                "archivo": f"{nombre_archivo}.pdf"
+            }
+        elif formato == 'csv':
+            # Simular generación de CSV
+            return {
+                "mensaje": f"Exportando a CSV: {nombre_archivo}.csv",
+                "datos": filtro_resultado,
+                "formato": "csv",
+                "archivo": f"{nombre_archivo}.csv"
+            }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al exportar: {str(e)}"
+        )
+
 @router.get("/{ruta_id}", response_model=RutaResponse)
 async def get_ruta(
     ruta_id: str,
@@ -804,3 +1159,4 @@ async def procesar_carga_masiva_rutas(
             status_code=500, 
             detail=f"Error al procesar archivo: {str(e)}"
         )
+

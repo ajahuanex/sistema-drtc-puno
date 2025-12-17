@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,8 +12,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 import { RutaService } from '../../services/ruta.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
@@ -39,6 +43,8 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
     MatSelectModule,
     MatInputModule,
     MatAutocompleteModule,
+    MatDividerModule,
+    MatChipsModule,
     ReactiveFormsModule,
     MatDialogModule,
   ],
@@ -147,6 +153,177 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
             </div>
           </div>
         </mat-card-content>
+      </mat-card>
+
+      <!-- Panel de Filtros Avanzados -->
+      <mat-card class="filtros-avanzados-card">
+        <mat-card-header>
+          <mat-card-title>
+            <button mat-button 
+                    (click)="toggleFiltrosAvanzados()"
+                    class="toggle-filtros-btn">
+              <mat-icon>{{ mostrarFiltrosAvanzados() ? 'expand_less' : 'expand_more' }}</mat-icon>
+              Filtros Avanzados por Origen y Destino
+            </button>
+          </mat-card-title>
+          <mat-card-subtitle>
+            Buscar rutas por origen y destino específicos para análisis e informes
+          </mat-card-subtitle>
+        </mat-card-header>
+        
+        @if (mostrarFiltrosAvanzados()) {
+          <mat-card-content>
+            <!-- Buscador Inteligente de Rutas -->
+            <div class="buscador-inteligente">
+              <mat-form-field appearance="outline" class="form-field-full">
+                <mat-label>Buscador Inteligente de Rutas</mat-label>
+                <input matInput 
+                       [matAutocomplete]="rutasAuto" 
+                       [value]="busquedaRutas()" 
+                       (input)="onBusquedaRutasInput($event)"
+                       placeholder="Ej: PUNO (mostrará PUNO → JULIACA, YUNGUYO → PUNO, etc.)">
+                <mat-autocomplete #rutasAuto="matAutocomplete" 
+                                 [displayWith]="displayCombinacion"
+                                 (optionSelected)="onCombinacionSelected($event)">
+                  @for (combinacion of combinacionesFiltradas(); track combinacion.combinacion) {
+                    <mat-option [value]="combinacion">
+                      <div class="combinacion-option">
+                        <div class="combinacion-ruta">
+                          <mat-icon>route</mat-icon>
+                          {{ combinacion.combinacion }}
+                        </div>
+                        <div class="combinacion-info">{{ combinacion.rutas.length }} ruta(s)</div>
+                      </div>
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+                <mat-hint>Escriba cualquier ciudad para ver todas las rutas relacionadas</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Acciones del Buscador Inteligente -->
+            <div class="buscador-actions">
+              <button mat-button (click)="limpiarBuscadorInteligente()">
+                <mat-icon>clear</mat-icon>
+                Limpiar Búsqueda
+              </button>
+              <button mat-stroked-button 
+                      color="accent" 
+                      (click)="recargarCombinaciones()"
+                      matTooltip="Recargar combinaciones de rutas">
+                <mat-icon>refresh</mat-icon>
+                Recargar
+              </button>
+            </div>
+
+            <!-- Rutas Seleccionadas -->
+            @if (rutasSeleccionadas().length > 0) {
+              <div class="rutas-seleccionadas">
+                <mat-divider style="margin: 16px 0;"></mat-divider>
+                <h4>Rutas Seleccionadas ({{ rutasSeleccionadas().length }})</h4>
+                <div class="rutas-seleccionadas-grid">
+                  @for (ruta of rutasSeleccionadas(); track ruta.combinacion) {
+                    <mat-chip-set>
+                      <mat-chip [removable]="true" (removed)="removerRutaSeleccionada(ruta)">
+                        <mat-icon>route</mat-icon>
+                        {{ ruta.combinacion }}
+                        <mat-icon matChipRemove>cancel</mat-icon>
+                      </mat-chip>
+                    </mat-chip-set>
+                  }
+                </div>
+                <div class="rutas-seleccionadas-actions">
+                  <button mat-raised-button 
+                          color="primary" 
+                          (click)="aplicarFiltroRutasSeleccionadas()">
+                    <mat-icon>search</mat-icon>
+                    Filtrar Rutas Seleccionadas
+                  </button>
+                  <button mat-button (click)="limpiarRutasSeleccionadas()">
+                    <mat-icon>clear</mat-icon>
+                    Limpiar Selección
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Resultados del Filtro Avanzado -->
+            @if (resultadoFiltroAvanzado()) {
+              <div class="resultados-filtro-avanzado">
+                <mat-divider></mat-divider>
+                <div class="resultados-header">
+                  <h4>Resultados del Filtro Avanzado</h4>
+                  <div class="resultados-stats">
+                    <span class="stat-item">
+                      <mat-icon>route</mat-icon>
+                      {{ resultadoFiltroAvanzado()?.total_rutas || 0 }} rutas
+                    </span>
+                    <span class="stat-item">
+                      <mat-icon>business</mat-icon>
+                      {{ resultadoFiltroAvanzado()?.total_empresas || 0 }} empresas
+                    </span>
+                  </div>
+                  <div class="resultados-actions">
+                    <button mat-stroked-button 
+                            color="primary" 
+                            (click)="exportarResultados('excel')"
+                            [disabled]="!resultadoFiltroAvanzado()?.total_rutas">
+                      <mat-icon>file_download</mat-icon>
+                      Excel
+                    </button>
+                    <button mat-stroked-button 
+                            color="primary" 
+                            (click)="exportarResultados('pdf')"
+                            [disabled]="!resultadoFiltroAvanzado()?.total_rutas">
+                      <mat-icon>picture_as_pdf</mat-icon>
+                      PDF
+                    </button>
+                    <button mat-stroked-button 
+                            color="primary" 
+                            (click)="exportarResultados('csv')"
+                            [disabled]="!resultadoFiltroAvanzado()?.total_rutas">
+                      <mat-icon>table_chart</mat-icon>
+                      CSV
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Empresas y sus rutas -->
+                @if (resultadoFiltroAvanzado()?.empresas) {
+                  <div class="empresas-resultados">
+                    @for (empresaInfo of resultadoFiltroAvanzado()?.empresas; track empresaInfo.empresa.id) {
+                      <mat-card class="empresa-resultado-card">
+                        <mat-card-header>
+                          <mat-card-title>
+                            <div class="empresa-resultado-header">
+                              <mat-icon color="primary">business</mat-icon>
+                              <span>{{ empresaInfo.empresa.razonSocial }}</span>
+                              <span class="rutas-count">({{ empresaInfo.total_rutas }} ruta{{ empresaInfo.total_rutas !== 1 ? 's' : '' }})</span>
+                            </div>
+                          </mat-card-title>
+                          <mat-card-subtitle>
+                            RUC: {{ empresaInfo.empresa.ruc }}
+                          </mat-card-subtitle>
+                        </mat-card-header>
+                        <mat-card-content>
+                          <div class="rutas-empresa-grid">
+                            @for (ruta of empresaInfo.rutas; track ruta.id) {
+                              <div class="ruta-item">
+                                <span class="ruta-codigo">[{{ ruta.codigoRuta }}]</span>
+                                <span class="ruta-descripcion">{{ ruta.origen }} → {{ ruta.destino }}</span>
+                                <span class="ruta-estado" [class.activa]="ruta.estado === 'ACTIVA'">{{ ruta.estado }}</span>
+                              </div>
+                            }
+                          </div>
+                        </mat-card-content>
+                      </mat-card>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        }
       </mat-card>
 
       <!-- Información del filtro aplicado -->
@@ -396,6 +573,7 @@ export class RutasComponent implements OnInit {
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private http = inject(HttpClient);
 
   private rutaService = inject(RutaService);
   private empresaService = inject(EmpresaService);
@@ -412,6 +590,22 @@ export class RutasComponent implements OnInit {
   empresasFiltradas = signal<Observable<Empresa[]>>(of([]));
   resolucionesEmpresa = signal<Resolucion[]>([]);
   totalRutas = signal<number>(0);
+  
+  // Signals para filtros avanzados
+  mostrarFiltrosAvanzados = signal(false);
+  origenSeleccionado = signal('');
+  destinoSeleccionado = signal('');
+  origenesFiltrados = signal<Observable<string[]>>(of([]));
+  destinosFiltrados = signal<Observable<string[]>>(of([]));
+  origenesDisponibles = signal<string[]>([]);
+  destinosDisponibles = signal<string[]>([]);
+  resultadoFiltroAvanzado = signal<any>(null);
+  
+  // Nuevos signals para búsqueda inteligente
+  busquedaRutas = signal('');
+  combinacionesDisponibles = signal<any[]>([]);
+  combinacionesFiltradas = signal<any[]>([]);
+  rutasSeleccionadas = signal<any[]>([]);
   
   // Información del filtro activo
   filtroActivo = signal<{
@@ -1384,4 +1578,422 @@ export class RutasComponent implements OnInit {
   cargaMasivaRutas(): void {
     this.router.navigate(['/rutas/carga-masiva']);
   }
-} 
+
+  // ========================================
+  // MÉTODOS PARA FILTROS AVANZADOS
+  // ========================================
+
+  toggleFiltrosAvanzados(): void {
+    const mostrar = !this.mostrarFiltrosAvanzados();
+    this.mostrarFiltrosAvanzados.set(mostrar);
+    
+    if (mostrar && this.origenesDisponibles().length === 0) {
+      this.cargarOrigenesDestinos();
+      this.cargarCombinacionesRutas();
+    }
+  }
+
+  // ========================================
+  // NUEVOS MÉTODOS PARA BÚSQUEDA INTELIGENTE
+  // ========================================
+
+  cargarCombinacionesRutas(): void {
+    console.log('🔄 CARGANDO COMBINACIONES DIRECTAMENTE DEL ENDPOINT DE BACKEND...');
+    
+    // USAR DIRECTAMENTE EL ENDPOINT DE COMBINACIONES - NO getRutas()
+    const url = `${environment.apiUrl}/rutas/combinaciones-rutas`;
+    console.log('🌐 URL ENDPOINT DIRECTO:', url);
+    
+    this.http.get<any>(url).subscribe({
+      next: (data) => {
+        console.log('📊 RESPUESTA DIRECTA DEL ENDPOINT COMBINACIONES:', data);
+        
+        const combinaciones = data.combinaciones || [];
+        
+        console.log('✅ COMBINACIONES DIRECTAS DEL BACKEND (DATOS REALES):', {
+          total: combinaciones.length,
+          mensaje: data.mensaje,
+          combinaciones: combinaciones.map((c: any) => `${c.combinacion} (${c.rutas.length} ruta(s))`)
+        });
+        
+        // Verificar que tenemos datos reales
+        if (combinaciones.length > 0) {
+          console.log('🎯 VERIFICACIÓN DE DATOS REALES:');
+          combinaciones.forEach((comb: any, index: number) => {
+            console.log(`   ${index + 1}. ${comb.combinacion} - ${comb.rutas.length} ruta(s)`);
+            if (comb.rutas.length > 0) {
+              console.log(`      Primera ruta: [${comb.rutas[0].codigoRuta}] Empresa: ${comb.rutas[0].empresaId}`);
+            }
+          });
+        }
+        
+        this.combinacionesDisponibles.set(combinaciones);
+        this.combinacionesFiltradas.set(combinaciones);
+        
+        this.snackBar.open(`${combinaciones.length} combinaciones cargadas DIRECTAMENTE del backend (DATOS REALES)`, 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar combinaciones del backend:', error);
+        
+        // Fallback: usar datos de ejemplo si el backend falla
+        const combinacionesFallback = [
+          {
+            combinacion: 'Puno → Juliaca',
+            origen: 'Puno',
+            destino: 'Juliaca',
+            rutas: [{ id: '1', codigoRuta: '01' }]
+          }
+        ];
+        
+        this.combinacionesDisponibles.set(combinacionesFallback);
+        this.combinacionesFiltradas.set(combinacionesFallback);
+        
+        this.snackBar.open('Error al cargar del backend. Usando datos de ejemplo.', 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+
+  onBusquedaRutasInput(event: any): void {
+    const value = event.target.value;
+    console.log('🔍 BÚSQUEDA INPUT:', value);
+    console.log('📊 COMBINACIONES DISPONIBLES:', this.combinacionesDisponibles().length);
+    
+    this.busquedaRutas.set(value);
+    this.filtrarCombinaciones(value);
+  }
+
+  private filtrarCombinaciones(busqueda: string): void {
+    if (!busqueda || busqueda.length < 2) {
+      this.combinacionesFiltradas.set(this.combinacionesDisponibles());
+      return;
+    }
+
+    // Filtrar localmente las combinaciones disponibles
+    const busquedaLower = busqueda.toLowerCase();
+    const combinacionesFiltradas = this.combinacionesDisponibles().filter(comb =>
+      comb.combinacion.toLowerCase().includes(busquedaLower) ||
+      comb.origen.toLowerCase().includes(busquedaLower) ||
+      comb.destino.toLowerCase().includes(busquedaLower)
+    );
+    
+    console.log('🔍 FILTRADO LOCAL:', {
+      busqueda: busqueda,
+      encontradas: combinacionesFiltradas.length,
+      total: this.combinacionesDisponibles().length
+    });
+    
+    this.combinacionesFiltradas.set(combinacionesFiltradas);
+  }
+
+  onCombinacionSelected(event: any): void {
+    const combinacion = event.option.value;
+    console.log('🎯 COMBINACIÓN SELECCIONADA:', combinacion);
+    
+    // Agregar a rutas seleccionadas si no existe
+    const rutasActuales = this.rutasSeleccionadas();
+    const yaExiste = rutasActuales.some(r => r.combinacion === combinacion.combinacion);
+    
+    if (!yaExiste) {
+      this.rutasSeleccionadas.update(rutas => [...rutas, combinacion]);
+      this.snackBar.open(`Ruta "${combinacion.combinacion}" agregada a la selección`, 'Cerrar', { duration: 2000 });
+    } else {
+      this.snackBar.open(`La ruta "${combinacion.combinacion}" ya está seleccionada`, 'Cerrar', { duration: 2000 });
+    }
+    
+    // Limpiar el campo de búsqueda
+    this.busquedaRutas.set('');
+  }
+
+  displayCombinacion = (combinacion: any): string => {
+    return combinacion ? combinacion.combinacion : '';
+  }
+
+  intercambiarOrigenDestino(): void {
+    const origenActual = this.origenSeleccionado();
+    const destinoActual = this.destinoSeleccionado();
+    
+    if (origenActual && destinoActual) {
+      this.origenSeleccionado.set(destinoActual);
+      this.destinoSeleccionado.set(origenActual);
+      
+      console.log('🔄 ORIGEN Y DESTINO INTERCAMBIADOS:', {
+        nuevoOrigen: destinoActual,
+        nuevoDestino: origenActual
+      });
+      
+      this.snackBar.open(`Intercambiado: ${destinoActual} → ${origenActual}`, 'Cerrar', { duration: 2000 });
+    }
+  }
+
+  removerRutaSeleccionada(rutaARemover: any): void {
+    this.rutasSeleccionadas.update(rutas => 
+      rutas.filter(r => r.combinacion !== rutaARemover.combinacion)
+    );
+    this.snackBar.open(`Ruta "${rutaARemover.combinacion}" removida de la selección`, 'Cerrar', { duration: 2000 });
+  }
+
+  limpiarRutasSeleccionadas(): void {
+    this.rutasSeleccionadas.set([]);
+    this.snackBar.open('Selección de rutas limpiada', 'Cerrar', { duration: 2000 });
+  }
+
+  async aplicarFiltroRutasSeleccionadas(): Promise<void> {
+    const rutasSeleccionadas = this.rutasSeleccionadas();
+    
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('Seleccione al menos una ruta', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    console.log('🔍 APLICANDO FILTRO DE RUTAS SELECCIONADAS:', rutasSeleccionadas);
+    
+    try {
+      // Recopilar todas las rutas de las combinaciones seleccionadas
+      const todasLasRutasFiltradas: any[] = [];
+      
+      for (const combinacion of rutasSeleccionadas) {
+        for (const ruta of combinacion.rutas) {
+          // Buscar la ruta completa en todasLasRutas
+          const rutaCompleta = this.todasLasRutas().find(r => r.id === ruta.id);
+          if (rutaCompleta) {
+            todasLasRutasFiltradas.push(rutaCompleta);
+          }
+        }
+      }
+      
+      // Actualizar las rutas mostradas
+      this.rutas.set(todasLasRutasFiltradas);
+      
+      // Crear resultado para mostrar estadísticas
+      const empresasUnicas = new Set(todasLasRutasFiltradas.map(r => r.empresaId));
+      
+      this.resultadoFiltroAvanzado.set({
+        total_rutas: todasLasRutasFiltradas.length,
+        total_empresas: empresasUnicas.size,
+        rutas_seleccionadas: rutasSeleccionadas.map(r => r.combinacion)
+      });
+      
+      // Actualizar filtro activo
+      const descripcionRutas = rutasSeleccionadas.map(r => r.combinacion).join(', ');
+      this.filtroActivo.set({
+        tipo: 'todas',
+        descripcion: `Rutas Seleccionadas: ${descripcionRutas}`
+      });
+      
+      this.snackBar.open(`Filtro aplicado: ${todasLasRutasFiltradas.length} rutas de ${rutasSeleccionadas.length} combinaciones`, 'Cerrar', { duration: 4000 });
+      
+    } catch (error) {
+      console.error('❌ Error en aplicarFiltroRutasSeleccionadas:', error);
+      this.snackBar.open('Error al aplicar filtro de rutas seleccionadas', 'Cerrar', { duration: 3000 });
+    }
+  }
+
+  cargarOrigenesDestinos(): void {
+    console.log('🔄 CARGANDO ORÍGENES Y DESTINOS DISPONIBLES...');
+    
+    // Usar el servicio existente para obtener todas las rutas y extraer orígenes/destinos
+    this.rutaService.getRutas().subscribe({
+      next: (rutas) => {
+        const origenes = new Set<string>();
+        const destinos = new Set<string>();
+        
+        rutas.forEach(ruta => {
+          if (ruta.origen) origenes.add(ruta.origen);
+          if (ruta.destino) destinos.add(ruta.destino);
+        });
+        
+        const origenesArray = Array.from(origenes).sort();
+        const destinosArray = Array.from(destinos).sort();
+        
+        console.log('✅ ORÍGENES Y DESTINOS CARGADOS:', {
+          origenes: origenesArray.length,
+          destinos: destinosArray.length
+        });
+        
+        this.origenesDisponibles.set(origenesArray);
+        this.destinosDisponibles.set(destinosArray);
+        
+        // Inicializar observables filtrados
+        this.origenesFiltrados.set(of(origenesArray));
+        this.destinosFiltrados.set(of(destinosArray));
+        
+        this.snackBar.open(`${origenesArray.length} orígenes y ${destinosArray.length} destinos cargados`, 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar orígenes y destinos:', error);
+        this.snackBar.open('Error al cargar orígenes y destinos', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  onOrigenInput(event: any): void {
+    const value = event.target.value;
+    this.origenSeleccionado.set(value);
+    this.filtrarOrigenes(value);
+  }
+
+  onDestinoInput(event: any): void {
+    const value = event.target.value;
+    this.destinoSeleccionado.set(value);
+    this.filtrarDestinos(value);
+  }
+
+  onOrigenSelected(event: any): void {
+    const origen = event.option.value;
+    this.origenSeleccionado.set(origen);
+    console.log('🏙️ ORIGEN SELECCIONADO:', origen);
+  }
+
+  onDestinoSelected(event: any): void {
+    const destino = event.option.value;
+    this.destinoSeleccionado.set(destino);
+    console.log('🎯 DESTINO SELECCIONADO:', destino);
+  }
+
+  private filtrarOrigenes(value: string): void {
+    if (typeof value !== 'string') return;
+    const filterValue = value.toLowerCase();
+    
+    const origenesFiltrados = this.origenesDisponibles().filter(origen =>
+      origen.toLowerCase().includes(filterValue)
+    );
+    
+    this.origenesFiltrados.set(of(origenesFiltrados));
+  }
+
+  private filtrarDestinos(value: string): void {
+    if (typeof value !== 'string') return;
+    const filterValue = value.toLowerCase();
+    
+    const destinosFiltrados = this.destinosDisponibles().filter(destino =>
+      destino.toLowerCase().includes(filterValue)
+    );
+    
+    this.destinosFiltrados.set(of(destinosFiltrados));
+  }
+
+  aplicarFiltroAvanzado(): void {
+    const origen = this.origenSeleccionado();
+    const destino = this.destinoSeleccionado();
+    
+    if (!origen && !destino) {
+      this.snackBar.open('Seleccione al menos un origen o destino', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    console.log('🔍 APLICANDO FILTRO AVANZADO:', { origen, destino });
+    
+    // Filtrar localmente las rutas
+    const rutasFiltradas = this.todasLasRutas().filter(ruta => {
+      const coincideOrigen = !origen || (ruta.origen && ruta.origen.toLowerCase().includes(origen.toLowerCase()));
+      const coincideDestino = !destino || (ruta.destino && ruta.destino.toLowerCase().includes(destino.toLowerCase()));
+      
+      return coincideOrigen && coincideDestino;
+    });
+    
+    console.log('✅ RESULTADO FILTRO AVANZADO:', {
+      totalRutas: rutasFiltradas.length,
+      filtros: { origen, destino }
+    });
+    
+    // Actualizar las rutas mostradas
+    this.rutas.set(rutasFiltradas);
+    
+    // Crear resultado para mostrar estadísticas
+    const empresasUnicas = new Set(rutasFiltradas.map(r => r.empresaId));
+    
+    this.resultadoFiltroAvanzado.set({
+      total_rutas: rutasFiltradas.length,
+      total_empresas: empresasUnicas.size,
+      filtros_aplicados: { origen, destino }
+    });
+    
+    // Actualizar filtro activo
+    let descripcionFiltro = 'Filtro Avanzado: ';
+    if (origen && destino) {
+      descripcionFiltro += `${origen} → ${destino}`;
+    } else if (origen) {
+      descripcionFiltro += `Desde ${origen}`;
+    } else if (destino) {
+      descripcionFiltro += `Hacia ${destino}`;
+    }
+    
+    this.filtroActivo.set({
+      tipo: 'todas',
+      descripcion: descripcionFiltro
+    });
+    
+    this.snackBar.open(`Filtro aplicado: ${rutasFiltradas.length} rutas encontradas de ${empresasUnicas.size} empresas`, 'Cerrar', { duration: 4000 });
+  }
+
+  // Nuevos métodos para el buscador inteligente
+  limpiarBuscadorInteligente(): void {
+    console.log('🧹 LIMPIANDO BUSCADOR INTELIGENTE...');
+    
+    // Limpiar búsqueda inteligente
+    this.busquedaRutas.set('');
+    this.rutasSeleccionadas.set([]);
+    this.resultadoFiltroAvanzado.set(null);
+    
+    // Restaurar todas las combinaciones
+    this.combinacionesFiltradas.set(this.combinacionesDisponibles());
+    
+    // Restaurar todas las rutas
+    this.rutas.set(this.todasLasRutas());
+    this.filtroActivo.set({
+      tipo: 'todas',
+      descripcion: 'Todas las Rutas del Sistema'
+    });
+    
+    this.snackBar.open('Buscador inteligente limpiado', 'Cerrar', { duration: 2000 });
+  }
+
+  recargarCombinaciones(): void {
+    console.log('🔄 RECARGANDO COMBINACIONES...');
+    this.cargarCombinacionesRutas();
+  }
+
+  limpiarFiltrosAvanzados(): void {
+    // Usar el método específico del buscador inteligente
+    this.limpiarBuscadorInteligente();
+  }
+
+  async exportarResultados(formato: 'excel' | 'pdf' | 'csv'): Promise<void> {
+    const origen = this.origenSeleccionado();
+    const destino = this.destinoSeleccionado();
+    
+    if (!origen && !destino) {
+      this.snackBar.open('Aplique un filtro antes de exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    console.log(`📤 EXPORTANDO RESULTADOS A ${formato.toUpperCase()}...`);
+    
+    try {
+      // Construir parámetros de consulta
+      const params = new URLSearchParams();
+      if (origen) params.append('origen', origen);
+      if (destino) params.append('destino', destino);
+      
+      const response = await fetch(`/api/v1/rutas/filtro-avanzado/exportar/${formato}?${params.toString()}`);
+      
+      if (response.ok) {
+        const resultado = await response.json();
+        
+        console.log('✅ EXPORTACIÓN INICIADA:', resultado);
+        
+        this.snackBar.open(`${resultado.mensaje}`, 'Cerrar', { duration: 5000 });
+        
+        // En una implementación real, aquí se descargaría el archivo
+        // Por ahora solo mostramos el mensaje de confirmación
+      } else {
+        console.error('❌ Error en respuesta de exportación:', response.status);
+        this.snackBar.open('Error al exportar resultados', 'Cerrar', { duration: 3000 });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en exportarResultados:', error);
+      this.snackBar.open('Error de conexión al exportar', 'Cerrar', { duration: 3000 });
+    }
+  }
+}
