@@ -40,7 +40,7 @@ export const routes: Routes = [
       { path: 'rutas/nuevo', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'rutas/:id', loadComponent: () => import('./components/rutas/ruta-detail.component').then(m => m.RutaDetailComponent) },
       { path: 'rutas/:id/editar', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
-      { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones.component').then(m => m.ResolucionesComponent) },
+      { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones-minimal.component').then(m => m.ResolucionesMinimalComponent) },
       { path: 'resoluciones/nuevo', loadComponent: () => import('./components/resoluciones/crear-resolucion.component').then(m => m.CrearResolucionComponent) },
       { path: 'resoluciones/:id', loadComponent: () => import('./components/resoluciones/resolucion-detail.component').then(m => m.ResolucionDetailComponent) },
       { path: 'resoluciones/:id/editar', loadComponent: () => import('./components/resoluciones/crear-resolucion.component').then(m => m.CrearResolucionComponent) },

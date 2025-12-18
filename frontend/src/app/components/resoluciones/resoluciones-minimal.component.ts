@@ -1,0 +1,845 @@
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Router, ActivatedRoute } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTableModule } from '@angular/material/table';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject, takeUntil, combineLatest, debounceTime, distinctUntilChanged } from 'rxjs';
+import { ResolucionService } from '../../services/resolucion.service';
+import { ResolucionesTableService } from '../../services/resoluciones-table.service';
+import { 
+  ResolucionConEmpresa, 
+  ResolucionFiltros, 
+  ResolucionTableConfig,
+  RESOLUCION_TABLE_CONFIG_DEFAULT 
+} from '../../models/resolucion-table.model';
+import { ResolucionesFiltersMinimalComponent } from '../../shared/resoluciones-filters-minimal.component';
+import { ResolucionesTableComponent, AccionTabla } from '../../shared/resoluciones-table.component';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
+
+/**
+ * Componente de resoluciones con FILTRO MINIMALISTA pero TABLA COMPLETA
+ */
+@Component({
+  selector: 'app-resoluciones-minimal',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
+    ResolucionesFiltersMinimalComponent,
+    ResolucionesTableComponent,
+    SmartIconComponent
+  ],
+  template: `
+    <div class="resoluciones-container">
+      
+      <!-- Header de la página -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="header-title">
+            <app-smart-icon iconName="description" [size]="32"></app-smart-icon>
+            <div class="title-text">
+              <h1>Gestión de Resoluciones</h1>
+              <p class="header-subtitle">Administración avanzada de resoluciones autorizadas</p>
+            </div>
+          </div>
+          
+          @if (estadisticas()) {
+            <div class="stats-summary">
+              <div class="stat-item">
+                <span class="stat-number">{{ estadisticas()?.total || 0 }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">{{ getEstadisticaPorEstado('VIGENTE') }}</span>
+                <span class="stat-label">Vigentes</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">{{ getEstadisticaPorTipo('PRIMIGENIA') }}</span>
+                <span class="stat-label">Primigenias</span>
+              </div>
+            </div>
+          }
+        </div>
+        
+        <div class="header-actions">
+          <button mat-stroked-button (click)="exportarResoluciones()" class="export-btn">
+            <app-smart-icon iconName="file_download" [size]="20"></app-smart-icon>
+            Exportar
+          </button>
+          
+          <button mat-raised-button color="accent" (click)="cargaMasivaResoluciones()" class="bulk-upload-btn">
+            <app-smart-icon iconName="upload_file" [size]="20"></app-smart-icon>
+            Carga Masiva
+          </button>
+          
+          <button mat-raised-button color="primary" (click)="nuevaResolucion()" class="new-resolution-btn">
+            <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
+            Nueva Resolución
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros MINIMALISTAS (solo búsqueda y estado) -->
+      <app-resoluciones-filters-minimal
+        [filtros]="filtrosActuales()"
+        (filtrosChange)="onFiltrosChange($event)">
+      </app-resoluciones-filters-minimal>
+
+      <!-- Contador de resultados -->
+      @if (tieneFiltrosActivos() && !isLoading()) {
+        <div class="results-counter">
+          <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
+          <span class="counter-text">
+            <strong>{{ resolucionesFiltradas().length }}</strong> 
+            {{ resolucionesFiltradas().length === 1 ? 'resultado encontrado' : 'resultados encontrados' }}
+          </span>
+          @if (resolucionesFiltradas().length !== resoluciones().length) {
+            <span class="total-text">de {{ resoluciones().length }} total</span>
+          }
+        </div>
+      }
+
+      <!-- Tabla COMPLETA de resoluciones (todas las funcionalidades) -->
+      <app-resoluciones-table
+        [resoluciones]="resolucionesFiltradas()"
+        [configuracion]="configuracionTabla()"
+        [cargando]="isLoading()"
+        [seleccionMultiple]="true"
+        (configuracionChange)="onConfiguracionChange($event)"
+        (accionEjecutada)="onAccionEjecutada($event)">
+      </app-resoluciones-table>
+
+      <!-- Estado vacío inicial -->
+      @if (!isLoading() && resoluciones().length === 0 && !tieneFiltrosActivos()) {
+        <div class="empty-state">
+          <app-smart-icon iconName="description" [size]="64"></app-smart-icon>
+          <h3>No hay resoluciones registradas</h3>
+          <p>Comienza agregando la primera resolución al sistema</p>
+          <button mat-raised-button color="primary" (click)="nuevaResolucion()" class="first-resolution-btn">
+            <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
+            Agregar Primera Resolución
+          </button>
+        </div>
+      }
+
+      <!-- Estado sin resultados con filtros -->
+      @if (!isLoading() && resolucionesFiltradas().length === 0 && tieneFiltrosActivos()) {
+        <div class="no-results-state">
+          <app-smart-icon iconName="search_off" [size]="64"></app-smart-icon>
+          <h3>No se encontraron resultados</h3>
+          <p>No hay resoluciones que coincidan con los filtros aplicados</p>
+          <div class="no-results-actions">
+            <button mat-stroked-button (click)="onLimpiarFiltros()">
+              <app-smart-icon iconName="clear_all" [size]="20"></app-smart-icon>
+              Limpiar Filtros
+            </button>
+            <button mat-raised-button color="primary" (click)="nuevaResolucion()">
+              <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
+              Nueva Resolución
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .resoluciones-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      color: white;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    }
+
+    .header-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .title-text h1 {
+      margin: 0 0 8px 0;
+      font-size: 32px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .header-subtitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .stats-summary {
+      display: flex;
+      gap: 32px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .header-actions button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .export-btn {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .export-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .bulk-upload-btn {
+      background-color: #ff6b6b;
+      color: white;
+    }
+
+    .bulk-upload-btn:hover {
+      background-color: #ff5252;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+    }
+
+    .new-resolution-btn {
+      background-color: #4ecdc4;
+      color: white;
+    }
+
+    .new-resolution-btn:hover {
+      background-color: #26d0ce;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+    }
+
+    .results-counter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      color: white;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .counter-text {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .counter-text strong {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .total-text {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      margin-left: 8px;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .empty-state h3 {
+      margin: 16px 0 8px 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 24px;
+    }
+
+    .empty-state p {
+      margin: 0 0 32px 0;
+      color: #6c757d;
+      font-size: 16px;
+    }
+
+    .first-resolution-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 32px;
+      font-weight: 600;
+      font-size: 16px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .first-resolution-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(25, 118, 210, 0.3);
+    }
+
+    .no-results-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .no-results-state h3 {
+      margin: 16px 0 8px 0;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 24px;
+    }
+
+    .no-results-state p {
+      margin: 0 0 32px 0;
+      color: #6c757d;
+      font-size: 16px;
+      max-width: 400px;
+    }
+
+    .no-results-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .no-results-actions button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .no-results-actions button:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Responsive design */
+    @media (max-width: 1024px) {
+      .resoluciones-container {
+        padding: 16px;
+      }
+      
+      .page-header {
+        padding: 24px;
+      }
+      
+      .stats-summary {
+        gap: 24px;
+      }
+      
+      .stat-number {
+        font-size: 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-header {
+        flex-direction: column;
+        gap: 24px;
+        text-align: center;
+      }
+
+      .header-title {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .title-text h1 {
+        font-size: 28px;
+      }
+
+      .stats-summary {
+        justify-content: center;
+        gap: 20px;
+      }
+
+      .header-actions {
+        width: 100%;
+        flex-direction: column;
+      }
+
+      .header-actions button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .resoluciones-container {
+        padding: 12px;
+        gap: 16px;
+      }
+      
+      .page-header {
+        padding: 20px;
+      }
+      
+      .title-text h1 {
+        font-size: 24px;
+      }
+      
+      .stats-summary {
+        gap: 16px;
+      }
+      
+      .stat-number {
+        font-size: 20px;
+      }
+    }
+  `]
+})
+export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private snackBar = inject(MatSnackBar);
+  private resolucionService = inject(ResolucionService);
+  private tableService = inject(ResolucionesTableService);
+  private destroy$ = new Subject<void>();
+
+  // Señales para el estado del componente
+  resoluciones = signal<ResolucionConEmpresa[]>([]);
+  resolucionesFiltradas = signal<ResolucionConEmpresa[]>([]);
+  isLoading = signal(false);
+  filtrosActuales = signal<ResolucionFiltros>({});
+  configuracionTabla = signal<ResolucionTableConfig>(RESOLUCION_TABLE_CONFIG_DEFAULT);
+  estadisticas = signal<any>(null);
+
+  ngOnInit(): void {
+    this.inicializarComponente();
+    this.configurarSuscripciones();
+    this.cargarDatosIniciales();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ========================================
+  // INICIALIZACIÓN
+  // ========================================
+
+  private inicializarComponente(): void {
+    // Cargar configuración inicial de la tabla
+    const configInicial = this.tableService.getConfiguracion();
+    this.configuracionTabla.set(configInicial);
+    
+    // Cargar filtros desde URL params si existen
+    this.cargarFiltrosDesdeURL();
+  }
+
+  private cargarFiltrosDesdeURL(): void {
+    this.route.queryParams.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(params => {
+      const filtrosURL: ResolucionFiltros = {};
+      
+      // Usar formato del frontend (numeroResolucion, estados)
+      if (params['numeroResolucion']) {
+        filtrosURL.numeroResolucion = params['numeroResolucion'];
+      }
+      if (params['estados']) {
+        filtrosURL.estados = Array.isArray(params['estados']) 
+          ? params['estados'] 
+          : [params['estados']];
+      }
+      
+      // Si hay filtros en la URL, aplicarlos
+      if (Object.keys(filtrosURL).length > 0) {
+        this.filtrosActuales.set(filtrosURL);
+        this.tableService.actualizarFiltros(filtrosURL);
+      } else {
+        this.filtrosActuales.set(this.tableService.getConfiguracion().filtros);
+      }
+    });
+  }
+
+  private configurarSuscripciones(): void {
+    // Suscribirse a cambios en filtros con debounce
+    combineLatest([
+      this.tableService.filtros$,
+      this.tableService.config$
+    ]).pipe(
+      debounceTime(300),
+      distinctUntilChanged((prev, curr) => 
+        JSON.stringify(prev) === JSON.stringify(curr)
+      ),
+      takeUntil(this.destroy$)
+    ).subscribe(([filtros, config]) => {
+      this.filtrosActuales.set(filtros);
+      this.configuracionTabla.set(config);
+      this.actualizarURLParams(filtros);
+      this.aplicarFiltrosYCargarDatos();
+    });
+  }
+
+  private actualizarURLParams(filtros: ResolucionFiltros): void {
+    const queryParams: any = {};
+    
+    // Usar formato del frontend
+    if (filtros.numeroResolucion) {
+      queryParams.numeroResolucion = filtros.numeroResolucion;
+    }
+    if (filtros.estados && filtros.estados.length > 0) {
+      queryParams.estados = filtros.estados;
+    }
+    
+    // Actualizar URL sin recargar la página
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private cargarDatosIniciales(): void {
+    this.cargarResoluciones();
+  }
+
+  // ========================================
+  // CARGA DE DATOS
+  // ========================================
+
+  private cargarResoluciones(): void {
+    this.isLoading.set(true);
+    this.tableService.cargando.set(true);
+
+    this.resolucionService.getResolucionesConEmpresa().subscribe({
+      next: (resoluciones) => {
+        console.log('📋 Resoluciones con empresa cargadas:', resoluciones.length);
+        this.resoluciones.set(resoluciones);
+        this.aplicarFiltrosYCargarDatos();
+        this.cargarEstadisticas();
+        this.isLoading.set(false);
+        this.tableService.cargando.set(false);
+        
+        // Feedback visual de carga exitosa
+        if (resoluciones.length > 0) {
+          this.mostrarNotificacion(`✓ ${resoluciones.length} resoluciones cargadas`, 'success');
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading resoluciones:', error);
+        this.isLoading.set(false);
+        this.tableService.cargando.set(false);
+        this.mostrarNotificacion('Error al cargar las resoluciones. Por favor, intenta nuevamente.', 'error');
+      }
+    });
+  }
+
+  private aplicarFiltrosYCargarDatos(): void {
+    const filtros = this.filtrosActuales();
+    
+    if (this.tieneFiltrosActivos()) {
+      // Mostrar loading durante filtrado
+      this.isLoading.set(true);
+      
+      // Aplicar filtros
+      this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
+        next: (resolucionesFiltradas) => {
+          console.log('🔍 Resoluciones filtradas:', resolucionesFiltradas.length);
+          this.resolucionesFiltradas.set(resolucionesFiltradas);
+          this.tableService.totalResultados.set(resolucionesFiltradas.length);
+          this.isLoading.set(false);
+          
+          // Feedback visual de filtrado
+          if (resolucionesFiltradas.length === 0) {
+            this.mostrarNotificacion('No se encontraron resultados con los filtros aplicados', 'info');
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error al filtrar resoluciones:', error);
+          this.resolucionesFiltradas.set([]);
+          this.isLoading.set(false);
+          this.mostrarNotificacion('Error al aplicar filtros. Por favor, intenta nuevamente.', 'error');
+        }
+      });
+    } else {
+      // Sin filtros, mostrar todas
+      this.resolucionesFiltradas.set(this.resoluciones());
+      this.tableService.totalResultados.set(this.resoluciones().length);
+    }
+  }
+
+  private cargarEstadisticas(): void {
+    const filtros = this.filtrosActuales();
+    
+    this.resolucionService.getEstadisticasFiltros(filtros).subscribe({
+      next: (stats) => {
+        console.log('📊 Estadísticas cargadas:', stats);
+        this.estadisticas.set(stats);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar estadísticas:', error);
+      }
+    });
+  }
+
+  // ========================================
+  // EVENT HANDLERS - FILTROS
+  // ========================================
+
+  onFiltrosChange(filtros: ResolucionFiltros): void {
+    console.log('🔍 Filtros cambiados:', filtros);
+    this.tableService.actualizarFiltros(filtros);
+  }
+
+  onLimpiarFiltros(): void {
+    console.log('🧹 Limpiando filtros');
+    this.tableService.limpiarFiltros();
+  }
+
+  // ========================================
+  // EVENT HANDLERS - TABLA
+  // ========================================
+
+  onConfiguracionChange(cambios: Partial<ResolucionTableConfig>): void {
+    console.log('⚙️ Configuración de tabla cambiada:', cambios);
+    this.tableService.actualizarConfiguracion(cambios);
+  }
+
+  onAccionEjecutada(accion: AccionTabla): void {
+    console.log('🎯 Acción ejecutada:', accion);
+    
+    switch (accion.accion) {
+      case 'ver':
+        if (accion.resolucion) {
+          this.verResolucion(accion.resolucion.id);
+        }
+        break;
+        
+      case 'editar':
+        if (accion.resolucion) {
+          this.editarResolucion(accion.resolucion.id);
+        }
+        break;
+        
+      case 'eliminar':
+        if (accion.resolucion) {
+          this.eliminarResolucion(accion.resolucion.id);
+        }
+        break;
+        
+      case 'exportar':
+        if (accion.resoluciones) {
+          this.exportarResoluciones(accion.resoluciones);
+        } else {
+          this.exportarResoluciones();
+        }
+        break;
+    }
+  }
+
+  // ========================================
+  // ACCIONES DE NAVEGACIÓN
+  // ========================================
+
+  nuevaResolucion(): void {
+    this.router.navigate(['/resoluciones/nuevo']);
+  }
+
+  cargaMasivaResoluciones(): void {
+    this.router.navigate(['/resoluciones/carga-masiva']);
+  }
+
+  verResolucion(id: string): void {
+    this.router.navigate(['/resoluciones', id]);
+  }
+
+  editarResolucion(id: string): void {
+    this.router.navigate(['/resoluciones', id, 'editar']);
+  }
+
+  eliminarResolucion(id: string): void {
+    if (confirm('¿Estás seguro de que deseas eliminar esta resolución? Esta acción no se puede deshacer.')) {
+      this.resolucionService.deleteResolucion(id).subscribe({
+        next: () => {
+          this.mostrarNotificacion('✓ Resolución eliminada exitosamente', 'success');
+          this.cargarResoluciones();
+        },
+        error: (error) => {
+          console.error('Error deleting resolucion:', error);
+          this.mostrarNotificacion('Error al eliminar la resolución. Por favor, intenta nuevamente.', 'error');
+        }
+      });
+    }
+  }
+
+  // ========================================
+  // EXPORTACIÓN
+  // ========================================
+
+  exportarResoluciones(resoluciones?: ResolucionConEmpresa[]): void {
+    const filtros = resoluciones ? {} : this.filtrosActuales();
+    const mensaje = resoluciones 
+      ? `Exportando ${resoluciones.length} resoluciones seleccionadas...`
+      : 'Exportando todas las resoluciones...';
+    
+    this.mostrarNotificacion(mensaje, 'info');
+    
+    this.resolucionService.exportarResoluciones(filtros, 'excel').subscribe({
+      next: (blob) => {
+        // Crear y descargar archivo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `resoluciones_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        
+        this.mostrarNotificacion('✓ Exportación completada exitosamente', 'success');
+      },
+      error: (error) => {
+        console.error('Error al exportar:', error);
+        this.mostrarNotificacion('Error al exportar resoluciones. Por favor, intenta nuevamente.', 'error');
+      }
+    });
+  }
+
+  // ========================================
+  // NOTIFICACIONES
+  // ========================================
+
+  private mostrarNotificacion(mensaje: string, tipo: 'success' | 'error' | 'info'): void {
+    const config: any = {
+      duration: 3000,
+      horizontalPosition: 'end',
+      verticalPosition: 'top'
+    };
+
+    // Configurar estilos según el tipo
+    switch (tipo) {
+      case 'success':
+        config.panelClass = ['snackbar-success'];
+        break;
+      case 'error':
+        config.panelClass = ['snackbar-error'];
+        config.duration = 5000; // Más tiempo para errores
+        break;
+      case 'info':
+        config.panelClass = ['snackbar-info'];
+        break;
+    }
+
+    this.snackBar.open(mensaje, 'Cerrar', config);
+  }
+
+  // ========================================
+  // UTILIDADES
+  // ========================================
+
+  tieneFiltrosActivos(): boolean {
+    return this.tableService.tieneFiltrosActivos();
+  }
+
+  getEstadisticaPorEstado(estado: string): number {
+    const stats = this.estadisticas();
+    return stats?.porEstado?.[estado] || 0;
+  }
+
+  getEstadisticaPorTipo(tipo: string): number {
+    const stats = this.estadisticas();
+    return stats?.porTipo?.[tipo] || 0;
+  }
+}
