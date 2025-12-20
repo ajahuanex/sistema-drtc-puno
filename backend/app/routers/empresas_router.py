@@ -332,26 +332,81 @@ async def remover_resolucion_de_empresa(
 @router.get("/{empresa_id}/resoluciones")
 async def get_resoluciones_empresa(
     empresa_id: str,
+    incluir_hijas: bool = Query(True, description="Incluir resoluciones hijas en la respuesta"),
     empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
-    """Obtener resoluciones de una empresa"""
+    """Obtener resoluciones de una empresa con estructura jerárquica simplificada"""
     from app.services.resolucion_service import ResolucionService
     
-    # Verificar que la empresa existe
-    empresa = await empresa_service.get_empresa_by_id(empresa_id)
-    if not empresa:
-        raise EmpresaNotFoundException(empresa_id)
-    
-    # Obtener resoluciones usando el servicio de resoluciones
-    db = await get_database()
-    resolucion_service = ResolucionService(db)
-    resoluciones = await resolucion_service.get_resoluciones_por_empresa(empresa_id)
-    
-    return {
-        "empresa_id": empresa_id,
-        "resoluciones": [resolucion.model_dump() for resolucion in resoluciones],
-        "total": len(resoluciones)
-    }
+    try:
+        # Verificar que la empresa existe
+        empresa = await empresa_service.get_empresa_by_id(empresa_id)
+        if not empresa:
+            raise EmpresaNotFoundException(empresa_id)
+        
+        # Obtener resoluciones usando el servicio de resoluciones
+        db = await get_database()
+        resolucion_service = ResolucionService(db)
+        todas_resoluciones = await resolucion_service.get_resoluciones_por_empresa(empresa_id)
+        
+        # Separar resoluciones padre e hijas
+        resoluciones_padre = []
+        resoluciones_hijas = []
+        
+        for resolucion in todas_resoluciones:
+            if resolucion.tipoResolucion == "PADRE":
+                resoluciones_padre.append(resolucion)
+            else:
+                resoluciones_hijas.append(resolucion)
+        
+        # Construir estructura jerárquica simplificada
+        resoluciones_estructuradas = []
+        
+        for padre in resoluciones_padre:
+            # Buscar hijas de esta resolución padre
+            hijas_de_este_padre = []
+            if incluir_hijas:
+                hijas_de_este_padre = [
+                    {
+                        "id": hija.id,
+                        "nroResolucion": hija.nroResolucion,
+                        "tipoTramite": hija.tipoTramite,
+                        "tipoResolucion": hija.tipoResolucion,
+                        "fechaEmision": hija.fechaEmision.isoformat() if hija.fechaEmision else None,
+                        "estado": hija.estado,
+                        "descripcion": hija.descripcion or f"Resolución {hija.tipoTramite.lower()}"
+                    }
+                    for hija in resoluciones_hijas 
+                    if hija.resolucionPadreId == padre.id
+                ]
+            
+            # Agregar resolución padre con sus hijas
+            resoluciones_estructuradas.append({
+                "id": padre.id,
+                "nroResolucion": padre.nroResolucion,
+                "tipoTramite": padre.tipoTramite,
+                "tipoResolucion": padre.tipoResolucion,
+                "fechaEmision": padre.fechaEmision.isoformat() if padre.fechaEmision else None,
+                "estado": padre.estado,
+                "descripcion": padre.descripcion or f"Resolución {padre.tipoTramite.lower()}",
+                "totalHijas": len(hijas_de_este_padre),
+                "hijas": hijas_de_este_padre if incluir_hijas else []
+            })
+        
+        return {
+            "empresa_id": empresa_id,
+            "resoluciones": resoluciones_estructuradas,
+            "total_padre": len(resoluciones_padre),
+            "total_hijas": len(resoluciones_hijas),
+            "total": len(todas_resoluciones),
+            "incluir_hijas": incluir_hijas
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al obtener resoluciones: {str(e)}"
+        )
 
 @router.get("/{empresa_id}/rutas")
 async def get_rutas_empresa(

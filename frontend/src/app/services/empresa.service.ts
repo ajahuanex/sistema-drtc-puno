@@ -235,6 +235,19 @@ export class EmpresaService {
     );
   }
 
+  // Método simplificado para obtener resoluciones con estructura padre/hijas
+  getResoluciones(empresaId: string, incluirHijas: boolean = true): Observable<any> {
+    const params = incluirHijas ? '?incluir_hijas=true' : '?incluir_hijas=false';
+    return this.http.get<any>(`${this.apiUrl}/empresas/${empresaId}/resoluciones${params}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error obteniendo resoluciones simplificadas:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   // Métodos para validación
   validarRuc(ruc: string): Observable<{ valido: boolean; empresa?: Empresa }> {
     return this.http.get<{ valido: boolean; empresa?: Empresa }>(`${this.apiUrl}/empresas/validar-ruc/${ruc}`, {

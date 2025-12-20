@@ -98,24 +98,50 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
               <mat-hint>Opcional: Filtre las rutas por empresa específica</mat-hint>
             </mat-form-field>
 
-            <!-- Filtro por Resolución (solo visible si hay empresa seleccionada) -->
+            <!-- Filtro por Resolución Simplificado (solo visible si hay empresa seleccionada) -->
             @if (empresaSeleccionada() && resolucionesEmpresa().length > 0) {
               <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Filtrar por Resolución ({{ resolucionesEmpresa().length }} disponibles)</mat-label>
+                <mat-label>Filtrar por Resolución ({{ getResolucionesPadre().length }} padre, {{ getResolucionesHijas().length }} hijas)</mat-label>
                 <mat-select [value]="resolucionSeleccionada()" 
                            (selectionChange)="onResolucionSelected($event.value)"
                            placeholder="Seleccionar resolución">
-                  <mat-option [value]="null">Todas las resoluciones ({{ resolucionesEmpresa().length }})</mat-option>
-                  @for (resolucion of resolucionesEmpresa(); track resolucion.id) {
+                  <mat-option [value]="null">
+                    <div class="resolucion-option-todas">
+                      <mat-icon>list</mat-icon>
+                      <span>Todas las resoluciones ({{ resolucionesEmpresa().length }})</span>
+                    </div>
+                  </mat-option>
+                  
+                  <!-- Resoluciones Padre -->
+                  @for (resolucion of getResolucionesPadre(); track resolucion.id) {
                     <mat-option [value]="resolucion">
-                      <div class="resolucion-option">
-                        <div class="resolucion-numero">{{ resolucion.nroResolucion }}</div>
-                        <div class="resolucion-tipo">{{ resolucion.tipoTramite }} - {{ resolucion.tipoResolucion }} ID: {{ resolucion.id.substring(0, 8) }}...</div>
+                      <div class="resolucion-option resolucion-padre">
+                        <mat-icon color="primary">account_tree</mat-icon>
+                        <div class="resolucion-info">
+                          <div class="resolucion-numero">{{ resolucion.nroResolucion }}</div>
+                          <div class="resolucion-detalle">{{ resolucion.tipoTramite }} (PADRE)</div>
+                        </div>
+                        @if (getHijasDeResolucion(resolucion.id).length > 0) {
+                          <span class="hijas-count">{{ getHijasDeResolucion(resolucion.id).length }} hija(s)</span>
+                        }
+                      </div>
+                    </mat-option>
+                  }
+                  
+                  <!-- Resoluciones Hijas (indentadas) -->
+                  @for (resolucion of getResolucionesHijas(); track resolucion.id) {
+                    <mat-option [value]="resolucion">
+                      <div class="resolucion-option resolucion-hija">
+                        <mat-icon color="accent">subdirectory_arrow_right</mat-icon>
+                        <div class="resolucion-info">
+                          <div class="resolucion-numero">{{ resolucion.nroResolucion }}</div>
+                          <div class="resolucion-detalle">{{ resolucion.tipoTramite }} (HIJA)</div>
+                        </div>
                       </div>
                     </mat-option>
                   }
                 </mat-select>
-                <mat-hint>Opcional: Filtre por resolución específica de la empresa</mat-hint>
+                <mat-hint>Resoluciones padre pueden tener resoluciones hijas asociadas</mat-hint>
               </mat-form-field>
             }
 
@@ -782,62 +808,125 @@ export class RutasComponent implements OnInit {
     this.snackBar.open('Rutas recargadas', 'Cerrar', { duration: 2000 });
   }
 
-  // Métodos para manejo de resoluciones
+  // Métodos para manejo de resoluciones simplificado
   private cargarResolucionesEmpresa(empresaId: string): void {
-    console.log('📋 CARGA SIMPLE DE RESOLUCIONES CON RUTAS:', empresaId);
+    console.log('📋 CARGANDO RESOLUCIONES SIMPLIFICADAS PARA EMPRESA:', empresaId);
     
     // Limpiar resoluciones anteriores
     this.resolucionesEmpresa.set([]);
     
-    // SOLUCIÓN SIMPLE: Crear las resoluciones directamente con los IDs correctos
-    const resolucionesCorrectas: Resolucion[] = [
-      {
-        id: '694187b1c6302fb8566ba0a0',
-        nroResolucion: 'R-0003-2025',
-        tipoTramite: 'RENOVACION',
-        tipoResolucion: 'PADRE',
-        empresaId: empresaId,
-        expedienteId: 'exp-001',
-        fechaEmision: new Date(),
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: [],
-        rutasAutorizadasIds: [],
-        descripcion: 'Resolución de renovación',
-        estaActivo: true
-      } as Resolucion,
-      {
-        id: '6941bb5d5e0d9aefe5627d84',
-        nroResolucion: 'R-0005-2025',
-        tipoTramite: 'PRIMIGENIA',
-        tipoResolucion: 'PADRE',
-        empresaId: empresaId,
-        expedienteId: 'exp-002',
-        fechaEmision: new Date(),
-        resolucionesHijasIds: [],
-        vehiculosHabilitadosIds: [],
-        rutasAutorizadasIds: [],
-        descripcion: 'Resolución primigenia',
-        estaActivo: true
-      } as Resolucion
-    ];
-
-    console.log('✅ RESOLUCIONES CORRECTAS CREADAS:', {
-      total: resolucionesCorrectas.length,
-      resoluciones: resolucionesCorrectas.map(r => ({
-        id: r.id,
-        numero: r.nroResolucion,
-        tipo: r.tipoTramite
-      }))
+    // Usar el endpoint simplificado del backend
+    this.empresaService.getResoluciones(empresaId).subscribe({
+      next: (response: any) => {
+        console.log('✅ RESPUESTA DEL BACKEND - RESOLUCIONES:', response);
+        
+        const resoluciones = response.resoluciones || [];
+        const resolucionesFormateadas: Resolucion[] = [];
+        
+        // Procesar resoluciones padre con sus hijas
+        resoluciones.forEach((resolucion: any) => {
+          // Agregar resolución padre
+          const resolucionPadre: Resolucion = {
+            id: resolucion.id,
+            nroResolucion: resolucion.nroResolucion,
+            tipoTramite: resolucion.tipoTramite,
+            tipoResolucion: resolucion.tipoResolucion,
+            empresaId: empresaId,
+            expedienteId: '',
+            fechaEmision: new Date(resolucion.fechaEmision || Date.now()),
+            resolucionesHijasIds: resolucion.hijas?.map((h: any) => h.id) || [],
+            vehiculosHabilitadosIds: [],
+            rutasAutorizadasIds: [],
+            descripcion: resolucion.descripcion || `${resolucion.tipoTramite} - ${resolucion.totalHijas || 0} hija(s)`,
+            estaActivo: resolucion.estado === 'VIGENTE'
+          } as Resolucion;
+          
+          resolucionesFormateadas.push(resolucionPadre);
+          
+          // Agregar resoluciones hijas si existen
+          if (resolucion.hijas && resolucion.hijas.length > 0) {
+            resolucion.hijas.forEach((hija: any) => {
+              const resolucionHija: Resolucion = {
+                id: hija.id,
+                nroResolucion: `${resolucion.nroResolucion} > ${hija.nroResolucion}`,
+                tipoTramite: hija.tipoTramite,
+                tipoResolucion: hija.tipoResolucion,
+                empresaId: empresaId,
+                expedienteId: '',
+                fechaEmision: new Date(hija.fechaEmision || Date.now()),
+                resolucionPadreId: resolucion.id,
+                resolucionesHijasIds: [],
+                vehiculosHabilitadosIds: [],
+                rutasAutorizadasIds: [],
+                descripcion: hija.descripcion || `Hija de ${resolucion.nroResolucion}`,
+                estaActivo: hija.estado === 'VIGENTE'
+              } as Resolucion;
+              
+              resolucionesFormateadas.push(resolucionHija);
+            });
+          }
+        });
+        
+        console.log('✅ RESOLUCIONES PROCESADAS:', {
+          totalPadre: response.total_padre,
+          totalHijas: response.total_hijas,
+          totalFormateadas: resolucionesFormateadas.length,
+          resoluciones: resolucionesFormateadas.map(r => ({
+            id: r.id,
+            numero: r.nroResolucion,
+            tipo: r.tipoTramite,
+            esPadre: r.tipoResolucion === 'PADRE'
+          }))
+        });
+        
+        // Actualizar el signal
+        this.resolucionesEmpresa.set(resolucionesFormateadas);
+        this.cdr.detectChanges();
+        
+        const mensaje = `${response.total_padre} resolución(es) padre con ${response.total_hijas} hija(s) cargadas`;
+        this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('❌ ERROR AL CARGAR RESOLUCIONES:', error);
+        
+        // Fallback: usar resoluciones hardcodeadas
+        const resolucionesFallback: Resolucion[] = [
+          {
+            id: '694187b1c6302fb8566ba0a0',
+            nroResolucion: 'R-0003-2025',
+            tipoTramite: 'RENOVACION',
+            tipoResolucion: 'PADRE',
+            empresaId: empresaId,
+            expedienteId: 'exp-001',
+            fechaEmision: new Date(),
+            resolucionesHijasIds: [],
+            vehiculosHabilitadosIds: [],
+            rutasAutorizadasIds: [],
+            descripcion: 'Resolución de renovación (fallback)',
+            estaActivo: true
+          } as Resolucion,
+          {
+            id: '6941bb5d5e0d9aefe5627d84',
+            nroResolucion: 'R-0005-2025',
+            tipoTramite: 'PRIMIGENIA',
+            tipoResolucion: 'PADRE',
+            empresaId: empresaId,
+            expedienteId: 'exp-002',
+            fechaEmision: new Date(),
+            resolucionesHijasIds: [],
+            vehiculosHabilitadosIds: [],
+            rutasAutorizadasIds: [],
+            descripcion: 'Resolución primigenia (fallback)',
+            estaActivo: true
+          } as Resolucion
+        ];
+        
+        this.resolucionesEmpresa.set(resolucionesFallback);
+        this.cdr.detectChanges();
+        
+        this.snackBar.open('Error al cargar resoluciones. Usando datos de respaldo.', 'Cerrar', { duration: 4000 });
+      }
     });
-
-    // Actualizar el signal
-    this.resolucionesEmpresa.set(resolucionesCorrectas);
-    
-    // Forzar detección de cambios
-    this.cdr.detectChanges();
-    
-    console.log('✅ SIGNAL ACTUALIZADO CON RESOLUCIONES CORRECTAS');
-    this.snackBar.open('2 resoluciones con rutas cargadas', 'Cerrar', { duration: 3000 });
   }
 
   onResolucionSelected(resolucion: Resolucion | null): void {
@@ -871,6 +960,14 @@ export class RutasComponent implements OnInit {
         tipoResolucion: resolucion.tipoResolucion,
         empresaId: empresa.id,
         empresaIdLength: empresa.id.length
+      });
+
+      // VERIFICACIÓN ADICIONAL: Mostrar todas las rutas disponibles para debug
+      console.log('🔍 DEBUG - RUTAS DISPONIBLES EN EL SISTEMA:', {
+        totalRutas: this.todasLasRutas().length,
+        rutasConEmpresa: this.todasLasRutas().filter(r => r.empresaId === empresa.id).length,
+        rutasConResolucion: this.todasLasRutas().filter(r => r.resolucionId === resolucion.id).length,
+        rutasConAmbos: this.todasLasRutas().filter(r => r.empresaId === empresa.id && r.resolucionId === resolucion.id).length
       });
 
       // Los IDs ahora son correctos por diseño, no necesitamos verificación compleja
@@ -1069,6 +1166,45 @@ export class RutasComponent implements OnInit {
     // Limpiar rutas agrupadas antes del filtrado
     this.rutasAgrupadasPorResolucion.set({});
 
+    // SOLUCIÓN TEMPORAL: Usar filtrado local PRIMERO para asegurar que funcione
+    console.log('🔄 INTENTANDO FILTRADO LOCAL PRIMERO...');
+    const rutasLocales = this.todasLasRutas().filter(r => 
+      r.empresaId === empresaId && r.resolucionId === resolucionId
+    );
+    
+    console.log('🔍 FILTRADO LOCAL RESULTADO:', {
+      totalRutasDisponibles: this.todasLasRutas().length,
+      rutasEncontradas: rutasLocales.length,
+      empresaId: empresaId,
+      resolucionId: resolucionId,
+      rutasDeEmpresa: this.todasLasRutas().filter(r => r.empresaId === empresaId).length,
+      rutasDeResolucion: this.todasLasRutas().filter(r => r.resolucionId === resolucionId).length
+    });
+
+    if (rutasLocales.length > 0) {
+      console.log('✅ FILTRADO LOCAL EXITOSO - Usando rutas locales directamente');
+      
+      // Usar rutas locales directamente
+      this.rutas.set([...rutasLocales]);
+      this.cdr.detectChanges();
+      
+      // Actualizar filtro activo
+      const empresa = this.empresaSeleccionada();
+      const resolucion = this.resolucionSeleccionada();
+      this.filtroActivo.set({
+        tipo: 'empresa-resolucion',
+        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
+        empresaId: empresaId,
+        resolucionId: resolucionId
+      });
+      
+      console.log('✅ FILTRADO LOCAL COMPLETADO');
+      this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Si no hay rutas locales, intentar backend
+    console.log('⚠️ NO HAY RUTAS LOCALES - INTENTANDO BACKEND...');
     this.rutaService.getRutasPorEmpresaYResolucion(empresaId, resolucionId).subscribe({
       next: (rutasFiltradas) => {
         console.log('✅ RESPUESTA DEL SERVICIO RECIBIDA:', {
@@ -1083,12 +1219,13 @@ export class RutasComponent implements OnInit {
         });
 
         if (rutasFiltradas.length === 0) {
-          console.warn('⚠️ SE RECIBIERON 0 RUTAS - POSIBLE PROBLEMA:');
-          console.warn('   • Verificar que el resolucionId sea correcto');
-          console.warn('   • Verificar que el endpoint del backend funcione');
-          console.warn('   • IDs esperados:');
-          console.warn('     - Empresa: 694186fec6302fb8566ba09e');
-          console.warn('     - Resolución: 694187b1c6302fb8566ba0a0');
+          console.warn('⚠️ BACKEND TAMBIÉN DEVOLVIÓ 0 RUTAS');
+          console.warn('   💡 POSIBLES CAUSAS:');
+          console.warn('   • No hay rutas asignadas a esta resolución');
+          console.warn('   • Los IDs no coinciden en la base de datos');
+          console.warn('   • El endpoint del backend tiene problemas');
+          console.warn('   • Faltan datos de prueba en el sistema');
+          console.warn(`   • IDs usados: Empresa=${empresaId}, Resolución=${resolucionId}`);
         }
 
         // FORZAR ACTUALIZACIÓN DEL SIGNAL
@@ -1117,7 +1254,7 @@ export class RutasComponent implements OnInit {
           resolucionId: resolucionId
         });
         
-        console.log('✅ FILTRADO COMPLETADO - SIGNAL ACTUALIZADO');
+        console.log('✅ FILTRADO BACKEND COMPLETADO');
         this.snackBar.open(`Filtrado: ${rutasFiltradas.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
       },
       error: (error) => {
@@ -1129,7 +1266,9 @@ export class RutasComponent implements OnInit {
           empresaId: empresaId,
           resolucionId: resolucionId
         });
-        // Fallback: filtrar solo por empresa
+        
+        // FALLBACK FINAL: Filtrar solo por empresa
+        console.warn('🔄 FALLBACK FINAL - Filtrando solo por empresa');
         this.filtrarRutasPorEmpresa(empresaId);
       }
     });
@@ -1144,11 +1283,40 @@ export class RutasComponent implements OnInit {
       totalRutasDisponibles: this.todasLasRutas().length
     });
 
-    // Filtrar directamente por empresaId si está disponible en la ruta
-    // Si no, usar el método del servicio para obtener rutas por empresa
+    // SOLUCIÓN TEMPORAL: Usar filtrado local PRIMERO
+    console.log('🔄 INTENTANDO FILTRADO LOCAL POR EMPRESA...');
+    const rutasLocales = this.todasLasRutas().filter(ruta => ruta.empresaId === empresaId);
+    
+    console.log('🔍 FILTRADO LOCAL POR EMPRESA:', {
+      rutasEncontradas: rutasLocales.length,
+      empresaId: empresaId
+    });
+
+    if (rutasLocales.length > 0) {
+      console.log('✅ FILTRADO LOCAL POR EMPRESA EXITOSO');
+      
+      this.rutas.set(rutasLocales);
+      
+      // Agrupar rutas por resolución
+      this.agruparRutasPorResolucion(rutasLocales);
+      
+      // Actualizar filtro activo
+      const empresa = this.empresaSeleccionada();
+      this.filtroActivo.set({
+        tipo: 'empresa',
+        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'}`,
+        empresaId: empresaId
+      });
+      
+      this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la empresa`, 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Si no hay rutas locales, intentar backend
+    console.log('⚠️ NO HAY RUTAS LOCALES DE LA EMPRESA - INTENTANDO BACKEND...');
     this.rutaService.getRutasPorEmpresa(empresaId).subscribe({
       next: (rutasEmpresa) => {
-        console.log('✅ RUTAS DE LA EMPRESA CARGADAS:', {
+        console.log('✅ RUTAS DE LA EMPRESA CARGADAS DESDE BACKEND:', {
           total: rutasEmpresa.length,
           empresaId: empresaId,
           rutas: rutasEmpresa.map(r => ({
@@ -1177,12 +1345,9 @@ export class RutasComponent implements OnInit {
       },
       error: (error) => {
         console.error('❌ ERROR AL FILTRAR RUTAS POR EMPRESA:', error);
-        // Fallback: filtrar de todas las rutas por empresaId
-        const rutasFiltradas = this.todasLasRutas().filter(ruta => ruta.empresaId === empresaId);
-        this.rutas.set(rutasFiltradas);
         
-        // Agrupar rutas por resolución
-        this.agruparRutasPorResolucion(rutasFiltradas);
+        // Fallback final: mostrar mensaje de que no hay rutas
+        this.rutas.set([]);
         
         // Actualizar filtro activo
         const empresa = this.empresaSeleccionada();
@@ -1192,7 +1357,7 @@ export class RutasComponent implements OnInit {
           empresaId: empresaId
         });
         
-        this.snackBar.open(`Se encontraron ${rutasFiltradas.length} ruta(s) para la empresa seleccionada`, 'Cerrar', { duration: 3000 });
+        this.snackBar.open('No se encontraron rutas para esta empresa', 'Cerrar', { duration: 3000 });
       }
     });
   }
@@ -1327,6 +1492,19 @@ export class RutasComponent implements OnInit {
   // Método para verificar si hay grupos de resolución
   tieneGruposResolucion(): boolean {
     return Object.keys(this.rutasAgrupadasPorResolucion()).length > 0;
+  }
+
+  // Métodos helper para resoluciones padre/hijas
+  getResolucionesPadre(): Resolucion[] {
+    return this.resolucionesEmpresa().filter(r => r.tipoResolucion === 'PADRE');
+  }
+
+  getResolucionesHijas(): Resolucion[] {
+    return this.resolucionesEmpresa().filter(r => r.tipoResolucion !== 'PADRE');
+  }
+
+  getHijasDeResolucion(padreId: string): Resolucion[] {
+    return this.resolucionesEmpresa().filter(r => r.resolucionPadreId === padreId);
   }
 
   // Métodos para obtener información de empresa y resolución de las rutas

@@ -338,15 +338,19 @@ export class ResolucionService {
    */
   getResolucionesFiltradas(filtros: ResolucionFiltros): Observable<ResolucionConEmpresa[]> {
     console.log('=== getResolucionesFiltradas ===');
-    console.log('Filtros recibidos:', filtros);
+    console.log('Filtros recibidos (frontend):', filtros);
 
     // Iniciar medición de rendimiento
     PerformanceMonitor.startMeasure('getResolucionesFiltradas');
 
+    // CONVERTIR filtros del formato frontend al formato backend
+    const filtrosBackend: any = this.convertirFiltrosFrontendABackend(filtros);
+    console.log('Filtros convertidos (backend):', filtrosBackend);
+
     // Intentar obtener del backend primero
     const url = `${this.apiUrl}/resoluciones/filtradas`;
 
-    return this.http.post<Resolucion[]>(url, filtros, { headers: this.getHeaders() })
+    return this.http.post<Resolucion[]>(url, filtrosBackend, { headers: this.getHeaders() })
       .pipe(
         switchMap((resoluciones: Resolucion[]) => {
           console.log('Resoluciones del backend:', resoluciones.length);
@@ -368,6 +372,44 @@ export class ResolucionService {
           return throwError(() => error);
         })
       );
+  }
+
+  /**
+   * Convierte filtros del formato frontend al formato backend
+   * @param filtrosFrontend - Filtros en formato del frontend
+   * @returns Filtros en formato del backend
+   */
+  private convertirFiltrosFrontendABackend(filtrosFrontend: ResolucionFiltros): any {
+    const filtrosBackend: any = {};
+
+    // Mapear numeroResolucion (frontend) → nroResolucion (backend)
+    if (filtrosFrontend.numeroResolucion) {
+      filtrosBackend.nroResolucion = filtrosFrontend.numeroResolucion;
+    }
+
+    // Mapear estados array (frontend) → estado string (backend)
+    if (filtrosFrontend.estados && filtrosFrontend.estados.length > 0) {
+      filtrosBackend.estado = filtrosFrontend.estados[0]; // Tomar el primer estado
+    }
+
+    // Mapear otros campos directamente
+    if (filtrosFrontend.empresaId) {
+      filtrosBackend.empresaId = filtrosFrontend.empresaId;
+    }
+
+    if (filtrosFrontend.tiposTramite && filtrosFrontend.tiposTramite.length > 0) {
+      filtrosBackend.tipoTramite = filtrosFrontend.tiposTramite[0]; // Tomar el primer tipo
+    }
+
+    if (filtrosFrontend.fechaInicio) {
+      filtrosBackend.fechaEmisionDesde = filtrosFrontend.fechaInicio;
+    }
+
+    if (filtrosFrontend.fechaFin) {
+      filtrosBackend.fechaEmisionHasta = filtrosFrontend.fechaFin;
+    }
+
+    return filtrosBackend;
   }
 
   /**
