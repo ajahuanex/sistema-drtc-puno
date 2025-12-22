@@ -1264,14 +1264,20 @@ export class ResolucionFormComponent {
 
       // Obtener el ID de la empresa del expediente
       const empresaId = expedienteData.empresaId || '';
+      
+      // Generar el número completo de resolución
+      const fechaEmision = new Date(formValue.fechaEmision);
+      const anio = fechaEmision.getFullYear();
+      const numeroCompleto = `R-${formValue.numero.padStart(4, '0')}-${anio}`;
 
       const resolucionData: ResolucionCreate = {
-        numero: formValue.numero,
+        nroResolucion: numeroCompleto,
         empresaId: empresaId,
         expedienteId: expedienteData.id,
         fechaEmision: formValue.fechaEmision,
         descripcion: formValue.descripcion,
         observaciones: formValue.observaciones,
+        usuarioEmisionId: 'sistema', // TODO: Obtener del usuario actual
         // El tipo de resolución se determina automáticamente del expediente
         tipoResolucion: this.tipoResolucionAutomatico() as 'PADRE' | 'HIJO',
         // El tipo de trámite se obtiene del expediente

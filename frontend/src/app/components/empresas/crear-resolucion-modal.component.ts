@@ -2,7 +2,7 @@
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,9 +20,11 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
 import { ResolucionService } from '../../services/resolucion.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ExpedienteService } from '../../services/expediente.service';
+import { AuthService } from '../../services/auth.service';
 import { ResolucionCreate, TipoTramite, TipoResolucion, Resolucion } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
 import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
+import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-modal.component';
 
 @Component({
   selector: 'app-crear-resolucion-modal',
@@ -143,7 +145,7 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
               <div class="expediente-section full-width">
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>EXPEDIENTE</mat-label>
-                  <mat-select formControlName="expedienteId" required (selectionChange)="onExpedienteChange($event)">
+                  <mat-select formControlName="expedienteId" (selectionChange)="onExpedienteChange($event)">
                     <mat-option value="">SELECCIONE UN EXPEDIENTE</mat-option>
                     @for (expediente of expedientesFiltrados(); track expediente.id) {
                       <mat-option [value]="expediente.id">
@@ -158,12 +160,9 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
                     @if (expedienteSeleccionado()) {
                       Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
                     } @else {
-                      SELECCIONE UN EXPEDIENTE EXISTENTE O DEJE VACÍO PARA CREAR UNO AUTOMÁTICAMENTE
+                      SELECCIONE UN EXPEDIENTE EXISTENTE
                     }
                   </mat-hint>
-                  @if (resolucionForm.get('expedienteId')?.hasError('required') && resolucionForm.get('expedienteId')?.touched) {
-                    <mat-error>EL EXPEDIENTE ES REQUERIDO</mat-error>
-                  }
                 </mat-form-field>
                 
                 <button 
@@ -175,6 +174,83 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
                   <mat-icon>add</mat-icon>
                   NUEVO EXPEDIENTE
                 </button>
+
+                <!-- Opción para ingresar expediente manual cuando no hay expedientes -->
+                @if (expedientesFiltrados().length === 0 || mostrarInputExpedienteManual()) {
+                  <div class="input-manual-expediente full-width">
+                    <mat-divider></mat-divider>
+                    <h4 class="manual-title">
+                      <mat-icon>edit</mat-icon>
+                      INGRESO MANUAL DE EXPEDIENTE
+                    </h4>
+                    <p class="manual-subtitle">
+                      Si el expediente no está registrado en el sistema, puede ingresar su información manualmente como referencia.
+                    </p>
+                    
+                    <div class="expediente-manual-grid">
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>NÚMERO DE EXPEDIENTE</mat-label>
+                        <input matInput 
+                               formControlName="numeroExpedienteManual"
+                               placeholder="E-0001-2025"
+                               (input)="onNumeroExpedienteManualChange()">
+                        <mat-icon matSuffix>folder</mat-icon>
+                        <mat-hint>Formato: E-0001-2025</mat-hint>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>TIPO DE TRÁMITE</mat-label>
+                        <mat-select formControlName="tipoTramiteManual">
+                          <mat-option value="AUTORIZACION_NUEVA">Autorización Nueva</mat-option>
+                          <mat-option value="RENOVACION">Renovación</mat-option>
+                          <mat-option value="INCREMENTO">Incremento</mat-option>
+                          <mat-option value="SUSTITUCION">Sustitución</mat-option>
+                          <mat-option value="OTROS">Otros</mat-option>
+                        </mat-select>
+                        <mat-icon matSuffix>assignment</mat-icon>
+                        <mat-hint>Tipo de trámite del expediente</mat-hint>
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="form-field full-width">
+                        <mat-label>DESCRIPCIÓN DEL EXPEDIENTE</mat-label>
+                        <input matInput 
+                               formControlName="descripcionExpedienteManual"
+                               placeholder="Descripción del expediente">
+                        <mat-icon matSuffix>description</mat-icon>
+                        <mat-hint>Descripción opcional del expediente</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="manual-actions">
+                      <button mat-stroked-button 
+                              type="button" 
+                              color="accent"
+                              (click)="toggleInputExpedienteManual()"
+                              class="toggle-manual-button">
+                        <mat-icon>{{ mostrarInputExpedienteManual() ? 'close' : 'edit' }}</mat-icon>
+                        {{ mostrarInputExpedienteManual() ? 'CANCELAR INGRESO MANUAL' : 'INGRESAR EXPEDIENTE MANUALMENTE' }}
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                @if (expedientesFiltrados().length === 0 && !mostrarInputExpedienteManual()) {
+                  <div class="no-expedientes">
+                    <mat-icon class="info-icon">info</mat-icon>
+                    <div class="info-content">
+                      <h4>No hay expedientes disponibles</h4>
+                      <p>Esta empresa no tiene expedientes registrados en el sistema.</p>
+                      <button mat-stroked-button 
+                              type="button" 
+                              color="primary"
+                              (click)="toggleInputExpedienteManual()"
+                              class="manual-input-button">
+                        <mat-icon>edit</mat-icon>
+                        INGRESAR EXPEDIENTE MANUALMENTE
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
             }
 
@@ -205,36 +281,123 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
 
             <!-- Resolución Padre (para RENOVACIÓN y resoluciones HIJA) -->
             @if (mostrarResolucionPadre()) {
-              <mat-form-field appearance="outline" class="form-field full-width">
-                <mat-label>
-                  @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                    RESOLUCIÓN PADRE A RENOVAR
-                  } @else {
-                    RESOLUCIÓN PADRE (requerida para {{ expedienteSeleccionado()?.tipoTramite | uppercase }})
-                  }
-                </mat-label>
-                <mat-select formControlName="resolucionPadreId" required (selectionChange)="onResolucionPadreChange()">
-                  <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
-                  @for (resolucion of resolucionesPadre(); track resolucion.id) {
-                    <mat-option [value]="resolucion.id">
-                      {{ resolucion.nroResolucion }} - {{ resolucion.descripcion || 'Sin descripción' }}
-                      @if (resolucion.fechaVigenciaFin) {
-                        (Vence: {{ formatearFechaLima(resolucion.fechaVigenciaFin) }})
+              <div class="resolucion-padre-section full-width">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>
+                    @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                      RESOLUCIÓN PADRE A RENOVAR (OPCIONAL)
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO') {
+                      RESOLUCIÓN PADRE (OPCIONAL - APROBACIÓN AUTOMÁTICA)
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                      RESOLUCIÓN PADRE (OPCIONAL - APROBACIÓN AUTOMÁTICA)
+                    } @else {
+                      RESOLUCIÓN PADRE (OPCIONAL)
+                    }
+                  </mat-label>
+                  <mat-select formControlName="resolucionPadreId" (selectionChange)="onResolucionPadreChange()">
+                    <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
+                    @for (resolucion of resolucionesPadre(); track resolucion.id) {
+                      <mat-option [value]="resolucion.id">
+                        {{ resolucion.nroResolucion }} - {{ resolucion.descripcion || 'Sin descripción' }}
+                        @if (resolucion.fechaVigenciaFin) {
+                          (Vence: {{ formatearFechaLima(resolucion.fechaVigenciaFin) }})
+                        }
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>
+                    @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                      Opcional: Ingrese la resolución que se está renovando como referencia histórica
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO') {
+                      Opcional: En el futuro este trámite será de aprobación automática
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                      Opcional: En el futuro este trámite será de aprobación automática
+                    } @else {
+                      Opcional: Seleccione una resolución padre como referencia
+                    }
+                  </mat-hint>
+                </mat-form-field>
+
+                <!-- Opción para ingresar número manual cuando no hay resoluciones padre -->
+                @if (resolucionesPadre().length === 0 || mostrarInputManual()) {
+                  <div class="input-manual-section">
+                    <mat-divider></mat-divider>
+                    <h4 class="manual-title">
+                      <mat-icon>edit</mat-icon>
+                      INGRESO MANUAL DE RESOLUCIÓN PADRE
+                    </h4>
+                    <p class="manual-subtitle">
+                      @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                        Opcional: Si desea hacer referencia a la resolución anterior que se está renovando, puede ingresar su número aquí. Esto es solo para fines de trazabilidad histórica.
+                      } @else {
+                        Si la resolución padre no está registrada en el sistema, puede ingresar su número como referencia histórica. Solo se requiere el número y año para identificar la resolución que se está renovando.
                       }
-                    </mat-option>
-                  }
-                </mat-select>
-                <mat-hint>
-                  @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                    Seleccione la resolución padre que desea renovar
-                  } @else {
-                    Seleccione la resolución padre de la cual heredará las fechas de vigencia
-                  }
-                </mat-hint>
-                @if (resolucionForm.get('resolucionPadreId')?.hasError('required') && resolucionForm.get('resolucionPadreId')?.touched) {
-                  <mat-error>DEBE SELECCIONAR LA RESOLUCIÓN PADRE</mat-error>
+                    </p>
+                    
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>NÚMERO DE RESOLUCIÓN PADRE</mat-label>
+                      <input matInput 
+                             formControlName="numeroResolucionPadreManual"
+                             placeholder="R-0001-2022"
+                             (input)="onNumeroResolucionPadreManualChange()"
+                             (blur)="onNumeroResolucionPadreManualBlur()">
+                      <mat-icon matSuffix>gavel</mat-icon>
+                      <mat-hint>Formato: R-0001-2022 (R-número-año)</mat-hint>
+                      @if (resolucionForm.get('numeroResolucionPadreManual')?.hasError('pattern')) {
+                        <mat-error>Formato inválido. Use: R-0001-2022</mat-error>
+                      }
+                    </mat-form-field>
+
+                    <div class="manual-actions">
+                      <button mat-stroked-button 
+                              type="button" 
+                              color="accent"
+                              (click)="toggleInputManual()"
+                              class="toggle-manual-button">
+                        <mat-icon>{{ mostrarInputManual() ? 'close' : 'edit' }}</mat-icon>
+                        {{ mostrarInputManual() ? 'CANCELAR INGRESO MANUAL' : 'INGRESAR NÚMERO MANUALMENTE' }}
+                      </button>
+                    </div>
+                  </div>
                 }
-              </mat-form-field>
+
+                @if (resolucionesPadre().length === 0 && !mostrarInputManual()) {
+                  <div class="no-resoluciones-padre">
+                    <mat-icon class="info-icon">info</mat-icon>
+                    <div class="info-content">
+                      @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                        <h4>Resolución padre opcional</h4>
+                        <p>Para renovaciones, la resolución padre es opcional. Puede continuar sin especificar una resolución anterior.</p>
+                      } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                        <h4>Resolución padre opcional</h4>
+                        <p>Para {{ expedienteSeleccionado()?.tipoTramite?.toLowerCase() }}s, la resolución padre es opcional. En el futuro este trámite será de aprobación automática.</p>
+                      } @else {
+                        <h4>Resolución padre opcional</h4>
+                        <p>La resolución padre es opcional para este tipo de trámite.</p>
+                      }
+                      <button mat-stroked-button 
+                              type="button" 
+                              color="primary"
+                              (click)="toggleInputManual()"
+                              class="manual-input-button">
+                        <mat-icon>edit</mat-icon>
+                        INGRESAR NÚMERO MANUALMENTE
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <!-- Validación requerida -->
+                @if (esResolucionPadreRequerida() && !tieneResolucionPadreValida()) {
+                  <mat-error class="padre-required-error">
+                    @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
+                      DEBE SELECCIONAR O INGRESAR LA RESOLUCIÓN PADRE A RENOVAR
+                    } @else {
+                      DEBE SELECCIONAR O INGRESAR LA RESOLUCIÓN PADRE
+                    }
+                  </mat-error>
+                }
+              </div>
             }
 
             <!-- Fecha de Emisión -->
@@ -338,7 +501,7 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
         mat-raised-button 
         color="primary" 
         (click)="crearResolucion()" 
-        [disabled]="resolucionForm.invalid || isLoading()"
+        [disabled]="!puedeCrearResolucion() || isLoading()"
         class="create-button">
         @if (isLoading()) {
           <mat-spinner diameter="20"></mat-spinner>
@@ -671,6 +834,159 @@ import { Expediente, ExpedienteCreate, TipoSolicitante, TipoExpediente } from '.
       font-size: 14px;
       line-height: 1.4;
     }
+
+    /* Estilos para resolución padre manual */
+    .resolucion-padre-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-manual-section {
+      padding: 20px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 12px;
+      border: 2px dashed #6c757d;
+      margin-top: 16px;
+    }
+
+    .manual-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 8px 0;
+      color: #495057;
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .manual-subtitle {
+      margin: 0 0 16px 0;
+      color: #6c757d;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .manual-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .toggle-manual-button, .manual-input-button {
+      text-transform: uppercase;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .no-resoluciones-padre {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+      background-color: #fff3e0;
+      border-radius: 12px;
+      border-left: 4px solid #ff9800;
+      margin-top: 16px;
+    }
+
+    .no-resoluciones-padre .warning-icon {
+      color: #ff9800;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .no-resoluciones-padre .info-icon {
+      color: #2196f3;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .warning-content {
+      flex: 1;
+    }
+
+    .warning-content h4 {
+      margin: 0 0 8px 0;
+      color: #e65100;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .warning-content p {
+      margin: 0 0 16px 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .padre-required-error {
+      color: #d32f2f;
+      font-size: 12px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background-color: #ffebee;
+      border-radius: 4px;
+      border-left: 3px solid #d32f2f;
+    }
+
+    /* Estilos para expediente manual */
+    .input-manual-expediente {
+      margin-top: 16px;
+      padding: 20px;
+      background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+      border-radius: 12px;
+      border: 2px dashed #28a745;
+    }
+
+    .expediente-manual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .no-expedientes {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px;
+      background-color: #e3f2fd;
+      border-radius: 12px;
+      border-left: 4px solid #2196f3;
+      margin-top: 16px;
+    }
+
+    .no-expedientes .info-icon {
+      color: #2196f3;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .info-content {
+      flex: 1;
+    }
+
+    .info-content h4 {
+      margin: 0 0 8px 0;
+      color: #1565c0;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .info-content p {
+      margin: 0 0 16px 0;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
   `]
 })
 export class CrearResolucionModalComponent implements OnDestroy {
@@ -678,8 +994,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
   private expedienteService = inject(ExpedienteService);
+  private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private dialogRef = inject(MatDialogRef<CrearResolucionModalComponent>);
+  private dialog = inject(MatDialog);
   private data = inject(MAT_DIALOG_DATA);
 
   // Subject para manejo de cleanup
@@ -692,15 +1010,21 @@ export class CrearResolucionModalComponent implements OnDestroy {
   expedientes = signal<Expediente[]>([]);
   expedientesFiltrados = signal<Expediente[]>([]);
   expedienteSeleccionado = signal<Expediente | null>(null);
+  mostrarInputManual = signal(false);
+  mostrarInputExpedienteManual = signal(false);
 
   // Detectar si se está abriendo desde detalles de empresa
   empresaSeleccionada = computed(() => {
-    return this.data?.empresa || null;
+    const empresa = this.data?.empresa || null;
+    console.log('🔍 empresaSeleccionada computed:', { data: this.data, empresa });
+    return empresa;
   });
 
   // Determinar si mostrar selector de empresa o información
   mostrarSelectorEmpresa = computed(() => {
-    return !this.empresaSeleccionada();
+    const mostrar = !this.empresaSeleccionada();
+    console.log('🔍 mostrarSelectorEmpresa computed:', { empresaSeleccionada: this.empresaSeleccionada(), mostrar });
+    return mostrar;
   });
 
   // Determinar si mostrar selector de resolución padre
@@ -708,13 +1032,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
     const expediente = this.expedienteSeleccionado();
     if (!expediente) return false;
 
-    // Mostrar para RENOVACION (siempre requiere padre)
+    // Mostrar para todos los tipos excepto AUTORIZACION_NUEVA/PRIMIGENIA
+    // Pero todos son OPCIONALES (no requeridos)
     if (expediente.tipoTramite === 'RENOVACION') return true;
+    if (expediente.tipoTramite === 'INCREMENTO') return true;
+    if (expediente.tipoTramite === 'SUSTITUCION') return true;
+    if (expediente.tipoTramite === 'OTROS') return true;
 
-    // Mostrar para tipos HIJO (INCREMENTO, SUSTITUCION, OTROS)
-    if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') return true;
-
-    // No mostrar para PRIMIGENIA
+    // No mostrar para PRIMIGENIA/AUTORIZACION_NUEVA
     return false;
   });
 
@@ -794,6 +1119,32 @@ export class CrearResolucionModalComponent implements OnDestroy {
       return 'PADRE';
     }
     return 'HIJO';
+  });
+
+  // Computed para validar si la resolución padre es requerida
+  esResolucionPadreRequerida = computed(() => {
+    const expediente = this.expedienteSeleccionado();
+    // NINGÚN tipo requiere resolución padre obligatoria
+    // En el futuro INCREMENTO y SUSTITUCIÓN serán de aprobación automática
+    // RENOVACIÓN es opcional (referencia histórica)
+    // Solo OTROS podría requerirla en casos especiales
+    return expediente?.tipoTramite === 'OTROS';
+  });
+
+  // Computed para validar si tiene una resolución padre válida
+  tieneResolucionPadreValida = computed(() => {
+    const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
+    const numeroManual = this.resolucionForm.get('numeroResolucionPadreManual')?.value;
+    const esValido = this.validarFormatoNumeroResolucion(numeroManual);
+    
+    console.log('🔍 Validación resolución padre:', {
+      resolucionPadreId,
+      numeroManual,
+      esValido,
+      resultado: !!(resolucionPadreId || (numeroManual && esValido))
+    });
+    
+    return !!(resolucionPadreId || (numeroManual && esValido));
   });
 
   /**
@@ -878,9 +1229,13 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
     this.resolucionForm = this.fb.group({
       empresaId: [this.data?.empresa?.id || '', [Validators.required]],
-      expedienteId: ['', [Validators.required]], // Campo para expediente
+      expedienteId: [''], // Campo para expediente (no requerido si se usa manual)
+      numeroExpedienteManual: [''], // Campo para número de expediente manual
+      tipoTramiteManual: ['AUTORIZACION_NUEVA'], // Tipo de trámite manual
+      descripcionExpedienteManual: [''], // Descripción del expediente manual
       numeroBase: ['', [Validators.required, Validators.pattern(/^\d{1,4}$/)]],
       resolucionPadreId: [this.data?.resolucionPadreId || null], // Campo para resolución padre
+      numeroResolucionPadreManual: ['', [Validators.pattern(/^R-\d{4}-\d{4}$/)]], // Campo para número manual (formato R-0001-2022)
       fechaEmision: [this.obtenerFechaLima(), [Validators.required]],
       fechaVigenciaInicio: [null],
       aniosVigencia: [5, [Validators.min(1), Validators.max(20)]],
@@ -1074,9 +1429,27 @@ export class CrearResolucionModalComponent implements OnDestroy {
   }
 
   crearExpedienteManual(): void {
-    // TODO: Implementar modal para crear expediente manualmente
-    this.snackBar.open('FUNCIONALIDAD DE CREACIÓN MANUAL DE EXPEDIENTES PRÓXIMAMENTE', 'CERRAR', {
-      duration: 3000
+    // Abrir modal para crear expediente
+    const dialogRef = this.dialog.open(CrearExpedienteModalComponent, {
+      width: '600px',
+      data: { 
+        empresaId: this.data?.empresa?.id || this.resolucionForm.get('empresaId')?.value,
+        empresa: this.empresaSeleccionada()
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Recargar expedientes y seleccionar el nuevo
+        this.cargarExpedientesEmpresa(result.empresaId);
+        this.resolucionForm.get('expedienteId')?.setValue(result.id);
+        this.expedienteSeleccionado.set(result);
+        
+        this.snackBar.open('Expediente creado exitosamente', 'Cerrar', { 
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+      }
     });
   }
 
@@ -1594,25 +1967,47 @@ export class CrearResolucionModalComponent implements OnDestroy {
       return;
     }
 
-    // Validar que se seleccione un expediente
+    // Validar que se seleccione un expediente O se ingrese manualmente
     let expedienteId = this.resolucionForm.get('expedienteId')?.value;
+    let expediente = this.expedienteSeleccionado();
 
-    // Si no hay expediente seleccionado, crear uno automáticamente
-    if (!expedienteId) {
-      expedienteId = await this.crearExpedienteAutomatico();
-      if (!expedienteId) {
-        this.snackBar.open('ERROR AL CREAR EXPEDIENTE AUTOMÁTICO', 'CERRAR', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
-        return;
+    // Si no hay expediente seleccionado, verificar si hay uno manual
+    if (!expedienteId && !expediente) {
+      const numeroExpedienteManual = this.resolucionForm.get('numeroExpedienteManual')?.value;
+      const tipoTramiteManual = this.resolucionForm.get('tipoTramiteManual')?.value;
+      
+      if (numeroExpedienteManual && tipoTramiteManual) {
+        // Crear un expediente temporal para la lógica
+        expediente = {
+          id: `MANUAL:${numeroExpedienteManual}`,
+          nroExpediente: numeroExpedienteManual,
+          tipoTramite: tipoTramiteManual,
+          descripcion: this.resolucionForm.get('descripcionExpedienteManual')?.value || 'Expediente ingresado manualmente',
+          empresaId: this.data?.empresa?.id || this.resolucionForm.get('empresaId')?.value,
+          fechaEmision: new Date(),
+          estado: 'MANUAL'
+        } as any;
+        
+        expedienteId = expediente!.id; // Aserción: sabemos que expediente no es null aquí
+      } else {
+        // Si no hay expediente, crear uno automáticamente
+        expedienteId = await this.crearExpedienteAutomatico();
+        if (!expedienteId) {
+          this.snackBar.open('ERROR AL CREAR EXPEDIENTE AUTOMÁTICO', 'CERRAR', {
+            duration: 3000,
+            panelClass: ['error-snackbar']
+          });
+          return;
+        }
+        
+        // Después de crear automáticamente, obtener el expediente
+        expediente = this.expedienteSeleccionado();
       }
     }
 
-    // Validar que se seleccione resolución padre para renovación
-    const expediente = this.expedienteSeleccionado();
+    // Asegurar que tenemos un expediente válido
     if (!expediente) {
-      this.snackBar.open('DEBE SELECCIONAR UN EXPEDIENTE', 'CERRAR', {
+      this.snackBar.open('DEBE SELECCIONAR O INGRESAR UN EXPEDIENTE', 'CERRAR', {
         duration: 3000,
         panelClass: ['error-snackbar']
       });
@@ -1620,12 +2015,22 @@ export class CrearResolucionModalComponent implements OnDestroy {
     }
 
     const tipoTramite = expediente.tipoTramite;
-    if (tipoTramite === 'RENOVACION' && !this.resolucionForm.get('resolucionPadreId')?.value) {
-      this.snackBar.open('DEBE SELECCIONAR LA RESOLUCIÓN PADRE A RENOVAR', 'CERRAR', {
-        duration: 3000,
-        panelClass: ['error-snackbar']
+    
+    // Validar resolución padre para renovación y otros tipos que la requieren
+    if (this.esResolucionPadreRequerida()) {
+      const tieneResolucionPadre = this.tieneResolucionPadreValida();
+      console.log('🔍 Validación resolución padre requerida:', { 
+        esRequerida: this.esResolucionPadreRequerida(), 
+        tieneValida: tieneResolucionPadre 
       });
-      return;
+      
+      if (!tieneResolucionPadre) {
+        this.snackBar.open('DEBE SELECCIONAR O INGRESAR LA RESOLUCIÓN PADRE', 'CERRAR', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+        return;
+      }
     }
 
     if (this.resolucionForm.invalid) {
@@ -1678,7 +2083,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     }
 
     const resolucionData: ResolucionCreate = {
-      numero: numeroBase,
+      nroResolucion: numeroCompleto, // Usar el número completo formateado
       empresaId: this.data.empresaId || this.resolucionForm.get('empresaId')?.value,
       expedienteId: expedienteId, // Usar el expediente seleccionado
       fechaEmision: this.resolucionForm.get('fechaEmision')?.value,
@@ -1686,9 +2091,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
       fechaVigenciaFin: fechaVigenciaFin,
       tipoResolucion: this.tipoResolucionCalculado() as TipoResolucion,
       tipoTramite: tipoTramite as TipoTramite,
-      resolucionPadreId: this.data?.esResolucionHija ? this.data.resolucionPadreId : (this.resolucionForm.get('resolucionPadreId')?.value || undefined),
+      resolucionPadreId: this.obtenerResolucionPadreId(),
       descripcion: this.resolucionForm.get('descripcion')?.value || (this.data?.esResolucionHija ? 'Resolución hija de ' + tipoTramite : ''),
       observaciones: this.resolucionForm.get('observaciones')?.value,
+      usuarioEmisionId: this.authService.getCurrentUserId() || 'sistema', // Obtener del usuario actual logueado
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []
     };
@@ -1728,6 +2134,256 @@ export class CrearResolucionModalComponent implements OnDestroy {
       const control = this.resolucionForm.get(key);
       control?.markAsTouched();
     });
+  }
+
+  /**
+   * Determinar si se puede crear la resolución
+   */
+  puedeCrearResolucion(): boolean {
+    // Validaciones básicas del formulario
+    const empresaId = this.resolucionForm.get('empresaId')?.value;
+    const numeroBase = this.resolucionForm.get('numeroBase')?.value;
+    const fechaEmision = this.resolucionForm.get('fechaEmision')?.value;
+    
+    // Validar que tenga expediente (del dropdown O manual)
+    const expedienteId = this.resolucionForm.get('expedienteId')?.value;
+    const numeroExpedienteManual = this.resolucionForm.get('numeroExpedienteManual')?.value;
+    const tipoTramiteManual = this.resolucionForm.get('tipoTramiteManual')?.value;
+    
+    const tieneExpediente = !!(expedienteId || (numeroExpedienteManual && tipoTramiteManual));
+    
+    // Campos básicos requeridos
+    if (!empresaId || !tieneExpediente || !numeroBase || !fechaEmision) {
+      console.log('❌ Campos básicos faltantes:', { 
+        empresaId, 
+        tieneExpediente, 
+        expedienteId, 
+        numeroExpedienteManual, 
+        numeroBase, 
+        fechaEmision 
+      });
+      return false;
+    }
+    
+    // Validar resolución padre si es requerida
+    if (this.esResolucionPadreRequerida()) {
+      const tieneResolucionPadreValida = this.tieneResolucionPadreValida();
+      console.log('🔍 Resolución padre requerida:', { 
+        esRequerida: this.esResolucionPadreRequerida(), 
+        tieneValida: tieneResolucionPadreValida 
+      });
+      
+      if (!tieneResolucionPadreValida) {
+        return false;
+      }
+    }
+    
+    console.log('✅ Puede crear resolución');
+    return true;
+  }
+
+  /**
+   * Obtener el ID de la resolución padre (del dropdown o manual)
+   */
+  obtenerResolucionPadreId(): string | undefined {
+    // Si es resolución hija, usar el ID del data
+    if (this.data?.esResolucionHija) {
+      return this.data.resolucionPadreId;
+    }
+    
+    // Si hay una resolución seleccionada del dropdown, usarla
+    const resolucionPadreId = this.resolucionForm.get('resolucionPadreId')?.value;
+    if (resolucionPadreId) {
+      return resolucionPadreId;
+    }
+    
+    // Si hay un número manual válido, usar 'MANUAL:' + número
+    const numeroManual = this.resolucionForm.get('numeroResolucionPadreManual')?.value;
+    if (numeroManual && this.validarFormatoNumeroResolucion(numeroManual)) {
+      return `MANUAL:${numeroManual}`;
+    }
+    
+    return undefined;
+  }
+
+  /**
+   * Alternar la visibilidad del input manual de expediente
+   */
+  toggleInputExpedienteManual(): void {
+    this.mostrarInputExpedienteManual.set(!this.mostrarInputExpedienteManual());
+    
+    // Limpiar campos cuando se cambia de modo
+    if (this.mostrarInputExpedienteManual()) {
+      this.resolucionForm.get('expedienteId')?.setValue('');
+      this.expedienteSeleccionado.set(null);
+    } else {
+      this.resolucionForm.get('numeroExpedienteManual')?.setValue('');
+      this.resolucionForm.get('tipoTramiteManual')?.setValue('AUTORIZACION_NUEVA');
+      this.resolucionForm.get('descripcionExpedienteManual')?.setValue('');
+    }
+  }
+
+  /**
+   * Manejar cambios en el número de expediente manual
+   */
+  onNumeroExpedienteManualChange(): void {
+    const numero = this.resolucionForm.get('numeroExpedienteManual')?.value;
+    
+    if (!numero) return;
+    
+    // Limpiar y formatear
+    let limpio = numero.toUpperCase().replace(/[^E0-9]/g, '');
+    
+    // Asegurar que empiece con E
+    if (!limpio.startsWith('E')) {
+      limpio = 'E' + limpio;
+    }
+    
+    // Extraer solo los números después de E
+    const numeros = limpio.substring(1);
+    
+    // Formatear según la longitud
+    let formateado = 'E';
+    if (numeros.length > 0) {
+      // Primeros 4 dígitos (número de expediente)
+      const numeroExpediente = numeros.substring(0, 4);
+      formateado += '-' + numeroExpediente;
+      
+      // Si hay más de 4 dígitos, agregar el guión y el año
+      if (numeros.length > 4) {
+        const anio = numeros.substring(4, 8);
+        if (anio.length > 0) {
+          formateado += '-' + anio;
+        }
+      }
+    }
+    
+    // Actualizar solo si cambió
+    if (formateado !== numero) {
+      this.resolucionForm.get('numeroExpedienteManual')?.setValue(formateado);
+    }
+    
+    // Limpiar dropdown si se está escribiendo
+    if (formateado.length > 2) {
+      this.resolucionForm.get('expedienteId')?.setValue('');
+      this.expedienteSeleccionado.set(null);
+    }
+  }
+
+  /**
+   * Alternar la visibilidad del input manual
+   */
+  toggleInputManual(): void {
+    this.mostrarInputManual.set(!this.mostrarInputManual());
+    
+    // Limpiar campos cuando se cambia de modo
+    if (this.mostrarInputManual()) {
+      this.resolucionForm.get('resolucionPadreId')?.setValue('');
+    } else {
+      this.resolucionForm.get('numeroResolucionPadreManual')?.setValue('');
+    }
+  }
+
+  /**
+   * Validar formato del número de resolución (R-0001-2022)
+   */
+  validarFormatoNumeroResolucion(numero: string): boolean {
+    if (!numero) {
+      console.log('🔍 Validando formato: número vacío');
+      return false;
+    }
+    
+    const patron = /^R-\d{4}-\d{4}$/; // Formato estricto R-0001-2022
+    const resultado = patron.test(numero);
+    
+    console.log('🔍 Validando formato:', { 
+      numero, 
+      patron: patron.source, 
+      resultado,
+      longitud: numero.length,
+      partes: numero.split('-')
+    });
+    
+    return resultado;
+  }
+
+  /**
+   * Manejar cambios en el número de resolución padre manual
+   */
+  onNumeroResolucionPadreManualChange(): void {
+    const numero = this.resolucionForm.get('numeroResolucionPadreManual')?.value;
+    
+    if (!numero) return;
+    
+    // Limpiar y formatear
+    let limpio = numero.toUpperCase().replace(/[^R0-9]/g, '');
+    
+    // Asegurar que empiece con R
+    if (!limpio.startsWith('R')) {
+      limpio = 'R' + limpio;
+    }
+    
+    // Extraer solo los números después de R
+    const numeros = limpio.substring(1);
+    
+    // Formatear según la longitud
+    let formateado = 'R';
+    if (numeros.length > 0) {
+      // Primeros 4 dígitos (NO completar con ceros mientras se escribe)
+      const numeroResolucion = numeros.substring(0, 4);
+      formateado += '-' + numeroResolucion;
+      
+      // Si hay más de 4 dígitos, agregar el guión y el año (exactamente 4 dígitos)
+      if (numeros.length > 4) {
+        const anio = numeros.substring(4, 8); // Permitir hasta 4 dígitos para el año
+        if (anio.length > 0) {
+          formateado += '-' + anio;
+        }
+      }
+    }
+    
+    // NO limitar aquí, dejar que se escriba completo
+    
+    // Actualizar solo si cambió
+    if (formateado !== numero) {
+      this.resolucionForm.get('numeroResolucionPadreManual')?.setValue(formateado);
+      // Forzar validación
+      this.resolucionForm.get('numeroResolucionPadreManual')?.updateValueAndValidity();
+    }
+    
+    // Limpiar dropdown si se está escribiendo
+    if (formateado.length > 2) {
+      this.resolucionForm.get('resolucionPadreId')?.setValue('');
+      // Quitar validación requerida del dropdown si se está usando manual
+      this.resolucionForm.get('resolucionPadreId')?.clearValidators();
+      this.resolucionForm.get('resolucionPadreId')?.updateValueAndValidity();
+    }
+  }
+
+  /**
+   * Completar con ceros cuando el usuario termina de escribir
+   */
+  onNumeroResolucionPadreManualBlur(): void {
+    const numero = this.resolucionForm.get('numeroResolucionPadreManual')?.value;
+    
+    if (!numero) return;
+    
+    // Si tiene el formato R-XXX o R-XXX- (menos de 4 dígitos), completar con ceros
+    const partes = numero.split('-');
+    if (partes.length >= 2) {
+      const numeroResolucion = partes[1];
+      if (numeroResolucion && numeroResolucion.length < 4) {
+        const numeroCompleto = numeroResolucion.padStart(4, '0');
+        let formateado = `R-${numeroCompleto}`;
+        
+        // Si hay año, agregarlo
+        if (partes.length === 3 && partes[2]) {
+          formateado += `-${partes[2]}`;
+        }
+        
+        this.resolucionForm.get('numeroResolucionPadreManual')?.setValue(formateado);
+      }
+    }
   }
 
   ngOnDestroy(): void {

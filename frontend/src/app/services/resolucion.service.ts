@@ -138,10 +138,9 @@ export class ResolucionService {
     }
 
     // Preparar datos para el backend
-    // Formato: R-0123-2025 (número con 4 dígitos con ceros a la izquierda)
-    const numeroFormateado = resolucion.numero.toString().padStart(4, '0');
+    // El número ya viene completo desde el frontend (R-0123-2025)
     const resolucionBackend: any = {
-      nroResolucion: `R-${numeroFormateado}-${new Date(resolucion.fechaEmision).getFullYear()}`,
+      nroResolucion: resolucion.nroResolucion,
       empresaId: resolucion.empresaId,
       expedienteId: resolucion.expedienteId,
       fechaEmision: resolucion.fechaEmision,

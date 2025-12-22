@@ -13,7 +13,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ExpedienteService } from '../../services/expediente.service';
 import { ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
@@ -70,18 +70,50 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
             </mat-card-header>
             <mat-card-content>
               
-              <!-- 1. Empresa (Ahora al inicio) -->
-              <div class="form-row">
-                <app-empresa-selector
-                  label="Empresa *"
-                  placeholder="Buscar empresa por RUC o razón social"
-                  hint="Selecciona la empresa solicitante"
-                  [empresaId]="empresaId()"
-                  [required]="true"
-                  (empresaIdChange)="onEmpresaIdChange($event)"
-                  (empresaSeleccionada)="onEmpresaSeleccionada($event)">
-                </app-empresa-selector>
-              </div>
+              <!-- 1. Empresa (Mostrar solo si no viene preseleccionada) -->
+              @if (!tieneEmpresaPreseleccionada) {
+                <div class="form-row">
+                  <app-empresa-selector
+                    label="Empresa *"
+                    placeholder="Buscar empresa por RUC o razón social"
+                    hint="Selecciona la empresa solicitante"
+                    [empresaId]="empresaId()"
+                    [required]="true"
+                    (empresaIdChange)="onEmpresaIdChange($event)"
+                    (empresaSeleccionada)="onEmpresaSeleccionada($event)">
+                  </app-empresa-selector>
+                </div>
+              } @else {
+                <!-- Mostrar empresa preseleccionada -->
+                <div class="empresa-preseleccionada">
+                  <mat-card class="empresa-info-card">
+                    <mat-card-header>
+                      <mat-card-title>
+                        <mat-icon>business</mat-icon>
+                        EMPRESA SELECCIONADA
+                      </mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content>
+                      <div class="empresa-details">
+                        <div class="empresa-item">
+                          <span class="label">RUC:</span>
+                          <span class="value">{{ empresaPreseleccionada.ruc }}</span>
+                        </div>
+                        <div class="empresa-item">
+                          <span class="label">RAZÓN SOCIAL:</span>
+                          <span class="value">{{ empresaPreseleccionada.razonSocial?.principal | uppercase }}</span>
+                        </div>
+                        <div class="empresa-item">
+                          <span class="label">ESTADO:</span>
+                          <span class="value estado-chip" [class]="'estado-' + empresaPreseleccionada.estado?.toLowerCase()">
+                            {{ empresaPreseleccionada.estado | uppercase }}
+                          </span>
+                        </div>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+              }
 
               <!-- 2. Tipo de Expediente (Segundo orden) -->
               <div class="form-row">
@@ -327,6 +359,75 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
       transform: translateY(-1px);
     }
 
+    /* Estilos para empresa preseleccionada */
+    .empresa-preseleccionada {
+      margin-bottom: 20px;
+    }
+
+    .empresa-info-card {
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-left: 4px solid #28a745;
+    }
+
+    .empresa-details {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .empresa-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .empresa-item:last-child {
+      border-bottom: none;
+    }
+
+    .empresa-item .label {
+      font-weight: 600;
+      color: #495057;
+      font-size: 14px;
+    }
+
+    .empresa-item .value {
+      color: #6c757d;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .estado-chip {
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .estado-habilitada {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .estado-en_tramite {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+
+    .estado-suspendida {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .estado-cancelada {
+      background-color: #e2e3e5;
+      color: #383d41;
+    }
+
     .resolucion-option {
       display: flex;
       flex-direction: column;
@@ -355,17 +456,41 @@ export class CrearExpedienteModalComponent {
   private snackBar = inject(MatSnackBar);
   private dialogRef = inject(MatDialogRef<CrearExpedienteModalComponent>);
   private expedienteService = inject(ExpedienteService);
+  private data = inject(MAT_DIALOG_DATA);
   
   isSubmitting = signal(false);
   empresaSeleccionada = signal<any>(null);
   empresaId = signal<string>(''); // Señal reactiva para el ID de empresa
   expedienteRelacionadoSeleccionado = signal<any>(null);
   resolucionPadreSeleccionada = signal<any>(null);
+  
+  // Propiedades públicas para el template
+  get empresaPreseleccionada() {
+    return this.data?.empresa;
+  }
+  
+  get tieneEmpresaPreseleccionada() {
+    return !!this.data?.empresa;
+  }
   expedientesDisponibles = signal<any[]>([]); // Lista de expedientes disponibles para relacionar
   
   expedienteForm: FormGroup;
 
   constructor() {
+    // Inicializar con datos de la empresa si se pasan
+    const empresaId = this.data?.empresaId || '';
+    const empresa = this.data?.empresa;
+    
+    console.log('🏢 Modal expediente inicializado con:', { empresaId, empresa });
+    
+    // Configurar signals con datos iniciales
+    if (empresaId) {
+      this.empresaId.set(empresaId);
+    }
+    if (empresa) {
+      this.empresaSeleccionada.set(empresa);
+    }
+    
     this.expedienteForm = this.fb.group({
       numero: ['', [Validators.required, Validators.minLength(1)]],
       folio: [1, [Validators.required, Validators.min(1)]],
@@ -375,7 +500,7 @@ export class CrearExpedienteModalComponent {
       descripcion: [''],
       fechaEmision: ['', Validators.required],
       prioridad: ['MEDIA', Validators.required],
-      empresaId: ['', Validators.required], // Ahora es obligatorio
+      empresaId: [empresaId, Validators.required], // Inicializar con empresa preseleccionada
       observaciones: ['']
     });
 

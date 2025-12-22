@@ -21,6 +21,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { ResolucionService } from '../../services/resolucion.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ExpedienteService } from '../../services/expediente.service';
+import { AuthService } from '../../services/auth.service';
 import { Resolucion, ResolucionCreate, TipoTramite, TipoResolucion } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
 import { Expediente } from '../../models/expediente.model';
@@ -703,6 +704,7 @@ export class CrearResolucionModalComponent {
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
   private expedienteService = inject(ExpedienteService);
+  private authService = inject(AuthService);
   private validationService = inject(ResolucionValidationService);
 
   isSubmitting = signal(false);
@@ -1004,8 +1006,14 @@ export class CrearResolucionModalComponent {
     this.isSubmitting.set(true);
 
     const formValue = this.resolucionForm.value;
+    
+    // Generar el número completo de resolución
+    const fechaEmision = new Date(formValue.fechaEmision);
+    const anio = fechaEmision.getFullYear();
+    const numeroCompleto = `R-${formValue.numero.padStart(4, '0')}-${anio}`;
+    
     const resolucionData: ResolucionCreate = {
-      numero: formValue.numero,
+      nroResolucion: numeroCompleto,
       expedienteId: this.expedienteSeleccionado()!.id,
       empresaId: formValue.empresaId,
       fechaEmision: formValue.fechaEmision,
@@ -1016,6 +1024,7 @@ export class CrearResolucionModalComponent {
       descripcion: formValue.descripcion,
       observaciones: formValue.observaciones || undefined,
       resolucionPadreId: formValue.resolucionPadreId || undefined,
+      usuarioEmisionId: this.authService.getCurrentUserId() || 'sistema',
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []
     };

@@ -80,7 +80,7 @@ export interface AuditoriaResolucion {
 }
 
 export interface ResolucionCreate {
-  numero: string; // Solo el número (1234), el sistema generará R-1234-2025
+  nroResolucion: string; // Número completo (R-1234-2025)
   expedienteId: string; // ID del expediente que determina el tipo de trámite
   fechaEmision: Date;
   fechaVigenciaInicio?: Date;
@@ -91,6 +91,7 @@ export interface ResolucionCreate {
   descripcion: string;
   observaciones?: string;
   resolucionPadreId?: string;
+  usuarioEmisionId: string; // Campo requerido por el backend
   vehiculosHabilitadosIds?: string[];
   rutasAutorizadasIds?: string[];
 

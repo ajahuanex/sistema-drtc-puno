@@ -19,7 +19,8 @@ import { AuthService } from '../../services/auth.service';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { ResolucionService } from '../../services/resolucion.service';
 import { Resolucion } from '../../models/resolucion.model';
-import { CrearResolucionModalComponent } from '../resoluciones/crear-resolucion-modal.component';
+import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
+import { CrearRutaModalComponent } from '../rutas/crear-ruta-modal.component';
 import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
 import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.component';
 
@@ -1202,15 +1203,23 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
 
     /* Estilos para resoluciones jerárquicas */
     .resoluciones-hierarchical {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: 20px;
+      margin-top: 16px;
     }
 
     .resolucion-padre-card {
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
       border-left: 4px solid #1976d2;
+      transition: all 0.3s ease;
+      height: fit-content;
+    }
+
+    .resolucion-padre-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
 
     .resolucion-icon {
@@ -1247,22 +1256,27 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
 
     .resolucion-stats {
       display: flex;
-      gap: 16px;
-      margin-top: 12px;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
     }
 
     .resolucion-stats .stat-item {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 14px;
+      gap: 4px;
+      font-size: 12px;
       color: #6c757d;
+      background-color: #f8f9fa;
+      padding: 4px 8px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
     }
 
     .resolucion-stats .stat-item mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
       color: #1976d2;
     }
 
@@ -1293,8 +1307,8 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
 
     .hijas-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
     }
 
     .resolucion-hija-card {
@@ -1304,20 +1318,39 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
       background-color: #fafafa;
     }
 
+    .resolucion-hija-card .mat-mdc-card-content {
+      padding: 12px !important;
+    }
+
+    .resolucion-hija-card .mat-mdc-card-header {
+      padding: 12px 12px 0 12px !important;
+    }
+
+    .resolucion-hija-card .mat-mdc-card-actions {
+      padding: 8px 12px 12px 12px !important;
+    }
+
     .resolucion-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       justify-content: flex-start;
     }
 
     .resolucion-actions button {
       min-width: auto;
-      padding: 0 16px;
-      height: 36px;
-      font-size: 12px;
+      padding: 0 12px;
+      height: 32px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
+    }
+
+    .resolucion-actions button mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
     }
 
     .loading-resoluciones {
@@ -1344,13 +1377,18 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
 
     .fechas {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .fecha {
-      font-size: 14px;
+      font-size: 12px;
       color: #6c757d;
+      background-color: #f8f9fa;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
     }
 
     .fecha strong {
@@ -1615,8 +1653,34 @@ export class EmpresaDetailComponent implements OnInit {
   // Métodos para Rutas
   agregarRutas(): void {
     if (this.empresa) {
-      // Navegar a la vista de gestión de rutas
-      this.router.navigate(['/empresas', this.empresa.id, 'rutas']);
+      // Verificar si la empresa tiene resoluciones para crear rutas
+      if (!this.empresa.resolucionesPrimigeniasIds || this.empresa.resolucionesPrimigeniasIds.length === 0) {
+        this.snackBar.open('Esta empresa debe tener al menos una resolución para crear rutas', 'Cerrar', { 
+          duration: 4000,
+          panelClass: ['warning-snackbar']
+        });
+        return;
+      }
+
+      // Abrir modal de creación de ruta
+      const dialogRef = this.dialog.open(CrearRutaModalComponent, {
+        width: '800px',
+        data: { 
+          empresa: this.empresa,
+          empresaId: this.empresa.id
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Recargar los datos de la empresa para mostrar la nueva ruta
+          this.loadEmpresa(this.empresa!.id);
+          this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { 
+            duration: 3000,
+            panelClass: ['success-snackbar']
+          });
+        }
+      });
     }
   }
 

@@ -1713,10 +1713,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     const formValue = this.resolucionForm.value;
 
     // Preparar datos para crear la resolución
+    const fechaEmision = new Date(formValue.fechaEmision);
+    const anio = fechaEmision.getFullYear();
+    const numeroCompleto = `R-${formValue.numeroBase.padStart(4, '0')}-${anio}`;
+    
     const resolucionData: ResolucionCreate = {
       empresaId: formValue.empresaId,
       expedienteId: formValue.expedienteId,
-      numero: formValue.numeroBase,
+      nroResolucion: numeroCompleto,
       fechaEmision: formValue.fechaEmision,
       resolucionPadreId: formValue.resolucionPadreId,
       fechaVigenciaInicio: formValue.fechaVigenciaInicio,
@@ -1725,6 +1729,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       tipoTramite: this.expedienteSeleccionado()?.tipoTramite || 'AUTORIZACION_NUEVA',
       descripcion: formValue.descripcion,
       observaciones: formValue.observaciones,
+      usuarioEmisionId: 'sistema', // TODO: Obtener del usuario actual
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []
     };
