@@ -1365,36 +1365,102 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   }
 
   private cargarResolucionesPadre(): void {
+    console.log('🔄 CARGANDO RESOLUCIONES PADRE...');
+    
     const empresaId = this.empresaSeleccionada()?.id || this.resolucionForm.get('empresaId')?.value;
-    if (!empresaId) return;
+    if (!empresaId) {
+      console.log('❌ No hay empresa seleccionada');
+      return;
+    }
 
     const expediente = this.expedienteSeleccionado();
-    if (!expediente) return;
+    if (!expediente) {
+      console.log('❌ No hay expediente seleccionado');
+      return;
+    }
+
+    console.log('📊 DATOS PARA FILTRADO:', {
+      empresaId: empresaId,
+      expedienteTipo: expediente.tipoTramite,
+      expedienteId: expediente.id
+    });
 
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
+        console.log('✅ RESOLUCIONES OBTENIDAS DEL BACKEND:', {
+          total: resoluciones.length,
+          resoluciones: resoluciones.map(r => ({
+            id: r.id,
+            numero: r.nroResolucion,
+            empresaId: r.empresaId,
+            tipoResolucion: r.tipoResolucion,
+            estado: r.estado,
+            activo: r.estaActivo
+          }))
+        });
+
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
+        console.log('🏢 RESOLUCIONES DE LA EMPRESA:', {
+          empresaId: empresaId,
+          total: resolucionesEmpresa.length,
+          resoluciones: resolucionesEmpresa.map(r => r.nroResolucion)
+        });
+
         let resolucionesPadre: Resolucion[] = [];
 
         if (expediente.tipoTramite === 'RENOVACION') {
-          resolucionesPadre = resolucionesEmpresa.filter(r =>
-            r.tipoResolucion === 'PADRE' &&
-            r.estaActivo &&
-            r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin &&
-            new Date(r.fechaVigenciaFin) > new Date()
-          );
+          console.log('🔄 FILTRADO PARA RENOVACIÓN...');
+          resolucionesPadre = resolucionesEmpresa.filter(r => {
+            const esPadre = r.tipoResolucion === 'PADRE';
+            const estaActivo = r.estaActivo;
+            const esVigente = r.estado === 'VIGENTE';
+            const tieneFechaFin = r.fechaVigenciaFin;
+            const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
+            
+            console.log(`   📋 ${r.nroResolucion}:`, {
+              esPadre, estaActivo, esVigente, tieneFechaFin, noVencido,
+              cumpleCondiciones: esPadre && estaActivo && esVigente && tieneFechaFin && noVencido
+            });
+            
+            return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
+          });
         } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
-          resolucionesPadre = resolucionesEmpresa.filter(r =>
-            r.tipoResolucion === 'PADRE' &&
-            r.estaActivo &&
-            r.estado === 'VIGENTE' &&
-            r.fechaVigenciaFin &&
-            new Date(r.fechaVigenciaFin) > new Date()
-          );
+          console.log('🔄 FILTRADO PARA INCREMENTO/SUSTITUCION/OTROS...');
+          resolucionesPadre = resolucionesEmpresa.filter(r => {
+            const esPadre = r.tipoResolucion === 'PADRE';
+            const estaActivo = r.estaActivo;
+            const esVigente = r.estado === 'VIGENTE';
+            const tieneFechaFin = r.fechaVigenciaFin;
+            const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
+            
+            console.log(`   📋 ${r.nroResolucion}:`, {
+              esPadre, estaActivo, esVigente, tieneFechaFin, noVencido,
+              cumpleCondiciones: esPadre && estaActivo && esVigente && tieneFechaFin && noVencido
+            });
+            
+            return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
+          });
         }
 
+        console.log('✅ RESOLUCIONES PADRE FILTRADAS:', {
+          total: resolucionesPadre.length,
+          resoluciones: resolucionesPadre.map(r => ({
+            numero: r.nroResolucion,
+            fechaFin: r.fechaVigenciaFin
+          }))
+        });
+
         this.resolucionesPadre.set(resolucionesPadre);
+        
+        if (resolucionesPadre.length > 0) {
+          console.log('🎉 DROPDOWN DEBERÍA MOSTRAR', resolucionesPadre.length, 'OPCIONES');
+        } else {
+          console.log('⚠️ DROPDOWN ESTARÁ VACÍO - No hay resoluciones padre válidas');
+        }
+      },
+      error: (error) => {
+        console.error('❌ ERROR CARGANDO RESOLUCIONES:', error);
+        this.resolucionesPadre.set([]);
       }
     });
   }
