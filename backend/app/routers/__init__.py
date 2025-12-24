@@ -9,6 +9,7 @@ from .tucs_router import router as tucs_router
 from .infracciones_router import router as infracciones_router
 from .oficinas_router import router as oficinas_router
 from .notificaciones_router import router as notificaciones_router
+from .localidades_router import router as localidades_router
 from .additional_router import router as additional_router
 # from .mock_router import router as mock_router  # COMENTADO: mock_router eliminado
 

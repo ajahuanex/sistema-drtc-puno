@@ -326,4 +326,304 @@
       background: #a8a8a8;
     }
   }
-} 
+}
+
+// Estilos específicos para el tab de localidades
+.tab-header {
+  .header-info {
+    h2 {
+      margin: 0 0 4px 0;
+      color: #1976d2;
+      font-size: 1.8rem;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+
+.filtros-section {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+
+  .filtro-field {
+    min-width: 250px;
+    flex: 1;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #666;
+
+  mat-spinner {
+    margin-bottom: 20px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.localidades-table {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+
+  .mat-header-cell {
+    background-color: #1976d2;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 16px;
+  }
+
+  .mat-cell {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+  }
+
+  .mat-row {
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #f8f9fa;
+    }
+
+    &:nth-child(even) {
+      background-color: #fafafa;
+    }
+  }
+
+  .codigo-badge {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid #bbdefb;
+  }
+
+  .localidad-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .nombre {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.95rem;
+    }
+
+    .descripcion {
+      color: #666;
+      font-size: 0.8rem;
+      font-style: italic;
+    }
+  }
+
+  .tipo-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &.tipo-ciudad {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    &.tipo-pueblo {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    &.tipo-distrito {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    &.tipo-provincia {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    &.tipo-departamento {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    &.tipo-centro_poblado {
+      background-color: #f1f8e9;
+      color: #558b2f;
+    }
+  }
+
+  .estado-badge {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+
+    &.activo {
+      background-color: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    &:not(.activo) {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+  }
+}
+
+// Estilos para el paginador
+mat-paginator {
+  background-color: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+  border-radius: 0 0 12px 12px;
+}
+
+// Responsive para localidades
+@media (max-width: 1024px) {
+  .filtros-section {
+    flex-direction: column;
+    gap: 16px;
+
+    .filtro-field {
+      min-width: unset;
+    }
+  }
+
+  .localidades-table {
+    .mat-cell, .mat-header-cell {
+      padding: 12px 8px;
+      font-size: 0.85rem;
+    }
+
+    .codigo-badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+    }
+
+    .tipo-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .tab-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+
+    .header-actions {
+      justify-content: center;
+    }
+  }
+
+  .filtros-section {
+    padding: 16px;
+  }
+
+  // Ocultar algunas columnas en móvil
+  .localidades-table {
+    .mat-column-departamento,
+    .mat-column-provincia {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .localidades-table {
+    .mat-column-tipo {
+      display: none;
+    }
+
+    .mat-cell, .mat-header-cell {
+      padding: 8px 4px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .tab-header {
+    .header-actions {
+      flex-direction: column;
+      gap: 8px;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Animaciones para las filas de la tabla
+.mat-row {
+  animation: fadeInRow 0.3s ease-out;
+}
+
+@keyframes fadeInRow {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Estilos para estados de carga
+.mat-spinner {
+  margin: 0 auto;
+}
+
+// Mejoras visuales para botones de acción
+.mat-icon-button {
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &.mat-primary:hover {
+    background-color: rgba(25, 118, 210, 0.1);
+  }
+
+  &.mat-warn:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+  }
+}

@@ -203,7 +203,7 @@ export class RutaService {
   // Método para calcular distancia y tiempo estimado automáticamente
   calcularDistanciaYTiempo(origenId: string, destinoId: string): Observable<{distancia: number, tiempoEstimado: number}> {
     return this.localidadService.calcularDistancia(origenId, destinoId).pipe(
-      map(distancia => {
+      map((distancia: number) => {
         // Calcular tiempo estimado basado en distancia (promedio 60 km/h)
         const tiempoEstimado = Math.ceil(distancia / 60);
         return { distancia, tiempoEstimado };

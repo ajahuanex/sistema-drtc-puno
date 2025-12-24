@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import logging
 import time
 from app.config.settings import settings
-from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router
+from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router, localidades_router
 from app.routers.data_manager_router import router as data_manager_router
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
@@ -87,6 +87,7 @@ app.include_router(tucs_router, prefix=settings.API_V1_STR)
 app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
+app.include_router(localidades_router, prefix=settings.API_V1_STR)
 app.include_router(additional_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)
 

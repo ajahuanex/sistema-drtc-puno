@@ -85,8 +85,8 @@ export type TipoRuta = 'URBANA' | 'INTERURBANA' | 'INTERPROVINCIAL' | 'INTERREGI
 
 export type TipoServicio = 'PASAJEROS' | 'CARGA' | 'MIXTO';
 
-// Interfaz para localidades (origen y destino)
-export interface Localidad {
+// Interfaz para localidades (origen y destino) - DEPRECATED: usar models/localidad.model.ts
+export interface LocalidadRuta {
   id: string;
   nombre: string;
   codigo: string;
