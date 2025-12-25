@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -15,12 +16,15 @@ import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { inject } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
 
 import { Ruta, TipoRuta, RutaCreate } from '../../models/ruta.model';
+import { Localidad } from '../../models/localidad.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { RutaService } from '../../services/ruta.service';
+import { LocalidadService } from '../../services/localidad.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
 
@@ -35,6 +39,7 @@ import { ResolucionService } from '../../services/resolucion.service';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     MatTooltipModule,
     ReactiveFormsModule,
     MatProgressSpinnerModule,
@@ -307,14 +312,21 @@ import { ResolucionService } from '../../services/resolucion.service';
                 <div class="form-row">
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Origen *</mat-label>
-                    <mat-select formControlName="origen" required>
-                      <mat-option value="Puno">Puno</mat-option>
-                      <mat-option value="Juliaca">Juliaca</mat-option>
-                      <mat-option value="Cusco">Cusco</mat-option>
-                      <mat-option value="Arequipa">Arequipa</mat-option>
-                      <mat-option value="Lima">Lima</mat-option>
-                      <mat-option value="Tacna">Tacna</mat-option>
-                    </mat-select>
+                    <input matInput 
+                           formControlName="origen" 
+                           [matAutocomplete]="origenAuto"
+                           placeholder="Buscar localidad de origen">
+                    <mat-autocomplete #origenAuto="matAutocomplete" [displayWith]="displayLocalidad">
+                      @for (localidad of localidadesOrigenFiltradas | async; track localidad.id) {
+                        <mat-option [value]="localidad">
+                          <div class="localidad-option">
+                            <span class="nombre">{{ localidad.nombre }}</span>
+                            <span class="codigo">{{ localidad.codigo }}</span>
+                            <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                          </div>
+                        </mat-option>
+                      }
+                    </mat-autocomplete>
                     <mat-error *ngIf="rutaForm.get('origen')?.hasError('required')">
                       El origen es obligatorio
                     </mat-error>
@@ -322,14 +334,21 @@ import { ResolucionService } from '../../services/resolucion.service';
 
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Destino *</mat-label>
-                    <mat-select formControlName="destino" required>
-                      <mat-option value="Puno">Puno</mat-option>
-                      <mat-option value="Juliaca">Juliaca</mat-option>
-                      <mat-option value="Cusco">Cusco</mat-option>
-                      <mat-option value="Arequipa">Arequipa</mat-option>
-                      <mat-option value="Lima">Lima</mat-option>
-                      <mat-option value="Tacna">Tacna</mat-option>
-                    </mat-select>
+                    <input matInput 
+                           formControlName="destino" 
+                           [matAutocomplete]="destinoAuto"
+                           placeholder="Buscar localidad de destino">
+                    <mat-autocomplete #destinoAuto="matAutocomplete" [displayWith]="displayLocalidad">
+                      @for (localidad of localidadesDestinoFiltradas | async; track localidad.id) {
+                        <mat-option [value]="localidad">
+                          <div class="localidad-option">
+                            <span class="nombre">{{ localidad.nombre }}</span>
+                            <span class="codigo">{{ localidad.codigo }}</span>
+                            <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                          </div>
+                        </mat-option>
+                      }
+                    </mat-autocomplete>
                     <mat-error *ngIf="rutaForm.get('destino')?.hasError('required')">
                       El destino es obligatorio
                     </mat-error>
@@ -622,6 +641,48 @@ import { ResolucionService } from '../../services/resolucion.service';
     ::ng-deep .mat-expansion-panel-body {
       padding: 0 24px 16px 24px !important;
     }
+
+    // Estilos para las opciones de localidades
+    .localidad-option {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 0;
+    }
+
+    .localidad-option .nombre {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .localidad-option .codigo {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    .localidad-option .ubicacion {
+      color: #666;
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    // Mejorar el autocomplete
+    ::ng-deep .mat-autocomplete-panel {
+      max-height: 300px;
+    }
+
+    ::ng-deep .mat-option {
+      line-height: 1.4;
+      min-height: 60px;
+      padding: 8px 16px;
+    }
   `]
 })
 export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
@@ -631,6 +692,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   private rutaService = inject(RutaService);
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
+  private localidadService = inject(LocalidadService);
 
   rutaForm: FormGroup;
   isSubmitting = false;
@@ -646,10 +708,15 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   resolucionesPrimigenias: any[] = [];
   resolucionesEmpresa: any[] = [];
   rutasExistentes: Ruta[] = [];
+  localidades: Localidad[] = [];
   
   // Selecciones actuales
   empresaSeleccionada: Empresa | null = null;
   resolucionSeleccionada: any = null;
+
+  // Autocomplete para localidades
+  localidadesOrigenFiltradas!: Observable<Localidad[]>;
+  localidadesDestinoFiltradas!: Observable<Localidad[]>;
 
   // Columnas para la tabla de rutas existentes
   displayedColumns = ['codigoRuta', 'origen', 'destino', 'itinerario', 'estado'];
@@ -674,6 +741,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarDatosIniciales();
+    this.inicializarAutocompleteLocalidades();
   }
 
   ngOnDestroy() {
@@ -719,6 +787,54 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
       }
     });
     this.subscriptions.push(sub);
+  }
+
+  private inicializarAutocompleteLocalidades() {
+    // Cargar localidades activas
+    const sub = this.localidadService.getLocalidadesActivas().subscribe({
+      next: (localidades) => {
+        this.localidades = localidades;
+        this.configurarAutocomplete();
+      },
+      error: (error) => {
+        console.error('Error cargando localidades:', error);
+        this.snackBar.open('Error cargando localidades', 'Cerrar', { duration: 3000 });
+      }
+    });
+    this.subscriptions.push(sub);
+  }
+
+  private configurarAutocomplete() {
+    // Configurar autocomplete para origen
+    this.localidadesOrigenFiltradas = this.rutaForm.get('origen')!.valueChanges.pipe(
+      startWith(''),
+      map(value => this.filtrarLocalidades(value))
+    );
+
+    // Configurar autocomplete para destino
+    this.localidadesDestinoFiltradas = this.rutaForm.get('destino')!.valueChanges.pipe(
+      startWith(''),
+      map(value => this.filtrarLocalidades(value))
+    );
+  }
+
+  private filtrarLocalidades(value: string | Localidad): Localidad[] {
+    if (!value) {
+      return this.localidades;
+    }
+
+    const filterValue = typeof value === 'string' ? value.toLowerCase() : value.nombre.toLowerCase();
+    
+    return this.localidades.filter(localidad =>
+      localidad.nombre.toLowerCase().includes(filterValue) ||
+      localidad.codigo.toLowerCase().includes(filterValue) ||
+      localidad.departamento.toLowerCase().includes(filterValue) ||
+      localidad.provincia.toLowerCase().includes(filterValue)
+    );
+  }
+
+  displayLocalidad(localidad: Localidad): string {
+    return localidad ? localidad.nombre : '';
   }
 
   onModoChange() {
@@ -854,30 +970,26 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
       
       const formValue = this.rutaForm.value;
       
-      // Mapear nombres de ciudades a IDs de localidades
-      const mapeoLocalidades: { [key: string]: string } = {
-        'Puno': 'PUNO_001',
-        'Juliaca': 'JULIACA_001',
-        'Cusco': 'CUSCO_001',
-        'Arequipa': 'AREQUIPA_001',
-        'Lima': 'LIMA_001',
-        'Tacna': 'TACNA_001'
-      };
+      // Obtener las localidades seleccionadas
+      const origenLocalidad = formValue.origen as Localidad;
+      const destinoLocalidad = formValue.destino as Localidad;
       
-      const origenId = mapeoLocalidades[formValue.origen] || 'PUNO_001';
-      const destinoId = mapeoLocalidades[formValue.destino] || 'JULIACA_001';
+      if (!origenLocalidad || !destinoLocalidad) {
+        this.snackBar.open('Debe seleccionar origen y destino válidos', 'Cerrar', { duration: 3000 });
+        this.isSubmitting = false;
+        return;
+      }
       
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
-        nombre: `${formValue.origen} - ${formValue.destino}`,
-        origenId: origenId,
-        destinoId: destinoId,
-        origen: formValue.origen,
-        destino: formValue.destino,
+        nombre: `${origenLocalidad.nombre} - ${destinoLocalidad.nombre}`,
+        origenId: origenLocalidad.id,
+        destinoId: destinoLocalidad.id,
+        origen: origenLocalidad.nombre,
+        destino: destinoLocalidad.nombre,
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio,
-        // descripcion: formValue.descripcion || '', // Campo no disponible en RutaCreate por ahora
         observaciones: formValue.observaciones || '',
         empresaId: this.empresaSeleccionada?.id || '',
         resolucionId: formValue.resolucionId,

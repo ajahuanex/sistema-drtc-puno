@@ -6,13 +6,37 @@ from app.dependencies.db import get_database
 from app.services.usuario_service import UsuarioService
 from app.models.usuario import UsuarioCreate, UsuarioResponse, LoginResponse
 from app.utils.exceptions import AuthenticationException, UsuarioAlreadyExistsException
+from datetime import datetime
+import bcrypt
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["autenticación"])
 
+# Usuario mock para cuando la base de datos no esté disponible
+MOCK_ADMIN_USER = {
+    "id": "mock_admin_id",
+    "dni": "12345678",
+    "nombres": "Administrador",
+    "apellidos": "Sistema",
+    "email": "admin@drtc.gob.pe",
+    "password_hash": bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+    "rolId": "admin",
+    "estaActivo": True,
+    "fechaCreacion": datetime.utcnow()
+}
+
 async def get_usuario_service():
     """Dependency para obtener el servicio de usuarios"""
-    db = await get_database()
-    return UsuarioService(db)
+    try:
+        db = await get_database()
+        return UsuarioService(db)
+    except HTTPException as e:
+        if e.status_code == 503:
+            logger.warning("⚠️  Base de datos no disponible, usando modo mock")
+            return None
+        raise
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -21,7 +45,41 @@ async def login(
 ) -> LoginResponse:
     """Iniciar sesión con DNI y contraseña"""
     
-    # Autenticar usuario
+    # Si no hay servicio de usuario (base de datos no disponible), usar mock
+    if usuario_service is None:
+        logger.info("🔧 Usando autenticación mock")
+        
+        # Verificar credenciales mock
+        if (form_data.username == MOCK_ADMIN_USER["dni"] and 
+            bcrypt.checkpw(form_data.password.encode('utf-8'), MOCK_ADMIN_USER["password_hash"].encode('utf-8'))):
+            
+            # Crear token de acceso
+            access_token = create_access_token(data={"sub": MOCK_ADMIN_USER["id"]})
+            
+            # Crear respuesta de usuario
+            user_response = UsuarioResponse(
+                id=MOCK_ADMIN_USER["id"],
+                dni=MOCK_ADMIN_USER["dni"],
+                nombres=MOCK_ADMIN_USER["nombres"],
+                apellidos=MOCK_ADMIN_USER["apellidos"],
+                email=MOCK_ADMIN_USER["email"],
+                rolId=MOCK_ADMIN_USER["rolId"],
+                estaActivo=MOCK_ADMIN_USER["estaActivo"],
+                fechaCreacion=MOCK_ADMIN_USER["fechaCreacion"]
+            )
+            
+            logger.info(f"✅ Login mock exitoso para usuario: {MOCK_ADMIN_USER['dni']}")
+            
+            return LoginResponse(
+                access_token=access_token,
+                token_type="bearer",
+                user=user_response
+            )
+        else:
+            logger.warning(f"❌ Credenciales mock incorrectas para: {form_data.username}")
+            raise AuthenticationException("DNI o contraseña incorrectos")
+    
+    # Autenticación normal con base de datos
     usuario = await usuario_service.authenticate_usuario(form_data.username, form_data.password)
     if not usuario:
         raise AuthenticationException("DNI o contraseña incorrectos")

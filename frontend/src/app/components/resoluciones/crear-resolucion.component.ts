@@ -257,12 +257,20 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                   <mat-label>
                     @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                       RESOLUCIÓN PADRE A RENOVAR (OPCIONAL)
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                      RESOLUCIÓN PRIMIGENIA (OPCIONAL)
                     } @else {
                       RESOLUCIÓN PADRE (requerida para {{ expedienteSeleccionado()?.tipoTramite | uppercase }})
                     }
                   </mat-label>
-                  <mat-select formControlName="resolucionPadreId" [required]="expedienteSeleccionado()?.tipoTramite !== 'RENOVACION'" (selectionChange)="onResolucionPadreChange()">
-                    <mat-option value="">SELECCIONE LA RESOLUCIÓN PADRE</mat-option>
+                  <mat-select formControlName="resolucionPadreId" [required]="esResolucionPadreRequerida()" (selectionChange)="onResolucionPadreChange()">
+                    <mat-option value="">
+                      @if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                        SELECCIONE LA RESOLUCIÓN PRIMIGENIA (OPCIONAL)
+                      } @else {
+                        SELECCIONE LA RESOLUCIÓN PADRE
+                      }
+                    </mat-option>
                     @for (resolucion of resolucionesPadre(); track resolucion.id) {
                       <mat-option [value]="resolucion.id">
                         {{ resolucion.nroResolucion }}
@@ -275,6 +283,8 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                   <mat-hint>
                     @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
                       Opcional: Seleccione la resolución padre que desea renovar (si aplica)
+                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
+                      Opcional: Seleccione la resolución primigenia si existe una autorización previa
                     } @else {
                       Seleccione la resolución padre de la cual heredará las fechas de vigencia
                     }
@@ -938,6 +948,23 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     return false;
   });
 
+  // Determinar si la resolución padre es requerida
+  esResolucionPadreRequerida = computed(() => {
+    const expediente = this.expedienteSeleccionado();
+    if (!expediente) return false;
+
+    // Para RENOVACION es opcional
+    if (expediente.tipoTramite === 'RENOVACION') return false;
+
+    // Para INCREMENTO y SUSTITUCION es opcional (pueden ser resoluciones primigenias)
+    if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION') return false;
+
+    // Para OTROS sí es requerida
+    if (expediente.tipoTramite === 'OTROS') return true;
+
+    return false;
+  });
+
   // Determinar si mostrar selector de expediente
   mostrarSelectorExpediente = computed(() => {
     return true; // Siempre mostrar para resoluciones principales
@@ -1356,7 +1383,15 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     } else if (esResolucionHija) {
       this.cargarResolucionesPadre();
       this.resolucionForm.get('resolucionPadreId')?.enable();
-      this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
+      
+      // CAMBIO: Para INCREMENTO y SUSTITUCION hacer opcional la resolución padre
+      if (tipoTramite === 'INCREMENTO' || tipoTramite === 'SUSTITUCION') {
+        this.resolucionForm.get('resolucionPadreId')?.clearValidators(); // Opcional
+      } else {
+        // Para OTROS sí es requerida
+        this.resolucionForm.get('resolucionPadreId')?.setValidators([Validators.required]);
+      }
+      
       this.resolucionForm.get('fechaVigenciaInicio')?.disable();
       this.resolucionForm.get('aniosVigencia')?.disable();
     }
@@ -1424,8 +1459,23 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
             
             return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
           });
-        } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
-          console.log('🔄 FILTRADO PARA INCREMENTO/SUSTITUCION/OTROS...');
+        } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION') {
+          console.log('🔄 FILTRADO PARA INCREMENTO/SUSTITUCION - MOSTRANDO RESOLUCIONES PRIMIGENIAS...');
+          resolucionesPadre = resolucionesEmpresa.filter(r => {
+            const esPrimigenia = r.tipoResolucion === 'PADRE'; // Las primigenias son tipo PADRE
+            const estaActivo = r.estaActivo;
+            const esVigente = r.estado === 'VIGENTE';
+            
+            console.log(`   📋 ${r.nroResolucion}:`, {
+              esPrimigenia, estaActivo, esVigente,
+              cumpleCondiciones: esPrimigenia && estaActivo && esVigente
+            });
+            
+            // Para INCREMENTO/SUSTITUCION mostrar todas las resoluciones primigenias vigentes
+            return esPrimigenia && estaActivo && esVigente;
+          });
+        } else if (expediente.tipoTramite === 'OTROS') {
+          console.log('🔄 FILTRADO PARA OTROS...');
           resolucionesPadre = resolucionesEmpresa.filter(r => {
             const esPadre = r.tipoResolucion === 'PADRE';
             const estaActivo = r.estaActivo;

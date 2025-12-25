@@ -1,146 +1,78 @@
-from datetime import datetime
-from typing import Optional, List
 from pydantic import BaseModel, Field
-from bson import ObjectId
+from typing import Optional, List
+from datetime import datetime
 from enum import Enum
 
 class TipoLocalidad(str, Enum):
-    PROVINCIA = "PROVINCIA"
+    CIUDAD = "CIUDAD"
+    PUEBLO = "PUEBLO"
     DISTRITO = "DISTRITO"
+    PROVINCIA = "PROVINCIA"
+    DEPARTAMENTO = "DEPARTAMENTO"
     CENTRO_POBLADO = "CENTRO_POBLADO"
 
-class Localidad(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
-    nombre: str
-    tipo: TipoLocalidad
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: bool = False
-    estaActivo: bool = True
-    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
-    fechaActualizacion: Optional[datetime] = None
-    codigoUbigeo: Optional[str] = None
-    coordenadas: Optional[dict] = None  # {latitud, longitud}
-    altitud: Optional[float] = None  # en metros sobre el nivel del mar
-    poblacion: Optional[int] = None
-    superficie: Optional[float] = None  # en km²
-    clima: Optional[str] = None
-    observaciones: Optional[str] = None
-    rutasOrigenIds: List[str] = []
-    rutasDestinoIds: List[str] = []
-    rutasEscalaIds: List[str] = []
-    empresasIds: List[str] = []
-    terminalesIds: List[str] = []
+class Coordenadas(BaseModel):
+    latitud: float = Field(..., ge=-90, le=90, description="Latitud en grados decimales")
+    longitud: float = Field(..., ge=-180, le=180, description="Longitud en grados decimales")
 
-class LocalidadCreate(BaseModel):
-    nombre: str
-    tipo: TipoLocalidad
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: bool = False
-    codigoUbigeo: Optional[str] = None
-    coordenadas: Optional[dict] = None
-    altitud: Optional[float] = None
-    poblacion: Optional[int] = None
-    superficie: Optional[float] = None
-    clima: Optional[str] = None
-    observaciones: Optional[str] = None
+class LocalidadBase(BaseModel):
+    nombre: str = Field(..., min_length=2, max_length=100, description="Nombre de la localidad")
+    codigo: str = Field(..., min_length=6, max_length=10, description="Código único de la localidad")
+    tipo: TipoLocalidad = Field(..., description="Tipo de localidad")
+    departamento: str = Field(..., min_length=2, max_length=50, description="Departamento")
+    provincia: str = Field(..., min_length=2, max_length=50, description="Provincia")
+    distrito: Optional[str] = Field(None, max_length=50, description="Distrito (opcional)")
+    coordenadas: Optional[Coordenadas] = Field(None, description="Coordenadas geográficas")
+    descripcion: Optional[str] = Field(None, max_length=500, description="Descripción adicional")
+    observaciones: Optional[str] = Field(None, max_length=500, description="Observaciones")
+
+class LocalidadCreate(LocalidadBase):
+    pass
 
 class LocalidadUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
+    codigo: Optional[str] = Field(None, min_length=6, max_length=10)
+    tipo: Optional[TipoLocalidad] = None
+    departamento: Optional[str] = Field(None, min_length=2, max_length=50)
+    provincia: Optional[str] = Field(None, min_length=2, max_length=50)
+    distrito: Optional[str] = Field(None, max_length=50)
+    coordenadas: Optional[Coordenadas] = None
+    descripcion: Optional[str] = Field(None, max_length=500)
+    observaciones: Optional[str] = Field(None, max_length=500)
+    estaActiva: Optional[bool] = None
+
+class Localidad(LocalidadBase):
+    id: str = Field(..., description="ID único de la localidad")
+    estaActiva: bool = Field(True, description="Estado de la localidad")
+    fechaCreacion: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+class LocalidadResponse(Localidad):
+    pass
+
+class LocalidadesPaginadas(BaseModel):
+    localidades: List[LocalidadResponse]
+    total: int
+    pagina: int
+    totalPaginas: int
+
+class FiltroLocalidades(BaseModel):
     nombre: Optional[str] = None
     tipo: Optional[TipoLocalidad] = None
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: Optional[bool] = None
-    codigoUbigeo: Optional[str] = None
-    coordenadas: Optional[dict] = None
-    altitud: Optional[float] = None
-    poblacion: Optional[int] = None
-    superficie: Optional[float] = None
-    clima: Optional[str] = None
-    observaciones: Optional[str] = None
+    departamento: Optional[str] = None
+    provincia: Optional[str] = None
+    estaActiva: Optional[bool] = None
 
-class LocalidadFiltros(BaseModel):
-    nombre: Optional[str] = None
-    tipo: Optional[TipoLocalidad] = None
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: Optional[bool] = None
-    codigoUbigeo: Optional[str] = None
-    tieneRutas: Optional[bool] = None
-    tieneEmpresas: Optional[bool] = None
-    tieneTerminales: Optional[bool] = None
+class ValidacionCodigo(BaseModel):
+    codigo: str
+    idExcluir: Optional[str] = None
 
-class LocalidadResponse(BaseModel):
-    id: str
-    nombre: str
-    tipo: TipoLocalidad
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: bool
-    estaActivo: bool
-    fechaRegistro: datetime
-    fechaActualizacion: Optional[datetime] = None
-    codigoUbigeo: Optional[str] = None
-    coordenadas: Optional[dict] = None
-    altitud: Optional[float] = None
-    poblacion: Optional[int] = None
-    superficie: Optional[float] = None
-    clima: Optional[str] = None
-    observaciones: Optional[str] = None
-    rutasOrigenIds: List[str]
-    rutasDestinoIds: List[str]
-    rutasEscalaIds: List[str]
-    empresasIds: List[str]
-    terminalesIds: List[str]
-
-class LocalidadEstadisticas(BaseModel):
-    totalLocalidades: int
-    provincias: int
-    distritos: int
-    centrosPoblados: int
-    escalasComerciales: int
-    localidadesConRutas: int
-    localidadesConEmpresas: int
-    localidadesConTerminales: int
-    promedioRutasPorLocalidad: float
-    distribucionPorTipo: dict
-
-class LocalidadResumen(BaseModel):
-    id: str
-    nombre: str
-    tipo: TipoLocalidad
-    provinciaId: Optional[str] = None
-    distritoId: Optional[str] = None
-    esEscalaComercial: bool
-    rutasCount: int
-    empresasCount: int
-    terminalesCount: int
-    ultimaActualizacion: datetime
-
-class LocalidadHistorial(BaseModel):
-    id: Optional[str] = Field(default_factory=lambda: str(ObjectId()))
-    localidadId: str
-    fechaCambio: datetime
-    tipoCambio: str
-    usuarioId: str
-    campoAnterior: Optional[str] = None
-    campoNuevo: Optional[str] = None
-    observaciones: Optional[str] = None
-    datosCompletos: dict  # Estado completo de la localidad antes del cambio
-
-class LocalidadCompleta(BaseModel):
-    localidad: LocalidadResponse
-    provincia: Optional[dict] = None
-    distrito: Optional[dict] = None
-    rutasOrigen: List[dict]
-    rutasDestino: List[dict]
-    rutasEscala: List[dict]
-    empresas: List[dict]
-    terminales: List[dict]
-    historial: List[LocalidadHistorial]
-
-class JerarquiaLocalidad(BaseModel):
-    provincia: LocalidadResponse
-    distritos: List[LocalidadResponse]
-    centrosPoblados: List[LocalidadResponse] 
+class RespuestaValidacionCodigo(BaseModel):
+    valido: bool
+    mensaje: str
