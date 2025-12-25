@@ -1,25 +1,24 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of, BehaviorSubject } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { AuthService } from './auth.service';
 
 import { 
   ConfiguracionSistema, 
   ConfiguracionCreate, 
   ConfiguracionUpdate, 
-  CONFIGURACIONES_DEFAULT,
   CategoriaConfiguracion 
 } from '../models/configuracion.model';
-import { DescripcionAutomaticaService } from './descripcion-automatica.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ConfiguracionService {
   private http = inject(HttpClient);
-  private descripcionService = inject(DescripcionAutomaticaService);
-  private apiUrl = `${environment.apiUrl}/api/v1/configuraciones`;
+  private authService = inject(AuthService);
+  private apiUrl = `${environment.apiUrl}/configuraciones`;
 
   // Signals para las configuraciones
   private configuracionesSignal = signal<ConfiguracionSistema[]>([]);
@@ -86,56 +85,36 @@ export class ConfiguracionService {
   });
 
   constructor() {
-    // Inicializar configuraciones inmediatamente sin backend
-    this.crearConfiguracionesDefault();
+    console.log('🔧 ConfiguracionService inicializado - usando únicamente API');
   }
 
-
+  private getHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+  }
 
   /**
    * Carga todas las configuraciones desde el backend
    */
   cargarConfiguraciones(): Observable<ConfiguracionSistema[]> {
-    // Por ahora, retornar configuraciones locales
-    return new Observable(observer => {
-      try {
-        // Simular delay de carga
-        setTimeout(() => {
-          const configuraciones = this.configuraciones();
-          console.log('🔧 Configuraciones cargadas localmente:', configuraciones.length);
-          observer.next(configuraciones);
-          observer.complete();
-        }, 100);
-      } catch (error) {
-        console.error('Error cargando configuraciones:', error);
-        observer.error(error);
-      }
-    });
-  }
-
-  /**
-   * Crea las configuraciones por defecto del sistema
-   */
-  private crearConfiguracionesDefault(): void {
-    console.log('🔧 Creando configuraciones por defecto...');
+    console.log('🔍 Cargando configuraciones desde API...');
     
-    const configuracionesDefault: ConfiguracionSistema[] = Object.values(CONFIGURACIONES_DEFAULT).map(config => ({
-      id: `default_${config.nombre}`,
-      ...config,
-      // Generar descripción automática basándose en el contexto
-      descripcion: this.descripcionService.generarDescripcionAutomatica(
-        config.nombre, 
-        config.categoria
-      ),
-      fechaCreacion: new Date(),
-      fechaActualizacion: new Date(),
-      usuarioCreadorId: 'system',
-      usuarioActualizadorId: 'system'
-    }));
-
-    this.configuracionesSignal.set(configuracionesDefault);
-    this.configuracionesCargadasSignal.set(true);
-    this.actualizarBehaviorSubjects(configuracionesDefault);
+    return this.http.get<ConfiguracionSistema[]>(this.apiUrl, { headers: this.getHeaders() })
+      .pipe(
+        tap((configuraciones) => {
+          console.log('✅ Configuraciones cargadas desde API:', configuraciones.length);
+          this.configuracionesSignal.set(configuraciones);
+          this.configuracionesCargadasSignal.set(true);
+          this.actualizarBehaviorSubjects(configuraciones);
+        }),
+        catchError(error => {
+          console.error('❌ Error cargando configuraciones desde API:', error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**
@@ -193,149 +172,49 @@ export class ConfiguracionService {
    * Actualiza una configuración específica
    */
   actualizarConfiguracion(id: string, configuracion: ConfiguracionUpdate): Observable<ConfiguracionSistema> {
-    // Por ahora, actualizar solo localmente sin backend
-    return new Observable(observer => {
-      try {
-        const configuraciones = this.configuraciones();
-        const index = configuraciones.findIndex(c => c.id === id);
-        
-        if (index !== -1) {
-          // Crear configuración actualizada
-          const configuracionActualizada: ConfiguracionSistema = {
-            ...configuraciones[index],
-            ...configuracion,
-            fechaActualizacion: new Date(),
-            usuarioActualizadorId: 'usuario_actual'
-          };
-          
-          // Actualizar localmente
-          configuraciones[index] = configuracionActualizada;
-          this.configuracionesSignal.set([...configuraciones]);
-          
-          // Actualizar BehaviorSubjects si es necesario
-          this.actualizarBehaviorSubjects(configuraciones);
-          
-          console.log('🔧 Configuración actualizada localmente:', configuracionActualizada);
-          observer.next(configuracionActualizada);
-          observer.complete();
-        } else {
-          observer.error(new Error(`Configuración con ID ${id} no encontrada`));
-        }
-      } catch (error) {
-        console.error('Error actualizando configuración localmente:', error);
-        observer.error(error);
-      }
-    });
-  }
-
-  /**
-   * Actualiza la descripción de una configuración automáticamente basándose en el contexto
-   */
-  actualizarDescripcionAutomatica(id: string, contexto?: any): Observable<ConfiguracionSistema> {
-    return new Observable(observer => {
-      try {
-        const configuraciones = this.configuraciones();
-        const index = configuraciones.findIndex(c => c.id === id);
-        
-        if (index !== -1) {
-          const config = configuraciones[index];
-          const nuevaDescripcion = this.descripcionService.actualizarDescripcionAutomatica(
-            config.nombre,
-            config.categoria,
-            contexto
-          );
-          
-          const configuracionActualizada: ConfiguracionSistema = {
-            ...config,
-            descripcion: nuevaDescripcion,
-            fechaActualizacion: new Date(),
-            usuarioActualizadorId: 'usuario_actual'
-          };
-          
-          // Actualizar localmente
-          configuraciones[index] = configuracionActualizada;
-          this.configuracionesSignal.set([...configuraciones]);
-          
-          console.log('🔧 Descripción actualizada automáticamente:', configuracionActualizada);
-          observer.next(configuracionActualizada);
-          observer.complete();
-        } else {
-          observer.error(new Error(`Configuración con ID ${id} no encontrada`));
-        }
-      } catch (error) {
-        console.error('Error actualizando descripción automática:', error);
-        observer.error(error);
-      }
-    });
-  }
-
-  /**
-   * Regenera todas las descripciones automáticamente basándose en el contexto
-   */
-  regenerarTodasLasDescripciones(contexto?: any): Observable<ConfiguracionSistema[]> {
-    return new Observable(observer => {
-      try {
-        const configuraciones = this.configuraciones();
-        const configuracionesActualizadas: ConfiguracionSistema[] = [];
-        
-        configuraciones.forEach(config => {
-          const nuevaDescripcion = this.descripcionService.actualizarDescripcionAutomatica(
-            config.nombre,
-            config.categoria,
-            contexto
-          );
-          
-          const configuracionActualizada: ConfiguracionSistema = {
-            ...config,
-            descripcion: nuevaDescripcion,
-            fechaActualizacion: new Date(),
-            usuarioActualizadorId: 'usuario_actual'
-          };
-          
-          configuracionesActualizadas.push(configuracionActualizada);
-        });
-        
-        // Actualizar localmente
-        this.configuracionesSignal.set(configuracionesActualizadas);
-        
-        console.log('🔧 Todas las descripciones regeneradas automáticamente');
-        observer.next(configuracionesActualizadas);
-        observer.complete();
-      } catch (error) {
-        console.error('Error regenerando descripciones:', error);
-        observer.error(error);
-      }
-    });
+    console.log('📤 Actualizando configuración en backend:', id, configuracion);
+    
+    const url = `${this.apiUrl}/${id}`;
+    return this.http.put<ConfiguracionSistema>(url, configuracion, { headers: this.getHeaders() })
+      .pipe(
+        tap((configuracionActualizada) => {
+          console.log('✅ Configuración actualizada en backend:', configuracionActualizada);
+          // Actualizar en el signal local
+          const configuraciones = this.configuraciones();
+          const index = configuraciones.findIndex(c => c.id === id);
+          if (index !== -1) {
+            configuraciones[index] = configuracionActualizada;
+            this.configuracionesSignal.set([...configuraciones]);
+            this.actualizarBehaviorSubjects(configuraciones);
+          }
+        }),
+        catchError(error => {
+          console.error('❌ Error actualizando configuración:', error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**
    * Crea una nueva configuración
    */
   crearConfiguracion(configuracion: ConfiguracionCreate): Observable<ConfiguracionSistema> {
-    return new Observable(observer => {
-      try {
-        const nuevaConfiguracion: ConfiguracionSistema = {
-          id: `config_${Date.now()}`,
-          ...configuracion,
-          fechaCreacion: new Date(),
-          fechaActualizacion: new Date(),
-          usuarioCreadorId: 'usuario_actual',
-          usuarioActualizadorId: 'usuario_actual'
-        };
-        
-        // Agregar al signal local
-        const configuraciones = this.configuraciones();
-        configuraciones.push(nuevaConfiguracion);
-        this.configuracionesSignal.set([...configuraciones]);
-        
-        console.log('🔧 Nueva configuración creada localmente:', nuevaConfiguracion);
-        observer.next(nuevaConfiguracion);
-        observer.complete();
-      } catch (error) {
-        console.error('Error creando configuración:', error);
-        observer.error(error);
-      }
-    });
+    console.log('📤 Creando configuración en backend:', configuracion);
+    
+    return this.http.post<ConfiguracionSistema>(this.apiUrl, configuracion, { headers: this.getHeaders() })
+      .pipe(
+        tap((nuevaConfiguracion) => {
+          console.log('✅ Configuración creada en backend:', nuevaConfiguracion);
+          // Agregar al signal local
+          const configuraciones = this.configuraciones();
+          configuraciones.push(nuevaConfiguracion);
+          this.configuracionesSignal.set([...configuraciones]);
+        }),
+        catchError(error => {
+          console.error('❌ Error creando configuración:', error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**
@@ -349,61 +228,47 @@ export class ConfiguracionService {
    * Resetea una configuración a su valor por defecto
    */
   resetearConfiguracion(nombre: string): Observable<ConfiguracionSistema> {
-    const configuracionDefault = CONFIGURACIONES_DEFAULT[nombre as keyof typeof CONFIGURACIONES_DEFAULT];
-    if (!configuracionDefault) {
-      throw new Error(`Configuración ${nombre} no encontrada en valores por defecto`);
-    }
-
-    const configuracionActual = this.getConfiguracion(nombre);
-    if (!configuracionActual) {
-      throw new Error(`Configuración ${nombre} no encontrada en el sistema`);
-    }
-
-    return this.actualizarConfiguracion(configuracionActual.id, {
-      valor: configuracionDefault.valor,
-      descripcion: configuracionDefault.descripcion
-    });
+    console.log('📤 Reseteando configuración en API:', nombre);
+    const url = `${this.apiUrl}/reset/${nombre}`;
+    
+    return this.http.post<ConfiguracionSistema>(url, {}, { headers: this.getHeaders() }).pipe(
+      tap(configuracionReseteada => {
+        console.log('✅ Configuración reseteada en API:', configuracionReseteada);
+        // Actualizar en el signal local
+        const configuraciones = this.configuraciones();
+        const index = configuraciones.findIndex(c => c.nombre === nombre);
+        if (index !== -1) {
+          configuraciones[index] = configuracionReseteada;
+          this.configuracionesSignal.set([...configuraciones]);
+          this.actualizarBehaviorSubjects(configuraciones);
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error reseteando configuración:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
    * Resetea todas las configuraciones a sus valores por defecto
    */
   resetearTodasLasConfiguraciones(): Observable<ConfiguracionSistema[]> {
-    return new Observable(observer => {
-      try {
-        const configuraciones = this.configuraciones();
-        const configuracionesReseteadas: ConfiguracionSistema[] = [];
-        
-        configuraciones.forEach(config => {
-          const configuracionDefault = Object.values(CONFIGURACIONES_DEFAULT)
-            .find(c => c.nombre === config.nombre);
-          
-          if (configuracionDefault) {
-            const configuracionReseteada: ConfiguracionSistema = {
-              ...config,
-              valor: configuracionDefault.valor,
-              descripcion: configuracionDefault.descripcion,
-              fechaActualizacion: new Date(),
-              usuarioActualizadorId: 'usuario_actual'
-            };
-            configuracionesReseteadas.push(configuracionReseteada);
-          } else {
-            configuracionesReseteadas.push(config);
-          }
-        });
-        
-        // Actualizar localmente
-        this.configuracionesSignal.set(configuracionesReseteadas);
-        this.actualizarBehaviorSubjects(configuracionesReseteadas);
-        
-        console.log('🔧 Todas las configuraciones reseteadas localmente a valores por defecto');
-        observer.next(configuracionesReseteadas);
-        observer.complete();
-      } catch (error) {
-        console.error('Error reseteando configuraciones:', error);
-        observer.error(error);
-      }
-    });
+    console.log('📤 Reseteando todas las configuraciones en API...');
+    
+    const url = `${this.apiUrl}/reset`;
+    return this.http.post<ConfiguracionSistema[]>(url, {}, { headers: this.getHeaders() })
+      .pipe(
+        tap((configuracionesReseteadas) => {
+          console.log('✅ Configuraciones reseteadas en API:', configuracionesReseteadas.length);
+          this.configuracionesSignal.set(configuracionesReseteadas);
+          this.actualizarBehaviorSubjects(configuracionesReseteadas);
+        }),
+        catchError(error => {
+          console.error('❌ Error reseteando configuraciones:', error);
+          return throwError(() => error);
+        })
+      );
   }
 
   /**

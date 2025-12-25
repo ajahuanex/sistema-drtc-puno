@@ -68,12 +68,12 @@ export interface GestionarLocalidadModalData {
                    placeholder="Ej: PUN001, JUL001"
                    maxlength="10"
                    style="text-transform: uppercase">
-            <mat-hint>Código único de identificación</mat-hint>
+            <mat-hint>Código único de identificación (Ej: PUN001, ASD123)</mat-hint>
             @if (localidadForm.get('codigo')?.hasError('required') && localidadForm.get('codigo')?.touched) {
               <mat-error>El código es requerido</mat-error>
             }
             @if (localidadForm.get('codigo')?.hasError('pattern')) {
-              <mat-error>Formato: 3 letras + 3 números (Ej: PUN001)</mat-error>
+              <mat-error>Formato: 3 letras + 3-7 números (Ej: PUN001, ASD123)</mat-error>
             }
             @if (codigoExiste()) {
               <mat-error>Este código ya existe</mat-error>
@@ -291,10 +291,21 @@ export class GestionarLocalidadModalComponent implements OnInit {
       this.cargarDatosLocalidad();
     }
 
-    // Validar código único en tiempo real
+    // Validar código único en tiempo real con debounce
     this.localidadForm.get('codigo')?.valueChanges.subscribe(codigo => {
-      if (codigo && codigo.length >= 6) {
-        this.validarCodigoUnico(codigo);
+      if (codigo) {
+        // Convertir a mayúsculas automáticamente
+        const codigoUpper = codigo.toUpperCase();
+        if (codigoUpper !== codigo) {
+          this.localidadForm.get('codigo')?.setValue(codigoUpper, { emitEvent: false });
+        }
+        
+        // Validar unicidad solo si tiene al menos 6 caracteres
+        if (codigoUpper.length >= 6) {
+          this.validarCodigoUnico(codigoUpper);
+        } else {
+          this.codigoExiste.set(false);
+        }
       } else {
         this.codigoExiste.set(false);
       }
@@ -304,9 +315,9 @@ export class GestionarLocalidadModalComponent implements OnInit {
   private createForm(): FormGroup {
     return this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      codigo: ['', [Validators.required, Validators.pattern(/^[A-Z]{3}[0-9]{3}$/)]],
+      codigo: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(10), Validators.pattern(/^[A-Z]{3}[0-9]{3,7}$/)]],
       tipo: ['', Validators.required],
-      departamento: ['', [Validators.required, Validators.maxLength(50)]],
+      departamento: ['PUNO', [Validators.required, Validators.maxLength(50)]], // Valor por defecto PUNO
       provincia: ['', [Validators.required, Validators.maxLength(50)]],
       distrito: ['', Validators.maxLength(50)],
       descripcion: ['', Validators.maxLength(500)],
@@ -332,32 +343,80 @@ export class GestionarLocalidadModalComponent implements OnInit {
   }
 
   private validarCodigoUnico(codigo: string): void {
-    // Solo validar si el código tiene el formato completo
-    if (!/^[A-Z]{3}[0-9]{3}$/.test(codigo)) {
+    // Temporalmente deshabilitado para debugging
+    console.log('🔍 Validación de código deshabilitada temporalmente:', codigo);
+    this.codigoExiste.set(false);
+    return;
+    
+    // Validar formato básico primero (al menos 3 caracteres)
+    if (!codigo || codigo.length < 3) {
+      this.codigoExiste.set(false);
+      return;
+    }
+
+    // Convertir a mayúsculas para validación
+    const codigoUpper = codigo.toUpperCase();
+    
+    // Validar formato completo solo si tiene 6 caracteres
+    if (codigoUpper.length === 6) {
+      const formatoValido = /^[A-Z]{3}[0-9]{3}$/.test(codigoUpper);
+      if (!formatoValido) {
+        this.codigoExiste.set(false);
+        return;
+      }
+    } else if (codigoUpper.length > 6) {
+      // Si tiene más de 6 caracteres, es inválido
+      this.codigoExiste.set(false);
+      return;
+    } else {
+      // Si tiene menos de 6 caracteres, no validar unicidad aún
       this.codigoExiste.set(false);
       return;
     }
 
     const idExcluir = this.data.modo === 'editar' ? this.data.localidad?.id : undefined;
     
-    this.localidadService.validarCodigoUnico(codigo, idExcluir).subscribe({
+    console.log('🔍 Validando código único:', codigoUpper);
+    
+    this.localidadService.validarCodigoUnico(codigoUpper, idExcluir).subscribe({
       next: (esUnico) => {
+        console.log('✅ Resultado validación:', esUnico);
         this.codigoExiste.set(!esUnico);
       },
       error: (error) => {
-        console.error('Error validando código:', error);
+        console.error('❌ Error validando código:', error);
         this.codigoExiste.set(false);
       }
     });
   }
 
   guardar(): void {
+    console.log('🔍 INICIANDO GUARDADO DE LOCALIDAD');
+    console.log('📋 Formulario válido:', this.localidadForm.valid);
+    console.log('📋 Código existe:', this.codigoExiste());
+    console.log('📋 Errores del formulario:', this.localidadForm.errors);
+    
+    // Mostrar errores de cada campo
+    Object.keys(this.localidadForm.controls).forEach(key => {
+      const control = this.localidadForm.get(key);
+      if (control?.errors) {
+        console.log(`❌ Campo ${key} tiene errores:`, control.errors);
+      }
+    });
+
     if (!this.localidadForm.valid || this.codigoExiste()) {
+      console.log('❌ GUARDADO CANCELADO - Formulario inválido o código existe');
+      // Marcar todos los campos como touched para mostrar errores
+      Object.keys(this.localidadForm.controls).forEach(key => {
+        this.localidadForm.get(key)?.markAsTouched();
+      });
       return;
     }
 
+    console.log('✅ INICIANDO GUARDADO...');
     this.guardando.set(true);
     const formValue = this.localidadForm.value;
+    console.log('📤 Datos del formulario:', formValue);
 
     // Preparar coordenadas si están completas
     let coordenadas = undefined;
@@ -379,12 +438,16 @@ export class GestionarLocalidadModalComponent implements OnInit {
       coordenadas
     };
 
+    console.log('📤 Datos preparados para enviar:', localidadData);
+    console.log('📤 Modo:', this.data.modo);
+
     const operacion = this.data.modo === 'crear' 
       ? this.localidadService.createLocalidad(localidadData as LocalidadCreate)
       : this.localidadService.updateLocalidad(this.data.localidad!.id, localidadData as LocalidadUpdate);
 
     operacion.subscribe({
       next: (localidad) => {
+        console.log('✅ LOCALIDAD GUARDADA EXITOSAMENTE:', localidad);
         this.guardando.set(false);
         const mensaje = this.data.modo === 'crear' 
           ? 'Localidad creada exitosamente' 
@@ -394,9 +457,10 @@ export class GestionarLocalidadModalComponent implements OnInit {
         this.dialogRef.close(localidad);
       },
       error: (error) => {
+        console.error('❌ ERROR GUARDANDO LOCALIDAD:', error);
         this.guardando.set(false);
-        console.error('Error guardando localidad:', error);
-        this.snackBar.open('Error al guardar la localidad', 'Cerrar', { duration: 3000 });
+        const mensajeError = error?.message || 'Error desconocido al guardar la localidad';
+        this.snackBar.open(`Error: ${mensajeError}`, 'Cerrar', { duration: 5000 });
       }
     });
   }

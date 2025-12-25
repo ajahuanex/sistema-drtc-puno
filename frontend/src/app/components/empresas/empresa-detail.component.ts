@@ -20,7 +20,7 @@ import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { ResolucionService } from '../../services/resolucion.service';
 import { Resolucion } from '../../models/resolucion.model';
 import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
-import { CrearRutaModalComponent } from '../rutas/crear-ruta-modal.component';
+import { CrearRutaModalComponent } from './crear-ruta-modal.component';
 import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
 import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.component';
 

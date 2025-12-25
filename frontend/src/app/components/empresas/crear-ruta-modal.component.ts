@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,28 +7,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Ruta, TipoRuta, RutaCreate } from '../../models/ruta.model';
+import { Ruta, TipoRuta, TipoServicio, RutaCreate } from '../../models/ruta.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
+import { Localidad } from '../../models/localidad.model';
 import { RutaService } from '../../services/ruta.service';
-import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
-import { Subscription } from 'rxjs';
+import { LocalidadService } from '../../services/localidad.service';
 
 export interface CrearRutaModalData {
-  empresa?: Empresa;
+  empresa: Empresa;
   resolucion?: Resolucion;
 }
 
 @Component({
   selector: 'app-crear-ruta-modal',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     MatDialogModule,
@@ -38,210 +35,146 @@ export interface CrearRutaModalData {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatTooltipModule,
     MatProgressSpinnerModule,
-    MatAutocompleteModule,
     ReactiveFormsModule
   ],
   template: `
     <div class="modal-container">
       <mat-card class="modal-card">
         <mat-card-header>
-          <mat-card-title>CREAR NUEVA RUTA</mat-card-title>
+          <mat-card-title>
+            <mat-icon>add_road</mat-icon>
+            CREAR NUEVA RUTA
+          </mat-card-title>
         </mat-card-header>
 
         <mat-card-content>
-          <!-- Paso 1: Selección de Empresa y Resolución -->
-          @if (!empresaSeleccionada || !resolucionSeleccionada) {
-            <div class="selection-step">
-              <!-- Si ya hay empresa seleccionada, solo mostrar selección de resolución -->
-              @if (empresaSeleccionada) {
-                <h3>SELECCIONAR RESOLUCIÓN</h3>
-                <div class="empresa-preseleccionada">
-                  <h4>EMPRESA SELECCIONADA</h4>
-                  <p><strong>RUC:</strong> {{ empresaSeleccionada.ruc }}</p>
-                  <p><strong>RAZÓN SOCIAL:</strong> {{ empresaSeleccionada.razonSocial.principal || 'No disponible' }}</p>
-                </div>
-              } @else {
-                <h3>SELECCIONAR EMPRESA Y RESOLUCIÓN</h3>
-              }
-              
-              <!-- Selección de Empresa (solo si no hay empresa pre-seleccionada) -->
-              @if (!empresaSeleccionada) {
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>EMPRESA *</mat-label>
-                  <input matInput 
-                         [matAutocomplete]="empresaAuto" 
-                         [value]="empresaSearchValue"
-                         (input)="onEmpresaSearchInput($event)"
-                         placeholder="Buscar empresa por RUC o razón social"
-                         required>
-                  <mat-autocomplete #empresaAuto="matAutocomplete" 
-                                   [displayWith]="displayEmpresa"
-                                   (optionSelected)="onEmpresaSelected($event)">
-                    @for (empresa of empresasFiltradas; track empresa.id) {
-                      <mat-option [value]="empresa">
-                        <div class="empresa-option">
-                          <span class="empresa-ruc">{{ empresa.ruc }}</span>
-                          <span class="empresa-razon">{{ empresa.razonSocial.principal || 'Sin razón social' }}</span>
-                        </div>
-                      </mat-option>
-                    }
-                  </mat-autocomplete>
-                  <mat-icon matSuffix>business</mat-icon>
-                  <mat-error *ngIf="!empresaSeleccionada && empresaSearchValue">
-                    La empresa es obligatoria
-                  </mat-error>
-                </mat-form-field>
-              }
+          <!-- Información de la empresa -->
+          <div class="empresa-info">
+            <h3>EMPRESA SELECCIONADA</h3>
+            <p><strong>RUC:</strong> {{ empresa.ruc }}</p>
+            <p><strong>RAZÓN SOCIAL:</strong> {{ empresa.razonSocial?.principal || 'No disponible' }}</p>
+          </div>
 
-              <!-- Selección de Resolución -->
+          <!-- Selección de resolución -->
+          @if (!resolucionSeleccionada) {
+            <div class="resolucion-selection">
+              <h3>SELECCIONAR RESOLUCIÓN</h3>
+              <div class="info-box">
+                <mat-icon>info</mat-icon>
+                <div>
+                  <strong>Reglas de asignación:</strong>
+                  <ul>
+                    <li>Las rutas solo se pueden crear en resoluciones <strong>PRIMIGENIAS</strong> (PADRE)</li>
+                    <li>Las rutas <strong>GENERALES</strong> se asignan a toda la resolución</li>
+                    <li>Las rutas <strong>ESPECÍFICAS</strong> se asignan a vehículos individuales</li>
+                  </ul>
+                </div>
+              </div>
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>RESOLUCIÓN *</mat-label>
-                <input matInput 
-                       [matAutocomplete]="resolucionAuto" 
-                       [value]="resolucionSearchValue"
-                       (input)="onResolucionSearchInput($event)"
-                       placeholder="Buscar resolución por número"
-                       required
-                       [disabled]="!empresaSeleccionada">
-                <mat-autocomplete #resolucionAuto="matAutocomplete" 
-                                 [displayWith]="displayResolucion"
-                                 (optionSelected)="onResolucionSelected($event)">
-                  @for (resolucion of resolucionesFiltradas; track resolucion.id) {
+                <mat-select (selectionChange)="onResolucionSelected($event)" required>
+                  @for (resolucion of resoluciones; track resolucion.id) {
                     <mat-option [value]="resolucion">
-                      <div class="resolucion-option">
-                        <span class="resolucion-numero">{{ resolucion.nroResolucion }}</span>
-                        <span class="resolucion-tipo">{{ resolucion.tipoTramite }}</span>
-                      </div>
+                      {{ resolucion.nroResolucion }} - {{ resolucion.tipoTramite }}
+                      @if (resolucion.tipoResolucion === 'PADRE') {
+                        <span class="badge-primigenia">PRIMIGENIA</span>
+                      }
                     </mat-option>
                   }
-                </mat-autocomplete>
-                <mat-icon matSuffix>description</mat-icon>
-                <mat-error *ngIf="!resolucionSeleccionada && resolucionSearchValue">
-                  La resolución es obligatoria
-                </mat-error>
+                </mat-select>
+                @if (resoluciones.length === 0) {
+                  <mat-hint>No hay resoluciones primigenias disponibles para esta empresa</mat-hint>
+                }
+                <mat-error>Debe seleccionar una resolución primigenia</mat-error>
               </mat-form-field>
-
-              <!-- Botón para continuar -->
-              <div class="continue-button">
-                <button mat-raised-button 
-                        color="primary" 
-                        [disabled]="!empresaSeleccionada || !resolucionSeleccionada"
-                        (click)="continuarACrearRuta()">
-                  <mat-icon>arrow_forward</mat-icon>
-                  @if (empresaSeleccionada) {
-                    CONTINUAR A CREAR RUTA
-                  } @else {
-                    CONTINUAR A CREAR RUTA
-                  }
-                </button>
-              </div>
             </div>
           }
 
-          <!-- Paso 2: Formulario de Ruta -->
-          @if (empresaSeleccionada && resolucionSeleccionada) {
-            <div class="ruta-form-step">
-              <!-- Información de Empresa y Resolución Seleccionadas -->
-              <div class="selected-info">
-                <div class="info-card empresa">
-                  <h4>EMPRESA SELECCIONADA</h4>
-                  <p><strong>RUC:</strong> {{ empresaSeleccionada.ruc }}</p>
-                  <p><strong>RAZÓN SOCIAL:</strong> {{ empresaSeleccionada.razonSocial.principal || 'No disponible' }}</p>
-                </div>
-                <div class="info-card resolucion">
-                  <h4>RESOLUCIÓN SELECCIONADA</h4>
-                  <p><strong>NÚMERO:</strong> {{ resolucionSeleccionada.nroResolucion }}</p>
-                  <p><strong>TIPO:</strong> {{ resolucionSeleccionada.tipoTramite }}</p>
-                </div>
-              </div>
-
-              <!-- Listado de Rutas Existentes -->
-              @if (rutasExistentes.length > 0) {
-                <div class="rutas-existentes">
-                  <h4>RUTAS EXISTENTES EN ESTA RESOLUCIÓN</h4>
-                  <div class="rutas-grid">
-                    @for (ruta of rutasExistentes; track ruta.id) {
-                      <div class="ruta-item">
-                        <div class="ruta-codigo">{{ ruta.codigoRuta }}</div>
-                        <div class="ruta-ruta">{{ ruta.origen }} → {{ ruta.destino }}</div>
-                        <div class="ruta-frecuencias">{{ ruta.frecuencias }}</div>
-                        <div class="ruta-tipo">{{ ruta.tipoRuta }}</div>
-                        <div class="ruta-estado" [class]="'estado-' + ruta.estado.toLowerCase()">
-                          {{ ruta.estado }}
-                        </div>
-                      </div>
-                    }
-                  </div>
-                  <div class="ruta-info">
-                    <mat-icon>info</mat-icon>
-                    <span>Total de rutas: {{ rutasExistentes.length }}</span>
-                    <span class="codigos-disponibles">
-                      | Códigos disponibles: {{ obtenerCodigosDisponibles() }}
-                    </span>
-                  </div>
-                </div>
-              }
-
-              <!-- Formulario de Ruta -->
+          <!-- Formulario de ruta -->
+          @if (resolucionSeleccionada) {
+            <div class="ruta-form">
+              <h3>DATOS DE LA RUTA</h3>
+              
               <form [formGroup]="rutaForm" (ngSubmit)="onSubmit()">
                 <div class="form-grid">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>CÓDIGO DE RUTA *</mat-label>
-                    <div class="codigo-ruta-container">
-                      <input matInput 
-                             formControlName="codigoRuta" 
-                             placeholder="01, 02, 03... (2 dígitos)"
-                             (input)="onCodigoRutaChange()"
-                             (blur)="onCodigoRutaBlur()"
-                             required>
-                      <button mat-icon-button 
-                              type="button" 
-                              (click)="regenerarCodigoRuta()"
-                              matTooltip="Regenerar código de ruta"
-                              [disabled]="resolucionSeleccionada.id === 'general'">
-                        <mat-icon>refresh</mat-icon>
-                      </button>
-                    </div>
-                    <mat-hint>Código único de dos dígitos (01, 02, 03...) por resolución</mat-hint>
-                    <mat-error *ngIf="rutaForm.get('codigoRuta')?.hasError('required')">
-                      El código de ruta es obligatorio
-                    </mat-error>
-                    <mat-error *ngIf="rutaForm.get('codigoRuta')?.hasError('formatoInvalido')">
-                      El código debe tener exactamente 2 dígitos (ej: 01, 02, 03...)
-                    </mat-error>
-                    <mat-error *ngIf="rutaForm.get('codigoRuta')?.hasError('rangoInvalido')">
-                      El código debe estar entre 01 y 99
-                    </mat-error>
-                    <mat-error *ngIf="rutaForm.get('codigoRuta')?.hasError('codigoDuplicado')">
-                      El código {{ rutaForm.get('codigoRuta')?.value }} ya existe en esta resolución
+                  <!-- Tipo de asignación de ruta -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>TIPO DE ASIGNACIÓN *</mat-label>
+                    <mat-select formControlName="tipoAsignacion" required (selectionChange)="onTipoAsignacionChange($event)">
+                      <mat-option value="GENERAL">RUTA GENERAL (Asignada a la resolución primigenia)</mat-option>
+                      <mat-option value="ESPECIFICA">RUTA ESPECÍFICA (Asignada a vehículos específicos)</mat-option>
+                    </mat-select>
+                    <mat-hint>
+                      @if (rutaForm.get('tipoAsignacion')?.value === 'GENERAL') {
+                        Las rutas generales se asignan a toda la resolución primigenia
+                      } @else if (rutaForm.get('tipoAsignacion')?.value === 'ESPECIFICA') {
+                        Las rutas específicas se asignan a vehículos individuales
+                      }
+                    </mat-hint>
+                    <mat-error *ngIf="rutaForm.get('tipoAsignacion')?.hasError('required')">
+                      Debe seleccionar el tipo de asignación
                     </mat-error>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>ORIGEN *</mat-label>
+                  <!-- Código de ruta -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>CÓDIGO DE RUTA *</mat-label>
                     <input matInput 
-                           formControlName="origen" 
-                           placeholder="Ej: Puno"
+                           formControlName="codigoRuta" 
+                           placeholder="01, 02, 03..."
+                           maxlength="2"
                            required>
-                    <mat-error *ngIf="rutaForm.get('origen')?.hasError('required')">
+                    <mat-hint>Código único de 2 dígitos</mat-hint>
+                    <mat-error *ngIf="rutaForm.get('codigoRuta')?.hasError('required')">
+                      El código es obligatorio
+                    </mat-error>
+                  </mat-form-field>
+
+                  <!-- Nombre -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>NOMBRE DE LA RUTA *</mat-label>
+                    <input matInput 
+                           formControlName="nombre" 
+                           placeholder="Ej: Puno - Juliaca"
+                           required>
+                    <mat-error *ngIf="rutaForm.get('nombre')?.hasError('required')">
+                      El nombre es obligatorio
+                    </mat-error>
+                  </mat-form-field>
+
+                  <!-- Origen -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>ORIGEN *</mat-label>
+                    <mat-select formControlName="origenId" required>
+                      @for (localidad of localidades; track localidad.id) {
+                        <mat-option [value]="localidad.id">
+                          {{ localidad.nombre }} - {{ localidad.provincia }}
+                        </mat-option>
+                      }
+                    </mat-select>
+                    <mat-error *ngIf="rutaForm.get('origenId')?.hasError('required')">
                       El origen es obligatorio
                     </mat-error>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field">
+                  <!-- Destino -->
+                  <mat-form-field appearance="outline">
                     <mat-label>DESTINO *</mat-label>
-                    <input matInput 
-                           formControlName="destino" 
-                           placeholder="Ej: Juliaca"
-                           required>
-                    <mat-error *ngIf="rutaForm.get('destino')?.hasError('required')">
+                    <mat-select formControlName="destinoId" required>
+                      @for (localidad of localidades; track localidad.id) {
+                        <mat-option [value]="localidad.id">
+                          {{ localidad.nombre }} - {{ localidad.provincia }}
+                        </mat-option>
+                      }
+                    </mat-select>
+                    <mat-error *ngIf="rutaForm.get('destinoId')?.hasError('required')">
                       El destino es obligatorio
                     </mat-error>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field">
+                  <!-- Frecuencias -->
+                  <mat-form-field appearance="outline">
                     <mat-label>FRECUENCIAS *</mat-label>
                     <input matInput 
                            formControlName="frecuencias" 
@@ -252,7 +185,8 @@ export interface CrearRutaModalData {
                     </mat-error>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field">
+                  <!-- Tipo de ruta -->
+                  <mat-form-field appearance="outline">
                     <mat-label>TIPO DE RUTA</mat-label>
                     <mat-select formControlName="tipoRuta">
                       <mat-option value="INTERPROVINCIAL">INTERPROVINCIAL</mat-option>
@@ -263,11 +197,32 @@ export interface CrearRutaModalData {
                     </mat-select>
                   </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field full-width">
+                  <!-- Tipo de servicio -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>TIPO DE SERVICIO</mat-label>
+                    <mat-select formControlName="tipoServicio">
+                      <mat-option value="PASAJEROS">PASAJEROS</mat-option>
+                      <mat-option value="CARGA">CARGA</mat-option>
+                      <mat-option value="MIXTO">MIXTO</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <!-- Distancia -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>DISTANCIA (KM)</mat-label>
+                    <input matInput 
+                           formControlName="distancia" 
+                           type="number"
+                           placeholder="0"
+                           min="0">
+                  </mat-form-field>
+
+                  <!-- Observaciones -->
+                  <mat-form-field appearance="outline" class="full-width">
                     <mat-label>OBSERVACIONES</mat-label>
                     <textarea matInput 
                               formControlName="observaciones"
-                              placeholder="Observaciones adicionales sobre la ruta"
+                              placeholder="Observaciones adicionales"
                               rows="3"></textarea>
                   </mat-form-field>
                 </div>
@@ -278,20 +233,18 @@ export interface CrearRutaModalData {
 
         <mat-dialog-actions align="end">
           <button mat-button mat-dialog-close>CANCELAR</button>
-          @if (empresaSeleccionada && resolucionSeleccionada) {
+          @if (resolucionSeleccionada) {
             <button mat-raised-button 
                     color="primary" 
                     [disabled]="!rutaForm.valid || isSubmitting"
                     (click)="onSubmit()">
-                          @if (isSubmitting) {
-              <mat-spinner diameter="20"></mat-spinner>
-              GUARDANDO...
-            } @else {
-              <ng-container>
+              @if (isSubmitting) {
+                <mat-spinner diameter="20"></mat-spinner>
+                GUARDANDO...
+              } @else {
                 <mat-icon>save</mat-icon>
                 CREAR RUTA
-              </ng-container>
-            }
+              }
             </button>
           }
         </mat-dialog-actions>
@@ -301,18 +254,99 @@ export interface CrearRutaModalData {
   styles: [`
     .modal-container {
       padding: 20px;
-      max-width: 800px;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
     .modal-card {
       width: 100%;
     }
 
+    .modal-card mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #2c3e50;
+    }
+
+    .empresa-info {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .empresa-info h3 {
+      margin: 0 0 12px 0;
+      color: #495057;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .empresa-info p {
+      margin: 4px 0;
+      font-size: 14px;
+    }
+
+    .resolucion-selection {
+      margin-bottom: 20px;
+    }
+
+    .resolucion-selection h3 {
+      margin: 0 0 16px 0;
+      color: #495057;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .info-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #e3f2fd;
+      border: 1px solid #2196f3;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .info-box mat-icon {
+      color: #2196f3;
+      margin-top: 2px;
+    }
+
+    .info-box ul {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+
+    .info-box li {
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .badge-primigenia {
+      background: #4caf50;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+
+    .ruta-form h3 {
+      margin: 0 0 20px 0;
+      color: #495057;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 20px;
+      gap: 16px;
     }
 
     .form-field {
@@ -323,497 +357,215 @@ export interface CrearRutaModalData {
       grid-column: 1 / -1;
     }
 
-    .codigo-ruta-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .codigo-ruta-container input {
-      flex: 1;
-    }
-
-    .codigo-ruta-container button {
-      flex-shrink: 0;
-    }
-
     @media (max-width: 768px) {
       .form-grid {
         grid-template-columns: 1fr;
       }
-    }
-    
-    /* Estilos para rutas existentes */
-    .rutas-existentes {
-      background-color: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-    .rutas-existentes h4 {
-      margin: 0 0 15px 0;
-      color: #495057;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .rutas-existentes h4::before {
-      content: "📋";
-      font-size: 18px;
-    }
-    .rutas-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 15px;
-      margin-bottom: 15px;
-    }
-    .ruta-item {
-      background: white;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      padding: 12px;
-      display: grid;
-      grid-template-columns: auto 1fr auto auto auto;
-      gap: 10px;
-      align-items: center;
-      font-size: 13px;
-    }
-    .ruta-codigo {
-      background: #007bff;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 12px;
-      min-width: 30px;
-      text-align: center;
-    }
-    .ruta-ruta {
-      font-weight: 500;
-      color: #495057;
-    }
-    .ruta-frecuencias {
-      color: #6c757d;
-      font-size: 12px;
-    }
-    .ruta-tipo {
-      color: #6c757d;
-      font-size: 12px;
-      text-align: center;
-    }
-    .ruta-estado {
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      text-align: center;
-      min-width: 60px;
-    }
-    .estado-activa {
-      background: #d4edda;
-      color: #155724;
-    }
-    .estado-suspendida {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    .estado-cancelada {
-      background: #fff3cd;
-      color: #856404;
-    }
-    .ruta-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #6c757d;
-      font-size: 13px;
-      padding: 10px;
-      background: white;
-      border-radius: 6px;
-      border: 1px solid #e9ecef;
-    }
-    .codigos-disponibles {
-      color: #28a745;
-      font-weight: 500;
-    }
-    
-    @media (max-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr;
+      
+      .modal-container {
+        padding: 10px;
+        max-width: 100%;
       }
-      .rutas-grid {
-        grid-template-columns: 1fr;
-      }
-      .ruta-item {
-        grid-template-columns: 1fr;
-        gap: 5px;
-        text-align: center;
-      }
+    }
+
+    mat-spinner {
+      margin-right: 8px;
     }
   `]
 })
-export class CrearRutaModalComponent {
+export class CrearRutaModalComponent implements OnInit {
   private dialogRef = inject(MatDialogRef<CrearRutaModalComponent>);
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
   private rutaService = inject(RutaService);
-  private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
+  private localidadService = inject(LocalidadService);
   
-  data = inject(MAT_DIALOG_DATA); // Hacer público para acceso en template
+  data = inject<CrearRutaModalData>(MAT_DIALOG_DATA);
 
-  // Estados de selección
-  empresaSeleccionada: Empresa | null = null;
+  empresa!: Empresa;
+  resoluciones: Resolucion[] = [];
+  localidades: Localidad[] = [];
   resolucionSeleccionada: Resolucion | null = null;
   
-  // Valores de búsqueda
-  empresaSearchValue = '';
-  resolucionSearchValue = '';
-  
-  // Listas filtradas
-  empresasFiltradas: Empresa[] = [];
-  resolucionesFiltradas: Resolucion[] = [];
-  
-  // Rutas existentes en la resolución seleccionada
-  rutasExistentes: Ruta[] = [];
-
-  rutaForm: FormGroup;
+  rutaForm!: FormGroup;
   isSubmitting = false;
 
   constructor() {
+    this.empresa = this.data.empresa;
+    
     this.rutaForm = this.fb.group({
+      tipoAsignacion: ['', [Validators.required]],
       codigoRuta: ['', [Validators.required]],
-      origen: ['', [Validators.required]],
-      destino: ['', [Validators.required]],
+      nombre: ['', [Validators.required]],
+      origenId: ['', [Validators.required]],
+      destinoId: ['', [Validators.required]],
       frecuencias: ['', [Validators.required]],
       tipoRuta: ['INTERPROVINCIAL'],
+      tipoServicio: ['PASAJEROS'],
+      distancia: [0, [Validators.min(0)]],
       observaciones: ['']
     });
-
-    // Generar código de ruta automáticamente
-    this.generarCodigoRutaAutomatico();
-    
-    // Cargar datos iniciales
-    this.cargarEmpresas();
-    
-    // Configurar validación inicial del código de ruta
-    this.configurarValidacionCodigoRuta();
   }
 
   ngOnInit(): void {
-    // Verificar si ya hay empresa pre-seleccionada desde el contexto
-    if (this.data.empresa) {
-      this.empresaSeleccionada = this.data.empresa;
-      this.empresaSearchValue = this.displayEmpresa(this.data.empresa);
-      // Cargar resoluciones de esta empresa
-      this.cargarResoluciones(this.data.empresa.id);
-    }
+    this.cargarResoluciones();
+    this.cargarLocalidades();
     
-    // Verificar si ya hay resolución pre-seleccionada
+    // Si ya hay una resolución preseleccionada
     if (this.data.resolucion) {
       this.resolucionSeleccionada = this.data.resolucion;
-      this.resolucionSearchValue = this.displayResolucion(this.data.resolucion);
-      // Cargar rutas existentes en esta resolución
-      this.cargarRutasExistentes(this.data.resolucion.id);
-    }
-    
-    // Generar código de ruta automáticamente
-    this.generarCodigoRutaAutomatico();
-  }
-
-  private generarCodigoRutaAutomatico(): void {
-    if (this.resolucionSeleccionada && this.resolucionSeleccionada.id !== 'general') {
-      // Generar código automático único
-      const codigoUnico = this.generarCodigoUnico();
-      this.rutaForm.patchValue({ codigoRuta: codigoUnico });
+      this.generarCodigoAutomatico();
     }
   }
 
-  // Generar código único automáticamente
-  private generarCodigoUnico(): string {
-    if (this.rutasExistentes.length === 0) {
-      return '01';
-    }
-    
-    // Obtener todos los códigos existentes
-    const codigosExistentes = this.rutasExistentes.map(ruta => 
-      parseInt(ruta.codigoRuta.toString())
-    ).sort((a, b) => a - b);
-    
-    // Buscar el primer código disponible
-    let codigoDisponible = 1;
-    for (const codigo of codigosExistentes) {
-      if (codigo === codigoDisponible) {
-        codigoDisponible++;
-      } else {
-        break;
-      }
-    }
-    
-    // Formatear a dos dígitos
-    return codigoDisponible.toString().padStart(2, '0');
+  private cargarResoluciones(): void {
+    this.resolucionService.getResoluciones().subscribe((resoluciones: Resolucion[]) => {
+      // Filtrar solo resoluciones de la empresa y que sean PRIMIGENIAS (PADRE)
+      // Las rutas generales solo se asignan a resoluciones primigenias, no a las hijas
+      this.resoluciones = resoluciones.filter(r => 
+        r.empresaId === this.empresa.id && 
+        r.tipoResolucion === 'PADRE' &&
+        (r.tipoTramite === 'PRIMIGENIA' || r.tipoTramite === 'RENOVACION') &&
+        r.estaActivo
+      );
+    });
   }
 
-  regenerarCodigoRuta(): void {
-    this.generarCodigoRutaAutomatico();
+  private cargarLocalidades(): void {
+    this.localidadService.getLocalidadesActivas().subscribe((localidades: Localidad[]) => {
+      this.localidades = localidades;
+    });
   }
 
-  onSubmit(): void {
-    if (this.rutaForm.valid) {
-      this.isSubmitting = true;
-      
-      const nuevaRuta: Partial<Ruta> = {
-        ...this.rutaForm.value,
-        empresaId: this.empresaSeleccionada?.id,
-        resolucionId: this.resolucionSeleccionada?.id,
-        estado: 'ACTIVA',
-        estaActivo: true,
-        fechaRegistro: new Date(),
-        fechaActualizacion: new Date()
-      };
+  onTipoAsignacionChange(event: any): void {
+    const tipoAsignacion = event.value;
+    
+    if (tipoAsignacion === 'GENERAL') {
+      // Para rutas generales, generar código automático
+      this.generarCodigoAutomatico();
+      // Actualizar observaciones con información del tipo
+      const observacionesActuales = this.rutaForm.get('observaciones')?.value || '';
+      const nuevaObservacion = 'RUTA GENERAL - Asignada a resolución primigenia. ' + observacionesActuales;
+      this.rutaForm.patchValue({ 
+        observaciones: nuevaObservacion.trim()
+      });
+    } else if (tipoAsignacion === 'ESPECIFICA') {
+      // Para rutas específicas, limpiar código para ingreso manual
+      this.rutaForm.patchValue({ codigoRuta: '' });
+      // Actualizar observaciones con información del tipo
+      const observacionesActuales = this.rutaForm.get('observaciones')?.value || '';
+      const nuevaObservacion = 'RUTA ESPECÍFICA - Debe asignarse a vehículos específicos. ' + observacionesActuales;
+      this.rutaForm.patchValue({ 
+        observaciones: nuevaObservacion.trim()
+      });
+    }
+  }
 
-      // Usar el servicio para crear la ruta
-      this.rutaService.createRuta(nuevaRuta as RutaCreate)
+  onResolucionSelected(event: any): void {
+    this.resolucionSeleccionada = event.value;
+    this.generarCodigoAutomatico();
+  }
+
+  private generarCodigoAutomatico(): void {
+    if (this.resolucionSeleccionada) {
+      // Usar el servicio para obtener el siguiente código disponible desde la API
+      this.rutaService.getSiguienteCodigoDisponible(this.resolucionSeleccionada.id)
         .subscribe({
-          next: (rutaGuardada: any) => {
-            this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { duration: 3000 });
-            this.dialogRef.close(rutaGuardada);
+          next: (codigo: string) => {
+            console.log('✅ Código generado automáticamente:', codigo);
+            this.rutaForm.patchValue({ codigoRuta: codigo });
           },
           error: (error: any) => {
-            this.snackBar.open('Error al crear la ruta', 'Cerrar', { duration: 3000 });
-            this.isSubmitting = false;
+            console.error('❌ Error generando código automático:', error);
+            // Fallback: usar código simple
+            this.rutaForm.patchValue({ codigoRuta: '01' });
           }
         });
     }
   }
 
-  // Métodos para selección de empresa
-  onEmpresaSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.empresaSearchValue = value;
-    this.filtrarEmpresas(value);
-  }
-
-  onEmpresaSelected(event: any): void {
-    const empresa = event.option.value;
-    this.empresaSeleccionada = empresa;
-    this.empresaSearchValue = this.displayEmpresa(empresa);
-    this.resolucionSeleccionada = null;
-    this.resolucionSearchValue = '';
-    this.cargarResoluciones(empresa.id);
-  }
-
-  displayEmpresa(empresa: Empresa): string {
-    return empresa ? `${empresa.ruc} - ${empresa.razonSocial?.principal || 'Sin razón social'}` : '';
-  }
-
-  // Métodos para selección de resolución
-  onResolucionSearchInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.resolucionSearchValue = value;
-    this.filtrarResoluciones(value);
-  }
-
-  onResolucionSelected(event: any): void {
-    const resolucion = event.option.value;
-    this.resolucionSeleccionada = resolucion;
-    this.resolucionSearchValue = this.displayResolucion(resolucion);
-    
-    // Cargar rutas existentes en esta resolución
-    this.cargarRutasExistentes(resolucion.id);
-  }
-
-  displayResolucion(resolucion: Resolucion): string {
-    return resolucion ? `${resolucion.nroResolucion} - ${resolucion.tipoTramite}` : '';
-  }
-
-  // Método para continuar al formulario
-  continuarACrearRuta(): void {
-    if (this.empresaSeleccionada && this.resolucionSeleccionada) {
-      this.generarCodigoRutaAutomatico();
-      // Actualizar validación del código de ruta
-      this.actualizarValidacionCodigoRuta();
-    }
-  }
-
-  // Validar código de ruta en tiempo real
-  onCodigoRutaChange(): void {
-    const codigoControl = this.rutaForm.get('codigoRuta');
-    if (codigoControl) {
-      // Formatear automáticamente a 2 dígitos
-      this.formatearCodigoRuta(codigoControl);
-      // Validar el código
-      codigoControl.updateValueAndValidity();
-    }
-  }
-
-  // Validar código de ruta cuando se sale del campo
-  onCodigoRutaBlur(): void {
-    const codigoControl = this.rutaForm.get('codigoRuta');
-    if (codigoControl) {
-      // Formatear final y validar
-      this.formatearCodigoRuta(codigoControl);
-      codigoControl.updateValueAndValidity();
-    }
-  }
-
-  // Formatear código de ruta a 2 dígitos
-  private formatearCodigoRuta(control: any): void {
-    let valor = control.value?.toString() || '';
-    
-    // Remover caracteres no numéricos
-    valor = valor.replace(/\D/g, '');
-    
-    // Limitar a máximo 2 dígitos
-    if (valor.length > 2) {
-      valor = valor.substring(0, 2);
-    }
-    
-    // Formatear a 2 dígitos con cero a la izquierda si es necesario
-    if (valor.length === 1 && valor !== '0') {
-      valor = '0' + valor;
-    }
-    
-    // Solo actualizar si el valor cambió
-    if (control.value !== valor) {
-      control.setValue(valor, { emitEvent: false });
-    }
-  }
-
-  // Obtener códigos disponibles para mostrar al usuario
-  obtenerCodigosDisponibles(): string {
-    if (this.rutasExistentes.length === 0) {
-      return '01, 02, 03...';
-    }
-    
-    const codigosExistentes = this.rutasExistentes.map(ruta => 
-      parseInt(ruta.codigoRuta.toString())
-    ).sort((a, b) => a - b);
-    
-    const codigosDisponibles: string[] = [];
-    let codigoActual = 1;
-    
-    // Buscar códigos disponibles hasta el 99
-    while (codigoActual <= 99) {
-      if (!codigosExistentes.includes(codigoActual)) {
-        codigosDisponibles.push(codigoActual.toString().padStart(2, '0'));
-      }
-      codigoActual++;
-    }
-    
-    // Mostrar solo los primeros 5 códigos disponibles
-    return codigosDisponibles.slice(0, 5).join(', ') + 
-           (codigosDisponibles.length > 5 ? '...' : '');
-  }
-
-  // Métodos privados
-  private cargarEmpresas(): void {
-    this.empresaService.getEmpresas().subscribe((empresas: Empresa[]) => {
-      this.empresasFiltradas = empresas.filter((e: Empresa) => e.estado === 'HABILITADA');
-    });
-  }
-
-  private cargarResoluciones(empresaId: string): void {
-    this.resolucionService.getResoluciones().subscribe((resoluciones: Resolucion[]) => {
-      this.resolucionesFiltradas = resoluciones.filter((r: Resolucion) => r.empresaId === empresaId);
-    });
-  }
-
-  private filtrarEmpresas(value: string): void {
-    if (!value) {
-      this.empresasFiltradas = [];
-      return;
-    }
-    
-    const filterValue = value.toLowerCase();
-    this.empresaService.getEmpresas().subscribe((empresas: Empresa[]) => {
-      this.empresasFiltradas = empresas.filter((empresa: Empresa) => 
-        empresa.estado === 'HABILITADA' && (
-          empresa.ruc.toLowerCase().includes(filterValue) ||
-          (empresa.razonSocial?.principal || '').toLowerCase().includes(filterValue)
-        )
-      );
-    });
-  }
-
-  private filtrarResoluciones(value: string): void {
-    if (!value || !this.empresaSeleccionada) {
-      this.resolucionesFiltradas = [];
-      return;
-    }
-    
-    const filterValue = value.toLowerCase();
-    this.resolucionService.getResoluciones().subscribe((resoluciones: Resolucion[]) => {
-      this.resolucionesFiltradas = resoluciones.filter((resolucion: Resolucion) => 
-        resolucion.empresaId === this.empresaSeleccionada!.id &&
-        resolucion.nroResolucion.toLowerCase().includes(filterValue)
-      );
-    });
-  }
-
-  private cargarRutasExistentes(resolucionId: string): void {
-    this.rutaService.getRutas().subscribe((rutas: Ruta[]) => {
-      this.rutasExistentes = rutas.filter((ruta: Ruta) => 
-        ruta.resolucionId === resolucionId
-      );
+  onSubmit(): void {
+    if (this.rutaForm.valid && this.resolucionSeleccionada) {
+      // Validaciones adicionales según las reglas de negocio
+      const tipoAsignacion = this.rutaForm.get('tipoAsignacion')?.value;
       
-      // Actualizar validación del código de ruta
-      this.actualizarValidacionCodigoRuta();
-    });
-  }
+      // Validar que la resolución sea primigenia (PADRE)
+      if (this.resolucionSeleccionada.tipoResolucion !== 'PADRE') {
+        this.snackBar.open('Error: Solo se pueden crear rutas en resoluciones primigenias (PADRE)', 'Cerrar', { 
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+        return;
+      }
 
-  // Validación personalizada para código único de ruta
-  private validarCodigoUnico(control: any): { [key: string]: any } | null {
-    if (!control.value || !this.resolucionSeleccionada) {
-      return null;
-    }
-    
-    const codigoIngresado = control.value.toString().trim();
-    
-    // Validar formato de 2 dígitos
-    if (!/^\d{2}$/.test(codigoIngresado)) {
-      return { 'formatoInvalido': { value: codigoIngresado } };
-    }
-    
-    // Validar que sea un número entre 01 y 99
-    const numero = parseInt(codigoIngresado);
-    if (numero < 1 || numero > 99) {
-      return { 'rangoInvalido': { value: codigoIngresado } };
-    }
-    
-    const codigoExiste = this.rutasExistentes.some(ruta => 
-      ruta.codigoRuta.toString().trim() === codigoIngresado
-    );
-    
-    if (codigoExiste) {
-      return { 'codigoDuplicado': { value: codigoIngresado } };
-    }
-    
-    return null;
-  }
+      // Validar que la resolución sea PRIMIGENIA o RENOVACION
+      if (!['PRIMIGENIA', 'RENOVACION'].includes(this.resolucionSeleccionada.tipoTramite)) {
+        this.snackBar.open('Error: Solo se pueden crear rutas en resoluciones PRIMIGENIAS o de RENOVACIÓN', 'Cerrar', { 
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+        return;
+      }
 
-  // Actualizar validación del código de ruta
-  private actualizarValidacionCodigoRuta(): void {
-    const codigoControl = this.rutaForm.get('codigoRuta');
-    if (codigoControl) {
-      codigoControl.setValidators([
-        Validators.required,
-        this.validarCodigoUnico.bind(this)
-      ]);
-      codigoControl.updateValueAndValidity();
-    }
-  }
+      this.isSubmitting = true;
+      
+      const formValue = this.rutaForm.value;
+      
+      // Agregar información del tipo de asignación a las observaciones
+      let observacionesFinales = formValue.observaciones || '';
+      if (tipoAsignacion === 'GENERAL') {
+        observacionesFinales = `[RUTA GENERAL] ${observacionesFinales}`.trim();
+      } else if (tipoAsignacion === 'ESPECIFICA') {
+        observacionesFinales = `[RUTA ESPECÍFICA] ${observacionesFinales}`.trim();
+      }
+      
+      const nuevaRuta: RutaCreate = {
+        codigoRuta: formValue.codigoRuta,
+        nombre: formValue.nombre,
+        origenId: formValue.origenId,
+        destinoId: formValue.destinoId,
+        itinerarioIds: [],
+        frecuencias: formValue.frecuencias,
+        tipoRuta: formValue.tipoRuta as TipoRuta,
+        tipoServicio: formValue.tipoServicio as TipoServicio,
+        distancia: formValue.distancia || 0,
+        observaciones: observacionesFinales,
+        empresaId: this.empresa.id,
+        resolucionId: this.resolucionSeleccionada.id
+      };
 
-  // Configurar validación inicial del código de ruta
-  private configurarValidacionCodigoRuta(): void {
-    const codigoControl = this.rutaForm.get('codigoRuta');
-    if (codigoControl) {
-      // Agregar listener para formateo automático
-      codigoControl.valueChanges.subscribe(() => {
-        this.formatearCodigoRuta(codigoControl);
+      console.log('📤 Enviando ruta al backend:', nuevaRuta);
+      console.log('📋 Tipo de asignación:', tipoAsignacion);
+      console.log('📋 Resolución seleccionada:', this.resolucionSeleccionada);
+
+      this.rutaService.createRuta(nuevaRuta).subscribe({
+        next: (rutaGuardada: Ruta) => {
+          console.log('✅ Ruta creada exitosamente:', rutaGuardada);
+          const mensaje = tipoAsignacion === 'GENERAL' 
+            ? 'Ruta general creada exitosamente y asignada a la resolución primigenia'
+            : 'Ruta específica creada exitosamente. Recuerde asignarla a vehículos específicos';
+          
+          this.snackBar.open(mensaje, 'Cerrar', { 
+            duration: 4000,
+            panelClass: ['success-snackbar']
+          });
+          this.dialogRef.close(rutaGuardada);
+        },
+        error: (error: any) => {
+          console.error('❌ Error al crear la ruta:', error);
+          this.snackBar.open('Error al crear la ruta: ' + (error.message || 'Error desconocido'), 'Cerrar', { 
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          this.isSubmitting = false;
+        }
+      });
+    } else {
+      this.snackBar.open('Por favor complete todos los campos requeridos', 'Cerrar', { duration: 3000 });
+      Object.keys(this.rutaForm.controls).forEach(key => {
+        this.rutaForm.get(key)?.markAsTouched();
       });
     }
   }
-} 
+}

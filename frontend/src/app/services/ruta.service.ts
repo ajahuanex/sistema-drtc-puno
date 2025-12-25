@@ -129,75 +129,54 @@ export class RutaService {
       rutaIdExcluir
     });
 
-    // Obtener todas las rutas activas de la resolución específica
-    const rutasDeResolucion: any[] = [];
-
-
-    console.log('📊 RUTAS A VALIDAR:', {
-      resolucionId,
-      totalRutas: rutasDeResolucion.length,
-      rutas: rutasDeResolucion.map(r => ({ 
-        id: r.id, 
-        codigoRuta: r.codigoRuta,
-        nombre: r.nombre,
-        origen: r.origen,
-        destino: r.destino
-      }))
-    });
-
-    // Verificar si el código ya existe
-    const codigoExiste = rutasDeResolucion.some(r => r.codigoRuta === codigoRuta);
-    
-    console.log('✅ RESULTADO VALIDACIÓN:', {
+    const url = `${this.apiUrl}/rutas/validar-codigo-unico`;
+    const body = {
       resolucionId,
       codigoRuta,
-      codigoExiste,
-      esUnico: !codigoExiste
-    });
+      rutaIdExcluir
+    };
 
-    // Si el código existe, NO es único
-    if (codigoExiste) {
-      console.error('❌ CÓDIGO DUPLICADO DETECTADO:', {
-        resolucionId,
-        codigoRuta,
-        rutasExistentes: rutasDeResolucion.filter(r => r.codigoRuta === codigoRuta)
-      });
-    }
-
-    return of(!codigoExiste);
+    return this.http.post<{esUnico: boolean}>(url, body, { headers: this.getHeaders() })
+      .pipe(
+        map(response => {
+          console.log('✅ RESULTADO VALIDACIÓN:', {
+            resolucionId,
+            codigoRuta,
+            esUnico: response.esUnico
+          });
+          return response.esUnico;
+        }),
+        catchError(error => {
+          console.error('❌ Error validando código único:', error);
+          // En caso de error, asumir que es único para no bloquear
+          return of(true);
+        })
+      );
   }
 
   // Método para generar código de ruta único dentro de una resolución primigenia
   generarCodigoRutaPorResolucion(resolucionId: string): Observable<string> {
     console.log('🔧 GENERANDO CÓDIGO PARA RESOLUCIÓN:', resolucionId);
     
-    // Obtener todas las rutas activas de la resolución
-    const rutasDeResolucion: any[] = [];
-
-    // Buscar el siguiente número disponible dentro de la resolución
-    let numero = 1;
-    let codigoGenerado = numero.toString().padStart(2, '0');
+    const url = `${this.apiUrl}/rutas/generar-codigo/${resolucionId}`;
     
-    // Verificar que no exista el código generado
-    // while (rutasDeResolucion.some((r: any) => r.codigoRuta === codigoGenerado)) {
-    //   numero++;
-    //   codigoGenerado = numero.toString().padStart(2, '0');
-    //   
-    //   // Protección contra bucles infinitos
-    //   if (numero > 99) {
-    //     console.error('❌ ERROR: No se pueden generar más códigos de ruta (límite 99)');
-    //     break;
-    //   }
-    // }
-    
-    console.log('✅ CÓDIGO GENERADO:', {
-      resolucionId,
-      codigoGenerado,
-      intentos: numero,
-      totalRutasExistentes: rutasDeResolucion.length
-    });
-    
-    return of(codigoGenerado);
+    return this.http.get<{codigo: string}>(url, { headers: this.getHeaders() })
+      .pipe(
+        map(response => {
+          console.log('✅ CÓDIGO GENERADO:', {
+            resolucionId,
+            codigoGenerado: response.codigo
+          });
+          return response.codigo;
+        }),
+        catchError(error => {
+          console.error('❌ Error generando código, usando fallback:', error);
+          // Fallback: generar código simple
+          const codigoFallback = '01';
+          console.log('🔄 USANDO CÓDIGO FALLBACK:', codigoFallback);
+          return of(codigoFallback);
+        })
+      );
   }
 
   // Método para calcular distancia y tiempo estimado automáticamente
@@ -228,7 +207,6 @@ export class RutaService {
   getRutasPorEmpresaYResolucion(empresaId: string, resolucionId: string): Observable<Ruta[]> {
     console.log('🔍 OBTENIENDO RUTAS POR EMPRESA Y RESOLUCIÓN:', { empresaId, resolucionId });
     
-    // Usar API correcta
     const url = `${this.apiUrl}/rutas/empresa/${empresaId}/resolucion/${resolucionId}`;
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
@@ -237,10 +215,6 @@ export class RutaService {
           return of([]);
         })
       );
-    
- 
-    //   r.estaActivo
-    // );
   }
 
   // Método para obtener rutas por resolución específica

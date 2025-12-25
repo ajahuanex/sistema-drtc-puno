@@ -55,7 +55,9 @@ export interface TipoRuta {
     MatExpansionModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    EditarConfiguracionModalComponent,
+    GestionarLocalidadModalComponent
   ],
   template: `
     <div class="configuracion-container">
@@ -407,7 +409,8 @@ export interface TipoRuta {
                 </button>
                 <button mat-raised-button 
                         color="primary" 
-                        (click)="agregarLocalidad()">
+                        (click)="agregarLocalidad()"
+                        onclick="console.log('CLICK DIRECTO DETECTADO')">
                   <mat-icon>add_location</mat-icon>
                   Agregar Localidad
                 </button>
@@ -570,16 +573,12 @@ export class ConfiguracionComponent implements OnInit {
   CategoriaConfiguracion = CategoriaConfiguracion;
 
   ngOnInit(): void {
-    // Cargar configuraciones al inicializar
-    this.configuracionService.cargarConfiguraciones().subscribe({
-      next: (configuraciones) => {
-        console.log('🔧 Configuraciones cargadas:', configuraciones.length);
-      },
-      error: (error) => {
-        console.error('Error cargando configuraciones:', error);
-        this.snackBar.open('Error cargando configuraciones', 'Cerrar', { duration: 3000 });
-      }
-    });
+    console.log('🔧 Inicializando componente de configuración...');
+    
+    // Las configuraciones ya están cargadas por el servicio
+    // Solo verificar que estén disponibles
+    const configuraciones = this.configuracionService.configuraciones();
+    console.log('📊 Configuraciones disponibles:', configuraciones.length);
 
     // Cargar localidades
     this.cargarLocalidades();
@@ -672,12 +671,13 @@ export class ConfiguracionComponent implements OnInit {
 
     this.localidadService.getLocalidades(filtros).subscribe({
       next: (localidades) => {
+        console.log('✅ Localidades cargadas en componente:', localidades.length);
         this.localidades.set(localidades);
         this.aplicarFiltrosLocalidades();
         this.cargandoLocalidades.set(false);
       },
       error: (error) => {
-        console.error('Error cargando localidades:', error);
+        console.error('❌ Error cargando localidades:', error);
         this.snackBar.open('Error cargando localidades', 'Cerrar', { duration: 3000 });
         this.cargandoLocalidades.set(false);
       }
@@ -735,18 +735,29 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   agregarLocalidad(): void {
-    const dialogRef = this.dialog.open(GestionarLocalidadModalComponent, {
-      width: '800px',
-      maxWidth: '90vw',
-      data: { modo: 'crear' },
-      disableClose: true
-    });
+    console.log('🔍 BOTÓN AGREGAR LOCALIDAD CLICKEADO');
+    console.log('🔍 Dialog disponible:', !!this.dialog);
+    console.log('🔍 GestionarLocalidadModalComponent:', GestionarLocalidadModalComponent);
+    
+    try {
+      const dialogRef = this.dialog.open(GestionarLocalidadModalComponent, {
+        width: '800px',
+        maxWidth: '90vw',
+        data: { modo: 'crear' },
+        disableClose: true
+      });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cargarLocalidades();
-      }
-    });
+      console.log('✅ Modal abierto exitosamente:', dialogRef);
+
+      dialogRef.afterClosed().subscribe(result => {
+        console.log('🔍 Modal cerrado con resultado:', result);
+        if (result) {
+          this.cargarLocalidades();
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error abriendo modal:', error);
+    }
   }
 
   editarLocalidad(localidad: Localidad): void {

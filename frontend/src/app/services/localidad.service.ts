@@ -1,22 +1,25 @@
-import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of, BehaviorSubject } from 'rxjs';
+import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 import { 
   Localidad, 
   LocalidadCreate, 
   LocalidadUpdate, 
   FiltroLocalidades,
   LocalidadesPaginadas,
-  LOCALIDADES_PUNO,
   TipoLocalidad
 } from '../models/localidad.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LocalidadService {
-  private apiUrl = 'http://localhost:8000/api/v1/localidades';
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private apiUrl = `${environment.apiUrl}/localidades`;
   
   // Signals para el estado
   private localidadesSignal = signal<Localidad[]>([]);
@@ -24,12 +27,17 @@ export class LocalidadService {
   
   // BehaviorSubject para compatibilidad con observables
   private localidadesSubject = new BehaviorSubject<Localidad[]>([]);
-  
-  // Datos mock para desarrollo
-  private localidadesMock: Localidad[] = [];
 
-  constructor(private http: HttpClient) {
-    this.inicializarLocalidadesMock();
+  constructor() {
+    console.log('🌍 LocalidadService inicializado - usando únicamente API');
+  }
+
+  private getHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token || ''}`
+    });
   }
 
   // Getters para signals
@@ -46,57 +54,37 @@ export class LocalidadService {
     return this.localidadesSubject.asObservable();
   }
 
-  private inicializarLocalidadesMock(): void {
-    this.localidadesMock = LOCALIDADES_PUNO.map((localidad, index) => ({
-      id: `loc_${index + 1}`,
-      ...localidad,
-      estaActiva: true,
-      fechaCreacion: new Date(),
-      fechaActualizacion: new Date()
-    }));
-    
-    this.localidadesSignal.set(this.localidadesMock);
-    this.localidadesSubject.next(this.localidadesMock);
-  }
-
   // Obtener todas las localidades
   getLocalidades(filtros?: FiltroLocalidades): Observable<Localidad[]> {
+    console.log('🔍 Obteniendo localidades desde API...');
     this.cargandoSignal.set(true);
     
-    // Simular llamada al backend
-    return of(this.localidadesMock).pipe(
-      map(localidades => {
-        if (!filtros) return localidades;
-        
-        return localidades.filter(localidad => {
-          if (filtros.nombre && !localidad.nombre.toLowerCase().includes(filtros.nombre.toLowerCase())) {
-            return false;
-          }
-          if (filtros.tipo && localidad.tipo !== filtros.tipo) {
-            return false;
-          }
-          if (filtros.departamento && !localidad.departamento.toLowerCase().includes(filtros.departamento.toLowerCase())) {
-            return false;
-          }
-          if (filtros.provincia && !localidad.provincia.toLowerCase().includes(filtros.provincia.toLowerCase())) {
-            return false;
-          }
-          if (filtros.estaActiva !== undefined && localidad.estaActiva !== filtros.estaActiva) {
-            return false;
-          }
-          return true;
-        });
-      }),
+    let url = this.apiUrl;
+    const params = new URLSearchParams();
+    
+    if (filtros) {
+      if (filtros.nombre) params.append('nombre', filtros.nombre);
+      if (filtros.tipo) params.append('tipo', filtros.tipo);
+      if (filtros.departamento) params.append('departamento', filtros.departamento);
+      if (filtros.provincia) params.append('provincia', filtros.provincia);
+      if (filtros.estaActiva !== undefined) params.append('estaActiva', filtros.estaActiva.toString());
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return this.http.get<Localidad[]>(url, { headers: this.getHeaders() }).pipe(
       tap(localidades => {
-        // Actualizar signals y subjects
-        this.localidadesSignal.set([...this.localidadesMock]); // Usar todos los datos, no solo filtrados
-        this.localidadesSubject.next([...this.localidadesMock]);
+        console.log('✅ Localidades obtenidas desde API:', localidades.length);
+        this.localidadesSignal.set(localidades);
+        this.localidadesSubject.next(localidades);
         this.cargandoSignal.set(false);
       }),
       catchError(error => {
-        console.error('Error obteniendo localidades:', error);
+        console.error('❌ Error obteniendo localidades:', error);
         this.cargandoSignal.set(false);
-        return of([]);
+        return throwError(() => error);
       })
     );
   }
@@ -121,59 +109,95 @@ export class LocalidadService {
 
   // Obtener localidad por ID
   getLocalidadById(id: string): Observable<Localidad | null> {
-    const localidad = this.localidadesMock.find(l => l.id === id);
-    return of(localidad || null);
+    console.log('🔍 Obteniendo localidad por ID desde API:', id);
+    const url = `${this.apiUrl}/${id}`;
+    
+    return this.http.get<Localidad>(url, { headers: this.getHeaders() }).pipe(
+      tap(localidad => {
+        console.log('✅ Localidad obtenida desde API:', localidad);
+      }),
+      catchError(error => {
+        console.error('❌ Error obteniendo localidad por ID:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   // Crear nueva localidad
   createLocalidad(localidad: LocalidadCreate): Observable<Localidad> {
-    const nuevaLocalidad: Localidad = {
-      id: `loc_${Date.now()}`,
-      ...localidad,
-      estaActiva: true,
-      fechaCreacion: new Date(),
-      fechaActualizacion: new Date()
-    };
-
-    this.localidadesMock.push(nuevaLocalidad);
-    this.localidadesSignal.set([...this.localidadesMock]);
-    this.localidadesSubject.next([...this.localidadesMock]);
+    console.log('📤 Creando localidad en API:', localidad);
     
-    return of(nuevaLocalidad);
+    return this.http.post<Localidad>(this.apiUrl, localidad, { headers: this.getHeaders() }).pipe(
+      tap(nuevaLocalidad => {
+        console.log('✅ Localidad creada en API:', nuevaLocalidad);
+        // Actualizar signals locales
+        const localidades = this.localidadesSignal();
+        localidades.push(nuevaLocalidad);
+        this.localidadesSignal.set([...localidades]);
+        this.localidadesSubject.next([...localidades]);
+      }),
+      catchError(error => {
+        console.error('❌ Error creando localidad:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   // Actualizar localidad
   updateLocalidad(id: string, localidad: LocalidadUpdate): Observable<Localidad> {
-    const index = this.localidadesMock.findIndex(l => l.id === id);
-    if (index === -1) {
-      throw new Error('Localidad no encontrada');
-    }
-
-    const localidadActualizada: Localidad = {
-      ...this.localidadesMock[index],
-      ...localidad,
-      fechaActualizacion: new Date()
-    };
-
-    this.localidadesMock[index] = localidadActualizada;
-    this.localidadesSignal.set([...this.localidadesMock]);
-    this.localidadesSubject.next([...this.localidadesMock]);
+    console.log('📤 Actualizando localidad en backend:', id, localidad);
+    const url = `${this.apiUrl}/${id}`;
     
-    return of(localidadActualizada);
+    return this.http.put<Localidad>(url, localidad, { headers: this.getHeaders() }).pipe(
+      tap(localidadActualizada => {
+        console.log('✅ Localidad actualizada en backend:', localidadActualizada);
+        // Actualizar signals locales
+        const localidades = this.localidadesSignal();
+        const index = localidades.findIndex(l => l.id === id);
+        if (index !== -1) {
+          localidades[index] = localidadActualizada;
+          this.localidadesSignal.set([...localidades]);
+          this.localidadesSubject.next([...localidades]);
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error actualizando localidad:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   // Eliminar localidad (desactivar)
   deleteLocalidad(id: string): Observable<boolean> {
-    return this.updateLocalidad(id, { estaActiva: false }).pipe(
-      map(() => true)
+    console.log('📤 Eliminando localidad en backend:', id);
+    const url = `${this.apiUrl}/${id}`;
+    
+    return this.http.delete<void>(url, { headers: this.getHeaders() }).pipe(
+      map(() => {
+        console.log('✅ Localidad eliminada en backend');
+        // Actualizar signals locales
+        const localidades = this.localidadesSignal();
+        const index = localidades.findIndex(l => l.id === id);
+        if (index !== -1) {
+          localidades[index].estaActiva = false;
+          this.localidadesSignal.set([...localidades]);
+          this.localidadesSubject.next([...localidades]);
+        }
+        return true;
+      }),
+      catchError(error => {
+        console.error('❌ Error eliminando localidad:', error);
+        return throwError(() => error);
+      })
     );
   }
 
   // Activar/Desactivar localidad
   toggleEstadoLocalidad(id: string): Observable<Localidad> {
-    const localidad = this.localidadesMock.find(l => l.id === id);
+    const localidades = this.localidadesSignal();
+    const localidad = localidades.find(l => l.id === id);
     if (!localidad) {
-      throw new Error('Localidad no encontrada');
+      return throwError(() => new Error('Localidad no encontrada'));
     }
 
     return this.updateLocalidad(id, { estaActiva: !localidad.estaActiva });
@@ -201,94 +225,83 @@ export class LocalidadService {
 
   // Validar código único
   validarCodigoUnico(codigo: string, idExcluir?: string): Observable<boolean> {
-    const existe = this.localidadesMock.some(l => 
-      l.codigo.toLowerCase() === codigo.toLowerCase() && l.id !== idExcluir
+    console.log('🔍 Validando código único en API:', codigo);
+    
+    const url = `${this.apiUrl}/validar-codigo`;
+    const body = { codigo, idExcluir };
+    
+    return this.http.post<{esUnico: boolean}>(url, body, { headers: this.getHeaders() }).pipe(
+      map(response => {
+        console.log('✅ Validación de código desde API:', response.esUnico);
+        return response.esUnico;
+      }),
+      catchError(error => {
+        console.error('❌ Error validando código único:', error);
+        return throwError(() => error);
+      })
     );
-    return of(!existe);
   }
 
   // Importar localidades desde archivo
   importarLocalidades(localidades: LocalidadCreate[]): Observable<Localidad[]> {
-    const localidadesImportadas: Localidad[] = localidades.map((localidad, index) => ({
-      id: `loc_import_${Date.now()}_${index}`,
-      ...localidad,
-      estaActiva: true,
-      fechaCreacion: new Date(),
-      fechaActualizacion: new Date()
-    }));
-
-    this.localidadesMock.push(...localidadesImportadas);
-    this.localidadesSignal.set([...this.localidadesMock]);
-    this.localidadesSubject.next([...this.localidadesMock]);
+    console.log('📤 Importando localidades en backend:', localidades.length);
+    const url = `${this.apiUrl}/importar`;
     
-    return of(localidadesImportadas);
+    return this.http.post<Localidad[]>(url, { localidades }, { headers: this.getHeaders() }).pipe(
+      tap(localidadesImportadas => {
+        console.log('✅ Localidades importadas en backend:', localidadesImportadas.length);
+        // Actualizar signals locales
+        const localidadesActuales = this.localidadesSignal();
+        const todasLasLocalidades = [...localidadesActuales, ...localidadesImportadas];
+        this.localidadesSignal.set(todasLasLocalidades);
+        this.localidadesSubject.next(todasLasLocalidades);
+      }),
+      catchError(error => {
+        console.error('❌ Error importando localidades:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   // Exportar localidades
   exportarLocalidades(): string {
-    return JSON.stringify(this.localidadesMock, null, 2);
+    const localidades = this.localidadesSignal();
+    return JSON.stringify(localidades, null, 2);
   }
 
   // Resetear a localidades por defecto
   resetearLocalidades(): Observable<Localidad[]> {
-    this.inicializarLocalidadesMock();
-    return of(this.localidadesMock);
+    console.log('📤 Reseteando localidades en API...');
+    const url = `${this.apiUrl}/reset`;
+    
+    return this.http.post<Localidad[]>(url, {}, { headers: this.getHeaders() }).pipe(
+      tap(localidadesReseteadas => {
+        console.log('✅ Localidades reseteadas en API:', localidadesReseteadas.length);
+        this.localidadesSignal.set(localidadesReseteadas);
+        this.localidadesSubject.next(localidadesReseteadas);
+      }),
+      catchError(error => {
+        console.error('❌ Error reseteando localidades:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
-  // Calcular distancia entre dos localidades (método simulado)
+  // Calcular distancia entre dos localidades
   calcularDistancia(origenId: string, destinoId: string): Observable<number> {
-    // Simulación de cálculo de distancia
-    // En un sistema real, esto usaría APIs de mapas o coordenadas geográficas
+    console.log('🔍 Calculando distancia entre localidades:', origenId, destinoId);
+    const url = `${this.apiUrl}/calcular-distancia`;
+    const body = { origenId, destinoId };
     
-    const origen = this.localidadesMock.find(l => l.id === origenId);
-    const destino = this.localidadesMock.find(l => l.id === destinoId);
-    
-    if (!origen || !destino) {
-      return of(0);
-    }
-
-    // Si ambas localidades tienen coordenadas, calcular distancia real
-    if (origen.coordenadas && destino.coordenadas) {
-      const distancia = this.calcularDistanciaHaversine(
-        origen.coordenadas.latitud,
-        origen.coordenadas.longitud,
-        destino.coordenadas.latitud,
-        destino.coordenadas.longitud
-      );
-      return of(Math.round(distancia));
-    }
-
-    // Distancias aproximadas por defecto (simuladas)
-    const distanciasSimuladas: { [key: string]: number } = {
-      'loc_1_loc_2': 45,   // Puno - Juliaca
-      'loc_1_loc_11': 1350, // Puno - Lima
-      'loc_1_loc_12': 290,  // Puno - Arequipa
-      'loc_1_loc_13': 385,  // Puno - Cusco
-      'loc_2_loc_11': 1305, // Juliaca - Lima
-      'loc_2_loc_12': 245,  // Juliaca - Arequipa
-    };
-
-    const clave1 = `${origenId}_${destinoId}`;
-    const clave2 = `${destinoId}_${origenId}`;
-    
-    return of(distanciasSimuladas[clave1] || distanciasSimuladas[clave2] || 100);
-  }
-
-  // Fórmula de Haversine para calcular distancia entre coordenadas
-  private calcularDistanciaHaversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Radio de la Tierra en kilómetros
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLon = this.toRadians(lon2 - lon1);
-    
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
+    return this.http.post<{distancia: number}>(url, body, { headers: this.getHeaders() }).pipe(
+      map(response => {
+        console.log('✅ Distancia calculada desde API:', response.distancia);
+        return response.distancia;
+      }),
+      catchError(error => {
+        console.error('❌ Error calculando distancia:', error);
+        return throwError(() => error);
+      })
+    );
   }
 }
