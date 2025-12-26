@@ -5,10 +5,7 @@ import { VehiculoService } from '../services/vehiculo.service';
 
 /**
  * Validador para formato de placa peruana
- * Formatos válidos:
- * - ABC-123 (3 letras, guión, 3 números)
- * - AB-1234 (2 letras, guión, 4 números)
- * - A1B-234 (letra, número, letra, guión, 3 números) - formato antiguo
+ * Formato válido: XXX-123 (3 alfanuméricos, guión, 3 números)
  */
 export function placaPeruanaValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -18,20 +15,14 @@ export function placaPeruanaValidator(): ValidatorFn {
 
     const placa = control.value.toUpperCase().trim();
     
-    // Formatos válidos de placas peruanas
-    const formatoNuevo = /^[A-Z]{3}-\d{3}$/; // ABC-123
-    const formatoAntiguo = /^[A-Z]{2}-\d{4}$/; // AB-1234
-    const formatoMixto = /^[A-Z]\d[A-Z]-\d{3}$/; // A1B-234
+    // Formato específico: XXX-123 (3 alfanuméricos, guión, 3 números)
+    const formatoValido = /^[A-Z0-9]{3}-\d{3}$/;
     
-    const esValida = formatoNuevo.test(placa) || 
-                     formatoAntiguo.test(placa) || 
-                     formatoMixto.test(placa);
-    
-    if (!esValida) {
+    if (!formatoValido.test(placa)) {
       return {
         placaInvalida: {
           value: control.value,
-          message: 'Formato de placa inválido. Use ABC-123, AB-1234 o A1B-234'
+          message: 'Formato de placa inválido. Use XXX-123 (3 alfanuméricos-guión-3números)'
         }
       };
     }

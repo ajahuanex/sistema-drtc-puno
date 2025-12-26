@@ -65,48 +65,40 @@ export class VehiculoService {
   // ========================================
 
   getVehiculos(): Observable<Vehiculo[]> {
-    if (environment.useDataManager) {
-      return this.getVehiculosPersistentes();
-    } else {
-      return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
-        headers: this.getHeaders()
-      }).pipe(
-        catchError(error => {
-          console.error('Error obteniendo vehículos:', error);
-          return of([]);
-        })
-      );
-    }
+    // SOLO API REAL - NO DATAMANAGER
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo vehículos:', error);
+        return of([]);
+      })
+    );
   }
 
   getVehiculo(id: string): Observable<Vehiculo | null> {
-    if (environment.useDataManager) {
-      return this.getVehiculoCompleto(id);
-    } else {
-      return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, {
-        headers: this.getHeaders()
-      }).pipe(
-        catchError(error => {
-          console.error('Error obteniendo vehículo:', error);
-          return of(null);
-        })
-      );
-    }
+    // SOLO API REAL - NO DATAMANAGER
+    return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo vehículo:', error);
+        return of(null);
+      })
+    );
   }
 
   createVehiculo(vehiculo: VehiculoCreate): Observable<Vehiculo> {
-    if (environment.useDataManager) {
-      return this.createVehiculoPersistente(vehiculo);
-    } else {
-      return this.http.post<Vehiculo>(`${this.apiUrl}/vehiculos`, vehiculo, {
-        headers: this.getHeaders()
-      }).pipe(
-        catchError(error => {
-          console.error('Error creando vehículo:', error);
-          return throwError(() => error);
-        })
-      );
-    }
+    // SOLO API REAL - NO DATAMANAGER
+    console.log('🔍 Creando vehículo en API real:', vehiculo);
+    return this.http.post<Vehiculo>(`${this.apiUrl}/vehiculos`, vehiculo, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error creando vehículo:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   updateVehiculo(id: string, vehiculo: VehiculoUpdate): Observable<Vehiculo> {
@@ -294,6 +286,7 @@ export class VehiculoService {
         asientos: data.numeroAsientos || data.asientos || 45,
         pesoNeto: data.pesoSeco || data.pesoNeto || 8500,
         pesoBruto: data.pesoBruto || 16000,
+        tipoCombustible: data.tipoCombustible || 'DIESEL',
         medidas: data.medidas || {
           largo: 12000,
           ancho: 2500,
@@ -459,9 +452,12 @@ export class VehiculoService {
   }
 
   getVehiculoByPlaca(placa: string): Observable<Vehiculo | null> {
-    return this.http.get<Vehiculo>(`${this.apiUrl}/vehiculos/placa/${placa}`, {
+    return this.http.get<any>(`${this.apiUrl}/vehiculos/validar-placa/${placa}`, {
       headers: this.getHeaders()
-    }).pipe(catchError(() => of(null)));
+    }).pipe(
+      map(response => response.vehiculo || null),
+      catchError(() => of(null))
+    );
   }
 
   getVehiculosPorResolucion(resolucionId: string): Observable<Vehiculo[]> {

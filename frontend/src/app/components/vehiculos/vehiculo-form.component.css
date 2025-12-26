@@ -224,8 +224,9 @@ mat-expansion-panel-header {
 .tipo-hija {
   background: #fff3e0;
   color: #f57c00;
-}/
-* Estilos para la gestión de vehículos */
+}
+
+/* Estilos para la gestión de vehículos */
 .vehiculos-info {
   padding: 20px;
   background-color: #f8f9fa;

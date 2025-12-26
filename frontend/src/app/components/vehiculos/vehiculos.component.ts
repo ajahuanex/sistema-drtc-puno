@@ -24,6 +24,7 @@ import { VehiculoModalService } from '../../services/vehiculo-modal.service';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Empresa } from '../../models/empresa.model';
 import { TransferirVehiculoModalComponent } from './transferir-vehiculo-modal.component';
+import { VehiculoModalComponent } from './vehiculo-modal.component';
 
 @Component({
   selector: 'app-vehiculos',
@@ -47,7 +48,9 @@ import { TransferirVehiculoModalComponent } from './transferir-vehiculo-modal.co
     MatDividerModule,
     MatPaginatorModule,
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    TransferirVehiculoModalComponent,
+    VehiculoModalComponent
   ],
   templateUrl: './vehiculos.component.html',
   styleUrls: ['./vehiculos.component.scss']
@@ -200,16 +203,59 @@ export class VehiculosComponent implements OnInit {
   }
 
   nuevoVehiculo(): void {
-    this.vehiculoModalService.openCreateModal().subscribe({
-      next: (vehiculo: any) => {
-        console.log('✅ Vehículo creado:', vehiculo);
-        this.snackBar.open('VEHÍCULO CREADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
-        this.cargarVehiculos();
-      },
-      error: (error: any) => {
-        console.error('❌ Error al crear vehículo:', error);
-      }
-    });
+    console.log('🔍 ABRIENDO MODAL NUEVO VEHÍCULO...');
+    
+    try {
+      const dialogRef = this.dialog.open(VehiculoModalComponent, {
+        width: '900px',
+        maxHeight: '90vh',
+        data: {
+          mode: 'create'
+        },
+        disableClose: true
+      });
+
+      console.log('✅ Modal abierto directamente:', dialogRef);
+
+      dialogRef.afterClosed().subscribe(result => {
+        console.log('🔍 Modal cerrado con resultado:', result);
+        
+        if (result && result.success && result.vehiculosCreados) {
+          // Modo múltiple - vehículos ya fueron guardados en el modal
+          console.log('✅ Vehículos creados en modo múltiple:', result.vehiculosCreados);
+          this.snackBar.open(`${result.count} VEHÍCULO(S) CREADO(S) CORRECTAMENTE`, 'CERRAR', { duration: 3000 });
+          this.cargarVehiculos();
+        } else if (result && result.vehiculo) {
+          // Modo individual - necesitamos guardar el vehículo
+          console.log('✅ Datos del vehículo recibidos:', result.vehiculo);
+          
+          // Llamar al servicio para guardar en el backend
+          this.cargando.set(true);
+          this.vehiculoService.createVehiculo(result.vehiculo).subscribe({
+            next: (vehiculoCreado) => {
+              console.log('✅ Vehículo guardado en backend:', vehiculoCreado);
+              this.cargando.set(false);
+              this.snackBar.open('VEHÍCULO CREADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
+              this.cargarVehiculos();
+            },
+            error: (error) => {
+              console.error('❌ Error guardando vehículo en backend:', error);
+              this.cargando.set(false);
+              this.snackBar.open('ERROR AL GUARDAR EL VEHÍCULO', 'CERRAR', { 
+                duration: 5000,
+                horizontalPosition: 'center',
+                verticalPosition: 'top'
+              });
+            }
+          });
+        } else {
+          console.log('ℹ️ Modal cerrado sin crear vehículo');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error abriendo modal:', error);
+      this.snackBar.open('ERROR ABRIENDO EL MODAL', 'CERRAR', { duration: 3000 });
+    }
   }
 
   cargaMasivaVehiculos(): void {
@@ -221,16 +267,53 @@ export class VehiculosComponent implements OnInit {
   }
 
   editarVehiculo(vehiculo: Vehiculo): void {
-    this.vehiculoModalService.openEditModal(vehiculo).subscribe({
-      next: (vehiculoActualizado: any) => {
-        console.log('✅ Vehículo actualizado:', vehiculoActualizado);
-        this.snackBar.open('VEHÍCULO ACTUALIZADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
-        this.cargarVehiculos();
-      },
-      error: (error: any) => {
-        console.error('❌ Error al actualizar vehículo:', error);
-      }
-    });
+    console.log('🔍 ABRIENDO MODAL EDITAR VEHÍCULO:', vehiculo);
+    
+    try {
+      const dialogRef = this.dialog.open(VehiculoModalComponent, {
+        width: '900px',
+        maxHeight: '90vh',
+        data: {
+          mode: 'edit',
+          vehiculo: vehiculo
+        },
+        disableClose: true
+      });
+
+      console.log('✅ Modal de edición abierto:', dialogRef);
+
+      dialogRef.afterClosed().subscribe(result => {
+        console.log('🔍 Modal de edición cerrado con resultado:', result);
+        if (result && result.vehiculo) {
+          console.log('✅ Datos del vehículo actualizados:', result.vehiculo);
+          
+          // Llamar al servicio para actualizar en el backend
+          this.cargando.set(true);
+          this.vehiculoService.updateVehiculo(vehiculo.id, result.vehiculo).subscribe({
+            next: (vehiculoActualizado) => {
+              console.log('✅ Vehículo actualizado en backend:', vehiculoActualizado);
+              this.cargando.set(false);
+              this.snackBar.open('VEHÍCULO ACTUALIZADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
+              this.cargarVehiculos();
+            },
+            error: (error) => {
+              console.error('❌ Error actualizando vehículo en backend:', error);
+              this.cargando.set(false);
+              this.snackBar.open('ERROR AL ACTUALIZAR EL VEHÍCULO', 'CERRAR', { 
+                duration: 5000,
+                horizontalPosition: 'center',
+                verticalPosition: 'top'
+              });
+            }
+          });
+        } else {
+          console.log('ℹ️ Modal cerrado sin actualizar vehículo');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error abriendo modal de edición:', error);
+      this.snackBar.open('ERROR ABRIENDO EL MODAL DE EDICIÓN', 'CERRAR', { duration: 3000 });
+    }
   }
 
   verHistorial(vehiculo: Vehiculo): void {

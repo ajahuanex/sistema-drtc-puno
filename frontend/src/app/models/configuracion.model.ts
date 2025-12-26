@@ -107,7 +107,7 @@ export const CONFIGURACIONES_DEFAULT = {
   DIAS_ANTES_VENCIMIENTO_EXPEDIENTE: {
     nombre: 'DIAS_ANTES_VENCIMIENTO_EXPEDIENTE',
     valor: '15',
-    descripcion: 'Días antes del vencimiento de un expediente para mostrar alertas sobre la necesidad de atención o resolución.',
+    descripción: 'Días antes del vencimiento de un expediente para mostrar alertas sobre la necesidad de atención o resolución.',
     categoria: CategoriaConfiguracion.EXPEDIENTES,
     esEditable: true
   },
@@ -175,6 +175,22 @@ export const CONFIGURACIONES_DEFAULT = {
     nombre: 'FORMATO_FECHA_HORA',
     valor: 'DD/MM/YYYY HH:mm',
     descripcion: 'Formato de visualización de fechas con hora en el sistema. HH=hora (24h), mm=minutos. Ejemplo: 04/12/2025 14:30. Se usa en logs, auditoría y timestamps.',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
+  
+  // Sedes de Registro
+  SEDES_DISPONIBLES: {
+    nombre: 'SEDES_DISPONIBLES',
+    valor: 'PUNO,LIMA,AREQUIPA,JULIACA,CUSCO,TACNA,HUANCAYO,TRUJILLO,CHICLAYO,PIURA',
+    descripcion: 'Lista de sedes disponibles para el registro de vehículos, separadas por comas. Todas las sedes deben estar en mayúsculas. Ejemplo: PUNO,LIMA,AREQUIPA',
+    categoria: CategoriaConfiguracion.SISTEMA,
+    esEditable: true
+  },
+  SEDE_DEFAULT: {
+    nombre: 'SEDE_DEFAULT',
+    valor: 'PUNO',
+    descripcion: 'Sede por defecto que aparecerá seleccionada al crear un nuevo vehículo. Debe ser una de las sedes disponibles en SEDES_DISPONIBLES.',
     categoria: CategoriaConfiguracion.SISTEMA,
     esEditable: true
   },

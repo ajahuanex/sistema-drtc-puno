@@ -116,13 +116,13 @@ import { SmartIconComponent } from './smart-icon.component';
           <div class="resolucion-option">
             <div class="resolucion-header">
               <strong>{{ resolucion.nroResolucion }}</strong>
-              <span class="tipo-badge" [class]="'tipo-' + resolucion.tipoResolucion?.toLowerCase()">
+              <span class="tipo-badge" [class]="'tipo-' + resolucion.tipoResolucion.toLowerCase()">
                 {{ resolucion.tipoResolucion }}
               </span>
             </div>
             <div class="resolucion-meta">
               <small class="fecha">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</small>
-              <small class="estado" [class]="'estado-' + resolucion.estado?.toLowerCase()">
+              <small class="estado" [class]="'estado-' + (resolucion.estado || 'sin-estado').toLowerCase()">
                 {{ resolucion.estado }}
               </small>
             </div>

@@ -1,13 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
-from app.dependencies.db import get_database
-from app.services.vehiculo_service import VehiculoService
-from app.models.vehiculo import (
-    VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse
+import tempfile
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from backend.app.dependencies.auth import get_current_active_user
+from backend.app.dependencies.db import get_database
+from backend.app.services.vehiculo_service import VehiculoService
+from backend.app.models.vehiculo import (
+    VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse,
+    VehiculoCargaMasivaResponse, VehiculoValidacionExcel
 )
-from app.utils.exceptions import (
+from backend.app.utils.exceptions import (
     VehiculoNotFoundException, 
     VehiculoAlreadyExistsException,
     ValidationErrorException
@@ -112,33 +120,6 @@ async def get_vehiculo(
         raise VehiculoNotFoundException(vehiculo_id)
     
     return vehiculo_to_response(vehiculo)
-
-@router.post("/debug", status_code=200)
-async def debug_create_vehiculo(
-    vehiculo_data: dict,
-    db = Depends(get_database)
-):
-    """Endpoint de debug para probar creación de vehículos"""
-    try:
-        print(f"🔍 DEBUG - Datos recibidos: {vehiculo_data}")
-        
-        # Intentar crear el modelo VehiculoCreate
-        from app.models.vehiculo import VehiculoCreate
-        vehiculo_create = VehiculoCreate(**vehiculo_data)
-        print(f"✅ DEBUG - Modelo VehiculoCreate creado: {vehiculo_create}")
-        
-        # Intentar crear el vehículo
-        vehiculo_service = VehiculoService(db)
-        vehiculo = await vehiculo_service.create_vehiculo(vehiculo_create)
-        print(f"✅ DEBUG - Vehículo creado: {vehiculo}")
-        
-        return {"success": True, "vehiculo": vehiculo.model_dump()}
-        
-    except Exception as e:
-        print(f"❌ DEBUG - Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return {"success": False, "error": str(e), "type": type(e).__name__}
 
 @router.post("/", response_model=VehiculoResponse, status_code=201)
 async def create_vehiculo(

@@ -56,7 +56,7 @@ import { SmartIconComponent } from './smart-icon.component';
           <div class="expediente-option">
             <div class="expediente-header">
               <strong>{{ expediente.nroExpediente }}</strong>
-              <span class="tipo-badge" [class]="'tipo-' + expediente.tipoTramite?.toLowerCase()">
+              <span class="tipo-badge" [class]="'tipo-' + expediente.tipoTramite.toLowerCase()">
                 {{ expediente.tipoTramite }}
               </span>
               <mat-chip *ngIf="expediente.resolucionFinalId" class="resolucion-badge" color="accent">
@@ -66,7 +66,7 @@ import { SmartIconComponent } from './smart-icon.component';
             </div>
             <div class="expediente-meta">
               <small class="fecha">{{ expediente.fechaEmision | date:'dd/MM/yyyy' }}</small>
-              <small class="estado" [class]="'estado-' + expediente.estado?.toLowerCase()">
+              <small class="estado" [class]="'estado-' + (expediente.estado || 'sin-estado').toLowerCase()">
                 {{ expediente.estado }}
               </small>
             </div>

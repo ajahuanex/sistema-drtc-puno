@@ -38,8 +38,8 @@ class VehiculoService:
         vehiculo_dict["esHistorialActual"] = True  # Es el registro actual
         
         # Insertar en MongoDB
-        result = await self.collection.insert_one(vehiculo_dict)
-        vehiculo_id = str(result.inserted_id)
+        insert_result = await self.collection.insert_one(vehiculo_dict)
+        vehiculo_id = str(insert_result.inserted_id)
         
         # IMPORTANTE: Actualizar la empresa con el nuevo vehículo
         if vehiculo_data.empresaActualId:
@@ -53,12 +53,12 @@ class VehiculoService:
                     # Si no es ObjectId válido, buscar por campo 'id' (UUID)
                     empresa_query = {"id": vehiculo_data.empresaActualId}
                 
-                result = await self.empresas_collection.update_one(
+                update_result = await self.empresas_collection.update_one(
                     empresa_query,
                     {"$addToSet": {"vehiculosHabilitadosIds": vehiculo_id}}
                 )
                 
-                if result.modified_count > 0:
+                if update_result.modified_count > 0:
                     print(f"✅ Vehículo {vehiculo_id} agregado a empresa {vehiculo_data.empresaActualId}")
                 else:
                     print(f"⚠️ Empresa no encontrada o vehículo ya estaba en el array: {vehiculo_data.empresaActualId}")
@@ -79,12 +79,12 @@ class VehiculoService:
                 else:
                     resolucion_query = {"id": vehiculo_data.resolucionId}
                 
-                result = await resoluciones_collection.update_one(
+                update_result = await resoluciones_collection.update_one(
                     resolucion_query,
                     {"$addToSet": {"vehiculosHabilitadosIds": vehiculo_id}}
                 )
                 
-                if result.modified_count > 0:
+                if update_result.modified_count > 0:
                     print(f"✅ Vehículo {vehiculo_id} agregado a resolución {vehiculo_data.resolucionId}")
                 else:
                     print(f"⚠️ Resolución no encontrada o vehículo ya estaba en el array: {vehiculo_data.resolucionId}")
@@ -92,7 +92,7 @@ class VehiculoService:
                 print(f"⚠️ Error actualizando resolución: {e}")
         
         # Obtener el vehículo creado
-        created_vehiculo = await self.collection.find_one({"_id": result.inserted_id})
+        created_vehiculo = await self.collection.find_one({"_id": insert_result.inserted_id})
         created_vehiculo["id"] = str(created_vehiculo.pop("_id"))
         
         return VehiculoInDB(**created_vehiculo)
@@ -134,6 +134,145 @@ class VehiculoService:
             vehiculos.append(VehiculoInDB(**vehiculo))
         
         return vehiculos
+    
+    async def get_vehiculos_activos(self) -> List[VehiculoInDB]:
+        """Obtener todos los vehículos activos"""
+        query = {"estaActivo": True}
+        
+        cursor = self.collection.find(query)
+        vehiculos = []
+        
+        async for vehiculo in cursor:
+            vehiculo["id"] = str(vehiculo.pop("_id"))
+            vehiculos.append(VehiculoInDB(**vehiculo))
+        
+        return vehiculos
+    
+    async def get_vehiculos_por_empresa(self, empresa_id: str) -> List[VehiculoInDB]:
+        """Obtener vehículos por empresa"""
+        query = {"empresaActualId": empresa_id, "estaActivo": True}
+        
+        cursor = self.collection.find(query)
+        vehiculos = []
+        
+        async for vehiculo in cursor:
+            vehiculo["id"] = str(vehiculo.pop("_id"))
+            vehiculos.append(VehiculoInDB(**vehiculo))
+        
+        return vehiculos
+    
+    async def get_vehiculos_por_estado(self, estado: str) -> List[VehiculoInDB]:
+        """Obtener vehículos por estado"""
+        query = {"estado": estado, "estaActivo": True}
+        
+        cursor = self.collection.find(query)
+        vehiculos = []
+        
+        async for vehiculo in cursor:
+            vehiculo["id"] = str(vehiculo.pop("_id"))
+            vehiculos.append(VehiculoInDB(**vehiculo))
+        
+        return vehiculos
+    
+    async def get_vehiculos_con_filtros(self, filtros: dict) -> List[VehiculoInDB]:
+        """Obtener vehículos con filtros avanzados"""
+        query = {"estaActivo": True}
+        
+        if filtros.get("estado"):
+            query["estado"] = filtros["estado"]
+        if filtros.get("placa"):
+            query["placa"] = {"$regex": filtros["placa"], "$options": "i"}
+        if filtros.get("marca"):
+            query["marca"] = {"$regex": filtros["marca"], "$options": "i"}
+        if filtros.get("categoria"):
+            query["categoria"] = filtros["categoria"]
+        if filtros.get("empresa_id"):
+            query["empresaActualId"] = filtros["empresa_id"]
+        if filtros.get("anio_desde"):
+            query["anioFabricacion"] = {"$gte": filtros["anio_desde"]}
+        if filtros.get("anio_hasta"):
+            if "anioFabricacion" in query:
+                query["anioFabricacion"]["$lte"] = filtros["anio_hasta"]
+            else:
+                query["anioFabricacion"] = {"$lte": filtros["anio_hasta"]}
+        
+        cursor = self.collection.find(query)
+        vehiculos = []
+        
+        async for vehiculo in cursor:
+            vehiculo["id"] = str(vehiculo.pop("_id"))
+            vehiculos.append(VehiculoInDB(**vehiculo))
+        
+        return vehiculos
+    
+    async def get_estadisticas(self) -> dict:
+        """Obtener estadísticas de vehículos"""
+        pipeline = [
+            {"$match": {"estaActivo": True}},
+            {"$group": {
+                "_id": None,
+                "total": {"$sum": 1},
+                "activos": {"$sum": {"$cond": [{"$eq": ["$estado", "ACTIVO"]}, 1, 0]}},
+                "inactivos": {"$sum": {"$cond": [{"$eq": ["$estado", "INACTIVO"]}, 1, 0]}},
+                "mantenimiento": {"$sum": {"$cond": [{"$eq": ["$estado", "MANTENIMIENTO"]}, 1, 0]}}
+            }}
+        ]
+        
+        result = await self.collection.aggregate(pipeline).to_list(1)
+        stats = result[0] if result else {
+            "total": 0, "activos": 0, "inactivos": 0, "mantenimiento": 0
+        }
+        
+        # Estadísticas por categoría
+        categoria_pipeline = [
+            {"$match": {"estaActivo": True}},
+            {"$group": {"_id": "$categoria", "count": {"$sum": 1}}}
+        ]
+        
+        categoria_result = await self.collection.aggregate(categoria_pipeline).to_list(None)
+        stats["por_categoria"] = {item["_id"]: item["count"] for item in categoria_result}
+        
+        return stats
+    
+    async def get_vehiculo_by_id(self, vehiculo_id: str) -> Optional[VehiculoInDB]:
+        """Obtener un vehículo por ID"""
+        return await self.get_vehiculo(vehiculo_id)
+    
+    async def soft_delete_vehiculo(self, vehiculo_id: str) -> bool:
+        """Eliminar un vehículo (soft delete)"""
+        return await self.delete_vehiculo(vehiculo_id)
+    
+    async def agregar_ruta_a_vehiculo(self, vehiculo_id: str, ruta_id: str) -> Optional[VehiculoInDB]:
+        """Agregar ruta a vehículo"""
+        await self.collection.update_one(
+            {"_id": ObjectId(vehiculo_id)},
+            {"$addToSet": {"rutasAsignadasIds": ruta_id}}
+        )
+        return await self.get_vehiculo(vehiculo_id)
+    
+    async def remover_ruta_de_vehiculo(self, vehiculo_id: str, ruta_id: str) -> Optional[VehiculoInDB]:
+        """Remover ruta de vehículo"""
+        await self.collection.update_one(
+            {"_id": ObjectId(vehiculo_id)},
+            {"$pull": {"rutasAsignadasIds": ruta_id}}
+        )
+        return await self.get_vehiculo(vehiculo_id)
+    
+    async def asignar_tuc(self, vehiculo_id: str, tuc_data: dict) -> Optional[VehiculoInDB]:
+        """Asignar TUC a vehículo"""
+        await self.collection.update_one(
+            {"_id": ObjectId(vehiculo_id)},
+            {"$set": {"tuc": tuc_data}}
+        )
+        return await self.get_vehiculo(vehiculo_id)
+    
+    async def remover_tuc(self, vehiculo_id: str) -> Optional[VehiculoInDB]:
+        """Remover TUC de vehículo"""
+        await self.collection.update_one(
+            {"_id": ObjectId(vehiculo_id)},
+            {"$unset": {"tuc": ""}}
+        )
+        return await self.get_vehiculo(vehiculo_id)
     
     async def update_vehiculo(
         self, 

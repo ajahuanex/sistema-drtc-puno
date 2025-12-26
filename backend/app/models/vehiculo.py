@@ -97,6 +97,7 @@ class Vehiculo(BaseModel):
 class VehiculoCreate(BaseModel):
     placa: str
     empresaActualId: str
+    resolucionId: Optional[str] = None  # Agregar resolucionId
     categoria: CategoriaVehiculo
     marca: str
     modelo: str

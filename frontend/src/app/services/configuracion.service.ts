@@ -84,6 +84,20 @@ export class ConfiguracionService {
     return config ? config.valor : 'DD/MM/YYYY HH:mm';
   });
 
+  // Configuraciones de sedes
+  sedesDisponibles = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'SEDES_DISPONIBLES');
+    if (config && config.valor) {
+      return config.valor.split(',').map(sede => sede.trim().toUpperCase()).filter(sede => sede.length > 0);
+    }
+    return ['PUNO', 'LIMA', 'AREQUIPA', 'JULIACA', 'CUSCO', 'TACNA'];
+  });
+
+  sedeDefault = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'SEDE_DEFAULT');
+    return config ? config.valor.toUpperCase() : 'PUNO';
+  });
+
   constructor() {
     console.log('🔧 ConfiguracionService inicializado - usando únicamente API');
   }

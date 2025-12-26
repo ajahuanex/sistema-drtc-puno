@@ -1,17 +1,20 @@
 export interface DatosTecnicos {
   motor: string;
   chasis: string;
-  cilindros: number;
+  cilindros?: number; // Opcional para compatibilidad
   ejes: number;
-  ruedas: number;
+  ruedas?: number; // Opcional para compatibilidad
   asientos: number;
   pesoNeto: number;
   pesoBruto: number;
+  tipoCombustible: string; // Campo requerido por el backend
   medidas: {
     largo: number;
     ancho: number;
     alto: number;
   };
+  cilindrada?: number; // Opcional - cilindrada del motor
+  potencia?: number; // Opcional - potencia en HP
 }
 
 export interface Tuc {
@@ -44,14 +47,17 @@ export interface VehiculoCreate {
   placa: string;
   sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad)
   empresaActualId: string;
-  resolucionId: string;
-  rutasAsignadasIds: string[];
+  resolucionId?: string; // Opcional
+  rutasAsignadasIds?: string[]; // Opcional
   categoria: string;
   marca: string;
   modelo: string;
   anioFabricacion: number;
   tuc?: Tuc;
   datosTecnicos: DatosTecnicos;
+  color?: string; // Opcional
+  numeroSerie?: string; // Opcional
+  observaciones?: string; // Opcional
 }
 
 export interface VehiculoUpdate {

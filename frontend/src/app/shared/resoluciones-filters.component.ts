@@ -57,8 +57,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
     MatMenuModule,
     EmpresaSelectorComponent,
     DateRangePickerComponent,
-    SmartIconComponent,
-    FiltrosMobileModalComponent
+    SmartIconComponent
   ],
   template: `
     <!-- Versión desktop: Expansion Panel -->

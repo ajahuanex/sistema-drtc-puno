@@ -1,5 +1,6 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,17 +9,25 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { ResolucionService } from '../../services/resolucion.service';
+import { RutaService } from '../../services/ruta.service';
+import { VehiculoService } from '../../services/vehiculo.service';
 import { Resolucion } from '../../models/resolucion.model';
+import { Ruta } from '../../models/ruta.model';
+import { Vehiculo } from '../../models/vehiculo.model';
 import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
 import { CrearRutaModalComponent } from './crear-ruta-modal.component';
 import { EmpresaVehiculosBatchComponent } from './empresa-vehiculos-batch.component';
@@ -29,6 +38,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -41,6 +51,10 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
     MatListModule,
     MatTooltipModule,
     MatDividerModule,
+    MatMenuModule,
+    MatCheckboxModule,
+    MatSelectModule,
+    MatFormFieldModule,
     CodigoEmpresaInfoComponent
   ],
   template: `
@@ -347,7 +361,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                       </div>
                     </mat-card-content>
                     <mat-card-actions>
-                      <button mat-raised-button color="primary" (click)="agregarRutas()">
+                      <button mat-raised-button color="primary" (click)="irAModuloRutas()">>
                         <mat-icon>add</mat-icon>
                         Agregar Rutas
                       </button>
@@ -593,44 +607,302 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                     <mat-card-title>
                       <mat-icon>directions_car</mat-icon>
                       Vehículos Asociados
-                      <span class="badge-count">({{ empresa.vehiculosHabilitadosIds.length || 0 }})</span>
+                      <span class="badge-count">({{ vehiculosEmpresa.length }})</span>
                     </mat-card-title>
                     <mat-card-subtitle>
-                      <button mat-raised-button color="primary" (click)="agregarVehiculos()" class="add-button">
-                        <mat-icon>add</mat-icon>
-                        Agregar Vehículos
-                      </button>
+                      <div class="header-actions">
+                        <button mat-raised-button color="primary" (click)="crearNuevoVehiculo()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Crear Nuevo Vehículo
+                        </button>
+                        
+                        <button mat-button color="accent" (click)="agregarVehiculoExistente()" class="add-button">
+                          <mat-icon>add_circle_outline</mat-icon>
+                          Agregar Vehículo Existente
+                        </button>
+                        
+                        <button mat-icon-button (click)="refrescarVehiculos()" matTooltip="Refrescar lista de vehículos">
+                          <mat-icon>refresh</mat-icon>
+                        </button>
+                        
+                        <button mat-icon-button [matMenuTriggerFor]="columnMenuVehiculos" matTooltip="Seleccionar columnas">
+                          <mat-icon>view_column</mat-icon>
+                        </button>
+                        
+                        <mat-menu #columnMenuVehiculos="matMenu">
+                          <div class="column-menu-header">
+                            <span>Mostrar columnas</span>
+                          </div>
+                          @for (column of allColumnsVehiculos; track column.key) {
+                            <mat-checkbox 
+                              class="column-checkbox"
+                              [(ngModel)]="column.visible"
+                              (change)="onColumnToggleVehiculos()">
+                              {{ column.label }}
+                            </mat-checkbox>
+                          }
+                        </mat-menu>
+                      </div>
                     </mat-card-subtitle>
                   </mat-card-header>
                   <mat-card-content>
-                    @if (empresa.vehiculosHabilitadosIds && empresa.vehiculosHabilitadosIds.length > 0) {
-                      <div class="vehiculos-grid">
-                        @for (vehiculoId of empresa.vehiculosHabilitadosIds; track vehiculoId) {
-                          <mat-card class="vehiculo-card">
-                            <mat-card-header>
-                              <mat-card-title>Vehículo {{ vehiculoId }}</mat-card-title>
-                              <mat-card-subtitle>ID: {{ vehiculoId }}</mat-card-subtitle>
-                            </mat-card-header>
-                            <mat-card-content>
-                              <p>Información del vehículo se cargará próximamente.</p>
-                            </mat-card-content>
-                            <mat-card-actions>
-                              <button mat-button color="primary" (click)="verVehiculo(vehiculoId)">
-                                <mat-icon>visibility</mat-icon>
-                                Ver Detalles
-                              </button>
-                            </mat-card-actions>
-                          </mat-card>
-                        }
+                    <!-- DEBUG: Mostrar estado actual -->
+                    <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+                      <strong>DEBUG:</strong> vehiculosEmpresa.length = {{ vehiculosEmpresa?.length || 0 }}
+                      @if (vehiculosEmpresa && vehiculosEmpresa.length > 0) {
+                        <br><strong>Placas:</strong> {{ getVehiculosPlacas() }}
+                      }
+                    </div>
+                    
+                    @if (vehiculosEmpresa && vehiculosEmpresa.length > 0) {
+                      <div class="vehiculos-table-container">
+                        <table mat-table [dataSource]="vehiculosEmpresa" class="vehiculos-table">
+                          <!-- Placa Column -->
+                          <ng-container matColumnDef="placa">
+                            <th mat-header-cell *matHeaderCellDef>Placa</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="vehiculo-placa">{{ vehiculo.placa }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Marca-Modelo Column -->
+                          <ng-container matColumnDef="marca-modelo">
+                            <th mat-header-cell *matHeaderCellDef>Marca/Modelo</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="marca-modelo">
+                                <span class="marca">{{ vehiculo.marca || 'No definido' }}</span>
+                                <span class="modelo">{{ vehiculo.modelo || 'No definido' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <!-- Año Column -->
+                          <ng-container matColumnDef="anio">
+                            <th mat-header-cell *matHeaderCellDef>Año</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="anio">{{ vehiculo.anioFabricacion || 'N/A' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Categoría Column -->
+                          <ng-container matColumnDef="categoria">
+                            <th mat-header-cell *matHeaderCellDef>Categoría</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="categoria">{{ vehiculo.categoria || 'No definido' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Combustible Column -->
+                          <ng-container matColumnDef="combustible">
+                            <th mat-header-cell *matHeaderCellDef>Combustible</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="combustible">{{ vehiculo.datosTecnicos?.tipoCombustible || 'No definido' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Estado Column -->
+                          <ng-container matColumnDef="estado">
+                            <th mat-header-cell *matHeaderCellDef>Estado</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <mat-chip [color]="getEstadoVehiculoColor(vehiculo.estado)" selected>
+                                {{ vehiculo.estado || 'ACTIVO' }}
+                              </mat-chip>
+                            </td>
+                          </ng-container>
+
+                          <!-- Rutas Asignadas Column -->
+                          <ng-container matColumnDef="rutas-asignadas">
+                            <th mat-header-cell *matHeaderCellDef>Rutas Asignadas</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="rutas-asignadas">
+                                @if (vehiculo.rutasAsignadasIds && vehiculo.rutasAsignadasIds.length > 0) {
+                                  <mat-chip-set>
+                                    @for (rutaId of vehiculo.rutasAsignadasIds; track rutaId) {
+                                      <mat-chip>{{ getRutaNombre(rutaId) }}</mat-chip>
+                                    }
+                                  </mat-chip-set>
+                                } @else {
+                                  <span class="no-rutas">Sin rutas asignadas</span>
+                                }
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <!-- Sede Registro Column -->
+                          <ng-container matColumnDef="sede-registro">
+                            <th mat-header-cell *matHeaderCellDef>Sede Registro</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="sede-registro">{{ vehiculo.sedeRegistro || 'No definido' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Resolución Column -->
+                          <ng-container matColumnDef="resolucion">
+                            <th mat-header-cell *matHeaderCellDef>Resolución</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="resolucion">{{ getResolucionNumero(vehiculo.resolucionId) || 'No asignada' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- TUC Column -->
+                          <ng-container matColumnDef="tuc">
+                            <th mat-header-cell *matHeaderCellDef>TUC</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="tuc-info">
+                                @if (vehiculo.tuc) {
+                                  <div>
+                                    <span class="tuc-numero">{{ vehiculo.tuc.nroTuc }}</span>
+                                    <small class="tuc-fecha">{{ vehiculo.tuc.fechaEmision | date:'dd/MM/yyyy' }}</small>
+                                  </div>
+                                } @else {
+                                  <span class="no-tuc">Sin TUC</span>
+                                }
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <!-- Motor Column -->
+                          <ng-container matColumnDef="motor">
+                            <th mat-header-cell *matHeaderCellDef>Motor</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="motor">{{ vehiculo.datosTecnicos?.motor || 'No definido' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Chasis Column -->
+                          <ng-container matColumnDef="chasis">
+                            <th mat-header-cell *matHeaderCellDef>Chasis</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="chasis">{{ vehiculo.datosTecnicos?.chasis || 'No definido' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Cilindros Column -->
+                          <ng-container matColumnDef="cilindros">
+                            <th mat-header-cell *matHeaderCellDef>Cilindros</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="cilindros">{{ vehiculo.datosTecnicos?.cilindros || 'N/A' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Ejes Column -->
+                          <ng-container matColumnDef="ejes">
+                            <th mat-header-cell *matHeaderCellDef>Ejes</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="ejes">{{ vehiculo.datosTecnicos?.ejes || 'N/A' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Asientos Column -->
+                          <ng-container matColumnDef="asientos">
+                            <th mat-header-cell *matHeaderCellDef>Asientos</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="asientos">{{ vehiculo.datosTecnicos?.asientos || 'N/A' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Peso Neto Column -->
+                          <ng-container matColumnDef="peso-neto">
+                            <th mat-header-cell *matHeaderCellDef>Peso Neto</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="peso-neto">{{ formatPeso(vehiculo.datosTecnicos?.pesoNeto) }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Peso Bruto Column -->
+                          <ng-container matColumnDef="peso-bruto">
+                            <th mat-header-cell *matHeaderCellDef>Peso Bruto</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="peso-bruto">{{ formatPeso(vehiculo.datosTecnicos?.pesoBruto) }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Medidas Column -->
+                          <ng-container matColumnDef="medidas">
+                            <th mat-header-cell *matHeaderCellDef>Medidas (L×A×H)</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="medidas">{{ formatMedidas(vehiculo.datosTecnicos?.medidas) }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Cilindrada Column -->
+                          <ng-container matColumnDef="cilindrada">
+                            <th mat-header-cell *matHeaderCellDef>Cilindrada</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="cilindrada">{{ formatCilindrada(vehiculo.datosTecnicos?.cilindrada) }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Potencia Column -->
+                          <ng-container matColumnDef="potencia">
+                            <th mat-header-cell *matHeaderCellDef>Potencia</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="potencia">{{ formatPotencia(vehiculo.datosTecnicos?.potencia) }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Acciones Column -->
+                          <ng-container matColumnDef="acciones">
+                            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="acciones-vehiculo">
+                                <button mat-icon-button [matMenuTriggerFor]="accionesMenu" matTooltip="Más acciones">
+                                  <mat-icon>more_vert</mat-icon>
+                                </button>
+                                
+                                <mat-menu #accionesMenu="matMenu">
+                                  <button mat-menu-item (click)="verDetalleVehiculo(vehiculo)">
+                                    <mat-icon>visibility</mat-icon>
+                                    <span>Ver Detalles</span>
+                                  </button>
+                                  
+                                  <button mat-menu-item (click)="editarVehiculo(vehiculo)">
+                                    <mat-icon>edit</mat-icon>
+                                    <span>Editar Vehículo</span>
+                                  </button>
+                                  
+                                  <button mat-menu-item (click)="gestionarRutasVehiculo(vehiculo)">
+                                    <mat-icon>route</mat-icon>
+                                    <span>Gestionar Rutas</span>
+                                  </button>
+                                  
+                                  <mat-divider></mat-divider>
+                                  
+                                  <button mat-menu-item (click)="transferirVehiculo(vehiculo)">
+                                    <mat-icon>swap_horiz</mat-icon>
+                                    <span>Transferir a Otra Empresa</span>
+                                  </button>
+                                  
+                                  <button mat-menu-item (click)="cambiarEstadoVehiculo(vehiculo)" 
+                                          [class.estado-activo]="vehiculo.estado === 'ACTIVO'"
+                                          [class.estado-inactivo]="vehiculo.estado !== 'ACTIVO'">
+                                    <mat-icon>{{ vehiculo.estado === 'ACTIVO' ? 'pause' : 'play_arrow' }}</mat-icon>
+                                    <span>{{ vehiculo.estado === 'ACTIVO' ? 'Suspender' : 'Activar' }}</span>
+                                  </button>
+                                  
+                                  <mat-divider></mat-divider>
+                                  
+                                  <button mat-menu-item (click)="eliminarVehiculoDeEmpresa(vehiculo)" class="accion-peligrosa">
+                                    <mat-icon>remove_circle</mat-icon>
+                                    <span>Quitar de Empresa</span>
+                                  </button>
+                                </mat-menu>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <tr mat-header-row *matHeaderRowDef="displayedColumnsVehiculos"></tr>
+                          <tr mat-row *matRowDef="let row; columns: displayedColumnsVehiculos;"></tr>
+                        </table>
                       </div>
                     } @else {
                       <div class="empty-state">
                         <mat-icon class="empty-icon">directions_car</mat-icon>
                         <h3>No hay vehículos asociados</h3>
                         <p>Esta empresa no tiene vehículos registrados.</p>
-                        <button mat-raised-button color="primary" (click)="agregarVehiculos()" class="add-button">
+                        <button mat-raised-button color="primary" (click)="irAModuloVehiculos()" class="add-button">
                           <mat-icon>add</mat-icon>
-                          Agregar Primer Vehículo
+                          Ir a Módulo de Vehículos
                         </button>
                       </div>
                     }
@@ -700,45 +972,160 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                   <mat-card-header>
                     <mat-card-title>
                       <mat-icon>route</mat-icon>
-                      Rutas Autorizadas
-                      <span class="badge-count">({{ empresa.rutasAutorizadasIds.length || 0 }})</span>
+                      Rutas por Resolución
+                      <span class="badge-count">({{ getTotalRutas() }})</span>
                     </mat-card-title>
                     <mat-card-subtitle>
-                      <button mat-raised-button color="primary" (click)="agregarRutas()" class="add-button">
-                        <mat-icon>add</mat-icon>
-                        Agregar Rutas
-                      </button>
+                      <div class="header-actions">
+                        <button mat-raised-button color="primary" (click)="irAModuloRutas()" class="add-button">
+                          <mat-icon>add</mat-icon>
+                          Ir a Módulo de Rutas
+                        </button>
+                        
+                        <button mat-icon-button [matMenuTriggerFor]="columnMenu" matTooltip="Seleccionar columnas">
+                          <mat-icon>view_column</mat-icon>
+                        </button>
+                        
+                        <mat-menu #columnMenu="matMenu">
+                          <div class="column-menu-header">
+                            <span>Mostrar columnas</span>
+                          </div>
+                          @for (column of allColumnsRutas; track column.key) {
+                            <mat-checkbox 
+                              class="column-checkbox"
+                              [(ngModel)]="column.visible"
+                              (change)="onColumnToggle()">
+                              {{ column.label }}
+                            </mat-checkbox>
+                          }
+                        </mat-menu>
+                      </div>
                     </mat-card-subtitle>
                   </mat-card-header>
                   <mat-card-content>
-                    @if (empresa.rutasAutorizadasIds && empresa.rutasAutorizadasIds.length > 0) {
-                      <div class="rutas-grid">
-                        @for (rutaId of empresa.rutasAutorizadasIds; track rutaId) {
-                          <mat-card class="ruta-card">
-                            <mat-card-header>
-                              <mat-card-title>Ruta {{ rutaId }}</mat-card-title>
-                              <mat-card-subtitle>ID: {{ rutaId }}</mat-card-subtitle>
-                            </mat-card-header>
-                            <mat-card-content>
-                              <p>Información de la ruta se cargará próximamente.</p>
-                            </mat-card-content>
-                            <mat-card-actions>
-                              <button mat-button color="primary" (click)="verRuta(rutaId)">
-                                <mat-icon>visibility</mat-icon>
-                                Ver Detalles
-                              </button>
-                            </mat-card-actions>
-                          </mat-card>
+                    @if (resolucionesPadre && resolucionesPadre.length > 0) {
+                      <!-- Rutas organizadas por Resolución Padre -->
+                      <div class="resoluciones-rutas-container">
+                        @for (resolucionPadre of resolucionesPadre; track resolucionPadre.id) {
+                          <mat-expansion-panel class="resolucion-rutas-panel">
+                            <mat-expansion-panel-header>
+                              <mat-panel-title>
+                                <div class="resolucion-rutas-header">
+                                  <div class="resolucion-info">
+                                    <span class="resolucion-numero">{{ resolucionPadre.nroResolucion }}</span>
+                                  </div>
+                                  <div class="rutas-count">
+                                    <mat-chip [color]="getEstadoColor(resolucionPadre.estado || '')" selected>
+                                      {{ resolucionPadre.estado || 'VIGENTE' }}
+                                    </mat-chip>
+                                    <mat-chip color="primary" selected>
+                                      {{ getRutasCountByResolucion(resolucionPadre.id) }} rutas
+                                    </mat-chip>
+                                  </div>
+                                </div>
+                              </mat-panel-title>
+                              <mat-panel-description>
+                                <div class="resolucion-description">
+                                  <span>{{ formatFecha(resolucionPadre.fechaEmision) }}</span>
+                                  <span class="separator">•</span>
+                                  <span>{{ resolucionPadre.tipoTramite || 'ALTA' }}</span>
+                                </div>
+                              </mat-panel-description>
+                            </mat-expansion-panel-header>
+
+                            <!-- Tabla de Rutas para esta Resolución -->
+                            <div class="rutas-table-container">
+                              @if (getRutasByResolucion(resolucionPadre.id).length > 0) {
+                                <table mat-table [dataSource]="getRutasByResolucion(resolucionPadre.id)" class="rutas-table">
+                                  <!-- Código Column -->
+                                  <ng-container matColumnDef="codigo">
+                                    <th mat-header-cell *matHeaderCellDef>Código</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <span class="ruta-codigo">{{ ruta.codigoRuta }}</span>
+                                    </td>
+                                  </ng-container>
+
+                                  <!-- Origen-Destino Column -->
+                                  <ng-container matColumnDef="origen-destino">
+                                    <th mat-header-cell *matHeaderCellDef>Origen - Destino</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <div class="origen-destino">
+                                        <div class="localidad">
+                                          <mat-icon>place</mat-icon>
+                                          <span>{{ ruta.origen || 'No definido' }}</span>
+                                        </div>
+                                        <mat-icon class="arrow">arrow_forward</mat-icon>
+                                        <div class="localidad">
+                                          <mat-icon>flag</mat-icon>
+                                          <span>{{ ruta.destino || 'No definido' }}</span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </ng-container>
+
+                                  <!-- Distancia Column -->
+                                  <ng-container matColumnDef="distancia">
+                                    <th mat-header-cell *matHeaderCellDef>Distancia</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <span class="distancia">{{ ruta.distancia || 0 }} km</span>
+                                    </td>
+                                  </ng-container>
+
+                                  <!-- Itinerario Column -->
+                                  <ng-container matColumnDef="itinerario">
+                                    <th mat-header-cell *matHeaderCellDef>Itinerario</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <div class="itinerario">
+                                        <span class="horario">{{ ruta.tiempoEstimado || 'No definido' }}</span>
+                                      </div>
+                                    </td>
+                                  </ng-container>
+
+                                  <!-- Frecuencia Column -->
+                                  <ng-container matColumnDef="frecuencia">
+                                    <th mat-header-cell *matHeaderCellDef>Frecuencia</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <div class="frecuencia">
+                                        <span class="frecuencia-valor">{{ ruta.frecuencias || 'No definido' }}</span>
+                                      </div>
+                                    </td>
+                                  </ng-container>
+
+                                  <!-- Estado Column -->
+                                  <ng-container matColumnDef="estado">
+                                    <th mat-header-cell *matHeaderCellDef>Estado</th>
+                                    <td mat-cell *matCellDef="let ruta">
+                                      <mat-chip [color]="getEstadoRutaColor(ruta.estado)" selected>
+                                        {{ ruta.estado || 'ACTIVA' }}
+                                      </mat-chip>
+                                    </td>
+                                  </ng-container>
+
+                                  <tr mat-header-row *matHeaderRowDef="displayedColumnsRutas"></tr>
+                                  <tr mat-row *matRowDef="let row; columns: displayedColumnsRutas;"></tr>
+                                </table>
+                              } @else {
+                                <div class="no-rutas-resolucion">
+                                  <mat-icon>route_off</mat-icon>
+                                  <p>No hay rutas registradas para esta resolución.</p>
+                                  <button mat-button color="primary" (click)="irAModuloRutasConResolucion(resolucionPadre.id)">
+                                    <mat-icon>add</mat-icon>
+                                    Ir a Módulo de Rutas
+                                  </button>
+                                </div>
+                              }
+                            </div>
+                          </mat-expansion-panel>
                         }
                       </div>
                     } @else {
                       <div class="empty-state">
-                        <mat-icon class="empty-icon">route</mat-icon>
-                        <h3>No hay rutas autorizadas</h3>
-                        <p>Esta empresa no tiene rutas autorizadas.</p>
-                        <button mat-raised-button color="primary" (click)="agregarRutas()" class="add-button">
+                        <mat-icon class="empty-icon">assignment</mat-icon>
+                        <h3>No hay resoluciones</h3>
+                        <p>Esta empresa debe tener resoluciones para gestionar rutas.</p>
+                        <button mat-raised-button color="primary" (click)="crearResolucion()" class="add-button">
                           <mat-icon>add</mat-icon>
-                          Agregar Primera Ruta
+                          Crear Primera Resolución
                         </button>
                       </div>
                     }
@@ -1095,6 +1482,31 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
       margin-top: 8px;
     }
 
+    // Estilos para el selector de columnas
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .column-menu-header {
+      padding: 8px 16px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 8px;
+    }
+
+    .column-checkbox {
+      display: block;
+      padding: 8px 16px;
+      margin: 0;
+      
+      &:hover {
+        background-color: #f5f5f5;
+      }
+    }
+
     .resoluciones-grid,
     .rutas-grid {
       display: grid;
@@ -1445,12 +1857,460 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
       background-color: #f8f9fa;
       color: #6c757d;
     }
+
+    // Estilos para rutas por resolución
+    .resoluciones-rutas-container {
+      .resolucion-rutas-panel {
+        margin-bottom: 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+        .resolucion-rutas-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+
+          .resolucion-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            .resolucion-numero {
+              font-weight: 600;
+              color: #1976d2;
+              font-size: 16px;
+            }
+          }
+
+          .rutas-count {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+        }
+
+        .resolucion-description {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #666;
+          font-size: 14px;
+
+          .separator {
+            color: #ccc;
+          }
+        }
+      }
+
+      .rutas-table-container {
+        padding: 0;
+        margin-top: 16px;
+
+        .rutas-table {
+          width: 100%;
+          background: white;
+
+          th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+          }
+
+          td {
+            border-bottom: 1px solid #f0f0f0;
+          }
+
+          tr:hover {
+            background-color: #f8f9fa;
+          }
+
+          .ruta-codigo {
+            font-family: monospace;
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #1976d2;
+            font-weight: 600;
+          }
+
+          .ruta-nombre {
+            display: flex;
+            flex-direction: column;
+
+            .nombre-principal {
+              font-weight: 500;
+              color: #333;
+              margin-bottom: 2px;
+            }
+
+            .descripcion {
+              font-size: 12px;
+              color: #666;
+            }
+          }
+
+          .origen-destino {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .localidad {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 14px;
+
+              mat-icon {
+                font-size: 16px;
+                width: 16px;
+                height: 16px;
+              }
+            }
+
+            .arrow {
+              color: #666;
+              font-size: 16px;
+              width: 16px;
+              height: 16px;
+            }
+          }
+
+          .distancia {
+            font-weight: 500;
+            color: #333;
+          }
+
+          .itinerario {
+            .horario {
+              font-size: 14px;
+              color: #555;
+              font-weight: 500;
+            }
+          }
+
+          .frecuencia {
+            .frecuencia-valor {
+              font-size: 14px;
+              color: #1976d2;
+              font-weight: 500;
+              background: #e3f2fd;
+              padding: 2px 8px;
+              border-radius: 12px;
+            }
+          }
+
+        }
+
+        .no-rutas-resolucion {
+          padding: 32px;
+          text-align: center;
+          color: #666;
+          background: #f8f9fa;
+          border-radius: 8px;
+          margin: 16px 0;
+
+          mat-icon {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            color: #ccc;
+            margin-bottom: 16px;
+          }
+
+          p {
+            margin: 8px 0 16px;
+            font-style: italic;
+          }
+
+          button {
+            margin-top: 8px;
+          }
+        }
+      }
+    }
+
+    // Estilos para tabla de vehículos
+    .vehiculos-table-container {
+      padding: 0;
+      margin-top: 16px;
+
+      .vehiculos-table {
+        width: 100%;
+        background: white;
+
+        th {
+          background: #f5f5f5;
+          font-weight: 600;
+          color: #333;
+          border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+          background-color: #f8f9fa;
+        }
+
+        .vehiculo-placa {
+          font-family: monospace;
+          background: #e8f5e8;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 14px;
+          color: #2e7d32;
+          font-weight: 600;
+        }
+
+        .marca-modelo {
+          display: flex;
+          flex-direction: column;
+
+          .marca {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 2px;
+          }
+
+          .modelo {
+            font-size: 12px;
+            color: #666;
+          }
+        }
+
+        .anio {
+          font-weight: 500;
+          color: #333;
+        }
+
+        .categoria {
+          font-size: 14px;
+          color: #1976d2;
+          font-weight: 500;
+        }
+
+        .combustible {
+          font-size: 14px;
+          color: #ff9800;
+          font-weight: 500;
+        }
+      }
+    }
+
+    // Responsive para rutas por resolución
+    @media (max-width: 768px) {
+      .resoluciones-rutas-container {
+        .resolucion-rutas-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .rutas-table-container {
+          .origen-destino {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+
+            .arrow {
+              transform: rotate(90deg);
+            }
+          }
+        }
+      }
+    }
+
+    /* Estilos específicos para columnas de vehículos */
+    .vehiculos-table {
+      .rutas-asignadas {
+        mat-chip-set {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+        
+        mat-chip {
+          font-size: 11px;
+          height: 24px;
+          line-height: 24px;
+        }
+        
+        .no-rutas {
+          color: #6c757d;
+          font-style: italic;
+          font-size: 12px;
+        }
+      }
+
+      .tuc-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        
+        .tuc-numero {
+          font-weight: 500;
+          font-size: 13px;
+        }
+        
+        .tuc-fecha {
+          color: #6c757d;
+          font-size: 11px;
+        }
+        
+        .no-tuc {
+          color: #6c757d;
+          font-style: italic;
+          font-size: 12px;
+        }
+      }
+
+      .marca-modelo {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        
+        .marca {
+          font-weight: 500;
+          font-size: 13px;
+        }
+        
+        .modelo {
+          color: #6c757d;
+          font-size: 12px;
+        }
+      }
+
+      .vehiculo-placa {
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        background: #f8f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+      }
+
+      .peso-neto, .peso-bruto {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+
+      .medidas {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .cilindrada, .potencia {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .motor, .chasis {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sede-registro, .resolucion {
+        font-size: 12px;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .cilindros, .ejes, .asientos {
+        text-align: center;
+        font-weight: 500;
+      }
+
+      .categoria {
+        background: #e3f2fd;
+        color: #1565c0;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .combustible {
+        background: #f3e5f5;
+        color: #7b1fa2;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .acciones-vehiculo {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        
+        button {
+          min-width: 40px;
+          height: 40px;
+        }
+      }
+    }
+
+    /* Estilos para menús de acciones */
+    .estado-activo {
+      color: #4caf50;
+    }
+
+    .estado-inactivo {
+      color: #ff9800;
+    }
+
+    .accion-peligrosa {
+      color: #f44336;
+      
+      mat-icon {
+        color: #f44336;
+      }
+    }
+
+    /* Estilos para botones de acción en header */
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .header-actions .add-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .header-actions .add-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
   `]
 })
 export class EmpresaDetailComponent implements OnInit {
   private empresaService = inject(EmpresaService);
   private authService = inject(AuthService);
   private resolucionService = inject(ResolucionService);
+  private rutaService = inject(RutaService);
+  private vehiculoService = inject(VehiculoService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
@@ -1461,6 +2321,57 @@ export class EmpresaDetailComponent implements OnInit {
   isLoading = false;
   resoluciones: Resolucion[] = [];
   isLoadingResoluciones = false;
+  
+  // Propiedades para las tablas
+  allColumnsRutas = [
+    { key: 'codigo', label: 'Código', visible: true },
+    { key: 'origen-destino', label: 'Origen - Destino', visible: true },
+    { key: 'distancia', label: 'Distancia', visible: true },
+    { key: 'itinerario', label: 'Itinerario', visible: true },
+    { key: 'frecuencia', label: 'Frecuencia', visible: true },
+    { key: 'estado', label: 'Estado', visible: true }
+  ];
+  
+  get displayedColumnsRutas(): string[] {
+    return this.allColumnsRutas.filter(col => col.visible).map(col => col.key);
+  }
+  
+  resolucionesPadre: Resolucion[] = [];
+  rutasPorResolucion = new Map<string, Ruta[]>();
+  
+  // Propiedades para vehículos
+  allColumnsVehiculos = [
+    { key: 'placa', label: 'Placa', visible: true },
+    { key: 'marca-modelo', label: 'Marca/Modelo', visible: true },
+    { key: 'anio', label: 'Año', visible: true },
+    { key: 'categoria', label: 'Categoría', visible: true },
+    { key: 'combustible', label: 'Combustible', visible: true },
+    { key: 'estado', label: 'Estado', visible: true },
+    { key: 'rutas-asignadas', label: 'Rutas Asignadas', visible: false },
+    { key: 'sede-registro', label: 'Sede Registro', visible: false },
+    { key: 'resolucion', label: 'Resolución', visible: false },
+    { key: 'tuc', label: 'TUC', visible: false },
+    { key: 'motor', label: 'Motor', visible: false },
+    { key: 'chasis', label: 'Chasis', visible: false },
+    { key: 'cilindros', label: 'Cilindros', visible: false },
+    { key: 'ejes', label: 'Ejes', visible: false },
+    { key: 'asientos', label: 'Asientos', visible: false },
+    { key: 'peso-neto', label: 'Peso Neto', visible: false },
+    { key: 'peso-bruto', label: 'Peso Bruto', visible: false },
+    { key: 'medidas', label: 'Medidas (L×A×H)', visible: false },
+    { key: 'cilindrada', label: 'Cilindrada', visible: false },
+    { key: 'potencia', label: 'Potencia', visible: false },
+    { key: 'acciones', label: 'Acciones', visible: true }
+  ];
+  
+  get displayedColumnsVehiculos(): string[] {
+    return this.allColumnsVehiculos.filter(col => col.visible).map(col => col.key);
+  }
+  
+  vehiculosEmpresa: Vehiculo[] = [];
+  
+  // Cache para evitar valores aleatorios que cambien en cada ciclo de detección
+  private rutasCountCache = new Map<string, number>();
 
   ngOnInit(): void {
     const empresaId = this.route.snapshot.params['id'];
@@ -1470,9 +2381,11 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   loadEmpresa(id: string): void {
+    console.log('📋 Cargando empresa con ID:', id);
     this.isLoading = true;
     this.empresaService.getEmpresa(id).subscribe({
       next: (empresa) => {
+        console.log('📋 Empresa cargada:', empresa);
         this.empresa = empresa;
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -1525,10 +2438,45 @@ export class EmpresaDetailComponent implements OnInit {
   cargarResolucionesEmpresa(empresaId: string): void {
     this.isLoadingResoluciones = true;
     
+    console.log('📋 === CARGA DE RESOLUCIONES ===');
+    console.log('🏢 Empresa ID:', empresaId);
+    
     this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
       next: (resoluciones) => {
         console.log('📋 Resoluciones cargadas para empresa:', empresaId, resoluciones);
+        console.log('📊 Cantidad de resoluciones:', resoluciones.length);
+        
+        if (resoluciones.length > 0) {
+          console.log('🔍 ESTRUCTURA DE LA PRIMERA RESOLUCIÓN:', resoluciones[0]);
+          console.log('🔍 PROPIEDADES DE RESOLUCIÓN:', Object.keys(resoluciones[0] || {}));
+          
+          // Analizar propiedades relacionadas con vehículos
+          resoluciones.forEach((res, index) => {
+            console.log(`📋 Resolución ${index + 1}:`, {
+              id: res.id,
+              nroResolucion: res.nroResolucion,
+              vehiculosHabilitadosIds: res.vehiculosHabilitadosIds,
+              // Buscar otras propiedades que puedan contener vehículos
+              ...Object.keys(res).filter(key => key.toLowerCase().includes('vehiculo')).reduce((acc, key) => {
+                (acc as any)[key] = (res as any)[key];
+                return acc;
+              }, {} as any)
+            });
+          });
+        }
+        
         this.resoluciones = resoluciones;
+        this.resolucionesPadre = this.getResolucionesPadre();
+        // Limpiar cache de rutas cuando se cargan nuevas resoluciones
+        this.rutasCountCache.clear();
+        this.rutasPorResolucion.clear();
+        
+        // Cargar rutas para cada resolución padre
+        this.cargarRutasParaResoluciones();
+        
+        // Cargar vehículos después de tener las resoluciones
+        this.cargarVehiculosEmpresa(empresaId);
+        
         this.isLoadingResoluciones = false;
         this.cdr.detectChanges();
       },
@@ -1537,6 +2485,208 @@ export class EmpresaDetailComponent implements OnInit {
         this.isLoadingResoluciones = false;
         this.cdr.detectChanges();
       }
+    });
+  }
+
+  cargarRutasParaResoluciones(): void {
+    this.resolucionesPadre.forEach(resolucion => {
+      this.rutaService.getRutasPorResolucion(resolucion.id).subscribe({
+        next: (rutas) => {
+          console.log(`🚌 Rutas cargadas para resolución ${resolucion.nroResolucion}:`, rutas);
+          this.rutasPorResolucion.set(resolucion.id, rutas);
+          this.rutasCountCache.set(resolucion.id, rutas.length);
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error(`Error cargando rutas para resolución ${resolucion.nroResolucion}:`, error);
+          this.rutasPorResolucion.set(resolucion.id, []);
+          this.rutasCountCache.set(resolucion.id, 0);
+        }
+      });
+    });
+  }
+
+  cargarVehiculosEmpresa(empresaId: string): void {
+    console.log('🚨🚨🚨 MÉTODO CARGAR VEHÍCULOS EJECUTÁNDOSE 🚨🚨🚨');
+    console.log('🚗 === CARGA DIRECTA DE VEHÍCULOS ===');
+    console.log('🏢 Empresa ID:', empresaId);
+    console.log('📋 Resoluciones disponibles:', this.resoluciones.length);
+    
+    // Limpiar vehículos actuales
+    this.vehiculosEmpresa = [];
+    this.cdr.detectChanges();
+    
+    // ESTRATEGIA CORRECTA: Usar vehiculosHabilitadosIds de la EMPRESA directamente
+    if (!this.empresa) {
+      console.log('❌ No hay empresa cargada');
+      return;
+    }
+    
+    console.log('🎯 === ESTRATEGIA: VEHICULOS HABILITADOS IDS DE LA EMPRESA ===');
+    console.log('🏢 Empresa:', this.empresa.razonSocial.principal);
+    console.log('📋 vehiculosHabilitadosIds de la empresa:', this.empresa.vehiculosHabilitadosIds);
+    
+    if (!this.empresa.vehiculosHabilitadosIds || this.empresa.vehiculosHabilitadosIds.length === 0) {
+      console.log('⚠️ La empresa no tiene vehículos habilitados');
+      this.vehiculosEmpresa = [];
+      this.cdr.detectChanges();
+      return;
+    }
+    
+    // Obtener TODOS los vehículos y filtrar usando vehiculosHabilitadosIds de la empresa
+    this.vehiculoService.getVehiculos().subscribe({
+      next: (todosLosVehiculos: Vehiculo[]) => {
+        console.log('🚗 TODOS LOS VEHÍCULOS EN EL SISTEMA:', todosLosVehiculos.length);
+        
+        if (todosLosVehiculos.length > 0) {
+          console.log('🔍 ESTRUCTURA DEL PRIMER VEHÍCULO:', todosLosVehiculos[0]);
+          
+          // Crear Set de IDs de vehículos habilitados de la empresa
+          const vehiculosHabilitadosIds = new Set(this.empresa!.vehiculosHabilitadosIds);
+          console.log('📊 Total IDs únicos de vehículos habilitados:', vehiculosHabilitadosIds.size);
+          console.log('📋 IDs de vehículos habilitados:', Array.from(vehiculosHabilitadosIds));
+          
+          // Filtrar vehículos que estén en la lista de habilitados
+          const vehiculosEncontrados = todosLosVehiculos.filter(vehiculo => {
+            const estaHabilitado = vehiculosHabilitadosIds.has(vehiculo.id);
+            if (estaHabilitado) {
+              console.log(`✅ Vehículo habilitado encontrado: ${vehiculo.placa} (ID: ${vehiculo.id})`);
+            }
+            return estaHabilitado;
+          });
+          
+          console.log('🎉 === RESULTADO FINAL ===');
+          console.log('📊 Total vehículos encontrados:', vehiculosEncontrados.length);
+          if (vehiculosEncontrados.length > 0) {
+            console.log('🚗 Placas encontradas:', vehiculosEncontrados.map(v => v.placa));
+          }
+          
+          // ASIGNACIÓN DIRECTA Y FORZADA
+          console.log('🔄 === ASIGNACIÓN FORZADA ===');
+          this.vehiculosEmpresa = [...vehiculosEncontrados]; // Crear nueva referencia
+          
+          console.log('✅ vehiculosEmpresa asignado:', this.vehiculosEmpresa.length);
+          console.log('✅ Placas en vehiculosEmpresa:', this.vehiculosEmpresa.map(v => v.placa));
+          
+          // Forzar detección de cambios
+          this.cdr.detectChanges();
+          this.cdr.markForCheck();
+          
+          console.log('✅ Detección de cambios ejecutada');
+          
+        } else {
+          console.log('⚠️ No hay vehículos en el sistema');
+          this.vehiculosEmpresa = [];
+          this.cdr.detectChanges();
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error obteniendo vehículos:', error);
+        this.vehiculosEmpresa = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private buscarVehiculosPorResoluciones(todosVehiculos: Vehiculo[], empresaId: string): void {
+    console.log('🔍 Buscando vehículos por resoluciones...');
+    console.log('📋 Resoluciones disponibles:', this.resoluciones.length);
+    
+    if (this.resoluciones.length === 0) {
+      console.log('⚠️ No hay resoluciones cargadas');
+      this.vehiculosEmpresa = [];
+      this.cdr.detectChanges();
+      return;
+    }
+    
+    const resolucionesIds = this.resoluciones.map(r => r.id);
+    console.log('📋 IDs de resoluciones:', resolucionesIds);
+    
+    // Buscar vehículos que tengan resolucionId que coincida
+    const vehiculosPorResolucionId = todosVehiculos.filter(v => 
+      v.resolucionId && resolucionesIds.includes(v.resolucionId)
+    );
+    console.log('🚗 Vehículos por resolucionId:', vehiculosPorResolucionId.length);
+    
+    // Buscar vehículos listados en vehiculosHabilitadosIds de las resoluciones
+    const vehiculosIdsEnResoluciones = new Set<string>();
+    this.resoluciones.forEach(resolucion => {
+      if (resolucion.vehiculosHabilitadosIds) {
+        resolucion.vehiculosHabilitadosIds.forEach(vehiculoId => {
+          vehiculosIdsEnResoluciones.add(vehiculoId);
+        });
+      }
+    });
+    
+    const vehiculosPorIdEnResoluciones = todosVehiculos.filter(v => 
+      vehiculosIdsEnResoluciones.has(v.id)
+    );
+    console.log('🚗 Vehículos por ID en resoluciones:', vehiculosPorIdEnResoluciones.length);
+    
+    // Combinar ambos métodos sin duplicados
+    const vehiculosEncontrados = new Map<string, Vehiculo>();
+    
+    vehiculosPorResolucionId.forEach(v => vehiculosEncontrados.set(v.id, v));
+    vehiculosPorIdEnResoluciones.forEach(v => vehiculosEncontrados.set(v.id, v));
+    
+    const vehiculosFinales = Array.from(vehiculosEncontrados.values());
+    console.log('🚗 Total vehículos únicos encontrados:', vehiculosFinales.length);
+    console.log('🚗 Placas encontradas:', vehiculosFinales.map(v => v.placa));
+    
+    this.vehiculosEmpresa = vehiculosFinales;
+    this.cdr.detectChanges();
+  }
+
+  private cargarVehiculosMetodoAlternativo(empresaId: string): void {
+    console.log('🔄 Método alternativo: Cargando vehículos por resoluciones individuales...');
+    
+    if (this.resoluciones.length === 0) {
+      console.log('⚠️ No hay resoluciones para el método alternativo');
+      this.vehiculosEmpresa = [];
+      this.cdr.detectChanges();
+      return;
+    }
+    
+    const todosVehiculos: Vehiculo[] = [];
+    let resolucionesProcesadas = 0;
+    const totalResoluciones = this.resoluciones.length;
+    
+    this.resoluciones.forEach(resolucion => {
+      console.log(`🔍 Cargando vehículos para resolución: ${resolucion.nroResolucion}`);
+      
+      this.vehiculoService.getVehiculosPorResolucion(resolucion.id).subscribe({
+        next: (vehiculosResolucion: Vehiculo[]) => {
+          console.log(`✅ Resolución ${resolucion.nroResolucion}: ${vehiculosResolucion.length} vehículos`);
+          
+          // Agregar vehículos únicos
+          vehiculosResolucion.forEach(vehiculo => {
+            if (!todosVehiculos.find(v => v.id === vehiculo.id)) {
+              todosVehiculos.push(vehiculo);
+            }
+          });
+          
+          resolucionesProcesadas++;
+          
+          if (resolucionesProcesadas === totalResoluciones) {
+            console.log('🚗 === RESULTADO MÉTODO ALTERNATIVO ===');
+            console.log('📊 Total vehículos recolectados:', todosVehiculos.length);
+            console.log('🚗 Placas recolectadas:', todosVehiculos.map(v => v.placa));
+            
+            this.vehiculosEmpresa = todosVehiculos;
+            this.cdr.detectChanges();
+          }
+        },
+        error: (error: any) => {
+          console.error(`❌ Error en resolución ${resolucion.nroResolucion}:`, error);
+          resolucionesProcesadas++;
+          
+          if (resolucionesProcesadas === totalResoluciones) {
+            console.log('🚗 Finalizando con errores, total recolectado:', todosVehiculos.length);
+            this.vehiculosEmpresa = todosVehiculos;
+            this.cdr.detectChanges();
+          }
+        }
+      });
     });
   }
 
@@ -1651,35 +2801,14 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   // Métodos para Rutas
-  agregarRutas(): void {
+  irAModuloRutas(): void {
     if (this.empresa) {
-      // Verificar si la empresa tiene resoluciones para crear rutas
-      if (!this.empresa.resolucionesPrimigeniasIds || this.empresa.resolucionesPrimigeniasIds.length === 0) {
-        this.snackBar.open('Esta empresa debe tener al menos una resolución para crear rutas', 'Cerrar', { 
-          duration: 4000,
-          panelClass: ['warning-snackbar']
-        });
-        return;
-      }
-
-      // Abrir modal de creación de ruta
-      const dialogRef = this.dialog.open(CrearRutaModalComponent, {
-        width: '800px',
-        data: { 
-          empresa: this.empresa,
-          empresaId: this.empresa.id
-        }
-      });
-
-      dialogRef.afterClosed().subscribe(result => {
-        if (result) {
-          // Recargar los datos de la empresa para mostrar la nueva ruta
-          this.loadEmpresa(this.empresa!.id);
-          this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { 
-            duration: 3000,
-            panelClass: ['success-snackbar']
-          });
-        }
+      // Redirigir al módulo de rutas con el ID de la empresa como parámetro
+      this.router.navigate(['/rutas'], { 
+        queryParams: { 
+          empresaId: this.empresa.id,
+          action: 'create'
+        } 
       });
     }
   }
@@ -1713,4 +2842,530 @@ export class EmpresaDetailComponent implements OnInit {
       this.router.navigate(['/rutas'], { queryParams: { empresaId: this.empresa.id } });
     }
   }
-} 
+
+  // Nuevos métodos para rutas por resolución
+  getTotalRutas(): number {
+    if (!this.empresa?.rutasAutorizadasIds) return 0;
+    return this.empresa.rutasAutorizadasIds.length;
+  }
+
+  getRutasCountByResolucion(resolucionId: string): number {
+    // Usar el cache que se actualiza con datos reales
+    return this.rutasCountCache.get(resolucionId) || 0;
+  }
+
+  getRutasByResolucion(resolucionId: string): Ruta[] {
+    // Retornar las rutas cargadas para esta resolución
+    return this.rutasPorResolucion.get(resolucionId) || [];
+  }
+
+  getEstadoColor(estado: string): 'primary' | 'accent' | 'warn' {
+    switch (estado?.toUpperCase()) {
+      case 'VIGENTE':
+      case 'APROBADA':
+        return 'primary';
+      case 'PENDIENTE':
+      case 'EN_TRAMITE':
+        return 'accent';
+      case 'VENCIDA':
+      case 'ANULADA':
+      case 'RECHAZADA':
+        return 'warn';
+      default:
+        return 'primary';
+    }
+  }
+
+  getEstadoRutaColor(estado: string): 'primary' | 'accent' | 'warn' {
+    switch (estado?.toUpperCase()) {
+      case 'ACTIVA':
+        return 'primary';
+      case 'INACTIVA':
+      case 'SUSPENDIDA':
+        return 'warn';
+      case 'EN_MANTENIMIENTO':
+        return 'accent';
+      default:
+        return 'primary';
+    }
+  }
+
+  getEstadoVehiculoColor(estado: string): 'primary' | 'accent' | 'warn' {
+    switch (estado?.toUpperCase()) {
+      case 'ACTIVO':
+      case 'HABILITADO':
+        return 'primary';
+      case 'INACTIVO':
+      case 'SUSPENDIDO':
+      case 'INHABILITADO':
+        return 'warn';
+      case 'EN_MANTENIMIENTO':
+      case 'EN_REVISION':
+        return 'accent';
+      default:
+        return 'primary';
+    }
+  }
+
+  // Métodos auxiliares para formatear datos de vehículos
+  getRutaNombre(rutaId: string): string {
+    // Buscar en las rutas cargadas
+    for (const rutas of this.rutasPorResolucion.values()) {
+      const ruta = rutas.find(r => r.id === rutaId);
+      if (ruta) {
+        return `${ruta.origen} - ${ruta.destino}`;
+      }
+    }
+    return `Ruta ${rutaId.substring(0, 8)}...`;
+  }
+
+  getResolucionNumero(resolucionId: string): string {
+    const resolucion = this.resoluciones.find(r => r.id === resolucionId);
+    return resolucion?.nroResolucion || 'No encontrada';
+  }
+
+  formatPeso(peso: number | undefined): string {
+    if (!peso) return 'N/A';
+    return `${peso.toLocaleString()} kg`;
+  }
+
+  formatMedidas(medidas: any): string {
+    if (!medidas || !medidas.largo || !medidas.ancho || !medidas.alto) {
+      return 'N/A';
+    }
+    return `${medidas.largo}×${medidas.ancho}×${medidas.alto} mm`;
+  }
+
+  formatCilindrada(cilindrada: number | undefined): string {
+    if (!cilindrada) return 'N/A';
+    return `${cilindrada} cc`;
+  }
+
+  formatPotencia(potencia: number | undefined): string {
+    if (!potencia) return 'N/A';
+    return `${potencia} HP`;
+  }
+
+  formatFecha(fecha: string | Date): string {
+    if (!fecha) return 'No disponible';
+    
+    try {
+      const fechaObj = new Date(fecha);
+      return fechaObj.toLocaleDateString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Fecha inválida';
+    }
+  }
+
+  irAModuloRutasConResolucion(resolucionId: string): void {
+    if (this.empresa) {
+      // Redirigir al módulo de rutas con empresa y resolución específica
+      this.router.navigate(['/rutas'], { 
+        queryParams: { 
+          empresaId: this.empresa.id,
+          resolucionId: resolucionId,
+          action: 'create'
+        } 
+      });
+    }
+  }
+
+  // Métodos para Vehículos
+  irAModuloVehiculos(): void {
+    if (this.empresa) {
+      // Redirigir al módulo de vehículos con el ID de la empresa como parámetro
+      this.router.navigate(['/vehiculos'], { 
+        queryParams: { 
+          empresaId: this.empresa.id,
+          action: 'create'
+        } 
+      });
+    }
+  }
+
+  refrescarVehiculos(): void {
+    if (this.empresa) {
+      console.log('🔄 Refrescando lista de vehículos para empresa:', this.empresa.id);
+      this.cargarVehiculosEmpresa(this.empresa.id);
+      
+      // Mostrar mensaje de confirmación
+      this.snackBar.open(
+        'Lista de vehículos actualizada',
+        'Cerrar',
+        { duration: 2000 }
+      );
+    }
+  }
+
+  // Métodos para gestión de vehículos desde el módulo de empresas
+  crearNuevoVehiculo(): void {
+    if (!this.empresa) return;
+    
+    console.log('🚗 Creando nuevo vehículo para empresa:', this.empresa.id);
+    
+    // Navegar al módulo de vehículos con parámetros para crear nuevo vehículo
+    this.router.navigate(['/vehiculos'], { 
+      queryParams: { 
+        empresaId: this.empresa.id,
+        action: 'create',
+        returnTo: 'empresa-detail',
+        returnId: this.empresa.id
+      } 
+    });
+  }
+
+  agregarVehiculoExistente(): void {
+    if (!this.empresa) return;
+    
+    console.log('🔍 Buscando vehículo existente para agregar a empresa:', this.empresa.id);
+    
+    // Aquí se podría abrir un modal para buscar y seleccionar vehículos existentes
+    // Por ahora, navegar al módulo de vehículos con parámetros específicos
+    this.router.navigate(['/vehiculos'], { 
+      queryParams: { 
+        empresaId: this.empresa.id,
+        action: 'add-existing',
+        returnTo: 'empresa-detail',
+        returnId: this.empresa.id
+      } 
+    });
+  }
+
+  getVehiculosPlacas(): string {
+    return this.vehiculosEmpresa?.map(v => v.placa).join(', ') || '';
+  }
+
+  verDetalleVehiculo(vehiculo: Vehiculo): void {
+    console.log('👁️ Ver detalles del vehículo:', vehiculo.placa);
+    
+    // Navegar al detalle del vehículo
+    this.router.navigate(['/vehiculos', vehiculo.id], {
+      queryParams: {
+        returnTo: 'empresa-detail',
+        returnId: this.empresa?.id
+      }
+    });
+  }
+
+  editarVehiculo(vehiculo: Vehiculo): void {
+    console.log('✏️ Editar vehículo:', vehiculo.placa);
+    
+    // Navegar al formulario de edición del vehículo
+    this.router.navigate(['/vehiculos', vehiculo.id, 'edit'], {
+      queryParams: {
+        returnTo: 'empresa-detail',
+        returnId: this.empresa?.id
+      }
+    });
+  }
+
+  gestionarRutasVehiculo(vehiculo: Vehiculo): void {
+    console.log('🛣️ Gestionar rutas del vehículo:', vehiculo.placa);
+    
+    // Navegar al módulo de rutas con el vehículo seleccionado
+    this.router.navigate(['/rutas'], {
+      queryParams: {
+        vehiculoId: vehiculo.id,
+        empresaId: this.empresa?.id,
+        action: 'manage-routes',
+        returnTo: 'empresa-detail',
+        returnId: this.empresa?.id
+      }
+    });
+  }
+
+  transferirVehiculo(vehiculo: Vehiculo): void {
+    console.log('🔄 Transferir vehículo:', vehiculo.placa);
+    
+    // Mostrar diálogo de confirmación
+    const dialogRef = this.dialog.open(ConfirmarTransferenciaVehiculoComponent, {
+      width: '500px',
+      data: {
+        vehiculo: vehiculo,
+        empresaActual: this.empresa
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.confirmed) {
+        this.ejecutarTransferenciaVehiculo(vehiculo, result.empresaDestino);
+      }
+    });
+  }
+
+  private ejecutarTransferenciaVehiculo(vehiculo: Vehiculo, empresaDestinoId: string): void {
+    console.log('🚚 Ejecutando transferencia de vehículo:', vehiculo.placa, 'a empresa:', empresaDestinoId);
+    
+    // Actualizar el vehículo con la nueva empresa
+    const vehiculoActualizado = {
+      ...vehiculo,
+      empresaActualId: empresaDestinoId
+    };
+
+    this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
+      next: (vehiculoTransferido) => {
+        console.log('✅ Vehículo transferido exitosamente:', vehiculoTransferido);
+        
+        this.snackBar.open(
+          `Vehículo ${vehiculo.placa} transferido exitosamente`,
+          'Cerrar',
+          { duration: 3000 }
+        );
+        
+        // Refrescar la lista de vehículos
+        this.refrescarVehiculos();
+      },
+      error: (error) => {
+        console.error('❌ Error transfiriendo vehículo:', error);
+        this.snackBar.open(
+          'Error al transferir el vehículo. Intente nuevamente.',
+          'Cerrar',
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  cambiarEstadoVehiculo(vehiculo: Vehiculo): void {
+    const nuevoEstado = vehiculo.estado === 'ACTIVO' ? 'SUSPENDIDO' : 'ACTIVO';
+    const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'suspender';
+    
+    console.log(`🔄 Cambiar estado del vehículo ${vehiculo.placa} a:`, nuevoEstado);
+    
+    // Mostrar diálogo de confirmación
+    const mensaje = `¿Está seguro que desea ${accion} el vehículo ${vehiculo.placa}?`;
+    
+    if (confirm(mensaje)) {
+      const vehiculoActualizado = {
+        ...vehiculo,
+        estado: nuevoEstado
+      };
+
+      this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
+        next: (vehiculoModificado) => {
+          console.log('✅ Estado del vehículo actualizado:', vehiculoModificado);
+          
+          this.snackBar.open(
+            `Vehículo ${vehiculo.placa} ${nuevoEstado.toLowerCase()} exitosamente`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+          
+          // Refrescar la lista de vehículos
+          this.refrescarVehiculos();
+        },
+        error: (error) => {
+          console.error('❌ Error actualizando estado del vehículo:', error);
+          this.snackBar.open(
+            'Error al actualizar el estado del vehículo. Intente nuevamente.',
+            'Cerrar',
+            { duration: 5000 }
+          );
+        }
+      });
+    }
+  }
+
+  eliminarVehiculoDeEmpresa(vehiculo: Vehiculo): void {
+    console.log('🗑️ Quitar vehículo de empresa:', vehiculo.placa);
+    
+    const mensaje = `¿Está seguro que desea quitar el vehículo ${vehiculo.placa} de esta empresa?\n\nEsto no eliminará el vehículo del sistema, solo lo desasociará de la empresa.`;
+    
+    if (confirm(mensaje)) {
+      // Actualizar el vehículo quitando la asociación con la empresa
+      const vehiculoActualizado = {
+        ...vehiculo,
+        empresaActualId: '', // Quitar la asociación
+        estado: 'DISPONIBLE' // Cambiar estado a disponible
+      };
+
+      this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
+        next: (vehiculoModificado) => {
+          console.log('✅ Vehículo quitado de la empresa exitosamente:', vehiculoModificado);
+          
+          this.snackBar.open(
+            `Vehículo ${vehiculo.placa} quitado de la empresa exitosamente`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+          
+          // Refrescar la lista de vehículos
+          this.refrescarVehiculos();
+        },
+        error: (error) => {
+          console.error('❌ Error quitando vehículo de la empresa:', error);
+          this.snackBar.open(
+            'Error al quitar el vehículo de la empresa. Intente nuevamente.',
+            'Cerrar',
+            { duration: 5000 }
+          );
+        }
+      });
+    }
+  }
+
+  // Método para manejar el toggle de columnas
+  onColumnToggle(): void {
+    // Forzar detección de cambios para actualizar la tabla
+    this.cdr.detectChanges();
+  }
+
+  // Método para manejar el toggle de columnas de vehículos
+  onColumnToggleVehiculos(): void {
+    // Forzar detección de cambios para actualizar la tabla
+    this.cdr.detectChanges();
+  }
+
+  editarRuta(rutaId: string): void {
+    console.log('Editar ruta:', rutaId);
+    
+    // Buscar la ruta en los datos cargados
+    let rutaEncontrada: Ruta | undefined;
+    for (const [resolucionId, rutas] of this.rutasPorResolucion) {
+      rutaEncontrada = rutas.find(r => r.id === rutaId);
+      if (rutaEncontrada) break;
+    }
+    
+    if (rutaEncontrada) {
+      // Abrir modal de edición de ruta
+      const dialogRef = this.dialog.open(CrearRutaModalComponent, {
+        width: '900px',
+        data: { 
+          ruta: rutaEncontrada,
+          empresa: this.empresa,
+          modo: 'editar'
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Recargar las rutas para mostrar los cambios
+          this.cargarRutasParaResoluciones();
+          this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
+        }
+      });
+    } else {
+      this.snackBar.open('No se pudo encontrar la ruta', 'Cerrar', { duration: 3000 });
+    }
+  }
+}
+
+// Componente de diálogo para confirmar transferencia de vehículos
+@Component({
+  selector: 'app-confirmar-transferencia-vehiculo',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    MatIconModule
+  ],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon>swap_horiz</mat-icon>
+      Transferir Vehículo
+    </h2>
+    
+    <mat-dialog-content>
+      <div class="transferencia-info">
+        <p><strong>Vehículo:</strong> {{ data.vehiculo.placa }}</p>
+        <p><strong>Empresa Actual:</strong> {{ data.empresaActual?.razonSocial?.principal }}</p>
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Empresa Destino</mat-label>
+          <mat-select [(ngModel)]="empresaDestinoSeleccionada" required>
+            <mat-option *ngFor="let empresa of empresasDisponibles" [value]="empresa.id">
+              {{ empresa.razonSocial.principal }} ({{ empresa.ruc }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <div class="advertencia">
+          <mat-icon color="warn">warning</mat-icon>
+          <p>Esta acción transferirá el vehículo a la empresa seleccionada. ¿Está seguro?</p>
+        </div>
+      </div>
+    </mat-dialog-content>
+    
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="cancelar()">Cancelar</button>
+      <button mat-raised-button color="primary" 
+              [disabled]="!empresaDestinoSeleccionada"
+              (click)="confirmar()">
+        <mat-icon>swap_horiz</mat-icon>
+        Transferir
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    .transferencia-info {
+      min-width: 400px;
+      padding: 16px 0;
+    }
+    
+    .full-width {
+      width: 100%;
+      margin: 16px 0;
+    }
+    
+    .advertencia {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff3e0;
+      padding: 12px;
+      border-radius: 4px;
+      margin-top: 16px;
+      
+      mat-icon {
+        color: #f57c00;
+      }
+      
+      p {
+        margin: 0;
+        color: #e65100;
+      }
+    }
+  `]
+})
+export class ConfirmarTransferenciaVehiculoComponent {
+  empresaDestinoSeleccionada: string = '';
+  empresasDisponibles: Empresa[] = [];
+  
+  private empresaService = inject(EmpresaService);
+  private dialogRef = inject(MatDialogRef<ConfirmarTransferenciaVehiculoComponent>);
+  
+  constructor(@Inject(MAT_DIALOG_DATA) public data: { vehiculo: Vehiculo, empresaActual: Empresa }) {
+    this.cargarEmpresas();
+  }
+  
+  private cargarEmpresas(): void {
+    this.empresaService.getEmpresas().subscribe({
+      next: (empresas) => {
+        // Filtrar la empresa actual
+        this.empresasDisponibles = empresas.filter(e => e.id !== this.data.empresaActual?.id);
+      },
+      error: (error) => {
+        console.error('Error cargando empresas:', error);
+      }
+    });
+  }
+  
+  cancelar(): void {
+    this.dialogRef.close();
+  }
+  
+  confirmar(): void {
+    this.dialogRef.close({
+      confirmed: true,
+      empresaDestino: this.empresaDestinoSeleccionada
+    });
+  }
+}

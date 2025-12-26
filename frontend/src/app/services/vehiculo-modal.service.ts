@@ -5,6 +5,7 @@ import { TransferirVehiculoModalComponent, TransferirVehiculoData } from '../com
 import { SolicitarBajaVehiculoModalComponent } from '../components/vehiculos/solicitar-baja-vehiculo-modal.component';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate } from '../models/vehiculo.model';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -19,31 +20,40 @@ export class VehiculoModalService {
    * @returns Observable que emite el vehículo creado
    */
   openCreateModal(empresaId?: string, resolucionId?: string): Observable<VehiculoCreate> {
-    const dialogRef = this.dialog.open(VehiculoModalComponent, {
-      width: '900px',
-      maxHeight: '90vh',
-      data: {
-        mode: 'create',
-        empresaId,
-        resolucionId
-      } as VehiculoModalData,
-      disableClose: true
-    });
-
-    return new Observable(observer => {
-      dialogRef.componentInstance.vehiculoCreated.subscribe((vehiculo: VehiculoCreate) => {
-        observer.next(vehiculo);
-        observer.complete();
+    console.log('🔍 ABRIENDO MODAL CREAR VEHÍCULO');
+    console.log('🔍 EmpresaId:', empresaId);
+    console.log('🔍 ResolucionId:', resolucionId);
+    
+    try {
+      const dialogRef = this.dialog.open(VehiculoModalComponent, {
+        width: '900px',
+        maxHeight: '90vh',
+        data: {
+          mode: 'create',
+          empresaId,
+          resolucionId
+        } as VehiculoModalData,
+        disableClose: true
       });
 
-      dialogRef.componentInstance.modalClosed.subscribe(() => {
-        observer.complete();
-      });
+      console.log('✅ Modal abierto exitosamente:', dialogRef);
 
-      dialogRef.afterClosed().subscribe(() => {
-        observer.complete();
+      return dialogRef.afterClosed().pipe(
+        map(result => {
+          console.log('🔍 Modal cerrado con resultado:', result);
+          if (result && result.vehiculo) {
+            console.log('✅ Vehículo creado:', result.vehiculo);
+            return result.vehiculo;
+          }
+          throw new Error('Modal cerrado sin crear vehículo');
+        })
+      );
+    } catch (error) {
+      console.error('❌ Error abriendo modal:', error);
+      return new Observable(observer => {
+        observer.error(error);
       });
-    });
+    }
   }
 
   /**

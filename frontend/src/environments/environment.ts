@@ -1,10 +1,10 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:8000/api/v1',
-  useDataManager: true, // Flag para usar DataManager persistente
+  useDataManager: false, // COMPLETAMENTE DESHABILITADO - SOLO API REAL
 
   features: {
-    persistentData: true,
+    persistentData: false, // DESHABILITADO
     realTimeUpdates: true,
     dataValidation: true,
     bulkOperations: true

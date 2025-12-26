@@ -23,13 +23,18 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angul
 import { EmpresaService } from '../../services/empresa.service';
 import { RutaService } from '../../services/ruta.service';
 import { AuthService } from '../../services/auth.service';
+import { VehiculoService } from '../../services/vehiculo.service';
+import { ResolucionService } from '../../services/resolucion.service';
 import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empresa.model';
 import { Ruta } from '../../models/ruta.model';
+import { Vehiculo } from '../../models/vehiculo.model';
+import { Resolucion } from '../../models/resolucion.model';
 import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
 import { ValidacionSunatModalComponent } from './validacion-sunat-modal.component';
 import { GestionDocumentosModalComponent } from './gestion-documentos-modal.component';
 import { HistorialAuditoriaModalComponent } from './historial-auditoria-modal.component';
 import { CrearRutaModalComponent } from './crear-ruta-modal.component';
+import { RutasPorResolucionModalComponent } from './rutas-por-resolucion-modal.component';
 import { VehiculoModalService } from '../../services/vehiculo-modal.service';
 
 @Component({
@@ -65,6 +70,8 @@ export class EmpresasComponent implements OnInit {
   private empresaService = inject(EmpresaService);
   private rutaService = inject(RutaService);
   private authService = inject(AuthService);
+  private vehiculoService = inject(VehiculoService);
+  private resolucionService = inject(ResolucionService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private fb = inject(FormBuilder);
@@ -102,6 +109,95 @@ export class EmpresasComponent implements OnInit {
 
     this.loadEmpresas();
     this.loadEstadisticas();
+    
+    // DEBUGGING: Cargar datos reales para análisis
+    this.debugearDatosReales();
+  }
+
+  debugearDatosReales(): void {
+    console.log('🔍 === DEBUGGING DATOS REALES ===');
+    
+    // 1. Obtener todas las empresas
+    this.empresaService.getEmpresas(0, 100).subscribe({
+      next: (empresas) => {
+        console.log('🏢 EMPRESAS REALES:', empresas.length);
+        
+        // Buscar la empresa "ventuno"
+        const empresaVentuno = empresas.find(e => 
+          e.razonSocial.principal.toLowerCase().includes('ventuno') ||
+          e.ruc.includes('21012012312')
+        );
+        
+        if (empresaVentuno) {
+          console.log('🎯 EMPRESA VENTUNO ENCONTRADA:', empresaVentuno);
+          console.log('🔍 ID de empresa ventuno:', empresaVentuno.id);
+          console.log('🔍 RUC:', empresaVentuno.ruc);
+          console.log('🔍 Razón Social:', empresaVentuno.razonSocial.principal);
+          
+          // 2. Obtener resoluciones de esta empresa
+          this.resolucionService.getResoluciones(0, 100, undefined, empresaVentuno.id).subscribe({
+            next: (resoluciones: Resolucion[]) => {
+              console.log('📋 RESOLUCIONES DE VENTUNO:', resoluciones.length);
+              resoluciones.forEach((res: Resolucion, index: number) => {
+                console.log(`📋 Resolución ${index + 1}:`, {
+                  id: res.id,
+                  numero: res.nroResolucion,
+                  vehiculosIds: res.vehiculosHabilitadosIds
+                });
+              });
+              
+              // 3. Obtener TODOS los vehículos del sistema
+              this.vehiculoService.getVehiculos().subscribe({
+                next: (todosVehiculos: Vehiculo[]) => {
+                  console.log('🚗 TODOS LOS VEHÍCULOS DEL SISTEMA:', todosVehiculos.length);
+                  
+                  // Analizar vehículos relacionados con ventuno
+                  const vehiculosVentuno = todosVehiculos.filter((v: Vehiculo) => 
+                    v.empresaActualId === empresaVentuno.id
+                  );
+                  console.log('🎯 VEHÍCULOS POR empresaActualId:', vehiculosVentuno.length);
+                  
+                  // Analizar por resoluciones
+                  const resolucionesIds = resoluciones.map((r: Resolucion) => r.id);
+                  const vehiculosPorResolucion = todosVehiculos.filter((v: Vehiculo) => 
+                    v.resolucionId && resolucionesIds.includes(v.resolucionId)
+                  );
+                  console.log('🎯 VEHÍCULOS POR resolucionId:', vehiculosPorResolucion.length);
+                  
+                  // Mostrar algunos vehículos de ejemplo
+                  console.log('📊 MUESTRA DE VEHÍCULOS (primeros 5):');
+                  todosVehiculos.slice(0, 5).forEach((v: Vehiculo, index: number) => {
+                    console.log(`🚗 Vehículo ${index + 1}:`, {
+                      id: v.id,
+                      placa: v.placa,
+                      empresaActualId: v.empresaActualId,
+                      resolucionId: v.resolucionId
+                    });
+                  });
+                  
+                  // Buscar vehículos que contengan "ventuno" en algún campo
+                  const vehiculosConVentuno = todosVehiculos.filter((v: Vehiculo) => 
+                    JSON.stringify(v).toLowerCase().includes('ventuno')
+                  );
+                  console.log('🔍 VEHÍCULOS QUE CONTIENEN "ventuno":', vehiculosConVentuno.length);
+                  
+                  if (vehiculosConVentuno.length > 0) {
+                    console.log('🎯 VEHÍCULOS CON VENTUNO:', vehiculosConVentuno);
+                  }
+                }
+              });
+            }
+          });
+        } else {
+          console.log('❌ NO SE ENCONTRÓ LA EMPRESA VENTUNO');
+          console.log('🔍 Empresas disponibles:', empresas.map(e => ({
+            id: e.id,
+            ruc: e.ruc,
+            razonSocial: e.razonSocial.principal
+          })));
+        }
+      }
+    });
   }
 
   recargarEmpresas(): void {
@@ -117,6 +213,26 @@ export class EmpresasComponent implements OnInit {
     this.empresaService.getEmpresas(0, 100).subscribe({
       next: (empresas) => {
         console.log('EMPRESAS CARGADAS EXITOSAMENTE:', empresas);
+        console.log('🔍 ESTRUCTURA DE LA PRIMERA EMPRESA:', empresas[0]);
+        console.log('🔍 PROPIEDADES DISPONIBLES:', Object.keys(empresas[0] || {}));
+        
+        // Analizar específicamente las propiedades relacionadas con rutas y vehículos
+        if (empresas.length > 0) {
+          const empresa = empresas[0];
+          console.log('📊 ANÁLISIS DE PROPIEDADES:');
+          console.log('- rutasAutorizadasIds:', empresa.rutasAutorizadasIds);
+          console.log('- vehiculosHabilitadosIds:', empresa.vehiculosHabilitadosIds);
+          console.log('- conductoresHabilitadosIds:', empresa.conductoresHabilitadosIds);
+          console.log('- resolucionesPrimigeniasIds:', empresa.resolucionesPrimigeniasIds);
+          
+          // Buscar otras propiedades que puedan contener rutas o vehículos
+          Object.keys(empresa).forEach(key => {
+            if (key.toLowerCase().includes('ruta') || key.toLowerCase().includes('vehiculo')) {
+              console.log(`- ${key}:`, (empresa as any)[key]);
+            }
+          });
+        }
+        
         this.empresas.set(empresas);
         this.isLoading.set(false);
       },
@@ -403,29 +519,21 @@ export class EmpresasComponent implements OnInit {
   }
 
   verRutasEmpresa(empresa: Empresa): void {
-    // Cargar las rutas de la empresa
-    this.rutaService.getRutasPorEmpresa(empresa.id).subscribe({
-      next: (rutas) => {
-        // Mostrar las rutas en un modal o navegar a una vista de rutas
-        console.log('RUTAS DE LA EMPRESA:', rutas);
+    console.log('🔍 Abriendo modal de rutas por resolución para empresa:', empresa.ruc);
+    
+    const dialogRef = this.dialog.open(RutasPorResolucionModalComponent, {
+      width: '95vw',
+      maxWidth: '1400px',
+      height: '90vh',
+      maxHeight: '900px',
+      data: { empresa },
+      disableClose: false,
+      panelClass: 'rutas-resolucion-modal'
+    });
 
-        // Por ahora, mostrar en consola y snackbar
-        this.snackBar.open(`EMPRESA ${empresa.ruc}: ${rutas.length} RUTAS ENCONTRADAS`, 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-
-        // Aquí podrías abrir un modal para mostrar las rutas
-        // o navegar a una vista específica de rutas de la empresa
-      },
-      error: (error) => {
-        console.error('ERROR CARGANDO RUTAS:', error);
-        this.snackBar.open('ERROR AL CARGAR LAS RUTAS DE LA EMPRESA', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Modal cerrado con resultado:', result);
       }
     });
   }

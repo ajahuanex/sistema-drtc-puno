@@ -55,9 +55,7 @@ export interface TipoRuta {
     MatExpansionModule,
     MatPaginatorModule,
     MatProgressSpinnerModule,
-    ReactiveFormsModule,
-    EditarConfiguracionModalComponent,
-    GestionarLocalidadModalComponent
+    ReactiveFormsModule
   ],
   template: `
     <div class="configuracion-container">

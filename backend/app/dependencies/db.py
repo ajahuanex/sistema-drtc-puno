@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from app.config.settings import settings
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +33,16 @@ async def lifespan(app):
         
         db.client = AsyncIOMotorClient(settings.MONGODB_URL)
         
-        # Verificar conexión
-        await db.client.admin.command('ping')
+        # Verificar conexión con timeout más corto
+        await asyncio.wait_for(db.client.admin.command('ping'), timeout=5.0)
         
         logger.info("✅ Conectado a MongoDB exitosamente")
         logger.info(f"🗄️  Base de datos activa: {db.database_name}")
         
+    except asyncio.TimeoutError:
+        logger.error("❌ Timeout al conectar a MongoDB")
+        logger.warning("⚠️  Continuando sin base de datos (modo degradado)")
+        db.client = None
     except Exception as e:
         logger.error(f"❌ Error al conectar a MongoDB: {e}")
         logger.warning("⚠️  Continuando sin base de datos (modo degradado)")
