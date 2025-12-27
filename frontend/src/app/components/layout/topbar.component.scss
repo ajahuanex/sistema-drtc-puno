@@ -22,12 +22,26 @@
       color: var(--mat-toolbar-container-text-color, rgba(0, 0, 0, 0.87));
     }
 
-    .topbar-title {
-      font-size: 20px;
-      font-weight: 500;
-      color: var(--mat-primary-color, #1976d2);
-      margin: 0;
-      text-transform: uppercase;
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .topbar-logo {
+        height: 40px;
+        width: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
+      }
+
+      .topbar-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--mat-primary-color, #0066ff);
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
     }
   }
 
@@ -289,8 +303,8 @@
   background-color: var(--mat-toolbar-container-background-color, #424242);
   color: var(--mat-toolbar-container-text-color, rgba(255, 255, 255, 0.87));
 
-  .topbar-left .topbar-title {
-    color: var(--mat-primary-color, #90caf9);
+  .topbar-left .topbar-brand .topbar-title {
+    color: var(--mat-primary-color, #00ccff);
   }
 
   .topbar-right {
@@ -339,8 +353,14 @@
 
 @media (max-width: 480px) {
   .topbar {
-    .topbar-left .topbar-title {
-      font-size: 16px;
+    .topbar-left .topbar-brand {
+      .topbar-logo {
+        height: 32px;
+      }
+      
+      .topbar-title {
+        font-size: 16px;
+      }
     }
 
     .topbar-right .notifications {

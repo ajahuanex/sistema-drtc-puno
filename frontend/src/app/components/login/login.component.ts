@@ -36,10 +36,12 @@ import { LoginRequest } from '../../models/usuario.model';
         <div class="login-header">
           <div class="logo-container">
             <div class="logo-icon">
-              <mat-icon>admin_panel_settings</mat-icon>
+              <img src="assets/logo-test.svg" alt="SIRRET Logo" class="logo-image" (error)="onLogoError($event)">
+              <div class="logo-fallback" [style.display]="logoError() ? 'flex' : 'none'">SIRRET</div>
             </div>
-            <h1 class="system-title">Sistema DRTC Puno</h1>
-            <p class="system-subtitle">Dirección Regional de Transportes y Comunicaciones</p>
+            <h1 class="system-title">SIRRET</h1>
+            <p class="system-subtitle">Sistema Integral de Registro y Regulación de Empresas de Transporte</p>
+            <p class="system-organization">Dirección Regional de Transportes y Comunicaciones - Puno</p>
           </div>
         </div>
 
@@ -138,7 +140,7 @@ import { LoginRequest } from '../../models/usuario.model';
       align-items: center;
       justify-content: center;
       position: relative;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #0066ff 0%, #00ccff 50%, #87ceeb 100%);
       overflow: hidden;
     }
 
@@ -158,9 +160,10 @@ import { LoginRequest } from '../../models/usuario.model';
       right: 0;
       bottom: 0;
       background-image: 
-        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
-      animation: float 20s ease-in-out infinite;
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      animation: float 25s ease-in-out infinite;
     }
 
     .background-overlay {
@@ -169,7 +172,7 @@ import { LoginRequest } from '../../models/usuario.model';
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.05);
     }
 
     @keyframes float {
@@ -206,33 +209,69 @@ import { LoginRequest } from '../../models/usuario.model';
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255, 255, 255, 0.3);
+      width: 160px;
+      height: 120px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+      backdrop-filter: blur(15px);
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 16px;
     }
 
-    .logo-icon mat-icon {
-      font-size: 40px;
-      width: 40px;
-      height: 40px;
+    .logo-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+    }
+
+    .logo-fallback {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 900;
       color: white;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      letter-spacing: 2px;
+    }
+
+    .logo-text {
+      font-size: 32px;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      letter-spacing: 2px;
     }
 
     .system-title {
       margin: 0;
-      font-size: 36px;
-      font-weight: 700;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 48px;
+      font-weight: 900;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      letter-spacing: 3px;
+      background: linear-gradient(45deg, #ffffff 0%, #e6f3ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .system-subtitle {
-      margin: 0;
+      margin: 8px 0 4px 0;
       font-size: 18px;
-      opacity: 0.9;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      font-weight: 600;
+      opacity: 0.95;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      letter-spacing: 0.5px;
+    }
+
+    .system-organization {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.85;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      font-style: italic;
     }
 
     .login-form-container {
@@ -298,13 +337,15 @@ import { LoginRequest } from '../../models/usuario.model';
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      transition: all 0.2s ease-in-out;
+      background: linear-gradient(135deg, #0066ff 0%, #00ccff 50%, #0099ff 100%);
+      transition: all 0.3s ease-in-out;
+      box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
     }
 
     .login-button:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 8px 25px rgba(0, 102, 255, 0.4);
+      background: linear-gradient(135deg, #0052cc 0%, #00b3ff 50%, #0080ff 100%);
     }
 
     .login-button:disabled {
@@ -337,7 +378,7 @@ import { LoginRequest } from '../../models/usuario.model';
       background: #f8f9fa;
       border-radius: 8px;
       padding: 16px;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #0066ff;
     }
 
     .info-header {
@@ -351,7 +392,7 @@ import { LoginRequest } from '../../models/usuario.model';
       font-size: 18px;
       width: 18px;
       height: 18px;
-      color: #667eea;
+      color: #0066ff;
     }
 
     .info-title {
@@ -441,6 +482,7 @@ export class LoginComponent {
 
   // Signals
   isLoading = signal(false);
+  logoError = signal(false);
 
   // Form
   loginForm: FormGroup;
@@ -450,6 +492,11 @@ export class LoginComponent {
       dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       password: ['', [Validators.required, Validators.minLength(6)]]
     });
+  }
+
+  onLogoError(event: any): void {
+    this.logoError.set(true);
+    event.target.style.display = 'none';
   }
 
   onSubmit(): void {

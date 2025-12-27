@@ -45,8 +45,11 @@ import { ChangeDetectionStrategy } from '@angular/core';
           <mat-icon aria-hidden="false">{{ sidebarExpanded ? 'menu_open' : 'menu' }}</mat-icon>
         </button>
 
-        <!-- Título de la aplicación -->
-        <h1 class="topbar-title">Sistema DRTC Puno</h1>
+        <!-- Logo y título de la aplicación -->
+        <div class="topbar-brand">
+          <img src="assets/logo-test.svg" alt="SIRRET Logo" class="topbar-logo">
+          <h1 class="topbar-title">SIRRET</h1>
+        </div>
       </div>
 
       <div class="topbar-center">
