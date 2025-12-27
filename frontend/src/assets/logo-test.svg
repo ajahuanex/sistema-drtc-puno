@@ -7,8 +7,8 @@
     </linearGradient>
   </defs>
   <rect width="200" height="100" fill="url(#grad1)" rx="10"/>
-  <text x="100" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">SIRRET</text>
-  <text x="100" y="55" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">Sistema Integral de Registro</text>
+  <text x="100" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white">SIGRET</text>
+  <text x="100" y="55" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">Sistema Integral de Gestión</text>
   <text x="100" y="70" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">y Regulación de Empresas</text>
   <text x="100" y="85" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="white">de Transporte</text>
 </svg>

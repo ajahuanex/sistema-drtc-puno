@@ -36,11 +36,11 @@ import { LoginRequest } from '../../models/usuario.model';
         <div class="login-header">
           <div class="logo-container">
             <div class="logo-icon">
-              <img src="assets/logo-test.svg" alt="SIRRET Logo" class="logo-image" (error)="onLogoError($event)">
-              <div class="logo-fallback" [style.display]="logoError() ? 'flex' : 'none'">SIRRET</div>
+              <img src="assets/logo-test.svg" alt="SIGRET Logo" class="logo-image" (error)="onLogoError($event)">
+              <div class="logo-fallback" [style.display]="logoError() ? 'flex' : 'none'">SIGRET</div>
             </div>
-            <h1 class="system-title">SIRRET</h1>
-            <p class="system-subtitle">Sistema Integral de Registro y Regulación de Empresas de Transporte</p>
+            <h1 class="system-title">SIGRET</h1>
+            <p class="system-subtitle">Sistema Integral de Gestión y Regulación de Empresas de Transporte</p>
             <p class="system-organization">Dirección Regional de Transportes y Comunicaciones - Puno</p>
           </div>
         </div>

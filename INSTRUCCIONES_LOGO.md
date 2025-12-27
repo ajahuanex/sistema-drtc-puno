@@ -2,7 +2,7 @@
 
 ## 📁 Ubicación del Logo
 
-Para que el logo aparezca correctamente en el sistema SIRRET, sigue estos pasos:
+Para que el logo aparezca correctamente en el sistema SIGRET, sigue estos pasos:
 
 ### 1. Guardar el Logo
 - **Nombre del archivo**: `logo.png`
@@ -36,7 +36,7 @@ Una vez colocado el logo:
    - Barra superior (logo pequeño)
 
 ### 5. Fallback
-Si el logo no se carga por alguna razón, el sistema mostrará automáticamente el texto "SIRRET" como respaldo.
+Si el logo no se carga por alguna razón, el sistema mostrará automáticamente el texto "SIGRET" como respaldo.
 
 ## 🎨 Características del Diseño Actual
 
