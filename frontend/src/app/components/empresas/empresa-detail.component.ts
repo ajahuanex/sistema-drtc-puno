@@ -295,7 +295,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                       <p>Gestiona la flota de vehículos autorizados y sus documentos de circulación.</p>
                       <div class="stats-row">
                         <span class="stat-item">
-                          <strong>{{ empresa.vehiculosHabilitadosIds.length || 0 }}</strong>
+                          <strong>{{ getTotalVehiculosEmpresa() }}</strong>
                           <small>Vehículos</small>
                         </span>
                       </div>
@@ -570,9 +570,8 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                                   <mat-icon>directions_car</mat-icon>
                                   Gestionar Vehículos
                                 </button>
-                                <button mat-button color="accent" (click)="gestionarRutasResolucion(resolucionPadre.id)">
+                                <button mat-icon-button color="accent" (click)="gestionarRutasResolucion(resolucionPadre.id)" matTooltip="Gestionar rutas de la resolución" class="route-button-resolucion">
                                   <mat-icon>route</mat-icon>
-                                  Gestionar Rutas
                                 </button>
                                 <button mat-button color="warn" (click)="crearResolucionHija(resolucionPadre.id)">
                                   <mat-icon>add</mat-icon>
@@ -602,12 +601,13 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
             <!-- Tab: Vehículos -->
             <mat-tab label="Vehículos">
               <div class="tab-content">
+                <!-- Vehículos con Resolución Asociada -->
                 <mat-card class="info-card">
                   <mat-card-header>
                     <mat-card-title>
                       <mat-icon>directions_car</mat-icon>
-                      Vehículos Asociados
-                      <span class="badge-count">({{ vehiculosEmpresa.length }})</span>
+                      Vehículos con Resolución Asociada
+                      <span class="badge-count">({{ getVehiculosConResolucion().length }})</span>
                     </mat-card-title>
                     <mat-card-subtitle>
                       <div class="header-actions">
@@ -624,39 +624,13 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                         <button mat-icon-button (click)="refrescarVehiculos()" matTooltip="Refrescar lista de vehículos">
                           <mat-icon>refresh</mat-icon>
                         </button>
-                        
-                        <button mat-icon-button [matMenuTriggerFor]="columnMenuVehiculos" matTooltip="Seleccionar columnas">
-                          <mat-icon>view_column</mat-icon>
-                        </button>
-                        
-                        <mat-menu #columnMenuVehiculos="matMenu">
-                          <div class="column-menu-header">
-                            <span>Mostrar columnas</span>
-                          </div>
-                          @for (column of allColumnsVehiculos; track column.key) {
-                            <mat-checkbox 
-                              class="column-checkbox"
-                              [(ngModel)]="column.visible"
-                              (change)="onColumnToggleVehiculos()">
-                              {{ column.label }}
-                            </mat-checkbox>
-                          }
-                        </mat-menu>
                       </div>
                     </mat-card-subtitle>
                   </mat-card-header>
                   <mat-card-content>
-                    <!-- DEBUG: Mostrar estado actual -->
-                    <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
-                      <strong>DEBUG:</strong> vehiculosEmpresa.length = {{ vehiculosEmpresa?.length || 0 }}
-                      @if (vehiculosEmpresa && vehiculosEmpresa.length > 0) {
-                        <br><strong>Placas:</strong> {{ getVehiculosPlacas() }}
-                      }
-                    </div>
-                    
-                    @if (vehiculosEmpresa && vehiculosEmpresa.length > 0) {
+                    @if (getVehiculosConResolucion().length > 0) {
                       <div class="vehiculos-table-container">
-                        <table mat-table [dataSource]="vehiculosEmpresa" class="vehiculos-table">
+                        <table mat-table [dataSource]="getVehiculosConResolucion()" class="vehiculos-table">
                           <!-- Placa Column -->
                           <ng-container matColumnDef="placa">
                             <th mat-header-cell *matHeaderCellDef>Placa</th>
@@ -676,27 +650,13 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                             </td>
                           </ng-container>
 
-                          <!-- Año Column -->
-                          <ng-container matColumnDef="anio">
-                            <th mat-header-cell *matHeaderCellDef>Año</th>
+                          <!-- Resolución Column -->
+                          <ng-container matColumnDef="resolucion">
+                            <th mat-header-cell *matHeaderCellDef>Resolución</th>
                             <td mat-cell *matCellDef="let vehiculo">
-                              <span class="anio">{{ vehiculo.anioFabricacion || 'N/A' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Categoría Column -->
-                          <ng-container matColumnDef="categoria">
-                            <th mat-header-cell *matHeaderCellDef>Categoría</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="categoria">{{ vehiculo.categoria || 'No definido' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Combustible Column -->
-                          <ng-container matColumnDef="combustible">
-                            <th mat-header-cell *matHeaderCellDef>Combustible</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="combustible">{{ vehiculo.datosTecnicos?.tipoCombustible || 'No definido' }}</span>
+                              <mat-chip color="primary" selected>
+                                {{ getResolucionVehiculo(vehiculo) }}
+                              </mat-chip>
                             </td>
                           </ng-container>
 
@@ -710,147 +670,20 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                             </td>
                           </ng-container>
 
-                          <!-- Rutas Asignadas Column -->
-                          <ng-container matColumnDef="rutas-asignadas">
-                            <th mat-header-cell *matHeaderCellDef>Rutas Asignadas</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <div class="rutas-asignadas">
-                                @if (vehiculo.rutasAsignadasIds && vehiculo.rutasAsignadasIds.length > 0) {
-                                  <mat-chip-set>
-                                    @for (rutaId of vehiculo.rutasAsignadasIds; track rutaId) {
-                                      <mat-chip>{{ getRutaNombre(rutaId) }}</mat-chip>
-                                    }
-                                  </mat-chip-set>
-                                } @else {
-                                  <span class="no-rutas">Sin rutas asignadas</span>
-                                }
-                              </div>
-                            </td>
-                          </ng-container>
-
-                          <!-- Sede Registro Column -->
-                          <ng-container matColumnDef="sede-registro">
-                            <th mat-header-cell *matHeaderCellDef>Sede Registro</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="sede-registro">{{ vehiculo.sedeRegistro || 'No definido' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Resolución Column -->
-                          <ng-container matColumnDef="resolucion">
-                            <th mat-header-cell *matHeaderCellDef>Resolución</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="resolucion">{{ getResolucionNumero(vehiculo.resolucionId) || 'No asignada' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- TUC Column -->
-                          <ng-container matColumnDef="tuc">
-                            <th mat-header-cell *matHeaderCellDef>TUC</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <div class="tuc-info">
-                                @if (vehiculo.tuc) {
-                                  <div>
-                                    <span class="tuc-numero">{{ vehiculo.tuc.nroTuc }}</span>
-                                    <small class="tuc-fecha">{{ vehiculo.tuc.fechaEmision | date:'dd/MM/yyyy' }}</small>
-                                  </div>
-                                } @else {
-                                  <span class="no-tuc">Sin TUC</span>
-                                }
-                              </div>
-                            </td>
-                          </ng-container>
-
-                          <!-- Motor Column -->
-                          <ng-container matColumnDef="motor">
-                            <th mat-header-cell *matHeaderCellDef>Motor</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="motor">{{ vehiculo.datosTecnicos?.motor || 'No definido' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Chasis Column -->
-                          <ng-container matColumnDef="chasis">
-                            <th mat-header-cell *matHeaderCellDef>Chasis</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="chasis">{{ vehiculo.datosTecnicos?.chasis || 'No definido' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Cilindros Column -->
-                          <ng-container matColumnDef="cilindros">
-                            <th mat-header-cell *matHeaderCellDef>Cilindros</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="cilindros">{{ vehiculo.datosTecnicos?.cilindros || 'N/A' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Ejes Column -->
-                          <ng-container matColumnDef="ejes">
-                            <th mat-header-cell *matHeaderCellDef>Ejes</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="ejes">{{ vehiculo.datosTecnicos?.ejes || 'N/A' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Asientos Column -->
-                          <ng-container matColumnDef="asientos">
-                            <th mat-header-cell *matHeaderCellDef>Asientos</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="asientos">{{ vehiculo.datosTecnicos?.asientos || 'N/A' }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Peso Neto Column -->
-                          <ng-container matColumnDef="peso-neto">
-                            <th mat-header-cell *matHeaderCellDef>Peso Neto</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="peso-neto">{{ formatPeso(vehiculo.datosTecnicos?.pesoNeto) }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Peso Bruto Column -->
-                          <ng-container matColumnDef="peso-bruto">
-                            <th mat-header-cell *matHeaderCellDef>Peso Bruto</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="peso-bruto">{{ formatPeso(vehiculo.datosTecnicos?.pesoBruto) }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Medidas Column -->
-                          <ng-container matColumnDef="medidas">
-                            <th mat-header-cell *matHeaderCellDef>Medidas (L×A×H)</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="medidas">{{ formatMedidas(vehiculo.datosTecnicos?.medidas) }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Cilindrada Column -->
-                          <ng-container matColumnDef="cilindrada">
-                            <th mat-header-cell *matHeaderCellDef>Cilindrada</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="cilindrada">{{ formatCilindrada(vehiculo.datosTecnicos?.cilindrada) }}</span>
-                            </td>
-                          </ng-container>
-
-                          <!-- Potencia Column -->
-                          <ng-container matColumnDef="potencia">
-                            <th mat-header-cell *matHeaderCellDef>Potencia</th>
-                            <td mat-cell *matCellDef="let vehiculo">
-                              <span class="potencia">{{ formatPotencia(vehiculo.datosTecnicos?.potencia) }}</span>
-                            </td>
-                          </ng-container>
-
                           <!-- Acciones Column -->
                           <ng-container matColumnDef="acciones">
                             <th mat-header-cell *matHeaderCellDef>Acciones</th>
                             <td mat-cell *matCellDef="let vehiculo">
                               <div class="acciones-vehiculo">
-                                <button mat-icon-button [matMenuTriggerFor]="accionesMenu" matTooltip="Más acciones">
+                                <button mat-icon-button color="primary" (click)="gestionarRutasVehiculo(vehiculo)" matTooltip="Gestionar rutas de la resolución asociada" class="route-button-empresa">
+                                  <mat-icon>route</mat-icon>
+                                </button>
+                                
+                                <button mat-icon-button [matMenuTriggerFor]="accionesMenu" matTooltip="Más acciones" class="actions-button-empresa">
                                   <mat-icon>more_vert</mat-icon>
                                 </button>
                                 
-                                <mat-menu #accionesMenu="matMenu">
+                                <mat-menu #accionesMenu="matMenu" class="vehicle-actions-menu-empresa">
                                   <button mat-menu-item (click)="verDetalleVehiculo(vehiculo)">
                                     <mat-icon>visibility</mat-icon>
                                     <span>Ver Detalles</span>
@@ -859,11 +692,6 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                                   <button mat-menu-item (click)="editarVehiculo(vehiculo)">
                                     <mat-icon>edit</mat-icon>
                                     <span>Editar Vehículo</span>
-                                  </button>
-                                  
-                                  <button mat-menu-item (click)="gestionarRutasVehiculo(vehiculo)">
-                                    <mat-icon>route</mat-icon>
-                                    <span>Gestionar Rutas</span>
                                   </button>
                                   
                                   <mat-divider></mat-divider>
@@ -879,35 +707,94 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                                     <mat-icon>{{ vehiculo.estado === 'ACTIVO' ? 'pause' : 'play_arrow' }}</mat-icon>
                                     <span>{{ vehiculo.estado === 'ACTIVO' ? 'Suspender' : 'Activar' }}</span>
                                   </button>
-                                  
-                                  <mat-divider></mat-divider>
-                                  
-                                  <button mat-menu-item (click)="eliminarVehiculoDeEmpresa(vehiculo)" class="accion-peligrosa">
-                                    <mat-icon>remove_circle</mat-icon>
-                                    <span>Quitar de Empresa</span>
-                                  </button>
                                 </mat-menu>
                               </div>
                             </td>
                           </ng-container>
 
-                          <tr mat-header-row *matHeaderRowDef="displayedColumnsVehiculos"></tr>
-                          <tr mat-row *matRowDef="let row; columns: displayedColumnsVehiculos;"></tr>
+                          <tr mat-header-row *matHeaderRowDef="['placa', 'marca-modelo', 'resolucion', 'estado', 'acciones']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['placa', 'marca-modelo', 'resolucion', 'estado', 'acciones'];"></tr>
                         </table>
                       </div>
                     } @else {
                       <div class="empty-state">
                         <mat-icon class="empty-icon">directions_car</mat-icon>
-                        <h3>No hay vehículos asociados</h3>
-                        <p>Esta empresa no tiene vehículos registrados.</p>
-                        <button mat-raised-button color="primary" (click)="irAModuloVehiculos()" class="add-button">
-                          <mat-icon>add</mat-icon>
-                          Ir a Módulo de Vehículos
-                        </button>
+                        <h3>No hay vehículos con resolución asociada</h3>
+                        <p>Los vehículos deben estar asociados a una resolución para poder gestionar sus rutas.</p>
                       </div>
                     }
                   </mat-card-content>
                 </mat-card>
+
+                <!-- Vehículos sin Resolución (Expandible) -->
+                @if (getVehiculosSinResolucion().length > 0) {
+                  <mat-expansion-panel class="vehiculos-sin-resolucion-panel">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon class="warning-icon">warning</mat-icon>
+                        Vehículos sin Resolución Asociada
+                        <span class="badge-count warning">({{ getVehiculosSinResolucion().length }})</span>
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Estos vehículos no pueden gestionar rutas hasta ser asociados a una resolución
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+                    
+                    <div class="vehiculos-sin-resolucion-content">
+                      <div class="vehiculos-table-container">
+                        <table mat-table [dataSource]="getVehiculosSinResolucion()" class="vehiculos-table disabled-table">
+                          <!-- Placa Column -->
+                          <ng-container matColumnDef="placa">
+                            <th mat-header-cell *matHeaderCellDef>Placa</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <span class="vehiculo-placa disabled">{{ vehiculo.placa }}</span>
+                            </td>
+                          </ng-container>
+
+                          <!-- Marca-Modelo Column -->
+                          <ng-container matColumnDef="marca-modelo">
+                            <th mat-header-cell *matHeaderCellDef>Marca/Modelo</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="marca-modelo disabled">
+                                <span class="marca">{{ vehiculo.marca || 'No definido' }}</span>
+                                <span class="modelo">{{ vehiculo.modelo || 'No definido' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <!-- Estado Column -->
+                          <ng-container matColumnDef="estado">
+                            <th mat-header-cell *matHeaderCellDef>Estado</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <mat-chip color="warn" selected>
+                                Sin Resolución
+                              </mat-chip>
+                            </td>
+                          </ng-container>
+
+                          <!-- Acciones Column -->
+                          <ng-container matColumnDef="acciones">
+                            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                            <td mat-cell *matCellDef="let vehiculo">
+                              <div class="acciones-vehiculo">
+                                <button mat-icon-button color="warn" disabled matTooltip="Debe asociar el vehículo a una resolución primero" class="route-button-disabled">
+                                  <mat-icon>route</mat-icon>
+                                </button>
+                                
+                                <button mat-icon-button color="primary" (click)="asociarVehiculoAResolucion(vehiculo)" matTooltip="Asociar a una resolución" class="associate-button-empresa">
+                                  <mat-icon>link</mat-icon>
+                                </button>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <tr mat-header-row *matHeaderRowDef="['placa', 'marca-modelo', 'estado', 'acciones']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['placa', 'marca-modelo', 'estado', 'acciones'];" class="disabled-row"></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </mat-expansion-panel>
+                }
               </div>
             </mat-tab>
 
@@ -2210,57 +2097,170 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
         font-weight: 500;
       }
 
-      .motor, .chasis {
-        font-family: 'Courier New', monospace;
-        font-size: 11px;
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .sede-registro, .resolucion {
-        font-size: 12px;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .cilindros, .ejes, .asientos {
-        text-align: center;
-        font-weight: 500;
-      }
-
-      .categoria {
-        background: #e3f2fd;
-        color: #1565c0;
-        padding: 2px 6px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        text-align: center;
-      }
-
-      .combustible {
-        background: #f3e5f5;
-        color: #7b1fa2;
-        padding: 2px 6px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 500;
-        text-align: center;
-      }
-
       .acciones-vehiculo {
         display: flex;
-        justify-content: center;
+        gap: 8px;
         align-items: center;
+        justify-content: flex-start;
+      }
+    }
+
+    // Estilos para vehículos sin resolución
+    .vehiculos-sin-resolucion-panel {
+      margin-top: 16px;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      
+      .mat-expansion-panel-header {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         
-        button {
-          min-width: 40px;
-          height: 40px;
+        .mat-panel-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .warning-icon {
+            color: #856404;
+          }
+          
+          .badge-count.warning {
+            background: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+          }
         }
+        
+        .mat-panel-description {
+          color: #856404;
+          font-style: italic;
+        }
+      }
+      
+      .vehiculos-sin-resolucion-content {
+        padding: 16px;
+        background: #fffbf0;
+      }
+    }
+
+    // Tabla deshabilitada para vehículos sin resolución
+    .disabled-table {
+      opacity: 0.7;
+      
+      .mat-mdc-cell {
+        color: #6c757d;
+      }
+
+      .vehiculo-placa.disabled {
+        background: #f8f9fa;
+        color: #6c757d;
+        border-color: #dee2e6;
+      }
+
+      .marca-modelo.disabled {
+        .marca, .modelo {
+          color: #adb5bd;
+        }
+      }
+    }
+
+    .disabled-row {
+      background-color: #f8f9fa !important;
+      
+      &:hover {
+        background-color: #f8f9fa !important;
+      }
+    }
+
+    // Estilos para chips de estado mejorados
+    .mat-mdc-chip {
+      &.mat-primary {
+        background: #28a745;
+        color: white;
+      }
+      
+      &.mat-warn {
+        background: #dc3545;
+        color: white;
+      }
+      
+      &.mat-accent {
+        background: #17a2b8;
+        color: white;
+      }
+    }
+
+    // Estilos para botones de gestión de rutas
+    .acciones-vehiculo {
+      .mat-raised-button {
+        font-size: 12px;
+        padding: 8px 16px;
+        min-height: 32px;
+        
+        mat-icon {
+          font-size: 16px;
+          margin-right: 4px;
+        }
+      }
+      
+      .mat-stroked-button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .motor, .chasis {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sede-registro, .resolucion {
+      font-size: 12px;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cilindros, .ejes, .asientos {
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .categoria {
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .combustible {
+      background: #f3e5f5;
+      color: #7b1fa2;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .acciones-vehiculo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      
+      button {
+        min-width: 40px;
+        height: 40px;
       }
     }
 
@@ -2302,6 +2302,187 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
     .header-actions .add-button:hover {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ============================================ */
+    /* ESTILOS PARA BOTONES DE VEHÍCULOS - EMPRESA */
+    /* ============================================ */
+    
+    .acciones-vehiculo {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Botón de rutas - SOLO ICONO */
+    .route-button-empresa {
+      color: #1976d2 !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 8px !important;
+      min-width: 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 50% !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(25, 118, 210, 0.1) !important;
+        transform: scale(1.1) !important;
+      }
+      
+      mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: inherit !important;
+      }
+    }
+    
+    /* Botón de rutas deshabilitado */
+    .route-button-disabled {
+      color: #999 !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 8px !important;
+      min-width: 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 50% !important;
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+      
+      mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: inherit !important;
+      }
+    }
+    
+    /* Botón de acciones - SOLO ICONO */
+    .actions-button-empresa {
+      color: #666 !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 8px !important;
+      min-width: 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 50% !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        color: #1976d2 !important;
+        background-color: rgba(25, 118, 210, 0.1) !important;
+      }
+      
+      mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: inherit !important;
+      }
+    }
+    
+    /* Botón de asociar */
+    .associate-button-empresa {
+      color: #1976d2 !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 8px !important;
+      min-width: 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 50% !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(25, 118, 210, 0.1) !important;
+        transform: scale(1.1) !important;
+      }
+      
+      mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: inherit !important;
+      }
+    }
+    
+    /* Botón de rutas para resolución */
+    .route-button-resolucion {
+      color: #ff9800 !important;
+      background-color: transparent !important;
+      border: none !important;
+      padding: 8px !important;
+      min-width: 40px !important;
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 50% !important;
+      transition: all 0.2s ease !important;
+      
+      &:hover {
+        background-color: rgba(255, 152, 0, 0.1) !important;
+        transform: scale(1.1) !important;
+      }
+      
+      mat-icon {
+        font-size: 20px !important;
+        width: 20px !important;
+        height: 20px !important;
+        color: inherit !important;
+      }
+    }
+    
+    /* Menú de acciones */
+    .vehicle-actions-menu-empresa {
+      min-width: 240px !important;
+      max-width: 280px !important;
+      background-color: #ffffff !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid #e0e0e0 !important;
+      
+      .mat-menu-content {
+        padding: 8px 0 !important;
+      }
+      
+      .mat-menu-item {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 12px 16px !important;
+        font-size: 13px !important;
+        min-height: 44px !important;
+        
+        mat-icon {
+          font-size: 18px !important;
+          width: 18px !important;
+          height: 18px !important;
+          color: #666 !important;
+          margin: 0 !important;
+        }
+        
+        span {
+          flex: 1 !important;
+          color: #333 !important;
+          font-weight: 500 !important;
+        }
+        
+        &:hover {
+          background-color: #f5f5f5 !important;
+          
+          mat-icon {
+            color: #1976d2 !important;
+          }
+          
+          span {
+            color: #1976d2 !important;
+          }
+        }
+      }
     }
   `]
 })
@@ -2372,6 +2553,88 @@ export class EmpresaDetailComponent implements OnInit {
   
   // Cache para evitar valores aleatorios que cambien en cada ciclo de detección
   private rutasCountCache = new Map<string, number>();
+
+  /**
+   * Calcula el total de vehículos de la empresa sumando todos los vehículos
+   * de todas las resoluciones asociadas a la empresa
+   */
+  getTotalVehiculosEmpresa(): number {
+    if (!this.resoluciones || this.resoluciones.length === 0) {
+      return 0;
+    }
+    
+    // Usar Set para evitar duplicados
+    const vehiculosUnicos = new Set<string>();
+    
+    this.resoluciones.forEach(resolucion => {
+      if (resolucion.vehiculosHabilitadosIds && resolucion.vehiculosHabilitadosIds.length > 0) {
+        resolucion.vehiculosHabilitadosIds.forEach(vehiculoId => {
+          vehiculosUnicos.add(vehiculoId);
+        });
+      }
+    });
+    
+    return vehiculosUnicos.size;
+  }
+
+  /**
+   * Obtiene vehículos asociados a resoluciones (con resolución padre)
+   */
+  getVehiculosConResolucion(): any[] {
+    if (!this.vehiculosEmpresa || !this.resoluciones) {
+      return [];
+    }
+    
+    return this.vehiculosEmpresa.filter(vehiculo => {
+      return this.resoluciones.some(resolucion => 
+        resolucion.vehiculosHabilitadosIds && 
+        resolucion.vehiculosHabilitadosIds.includes(vehiculo.id)
+      );
+    }).map(vehiculo => {
+      // Encontrar la resolución asociada
+      const resolucionAsociada = this.resoluciones.find(resolucion => 
+        resolucion.vehiculosHabilitadosIds && 
+        resolucion.vehiculosHabilitadosIds.includes(vehiculo.id)
+      );
+      
+      return {
+        ...vehiculo,
+        resolucionAsociada: resolucionAsociada
+      };
+    });
+  }
+
+  /**
+   * Obtiene vehículos sin resolución asociada (huérfanos)
+   */
+  getVehiculosSinResolucion(): any[] {
+    if (!this.vehiculosEmpresa || !this.resoluciones) {
+      return [];
+    }
+    
+    return this.vehiculosEmpresa.filter(vehiculo => {
+      return !this.resoluciones.some(resolucion => 
+        resolucion.vehiculosHabilitadosIds && 
+        resolucion.vehiculosHabilitadosIds.includes(vehiculo.id)
+      );
+    });
+  }
+
+  /**
+   * Obtiene el número de resolución asociada a un vehículo
+   */
+  getResolucionVehiculo(vehiculo: any): string {
+    if (vehiculo.resolucionAsociada) {
+      return vehiculo.resolucionAsociada.nroResolucion;
+    }
+    
+    const resolucionAsociada = this.resoluciones.find(resolucion => 
+      resolucion.vehiculosHabilitadosIds && 
+      resolucion.vehiculosHabilitadosIds.includes(vehiculo.id)
+    );
+    
+    return resolucionAsociada ? resolucionAsociada.nroResolucion : 'Sin resolución';
+  }
 
   ngOnInit(): void {
     const empresaId = this.route.snapshot.params['id'];
@@ -3066,33 +3329,148 @@ export class EmpresaDetailComponent implements OnInit {
   gestionarRutasVehiculo(vehiculo: Vehiculo): void {
     console.log('🛣️ Gestionar rutas del vehículo:', vehiculo.placa);
     
-    // Navegar al módulo de rutas con el vehículo seleccionado
-    this.router.navigate(['/rutas'], {
-      queryParams: {
-        vehiculoId: vehiculo.id,
-        empresaId: this.empresa?.id,
-        action: 'manage-routes',
-        returnTo: 'empresa-detail',
-        returnId: this.empresa?.id
-      }
-    });
+    // Buscar la resolución padre a la que está asociado el vehículo
+    const resolucionAsociada = this.resoluciones.find(resolucion => 
+      resolucion.vehiculosHabilitadosIds && 
+      resolucion.vehiculosHabilitadosIds.includes(vehiculo.id)
+    );
+    
+    if (resolucionAsociada) {
+      console.log('📋 Vehículo asociado a resolución:', resolucionAsociada.nroResolucion);
+      
+      // Navegar al módulo de rutas filtrado por la resolución específica
+      this.router.navigate(['/rutas'], {
+        queryParams: {
+          vehiculoId: vehiculo.id,
+          empresaId: this.empresa?.id,
+          resolucionId: resolucionAsociada.id,
+          resolucionNumero: resolucionAsociada.nroResolucion,
+          action: 'manage-vehicle-routes',
+          returnTo: 'empresa-detail',
+          returnId: this.empresa?.id
+        }
+      });
+    } else {
+      console.log('⚠️ Vehículo no asociado a ninguna resolución');
+      
+      // Mostrar mensaje informativo
+      this.snackBar.open(
+        `El vehículo ${vehiculo.placa} no está asociado a ninguna resolución. Debe asociarlo primero.`,
+        'Cerrar',
+        { 
+          duration: 5000,
+          panelClass: ['warning-snackbar']
+        }
+      );
+      
+      // Opcionalmente, navegar al módulo de rutas general
+      this.router.navigate(['/rutas'], {
+        queryParams: {
+          vehiculoId: vehiculo.id,
+          empresaId: this.empresa?.id,
+          action: 'assign-to-resolution',
+          returnTo: 'empresa-detail',
+          returnId: this.empresa?.id
+        }
+      });
+    }
   }
 
   transferirVehiculo(vehiculo: Vehiculo): void {
     console.log('🔄 Transferir vehículo:', vehiculo.placa);
     
-    // Mostrar diálogo de confirmación
-    const dialogRef = this.dialog.open(ConfirmarTransferenciaVehiculoComponent, {
-      width: '500px',
-      data: {
-        vehiculo: vehiculo,
-        empresaActual: this.empresa
-      }
-    });
+    // Por ahora, mostrar mensaje informativo
+    this.snackBar.open(
+      `Funcionalidad de transferencia de vehículo ${vehiculo.placa} próximamente disponible`,
+      'Cerrar',
+      { duration: 3000 }
+    );
+    
+    // TODO: Implementar modal de confirmación
+    // const dialogRef = this.dialog.open(ConfirmarTransferenciaVehiculoComponent, {
+    //   width: '500px',
+    //   data: {
+    //     vehiculo: vehiculo,
+    //     empresaActual: this.empresa
+    //   }
+    // });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.confirmed) {
-        this.ejecutarTransferenciaVehiculo(vehiculo, result.empresaDestino);
+    // dialogRef.afterClosed().subscribe(result => {
+    //   if (result && result.confirmed) {
+    //     this.ejecutarTransferenciaVehiculo(vehiculo, result.empresaDestino);
+    //   }
+    // });
+  }
+
+  asociarVehiculoAResolucion(vehiculo: Vehiculo): void {
+    console.log('🔗 Asociar vehículo a resolución:', vehiculo.placa);
+    
+    // Por ahora, mostrar mensaje informativo
+    this.snackBar.open(
+      `Funcionalidad de asociación de vehículo ${vehiculo.placa} próximamente disponible`,
+      'Cerrar',
+      { duration: 3000 }
+    );
+    
+    // TODO: Implementar modal para seleccionar resolución
+    // const dialogRef = this.dialog.open(AsociarVehiculoResolucionComponent, {
+    //   width: '600px',
+    //   data: {
+    //     vehiculo: vehiculo,
+    //     empresa: this.empresa,
+    //     resoluciones: this.resoluciones.filter(r => r.tipoResolucion === 'PADRE' && r.estado === 'VIGENTE')
+    //   }
+    // });
+
+    // dialogRef.afterClosed().subscribe(result => {
+    //   if (result && result.resolucionId) {
+    //     this.ejecutarAsociacionVehiculo(vehiculo, result.resolucionId);
+    //   }
+    // });
+  }
+
+  private ejecutarAsociacionVehiculo(vehiculo: Vehiculo, resolucionId: string): void {
+    console.log('🔗 Ejecutando asociación de vehículo:', vehiculo.placa, 'a resolución:', resolucionId);
+    
+    // Encontrar la resolución
+    const resolucion = this.resoluciones.find(r => r.id === resolucionId);
+    if (!resolucion) {
+      this.snackBar.open('Error: Resolución no encontrada', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Agregar el vehículo a la resolución
+    const vehiculosActualizados = [...(resolucion.vehiculosHabilitadosIds || [])];
+    if (!vehiculosActualizados.includes(vehiculo.id)) {
+      vehiculosActualizados.push(vehiculo.id);
+    }
+
+    const resolucionActualizada = {
+      ...resolucion,
+      vehiculosHabilitadosIds: vehiculosActualizados
+    };
+
+    // Actualizar la resolución en el backend
+    this.resolucionService.updateResolucion(resolucionId, resolucionActualizada).subscribe({
+      next: (resolucionUpdated) => {
+        console.log('✅ Vehículo asociado exitosamente a resolución:', resolucionUpdated);
+        
+        this.snackBar.open(
+          `Vehículo ${vehiculo.placa} asociado a resolución ${resolucion.nroResolucion}`,
+          'Cerrar',
+          { duration: 3000 }
+        );
+        
+        // Refrescar los datos
+        this.loadEmpresa(this.empresa!.id);
+      },
+      error: (error) => {
+        console.error('❌ Error asociando vehículo a resolución:', error);
+        this.snackBar.open(
+          'Error al asociar el vehículo a la resolución. Intente nuevamente.',
+          'Cerrar',
+          { duration: 5000 }
+        );
       }
     });
   }

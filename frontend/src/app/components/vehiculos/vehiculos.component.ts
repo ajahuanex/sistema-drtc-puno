@@ -17,6 +17,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
@@ -25,6 +26,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
 import { Empresa } from '../../models/empresa.model';
 import { TransferirVehiculoModalComponent } from './transferir-vehiculo-modal.component';
 import { VehiculoModalComponent } from './vehiculo-modal.component';
+import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
 
 @Component({
   selector: 'app-vehiculos',
@@ -47,6 +49,7 @@ import { VehiculoModalComponent } from './vehiculo-modal.component';
     MatMenuModule,
     MatDividerModule,
     MatPaginatorModule,
+    MatCheckboxModule,
     FormsModule,
     ReactiveFormsModule,
     TransferirVehiculoModalComponent,
@@ -74,8 +77,26 @@ export class VehiculosComponent implements OnInit {
   pageSize = 10;
   currentPage = 0;
 
+  // Configuración de columnas
+  availableColumns = [
+    { key: 'placa', label: 'PLACA', visible: true, required: true },
+    { key: 'marca', label: 'MARCA / MODELO', visible: true, required: false },
+    { key: 'empresa', label: 'EMPRESA', visible: true, required: false },
+    { key: 'categoria', label: 'CATEGORÍA', visible: true, required: false },
+    { key: 'estado', label: 'ESTADO', visible: true, required: false },
+    { key: 'anio', label: 'AÑO', visible: true, required: false },
+    { key: 'tuc', label: 'TUC', visible: false, required: false },
+    { key: 'resolucion', label: 'RESOLUCIÓN', visible: false, required: false },
+    { key: 'rutas-especificas', label: 'RUTAS', visible: true, required: false },
+    { key: 'acciones', label: 'ACCIONES', visible: true, required: true }
+  ];
+
   // Computed properties
-  displayedColumns = ['placa', 'marca', 'empresa', 'categoria', 'estado', 'anio', 'acciones'];
+  get displayedColumns(): string[] {
+    return this.availableColumns
+      .filter(col => col.visible)
+      .map(col => col.key);
+  }
   filtrosForm: FormGroup;
 
   constructor() {
@@ -86,6 +107,9 @@ export class VehiculosComponent implements OnInit {
       estado: [''],
       categoria: ['']
     });
+
+    // Cargar configuración de columnas desde localStorage
+    this.loadColumnConfiguration();
   }
 
   ngOnInit(): void {
@@ -366,6 +390,34 @@ export class VehiculosComponent implements OnInit {
     this.snackBar.open('FUNCIÓN DE EXPORTACIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
   }
 
+  getRutasEspecificasCount(vehiculo: Vehiculo): number {
+    // TODO: Implementar conteo real de rutas específicas
+    // Por ahora retorna un valor simulado
+    return Math.floor(Math.random() * 4); // 0-3 rutas específicas
+  }
+
+  gestionarRutasEspecificas(vehiculo: Vehiculo): void {
+    console.log('🛣️ Gestionar rutas específicas para vehículo:', vehiculo.placa);
+    
+    const dialogRef = this.dialog.open(GestionarRutasEspecificasModalComponent, {
+      width: '1000px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        vehiculo: vehiculo,
+        empresas: this.empresas()
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Rutas específicas actualizadas:', result);
+        this.snackBar.open('RUTAS ESPECÍFICAS ACTUALIZADAS EXITOSAMENTE', 'CERRAR', { duration: 3000 });
+        this.cargarVehiculos();
+      }
+    });
+  }
+
   // Métodos de historial
   actualizarHistorialTodos(): void {
     this.snackBar.open('ACTUALIZANDO HISTORIAL...', 'CERRAR', { duration: 2000 });
@@ -382,5 +434,75 @@ export class VehiculosComponent implements OnInit {
 
   verEstadisticasFiltrado(): void {
     this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
+  }
+
+  // Métodos de configuración de columnas
+  loadColumnConfiguration(): void {
+    const savedConfig = localStorage.getItem('vehiculos-column-config');
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        this.availableColumns.forEach(col => {
+          const savedCol = config.find((c: any) => c.key === col.key);
+          if (savedCol && !col.required) {
+            col.visible = savedCol.visible;
+          }
+        });
+      } catch (error) {
+        console.error('Error cargando configuración de columnas:', error);
+      }
+    }
+  }
+
+  saveColumnConfiguration(): void {
+    const config = this.availableColumns.map(col => ({
+      key: col.key,
+      visible: col.visible
+    }));
+    localStorage.setItem('vehiculos-column-config', JSON.stringify(config));
+  }
+
+  toggleColumn(columnKey: string): void {
+    const column = this.availableColumns.find(col => col.key === columnKey);
+    if (column && !column.required) {
+      column.visible = !column.visible;
+      this.saveColumnConfiguration();
+    }
+  }
+
+  resetColumns(): void {
+    this.availableColumns.forEach(col => {
+      if (col.key === 'placa' || col.key === 'acciones') {
+        col.visible = true; // Columnas requeridas siempre visibles
+      } else if (col.key === 'marca' || col.key === 'empresa' || col.key === 'categoria' || 
+                 col.key === 'estado' || col.key === 'anio' || col.key === 'rutas-especificas') {
+        col.visible = true; // Columnas por defecto visibles
+      } else {
+        col.visible = false; // Otras columnas ocultas por defecto
+      }
+    });
+    this.saveColumnConfiguration();
+    this.snackBar.open('CONFIGURACIÓN DE COLUMNAS RESTABLECIDA', 'CERRAR', { duration: 3000 });
+  }
+
+  getVisibleColumnsCount(): number {
+    return this.availableColumns.filter(col => col.visible).length;
+  }
+
+  getHiddenColumnsCount(): number {
+    return this.availableColumns.filter(col => !col.visible && !col.required).length;
+  }
+
+  // Métodos para obtener datos adicionales de columnas opcionales
+  getVehiculoTuc(vehiculo: Vehiculo): string {
+    if (vehiculo.tuc && typeof vehiculo.tuc === 'object' && 'nroTuc' in vehiculo.tuc) {
+      return vehiculo.tuc.nroTuc;
+    }
+    return 'N/A';
+  }
+
+  getVehiculoResolucion(vehiculo: Vehiculo): string {
+    // TODO: Implementar obtención de número de resolución
+    return vehiculo.resolucionId ? 'R-XXXX-2024' : 'N/A';
   }
 }

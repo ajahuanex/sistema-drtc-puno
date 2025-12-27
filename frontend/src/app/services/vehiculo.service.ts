@@ -502,6 +502,142 @@ export class VehiculoService {
   }
 
   // ========================================
+  // MÉTODOS DE RUTAS ESPECÍFICAS
+  // ========================================
+
+  /**
+   * Obtener rutas específicas de un vehículo
+   */
+  getRutasEspecificasVehiculo(vehiculoId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/vehiculos/${vehiculoId}/rutas-especificas`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo rutas específicas:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtener rutas generales disponibles para un vehículo
+   */
+  getRutasGeneralesDisponibles(vehiculoId: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/vehiculos/${vehiculoId}/rutas-generales-disponibles`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo rutas generales disponibles:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Crear una ruta específica para un vehículo
+   */
+  crearRutaEspecifica(vehiculoId: string, rutaEspecificaData: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/vehiculos/${vehiculoId}/rutas-especificas`, rutaEspecificaData, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error creando ruta específica:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Actualizar una ruta específica
+   */
+  actualizarRutaEspecifica(rutaEspecificaId: string, rutaEspecificaData: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/rutas-especificas/${rutaEspecificaId}`, rutaEspecificaData, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error actualizando ruta específica:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Eliminar una ruta específica
+   */
+  eliminarRutaEspecifica(rutaEspecificaId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/rutas-especificas/${rutaEspecificaId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error eliminando ruta específica:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtener detalle de una ruta específica
+   */
+  getRutaEspecifica(rutaEspecificaId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/rutas-especificas/${rutaEspecificaId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo ruta específica:', error);
+        return of(null);
+      })
+    );
+  }
+
+  /**
+   * Validar datos de ruta específica antes de crear/actualizar
+   */
+  validarRutaEspecifica(rutaEspecificaData: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/rutas-especificas/validar`, rutaEspecificaData, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error validando ruta específica:', error);
+        return of({ valida: false, errores: ['Error de validación'] });
+      })
+    );
+  }
+
+  /**
+   * Obtener plantilla de ruta específica basada en ruta general
+   */
+  getPlantillaRutaEspecifica(rutaGeneralId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/rutas-generales/${rutaGeneralId}/plantilla`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo plantilla de ruta específica:', error);
+        return of(null);
+      })
+    );
+  }
+
+  /**
+   * Obtener estadísticas de rutas específicas de un vehículo
+   */
+  getEstadisticasRutasEspecificas(vehiculoId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/vehiculos/${vehiculoId}/estadisticas-rutas-especificas`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo estadísticas de rutas específicas:', error);
+        return of({
+          totalRutasEspecificas: 0,
+          rutasActivas: 0,
+          rutasInactivas: 0,
+          horariosDefinidos: 0,
+          paradasAdicionales: 0
+        });
+      })
+    );
+  }
+
+  // ========================================
   // MÉTODOS DE VALIDACIÓN
   // ========================================
 

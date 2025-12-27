@@ -205,6 +205,36 @@
                 <p class="table-subtitle">SE ENCONTRARON {{vehiculosFiltrados().length}} VEHÍCULOS</p>
             </div>
             <div class="table-actions">
+                <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
+                    <mat-icon>view_column</mat-icon>
+                    COLUMNAS ({{ getVisibleColumnsCount() }})
+                </button>
+                <mat-menu #columnMenu="matMenu" class="column-menu">
+                    <div class="column-menu-header">
+                        <h4>CONFIGURAR COLUMNAS</h4>
+                        <button mat-icon-button (click)="resetColumns()" matTooltip="Restablecer columnas por defecto">
+                            <mat-icon>refresh</mat-icon>
+                        </button>
+                    </div>
+                    <mat-divider></mat-divider>
+                    @for (column of availableColumns; track column.key) {
+                        <div class="column-menu-item" (click)="$event.stopPropagation()">
+                            <mat-checkbox 
+                                [checked]="column.visible"
+                                [disabled]="column.required"
+                                (change)="toggleColumn(column.key)">
+                                {{ column.label }}
+                            </mat-checkbox>
+                            @if (column.required) {
+                                <mat-icon class="required-icon" matTooltip="Columna requerida">lock</mat-icon>
+                            }
+                        </div>
+                    }
+                    <mat-divider></mat-divider>
+                    <div class="column-menu-footer">
+                        <small>{{ getVisibleColumnsCount() }} visibles, {{ getHiddenColumnsCount() }} ocultas</small>
+                    </div>
+                </mat-menu>
                 <button mat-button color="accent" (click)="recargarVehiculos()">
                     <mat-icon>refresh</mat-icon>
                     RECARGAR
@@ -300,6 +330,54 @@
                     </td>
                 </ng-container>
 
+                <!-- TUC Column -->
+                <ng-container matColumnDef="tuc">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>TUC</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getVehiculoTuc(vehiculo) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Resolución Column -->
+                <ng-container matColumnDef="resolucion">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>RESOLUCIÓN</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getVehiculoResolucion(vehiculo) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Rutas Específicas Column -->
+                <ng-container matColumnDef="rutas-especificas">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>RUTAS</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <button mat-icon-button 
+                                    color="primary"
+                                    (click)="gestionarRutasEspecificas(vehiculo)"
+                                    class="route-button-fixed"
+                                    matTooltip="Gestionar rutas específicas">
+                                <mat-icon>route</mat-icon>
+                            </button>
+                        </div>
+                    </td>
+                </ng-container>
+
                 <!-- Acciones Column -->
                 <ng-container matColumnDef="acciones">
                     <th mat-header-cell *matHeaderCellDef class="table-header-cell">
@@ -309,11 +387,13 @@
                     </th>
                     <td mat-cell *matCellDef="let vehiculo" class="table-cell">
                         <div class="cell-content actions-content">
-                            <button mat-icon-button [matMenuTriggerFor]="menu" class="action-button"
-                                matTooltip="MÁS ACCIONES">
+                            <button mat-icon-button 
+                                    [matMenuTriggerFor]="actionsMenu" 
+                                    class="actions-button-fixed"
+                                    matTooltip="Más acciones">
                                 <mat-icon>more_vert</mat-icon>
                             </button>
-                            <mat-menu #menu="matMenu">
+                            <mat-menu #actionsMenu="matMenu" class="vehicle-actions-menu">
                                 <button mat-menu-item (click)="verDetalle(vehiculo)">
                                     <mat-icon>visibility</mat-icon>
                                     <span>VER DETALLES</span>
@@ -339,7 +419,7 @@
                                     <span>SOLICITAR BAJA</span>
                                 </button>
                                 <mat-divider></mat-divider>
-                                <button mat-menu-item color="warn" (click)="eliminarVehiculo(vehiculo)">
+                                <button mat-menu-item (click)="eliminarVehiculo(vehiculo)" class="delete-action">
                                     <mat-icon>delete</mat-icon>
                                     <span>ELIMINAR VEHÍCULO</span>
                                 </button>
