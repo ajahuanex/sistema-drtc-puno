@@ -186,6 +186,31 @@
     justify-content: flex-end;
 }
 
+// Estilo para el checkbox del filtro de resolución
+.filtro-checkbox {
+    display: flex;
+    align-items: center;
+    margin: 16px 0;
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    
+    mat-checkbox {
+        font-size: 14px;
+        
+        ::ng-deep .mat-checkbox-label {
+            color: #495057;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        ::ng-deep .mat-checkbox-checked .mat-checkbox-background {
+            background-color: #1976d2;
+        }
+    }
+}
+
 // ============================================
 // ESTADOS DE CARGA Y VACÍO
 // ============================================

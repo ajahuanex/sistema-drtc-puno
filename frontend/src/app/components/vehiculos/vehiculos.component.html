@@ -149,6 +149,16 @@
                 </mat-form-field>
             </div>
 
+            <!-- Filtro para mostrar vehículos sin resolución -->
+            <div class="filtro-checkbox">
+                <mat-checkbox 
+                    formControlName="mostrarSinResolucion" 
+                    (change)="aplicarFiltros()"
+                    color="primary">
+                    Mostrar vehículos sin resolución
+                </mat-checkbox>
+            </div>
+
             <div class="filters-actions">
                 <button mat-raised-button color="primary" (click)="aplicarFiltros()">
                     <mat-icon>search</mat-icon>

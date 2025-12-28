@@ -105,7 +105,8 @@ export class VehiculosComponent implements OnInit {
       marca: [''],
       empresaId: [''],
       estado: [''],
-      categoria: ['']
+      categoria: [''],
+      mostrarSinResolucion: [false]
     });
 
     // Cargar configuración de columnas desde localStorage
@@ -125,7 +126,8 @@ export class VehiculosComponent implements OnInit {
       next: (vehiculos) => {
         console.log('VEHÍCULOS CARGADOS:', vehiculos);
         this.vehiculos.set(vehiculos);
-        this.vehiculosFiltrados.set(vehiculos);
+        // Aplicar filtros automáticamente para mostrar solo vehículos con resolución por defecto
+        this.aplicarFiltros();
         this.cargando.set(false);
       },
       error: (error) => {
@@ -192,13 +194,28 @@ export class VehiculosComponent implements OnInit {
       );
     }
 
+    // Filtro de resolución: por defecto solo mostrar vehículos CON resolución
+    // Si está marcado "mostrarSinResolucion", mostrar todos
+    if (!filtros.mostrarSinResolucion) {
+      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
+        v.resolucionId && v.resolucionId.trim() !== ''
+      );
+    }
+
     this.vehiculosFiltrados.set(vehiculosFiltrados);
     this.currentPage = 0;
   }
 
   limpiarFiltros(): void {
-    this.filtrosForm.reset();
-    this.vehiculosFiltrados.set(this.vehiculos());
+    this.filtrosForm.reset({
+      placa: '',
+      marca: '',
+      empresaId: '',
+      estado: '',
+      categoria: '',
+      mostrarSinResolucion: false
+    });
+    this.aplicarFiltros();
     this.currentPage = 0;
   }
 
@@ -399,20 +416,26 @@ export class VehiculosComponent implements OnInit {
   gestionarRutasEspecificas(vehiculo: Vehiculo): void {
     console.log('🛣️ Gestionar rutas específicas para vehículo:', vehiculo.placa);
     
+    // Verificar que el vehículo tenga resolución
+    if (!vehiculo.resolucionId) {
+      this.snackBar.open('El vehículo debe tener una resolución asociada para gestionar rutas específicas', 'Cerrar', { duration: 5000 });
+      return;
+    }
+    
     const dialogRef = this.dialog.open(GestionarRutasEspecificasModalComponent, {
       width: '1000px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       data: {
         vehiculo: vehiculo,
-        empresas: this.empresas()
+        modo: 'individual'
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('Rutas específicas actualizadas:', result);
-        this.snackBar.open('RUTAS ESPECÍFICAS ACTUALIZADAS EXITOSAMENTE', 'CERRAR', { duration: 3000 });
+        this.snackBar.open('Rutas específicas actualizadas exitosamente', 'Cerrar', { duration: 3000 });
         this.cargarVehiculos();
       }
     });
