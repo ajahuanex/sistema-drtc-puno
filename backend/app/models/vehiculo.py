@@ -7,10 +7,10 @@ from enum import Enum
 class EstadoVehiculo(str, Enum):
     ACTIVO = "ACTIVO"
     INACTIVO = "INACTIVO"
-    EN_MANTENIMIENTO = "EN_MANTENIMIENTO"
+    MANTENIMIENTO = "MANTENIMIENTO"
+    SUSPENDIDO = "SUSPENDIDO"
     FUERA_DE_SERVICIO = "FUERA_DE_SERVICIO"
     DADO_DE_BAJA = "DADO_DE_BAJA"
-    BLOQUEADO_HISTORIAL = "BLOQUEADO_HISTORIAL"  # Bloqueado por historial anterior
 
 class CategoriaVehiculo(str, Enum):
     M1 = "M1"  # Vehículos de pasajeros hasta 8 asientos

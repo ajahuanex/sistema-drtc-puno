@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, ChangeDetectionStrategy, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -226,7 +226,7 @@ import { Empresa } from '../models/empresa.model';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class EmpresaSelectorComponent implements OnInit {
+export class EmpresaSelectorComponent implements OnInit, OnChanges {
   /**
    * Etiqueta del campo de entrada
    * @default 'Empresa'
@@ -323,11 +323,55 @@ export class EmpresaSelectorComponent implements OnInit {
     this.configurarAutocompletado();
 
     if (this.empresaId) {
-      this.empresaControl.setValue(this.empresaId);
+      this.setEmpresaById(this.empresaId);
     }
 
     if (this.disabled) {
       this.empresaControl.disable();
+    }
+  }
+
+  /**
+   * Detecta cambios en los inputs del componente
+   * @param changes - Objeto con los cambios detectados
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['empresaId'] && !changes['empresaId'].firstChange) {
+      const newEmpresaId = changes['empresaId'].currentValue;
+      console.log('🔄 EmpresaSelector: empresaId cambió a:', newEmpresaId);
+      
+      if (newEmpresaId) {
+        this.setEmpresaById(newEmpresaId);
+      } else {
+        this.empresaControl.setValue('');
+      }
+    }
+  }
+
+  /**
+   * Establece la empresa seleccionada por su ID
+   * @private
+   * @param empresaId - ID de la empresa a seleccionar
+   */
+  private setEmpresaById(empresaId: string): void {
+    console.log('🎯 Buscando empresa con ID:', empresaId);
+    
+    // Si ya tenemos las empresas cargadas, buscar inmediatamente
+    const empresas = this.empresas();
+    if (empresas.length > 0) {
+      const empresa = empresas.find(e => e.id === empresaId);
+      if (empresa) {
+        console.log('✅ Empresa encontrada:', empresa.razonSocial.principal);
+        // En lugar de usar displayFn, establecer el ID directamente
+        // El autocompletado mostrará el texto correcto automáticamente
+        this.empresaControl.setValue(empresaId);
+      } else {
+        console.log('❌ Empresa no encontrada con ID:', empresaId);
+      }
+    } else {
+      // Si no tenemos empresas aún, esperar a que se carguen
+      console.log('⏳ Esperando a que se carguen las empresas...');
+      setTimeout(() => this.setEmpresaById(empresaId), 100);
     }
   }
 

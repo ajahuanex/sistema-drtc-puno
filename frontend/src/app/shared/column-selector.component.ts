@@ -1,9 +1,9 @@
-import { Component, Input, Output, EventEmitter, signal, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
+import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
@@ -18,26 +18,91 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
 
 /**
  * Componente para seleccionar y reordenar columnas de tabla
- * 
- * @example
- * ```html
- * <app-column-selector
- *   [columnas]="definicionesColumnas"
- *   [columnasVisibles]="columnasActuales"
- *   (columnasChange)="onColumnasChange($event)"
- *   (ordenChange)="onOrdenChange($event)">
- * </app-column-selector>
- * ```
  */
 @Component({
   selector: 'app-column-selector',
   standalone: true,
   imports: [
     CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDialogModule,
+    MatTooltipModule,
+    SmartIconComponent
+  ],
+  template: `
+    <button mat-icon-button 
+            (click)="abrirModal()"
+            matTooltip="Configurar columnas"
+            class="column-selector-trigger">
+      <app-smart-icon iconName="view_column" [size]="20"></app-smart-icon>
+    </button>
+  `,
+  styles: [`
+    .column-selector-trigger {
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .column-selector-trigger:hover {
+      color: #1976d2;
+      background-color: rgba(25, 118, 210, 0.04);
+    }
+  `]
+})
+export class ColumnSelectorComponent {
+  /** Definiciones de todas las columnas disponibles */
+  @Input() columnas: ColumnaDefinicion[] = [];
+  
+  /** Columnas actualmente visibles */
+  @Input() columnasVisibles: string[] = [];
+  
+  /** Orden actual de las columnas */
+  @Input() ordenColumnas: string[] = [];
+  
+  /** Evento emitido cuando cambian las columnas visibles */
+  @Output() columnasChange = new EventEmitter<string[]>();
+  
+  /** Evento emitido cuando cambia el orden de las columnas */
+  @Output() ordenChange = new EventEmitter<string[]>();
+
+  // Inyección de dependencias
+  private dialog = inject(MatDialog);
+
+  /**
+   * Abre el modal de configuración de columnas
+   */
+  abrirModal(): void {
+    const dialogRef = this.dialog.open(ColumnSelectorModalComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        columnas: this.columnas,
+        columnasVisibles: this.columnasVisibles,
+        ordenColumnas: this.ordenColumnas
+      },
+      panelClass: 'column-selector-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.columnasChange.emit(result.columnasVisibles);
+        this.ordenChange.emit(result.ordenColumnas);
+      }
+    });
+  }
+}
+
+// Componente Modal
+@Component({
+  selector: 'app-column-selector-modal',
+  standalone: true,
+  imports: [
+    CommonModule,
     DragDropModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
+    MatDialogModule,
     MatListModule,
     MatCheckboxModule,
     MatDividerModule,
@@ -45,28 +110,28 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     SmartIconComponent
   ],
   template: `
-    <button mat-icon-button 
-            [matMenuTriggerFor]="columnMenu"
-            matTooltip="Configurar columnas"
-            class="column-selector-trigger">
-      <app-smart-icon iconName="view_column" [size]="20"></app-smart-icon>
-    </button>
+    <div class="column-selector-modal">
+      <!-- Header -->
+      <div class="modal-header">
+        <h2 mat-dialog-title class="modal-title">
+          <app-smart-icon iconName="view_column" [size]="24"></app-smart-icon>
+          Configurar Columnas
+        </h2>
+        <button mat-icon-button 
+                mat-dialog-close
+                class="close-button"
+                matTooltip="Cerrar">
+          <app-smart-icon iconName="close" [size]="20"></app-smart-icon>
+        </button>
+      </div>
 
-    <mat-menu #columnMenu="matMenu" class="column-menu" [hasBackdrop]="true">
-      <div class="column-selector-content" (click)="$event.stopPropagation()">
-        
-        <!-- Header -->
-        <div class="column-header">
-          <h3 class="column-title">
-            <app-smart-icon iconName="view_column" [size]="18"></app-smart-icon>
-            Configurar Columnas
-          </h3>
-          <p class="column-subtitle">
-            Seleccione las columnas a mostrar y arrástrelas para reordenar
-          </p>
-        </div>
+      <mat-divider></mat-divider>
 
-        <mat-divider></mat-divider>
+      <!-- Contenido -->
+      <div mat-dialog-content class="modal-content">
+        <p class="modal-subtitle">
+          Seleccione las columnas a mostrar y arrástrelas para reordenar
+        </p>
 
         <!-- Lista de columnas con drag & drop -->
         <div class="columns-list-container">
@@ -87,14 +152,14 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
                 
                 <!-- Drag handle -->
                 <div class="drag-handle" cdkDragHandle>
-                  <app-smart-icon iconName="drag_indicator" [size]="16"></app-smart-icon>
+                  <app-smart-icon iconName="drag_indicator" [size]="20"></app-smart-icon>
                 </div>
 
                 <!-- Checkbox -->
                 <mat-checkbox 
                   [checked]="columna.visible"
                   [disabled]="columna.required"
-                  (change)="onColumnToggle(columna.key, $event.checked)"
+                  (change)="onColumnToggle(columna.key, $event.checked || false)"
                   class="column-checkbox">
                 </mat-checkbox>
 
@@ -117,9 +182,9 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
                 <!-- Indicador de visibilidad -->
                 <div class="visibility-indicator">
                   @if (columna.visible) {
-                    <app-smart-icon iconName="visibility" [size]="16" class="visible-icon"></app-smart-icon>
+                    <app-smart-icon iconName="visibility" [size]="18" class="visible-icon"></app-smart-icon>
                   } @else {
-                    <app-smart-icon iconName="visibility_off" [size]="16" class="hidden-icon"></app-smart-icon>
+                    <app-smart-icon iconName="visibility_off" [size]="18" class="hidden-icon"></app-smart-icon>
                   }
                 </div>
               </div>
@@ -137,7 +202,7 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
                     (click)="mostrarTodas()"
                     [disabled]="todasVisibles()"
                     class="quick-button">
-              <app-smart-icon iconName="visibility" [size]="16"></app-smart-icon>
+              <app-smart-icon iconName="visibility" [size]="18"></app-smart-icon>
               Mostrar Todas
             </button>
             
@@ -145,93 +210,100 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
                     (click)="mostrarMinimas()"
                     [disabled]="soloMinimas()"
                     class="quick-button">
-              <app-smart-icon iconName="view_agenda" [size]="16"></app-smart-icon>
+              <app-smart-icon iconName="view_agenda" [size]="18"></app-smart-icon>
               Solo Esenciales
             </button>
           </div>
         </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Botones de acción -->
-        <div class="column-actions">
-          <button mat-button 
-                  (click)="restaurarDefecto()"
-                  class="action-button secondary">
-            <app-smart-icon iconName="restore" [size]="16"></app-smart-icon>
-            Restaurar
-          </button>
-          
-          <button mat-raised-button 
-                  color="primary"
-                  (click)="aplicarCambios()"
-                  [disabled]="!hayCambios()"
-                  class="action-button primary">
-            <app-smart-icon iconName="check" [size]="16"></app-smart-icon>
-            Aplicar
-          </button>
-        </div>
       </div>
-    </mat-menu>
+
+      <mat-divider></mat-divider>
+
+      <!-- Botones de acción -->
+      <div mat-dialog-actions class="modal-actions">
+        <button mat-button 
+                (click)="restaurarDefecto()"
+                class="action-button secondary">
+          <app-smart-icon iconName="restore" [size]="18"></app-smart-icon>
+          Restaurar
+        </button>
+        
+        <button mat-button 
+                mat-dialog-close
+                class="action-button cancel">
+          Cancelar
+        </button>
+        
+        <button mat-raised-button 
+                color="primary"
+                (click)="aplicarCambios()"
+                [disabled]="!hayCambios()"
+                class="action-button primary">
+          <app-smart-icon iconName="check" [size]="18"></app-smart-icon>
+          Aplicar
+        </button>
+      </div>
+    </div>
   `,
   styles: [`
-    .column-selector-trigger {
-      color: rgba(0, 0, 0, 0.6);
+    .column-selector-modal {
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
     }
 
-    .column-selector-trigger:hover {
-      color: #1976d2;
-      background-color: rgba(25, 118, 210, 0.04);
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px 16px;
     }
 
-    .column-menu {
-      max-width: none !important;
-    }
-
-    .column-selector-content {
-      width: 400px;
-      max-height: 600px;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    .column-header {
-      padding: 16px;
-      background-color: #f5f5f5;
-    }
-
-    .column-title {
+    .modal-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin: 0 0 4px 0;
-      font-size: 16px;
+      gap: 12px;
+      margin: 0;
+      font-size: 20px;
       font-weight: 500;
       color: #1976d2;
     }
 
-    .column-subtitle {
-      margin: 0;
-      font-size: 12px;
+    .close-button {
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-content {
+      flex: 1;
+      padding: 16px 24px !important;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-subtitle {
+      margin: 0 0 20px 0;
+      font-size: 14px;
       color: rgba(0, 0, 0, 0.6);
       line-height: 1.4;
     }
 
     .columns-list-container {
-      padding: 16px;
-      max-height: 300px;
-      overflow-y: auto;
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .columns-list-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .list-title {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 500;
       color: rgba(0, 0, 0, 0.8);
     }
@@ -240,38 +312,36 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
       font-size: 12px;
       color: rgba(0, 0, 0, 0.6);
       background-color: #e3f2fd;
-      padding: 2px 8px;
-      border-radius: 12px;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-weight: 500;
     }
 
     .columns-list {
+      flex: 1;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 8px;
+      max-height: 400px;
     }
 
     .column-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
+      gap: 16px;
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
       background-color: white;
       transition: all 0.2s ease;
       cursor: move;
-      min-height: 48px;
-      touch-action: none;
+      min-height: 64px;
     }
 
     .column-item:hover {
       border-color: #1976d2;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .column-item:active {
-      transform: scale(1.02);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .column-item.column-visible {
@@ -285,8 +355,9 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     }
 
     .column-item.cdk-drag-preview {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      transform: rotate(2deg);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      transform: rotate(3deg);
+      z-index: 10000;
     }
 
     .column-item.cdk-drag-placeholder {
@@ -297,14 +368,19 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     .drag-handle {
       color: rgba(0, 0, 0, 0.4);
       cursor: grab;
-      padding: 4px;
-      margin: -4px;
-      touch-action: none;
+      padding: 8px;
+      margin: -8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .drag-handle:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+      color: #1976d2;
     }
 
     .drag-handle:active {
       cursor: grabbing;
-      color: #1976d2;
     }
 
     .column-checkbox {
@@ -320,35 +396,39 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 500;
       color: rgba(0, 0, 0, 0.8);
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .required-badge {
       font-size: 10px;
-      padding: 1px 6px;
+      padding: 2px 8px;
       background-color: #ff9800;
       color: white;
-      border-radius: 8px;
+      border-radius: 12px;
       text-transform: uppercase;
       font-weight: 600;
     }
 
     .column-details {
       display: flex;
-      gap: 8px;
-      font-size: 11px;
+      gap: 16px;
+      font-size: 12px;
       color: rgba(0, 0, 0, 0.5);
     }
 
     .column-type {
       text-transform: capitalize;
+      font-weight: 500;
     }
 
     .column-width {
       font-family: monospace;
+      background-color: rgba(0, 0, 0, 0.04);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     .visibility-indicator {
@@ -365,20 +445,20 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
     }
 
     .quick-actions {
-      padding: 12px 16px;
-      background-color: #fafafa;
+      padding: 16px 0;
+      margin-top: 16px;
     }
 
     .quick-actions-title {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 500;
       color: rgba(0, 0, 0, 0.6);
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .quick-buttons {
       display: flex;
-      gap: 8px;
+      gap: 12px;
     }
 
     .quick-button {
@@ -386,128 +466,104 @@ export interface ColumnaSeleccionable extends ColumnaDefinicion {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      font-size: 11px;
-      padding: 6px 12px;
-      min-height: 32px;
+      gap: 8px;
+      font-size: 13px;
+      padding: 10px 16px;
+      min-height: 40px;
     }
 
-    .column-actions {
+    .modal-actions {
       display: flex;
-      gap: 8px;
-      padding: 16px;
-      background-color: white;
+      gap: 12px;
+      padding: 16px 24px;
+      background-color: #fafafa;
+      justify-content: flex-end;
     }
 
     .action-button {
-      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      min-height: 44px;
+      font-size: 14px;
+      padding: 0 20px;
     }
 
     .action-button.secondary {
       color: rgba(0, 0, 0, 0.6);
     }
 
+    .action-button.cancel {
+      color: rgba(0, 0, 0, 0.6);
+    }
+
     /* Scrollbar personalizado */
-    .columns-list-container::-webkit-scrollbar {
-      width: 6px;
+    .columns-list::-webkit-scrollbar {
+      width: 8px;
     }
 
-    .columns-list-container::-webkit-scrollbar-track {
+    .columns-list::-webkit-scrollbar-track {
       background: #f1f1f1;
-      border-radius: 3px;
+      border-radius: 4px;
     }
 
-    .columns-list-container::-webkit-scrollbar-thumb {
+    .columns-list::-webkit-scrollbar-thumb {
       background: #c1c1c1;
-      border-radius: 3px;
+      border-radius: 4px;
     }
 
-    .columns-list-container::-webkit-scrollbar-thumb:hover {
+    .columns-list::-webkit-scrollbar-thumb:hover {
       background: #a8a8a8;
     }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .column-selector-content {
-        width: 90vw;
-        max-width: 400px;
+      .modal-header {
+        padding: 16px 20px 12px;
+      }
+      
+      .modal-title {
+        font-size: 18px;
+      }
+      
+      .modal-content {
+        padding: 12px 20px !important;
       }
       
       .column-item {
-        padding: 14px;
-        min-height: 56px;
+        padding: 20px 16px;
+        min-height: 72px;
       }
       
       .drag-handle {
-        padding: 8px;
-        margin: -8px;
+        padding: 12px;
+        margin: -12px;
       }
       
       .column-checkbox {
         transform: scale(1.2);
-      }
-    }
-
-    @media (max-width: 480px) {
-      .column-selector-content {
-        width: 95vw;
-        max-width: 360px;
-      }
-      
-      .column-header {
-        padding: 12px;
-      }
-      
-      .column-title {
-        font-size: 14px;
-      }
-      
-      .column-subtitle {
-        font-size: 11px;
-      }
-      
-      .columns-list-container {
-        padding: 12px;
-      }
-      
-      .column-item {
-        padding: 16px 12px;
-        min-height: 60px;
       }
       
       .quick-buttons {
         flex-direction: column;
       }
       
-      .column-actions {
+      .modal-actions {
         flex-direction: column;
+        padding: 16px 20px;
       }
       
       .action-button {
-        height: 44px;
+        height: 48px;
       }
     }
   `]
 })
-export class ColumnSelectorComponent implements OnInit {
-  /** Definiciones de todas las columnas disponibles */
-  @Input() columnas: ColumnaDefinicion[] = [];
-  
-  /** Columnas actualmente visibles */
-  @Input() columnasVisibles: string[] = [];
-  
-  /** Orden actual de las columnas */
-  @Input() ordenColumnas: string[] = [];
-  
-  /** Evento emitido cuando cambian las columnas visibles */
-  @Output() columnasChange = new EventEmitter<string[]>();
-  
-  /** Evento emitido cuando cambia el orden de las columnas */
-  @Output() ordenChange = new EventEmitter<string[]>();
+export class ColumnSelectorModalComponent implements OnInit {
+  // Datos del modal
+  data = inject(MAT_DIALOG_DATA);
+  dialogRef = inject(MatDialogRef<ColumnSelectorModalComponent>);
 
   // Estado interno
   columnasOrdenadas = signal<ColumnaSeleccionable[]>([]);
@@ -521,18 +577,14 @@ export class ColumnSelectorComponent implements OnInit {
     this.guardarEstadoInicial();
   }
 
-  // ========================================
-  // INICIALIZACIÓN
-  // ========================================
-
   /**
    * Inicializa las columnas con su estado de visibilidad y orden
    */
   private inicializarColumnas(): void {
-    const orden = this.ordenColumnas.length > 0 ? this.ordenColumnas : this.columnas.map(c => c.key);
+    const orden = this.data.ordenColumnas.length > 0 ? this.data.ordenColumnas : this.data.columnas.map((c: ColumnaDefinicion) => c.key);
     
-    const columnasConEstado: ColumnaSeleccionable[] = orden.map((key, index) => {
-      const definicion = this.columnas.find(c => c.key === key);
+    const columnasConEstado: ColumnaSeleccionable[] = orden.map((key: string, index: number) => {
+      const definicion = this.data.columnas.find((c: ColumnaDefinicion) => c.key === key);
       if (!definicion) {
         console.warn(`Columna no encontrada: ${key}`);
         return null;
@@ -540,18 +592,18 @@ export class ColumnSelectorComponent implements OnInit {
       
       return {
         ...definicion,
-        visible: this.columnasVisibles.includes(key),
+        visible: this.data.columnasVisibles.includes(key),
         orden: index
       };
     }).filter(Boolean) as ColumnaSeleccionable[];
 
     // Agregar columnas que no están en el orden pero sí en las definiciones
     const columnasEnOrden = new Set(orden);
-    this.columnas.forEach(columna => {
+    this.data.columnas.forEach((columna: ColumnaDefinicion) => {
       if (!columnasEnOrden.has(columna.key)) {
         columnasConEstado.push({
           ...columna,
-          visible: this.columnasVisibles.includes(columna.key),
+          visible: this.data.columnasVisibles.includes(columna.key),
           orden: columnasConEstado.length
         });
       }
@@ -566,14 +618,10 @@ export class ColumnSelectorComponent implements OnInit {
    */
   private guardarEstadoInicial(): void {
     this.estadoInicial = {
-      visibles: [...this.columnasVisibles],
-      orden: [...this.ordenColumnas]
+      visibles: [...this.data.columnasVisibles],
+      orden: [...this.data.ordenColumnas]
     };
   }
-
-  // ========================================
-  // GESTIÓN DE COLUMNAS
-  // ========================================
 
   /**
    * Maneja el toggle de visibilidad de una columna
@@ -605,10 +653,6 @@ export class ColumnSelectorComponent implements OnInit {
     
     this.columnasOrdenadas.set(columnas);
   }
-
-  // ========================================
-  // ACCIONES RÁPIDAS
-  // ========================================
 
   /**
    * Muestra todas las columnas
@@ -652,19 +696,12 @@ export class ColumnSelectorComponent implements OnInit {
       .sort((a, b) => a.orden - b.orden)
       .map(c => c.key);
     
-    this.columnasChange.emit(nuevasVisibles);
-    this.ordenChange.emit(nuevoOrden);
-    
-    // Actualizar estado inicial
-    this.estadoInicial = {
-      visibles: [...nuevasVisibles],
-      orden: [...nuevoOrden]
-    };
+    // Cerrar el modal con los resultados
+    this.dialogRef.close({
+      columnasVisibles: nuevasVisibles,
+      ordenColumnas: nuevoOrden
+    });
   }
-
-  // ========================================
-  // UTILIDADES Y ESTADO
-  // ========================================
 
   /**
    * Actualiza el contador de columnas visibles

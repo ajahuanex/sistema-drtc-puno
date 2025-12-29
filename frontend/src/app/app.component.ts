@@ -294,11 +294,13 @@ export class AppComponent implements OnInit, AfterViewInit {
   ]);
 
   private startTime = Date.now();
+  private hydrationSimulated = false;
 
   constructor() {
-    // Effect para simular progreso de hidratación
+    // Effect para simular progreso de hidratación (solo una vez)
     effect(() => {
-      if (this.isInitialized()) {
+      if (this.isInitialized() && !this.hydrationSimulated) {
+        this.hydrationSimulated = true;
         this.simulateHydrationProgress();
       }
     });
@@ -316,11 +318,16 @@ export class AppComponent implements OnInit, AfterViewInit {
     console.log('🎯 AppComponent inicializado');
   }
 
+  private hydrationCompleted = false;
+
   ngAfterViewInit(): void {
-    // Marcar hidratación como completa después de que la vista se renderice
-    setTimeout(() => {
-      this.eagerInitService.markHydrationComplete();
-    }, 1000);
+    // Marcar hidratación como completa después de que la vista se renderice (solo una vez)
+    if (!this.hydrationCompleted) {
+      this.hydrationCompleted = true;
+      setTimeout(() => {
+        this.eagerInitService.markHydrationComplete();
+      }, 1000);
+    }
   }
 
   /**

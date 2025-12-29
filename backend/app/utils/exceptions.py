@@ -57,6 +57,22 @@ class RutaAlreadyExistsException(CustomHTTPException):
             detail=f"Ya existe una ruta con código {codigo}"
         )
 
+class RutaEspecificaNotFoundException(CustomHTTPException):
+    """Excepción cuando no se encuentra una ruta específica"""
+    def __init__(self, ruta_id: str):
+        super().__init__(
+            status_code=404,
+            detail=f"Ruta específica con ID {ruta_id} no encontrada"
+        )
+
+class RutaEspecificaAlreadyExistsException(CustomHTTPException):
+    """Excepción cuando ya existe una ruta específica con el mismo código"""
+    def __init__(self, codigo: str):
+        super().__init__(
+            status_code=409,
+            detail=f"Ya existe una ruta específica con código {codigo}"
+        )
+
 class ResolucionNotFoundException(CustomHTTPException):
     """Excepción cuando no se encuentra una resolución"""
     def __init__(self, resolucion_id: str):
@@ -226,4 +242,12 @@ class BusinessLogicError(CustomHTTPException):
         super().__init__(
             status_code=422,
             detail=f"Error de lógica de negocio: {message}"
+        )
+
+class VehiculoHistorialNotFoundException(CustomHTTPException):
+    """Excepción cuando no se encuentra un registro de historial de vehículo"""
+    def __init__(self, historial_id: str):
+        super().__init__(
+            status_code=404,
+            detail=f"Registro de historial con ID {historial_id} no encontrado"
         )

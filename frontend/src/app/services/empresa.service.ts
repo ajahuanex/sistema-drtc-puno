@@ -37,7 +37,7 @@ export class EmpresaService {
 
   // Métodos principales CRUD
   getEmpresas(skip: number = 0, limit: number = 100): Observable<Empresa[]> {
-    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas/?skip=${skip}&limit=${limit}`, {
+    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`, {
       headers: this.getHeaders()
     }).pipe(
       map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
@@ -53,7 +53,7 @@ export class EmpresaService {
   }
 
   createEmpresa(empresaData: EmpresaCreate): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/`, empresaData, {
+    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresaData, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {

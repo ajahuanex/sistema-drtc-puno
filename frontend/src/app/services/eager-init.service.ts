@@ -59,14 +59,7 @@ export class EagerInitService {
   };
 
   constructor() {
-    // Effect para sincronizar estado de hidratación
-    effect(() => {
-      if (this._appState().isHydrated) {
-        this.onHydrationComplete();
-      }
-    });
-
-    // Inicialización automática
+    // Inicialización automática (solo una vez)
     this.initializeApp();
   }
 
@@ -246,10 +239,17 @@ export class EagerInitService {
    * Marcar hidratación como completa
    */
   markHydrationComplete(): void {
+    const wasHydrated = this._appState().isHydrated;
+    
     this._appState.update(state => ({
       ...state,
       isHydrated: true
     }));
+
+    // Solo ejecutar callback si no estaba hidratado antes
+    if (!wasHydrated) {
+      this.onHydrationComplete();
+    }
   }
 
   /**

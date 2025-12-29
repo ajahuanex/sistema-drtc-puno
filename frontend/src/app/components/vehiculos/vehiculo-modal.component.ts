@@ -134,7 +134,7 @@ export interface VehiculoModalData {
                     [placeholder]="'Buscar empresa por RUC, razón social o código'"
                     [hint]="cantidadVehiculosEmpresa() > 0 ? cantidadVehiculosEmpresa() + ' vehículo(s) actual(es)' : 'Empresa propietaria del vehículo'"
                     [required]="true"
-                    [empresaId]="vehiculoForm.get('empresaActualId')?.value"
+                    [empresaId]="empresaIdParaSelector()"
                     (empresaSeleccionada)="onEmpresaSeleccionadaSelector($event)"
                     (empresaIdChange)="onEmpresaIdChange($event)">
                   </app-empresa-selector>
@@ -145,12 +145,63 @@ export interface VehiculoModalData {
                     [placeholder]="'Buscar por número o descripción'"
                     [hint]="'Resolución asociada al vehículo (primigenia o hija)'"
                     [required]="true"
-                    [empresaId]="vehiculoForm.get('empresaActualId')?.value"
-                    [resolucionId]="vehiculoForm.get('resolucionId')?.value"
+                    [empresaId]="empresaIdParaSelector()"
+                    [resolucionId]="resolucionIdParaSelector()"
                     (resolucionSeleccionada)="onResolucionSeleccionadaSelector($event)"
                     (resolucionIdChange)="onResolucionIdChange($event)">
                   </app-resolucion-selector>
                 </div>
+
+                <!-- Información de Resoluciones Relacionadas (solo en modo edición) -->
+                @if (isEditing() && (resolucionPrimigenia() || resolucionesHijas().length > 0)) {
+                  <div class="resoluciones-relacionadas">
+                    <mat-divider></mat-divider>
+                    <div class="resoluciones-info">
+                      <h4 class="resoluciones-title">
+                        <mat-icon>account_tree</mat-icon>
+                        Resoluciones Relacionadas
+                      </h4>
+                      
+                      <!-- Resolución Primigenia -->
+                      @if (resolucionPrimigenia() && resolucionPrimigenia()?.id !== resolucionActual()?.id) {
+                        <div class="resolucion-item primigenia">
+                          <div class="resolucion-header">
+                            <mat-icon class="resolucion-icon">source</mat-icon>
+                            <span class="resolucion-label">Resolución Primigenia (PADRE)</span>
+                          </div>
+                          <div class="resolucion-details">
+                            <span class="resolucion-numero">{{ resolucionPrimigenia()?.nroResolucion }}</span>
+                            <span class="resolucion-fecha">{{ resolucionPrimigenia()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
+                            <span class="resolucion-tipo">{{ resolucionPrimigenia()?.tipoTramite }}</span>
+                          </div>
+                        </div>
+                      }
+
+                      <!-- Resoluciones Hijas -->
+                      @if (resolucionesHijas().length > 0) {
+                        <div class="resoluciones-hijas">
+                          <div class="resolucion-header">
+                            <mat-icon class="resolucion-icon">call_split</mat-icon>
+                            <span class="resolucion-label">Resoluciones Hijas Disponibles</span>
+                          </div>
+                          @for (resolucionHija of resolucionesHijas(); track resolucionHija.id) {
+                            <div class="resolucion-item hija" 
+                                 [class.selected]="resolucionHija.id === resolucionActual()?.id">
+                              <div class="resolucion-details">
+                                <span class="resolucion-numero">{{ resolucionHija.nroResolucion }}</span>
+                                <span class="resolucion-fecha">{{ resolucionHija.fechaEmision | date:'dd/MM/yyyy' }}</span>
+                                <span class="resolucion-tipo">{{ resolucionHija.tipoTramite }}</span>
+                                @if (resolucionHija.id === resolucionActual()?.id) {
+                                  <mat-icon class="current-icon">check_circle</mat-icon>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
               </mat-card-content>
             </mat-card>
 
@@ -192,42 +243,6 @@ export interface VehiculoModalData {
                     </mat-error>
                   </mat-form-field>
                   
-                  <!-- Alerta de placa existente -->
-                  @if (mostrarOpcionesPlacaExistente() && vehiculoExistente()) {
-                    <div class="placa-existente-alert">
-                      <mat-card class="alert-card warning">
-                        <mat-card-content>
-                          <div class="alert-header">
-                            <app-smart-icon [iconName]="'warning'" [size]="24" class="warning-icon"></app-smart-icon>
-                            <h4>Placa ya registrada</h4>
-                          </div>
-                          <p class="alert-message">
-                            La placa <strong>{{ vehiculoExistente()?.placa }}</strong> ya está registrada.
-                          </p>
-                          <div class="vehiculo-info-existente">
-                            <p><strong>Empresa actual:</strong> {{ getEmpresaNombre(vehiculoExistente()?.empresaActualId || '') }}</p>
-                            <p><strong>Marca/Modelo:</strong> {{ vehiculoExistente()?.marca }} {{ vehiculoExistente()?.modelo }}</p>
-                            <p><strong>Año:</strong> {{ vehiculoExistente()?.anioFabricacion }}</p>
-                          </div>
-                          <div class="alert-actions">
-                            <button mat-raised-button color="primary" (click)="transferirVehiculoExistente()" type="button">
-                              <app-smart-icon [iconName]="'swap_horiz'" [size]="20"></app-smart-icon>
-                              Transferir a Nueva Empresa
-                            </button>
-                            <button mat-raised-button color="accent" (click)="editarVehiculoExistente()" type="button">
-                              <app-smart-icon [iconName]="'edit'" [size]="20"></app-smart-icon>
-                              Editar Información
-                            </button>
-                            <button mat-button (click)="cancelarPlacaExistente()" type="button">
-                              <app-smart-icon [iconName]="'cancel'" [size]="20"></app-smart-icon>
-                              Cancelar
-                            </button>
-                          </div>
-                        </mat-card-content>
-                      </mat-card>
-                    </div>
-                  }
-
                   <!-- Campo obligatorio: Sede de Registro con buscador -->
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Sede de Registro *</mat-label>
@@ -321,12 +336,9 @@ export interface VehiculoModalData {
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Categoría</mat-label>
                     <mat-select formControlName="categoria">
-                      <mat-option value="M1">M1 - Vehículo de pasajeros</mat-option>
-                      <mat-option value="M2">M2 - Vehículo de pasajeros</mat-option>
-                      <mat-option value="M3">M3 - Vehículo de pasajeros</mat-option>
-                      <mat-option value="N1">N1 - Vehículo de carga</mat-option>
-                      <mat-option value="N2">N2 - Vehículo de carga</mat-option>
-                      <mat-option value="N3">N3 - Vehículo de carga</mat-option>
+                      @for (categoria of configuracionService.categoriasVehiculos(); track categoria) {
+                        <mat-option [value]="categoria">{{ categoria }} - Vehículo de transporte</mat-option>
+                      }
                     </mat-select>
                     <app-smart-icon [iconName]="'category'" [size]="20" matSuffix></app-smart-icon>
                     <mat-hint>Categoría del vehículo</mat-hint>
@@ -365,291 +377,18 @@ export interface VehiculoModalData {
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-label>Estado</mat-label>
                     <mat-select formControlName="estado">
-                      <mat-option value="ACTIVO">ACTIVO</mat-option>
-                      <mat-option value="INACTIVO">INACTIVO</mat-option>
-                      <mat-option value="MANTENIMIENTO">MANTENIMIENTO</mat-option>
-                      <mat-option value="SUSPENDIDO">SUSPENDIDO</mat-option>
+                      @for (estado of configuracionService.estadosVehiculos(); track estado) {
+                        <mat-option [value]="estado">{{ estado }}</mat-option>
+                      }
                     </mat-select>
                     <app-smart-icon [iconName]="'check_circle'" [size]="20" matSuffix></app-smart-icon>
                     <mat-hint>Estado actual del vehículo</mat-hint>
                   </mat-form-field>
                 </div>
-
-                <!-- Datos Técnicos Detallados -->
-                <mat-divider class="section-divider"></mat-divider>
-                <h4 class="section-subtitle">
-                  <app-smart-icon [iconName]="'settings'" [size]="20"></app-smart-icon>
-                  Especificaciones Técnicas Detalladas
-                </h4>
-                
-                <div formGroupName="datosTecnicos">
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Motor</mat-label>
-                      <input matInput formControlName="motor" placeholder="Ej: ABC123DEF456">
-                      <mat-icon matSuffix>settings</mat-icon>
-                      <mat-hint>Número de motor (mínimo 6 caracteres)</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.motor')?.hasError('numeroMotorCorto')">
-                        {{ vehiculoForm.get('datosTecnicos.motor')?.errors?.['numeroMotorCorto']?.message }}
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.motor')?.hasError('numeroMotorInvalido')">
-                        {{ vehiculoForm.get('datosTecnicos.motor')?.errors?.['numeroMotorInvalido']?.message }}
-                      </mat-error>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Chasis</mat-label>
-                      <input matInput formControlName="chasis" placeholder="Ej: XYZ789GHI012">
-                      <mat-icon matSuffix>fingerprint</mat-icon>
-                      <mat-hint>Número de chasis (mínimo 6 caracteres)</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.chasis')?.hasError('numeroChasisCorto')">
-                        {{ vehiculoForm.get('datosTecnicos.chasis')?.errors?.['numeroChasisCorto']?.message }}
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.chasis')?.hasError('numeroChasisInvalido')">
-                        {{ vehiculoForm.get('datosTecnicos.chasis')?.errors?.['numeroChasisInvalido']?.message }}
-                      </mat-error>
-                    </mat-form-field>
-                  </div>
-
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Ejes</mat-label>
-                      <input matInput formControlName="ejes" type="number" placeholder="Ej: 2, 3, 4">
-                      <mat-icon matSuffix>straighten</mat-icon>
-                      <mat-hint>Número de ejes (2-6) *</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ejes')?.hasError('required')">
-                        Campo requerido
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ejes')?.hasError('min')">
-                        Mínimo 2 ejes
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.ejes')?.hasError('max')">
-                        Máximo 6 ejes
-                      </mat-error>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Asientos</mat-label>
-                      <input matInput formControlName="asientos" type="number" placeholder="Ej: 15, 20, 30">
-                      <mat-icon matSuffix>airline_seat_recline_normal</mat-icon>
-                      <mat-hint>Número de asientos (1-100) *</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.asientos')?.hasError('required')">
-                        Campo requerido
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.asientos')?.hasError('min')">
-                        Mínimo 1 asiento
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.asientos')?.hasError('max')">
-                        Máximo 100 asientos
-                      </mat-error>
-                    </mat-form-field>
-                  </div>
-
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Tipo de Combustible</mat-label>
-                      <mat-select formControlName="tipoCombustible">
-                        <mat-option value="DIESEL">Diesel</mat-option>
-                        <mat-option value="GASOLINA">Gasolina</mat-option>
-                        <mat-option value="GAS_NATURAL">Gas Natural</mat-option>
-                        <mat-option value="GLP">GLP</mat-option>
-                        <mat-option value="ELECTRICO">Eléctrico</mat-option>
-                        <mat-option value="HIBRIDO">Híbrido</mat-option>
-                      </mat-select>
-                      <mat-icon matSuffix>local_gas_station</mat-icon>
-                      <mat-hint>Tipo de combustible *</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.tipoCombustible')?.hasError('required')">
-                        Campo requerido
-                      </mat-error>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Cilindrada (cc)</mat-label>
-                      <input matInput formControlName="cilindrada" type="number" placeholder="Ej: 2500">
-                      <mat-icon matSuffix>tune</mat-icon>
-                      <mat-hint>Cilindrada en centímetros cúbicos</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.cilindrada')?.hasError('min')">
-                        La cilindrada no puede ser negativa
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.cilindrada')?.hasError('max')">
-                        Cilindrada máxima: 10000 cc
-                      </mat-error>
-                    </mat-form-field>
-                  </div>
-
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Potencia (HP)</mat-label>
-                      <input matInput formControlName="potencia" type="number" placeholder="Ej: 150">
-                      <mat-icon matSuffix>speed</mat-icon>
-                      <mat-hint>Potencia en caballos de fuerza</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.potencia')?.hasError('min')">
-                        La potencia no puede ser negativa
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.potencia')?.hasError('max')">
-                        Potencia máxima: 1000 HP
-                      </mat-error>
-                    </mat-form-field>
-
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Peso Neto (kg)</mat-label>
-                      <input matInput formControlName="pesoNeto" type="number" placeholder="Ej: 5000">
-                      <mat-icon matSuffix>scale</mat-icon>
-                      <mat-hint>Peso neto del vehículo (0-50000 kg) *</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoNeto')?.hasError('required')">
-                        Campo requerido
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoNeto')?.hasError('min')">
-                        El peso no puede ser negativo
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoNeto')?.hasError('max')">
-                        Peso máximo: 50000 kg
-                      </mat-error>
-                    </mat-form-field>
-                  </div>
-
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
-                      <mat-label>Peso Bruto (kg)</mat-label>
-                      <input matInput formControlName="pesoBruto" type="number" placeholder="Ej: 8000">
-                      <mat-icon matSuffix>scale</mat-icon>
-                      <mat-hint>Peso bruto del vehículo (0-100000 kg) *</mat-hint>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoBruto')?.hasError('required')">
-                        Campo requerido
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoBruto')?.hasError('min')">
-                        El peso no puede ser negativo
-                      </mat-error>
-                      <mat-error *ngIf="vehiculoForm.get('datosTecnicos.pesoBruto')?.hasError('max')">
-                        Peso máximo: 100000 kg
-                      </mat-error>
-                    </mat-form-field>
-                  </div>
-
-                  <!-- Medidas -->
-                  <div formGroupName="medidas">
-                    <h4>Medidas del Vehículo</h4>
-                    <div class="form-row">
-                      <mat-form-field appearance="outline" class="form-field">
-                        <mat-label>Largo (m)</mat-label>
-                        <input matInput formControlName="largo" type="number" step="0.1" placeholder="Ej: 12.5">
-                        <mat-icon matSuffix>straighten</mat-icon>
-                        <mat-hint>Largo del vehículo en metros *</mat-hint>
-                        <mat-error *ngIf="vehiculoForm.get('datosTecnicos.medidas.largo')?.hasError('required')">
-                          Campo requerido
-                        </mat-error>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline" class="form-field">
-                        <mat-label>Ancho (m)</mat-label>
-                        <input matInput formControlName="ancho" type="number" step="0.1" placeholder="Ej: 2.5">
-                        <mat-icon matSuffix>straighten</mat-icon>
-                        <mat-hint>Ancho del vehículo en metros *</mat-hint>
-                        <mat-error *ngIf="vehiculoForm.get('datosTecnicos.medidas.ancho')?.hasError('required')">
-                          Campo requerido
-                        </mat-error>
-                      </mat-form-field>
-
-                      <mat-form-field appearance="outline" class="form-field">
-                        <mat-label>Alto (m)</mat-label>
-                        <input matInput formControlName="alto" type="number" step="0.1" placeholder="Ej: 3.2">
-                        <mat-icon matSuffix>straighten</mat-icon>
-                        <mat-hint>Alto del vehículo en metros *</mat-hint>
-                        <mat-error *ngIf="vehiculoForm.get('datosTecnicos.medidas.alto')?.hasError('required')">
-                          Campo requerido
-                        </mat-error>
-                      </mat-form-field>
-                    </div>
-                  </div>
-                </div>
               </div>
             </mat-expansion-panel>
 
           </form>
-        </div>
-      }
-
-      <!-- Lista de vehículos creados (modo múltiple) -->
-      @if (isBatchMode() && vehiculosCreados().length > 0) {
-        <div class="vehiculos-creados-section">
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>
-                <app-smart-icon [iconName]="'check_circle'" [size]="24"></app-smart-icon>
-                Vehículos Agregados ({{ vehiculosCreados().length }})
-              </mat-card-title>
-              
-              <!-- Acciones en bloque -->
-              @if (vehiculosSeleccionados().length > 0) {
-                <div class="bulk-actions">
-                  <span class="selection-count">{{ vehiculosSeleccionados().length }} seleccionado(s)</span>
-                  <button mat-raised-button 
-                          color="accent"
-                          (click)="agregarRutasEnBloque()"
-                          class="bulk-action-button">
-                    <app-smart-icon [iconName]="'add_road'" [size]="20"></app-smart-icon>
-                    Agregar Rutas
-                  </button>
-                  <button mat-button 
-                          (click)="limpiarSeleccion()"
-                          class="clear-selection-button">
-                    <app-smart-icon [iconName]="'clear'" [size]="20"></app-smart-icon>
-                    Limpiar
-                  </button>
-                </div>
-              }
-            </mat-card-header>
-            <mat-card-content>
-              <div class="vehiculos-lista">
-                @for (vehiculo of vehiculosCreados(); track $index) {
-                  <div class="vehiculo-item" [class.selected]="isVehiculoSeleccionado($index)">
-                    <!-- Checkbox para selección -->
-                    <mat-checkbox 
-                      [checked]="isVehiculoSeleccionado($index)"
-                      (change)="toggleVehiculoSeleccion($index)"
-                      class="vehiculo-checkbox">
-                    </mat-checkbox>
-                    
-                    <div class="vehiculo-info">
-                      <div class="vehiculo-info-main">
-                        <strong>{{ vehiculo.placa }}</strong>
-                        <span>{{ vehiculo.marca || 'Sin marca' }} {{ vehiculo.modelo || '' }}</span>
-                      </div>
-                      <div class="vehiculo-info-details">
-                        <small>{{ vehiculo.anioFabricacion || 'Sin año' }}</small>
-                        @if (vehiculo.rutasAsignadasIds && vehiculo.rutasAsignadasIds.length > 0) {
-                          <small class="rutas-badge">
-                            <app-smart-icon [iconName]="'route'" [size]="14"></app-smart-icon>
-                            {{ vehiculo.rutasAsignadasIds.length }} ruta(s)
-                          </small>
-                        }
-                      </div>
-                    </div>
-                    <div class="vehiculo-actions">
-                      <button mat-icon-button 
-                              color="primary"
-                              (click)="abrirModalEditarVehiculo($index)"
-                              matTooltip="Editar vehículo">
-                        <app-smart-icon [iconName]="'edit'" [size]="20" [clickable]="true"></app-smart-icon>
-                      </button>
-                      <button mat-icon-button 
-                              color="accent"
-                              (click)="abrirModalAgregarRutas($index)"
-                              matTooltip="Agregar rutas">
-                        <app-smart-icon [iconName]="'add_road'" [size]="20" [clickable]="true"></app-smart-icon>
-                      </button>
-                      <button mat-icon-button 
-                              color="warn" 
-                              (click)="removerVehiculo($index)"
-                              matTooltip="Remover vehículo">
-                        <app-smart-icon [iconName]="'delete'" [size]="20" [clickable]="true"></app-smart-icon>
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
         </div>
       }
 
@@ -661,38 +400,15 @@ export interface VehiculoModalData {
             Cancelar
           </button>
           
-          @if (isBatchMode()) {
-            <!-- Botones para modo múltiple -->
-            <button mat-button 
-                    color="accent"
-                    (click)="agregarVehiculoALista()" 
-                    [disabled]="!vehiculoForm.valid"
-                    class="add-to-list-button">
-              <app-smart-icon [iconName]="'add'" [size]="20"></app-smart-icon>
-              Agregar a Lista
-            </button>
-            
-            <button mat-raised-button 
-                    color="primary" 
-                    (click)="guardarTodosVehiculos()" 
-                    [disabled]="vehiculosCreados().length === 0 || isSubmitting()"
-                    class="submit-button">
-              <app-smart-icon [iconName]="isSubmitting() ? 'hourglass_empty' : 'save'" [size]="20"></app-smart-icon>
-              <span *ngIf="!isSubmitting()">Guardar {{ vehiculosCreados().length }} Vehículo(s)</span>
-              <span *ngIf="isSubmitting()">Guardando...</span>
-            </button>
-          } @else {
-            <!-- Botón para modo individual -->
-            <button mat-raised-button 
-                    color="primary" 
-                    (click)="onSubmit()" 
-                    [disabled]="!vehiculoForm.valid || isSubmitting()"
-                    class="submit-button">
-              <app-smart-icon [iconName]="isEditing() ? 'save' : 'add'" [size]="20"></app-smart-icon>
-              <span *ngIf="!isSubmitting()">{{ isEditing() ? 'Guardar Cambios' : 'Crear Vehículo' }}</span>
-              <span *ngIf="isSubmitting()">Procesando...</span>
-            </button>
-          }
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="onSubmit()" 
+                  [disabled]="!vehiculoForm.valid || isSubmitting()"
+                  class="submit-button">
+            <app-smart-icon [iconName]="isEditing() ? 'save' : 'add'" [size]="20"></app-smart-icon>
+            <span *ngIf="!isSubmitting()">{{ isEditing() ? 'Guardar Cambios' : 'Crear Vehículo' }}</span>
+            <span *ngIf="isSubmitting()">Procesando...</span>
+          </button>
         </div>
       </div>
     </div>
@@ -743,22 +459,6 @@ export interface VehiculoModalData {
       margin: 0;
       color: #666;
       font-size: 14px;
-    }
-
-    .modo-multiple-toggle {
-      margin-top: 16px;
-      padding: 12px;
-      background: #f5f5f5;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
-    }
-
-    .toggle-label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 500;
     }
 
     .close-button {
@@ -859,108 +559,12 @@ export interface VehiculoModalData {
       grid-column: 1 / -1;
     }
 
-    .resolucion-tipo-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 500;
-      margin-left: 8px;
-    }
-
-    .tipo-primigenia {
-      background: #e3f2fd;
-      color: #1976d2;
-    }
-
-    .tipo-hija {
-      background: #f3e5f5;
-      color: #7b1fa2;
-    }
-
-    .ruta-info-badge {
-      display: block;
-      font-size: 11px;
-      color: #666;
-      margin-top: 2px;
-    }
-
-    .section-divider {
-      margin: 24px 0 16px 0;
-    }
-
-    .section-subtitle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 16px 0;
-      color: #666;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
     .expansion-content {
       padding: 16px;
     }
 
     .panel-title-text {
       margin-left: 8px;
-    }
-
-    .placa-existente-alert {
-      grid-column: 1 / -1;
-      margin-top: 16px;
-    }
-
-    .alert-card {
-      border-left: 4px solid #ff9800;
-      background: #fff3e0;
-    }
-
-    .alert-card.warning {
-      border-left-color: #ff9800;
-    }
-
-    .alert-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .alert-header h4 {
-      margin: 0;
-      color: #e65100;
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .warning-icon {
-      color: #ff9800;
-    }
-
-    .alert-message {
-      margin: 8px 0;
-      color: #666;
-    }
-
-    .vehiculo-info-existente {
-      background: white;
-      padding: 12px;
-      border-radius: 4px;
-      margin: 12px 0;
-    }
-
-    .vehiculo-info-existente p {
-      margin: 4px 0;
-      font-size: 14px;
-    }
-
-    .alert-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-      flex-wrap: wrap;
     }
 
     .sede-option {
@@ -980,122 +584,6 @@ export interface VehiculoModalData {
       justify-content: center;
       padding: 8px;
       color: rgba(0, 0, 0, 0.6);
-    }
-
-    .vehiculos-creados-section {
-      padding: 0 24px;
-      margin-bottom: 24px;
-    }
-
-    .bulk-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: auto;
-    }
-
-    .selection-count {
-      font-size: 14px;
-      color: #1976d2;
-      font-weight: 500;
-    }
-
-    .bulk-action-button {
-      min-width: 140px;
-    }
-
-    .clear-selection-button {
-      min-width: 100px;
-    }
-
-    .vehiculo-checkbox {
-      margin-right: 12px;
-    }
-
-    .vehiculo-item.selected {
-      background: #e3f2fd;
-      border-color: #1976d2;
-    }
-
-    .vehiculos-lista {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .vehiculo-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      background: #f5f5f5;
-      border-radius: 8px;
-      border: 1px solid #e0e0e0;
-      transition: all 0.2s ease;
-    }
-
-    .vehiculo-item:hover {
-      background: #eeeeee;
-      border-color: #d0d0d0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .vehiculo-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .vehiculo-info-main {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .vehiculo-info-main strong {
-      font-size: 16px;
-      color: #1976d2;
-      font-weight: 600;
-    }
-
-    .vehiculo-info-main span {
-      font-size: 14px;
-      color: #666;
-    }
-
-    .vehiculo-info-details {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .vehiculo-info-details small {
-      font-size: 12px;
-      color: #999;
-    }
-
-    .rutas-badge {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      background: #e3f2fd;
-      color: #1976d2;
-      border-radius: 12px;
-      font-weight: 500;
-    }
-
-    .vehiculo-actions {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    .add-to-list-button {
-      min-width: 140px;
     }
 
     .modal-footer {
@@ -1119,6 +607,108 @@ export interface VehiculoModalData {
       min-width: 160px;
     }
 
+    /* Estilos para resoluciones relacionadas */
+    .resoluciones-relacionadas {
+      margin-top: 16px;
+    }
+
+    .resoluciones-info {
+      padding: 16px 0;
+    }
+
+    .resoluciones-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      color: #1976d2;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .resolucion-item {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #fafafa;
+    }
+
+    .resolucion-item.primigenia {
+      border-color: #4caf50;
+      background: #f1f8e9;
+    }
+
+    .resolucion-item.hija {
+      border-color: #2196f3;
+      background: #e3f2fd;
+    }
+
+    .resolucion-item.selected {
+      border-color: #ff9800;
+      background: #fff3e0;
+      box-shadow: 0 2px 4px rgba(255, 152, 0, 0.2);
+    }
+
+    .resolucion-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .resolucion-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .resolucion-label {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .resolucion-details {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .resolucion-numero {
+      font-weight: 600;
+      color: #1976d2;
+      font-size: 14px;
+    }
+
+    .resolucion-fecha {
+      color: #666;
+      font-size: 12px;
+    }
+
+    .resolucion-tipo {
+      background: #e0e0e0;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    .current-icon {
+      color: #4caf50;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .resoluciones-hijas {
+      margin-top: 12px;
+    }
+
     @media (max-width: 768px) {
       .vehiculo-modal {
         max-width: 100%;
@@ -1140,6 +730,12 @@ export interface VehiculoModalData {
       .modal-footer {
         padding: 16px;
       }
+
+      .resolucion-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
     }
   `]
 })
@@ -1149,22 +745,6 @@ export class VehiculoModalComponent {
 
   // Datos del dialog (alternativa a input)
   dialogData = inject(MAT_DIALOG_DATA);
-
-  // Watcher para modalData usando effect
-  private modalDataWatcher = effect(() => {
-    const data = this.modalData();
-    if (data && this.vehiculoForm) {
-      this.initializeModalData();
-    }
-  });
-
-  // Watcher para dialogData usando effect
-  private dialogDataWatcher = effect(() => {
-    const data = this.dialogData;
-    if (data && this.vehiculoForm) {
-      this.initializeModalData();
-    }
-  });
 
   // Eventos de salida
   vehiculoCreated = output<VehiculoCreate>();
@@ -1177,7 +757,7 @@ export class VehiculoModalComponent {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
   private rutaService = inject(RutaService);
-  private configuracionService = inject(ConfiguracionService);
+  configuracionService = inject(ConfiguracionService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private dialogRef = inject(MatDialogRef);
@@ -1185,10 +765,7 @@ export class VehiculoModalComponent {
   // Estado del componente
   isLoading = signal(false);
   isSubmitting = signal(false);
-  vehiculosCreados = signal<VehiculoCreate[]>([]);
-  vehiculosSeleccionados = signal<number[]>([]); // Índices de vehículos seleccionados
-  mostrarListaVehiculos = signal(false);
-  modoMultiple = signal(true); // Modo múltiple activado por defecto
+  vehiculosActuales = signal<Vehiculo[]>([]);
 
   // Sedes disponibles desde configuración
   sedesDisponibles = computed(() => this.configuracionService.sedesDisponibles());
@@ -1197,36 +774,15 @@ export class VehiculoModalComponent {
   // Observable para autocompletado de sedes
   sedesFiltradas!: Observable<string[]>;
 
-  // Validación de placa
-  vehiculoExistente = signal<Vehiculo | null>(null);
-  mostrarOpcionesPlacaExistente = signal(false);
-
-  // Contador de vehículos
-  vehiculosActuales = signal<Vehiculo[]>([]);
-
   cantidadVehiculosEmpresa = computed(() => {
     const empresaId = this.vehiculoForm?.get('empresaActualId')?.value;
     const vehiculosActuales = this.vehiculosActuales();
 
-    console.log('🔢 Calculando cantidad de vehículos para empresa:', empresaId);
-    console.log('📊 Total vehículos disponibles:', vehiculosActuales.length);
-
     if (!empresaId) {
-      console.log('⚠️ No hay empresa seleccionada');
       return 0;
     }
 
-    const vehiculosEmpresa = vehiculosActuales.filter(v => v.empresaActualId === empresaId);
-    console.log('🚗 Vehículos de la empresa:', vehiculosEmpresa.length);
-    console.log('🚗 Placas de la empresa:', vehiculosEmpresa.map(v => v.placa));
-
-    return vehiculosEmpresa.length;
-  });
-
-  cantidadVehiculosResolucion = computed(() => {
-    const resolucionId = this.vehiculoForm?.get('resolucionId')?.value;
-    if (!resolucionId) return 0;
-    return this.vehiculosActuales().filter(v => v.resolucionId === resolucionId).length;
+    return vehiculosActuales.filter(v => v.empresaActualId === empresaId).length;
   });
 
   isEditing = computed(() => {
@@ -1234,32 +790,72 @@ export class VehiculoModalComponent {
     return data?.mode === 'edit';
   });
 
-  isBatchMode = computed(() => {
-    const data = this.modalData() || this.dialogData;
-    return data?.mode === 'batch' || data?.allowMultiple === true || this.modoMultiple();
-  });
-
-  allowChangeEmpresa = computed(() => {
-    const data = this.modalData() || this.dialogData;
-    return !data?.empresaId; // Solo permitir cambiar empresa si no viene predefinida
-  });
-
   // Datos de referencia
   empresas = signal<Empresa[]>([]);
   resoluciones = signal<Resolucion[]>([]);
   rutasDisponibles = signal<Ruta[]>([]);
+  
+  // Resoluciones relacionadas (para modo edición)
+  resolucionPrimigenia = signal<Resolucion | null>(null);
+  resolucionesHijas = signal<Resolucion[]>([]);
+  resolucionActual = signal<Resolucion | null>(null);
+  
+  // Valores preseleccionados para los selectores (computed para reactividad)
+  empresaIdSeleccionada = signal<string>('');
+  resolucionIdSeleccionada = signal<string>('');
+  
+  // Computed signals para forzar reactividad en el template
+  empresaIdParaSelector = computed(() => {
+    // Incluir forceUpdate para forzar recálculo
+    this.forceUpdate();
+    const empresaId = this.empresaIdSeleccionada();
+    console.log('Computed empresaIdParaSelector:', empresaId);
+    return empresaId;
+  });
+  
+  resolucionIdParaSelector = computed(() => {
+    // Incluir forceUpdate para forzar recálculo
+    this.forceUpdate();
+    const resolucionId = this.resolucionIdSeleccionada();
+    console.log('Computed resolucionIdParaSelector:', resolucionId);
+    return resolucionId;
+  });
 
-  // Autocompletado para empresas
-  empresasFiltradas!: Observable<Empresa[]>;
+  // Signal para forzar actualización de los selectores
+  private forceUpdate = signal(0);
 
   // Formulario
   vehiculoForm!: FormGroup;
 
+  constructor() {
+    // Effect para sincronizar los selectores cuando cambien los signals
+    effect(() => {
+      const empresaId = this.empresaIdSeleccionada();
+      const resolucionId = this.resolucionIdSeleccionada();
+      
+      console.log('Effect ejecutado - empresaId:', empresaId, 'resolucionId:', resolucionId);
+      
+      // Forzar actualización del formulario si los signals cambian
+      if (this.vehiculoForm && (empresaId || resolucionId)) {
+        // Usar setTimeout para evitar problemas de timing
+        setTimeout(() => {
+          this.vehiculoForm.patchValue({
+            empresaActualId: empresaId,
+            resolucionId: resolucionId
+          }, { emitEvent: true }); // Cambiar a true para que los selectores reaccionen
+        }, 50);
+      }
+    });
+  }
+
   ngOnInit(): void {
+    console.log('🚀 VehiculoModalComponent ngOnInit iniciado');
+    console.log('🔍 modalData:', this.modalData());
+    console.log('🔍 dialogData:', this.dialogData);
+    
     // Cargar configuraciones primero
     this.configuracionService.cargarConfiguraciones().subscribe({
       next: () => {
-        console.log('✅ Configuraciones cargadas, inicializando formulario...');
         this.initializeForm();
         this.loadEmpresas();
         this.loadVehiculosActuales();
@@ -1267,11 +863,12 @@ export class VehiculoModalComponent {
 
         // Inicializar datos del modal después de un breve delay para asegurar que todo esté listo
         setTimeout(() => {
+          console.log('⏰ Ejecutando initializeModalData después del delay');
           this.initializeModalData();
         }, 100);
       },
       error: (error) => {
-        console.error('❌ Error cargando configuraciones, usando valores por defecto:', error);
+        console.error('Error cargando configuraciones, usando valores por defecto:', error);
         // Continuar con valores por defecto si falla la carga
         this.initializeForm();
         this.loadEmpresas();
@@ -1279,6 +876,7 @@ export class VehiculoModalComponent {
         this.configurarAutocompletadoSedes();
 
         setTimeout(() => {
+          console.log('⏰ Ejecutando initializeModalData después del delay (error case)');
           this.initializeModalData();
         }, 100);
       }
@@ -1289,18 +887,12 @@ export class VehiculoModalComponent {
    * Carga todos los vehículos actuales para mostrar estadísticas
    */
   private loadVehiculosActuales(): void {
-    console.log('🔍 Cargando vehículos actuales para estadísticas...');
     this.vehiculoService.getVehiculos().subscribe({
       next: (vehiculos) => {
-        console.log('✅ Vehículos cargados para estadísticas:', vehiculos.length);
-        console.log('📊 Vehículos por empresa:', vehiculos.reduce((acc, v) => {
-          acc[v.empresaActualId] = (acc[v.empresaActualId] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>));
         this.vehiculosActuales.set(vehiculos);
       },
       error: (error) => {
-        console.error('❌ Error cargando vehículos actuales:', error);
+        console.error('Error cargando vehículos actuales:', error);
       }
     });
   }
@@ -1406,47 +998,34 @@ export class VehiculoModalComponent {
     }, 0);
   }
 
-
-
   private initializeModalData(): void {
     const data = this.modalData() || this.dialogData;
-    if (!data) return;
+    console.log('🔍 initializeModalData - data recibida:', data);
+    
+    if (!data) {
+      console.log('❌ No hay datos en initializeModalData');
+      return;
+    }
+
+    console.log('🔍 Modo de edición:', this.isEditing());
+    console.log('🔍 Datos del vehículo:', data.vehiculo);
 
     if (this.isEditing()) {
+      console.log('✅ Llamando a loadVehiculo()...');
       this.loadVehiculo();
     } else {
+      console.log('✅ Modo creación - configurando valores iniciales...');
       // En modo creación, pre-configurar empresa y resolución si se proporcionan
       if (data.empresaId) {
-        // Buscar la empresa por ID para pre-seleccionarla en el autocompletado
-        const empresa = this.empresas().find(e => e.id === data.empresaId);
-        if (empresa) {
-          // Configurar tanto el FormControl del autocompletado como el campo del formulario
-          this.empresaControl.setValue(empresa);
-          this.vehiculoForm.patchValue({
-            empresaActualId: empresa.id
-          });
+        this.vehiculoForm.patchValue({
+          empresaActualId: data.empresaId
+        });
+      }
 
-          // Cargar resoluciones para esta empresa
-          this.loadResoluciones(data.empresaId);
-
-          // Habilitar el campo de resolución ya que hay empresa seleccionada
-          this.vehiculoForm.get('resolucionId')?.enable();
-
-          // Si también hay resolución, pre-configurarla
-          if (data.resolucionId) {
-            this.vehiculoForm.patchValue({ resolucionId: data.resolucionId });
-            this.loadRutasDisponibles(data.resolucionId);
-            // También habilitar el campo de rutas
-            this.vehiculoForm.get('rutasAsignadasIds')?.enable();
-          }
-        }
+      if (data.resolucionId) {
+        this.vehiculoForm.patchValue({ resolucionId: data.resolucionId });
       }
     }
-  }
-
-  // Getters para los controles del formulario
-  get empresaControl(): FormControl {
-    return this.vehiculoForm.get('empresaActualId') as FormControl;
   }
 
   private initializeForm(): void {
@@ -1459,35 +1038,33 @@ export class VehiculoModalComponent {
       ],
       sedeRegistro: [this.sedeDefault(), Validators.required],
 
-      // Campos opcionales - sin valores por defecto para evitar problemas
+      // Campos opcionales - usando configuraciones del servicio
       empresaActualId: [''],
       resolucionId: [''],
       numeroTuc: ['', [numeroTucValidator()]],
       rutasAsignadasIds: [[]],
-      marca: [''], // Sin valor por defecto
-      modelo: [''], // Sin valor por defecto
-      categoria: ['M3'], // Mantener solo este por ser requerido por el backend
+      marca: [''],
+      modelo: [''],
+      categoria: [this.configuracionService.categoriaVehiculoDefault()],
       anioFabricacion: [new Date().getFullYear(), [anioFabricacionValidator()]],
-      estado: ['ACTIVO'], // Mantener por ser requerido
+      estado: [this.configuracionService.estadoVehiculoDefault()],
       color: [''],
       numeroSerie: [''],
       observaciones: [''],
-      datosTecnicos: this.fb.group({
-        motor: ['', [numeroMotorValidator()]],
-        chasis: ['', [numeroChasisValidator()]],
-        ejes: [2, [Validators.required, Validators.min(2), Validators.max(6)]],
-        asientos: [15, [Validators.required, Validators.min(1), Validators.max(100)]],
-        pesoNeto: [2500, [Validators.required, Validators.min(0), Validators.max(50000)]],
-        pesoBruto: [3500, [Validators.required, Validators.min(0), Validators.max(100000)]],
-        tipoCombustible: ['DIESEL', Validators.required],
-        cilindrada: ['', [Validators.min(0), Validators.max(10000)]],
-        potencia: ['', [Validators.min(0), Validators.max(1000)]],
-        medidas: this.fb.group({
-          largo: [12, [Validators.required, Validators.min(0), Validators.max(30000)]],
-          ancho: [2.5, [Validators.required, Validators.min(0), Validators.max(5000)]],
-          alto: [3, [Validators.required, Validators.min(0), Validators.max(5000)]]
-        })
-      })
+      asientos: [15, [capacidadPasajerosValidator()]],
+      
+      // Datos técnicos adicionales
+      motor: [''],
+      chasis: [''],
+      ejes: [2],
+      pesoNeto: [2500],
+      pesoBruto: [3500],
+      tipoCombustible: [this.configuracionService.tipoCombustibleDefault()],
+      cilindrada: [null],
+      potencia: [null],
+      largo: [12],
+      ancho: [2.5],
+      alto: [3]
     });
   }
 
@@ -1495,8 +1072,6 @@ export class VehiculoModalComponent {
     this.empresaService.getEmpresas().subscribe({
       next: (empresas) => {
         this.empresas.set(empresas.filter(e => e.estado === 'HABILITADA'));
-        // Configurar autocompletado después de cargar empresas
-        setTimeout(() => this.configurarAutocompletado(), 0);
       },
       error: (error) => {
         console.error('Error cargando empresas:', error);
@@ -1505,617 +1080,229 @@ export class VehiculoModalComponent {
     });
   }
 
-  /**
-   * Carga las resoluciones de una empresa específica
-   */
-  private cargarResoluciones(empresaId: string): void {
-    if (!empresaId) {
-      this.resoluciones.set([]);
+  private loadVehiculo(): void {
+    const data = this.modalData() || this.dialogData;
+    console.log('🚀 loadVehiculo - data:', data);
+    
+    if (!data?.vehiculo) {
+      console.log('❌ No hay vehículo en los datos');
       return;
     }
 
-    this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe({
-      next: (resoluciones) => {
-        this.resoluciones.set(resoluciones.filter(r => r.estaActivo && r.estado === 'VIGENTE'));
-        console.log('✅ Resoluciones cargadas para empresa:', empresaId, resoluciones.length);
+    this.isLoading.set(true);
+    const vehiculo = data.vehiculo;
+
+    console.log('=== CARGANDO VEHÍCULO ===');
+    console.log('Vehículo completo:', vehiculo);
+    console.log('Empresa ID:', vehiculo.empresaActualId);
+    console.log('Resolución ID:', vehiculo.resolucionId);
+
+    // Cargar TODOS los datos del vehículo en el formulario PRIMERO
+    this.vehiculoForm.patchValue({
+      placa: vehiculo.placa,
+      sedeRegistro: vehiculo.sedeRegistro,
+      empresaActualId: vehiculo.empresaActualId,
+      resolucionId: vehiculo.resolucionId,
+      marca: vehiculo.marca || '',
+      modelo: vehiculo.modelo || '',
+      anioFabricacion: vehiculo.anioFabricacion || new Date().getFullYear(),
+      categoria: vehiculo.categoria || 'M3',
+      estado: vehiculo.estado || 'ACTIVO',
+      color: vehiculo.color || '',
+      numeroSerie: vehiculo.numeroSerie || '',
+      observaciones: vehiculo.observaciones || '',
+      numeroTuc: vehiculo.tuc?.nroTuc || '',
+      rutasAsignadasIds: vehiculo.rutasAsignadasIds || [],
+      asientos: vehiculo.datosTecnicos?.asientos || 15,
+      motor: vehiculo.datosTecnicos?.motor || '',
+      chasis: vehiculo.datosTecnicos?.chasis || '',
+      ejes: vehiculo.datosTecnicos?.ejes || 2,
+      pesoNeto: vehiculo.datosTecnicos?.pesoNeto || 2500,
+      pesoBruto: vehiculo.datosTecnicos?.pesoBruto || 3500,
+      tipoCombustible: vehiculo.datosTecnicos?.tipoCombustible || 'DIESEL',
+      cilindrada: vehiculo.datosTecnicos?.cilindrada || null,
+      potencia: vehiculo.datosTecnicos?.potencia || null,
+      largo: vehiculo.datosTecnicos?.medidas?.largo || 12,
+      ancho: vehiculo.datosTecnicos?.medidas?.ancho || 2.5,
+      alto: vehiculo.datosTecnicos?.medidas?.alto || 3
+    });
+
+    // DESPUÉS establecer los signals para que los selectores reaccionen
+    setTimeout(() => {
+      console.log('🔄 Estableciendo signals para selectores...');
+      console.log('🔍 Antes - empresaIdSeleccionada:', this.empresaIdSeleccionada());
+      console.log('🔍 Antes - resolucionIdSeleccionada:', this.resolucionIdSeleccionada());
+      
+      this.empresaIdSeleccionada.set(vehiculo.empresaActualId || '');
+      this.resolucionIdSeleccionada.set(vehiculo.resolucionId || '');
+      
+      console.log('🔍 Después - empresaIdSeleccionada:', this.empresaIdSeleccionada());
+      console.log('🔍 Después - resolucionIdSeleccionada:', this.resolucionIdSeleccionada());
+      
+      // Forzar actualización de los computed signals
+      this.forceUpdate.set(this.forceUpdate() + 1);
+      
+      console.log('✅ Signals establecidos:');
+      console.log('- empresaIdSeleccionada:', this.empresaIdSeleccionada());
+      console.log('- resolucionIdSeleccionada:', this.resolucionIdSeleccionada());
+      
+      this.isLoading.set(false);
+    }, 200); // Aumentar el delay para asegurar que los selectores estén listos
+  }
+
+  /**
+   * Convierte texto a mayúsculas en tiempo real
+   */
+  convertirAMayusculas(event: Event, campo: string): void {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value.toUpperCase();
+    this.vehiculoForm.get(campo)?.setValue(valor, { emitEvent: false });
+  }
+
+  /**
+   * Valida si la placa ya existe en el sistema
+   */
+  validarPlaca(): void {
+    const placa = this.vehiculoForm.get('placa')?.value;
+
+    // Validar que la placa tenga el formato correcto (XXX-000)
+    if (!placa || placa.length < 7) {
+      return;
+    }
+
+    // Validar formato con regex
+    const formatoValido = /^[A-Z0-9]{3}-\d{3}$/.test(placa);
+    if (!formatoValido) {
+      return;
+    }
+
+    // Buscar vehículo por placa
+    this.vehiculoService.getVehiculoByPlaca(placa).subscribe({
+      next: (vehiculo) => {
+        if (vehiculo) {
+          this.snackBar.open(
+            `⚠️ La placa ${placa} ya está registrada`,
+            'Cerrar',
+            { duration: 4000 }
+          );
+          // Limpiar la placa para que ingrese otra
+          this.vehiculoForm.get('placa')?.setValue('');
+        }
       },
       error: (error) => {
-        console.error('❌ Error cargando resoluciones:', error);
-        this.resoluciones.set([]);
-        this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
+        console.error('Error validando placa:', error);
       }
     });
   }
 
-  private configurarAutocompletado(): void {
-    // Solo configurar si el formulario está inicializado
-    if (this.vehiculoForm && this.empresaControl) {
-      // Autocompletado para empresas
-      this.empresasFiltradas = this.empresaControl.valueChanges.pipe(
-        startWith(''),
-        map(value => this.filtrarEmpresas(value))
-      );
-
-      // Escuchar cambios en el control de empresa para habilitar/deshabilitar resolución
-      this.empresaControl.valueChanges.subscribe(value => {
-        if (!value || value === '') {
-          // Si no hay empresa seleccionada, deshabilitar resolución
-          this.vehiculoForm.get('resolucionId')?.disable();
-        } else {
-          // Si hay empresa seleccionada, habilitar resolución
-          this.vehiculoForm.get('resolucionId')?.enable();
-        }
-      });
-    }
-  }
-
-  private filtrarEmpresas(value: any): Empresa[] {
-    if (!value) return this.empresas();
-
-    // Si el valor es un objeto Empresa, extraer el texto para filtrar
-    let filterValue = '';
-    if (typeof value === 'string') {
-      filterValue = value.toLowerCase();
-    } else if (value && typeof value === 'object') {
-      filterValue = (value.razonSocial?.principal?.toLowerCase() || value.ruc?.toLowerCase() || '');
-    }
-
-    return this.empresas().filter(empresa => {
-      const rucMatch = empresa.ruc.toLowerCase().includes(filterValue);
-      const razonSocialMatch = empresa.razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
-      return rucMatch || razonSocialMatch;
-    });
-  }
-
-  // Método para mostrar la empresa en el input (arrow function para preservar `this`)
-  displayEmpresa = (empresa: Empresa | string | null | undefined): string => {
-    if (!empresa) return '';
-
-    // Si es un string (ID), buscar la empresa en la lista
-    if (typeof empresa === 'string') {
-      const empresaEncontrada = this.empresas().find(e => e.id === empresa);
-      if (empresaEncontrada) {
-        empresa = empresaEncontrada;
-      } else {
-        return 'Empresa no encontrada';
-      }
-    }
-
-    // Verificar que razonSocial existe y tiene la propiedad principal
-    if (empresa.razonSocial && empresa.razonSocial.principal) {
-      return `${empresa.ruc} - ${empresa.razonSocial.principal}`;
-    } else if (empresa.razonSocial) {
-      return `${empresa.ruc} - Sin razón social`;
-    } else {
-      return `${empresa.ruc} - Sin información de razón social`;
-    }
-  }
-
-  // Método para manejar la selección de empresa desde EmpresaSelectorComponent
-  onEmpresaSeleccionada(empresa: Empresa | null): void {
-    if (empresa) {
-      console.log('🏢 Empresa seleccionada:', empresa);
-      this.vehiculoForm.patchValue({ empresaId: empresa.id });
-      this.cargarResoluciones(empresa.id);
-    } else {
-      console.log('🏢 Empresa deseleccionada');
-      this.vehiculoForm.patchValue({ empresaId: '', resolucionId: '' });
-      this.resoluciones.set([]);
-    }
-  }
-
-  // Método para manejar la selección de empresa (método existente - mantener para compatibilidad)
-  onEmpresaSelected(event: any): void {
-    const empresa = event.option.value;
-    if (empresa && empresa.id) {
-      // Establecer el objeto empresa completo en el control
-      this.empresaControl.setValue(empresa);
-      // También actualizar el valor del formulario con el ID
-      this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
-
-      // Habilitar el campo de resolución
-      this.vehiculoForm.get('resolucionId')?.enable();
-
-      this.onEmpresaChange();
-    }
-  }
-
-  // Nuevo método para manejar la selección desde EmpresaSelectorComponent
+  // Método para manejar la selección desde EmpresaSelectorComponent
   onEmpresaSeleccionadaSelector(empresa: Empresa | null): void {
     if (empresa) {
       // Actualizar el formulario con la empresa seleccionada
       this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
-
-      // Habilitar el campo de resolución
-      this.vehiculoForm.get('resolucionId')?.enable();
-
-      // Cargar resoluciones de la empresa
-      this.onEmpresaChange();
-
-      // Actualizar contador de vehículos
-      this.actualizarContadorVehiculos(empresa.id);
+      this.empresaIdSeleccionada.set(empresa.id);
     } else {
       // Limpiar selección
       this.vehiculoForm.patchValue({ empresaActualId: '', resolucionId: '' });
-      this.vehiculoForm.get('resolucionId')?.disable();
-      this.resoluciones.set([]);
-      this.rutasDisponibles.set([]);
+      this.empresaIdSeleccionada.set('');
+      this.resolucionIdSeleccionada.set('');
     }
   }
 
-  // Nuevo método para manejar cambios en el ID de empresa
+  // Método para manejar cambios en el ID de empresa
   onEmpresaIdChange(empresaId: string): void {
     if (empresaId) {
       this.vehiculoForm.patchValue({ empresaActualId: empresaId });
+      this.empresaIdSeleccionada.set(empresaId);
     }
   }
 
-  // Nuevo método para manejar la selección desde ResolucionSelectorComponent
+  // Método para manejar la selección desde ResolucionSelectorComponent
   onResolucionSeleccionadaSelector(resolucion: Resolucion | null): void {
     if (resolucion) {
       // Actualizar el formulario con la resolución seleccionada
       this.vehiculoForm.patchValue({ resolucionId: resolucion.id });
-
-      // Cargar rutas disponibles
-      this.loadRutasDisponibles(resolucion.id);
-
-      // Habilitar el control de rutas
-      this.vehiculoForm.get('rutasAsignadasIds')?.enable();
+      this.resolucionIdSeleccionada.set(resolucion.id);
     } else {
       // Limpiar selección
       this.vehiculoForm.patchValue({ resolucionId: '' });
-      this.rutasDisponibles.set([]);
-      this.vehiculoForm.get('rutasAsignadasIds')?.disable();
+      this.resolucionIdSeleccionada.set('');
     }
   }
 
-  // Nuevo método para manejar cambios en el ID de resolución
+  // Método para manejar cambios en el ID de resolución
   onResolucionIdChange(resolucionId: string): void {
     if (resolucionId) {
       this.vehiculoForm.patchValue({ resolucionId });
+      this.resolucionIdSeleccionada.set(resolucionId);
     }
-  }
-
-  // Método auxiliar para actualizar el contador de vehículos
-  private actualizarContadorVehiculos(empresaId: string): void {
-    this.vehiculoService.getVehiculos().subscribe({
-      next: (vehiculos) => {
-        // Actualizar el signal de vehículos actuales para que el computed se recalcule
-        this.vehiculosActuales.set(vehiculos);
-      },
-      error: (error) => {
-        console.error('Error al contar vehículos:', error);
-      }
-    });
-  }
-
-  private onEmpresaChange(): void {
-    const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
-    if (empresaId) {
-      this.loadResoluciones(empresaId);
-      // Limpiar resolución seleccionada
-      this.vehiculoForm.patchValue({ resolucionId: '' });
-    } else {
-      this.resoluciones.set([]);
-      this.rutasDisponibles.set([]);
-    }
-  }
-
-  onResolucionChange(): void {
-    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    if (resolucionId) {
-      this.loadRutasDisponibles(resolucionId);
-      // Habilitar el control de rutas cuando hay resolución seleccionada
-      this.vehiculoForm.get('rutasAsignadasIds')?.enable();
-    } else {
-      this.rutasDisponibles.set([]);
-      // Deshabilitar el control de rutas cuando no hay resolución
-      this.vehiculoForm.get('rutasAsignadasIds')?.disable();
-    }
-  }
-
-  private loadResoluciones(empresaId: string): void {
-    if (!empresaId) return;
-
-    this.resolucionService.getResoluciones().subscribe({
-      next: (resoluciones) => {
-        // Filtrar resoluciones de la empresa seleccionada
-        const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
-        this.resoluciones.set(resolucionesEmpresa);
-
-        // Si no hay resolución seleccionada, limpiar el campo
-        if (!this.vehiculoForm.get('resolucionId')?.value) {
-          this.vehiculoForm.patchValue({ resolucionId: '' });
-        }
-      },
-      error: (error) => {
-        console.error('Error cargando resoluciones:', error);
-        this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
-      }
-    });
-  }
-
-  private loadRutasDisponibles(resolucionId: string): void {
-    if (!resolucionId) return;
-
-    this.rutaService.getRutas().subscribe({
-      next: (rutas) => {
-        // Filtrar rutas de la resolución seleccionada
-        const rutasResolucion = rutas.filter(r => r.resolucionId === resolucionId);
-        this.rutasDisponibles.set(rutasResolucion);
-      },
-      error: (error) => {
-        console.error('Error cargando rutas:', error);
-        this.snackBar.open('Error al cargar rutas', 'Cerrar', { duration: 3000 });
-      }
-    });
-  }
-
-  private loadVehiculo(): void {
-    const data = this.modalData() || this.dialogData;
-    const vehiculo = data?.vehiculo;
-    if (vehiculo) {
-      this.isLoading.set(true);
-
-      // Cargar datos del vehículo
-      this.vehiculoForm.patchValue({
-        empresaActualId: vehiculo.empresaActualId,
-        resolucionId: vehiculo.resolucionId,
-        numeroTuc: vehiculo.tuc?.nroTuc || '',
-        rutasAsignadasIds: vehiculo.rutasAsignadasIds || [],
-        placa: vehiculo.placa,
-        marca: vehiculo.marca,
-        modelo: vehiculo.modelo,
-        categoria: vehiculo.categoria,
-        anioFabricacion: vehiculo.anioFabricacion,
-        estado: vehiculo.estado,
-        datosTecnicos: {
-          motor: vehiculo.datosTecnicos?.motor || '',
-          chasis: vehiculo.datosTecnicos?.chasis || '',
-          cilindros: vehiculo.datosTecnicos?.cilindros || '',
-          ejes: vehiculo.datosTecnicos?.ejes || '',
-          ruedas: vehiculo.datosTecnicos?.ruedas || '',
-          pesoNeto: vehiculo.datosTecnicos?.pesoNeto || '',
-          pesoBruto: vehiculo.datosTecnicos?.pesoBruto || '',
-          medidas: {
-            largo: vehiculo.datosTecnicos?.medidas?.largo || '',
-            ancho: vehiculo.datosTecnicos?.medidas?.ancho || '',
-            alto: vehiculo.datosTecnicos?.medidas?.alto || ''
-          }
-        }
-      });
-
-      // Cargar resoluciones y rutas para este vehículo
-      this.loadResoluciones(vehiculo.empresaActualId);
-      this.loadRutasDisponibles(vehiculo.resolucionId);
-
-      this.isLoading.set(false);
-    }
-  }
-
-  // Método para limpiar el campo de empresa
-  limpiarEmpresa(): void {
-    this.empresaControl.setValue('');
-    this.vehiculoForm.patchValue({ empresaActualId: '' });
-
-    // Limpiar resoluciones y rutas
-    this.resoluciones.set([]);
-    this.rutasDisponibles.set([]);
-
-    // Limpiar y deshabilitar campo de resolución
-    this.vehiculoForm.patchValue({ resolucionId: '' });
-    this.vehiculoForm.get('resolucionId')?.disable();
-
-    // Limpiar y deshabilitar campo de rutas
-    this.vehiculoForm.patchValue({ rutasAsignadasIds: [] });
-    this.vehiculoForm.get('rutasAsignadasIds')?.disable();
-  }
-
-  // Métodos de utilidad
-  puedeSeleccionarRutas(): boolean {
-    return this.vehiculoForm.get('empresaActualId')?.value &&
-      this.vehiculoForm.get('resolucionId')?.value;
-  }
-
-  getRutasHint(): string {
-    if (!this.vehiculoForm.get('empresaActualId')?.value) {
-      return 'Primero selecciona una empresa';
-    }
-    if (!this.vehiculoForm.get('resolucionId')?.value) {
-      return 'Luego selecciona una resolución';
-    }
-    return 'Selecciona las rutas que puede operar este vehículo';
-  }
-
-  convertirAMayusculas(event: any, controlName: string): void {
-    const input = event.target;
-    const value = input.value.toUpperCase();
-    this.vehiculoForm.patchValue({ [controlName]: value });
   }
 
   onSubmit(): void {
-    if (this.vehiculoForm.valid) {
-      this.isSubmitting.set(true);
-      const formValue = this.vehiculoForm.value;
-
-      if (this.isEditing()) {
-        // Modo edición
-        const vehiculoUpdate: VehiculoUpdate = {
-          placa: formValue.placa,
-          marca: formValue.marca,
-          modelo: formValue.modelo,
-          categoria: formValue.categoria,
-          anioFabricacion: formValue.anioFabricacion,
-          empresaActualId: formValue.empresaActualId,
-          resolucionId: formValue.resolucionId,
-          rutasAsignadasIds: formValue.rutasAsignadasIds || [],
-          tuc: formValue.numeroTuc ? {
-            nroTuc: formValue.numeroTuc,
-            fechaEmision: new Date().toISOString()
-          } : undefined,
-          datosTecnicos: {
-            ...formValue.datosTecnicos,
-            asientos: formValue.asientos
-          }
-        };
-
-        this.vehiculoUpdated.emit(vehiculoUpdate);
-      } else {
-        // Modo creación
-        const vehiculoCreate: VehiculoCreate = {
-          placa: formValue.placa,
-          marca: formValue.marca,
-          modelo: formValue.modelo,
-          categoria: formValue.categoria,
-          anioFabricacion: formValue.anioFabricacion,
-          empresaActualId: formValue.empresaActualId,
-          resolucionId: formValue.resolucionId,
-          rutasAsignadasIds: formValue.rutasAsignadasIds || [],
-          tuc: formValue.numeroTuc ? {
-            nroTuc: formValue.numeroTuc,
-            fechaEmision: new Date().toISOString()
-          } : undefined,
-          datosTecnicos: {
-            ...formValue.datosTecnicos,
-            asientos: formValue.asientos
-          }
-        };
-
-        this.vehiculoCreated.emit(vehiculoCreate);
-      }
-
-      this.isSubmitting.set(false);
-      this.close();
-    }
-  }
-
-  // Método para agregar vehículo a la lista (modo múltiple)
-  agregarVehiculoALista(): void {
-    console.log('🔍 AGREGANDO VEHÍCULO A LA LISTA...');
-    console.log('🔍 Formulario válido:', this.vehiculoForm.valid);
-    console.log('🔍 Errores del formulario:', this.vehiculoForm.errors);
-    console.log('🔍 Valor completo del formulario:', this.vehiculoForm.value);
-
-    // Verificar errores específicos de campos requeridos
-    Object.keys(this.vehiculoForm.controls).forEach(key => {
-      const control = this.vehiculoForm.get(key);
-      if (control && control.errors) {
-        console.log(`🔍 Error en ${key}:`, control.errors);
-      }
-      if (control && control.invalid) {
-        console.log(`🔍 Campo inválido ${key}:`, control.value, 'Errores:', control.errors);
-      }
-    });
-
-    // Verificar errores en datosTecnicos específicamente
-    const datosTecnicos = this.vehiculoForm.get('datosTecnicos') as FormGroup;
-    if (datosTecnicos) {
-      console.log('🔍 DatosTecnicos válido:', datosTecnicos.valid);
-      console.log('🔍 DatosTecnicos errores:', datosTecnicos.errors);
-      console.log('🔍 DatosTecnicos valor:', datosTecnicos.value);
-
-      // Verificar cada campo de datosTecnicos
-      Object.keys(datosTecnicos.controls).forEach(key => {
-        const control = datosTecnicos.get(key);
-        if (control && control.invalid) {
-          console.log(`🔍 DatosTecnicos.${key} inválido:`, control.value, 'Errores:', control.errors);
-        }
-      });
-
-      // Verificar medidas específicamente
-      const medidas = datosTecnicos.get('medidas') as FormGroup;
-      if (medidas) {
-        console.log('🔍 Medidas válido:', medidas.valid);
-        console.log('🔍 Medidas errores:', medidas.errors);
-        console.log('🔍 Medidas valor:', medidas.value);
-
-        Object.keys(medidas.controls).forEach(key => {
-          const control = medidas.get(key);
-          if (control && control.invalid) {
-            console.log(`🔍 Medidas.${key} inválido:`, control.value, 'Errores:', control.errors);
-          }
-        });
-      }
-    }
-
-    if (this.vehiculoForm.valid) {
-      const vehiculoData = this.prepararDatosVehiculo();
-      console.log('🔍 Datos del vehículo preparados:', vehiculoData);
-
-      // Verificar que la placa no esté duplicada en la lista
-      const placaExiste = this.vehiculosCreados().some(v => v.placa === vehiculoData.placa);
-      if (placaExiste) {
-        this.snackBar.open('La placa ya está en la lista', 'Cerrar', { duration: 3000 });
-        return;
-      }
-
-      // Agregar a la lista
-      this.vehiculosCreados.update(vehiculos => [...vehiculos, vehiculoData]);
-      console.log('✅ Vehículo agregado a la lista. Total:', this.vehiculosCreados().length);
-
-      // Limpiar formulario para el siguiente vehículo
-      this.limpiarFormularioParaSiguiente();
-
-      this.snackBar.open(`Vehículo ${vehiculoData.placa} agregado a la lista`, 'Cerrar', {
-        duration: 2000
-      });
-    } else {
-      console.log('❌ Formulario no válido, no se puede agregar a la lista');
-
-      // Mostrar qué campos específicos están fallando
-      const camposInvalidos: string[] = [];
-      Object.keys(this.vehiculoForm.controls).forEach(key => {
-        const control = this.vehiculoForm.get(key);
-        if (control && control.invalid) {
-          camposInvalidos.push(key);
-        }
-      });
-
-      console.log('❌ Campos inválidos:', camposInvalidos);
-      this.snackBar.open(`Campos requeridos faltantes: ${camposInvalidos.join(', ')}`, 'Cerrar', {
-        duration: 5000
-      });
-    }
-  }
-
-  // Método para guardar todos los vehículos de la lista
-  guardarTodosVehiculos(): void {
-    console.log('🔍 GUARDANDO TODOS LOS VEHÍCULOS...');
-    console.log('🔍 Cantidad de vehículos a guardar:', this.vehiculosCreados().length);
-    console.log('🔍 Vehículos a crear:', this.vehiculosCreados());
-
-    if (this.vehiculosCreados().length === 0) {
-      console.log('❌ No hay vehículos para guardar');
-      this.snackBar.open('No hay vehículos en la lista para guardar', 'Cerrar', { duration: 3000 });
+    if (!this.vehiculoForm.valid) {
+      this.snackBar.open('Por favor, completa todos los campos obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
 
     this.isSubmitting.set(true);
-    console.log('🔍 Iniciando proceso de guardado...');
 
-    // Crear todos los vehículos usando forkJoin para ejecutar en paralelo
-    const vehiculosParaCrear = this.vehiculosCreados();
-    const observables = vehiculosParaCrear.map((vehiculo, index) => {
-      console.log(`🔍 Preparando observable ${index + 1}:`, vehiculo);
-      return this.vehiculoService.createVehiculo(vehiculo);
-    });
+    if (this.isEditing()) {
+      this.updateVehiculo();
+    } else {
+      this.createVehiculo();
+    }
+  }
 
-    console.log('🔍 Ejecutando forkJoin con', observables.length, 'observables');
+  private createVehiculo(): void {
+    const vehiculoData = this.buildVehiculoData();
 
-    forkJoin(observables).subscribe({
-      next: (vehiculosCreados: Vehiculo[]) => {
-        console.log('✅ Vehículos creados exitosamente:', vehiculosCreados);
-        this.snackBar.open(
-          `${vehiculosCreados.length} vehículo(s) creado(s) exitosamente`,
-          'Cerrar',
-          { duration: 3000 }
-        );
-
-        // Emitir eventos para cada vehículo creado
-        vehiculosCreados.forEach((vehiculo, index) => {
-          console.log(`✅ Emitiendo evento para vehículo ${index + 1}:`, vehiculo);
-          this.vehiculoCreated.emit(vehiculo);
-        });
-
+    this.vehiculoService.createVehiculo(vehiculoData).subscribe({
+      next: (vehiculo) => {
+        this.snackBar.open('Vehículo creado exitosamente', 'Cerrar', { duration: 3000 });
+        this.vehiculoCreated.emit(vehiculoData);
         this.isSubmitting.set(false);
-        console.log('✅ Cerrando modal con resultado...');
-
-        // Cerrar el modal con información sobre los vehículos creados
-        this.dialogRef.close({
-          success: true,
-          vehiculosCreados: vehiculosCreados,
-          count: vehiculosCreados.length
-        });
+        this.close();
       },
-      error: (error: any) => {
-        console.error('❌ Error creando vehículos:', error);
-        console.error('❌ Detalles del error:', error.error);
-        console.error('❌ Status del error:', error.status);
-
-        // Mostrar detalles específicos del error 422
-        if (error.status === 422 && error.error && error.error.detail) {
-          console.error('❌ Errores de validación específicos:', error.error.detail);
-          if (Array.isArray(error.error.detail)) {
-            error.error.detail.forEach((detalle: any, index: number) => {
-              console.error(`❌ Error ${index + 1}:`, detalle);
-            });
-          }
-        }
-
-        let mensajeError = 'Error al crear vehículos';
-        if (error.error && error.error.detail) {
-          if (Array.isArray(error.error.detail)) {
-            const errores = error.error.detail.map((d: any) => `${d.loc?.join('.')} - ${d.msg}`).join(', ');
-            mensajeError = `Errores de validación: ${errores}`;
-          } else {
-            mensajeError = `Error: ${error.error.detail}`;
-          }
-        } else if (error.message) {
-          mensajeError = `Error: ${error.message}`;
-        }
-
-        this.snackBar.open(mensajeError, 'Cerrar', { duration: 8000 });
+      error: (error) => {
+        console.error('Error creando vehículo:', error);
+        this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
         this.isSubmitting.set(false);
       }
     });
   }
 
-  // Método para remover vehículo de la lista
-  removerVehiculo(index: number): void {
-    this.vehiculosCreados.update(vehiculos =>
-      vehiculos.filter((_, i) => i !== index)
-    );
+  private updateVehiculo(): void {
+    const data = this.modalData() || this.dialogData;
+    if (!data?.vehiculo?.id) return;
 
-    this.snackBar.open('Vehículo removido de la lista', 'Cerrar', { duration: 2000 });
-  }
+    const vehiculoData = this.buildVehiculoUpdateData();
 
-  // Método para limpiar formulario manteniendo empresa, resolución y sede
-  private limpiarFormularioParaSiguiente(): void {
-    const empresaActualId = this.vehiculoForm.get('empresaActualId')?.value;
-    const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
-    const sedeRegistro = this.vehiculoForm.get('sedeRegistro')?.value;
-
-    // Resetear solo los campos del vehículo, no empresa, resolución ni sede
-    this.vehiculoForm.patchValue({
-      placa: '',
-      marca: '',
-      modelo: '',
-      anioFabricacion: '',
-      numeroTuc: '',
-      rutasAsignadasIds: [],
-      categoria: 'M3',
-      estado: 'ACTIVO'
-    });
-
-    // Mantener empresa, resolución y sede seleccionadas
-    this.vehiculoForm.patchValue({
-      empresaActualId,
-      resolucionId,
-      sedeRegistro
-    });
-
-    // Focus en el campo de placa para el siguiente vehículo
-    setTimeout(() => {
-      const placaInput = document.querySelector('input[formControlName="placa"]') as HTMLInputElement;
-      if (placaInput) {
-        placaInput.focus();
+    this.vehiculoService.updateVehiculo(data.vehiculo.id, vehiculoData).subscribe({
+      next: (vehiculo) => {
+        this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
+        this.vehiculoUpdated.emit(vehiculoData);
+        this.isSubmitting.set(false);
+        this.close();
+      },
+      error: (error) => {
+        console.error('Error actualizando vehículo:', error);
+        this.snackBar.open('Error al actualizar vehículo', 'Cerrar', { duration: 3000 });
+        this.isSubmitting.set(false);
       }
-    }, 100);
+    });
   }
 
-  // Método para preparar datos del vehículo
-  private prepararDatosVehiculo(): VehiculoCreate {
+  private buildVehiculoData(): VehiculoCreate {
     const formValue = this.vehiculoForm.value;
 
-    // Preparar datos básicos - solo usar valores ingresados por el usuario
-    const vehiculoData: any = {
-      placa: formValue.placa,
-      categoria: formValue.categoria || 'M3',
-      marca: formValue.marca || '', // Sin valor por defecto
-      modelo: formValue.modelo || '', // Sin valor por defecto
+    const vehiculoData: VehiculoCreate = {
+      placa: formValue.placa!,
+      empresaActualId: formValue.empresaActualId || '', // Campo requerido
+      marca: formValue.marca || '',
+      modelo: formValue.modelo || '',
       anioFabricacion: formValue.anioFabricacion || new Date().getFullYear(),
-      sedeRegistro: formValue.sedeRegistro,
-      estado: 'ACTIVO',
+      sedeRegistro: formValue.sedeRegistro!,
+      categoria: formValue.categoria || 'M3',
       color: formValue.color || '',
       numeroSerie: formValue.numeroSerie || '',
       observaciones: formValue.observaciones || '',
@@ -2124,7 +1311,7 @@ export class VehiculoModalComponent {
         motor: formValue.datosTecnicos?.motor || '',
         chasis: formValue.datosTecnicos?.chasis || '',
         ejes: formValue.datosTecnicos?.ejes || 2,
-        asientos: formValue.datosTecnicos?.asientos || 15,
+        asientos: formValue.asientos || 15,
         pesoNeto: formValue.datosTecnicos?.pesoNeto || 2500,
         pesoBruto: formValue.datosTecnicos?.pesoBruto || 3500,
         tipoCombustible: formValue.datosTecnicos?.tipoCombustible || 'DIESEL',
@@ -2137,11 +1324,6 @@ export class VehiculoModalComponent {
         }
       }
     };
-
-    // Solo agregar empresaActualId si tiene valor
-    if (formValue.empresaActualId && formValue.empresaActualId.trim() !== '') {
-      vehiculoData.empresaActualId = formValue.empresaActualId;
-    }
 
     // Solo agregar resolucionId si tiene valor
     if (formValue.resolucionId && formValue.resolucionId.trim() !== '') {
@@ -2156,282 +1338,50 @@ export class VehiculoModalComponent {
       };
     }
 
-    console.log('🔍 Datos del vehículo preparados (sin valores mock):', vehiculoData);
     return vehiculoData;
   }
 
-  /**
-   * Alterna entre modo individual y modo múltiple
-   */
-  toggleModoMultiple(): void {
-    this.modoMultiple.update(value => !value);
+  private buildVehiculoUpdateData(): VehiculoUpdate {
+    const formValue = this.vehiculoForm.value;
 
-    if (this.modoMultiple()) {
-      this.snackBar.open(
-        'Modo múltiple activado. Puedes agregar varios vehículos a la lista',
-        'Entendido',
-        { duration: 4000 }
-      );
-    } else {
-      // Si desactiva el modo múltiple, limpiar la lista
-      if (this.vehiculosCreados().length > 0) {
-        const confirmar = confirm('¿Deseas limpiar la lista de vehículos agregados?');
-        if (confirmar) {
-          this.vehiculosCreados.set([]);
-        } else {
-          // Si no confirma, mantener el modo múltiple activo
-          this.modoMultiple.set(true);
+    const vehiculoData: VehiculoUpdate = {
+      placa: formValue.placa,
+      empresaActualId: formValue.empresaActualId,
+      resolucionId: formValue.resolucionId,
+      marca: formValue.marca,
+      modelo: formValue.modelo,
+      anioFabricacion: formValue.anioFabricacion,
+      sedeRegistro: formValue.sedeRegistro,
+      categoria: formValue.categoria,
+      estado: formValue.estado,
+      rutasAsignadasIds: formValue.rutasAsignadasIds || [],
+      datosTecnicos: {
+        motor: formValue.motor || '',
+        chasis: formValue.chasis || '',
+        ejes: formValue.ejes || 2,
+        asientos: formValue.asientos || 15,
+        pesoNeto: formValue.pesoNeto || 2500,
+        pesoBruto: formValue.pesoBruto || 3500,
+        tipoCombustible: formValue.tipoCombustible || 'DIESEL',
+        cilindrada: formValue.cilindrada,
+        potencia: formValue.potencia,
+        medidas: {
+          largo: formValue.largo || 12,
+          ancho: formValue.ancho || 2.5,
+          alto: formValue.alto || 3
         }
       }
-    }
-  }
+    };
 
-  /**
-   * Edita un vehículo de la lista
-   */
-  editarVehiculoLista(index: number): void {
-    const vehiculo = this.vehiculosCreados()[index];
-
-    // Cargar los datos del vehículo en el formulario
-    this.vehiculoForm.patchValue({
-      placa: vehiculo.placa,
-      empresaActualId: vehiculo.empresaActualId,
-      resolucionId: vehiculo.resolucionId,
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      anioFabricacion: vehiculo.anioFabricacion,
-      categoria: vehiculo.categoria,
-      rutasAsignadasIds: vehiculo.rutasAsignadasIds || [],
-      numeroTuc: vehiculo.tuc?.nroTuc || '',
-      datosTecnicos: vehiculo.datosTecnicos
-    });
-
-    // Remover el vehículo de la lista para que pueda ser re-agregado después de editar
-    this.removerVehiculo(index);
-
-    this.snackBar.open(
-      'Vehículo cargado en el formulario. Modifica los datos y agrégalo nuevamente',
-      'Entendido',
-      { duration: 4000 }
-    );
-
-    // Scroll al formulario
-    setTimeout(() => {
-      const formElement = document.querySelector('.form-container');
-      if (formElement) {
-        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  }
-
-  /**
-   * Abre un diálogo para agregar rutas a un vehículo específico
-   */
-  agregarRutasVehiculo(index: number): void {
-    const vehiculo = this.vehiculosCreados()[index];
-
-    // Verificar que tenga resolución
-    if (!vehiculo.resolucionId) {
-      this.snackBar.open(
-        'El vehículo debe tener una resolución asignada para agregar rutas',
-        'Cerrar',
-        { duration: 3000 }
-      );
-      return;
+    // Solo agregar TUC si tiene valor
+    if (formValue.numeroTuc && formValue.numeroTuc.trim() !== '') {
+      vehiculoData.tuc = {
+        nroTuc: formValue.numeroTuc,
+        fechaEmision: new Date().toISOString()
+      };
     }
 
-    // Cargar rutas disponibles para la resolución
-    this.rutaService.getRutasPorResolucion(vehiculo.resolucionId).subscribe({
-      next: (rutas) => {
-        // Crear un diálogo simple para seleccionar rutas
-        const rutasSeleccionadas = vehiculo.rutasAsignadasIds || [];
-        const rutasDisponibles = rutas.filter(r => !rutasSeleccionadas.includes(r.id));
-
-        if (rutasDisponibles.length === 0) {
-          this.snackBar.open(
-            'No hay rutas disponibles para esta resolución',
-            'Cerrar',
-            { duration: 3000 }
-          );
-          return;
-        }
-
-        // Por ahora, mostrar mensaje informativo
-        // En una implementación completa, aquí se abriría un diálogo de selección
-        this.snackBar.open(
-          `Vehículo ${vehiculo.placa}: ${rutasDisponibles.length} ruta(s) disponible(s). Edita el vehículo para asignar rutas.`,
-          'Entendido',
-          { duration: 5000 }
-        );
-      },
-      error: (error) => {
-        console.error('Error cargando rutas:', error);
-        this.snackBar.open('Error al cargar rutas disponibles', 'Cerrar', { duration: 3000 });
-      }
-    });
-  }
-
-  /**
-   * Verifica si un vehículo está seleccionado
-   */
-  isVehiculoSeleccionado(index: number): boolean {
-    return this.vehiculosSeleccionados().includes(index);
-  }
-
-  /**
-   * Alterna la selección de un vehículo
-   */
-  toggleVehiculoSeleccion(index: number): void {
-    const seleccionados = this.vehiculosSeleccionados();
-    if (seleccionados.includes(index)) {
-      this.vehiculosSeleccionados.set(seleccionados.filter(i => i !== index));
-    } else {
-      this.vehiculosSeleccionados.set([...seleccionados, index]);
-    }
-  }
-
-  /**
-   * Limpia la selección de vehículos
-   */
-  limpiarSeleccion(): void {
-    this.vehiculosSeleccionados.set([]);
-  }
-
-  /**
-   * Abre modal para editar un vehículo
-   */
-  abrirModalEditarVehiculo(index: number): void {
-    const vehiculo = this.vehiculosCreados()[index];
-
-    // Crear un diálogo simple para editar
-    const dialogRef = this.dialog.open(EditarVehiculoDialogComponent, {
-      width: '600px',
-      data: { vehiculo, index }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // Actualizar el vehículo en la lista
-        this.vehiculosCreados.update(vehiculos => {
-          const nuevaLista = [...vehiculos];
-          nuevaLista[index] = result;
-          return nuevaLista;
-        });
-
-        this.snackBar.open('Vehículo actualizado en la lista', 'Cerrar', { duration: 2000 });
-      }
-    });
-  }
-
-  /**
-   * Abre modal para agregar rutas a un vehículo
-   */
-  abrirModalAgregarRutas(index: number): void {
-    const vehiculo = this.vehiculosCreados()[index];
-
-    // Verificar que tenga resolución
-    if (!vehiculo.resolucionId) {
-      this.snackBar.open(
-        'El vehículo debe tener una resolución asignada para agregar rutas',
-        'Cerrar',
-        { duration: 3000 }
-      );
-      return;
-    }
-
-    // Abrir diálogo de selección de rutas
-    const dialogRef = this.dialog.open(AgregarRutasDialogComponent, {
-      width: '700px',
-      data: {
-        vehiculo,
-        index,
-        resolucionId: vehiculo.resolucionId
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.rutasIds) {
-        // Actualizar las rutas del vehículo
-        this.vehiculosCreados.update(vehiculos => {
-          const nuevaLista = [...vehiculos];
-          nuevaLista[index].rutasAsignadasIds = result.rutasIds;
-          return nuevaLista;
-        });
-
-        this.snackBar.open(
-          `${result.rutasIds.length} ruta(s) asignada(s) al vehículo ${vehiculo.placa}`,
-          'Cerrar',
-          { duration: 3000 }
-        );
-      }
-    });
-  }
-
-  /**
-   * Agrega rutas en bloque a los vehículos seleccionados
-   */
-  agregarRutasEnBloque(): void {
-    const seleccionados = this.vehiculosSeleccionados();
-
-    if (seleccionados.length === 0) {
-      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 2000 });
-      return;
-    }
-
-    // Verificar que todos tengan resolución
-    const vehiculosSinResolucion = seleccionados.filter(index => {
-      const vehiculo = this.vehiculosCreados()[index];
-      return !vehiculo.resolucionId;
-    });
-
-    if (vehiculosSinResolucion.length > 0) {
-      this.snackBar.open(
-        `${vehiculosSinResolucion.length} vehículo(s) no tienen resolución asignada`,
-        'Cerrar',
-        { duration: 3000 }
-      );
-      return;
-    }
-
-    // Abrir diálogo para seleccionar rutas
-    const dialogRef = this.dialog.open(AgregarRutasDialogComponent, {
-      width: '700px',
-      data: {
-        vehiculos: seleccionados.map(i => this.vehiculosCreados()[i]),
-        indices: seleccionados,
-        modoBloque: true
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.rutasIds) {
-        // Actualizar las rutas de todos los vehículos seleccionados
-        this.vehiculosCreados.update(vehiculos => {
-          const nuevaLista = [...vehiculos];
-          seleccionados.forEach(index => {
-            nuevaLista[index].rutasAsignadasIds = result.rutasIds;
-          });
-          return nuevaLista;
-        });
-
-        this.snackBar.open(
-          `${result.rutasIds.length} ruta(s) asignada(s) a ${seleccionados.length} vehículo(s)`,
-          'Cerrar',
-          { duration: 3000 }
-        );
-
-        // Limpiar selección
-        this.limpiarSeleccion();
-      }
-    });
-  }
-
-  /**
-   * Obtiene el nombre de una empresa por su ID
-   */
-  getEmpresaNombre(empresaId: string): string {
-    const empresa = this.empresas().find(e => e.id === empresaId);
-    return empresa?.razonSocial?.principal || 'Empresa desconocida';
+    return vehiculoData;
   }
 
   /**
@@ -2441,170 +1391,6 @@ export class VehiculoModalComponent {
     if (!sede) return '';
     // Convierte "PUNO" a "Puno", "LIMA" a "Lima", etc.
     return sede.charAt(0).toUpperCase() + sede.slice(1).toLowerCase();
-  }
-
-  /**
-   * Valida si la placa ya existe en el sistema
-   */
-  validarPlaca(): void {
-    const placa = this.vehiculoForm.get('placa')?.value;
-
-    // Validar que la placa tenga el formato correcto (XXX-000)
-    if (!placa || placa.length < 7) {
-      this.vehiculoExistente.set(null);
-      this.mostrarOpcionesPlacaExistente.set(false);
-      return;
-    }
-
-    // Validar formato con regex
-    const formatoValido = /^[A-Z0-9]{3}-\d{3}$/.test(placa);
-    if (!formatoValido) {
-      this.vehiculoExistente.set(null);
-      this.mostrarOpcionesPlacaExistente.set(false);
-      return;
-    }
-
-    // Buscar vehículo por placa
-    this.vehiculoService.getVehiculoByPlaca(placa).subscribe({
-      next: (vehiculo) => {
-        if (vehiculo) {
-          const empresaFormulario = this.vehiculoForm.get('empresaActualId')?.value;
-
-          // Verificar si es la misma empresa
-          if (empresaFormulario && vehiculo.empresaActualId === empresaFormulario) {
-            // Mismo empresa - solo mostrar aviso simple
-            this.vehiculoExistente.set(null);
-            this.mostrarOpcionesPlacaExistente.set(false);
-
-            const empresaActual = this.empresas().find(e => e.id === vehiculo.empresaActualId);
-            const nombreEmpresa = empresaActual?.razonSocial?.principal || 'esta empresa';
-
-            this.snackBar.open(
-              `⚠️ La placa ${placa} ya está registrada en ${nombreEmpresa}`,
-              'Cerrar',
-              { duration: 4000 }
-            );
-
-            // Limpiar la placa para que ingrese otra
-            this.vehiculoForm.get('placa')?.setValue('');
-          } else {
-            // Diferente empresa - mostrar opciones de transferencia
-            this.vehiculoExistente.set(vehiculo);
-            this.mostrarOpcionesPlacaExistente.set(true);
-
-            const empresaActual = this.empresas().find(e => e.id === vehiculo.empresaActualId);
-            const nombreEmpresa = empresaActual?.razonSocial?.principal || 'Empresa desconocida';
-
-            this.snackBar.open(
-              `⚠️ La placa ${placa} ya está registrada en ${nombreEmpresa}`,
-              'Ver opciones',
-              { duration: 5000 }
-            );
-          }
-        } else {
-          this.vehiculoExistente.set(null);
-          this.mostrarOpcionesPlacaExistente.set(false);
-        }
-      },
-      error: (error) => {
-        console.error('Error validando placa:', error);
-        this.vehiculoExistente.set(null);
-        this.mostrarOpcionesPlacaExistente.set(false);
-      }
-    });
-  }
-
-  /**
-   * Transfiere el vehículo existente a la nueva empresa
-   */
-  transferirVehiculoExistente(): void {
-    const vehiculo = this.vehiculoExistente();
-    const nuevaEmpresaId = this.vehiculoForm.get('empresaActualId')?.value;
-
-    if (!vehiculo || !nuevaEmpresaId) {
-      this.snackBar.open('Debe seleccionar una empresa destino', 'Cerrar', { duration: 3000 });
-      return;
-    }
-
-    const empresaDestino = this.empresas().find(e => e.id === nuevaEmpresaId);
-    const empresaOrigen = this.empresas().find(e => e.id === vehiculo.empresaActualId);
-
-    const confirmar = confirm(
-      `¿Confirma la transferencia del vehículo ${vehiculo.placa}?\n\n` +
-      `De: ${empresaOrigen?.razonSocial?.principal || 'N/A'}\n` +
-      `A: ${empresaDestino?.razonSocial?.principal || 'N/A'}`
-    );
-
-    if (!confirmar) return;
-
-    this.isSubmitting.set(true);
-
-    // Actualizar el vehículo con la nueva empresa
-    this.vehiculoService.updateVehiculo(vehiculo.id, {
-      empresaActualId: nuevaEmpresaId
-    }).subscribe({
-      next: (vehiculoActualizado) => {
-        this.snackBar.open(
-          `Vehículo ${vehiculo.placa} transferido exitosamente`,
-          'Cerrar',
-          { duration: 3000 }
-        );
-
-        this.vehiculoExistente.set(null);
-        this.mostrarOpcionesPlacaExistente.set(false);
-        this.vehiculoForm.get('placa')?.setValue('');
-        this.isSubmitting.set(false);
-
-        // Emitir evento de actualización
-        this.vehiculoUpdated.emit(vehiculoActualizado);
-      },
-      error: (error) => {
-        console.error('Error transfiriendo vehículo:', error);
-        this.snackBar.open('Error al transferir vehículo', 'Cerrar', { duration: 3000 });
-        this.isSubmitting.set(false);
-      }
-    });
-  }
-
-  /**
-   * Carga los datos del vehículo existente en el formulario para editarlo
-   */
-  editarVehiculoExistente(): void {
-    const vehiculo = this.vehiculoExistente();
-
-    if (!vehiculo) return;
-
-    // Cargar todos los datos del vehículo en el formulario
-    this.vehiculoForm.patchValue({
-      placa: vehiculo.placa,
-      sedeRegistro: vehiculo.sedeRegistro,
-      empresaActualId: vehiculo.empresaActualId,
-      resolucionId: vehiculo.resolucionId,
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      anioFabricacion: vehiculo.anioFabricacion,
-      categoria: vehiculo.categoria,
-      estado: vehiculo.estado,
-      numeroTuc: vehiculo.tuc?.nroTuc,
-      datosTecnicos: vehiculo.datosTecnicos
-    });
-
-    this.mostrarOpcionesPlacaExistente.set(false);
-
-    this.snackBar.open(
-      'Datos del vehículo cargados. Modifica lo necesario y guarda.',
-      'Entendido',
-      { duration: 4000 }
-    );
-  }
-
-  /**
-   * Cancela la operación con placa existente
-   */
-  cancelarPlacaExistente(): void {
-    this.vehiculoExistente.set(null);
-    this.mostrarOpcionesPlacaExistente.set(false);
-    this.vehiculoForm.get('placa')?.setValue('');
   }
 
   close(): void {
@@ -2619,287 +1405,3 @@ export class VehiculoModalComponent {
     return new Date().getFullYear();
   }
 }
-
-// Componente de diálogo para editar vehículo
-@Component({
-  selector: 'app-editar-vehiculo-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSelectModule,
-    SmartIconComponent
-  ],
-  template: `
-    <h2 mat-dialog-title>
-      <app-smart-icon [iconName]="'edit'" [size]="24"></app-smart-icon>
-      Editar Vehículo
-    </h2>
-    <mat-dialog-content>
-      <form [formGroup]="editForm">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Placa</mat-label>
-          <input matInput formControlName="placa" readonly>
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Marca</mat-label>
-          <input matInput formControlName="marca">
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Modelo</mat-label>
-          <input matInput formControlName="modelo">
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Año</mat-label>
-          <input matInput formControlName="anioFabricacion" type="number">
-        </mat-form-field>
-      </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="cancelar()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="!editForm.valid">
-        Guardar
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-  `]
-})
-export class EditarVehiculoDialogComponent {
-  private dialogRef = inject(MatDialogRef<EditarVehiculoDialogComponent>);
-  private data = inject(MAT_DIALOG_DATA);
-  private fb = inject(FormBuilder);
-
-  editForm = this.fb.group({
-    placa: [this.data.vehiculo.placa],
-    marca: [this.data.vehiculo.marca],
-    modelo: [this.data.vehiculo.modelo],
-    anioFabricacion: [this.data.vehiculo.anioFabricacion]
-  });
-
-  cancelar(): void {
-    this.dialogRef.close();
-  }
-
-  guardar(): void {
-    if (this.editForm.valid) {
-      this.dialogRef.close({
-        ...this.data.vehiculo,
-        ...this.editForm.value
-      });
-    }
-  }
-}
-
-// Componente de diálogo para agregar rutas
-@Component({
-  selector: 'app-agregar-rutas-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatCheckboxModule,
-    MatIconModule,
-    SmartIconComponent
-  ],
-  template: `
-    <h2 mat-dialog-title>
-      <app-smart-icon [iconName]="'add_road'" [size]="24"></app-smart-icon>
-      {{ data.modoBloque ? 'Agregar Rutas en Bloque' : 'Agregar Rutas' }}
-    </h2>
-    <mat-dialog-content>
-      @if (cargando()) {
-        <div class="loading">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Cargando rutas...</p>
-        </div>
-      } @else {
-        <p class="dialog-description">
-          {{ data.modoBloque 
-            ? 'Selecciona las rutas para ' + data.indices.length + ' vehículo(s)' 
-            : 'Selecciona las rutas para el vehículo ' + data.vehiculo.placa 
-          }}
-        </p>
-        
-        <div class="rutas-selection-container">
-          <h4 class="selection-title">Rutas Disponibles</h4>
-          <p class="selection-hint">Selecciona una o más rutas para asignar al vehículo</p>
-          
-          <div class="rutas-checkboxes">
-            @for (ruta of rutasDisponibles(); track ruta.id) {
-              <div class="ruta-checkbox-item">
-                <mat-checkbox 
-                  [checked]="rutasControl.value?.includes(ruta.id)"
-                  (change)="onRutaCheckboxChange(ruta.id, $event.checked)"
-                  class="ruta-checkbox">
-                  <div class="ruta-info">
-                    <span class="ruta-codigo">{{ ruta.codigoRuta }}</span>
-                    <span class="ruta-descripcion">{{ ruta.origen }} → {{ ruta.destino }}</span>
-                  </div>
-                </mat-checkbox>
-              </div>
-            }
-          </div>
-          
-          @if (rutasDisponibles().length === 0) {
-            <div class="no-rutas-message">
-              <mat-icon>info</mat-icon>
-              <span>No hay rutas disponibles para esta empresa</span>
-            </div>
-          }
-        </div>
-      }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="cancelar()">Cancelar</button>
-      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="cargando() || !rutasControl.value?.length">
-        Asignar Rutas
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [`
-    .full-width {
-      width: 100%;
-      margin: 16px 0;
-    }
-    .loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px;
-    }
-    .dialog-description {
-      margin-bottom: 16px;
-      color: #666;
-    }
-    .rutas-selection-container {
-      margin: 16px 0;
-    }
-    .selection-title {
-      font-size: 16px;
-      font-weight: 500;
-      color: #333;
-      margin: 0 0 8px 0;
-    }
-    .selection-hint {
-      font-size: 13px;
-      color: #666;
-      margin: 0 0 16px 0;
-      font-weight: 400;
-    }
-    .rutas-checkboxes {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 8px;
-    }
-    .ruta-checkbox-item {
-      padding: 8px 4px;
-      border-bottom: 1px solid #f5f5f5;
-    }
-    .ruta-checkbox-item:last-child {
-      border-bottom: none;
-    }
-    .ruta-checkbox {
-      width: 100%;
-    }
-    .ruta-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-left: 8px;
-    }
-    .ruta-codigo {
-      font-weight: 600;
-      color: #1976d2;
-      font-size: 14px;
-    }
-    .ruta-descripcion {
-      font-size: 13px;
-      color: #666;
-      font-weight: 400;
-    }
-    .no-rutas-message {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 16px;
-      color: #666;
-      font-style: italic;
-    }
-  `]
-})
-export class AgregarRutasDialogComponent {
-  private dialogRef = inject(MatDialogRef<AgregarRutasDialogComponent>);
-  data = inject(MAT_DIALOG_DATA);
-  private rutaService = inject(RutaService);
-
-  rutasControl = new FormControl<string[]>([]);
-  rutasDisponibles = signal<Ruta[]>([]);
-  cargando = signal(true);
-
-  constructor() {
-    this.cargarRutas();
-  }
-
-  private cargarRutas(): void {
-    const resolucionId = this.data.resolucionId || this.data.vehiculos?.[0]?.resolucionId;
-
-    if (!resolucionId) {
-      this.cargando.set(false);
-      return;
-    }
-
-    this.rutaService.getRutasPorResolucion(resolucionId).subscribe({
-      next: (rutas) => {
-        this.rutasDisponibles.set(rutas);
-        this.cargando.set(false);
-      },
-      error: (error) => {
-        console.error('Error cargando rutas:', error);
-        this.cargando.set(false);
-      }
-    });
-  }
-
-  cancelar(): void {
-    this.dialogRef.close();
-  }
-
-  onRutaCheckboxChange(rutaId: string, checked: boolean): void {
-    const currentValue = this.rutasControl.value || [];
-
-    if (checked) {
-      // Agregar la ruta si no está ya seleccionada
-      if (!currentValue.includes(rutaId)) {
-        this.rutasControl.setValue([...currentValue, rutaId]);
-      }
-    } else {
-      // Remover la ruta si está seleccionada
-      this.rutasControl.setValue(currentValue.filter(id => id !== rutaId));
-    }
-  }
-
-  guardar(): void {
-    this.dialogRef.close({
-      rutasIds: this.rutasControl.value || []
-    });
-  }
-} 

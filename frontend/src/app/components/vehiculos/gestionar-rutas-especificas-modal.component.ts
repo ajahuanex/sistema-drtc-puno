@@ -1,40 +1,32 @@
-import { Component, OnInit, Inject, inject, signal } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { FormsModule } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { VehiculoService } from '../../services/vehiculo.service';
 import { ResolucionService } from '../../services/resolucion.service';
 import { RutaService } from '../../services/ruta.service';
+import { VehiculoService } from '../../services/vehiculo.service';
 import { Vehiculo } from '../../models/vehiculo.model';
-import { Empresa } from '../../models/empresa.model';
-import { Resolucion } from '../../models/resolucion.model';
 import { Ruta } from '../../models/ruta.model';
-import { CrearRutaEspecificaModalComponent } from './crear-ruta-especifica-modal.component';
+import { Resolucion } from '../../models/resolucion.model';
+import { Empresa } from '../../models/empresa.model';
 
-interface RutaEspecifica {
-  id: string;
-  rutaGeneralId: string;
-  rutaGeneralCodigo: string;
-  vehiculoId: string;
-  resolucionId: string;
-  codigo: string;
-  origen: string;
-  destino: string;
-  distancia: number;
-  descripcion: string;
-  estado: string;
-  tipoRuta: string;
-  fechaCreacion: Date;
-  horarios: any[];
-  paradasAdicionales: any[];
+export interface VehiculoModalData {
+  vehiculo?: Vehiculo; // Para modo individual
+  vehiculos?: Vehiculo[]; // Para modo bloque
+  modoBloque?: boolean; // Indica si es modo bloque
+  empresas?: Empresa[];
+}
+
+interface RutaSeleccionable {
+  ruta: Ruta;
+  seleccionada: boolean;
+  yaAsignada: boolean;
 }
 
 @Component({
@@ -43,239 +35,150 @@ interface RutaEspecifica {
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
     MatProgressSpinnerModule,
-    MatDividerModule,
-    MatChipsModule,
-    MatTooltipModule
+    MatCheckboxModule,
+    MatCardModule
   ],
   template: `
-    <div class="modal-header">
-      <h2>Gestionar Rutas Específicas</h2>
-      <h3>Vehículo: {{ data.vehiculo.placa }}</h3>
-      <button mat-icon-button (click)="cerrar()" class="close-button">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>{{ data.modoBloque ? 'Asignar Rutas a Múltiples Vehículos' : 'Asignar Rutas al Vehículo' }}</h2>
+        <button mat-icon-button (click)="cerrar()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
 
-    <div class="modal-content">
-      @if (cargando()) {
-        <div class="loading-container">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Cargando información...</p>
+      <div class="modal-content">
+        <div class="vehiculo-info">
+          @if (data.modoBloque) {
+            <p><strong>Vehículos seleccionados:</strong> {{ data.vehiculos?.length }} vehículo(s)</p>
+            <div class="vehiculos-list">
+              @for (vehiculo of data.vehiculos?.slice(0, 5); track vehiculo.id) {
+                <span class="vehiculo-chip">{{ vehiculo.placa }}</span>
+              }
+              @if ((data.vehiculos?.length || 0) > 5) {
+                <span class="vehiculo-chip more">+{{ (data.vehiculos?.length || 0) - 5 }} más</span>
+              }
+            </div>
+          } @else {
+            <p><strong>Vehículo:</strong> {{ data.vehiculo?.placa }}</p>
+          }
+          @if (resolucionAsociada) {
+            <p><strong>Resolución:</strong> {{ resolucionAsociada.nroResolucion }}</p>
+          }
         </div>
-      } @else {
-        <!-- Información del vehículo y resolución -->
-        @if (resolucionAsociada()) {
-          <mat-card class="info-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>info</mat-icon>
-                Información del Vehículo
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="label">Placa:</span>
-                  <span class="value">{{ data.vehiculo.placa }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Marca/Modelo:</span>
-                  <span class="value">{{ data.vehiculo.marca }} {{ data.vehiculo.modelo }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Resolución:</span>
-                  <span class="value">{{ resolucionAsociada()?.nroResolucion }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Tipo:</span>
-                  <span class="value">{{ resolucionAsociada()?.tipoResolucion }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Empresa:</span>
-                  <span class="value">{{ empresaNombre() }}</span>
-                </div>
+
+        @if (cargando) {
+          <div class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Cargando rutas disponibles...</p>
+          </div>
+        } @else if (rutasDisponibles.length === 0) {
+          <div class="empty-state">
+            <mat-icon>route</mat-icon>
+            <p>No hay rutas disponibles</p>
+            <small>El vehículo debe estar asociado a una resolución con rutas autorizadas</small>
+          </div>
+        } @else {
+          <div class="rutas-section">
+            <h3>Rutas Autorizadas ({{ rutasDisponibles.length }})</h3>
+            <p class="subtitle">Selecciona las rutas que este vehículo puede operar</p>
+            
+            <!-- Encabezado de columnas -->
+            <div class="rutas-header">
+              <div class="header-checkbox"></div>
+              <div class="header-content">
+                <span class="header-codigo">Código</span>
+                <span class="header-trayecto">Ruta</span>
+                <span class="header-descripcion">Itinerario</span>
+                <span class="header-frecuencia">Frecuencia</span>
               </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+            
+            <div class="rutas-list">
+              @for (rutaItem of rutasDisponibles; track rutaItem.ruta.id) {
+                <div class="ruta-item" [class.selected]="rutaItem.seleccionada" (click)="toggleRuta(rutaItem)">
+                  <div class="ruta-checkbox">
+                    <mat-checkbox 
+                      [(ngModel)]="rutaItem.seleccionada"
+                      color="primary"
+                      (click)="$event.stopPropagation()">
+                    </mat-checkbox>
+                  </div>
+                  
+                  <div class="ruta-content">
+                    <span class="codigo">{{ rutaItem.ruta.codigoRuta }}</span>
+                    <span class="trayecto">
+                      @if (rutaItem.ruta.origen && rutaItem.ruta.destino && rutaItem.ruta.origen !== 'Sin origen') {
+                        {{ rutaItem.ruta.origen }} → {{ rutaItem.ruta.destino }}
+                      } @else {
+                        {{ rutaItem.ruta.nombre || 'Ruta sin nombre' }}
+                      }
+                    </span>
+                    <span class="descripcion">{{ rutaItem.ruta.descripcion || 'Sin itinerario' }}</span>
+                    <span class="frecuencia">{{ rutaItem.ruta.frecuencias || 'Sin frecuencia' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <div class="quick-actions">
+              <button mat-button (click)="seleccionarTodas()">
+                <mat-icon>select_all</mat-icon>
+                Seleccionar Todas
+              </button>
+              <button mat-button (click)="deseleccionarTodas()">
+                <mat-icon>deselect</mat-icon>
+                Deseleccionar Todas
+              </button>
+            </div>
+          </div>
         }
+      </div>
 
-        <!-- Rutas generales disponibles -->
-        <mat-card class="rutas-generales-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>map</mat-icon>
-              Rutas Generales Disponibles
-            </mat-card-title>
-            <mat-card-subtitle>
-              Selecciona una ruta general para crear una ruta específica
-            </mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            @if (rutasGeneralesDisponibles().length === 0) {
-              <div class="empty-state">
-                <mat-icon>route</mat-icon>
-                <p>No hay rutas generales disponibles</p>
-                <small>El vehículo debe estar asociado a una resolución con rutas autorizadas</small>
-              </div>
-            } @else {
-              <div class="rutas-generales-list">
-                @for (rutaGeneral of rutasGeneralesDisponibles(); track rutaGeneral.id) {
-                  <div class="ruta-general-item">
-                    <div class="ruta-info">
-                      <h4>{{ rutaGeneral.codigoRuta }}</h4>
-                      <p class="trayecto">{{ rutaGeneral.origen }} → {{ rutaGeneral.destino }}</p>
-                      <div class="ruta-details">
-                        <span class="distancia">
-                          <mat-icon>straighten</mat-icon>
-                          {{ rutaGeneral.distancia }} km
-                        </span>
-                        <span class="tipo">
-                          <mat-icon>category</mat-icon>
-                          {{ rutaGeneral.tipoRuta || 'GENERAL' }}
-                        </span>
-                      </div>
-                    </div>
-                    <div class="ruta-actions">
-                      <button mat-raised-button color="primary" 
-                              (click)="crearRutaEspecifica(rutaGeneral)"
-                              [disabled]="yaExisteRutaEspecifica(rutaGeneral.id)">
-                        <mat-icon>add</mat-icon>
-                        @if (yaExisteRutaEspecifica(rutaGeneral.id)) {
-                          Ya Existe
-                        } @else {
-                          Crear Específica
-                        }
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Rutas específicas existentes -->
-        <mat-card class="rutas-especificas-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>route</mat-icon>
-              Rutas Específicas del Vehículo
-              <span class="count-badge">{{ rutasEspecificas().length }}</span>
-            </mat-card-title>
-            <mat-card-subtitle>
-              Rutas personalizadas para este vehículo
-            </mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            @if (rutasEspecificas().length === 0) {
-              <div class="empty-state">
-                <mat-icon>route</mat-icon>
-                <p>No hay rutas específicas creadas</p>
-                <small>Crea rutas específicas basadas en las rutas generales disponibles</small>
-              </div>
-            } @else {
-              <div class="rutas-especificas-list">
-                @for (rutaEspecifica of rutasEspecificas(); track rutaEspecifica.id) {
-                  <div class="ruta-especifica-item">
-                    <div class="ruta-info">
-                      <h4>{{ rutaEspecifica.codigo }}</h4>
-                      <p class="trayecto">{{ rutaEspecifica.origen }} → {{ rutaEspecifica.destino }}</p>
-                      <p class="descripcion">{{ rutaEspecifica.descripcion }}</p>
-                      <div class="ruta-details">
-                        <span class="base-ruta">
-                          <mat-icon>link</mat-icon>
-                          Base: {{ rutaEspecifica.rutaGeneralCodigo }}
-                        </span>
-                        <span class="estado" [class]="'estado-' + rutaEspecifica.estado.toLowerCase()">
-                          {{ rutaEspecifica.estado }}
-                        </span>
-                        <span class="horarios">
-                          <mat-icon>schedule</mat-icon>
-                          {{ rutaEspecifica.horarios?.length || 0 }} horarios
-                        </span>
-                      </div>
-                    </div>
-                    <div class="ruta-actions">
-                      <button mat-icon-button color="primary" 
-                              (click)="editarRutaEspecifica(rutaEspecifica)"
-                              matTooltip="Editar ruta específica">
-                        <mat-icon>edit</mat-icon>
-                      </button>
-                      <button mat-icon-button 
-                              (click)="verDetalleRutaEspecifica(rutaEspecifica)"
-                              matTooltip="Ver detalles">
-                        <mat-icon>visibility</mat-icon>
-                      </button>
-                      <button mat-icon-button color="warn" 
-                              (click)="eliminarRutaEspecifica(rutaEspecifica)"
-                              matTooltip="Eliminar ruta específica">
-                        <mat-icon>delete</mat-icon>
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </mat-card-content>
-        </mat-card>
-      }
-    </div>
-
-    <div class="modal-actions">
-      <button mat-button (click)="cerrar()">
-        <mat-icon>close</mat-icon>
-        Cerrar
-      </button>
-      <button mat-raised-button color="primary" (click)="actualizarDatos()">
-        <mat-icon>refresh</mat-icon>
-        Actualizar
-      </button>
+      <div class="modal-actions">
+        <button mat-button (click)="cerrar()">Cancelar</button>
+        <button mat-raised-button color="primary" 
+                (click)="asignarRutas()"
+                [disabled]="cargando">
+          <mat-icon>save</mat-icon>
+          Guardar Rutas ({{ contarSeleccionadas() }})
+        </button>
+      </div>
     </div>
   `,
   styles: [`
+    .modal-container {
+      min-width: 700px;
+      width: auto;
+      max-width: 90vw;
+      max-height: 80vh;
+    }
     .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 24px;
+      padding: 16px;
       border-bottom: 1px solid #e0e0e0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      position: relative;
+      background: #f5f5f5;
     }
-
-    .modal-header h2 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
-
-    .modal-header h3 {
-      margin: 4px 0 0 0;
-      font-size: 16px;
-      font-weight: 400;
-      opacity: 0.9;
-    }
-
-    .close-button {
-      color: white;
-      position: absolute;
-      top: 16px;
-      right: 16px;
-    }
-
     .modal-content {
-      padding: 24px;
-      max-height: 70vh;
+      padding: 16px;
+      max-height: 60vh;
       overflow-y: auto;
     }
-
+    .vehiculo-info {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .vehiculo-info p {
+      margin: 4px 0;
+    }
     .loading-container {
       display: flex;
       flex-direction: column;
@@ -283,142 +186,6 @@ interface RutaEspecifica {
       padding: 40px;
       gap: 16px;
     }
-
-    .info-card {
-      margin-bottom: 24px;
-    }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .info-item .label {
-      font-weight: 600;
-      color: #666;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-
-    .info-item .value {
-      font-weight: 500;
-      color: #333;
-    }
-
-    .rutas-generales-card,
-    .rutas-especificas-card {
-      margin-bottom: 24px;
-    }
-
-    .count-badge {
-      background: #e3f2fd;
-      color: #1976d2;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-left: 8px;
-    }
-
-    .rutas-generales-list,
-    .rutas-especificas-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .ruta-general-item,
-    .ruta-especifica-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: #fafafa;
-      transition: all 0.2s ease;
-    }
-
-    .ruta-general-item:hover,
-    .ruta-especifica-item:hover {
-      background: #f0f0f0;
-      border-color: #1976d2;
-    }
-
-    .ruta-info {
-      flex: 1;
-    }
-
-    .ruta-info h4 {
-      margin: 0 0 8px 0;
-      color: #1976d2;
-      font-weight: 600;
-      font-size: 16px;
-    }
-
-    .trayecto {
-      margin: 0 0 8px 0;
-      font-weight: 500;
-      color: #333;
-      font-size: 14px;
-    }
-
-    .descripcion {
-      margin: 0 0 8px 0;
-      color: #666;
-      font-size: 13px;
-      font-style: italic;
-    }
-
-    .ruta-details {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .ruta-details span {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: #666;
-      background: white;
-      padding: 4px 8px;
-      border-radius: 12px;
-      border: 1px solid #e0e0e0;
-    }
-
-    .ruta-details mat-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-    }
-
-    .estado-activa {
-      background: #d4edda !important;
-      color: #155724 !important;
-      border-color: #c3e6cb !important;
-    }
-
-    .estado-inactiva {
-      background: #f8d7da !important;
-      color: #721c24 !important;
-      border-color: #f5c6cb !important;
-    }
-
-    .ruta-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -427,7 +194,6 @@ interface RutaEspecifica {
       text-align: center;
       color: #666;
     }
-
     .empty-state mat-icon {
       font-size: 48px;
       width: 48px;
@@ -435,64 +201,145 @@ interface RutaEspecifica {
       margin-bottom: 16px;
       color: #ccc;
     }
-
-    .empty-state p {
+    .rutas-section h3 {
       margin: 0 0 8px 0;
+      color: #333;
+    }
+    .subtitle {
+      margin: 0 0 16px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .rutas-header {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      color: #666;
+    }
+    .header-checkbox {
+      width: 50px;
+      margin-right: 12px;
+    }
+    .header-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 60px 200px 1fr 100px;
+      gap: 12px;
+    }
+    .header-codigo {
+      text-align: center;
+    }
+    .header-frecuencia {
+      text-align: right;
+    }
+    .rutas-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 16px;
+    }
+    .ruta-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: white;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .ruta-item:hover {
+      background: #f8f9fa;
+      border-color: #1976d2;
+    }
+    .ruta-item.selected {
+      border-color: #1976d2;
+      background: #e3f2fd;
+    }
+    .ruta-checkbox {
+      margin-right: 12px;
+    }
+    .ruta-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 60px 200px 1fr 100px;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .codigo {
+      font-weight: 600;
+      color: #1976d2;
+      text-align: center;
+    }
+    .trayecto {
       font-weight: 500;
+      color: #333;
     }
-
-    .empty-state small {
-      color: #999;
+    .descripcion {
+      color: #666;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-
+    .frecuencia {
+      color: #666;
+      text-align: right;
+      font-size: 12px;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
     .modal-actions {
       display: flex;
       justify-content: space-between;
-      padding: 16px 24px;
+      padding: 16px;
       border-top: 1px solid #e0e0e0;
       background: #fafafa;
     }
-
-    @media (max-width: 768px) {
-      .modal-content {
-        padding: 16px;
-      }
-
-      .info-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .ruta-general-item,
-      .ruta-especifica-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-      }
-
-      .ruta-actions {
-        width: 100%;
-        justify-content: flex-end;
-      }
+    .vehiculos-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .vehiculo-chip {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .vehiculo-chip.more {
+      background: #f5f5f5;
+      color: #666;
     }
   `]
 })
 export class GestionarRutasEspecificasModalComponent implements OnInit {
-  private vehiculoService = inject(VehiculoService);
-  private resolucionService = inject(ResolucionService);
-  private rutaService = inject(RutaService);
-  private snackBar = inject(MatSnackBar);
-  private dialog = inject(MatDialog);
-
-  // Signals
-  cargando = signal(false);
-  resolucionAsociada = signal<Resolucion | null>(null);
-  rutasGeneralesDisponibles = signal<Ruta[]>([]);
-  rutasEspecificas = signal<RutaEspecifica[]>([]);
-  empresaNombre = signal<string>('');
+  cargando = false;
+  resolucionAsociada: Resolucion | null = null;
+  rutasDisponibles: RutaSeleccionable[] = [];
 
   constructor(
-    public dialogRef: MatDialogRef<GestionarRutasEspecificasModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { vehiculo: Vehiculo; empresas: Empresa[] }
+    private dialogRef: MatDialogRef<GestionarRutasEspecificasModalComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: VehiculoModalData,
+    private resolucionService: ResolucionService,
+    private rutaService: RutaService,
+    private vehiculoService: VehiculoService,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -500,209 +347,158 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
   }
 
   async cargarDatos(): Promise<void> {
-    this.cargando.set(true);
+    this.cargando = true;
     
     try {
-      // Obtener empresa
-      const empresa = this.data.empresas.find(e => e.id === this.data.vehiculo.empresaActualId);
-      this.empresaNombre.set(empresa?.razonSocial?.principal || 'N/A');
+      // Obtener vehículos a procesar
+      const vehiculos = this.data.modoBloque ? this.data.vehiculos! : [this.data.vehiculo!];
+      
+      // 1. Buscar resolución asociada (usar la del primer vehículo para modo bloque)
+      const resoluciones = await this.resolucionService.getResoluciones().toPromise();
+      const vehiculoPrincipal = vehiculos[0];
+      
+      this.resolucionAsociada = resoluciones?.find(r => 
+        r.vehiculosHabilitadosIds?.includes(vehiculoPrincipal.id)
+      ) || null;
 
-      // Obtener todas las resoluciones
-      this.resolucionService.getResoluciones().subscribe({
-        next: (resoluciones) => {
-          // Buscar resolución asociada al vehículo
-          const resolucionAsociada = resoluciones.find(r => 
-            r.vehiculosHabilitadosIds && 
-            r.vehiculosHabilitadosIds.includes(this.data.vehiculo.id)
-          );
-          
-          this.resolucionAsociada.set(resolucionAsociada || null);
+      if (!this.resolucionAsociada) {
+        const mensaje = this.data.modoBloque 
+          ? '⚠️ Los vehículos deben tener resolución asociada'
+          : '⚠️ Vehículo sin resolución asociada';
+        this.snackBar.open(mensaje, 'Cerrar', { duration: 5000 });
+        this.cargando = false;
+        return;
+      }
 
-          if (resolucionAsociada) {
-            this.cargarRutasGenerales(resolucionAsociada);
-          }
-          
-          this.cargarRutasEspecificas();
-        },
-        error: (error) => {
-          console.error('Error cargando resoluciones:', error);
-          this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
-        }
-      });
+      // 2. Obtener rutas autorizadas de la resolución
+      const todasRutas = await this.rutaService.getRutas().toPromise();
+      const rutasAutorizadas = todasRutas?.filter(ruta => 
+        this.resolucionAsociada!.rutasAutorizadasIds?.includes(ruta.id)
+      ) || [];
+
+      // 3. Para modo bloque, obtener rutas comunes a todos los vehículos
+      let rutasYaAsignadas: string[] = [];
+      
+      if (this.data.modoBloque) {
+        // En modo bloque, pre-seleccionar solo las rutas que TODOS los vehículos tienen
+        const rutasComunes = rutasAutorizadas.filter(ruta => 
+          vehiculos.every(vehiculo => 
+            vehiculo.rutasAsignadasIds?.includes(ruta.id)
+          )
+        );
+        rutasYaAsignadas = rutasComunes.map(r => r.id);
+      } else {
+        // Modo individual
+        rutasYaAsignadas = vehiculoPrincipal.rutasAsignadasIds || [];
+      }
+
+      // 4. Preparar lista de rutas seleccionables
+      this.rutasDisponibles = rutasAutorizadas.map(ruta => ({
+        ruta,
+        seleccionada: rutasYaAsignadas.includes(ruta.id),
+        yaAsignada: false
+      }));
+
+      const mensaje = this.data.modoBloque
+        ? `✅ ${rutasAutorizadas.length} ruta(s) disponible(s) para ${vehiculos.length} vehículo(s)`
+        : `✅ ${rutasAutorizadas.length} ruta(s) disponible(s)`;
+      
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
+
     } catch (error) {
-      console.error('Error cargando datos:', error);
-      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      console.error('❌ Error cargando datos:', error);
+      this.snackBar.open('Error cargando datos', 'Cerrar', { duration: 5000 });
     } finally {
-      this.cargando.set(false);
+      this.cargando = false;
     }
   }
 
-  cargarRutasGenerales(resolucion: Resolucion): void {
-    if (!resolucion.rutasAutorizadasIds || resolucion.rutasAutorizadasIds.length === 0) {
-      this.rutasGeneralesDisponibles.set([]);
-      return;
-    }
+  contarSeleccionadas(): number {
+    return this.rutasDisponibles.filter(r => r.seleccionada).length;
+  }
 
-    this.rutaService.getRutas().subscribe({
-      next: (todasRutas) => {
-        const rutasGenerales = todasRutas.filter(ruta => 
-          resolucion.rutasAutorizadasIds!.includes(ruta.id) &&
-          (ruta.tipoRuta === 'INTERURBANA' || ruta.tipoRuta === 'INTERPROVINCIAL' || ruta.tipoRuta === 'INTERREGIONAL')
+  seleccionarTodas(): void {
+    this.rutasDisponibles.forEach(r => {
+      r.seleccionada = true;
+    });
+  }
+
+  deseleccionarTodas(): void {
+    this.rutasDisponibles.forEach(r => r.seleccionada = false);
+  }
+
+  toggleRuta(rutaItem: RutaSeleccionable): void {
+    rutaItem.seleccionada = !rutaItem.seleccionada;
+  }
+
+  async asignarRutas(): Promise<void> {
+    // Obtener todas las rutas seleccionadas
+    const rutasSeleccionadas = this.rutasDisponibles
+      .filter(r => r.seleccionada)
+      .map(r => r.ruta.id);
+
+    this.cargando = true;
+
+    try {
+      if (this.data.modoBloque) {
+        // Modo bloque: actualizar múltiples vehículos
+        const vehiculos = this.data.vehiculos!;
+        const promesasActualizacion = vehiculos.map(vehiculo => 
+          this.vehiculoService.updateVehiculo(vehiculo.id, {
+            rutasAsignadasIds: rutasSeleccionadas
+          }).toPromise()
         );
-        this.rutasGeneralesDisponibles.set(rutasGenerales);
-      },
-      error: (error) => {
-        console.error('Error cargando rutas generales:', error);
-        this.snackBar.open('Error al cargar rutas generales', 'Cerrar', { duration: 3000 });
-      }
-    });
-  }
 
-  cargarRutasEspecificas(): void {
-    // TODO: Implementar cuando exista el endpoint
-    // Por ahora simulamos datos
-    const rutasSimuladas: RutaEspecifica[] = [
-      {
-        id: '1',
-        rutaGeneralId: 'ruta-1',
-        rutaGeneralCodigo: 'PUN-JUL-001',
-        vehiculoId: this.data.vehiculo.id,
-        resolucionId: this.resolucionAsociada()?.id || '',
-        codigo: 'PUN-JUL-ESP-001',
-        origen: 'PUNO',
-        destino: 'JULIACA',
-        distancia: 45,
-        descripcion: 'Servicio Expreso Mañana',
-        estado: 'ACTIVA',
-        tipoRuta: 'ESPECIFICA',
-        fechaCreacion: new Date(),
-        horarios: [
-          { horaSalida: '06:00', horaLlegada: '07:30', dias: ['L', 'M', 'X', 'J', 'V'] }
-        ],
-        paradasAdicionales: []
-      }
-    ];
+        await Promise.all(promesasActualizacion);
 
-    this.rutasEspecificas.set(rutasSimuladas);
-  }
-
-  yaExisteRutaEspecifica(rutaGeneralId: string): boolean {
-    return this.rutasEspecificas().some(re => re.rutaGeneralId === rutaGeneralId);
-  }
-
-  crearRutaEspecifica(rutaGeneral: Ruta): void {
-    console.log('🆕 Crear ruta específica basada en:', rutaGeneral);
-    
-    const dialogRef = this.dialog.open(CrearRutaEspecificaModalComponent, {
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      data: {
-        vehiculo: this.data.vehiculo,
-        rutaGeneral: rutaGeneral,
-        esEdicion: false
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('✅ Ruta específica creada:', result);
-        this.snackBar.open('Ruta específica creada exitosamente', 'Cerrar', { duration: 3000 });
-        
-        // Agregar la nueva ruta a la lista
-        const nuevaRuta: RutaEspecifica = {
-          id: Date.now().toString(),
-          rutaGeneralId: rutaGeneral.id,
-          rutaGeneralCodigo: rutaGeneral.codigoRuta,
-          vehiculoId: this.data.vehiculo.id,
-          resolucionId: this.resolucionAsociada()?.id || '',
-          codigo: result.codigo,
-          origen: result.origen,
-          destino: result.destino,
-          distancia: result.distancia,
-          descripcion: result.descripcion,
-          estado: result.estado,
-          tipoRuta: 'ESPECIFICA',
-          fechaCreacion: new Date(),
-          horarios: result.horarios || [],
-          paradasAdicionales: result.paradasAdicionales || []
-        };
-        
-        const rutasActuales = this.rutasEspecificas();
-        this.rutasEspecificas.set([...rutasActuales, nuevaRuta]);
-      }
-    });
-  }
-
-  editarRutaEspecifica(rutaEspecifica: RutaEspecifica): void {
-    console.log('✏️ Editar ruta específica:', rutaEspecifica);
-    
-    // Buscar la ruta general asociada
-    const rutaGeneral = this.rutasGeneralesDisponibles().find(r => r.id === rutaEspecifica.rutaGeneralId);
-    
-    if (!rutaGeneral) {
-      this.snackBar.open('No se encontró la ruta general asociada', 'Cerrar', { duration: 3000 });
-      return;
-    }
-
-    const dialogRef = this.dialog.open(CrearRutaEspecificaModalComponent, {
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      data: {
-        vehiculo: this.data.vehiculo,
-        rutaGeneral: rutaGeneral,
-        rutaEspecifica: rutaEspecifica,
-        esEdicion: true
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('✅ Ruta específica actualizada:', result);
-        this.snackBar.open('Ruta específica actualizada exitosamente', 'Cerrar', { duration: 3000 });
-        
-        // Actualizar la ruta en la lista
-        const rutasActuales = this.rutasEspecificas();
-        const rutasActualizadas = rutasActuales.map(r => 
-          r.id === rutaEspecifica.id ? { ...r, ...result } : r
+        this.snackBar.open(
+          `✅ Rutas actualizadas para ${vehiculos.length} vehículo(s). ${rutasSeleccionadas.length} ruta(s) asignada(s)`, 
+          'Cerrar', 
+          { duration: 3000 }
         );
-        this.rutasEspecificas.set(rutasActualizadas);
+        
+        this.dialogRef.close({ 
+          vehiculos: vehiculos,
+          rutasAsignadas: rutasSeleccionadas.length,
+          modoBloque: true
+        });
+
+      } else {
+        // Modo individual
+        const vehiculo = this.data.vehiculo!;
+        
+        await this.vehiculoService.updateVehiculo(vehiculo.id, {
+          rutasAsignadasIds: rutasSeleccionadas
+        }).toPromise();
+
+        const rutasAnteriores = vehiculo.rutasAsignadasIds?.length || 0;
+        const rutasNuevas = rutasSeleccionadas.length;
+        
+        let mensaje = '';
+        if (rutasNuevas > rutasAnteriores) {
+          mensaje = `✅ ${rutasNuevas - rutasAnteriores} ruta(s) agregada(s). Total: ${rutasNuevas}`;
+        } else if (rutasNuevas < rutasAnteriores) {
+          mensaje = `✅ ${rutasAnteriores - rutasNuevas} ruta(s) removida(s). Total: ${rutasNuevas}`;
+        } else {
+          mensaje = `✅ Rutas actualizadas. Total: ${rutasNuevas}`;
+        }
+
+        this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
+        this.dialogRef.close({
+          ...vehiculo,
+          rutasAsignadasIds: rutasSeleccionadas
+        });
       }
-    });
-  }
 
-  verDetalleRutaEspecifica(rutaEspecifica: RutaEspecifica): void {
-    console.log('👁️ Ver detalle ruta específica:', rutaEspecifica);
-    
-    // TODO: Abrir modal de detalle
-    this.snackBar.open(
-      `Ver detalle de ${rutaEspecifica.codigo} - Funcionalidad en desarrollo`,
-      'Cerrar',
-      { duration: 3000 }
-    );
-  }
-
-  eliminarRutaEspecifica(rutaEspecifica: RutaEspecifica): void {
-    if (confirm(`¿Está seguro de eliminar la ruta específica ${rutaEspecifica.codigo}?`)) {
-      console.log('🗑️ Eliminar ruta específica:', rutaEspecifica);
-      
-      // TODO: Implementar eliminación
-      this.snackBar.open(
-        `Ruta específica ${rutaEspecifica.codigo} eliminada - Funcionalidad en desarrollo`,
-        'Cerrar',
-        { duration: 3000 }
-      );
-      
-      // Simular eliminación
-      const rutasActuales = this.rutasEspecificas();
-      const rutasActualizadas = rutasActuales.filter(r => r.id !== rutaEspecifica.id);
-      this.rutasEspecificas.set(rutasActualizadas);
+    } catch (error) {
+      console.error('❌ Error actualizando rutas:', error);
+      const mensajeError = this.data.modoBloque 
+        ? 'Error al actualizar rutas de los vehículos'
+        : 'Error al actualizar rutas';
+      this.snackBar.open(mensajeError, 'Cerrar', { duration: 5000 });
+    } finally {
+      this.cargando = false;
     }
-  }
-
-  actualizarDatos(): void {
-    this.cargarDatos();
   }
 
   cerrar(): void {

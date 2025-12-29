@@ -4,11 +4,10 @@ export interface ConfiguracionSistema {
   valor: string;
   descripcion: string;
   categoria: CategoriaConfiguracion;
-  esEditable: boolean;
-  fechaCreacion: Date;
-  fechaActualizacion: Date;
-  usuarioCreadorId: string;
-  usuarioActualizadorId: string;
+  activo: boolean;
+  esEditable?: boolean;
+  fechaCreacion: string;
+  fechaActualizacion: string;
 }
 
 export interface ConfiguracionCreate {
@@ -33,7 +32,9 @@ export enum CategoriaConfiguracion {
   USUARIOS = 'USUARIOS',
   SISTEMA = 'SISTEMA',
   NOTIFICACIONES = 'NOTIFICACIONES',
-  REPORTES = 'REPORTES'
+  REPORTES = 'REPORTES',
+  GENERAL = 'GENERAL',
+  VEHICULOS = 'VEHICULOS'
 }
 
 // Configuraciones por defecto del sistema

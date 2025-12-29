@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { Subject, takeUntil, combineLatest, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ResolucionService } from '../../services/resolucion.service';
 import { ResolucionesTableService } from '../../services/resoluciones-table.service';
@@ -17,6 +18,8 @@ import {
 import { ResolucionesFiltersComponent } from '../../shared/resoluciones-filters.component';
 import { ResolucionesTableComponent, AccionTabla } from '../../shared/resoluciones-table.component';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { RutasAutorizadasModalComponent } from './rutas-autorizadas-modal.component';
+import { VehiculosHabilitadosModalComponent } from './vehiculos-habilitados-modal.component';
 
 @Component({
   selector: 'app-resoluciones',
@@ -487,6 +490,7 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   private resolucionService = inject(ResolucionService);
   private tableService = inject(ResolucionesTableService);
   private destroy$ = new Subject<void>();
@@ -740,6 +744,18 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
         }
         break;
         
+      case 'ver-rutas-autorizadas':
+        if (accion.resolucion) {
+          this.abrirModalRutasAutorizadas(accion.resolucion);
+        }
+        break;
+        
+      case 'ver-vehiculos-habilitados':
+        if (accion.resolucion) {
+          this.abrirModalVehiculosHabilitados(accion.resolucion);
+        }
+        break;
+        
       case 'exportar':
         if (accion.resoluciones) {
           this.exportarResoluciones(accion.resoluciones);
@@ -860,5 +876,55 @@ export class ResolucionesComponent implements OnInit, OnDestroy {
   getEstadisticaPorTipo(tipo: string): number {
     const stats = this.estadisticas();
     return stats?.porTipo?.[tipo] || 0;
+  }
+
+  /**
+   * Abre el modal para ver rutas autorizadas de una resolución
+   */
+  abrirModalRutasAutorizadas(resolucion: ResolucionConEmpresa): void {
+    console.log('🛣️ Abriendo modal de rutas autorizadas para:', resolucion.nroResolucion);
+    
+    const dialogRef = this.dialog.open(RutasAutorizadasModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        resolucion: resolucion
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.accion === 'gestionar') {
+        // Navegar a gestión de rutas
+        this.router.navigate(['/rutas'], {
+          queryParams: { resolucionId: resolucion.id }
+        });
+      }
+    });
+  }
+
+  /**
+   * Abre el modal para ver vehículos habilitados de una resolución
+   */
+  abrirModalVehiculosHabilitados(resolucion: ResolucionConEmpresa): void {
+    console.log('🚗 Abriendo modal de vehículos habilitados para:', resolucion.nroResolucion);
+    
+    const dialogRef = this.dialog.open(VehiculosHabilitadosModalComponent, {
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: {
+        resolucion: resolucion
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.accion === 'gestionar') {
+        // Navegar a gestión de vehículos
+        this.router.navigate(['/vehiculos'], {
+          queryParams: { resolucionId: resolucion.id }
+        });
+      }
+    });
   }
 } 

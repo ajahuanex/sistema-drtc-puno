@@ -10,16 +10,19 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Ruta } from '../../models/ruta.model';
 
 interface RutaEspecificaData {
-  vehiculo: Vehiculo;
+  vehiculo?: Vehiculo;
+  vehiculos?: Vehiculo[]; // Para modo bloque
   rutaGeneral: Ruta;
   rutaEspecifica?: any; // Para edición
   esEdicion?: boolean;
+  modoBloque?: boolean;
 }
 
 @Component({
@@ -37,11 +40,18 @@ interface RutaEspecificaData {
     MatSelectModule,
     MatCheckboxModule,
     MatDividerModule,
+    MatChipsModule,
     MatTooltipModule
   ],
   template: `
     <div class="modal-header">
-      <h2>{{ data.esEdicion ? 'Editar' : 'Crear' }} Ruta Específica</h2>
+      @if (data.modoBloque) {
+        <h2>{{ data.esEdicion ? 'Editar' : 'Crear' }} Rutas Específicas (Modo Bloque)</h2>
+        <h3>{{ data.vehiculos?.length }} vehículos seleccionados</h3>
+      } @else {
+        <h2>{{ data.esEdicion ? 'Editar' : 'Crear' }} Ruta Específica</h2>
+        <h3>Vehículo: {{ data.vehiculo?.placa }}</h3>
+      }
       <button mat-icon-button (click)="cancelar()" class="close-button">
         <mat-icon>close</mat-icon>
       </button>
@@ -72,10 +82,27 @@ interface RutaEspecificaData {
                 <span class="value">{{ data.rutaGeneral.distancia }} km</span>
               </div>
               <div class="info-item">
-                <span class="label">Vehículo:</span>
-                <span class="value">{{ data.vehiculo.placa }} ({{ data.vehiculo.marca }} {{ data.vehiculo.modelo }})</span>
+                @if (data.modoBloque) {
+                  <span class="label">Vehículos:</span>
+                  <span class="value">{{ data.vehiculos?.length }} vehículos seleccionados</span>
+                } @else {
+                  <span class="label">Vehículo:</span>
+                  <span class="value">{{ data.vehiculo?.placa }} ({{ data.vehiculo?.marca }} {{ data.vehiculo?.modelo }})</span>
+                }
               </div>
             </div>
+            
+            <!-- Lista de vehículos en modo bloque -->
+            @if (data.modoBloque && data.vehiculos) {
+              <div class="vehiculos-bloque-info">
+                <h5>Vehículos que recibirán la ruta específica:</h5>
+                <div class="vehiculos-chips">
+                  @for (vehiculo of data.vehiculos; track vehiculo.id) {
+                    <mat-chip>{{ vehiculo.placa }}</mat-chip>
+                  }
+                </div>
+              </div>
+            }
           </div>
         </mat-card-content>
       </mat-card>
@@ -296,11 +323,39 @@ interface RutaEspecificaData {
       font-weight: 600;
     }
 
+    .modal-header h3 {
+      margin: 4px 0 0 0;
+      font-size: 16px;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+
     .close-button {
       color: white;
       position: absolute;
       top: 16px;
       right: 16px;
+    }
+
+    .vehiculos-bloque-info {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .vehiculos-bloque-info h5 {
+      margin: 0 0 12px 0;
+      color: #666;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .vehiculos-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 120px;
+      overflow-y: auto;
     }
 
     .ruta-form {
@@ -585,33 +640,105 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
     try {
       const formData = this.rutaForm.value;
       
-      // Construir objeto de ruta específica
-      const rutaEspecifica = {
-        ...formData,
-        rutaGeneralId: this.data.rutaGeneral.id,
-        vehiculoId: this.data.vehiculo.id,
-        origen: this.data.rutaGeneral.origen,
-        destino: this.data.rutaGeneral.destino,
-        distancia: this.data.rutaGeneral.distancia,
-        tipoRuta: 'ESPECIFICA',
-        fechaCreacion: new Date()
-      };
+      if (this.data.modoBloque && this.data.vehiculos) {
+        // Modo bloque: crear rutas específicas para múltiples vehículos
+        console.log('💾 Guardando rutas específicas en modo bloque para', this.data.vehiculos.length, 'vehículos');
+        
+        const rutasCreadas = [];
+        const errores = [];
+        
+        for (let i = 0; i < this.data.vehiculos.length; i++) {
+          const vehiculo = this.data.vehiculos[i];
+          
+          try {
+            // Generar código único para cada vehículo
+            const codigoUnico = `${this.data.rutaGeneral.codigoRuta}-ESP-${vehiculo.placa}-${Date.now().toString().slice(-4)}`;
+            
+            const rutaEspecifica = {
+              ...formData,
+              codigo: codigoUnico,
+              rutaGeneralId: this.data.rutaGeneral.id,
+              vehiculoId: vehiculo.id,
+              resolucionId: vehiculo.resolucionId || '', // Usar resolución del vehículo
+              origen: this.data.rutaGeneral.origen,
+              destino: this.data.rutaGeneral.destino,
+              distancia: this.data.rutaGeneral.distancia,
+              tipoRuta: 'ESPECIFICA',
+              fechaCreacion: new Date()
+            };
+            
+            // TODO: Implementar llamada al servicio para cada vehículo
+            // const rutaCreada = await this.rutaEspecificaService.crearRutaEspecifica(rutaEspecifica);
+            
+            rutasCreadas.push(rutaEspecifica);
+            console.log(`✅ Ruta específica creada para vehículo ${vehiculo.placa}`);
+            
+          } catch (error) {
+            console.error(`❌ Error creando ruta para vehículo ${vehiculo.placa}:`, error);
+            errores.push(`Error en vehículo ${vehiculo.placa}: ${error}`);
+          }
+        }
+        
+        // Simular guardado
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        if (errores.length > 0) {
+          this.snackBar.open(
+            `Se crearon ${rutasCreadas.length} rutas con ${errores.length} errores`,
+            'Cerrar',
+            { duration: 5000 }
+          );
+        } else {
+          this.snackBar.open(
+            `${rutasCreadas.length} rutas específicas creadas exitosamente`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+        }
+        
+        this.dialogRef.close({
+          modoBloque: true,
+          rutasCreadas: rutasCreadas,
+          errores: errores,
+          count: rutasCreadas.length
+        });
+        
+      } else {
+        // Modo individual: crear una sola ruta específica
+        const vehiculo = this.data.vehiculo;
+        if (!vehiculo) {
+          throw new Error('No se encontró información del vehículo');
+        }
+        
+        const rutaEspecifica = {
+          ...formData,
+          rutaGeneralId: this.data.rutaGeneral.id,
+          vehiculoId: vehiculo.id,
+          resolucionId: vehiculo.resolucionId || '', // Usar resolución del vehículo
+          origen: this.data.rutaGeneral.origen,
+          destino: this.data.rutaGeneral.destino,
+          distancia: this.data.rutaGeneral.distancia,
+          tipoRuta: 'ESPECIFICA',
+          fechaCreacion: new Date()
+        };
 
-      console.log('💾 Guardando ruta específica:', rutaEspecifica);
+        console.log('💾 Guardando ruta específica individual:', rutaEspecifica);
 
-      // TODO: Implementar llamada al servicio
-      // await this.rutaService.crearRutaEspecifica(rutaEspecifica);
+        // TODO: Implementar llamada al servicio
+        // await this.rutaEspecificaService.crearRutaEspecifica(rutaEspecifica);
 
-      // Simular guardado
-      await new Promise(resolve => setTimeout(resolve, 1500));
+        // Simular guardado
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-      this.snackBar.open(
-        `Ruta específica ${this.data.esEdicion ? 'actualizada' : 'creada'} exitosamente`,
-        'Cerrar',
-        { duration: 3000 }
-      );
+        this.snackBar.open(
+          `Ruta específica ${this.data.esEdicion ? 'actualizada' : 'creada'} exitosamente`,
+          'Cerrar',
+          { duration: 3000 }
+        );
 
-      this.dialogRef.close(rutaEspecifica);
+        this.dialogRef.close(rutaEspecifica);
+      }
+      
     } catch (error) {
       console.error('Error guardando ruta específica:', error);
       this.snackBar.open('Error al guardar la ruta específica', 'Cerrar', { duration: 3000 });

@@ -607,3 +607,134 @@ body {
 
 /* Los modales de Material Design ya tienen z-index alto por defecto (1000+) */
 /* No necesitamos modificarlos, solo asegurar que el menú esté por debajo */
+
+/* ========================================
+   COLUMN SELECTOR MODAL FIXES
+   ======================================== */
+
+/* Asegurar que el menú del selector de columnas tenga el ancho correcto */
+.column-menu-wide .mat-mdc-menu-panel,
+.column-menu-wide .mat-menu-panel {
+  max-width: none !important;
+  width: auto !important;
+  min-width: 650px !important;
+  max-height: 85vh !important;
+}
+
+/* Forzar el ancho usando ::ng-deep */
+.column-menu-wide ::ng-deep .mat-mdc-menu-panel,
+.column-menu-wide ::ng-deep .mat-menu-panel {
+  max-width: none !important;
+  width: auto !important;
+  min-width: 650px !important;
+  max-height: 85vh !important;
+}
+
+/* En dispositivos móviles, usar casi todo el ancho de pantalla */
+@media (max-width: 768px) {
+  .column-menu-wide .mat-mdc-menu-panel,
+  .column-menu-wide .mat-menu-panel,
+  .column-menu-wide ::ng-deep .mat-mdc-menu-panel,
+  .column-menu-wide ::ng-deep .mat-menu-panel {
+    min-width: 95vw !important;
+    max-width: 95vw !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .column-menu-wide .mat-mdc-menu-panel,
+  .column-menu-wide .mat-menu-panel,
+  .column-menu-wide ::ng-deep .mat-mdc-menu-panel,
+  .column-menu-wide ::ng-deep .mat-menu-panel {
+    min-width: 98vw !important;
+    max-width: 98vw !important;
+  }
+}
+
+/* Asegurar que el contenido del selector no se corte */
+.column-selector-content {
+  overflow: visible !important;
+}
+
+/* Mejorar la visibilidad del drag handle */
+.column-item .drag-handle {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.column-item:hover .drag-handle {
+  opacity: 1;
+}
+
+/* Mejorar el feedback visual durante el drag */
+.column-item.cdk-drag-preview {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+  transform: rotate(3deg) !important;
+  z-index: 10000 !important;
+}
+
+.column-item.cdk-drag-placeholder {
+  opacity: 0.3 !important;
+  border-style: dashed !important;
+  background-color: var(--background-secondary) !important;
+}
+
+/* Mejorar la apariencia de los botones en el selector */
+.column-selector-content .mat-mdc-button,
+.column-selector-content .mat-mdc-raised-button {
+  font-size: 13px !important;
+  padding: 8px 16px !important;
+  min-height: 40px !important;
+}
+
+/* Asegurar que el backdrop del menú funcione correctamente */
+.cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
+  opacity: 0.32 !important;
+}
+
+/* Mejorar la legibilidad en el selector de columnas */
+.column-selector-content .column-label {
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+}
+
+.column-selector-content .column-details {
+  color: var(--text-muted) !important;
+}
+
+/* Asegurar que los checkboxes sean visibles y funcionales */
+.column-selector-content .mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: white;
+  --mdc-checkbox-selected-focus-icon-color: var(--primary-600);
+  --mdc-checkbox-selected-hover-icon-color: var(--primary-600);
+  --mdc-checkbox-selected-icon-color: var(--primary-500);
+  --mdc-checkbox-selected-pressed-icon-color: var(--primary-700);
+}
+
+/* Forzar el ancho del overlay del menú */
+.cdk-overlay-pane:has(.column-menu-wide) {
+  max-width: none !important;
+  width: auto !important;
+}
+
+/* Estilos adicionales para asegurar funcionalidad */
+.column-selector-content .mat-mdc-checkbox .mdc-checkbox {
+  padding: 8px !important;
+}
+
+.column-selector-content .mat-mdc-checkbox .mdc-checkbox__native-control {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* Asegurar que los botones funcionen correctamente */
+.column-selector-content button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.column-selector-content button:disabled {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}

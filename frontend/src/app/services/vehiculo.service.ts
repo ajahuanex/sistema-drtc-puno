@@ -1,9 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, catchError, throwError, map, tap } from 'rxjs';
+import { Observable, of, catchError, throwError, map, tap, switchMap } from 'rxjs';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate } from '../models/vehiculo.model';
 import { AuthService } from './auth.service';
 import { DataManagerClientService } from './data-manager-client.service';
+import { HistorialVehicularService } from './historial-vehicular.service';
+import { TipoEventoHistorial, EstadoVehiculo } from '../models/historial-vehicular.model';
 import { environment } from '../../environments/environment';
 
 // Interfaces para carga masiva
@@ -45,6 +47,7 @@ export class VehiculoService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   private dataManager = inject(DataManagerClientService);
+  private historialService = inject(HistorialVehicularService);
   
   private apiUrl = environment.apiUrl;
 
@@ -94,6 +97,21 @@ export class VehiculoService {
     return this.http.post<Vehiculo>(`${this.apiUrl}/vehiculos`, vehiculo, {
       headers: this.getHeaders()
     }).pipe(
+      switchMap(vehiculoCreado => {
+        // Registrar en el historial vehicular
+        return this.historialService.registrarCreacionVehiculo(
+          vehiculoCreado.id,
+          vehiculoCreado.placa,
+          vehiculoCreado
+        ).pipe(
+          map(() => vehiculoCreado),
+          catchError(error => {
+            console.error('Error registrando historial de creación:', error);
+            // No fallar la creación del vehículo por error en historial
+            return of(vehiculoCreado);
+          })
+        );
+      }),
       catchError(error => {
         console.error('Error creando vehículo:', error);
         return throwError(() => error);
@@ -102,9 +120,74 @@ export class VehiculoService {
   }
 
   updateVehiculo(id: string, vehiculo: VehiculoUpdate): Observable<Vehiculo> {
-    return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, vehiculo, {
-      headers: this.getHeaders()
-    }).pipe(
+    // Primero obtener los datos actuales para el historial
+    return this.getVehiculo(id).pipe(
+      switchMap(vehiculoAnterior => {
+        if (!vehiculoAnterior) {
+          return throwError(() => new Error('Vehículo no encontrado'));
+        }
+
+        return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, vehiculo, {
+          headers: this.getHeaders()
+        }).pipe(
+          switchMap(vehiculoActualizado => {
+            // Registrar cambios en el historial
+            const promesasHistorial: Observable<any>[] = [];
+
+            // Detectar transferencia de empresa
+            if (vehiculo.empresaActualId && vehiculoAnterior.empresaActualId !== vehiculo.empresaActualId) {
+              promesasHistorial.push(
+                this.historialService.registrarTransferenciaEmpresa(
+                  id,
+                  vehiculoActualizado.placa,
+                  vehiculoAnterior.empresaActualId || '',
+                  vehiculo.empresaActualId,
+                  'Empresa Anterior', // TODO: Obtener nombres reales
+                  'Empresa Nueva'
+                ).pipe(catchError(error => {
+                  console.error('Error registrando transferencia:', error);
+                  return of(null);
+                }))
+              );
+            }
+
+            // Detectar cambio de estado
+            if (vehiculo.estado && vehiculoAnterior.estado !== vehiculo.estado) {
+              promesasHistorial.push(
+                this.historialService.registrarCambioEstado(
+                  id,
+                  vehiculoActualizado.placa,
+                  vehiculoAnterior.estado as EstadoVehiculo,
+                  vehiculo.estado as EstadoVehiculo
+                ).pipe(catchError(error => {
+                  console.error('Error registrando cambio de estado:', error);
+                  return of(null);
+                }))
+              );
+            }
+
+            // Registrar modificación general si no hay eventos específicos
+            if (promesasHistorial.length === 0) {
+              promesasHistorial.push(
+                this.historialService.registrarModificacionVehiculo(
+                  id,
+                  vehiculoActualizado.placa,
+                  vehiculoAnterior,
+                  vehiculoActualizado
+                ).pipe(catchError(error => {
+                  console.error('Error registrando modificación:', error);
+                  return of(null);
+                }))
+              );
+            }
+
+            // Ejecutar registros de historial en paralelo sin bloquear la respuesta
+            promesasHistorial.forEach(promesa => promesa.subscribe());
+
+            return of(vehiculoActualizado);
+          })
+        );
+      }),
       catchError(error => {
         console.error('Error actualizando vehículo:', error);
         return throwError(() => error);
@@ -113,9 +196,36 @@ export class VehiculoService {
   }
 
   deleteVehiculo(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/vehiculos/${id}`, {
-      headers: this.getHeaders()
-    }).pipe(
+    return this.getVehiculo(id).pipe(
+      switchMap(vehiculo => {
+        if (!vehiculo) {
+          return throwError(() => new Error('Vehículo no encontrado'));
+        }
+
+        return this.http.delete<void>(`${this.apiUrl}/vehiculos/${id}`, {
+          headers: this.getHeaders()
+        }).pipe(
+          switchMap(() => {
+            // Registrar baja definitiva en el historial
+            return this.historialService.crearRegistroHistorial({
+              vehiculoId: id,
+              placa: vehiculo.placa,
+              tipoEvento: TipoEventoHistorial.BAJA_DEFINITIVA,
+              descripcion: `Vehículo ${vehiculo.placa} dado de baja definitivamente`,
+              fechaEvento: new Date().toISOString(),
+              estadoAnterior: vehiculo.estado as EstadoVehiculo,
+              estadoNuevo: EstadoVehiculo.BAJA_DEFINITIVA,
+              observaciones: 'Baja definitiva del vehículo del sistema'
+            }).pipe(
+              map(() => undefined),
+              catchError(error => {
+                console.error('Error registrando baja definitiva:', error);
+                return of(undefined);
+              })
+            );
+          })
+        );
+      }),
       catchError(error => {
         console.error('Error eliminando vehículo:', error);
         return throwError(() => error);

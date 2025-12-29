@@ -98,6 +98,46 @@ export class ConfiguracionService {
     return config ? config.valor.toUpperCase() : 'PUNO';
   });
 
+  // Configuraciones de vehículos
+  categoriasVehiculos = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'CATEGORIAS_VEHICULOS');
+    if (config && config.valor) {
+      return config.valor.split(',').map(cat => cat.trim()).filter(cat => cat.length > 0);
+    }
+    return ['M1', 'M2', 'M3', 'N1', 'N2', 'N3'];
+  });
+
+  estadosVehiculos = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'ESTADOS_VEHICULOS');
+    if (config && config.valor) {
+      return config.valor.split(',').map(estado => estado.trim()).filter(estado => estado.length > 0);
+    }
+    return ['HABILITADO', 'NO_HABILITADO', 'SUSPENDIDO', 'MANTENIMIENTO'];
+  });
+
+  estadoVehiculoDefault = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'ESTADO_VEHICULO_DEFAULT');
+    return config ? config.valor : 'HABILITADO';
+  });
+
+  categoriaVehiculoDefault = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'CATEGORIA_VEHICULO_DEFAULT');
+    return config ? config.valor : 'M3';
+  });
+
+  tiposCombustible = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'TIPOS_COMBUSTIBLE');
+    if (config && config.valor) {
+      return config.valor.split(',').map(tipo => tipo.trim()).filter(tipo => tipo.length > 0);
+    }
+    return ['DIESEL', 'GASOLINA', 'GAS_NATURAL', 'ELECTRICO', 'HIBRIDO'];
+  });
+
+  tipoCombustibleDefault = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'TIPO_COMBUSTIBLE_DEFAULT');
+    return config ? config.valor : 'DIESEL';
+  });
+
   constructor() {
     console.log('🔧 ConfiguracionService inicializado - usando únicamente API');
   }
@@ -125,10 +165,111 @@ export class ConfiguracionService {
           this.actualizarBehaviorSubjects(configuraciones);
         }),
         catchError(error => {
-          console.error('❌ Error cargando configuraciones desde API:', error);
-          return throwError(() => error);
+          console.warn('⚠️ API de configuraciones no disponible, usando valores por defecto:', error);
+          // Usar configuraciones por defecto cuando la API no esté disponible
+          const configuracionesDefault = this.getConfiguracionesDefault();
+          this.configuracionesSignal.set(configuracionesDefault);
+          this.configuracionesCargadasSignal.set(true);
+          this.actualizarBehaviorSubjects(configuracionesDefault);
+          return of(configuracionesDefault);
         })
       );
+  }
+
+  /**
+   * Obtiene las configuraciones por defecto cuando la API no está disponible
+   */
+  private getConfiguracionesDefault(): ConfiguracionSistema[] {
+    return [
+      {
+        id: 'default-1',
+        nombre: 'SEDES_DISPONIBLES',
+        valor: 'PUNO,LIMA,AREQUIPA,JULIACA,CUSCO,TACNA',
+        descripcion: 'Sedes disponibles en el sistema',
+        categoria: CategoriaConfiguracion.GENERAL,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-2',
+        nombre: 'SEDE_DEFAULT',
+        valor: 'PUNO',
+        descripcion: 'Sede por defecto del sistema',
+        categoria: CategoriaConfiguracion.GENERAL,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-3',
+        nombre: 'CATEGORIAS_VEHICULOS',
+        valor: 'M1,M2,M3,N1,N2,N3',
+        descripcion: 'Categorías de vehículos disponibles',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-4',
+        nombre: 'ESTADOS_VEHICULOS',
+        valor: 'HABILITADO,NO_HABILITADO,SUSPENDIDO,MANTENIMIENTO',
+        descripcion: 'Estados posibles de los vehículos',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-5',
+        nombre: 'ESTADO_VEHICULO_DEFAULT',
+        valor: 'HABILITADO',
+        descripcion: 'Estado por defecto para nuevos vehículos',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-6',
+        nombre: 'CATEGORIA_VEHICULO_DEFAULT',
+        valor: 'M3',
+        descripcion: 'Categoría por defecto para nuevos vehículos',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-7',
+        nombre: 'TIPOS_COMBUSTIBLE',
+        valor: 'DIESEL,GASOLINA,GAS_NATURAL,ELECTRICO,HIBRIDO',
+        descripcion: 'Tipos de combustible disponibles',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-8',
+        nombre: 'TIPO_COMBUSTIBLE_DEFAULT',
+        valor: 'DIESEL',
+        descripcion: 'Tipo de combustible por defecto',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      }
+    ];
   }
 
   /**

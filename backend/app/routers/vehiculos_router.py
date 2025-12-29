@@ -103,9 +103,10 @@ async def get_vehiculo(
     vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Obtener vehículo por ID"""
-    # Guard clause
-    if not vehiculo_id.isdigit():
+    # Validar que el ID sea un ObjectId válido
+    if not ObjectId.is_valid(vehiculo_id):
         raise HTTPException(status_code=400, detail="ID de vehículo inválido")
+    
     vehiculo = await vehiculo_service.get_vehiculo_by_id(vehiculo_id)
     
     if not vehiculo:
@@ -183,12 +184,13 @@ async def update_vehiculo(
     vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> VehiculoResponse:
     """Actualizar vehículo"""
-    # Guard clauses
-    if not vehiculo_id.isdigit():
+    # Validar que el ID sea un ObjectId válido
+    if not ObjectId.is_valid(vehiculo_id):
         raise HTTPException(status_code=400, detail="ID de vehículo inválido")
     
     if not vehiculo_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
+    
     updated_vehiculo = await vehiculo_service.update_vehiculo(vehiculo_id, vehiculo_data)
     
     if not updated_vehiculo:
@@ -202,9 +204,10 @@ async def delete_vehiculo(
     vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ):
     """Desactivar vehículo (borrado lógico)"""
-    # Guard clause
-    if not vehiculo_id.isdigit():
+    # Validar que el ID sea un ObjectId válido
+    if not ObjectId.is_valid(vehiculo_id):
         raise HTTPException(status_code=400, detail="ID de vehículo inválido")
+    
     success = await vehiculo_service.soft_delete_vehiculo(vehiculo_id)
     
     if not success:

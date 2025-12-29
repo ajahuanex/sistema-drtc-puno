@@ -1,164 +1,85 @@
 @echo off
-chcp 65001 >nul
-cls
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║     SISTEMA DRTC PUNO - DESPLIEGUE LOCAL COMPLETO             ║
-echo ╚════════════════════════════════════════════════════════════════╝
-echo.
-echo Este script verificará e iniciará todos los componentes del sistema:
-echo   1. Docker Desktop y MongoDB
-echo   2. Backend (FastAPI)
-echo   3. Frontend (Angular)
-echo.
-pause
-cls
-
-REM ============================================
-REM PASO 1: VERIFICAR DOCKER
-REM ============================================
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║ PASO 1/3: VERIFICANDO DOCKER DESKTOP                          ║
-echo ╚════════════════════════════════════════════════════════════════╝
+echo ========================================
+echo   SISTEMA DRTC PUNO - INICIO COMPLETO
+echo ========================================
 echo.
 
-docker --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ ERROR: Docker no está instalado
-    echo.
-    echo Por favor instala Docker Desktop desde:
-    echo https://www.docker.com/products/docker-desktop/
-    echo.
+echo 🔍 Verificando MongoDB...
+python -c "
+import pymongo
+try:
+    client = pymongo.MongoClient('mongodb://admin:admin123@localhost:27017', serverSelectionTimeoutMS=3000)
+    client.server_info()
+    print('✅ MongoDB conectado correctamente')
+    db = client['drtc_puno']
+    vehiculos_count = db.vehiculos.count_documents({})
+    empresas_count = db.empresas.count_documents({})
+    print(f'📊 Datos disponibles: {vehiculos_count} vehículos, {empresas_count} empresas')
+    client.close()
+except Exception as e:
+    print(f'❌ Error MongoDB: {e}')
+    print('💡 Asegúrate de que MongoDB esté corriendo')
     pause
-    exit /b 1
-)
+    exit(1)
+"
 
-echo ✅ Docker está instalado
-docker --version
 echo.
+echo 🚀 Iniciando Backend (FastAPI)...
+start "Backend DRTC" cmd /k "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-REM Verificar si Docker está corriendo
-docker ps >nul 2>&1
-if errorlevel 1 (
-    echo ⚠️  Docker Desktop no está corriendo
-    echo.
-    echo Por favor:
-    echo   1. Abre Docker Desktop
-    echo   2. Espera a que inicie completamente
-    echo   3. Vuelve a ejecutar este script
-    echo.
-    pause
-    exit /b 1
-)
+echo.
+echo ⏳ Esperando que el backend inicie...
+timeout /t 5 /nobreak > nul
 
-echo ✅ Docker Desktop está corriendo
 echo.
+echo 🔍 Verificando Backend...
+python -c "
+import requests
+import time
+for i in range(10):
+    try:
+        response = requests.get('http://localhost:8000/health', timeout=3)
+        if response.status_code == 200:
+            print('✅ Backend iniciado correctamente')
+            data = response.json()
+            print(f'📊 Estado: {data.get(\"status\")}')
+            print(f'🗄️ Base de datos: {data.get(\"database_status\")}')
+            break
+    except:
+        print(f'⏳ Intento {i+1}/10 - Esperando backend...')
+        time.sleep(2)
+else:
+    print('❌ Backend no responde después de 10 intentos')
+"
 
-REM ============================================
-REM PASO 2: VERIFICAR/INICIAR MONGODB
-REM ============================================
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║ PASO 2/3: VERIFICANDO MONGODB                                 ║
-echo ╚════════════════════════════════════════════════════════════════╝
 echo.
+echo 🎨 Iniciando Frontend (Angular)...
+start "Frontend DRTC" cmd /k "cd frontend && ng serve --host 0.0.0.0 --port 4200 --open"
 
-docker ps --filter "name=drtc-mongodb-local" --format "{{.Names}}" | findstr "drtc-mongodb-local" >nul 2>&1
-if errorlevel 1 (
-    echo ⚠️  MongoDB no está corriendo, iniciando...
-    echo.
-    docker-compose -f docker-compose.db-only.yml up -d
-    if errorlevel 1 (
-        echo ❌ ERROR: No se pudo iniciar MongoDB
-        pause
-        exit /b 1
-    )
-    echo.
-    echo ⏳ Esperando a que MongoDB esté listo...
-    timeout /t 15 /nobreak >nul
-    echo ✅ MongoDB iniciado
-) else (
-    echo ✅ MongoDB ya está corriendo
-)
 echo.
-
-REM Mostrar información de MongoDB
-echo 📊 Información de MongoDB:
-docker ps --filter "name=drtc-mongodb-local" --format "   Contenedor: {{.Names}}" 
-docker ps --filter "name=drtc-mongodb-local" --format "   Estado: {{.Status}}"
-docker ps --filter "name=drtc-mongodb-local" --format "   Puerto: {{.Ports}}"
+echo ========================================
+echo   SISTEMA INICIADO CORRECTAMENTE
+echo ========================================
 echo.
-
-REM ============================================
-REM PASO 3: VERIFICAR REQUISITOS
-REM ============================================
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║ PASO 3/3: VERIFICANDO REQUISITOS DEL SISTEMA                  ║
-echo ╚════════════════════════════════════════════════════════════════╝
+echo 🌐 URLs del sistema:
+echo   • Frontend: http://localhost:4200
+echo   • Backend API: http://localhost:8000
+echo   • Documentación API: http://localhost:8000/docs
+echo   • MongoDB: mongodb://localhost:27017
 echo.
-
-echo [Python]
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ Python no está instalado
-    echo    Descarga desde: https://www.python.org/downloads/
-) else (
-    python --version
-    echo ✅ Python está instalado
-)
+echo 📊 Estado actual:
+echo   • Base de datos: MongoDB conectada
+echo   • Backend: FastAPI corriendo
+echo   • Frontend: Angular iniciando...
 echo.
-
-echo [Node.js]
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo ❌ Node.js no está instalado
-    echo    Descarga desde: https://nodejs.org/
-) else (
-    node --version
-    npm --version
-    echo ✅ Node.js está instalado
-)
+echo ⚠️  IMPORTANTE:
+echo   • El frontend tardará unos minutos en compilar
+echo   • Una vez listo, se abrirá automáticamente en el navegador
+echo   • Usa Ctrl+C en cada ventana para detener los servicios
 echo.
-
-REM ============================================
-REM RESUMEN Y SIGUIENTES PASOS
-REM ============================================
-cls
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║                    SISTEMA LISTO                               ║
-echo ╚════════════════════════════════════════════════════════════════╝
-echo.
-echo ✅ MongoDB está corriendo en Docker
-echo    URL: mongodb://admin:admin123@localhost:27017
-echo    Base de datos: drtc_puno_db
-echo.
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║              SIGUIENTES PASOS                                  ║
-echo ╚════════════════════════════════════════════════════════════════╝
-echo.
-echo Para iniciar el BACKEND:
-echo   1. Abre una nueva terminal (CMD o PowerShell)
-echo   2. Ejecuta: start-backend.bat
-echo   3. Espera a ver: "Application startup complete"
-echo   4. Backend disponible en: http://localhost:8000
-echo.
-echo Para iniciar el FRONTEND:
-echo   1. Abre otra terminal nueva
-echo   2. Ejecuta: start-frontend.bat
-echo   3. Espera a ver: "Compiled successfully"
-echo   4. Frontend disponible en: http://localhost:4200
-echo.
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║              VERIFICAR BASE DE DATOS                           ║
-echo ╚════════════════════════════════════════════════════════════════╝
-echo.
-echo Para verificar la base de datos MongoDB:
-echo   Ejecuta: verificar-db.bat
-echo.
-echo ╔════════════════════════════════════════════════════════════════╗
-echo ║              DOCUMENTACIÓN                                     ║
-echo ╚════════════════════════════════════════════════════════════════╝
-echo.
-echo - Guía completa: GUIA_DESPLIEGUE_LOCAL.md
-echo - Análisis del módulo: ANALISIS_MODULO_RESOLUCION.md
-echo - Limpieza de mock: LIMPIEZA_MOCK_RESUMEN.md
+echo 🔧 Para desarrollo:
+echo   • Backend con hot-reload habilitado
+echo   • Frontend con live-reload habilitado
+echo   • Cambios se reflejan automáticamente
 echo.
 pause

@@ -10,6 +10,8 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { TokenAutoFixInterceptor } from './interceptors/token-auto-fix.interceptor';
+import { TokenAutoFixService } from './services/token-auto-fix.service';
 import { IconService } from './services/icon.service';
 
 export const appConfig: ApplicationConfig = {
@@ -47,6 +49,9 @@ export const appConfig: ApplicationConfig = {
     
     // IconService - Servicio de iconos con fallbacks automáticos
     IconService,
+    
+    // TokenAutoFixService - Servicio para corregir tokens corruptos automáticamente
+    TokenAutoFixService,
     
     // Configuración de inicialización eager
     {

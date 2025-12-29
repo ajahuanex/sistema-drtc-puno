@@ -65,6 +65,37 @@ export interface ResolucionConEmpresa extends Resolucion {
     };
     ruc: string;
   };
+  // Información adicional de relaciones
+  cantidadRutas?: number;
+  cantidadVehiculos?: number;
+  rutasRelacionadas?: RutaResumen[];
+  vehiculosRelacionados?: VehiculoResumen[];
+}
+
+/**
+ * Interface para resumen de ruta en resoluciones
+ */
+export interface RutaResumen {
+  id: string;
+  codigo: string;
+  origen: string;
+  destino: string;
+  distancia: number;
+  estado: string;
+  tipoServicio?: string;
+}
+
+/**
+ * Interface para resumen de vehículo en resoluciones
+ */
+export interface VehiculoResumen {
+  id: string;
+  placa: string;
+  marca?: string;
+  modelo?: string;
+  anioFabricacion?: number;
+  estado: string;
+  rutasEspecificas?: number;
 }
 
 /**
@@ -97,6 +128,8 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'tipoTramite',
     'fechaEmision',
     'estado',
+    'rutasAutorizadas',
+    'vehiculosHabilitados',
     'acciones'
   ],
   ordenColumnas: [
@@ -107,6 +140,8 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'fechaVigenciaInicio',
     'fechaVigenciaFin',
     'estado',
+    'rutasAutorizadas',
+    'vehiculosHabilitados',
     'estaActivo',
     'acciones'
   ],
@@ -188,6 +223,24 @@ export const COLUMNAS_DEFINICIONES: ColumnaDefinicion[] = [
     sortable: true,
     required: false,
     width: '120px',
+    align: 'center',
+    tipo: 'badge'
+  },
+  {
+    key: 'rutasAutorizadas',
+    label: 'Rutas Autorizadas',
+    sortable: false,
+    required: false,
+    width: '180px',
+    align: 'center',
+    tipo: 'badge'
+  },
+  {
+    key: 'vehiculosHabilitados',
+    label: 'Vehículos Habilitados',
+    sortable: false,
+    required: false,
+    width: '180px',
     align: 'center',
     tipo: 'badge'
   },

@@ -30,10 +30,17 @@ export class UserPreferencesService {
   fontSize = signal<'small' | 'medium' | 'large'>('medium');
   colorBlindMode = signal<'none' | 'protanopia' | 'deuteranopia' | 'tritanopia'>('none');
 
+  private isInitializing = true;
+
   constructor() {
     this.detectSystemPreferences();
     this.loadUserPreferences();
-    this.setupPreferenceWatchers();
+    
+    // Configurar watchers después de la carga inicial para evitar bucles
+    setTimeout(() => {
+      this.isInitializing = false;
+      this.setupPreferenceWatchers();
+    }, 100);
   }
 
   /**
@@ -162,14 +169,29 @@ export class UserPreferencesService {
       document.body.classList.add(`colorblind-${this.colorBlindMode()}`);
     });
 
-    // Guardar cambios cuando cualquier preferencia cambie
+    // Guardar cambios cuando cualquier preferencia cambie (con debounce para evitar bucles)
+    let saveTimeout: any;
     effect(() => {
+      // No ejecutar durante la inicialización
+      if (this.isInitializing) {
+        return;
+      }
+      
+      // Leer todas las preferencias para activar el effect
       this.reducedMotion();
       this.highContrast();
       this.darkMode();
       this.fontSize();
       this.colorBlindMode();
-      this.saveUserPreferences();
+      
+      // Debounce para evitar múltiples guardados
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      
+      saveTimeout = setTimeout(() => {
+        this.saveUserPreferences();
+      }, 500); // Esperar 500ms antes de guardar
     });
   }
 

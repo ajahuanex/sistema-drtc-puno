@@ -1,59 +1,59 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
-import { VehiculoModalService } from '../../services/vehiculo-modal.service';
+import { RutaService } from '../../services/ruta.service';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Empresa } from '../../models/empresa.model';
-import { TransferirVehiculoModalComponent } from './transferir-vehiculo-modal.component';
+import { Ruta } from '../../models/ruta.model';
 import { VehiculoModalComponent } from './vehiculo-modal.component';
+import { HistorialVehicularComponent } from './historial-vehicular.component';
+import { VehiculoDetalleComponent } from './vehiculo-detalle.component';
+import { CambiarEstadoModalComponent } from './cambiar-estado-modal.component';
+import { CargaMasivaVehiculosComponent } from './carga-masiva-vehiculos.component';
 import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
 
 @Component({
   selector: 'app-vehiculos',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    MatTableModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatCardModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    MatFormFieldModule,
     MatSelectModule,
-    MatInputModule,
-    MatExpansionModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
     MatChipsModule,
-    MatDialogModule,
+    MatTooltipModule,
     MatMenuModule,
     MatDividerModule,
-    MatPaginatorModule,
-    MatCheckboxModule,
-    FormsModule,
-    ReactiveFormsModule,
-    TransferirVehiculoModalComponent,
-    VehiculoModalComponent
+    MatProgressSpinnerModule,
+    MatExpansionModule,
+    MatCheckboxModule
   ],
   templateUrl: './vehiculos.component.html',
   styleUrls: ['./vehiculos.component.scss']
@@ -61,108 +61,85 @@ import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-espec
 export class VehiculosComponent implements OnInit {
   private vehiculoService = inject(VehiculoService);
   private empresaService = inject(EmpresaService);
-  private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private rutaService = inject(RutaService);
   private fb = inject(FormBuilder);
+  private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
-  private vehiculoModalService = inject(VehiculoModalService);
 
-  // Signals
+  // Signals para el estado del componente
   vehiculos = signal<Vehiculo[]>([]);
   empresas = signal<Empresa[]>([]);
+  rutas = signal<Ruta[]>([]);
   cargando = signal(false);
-  vehiculosFiltrados = signal<Vehiculo[]>([]);
+  vehiculosSeleccionados = signal<Set<string>>(new Set());
 
-  // Paginación
-  pageSize = 10;
-  currentPage = 0;
+  // Configuración de paginación
+  paginaActual = signal(0);
+  elementosPorPagina = signal(25);
+
+  // Signal para los valores de filtros
+  filtrosValues = signal<any>({
+    placa: '',
+    marca: '',
+    empresaId: '',
+    estado: '',
+    categoria: '',
+    mostrarSinResolucion: false
+  });
+
+  // Formulario de filtros
+  filtrosForm: FormGroup = this.fb.group({
+    placa: [''],
+    marca: [''],
+    empresaId: [''],
+    estado: [''],
+    categoria: [''],
+    mostrarSinResolucion: [false]
+  });
 
   // Configuración de columnas
   availableColumns = [
-    { key: 'placa', label: 'PLACA', visible: true, required: true },
-    { key: 'marca', label: 'MARCA / MODELO', visible: true, required: false },
-    { key: 'empresa', label: 'EMPRESA', visible: true, required: false },
-    { key: 'categoria', label: 'CATEGORÍA', visible: true, required: false },
-    { key: 'estado', label: 'ESTADO', visible: true, required: false },
-    { key: 'anio', label: 'AÑO', visible: true, required: false },
+    { key: 'select', label: 'Selección', visible: true, required: true },
+    { key: 'placa', label: 'Placa', visible: true, required: true },
+    { key: 'marca', label: 'Marca/Modelo', visible: true, required: false },
+    { key: 'empresa', label: 'Empresa', visible: true, required: false },
+    { key: 'categoria', label: 'Categoría', visible: true, required: false },
+    { key: 'estado', label: 'Estado', visible: true, required: false },
+    { key: 'anio', label: 'Año', visible: false, required: false },
     { key: 'tuc', label: 'TUC', visible: false, required: false },
-    { key: 'resolucion', label: 'RESOLUCIÓN', visible: false, required: false },
-    { key: 'rutas-especificas', label: 'RUTAS', visible: true, required: false },
-    { key: 'acciones', label: 'ACCIONES', visible: true, required: true }
+    { key: 'resolucion', label: 'Resolución', visible: false, required: false },
+    { key: 'sede-registro', label: 'Sede Registro', visible: false, required: false },
+    { key: 'color', label: 'Color', visible: false, required: false },
+    { key: 'numero-serie', label: 'N° Serie', visible: false, required: false },
+    { key: 'motor', label: 'Motor', visible: false, required: false },
+    { key: 'chasis', label: 'Chasis', visible: false, required: false },
+    { key: 'ejes', label: 'Ejes', visible: false, required: false },
+    { key: 'asientos', label: 'Asientos', visible: false, required: false },
+    { key: 'peso-neto', label: 'Peso Neto', visible: false, required: false },
+    { key: 'peso-bruto', label: 'Peso Bruto', visible: false, required: false },
+    { key: 'combustible', label: 'Combustible', visible: false, required: false },
+    { key: 'cilindrada', label: 'Cilindrada', visible: false, required: false },
+    { key: 'potencia', label: 'Potencia', visible: false, required: false },
+    { key: 'medidas', label: 'Medidas', visible: false, required: false },
+    { key: 'fecha-registro', label: 'Fecha Registro', visible: false, required: false },
+    { key: 'fecha-actualizacion', label: 'Última Actualización', visible: false, required: false },
+    { key: 'observaciones', label: 'Observaciones', visible: false, required: false },
+    { key: 'rutas-especificas', label: 'Rutas Específicas', visible: true, required: false },
+    { key: 'acciones', label: 'Acciones', visible: true, required: true }
   ];
 
   // Computed properties
-  get displayedColumns(): string[] {
-    return this.availableColumns
-      .filter(col => col.visible)
-      .map(col => col.key);
-  }
-  filtrosForm: FormGroup;
+  vehiculosFiltrados = computed(() => {
+    const filtros = this.filtrosValues();
+    let vehiculosFiltrados = this.vehiculos();
 
-  constructor() {
-    this.filtrosForm = this.fb.group({
-      placa: [''],
-      marca: [''],
-      empresaId: [''],
-      estado: [''],
-      categoria: [''],
-      mostrarSinResolucion: [false]
-    });
-
-    // Cargar configuración de columnas desde localStorage
-    this.loadColumnConfiguration();
-  }
-
-  ngOnInit(): void {
-    this.cargarVehiculos();
-    this.cargarEmpresas();
-  }
-
-  cargarVehiculos(): void {
-    this.cargando.set(true);
-    console.log('CARGANDO VEHÍCULOS...');
-
-    this.vehiculoService.getVehiculos().subscribe({
-      next: (vehiculos) => {
-        console.log('VEHÍCULOS CARGADOS:', vehiculos);
-        this.vehiculos.set(vehiculos);
-        // Aplicar filtros automáticamente para mostrar solo vehículos con resolución por defecto
-        this.aplicarFiltros();
-        this.cargando.set(false);
-      },
-      error: (error) => {
-        console.error('ERROR CARGANDO VEHÍCULOS:', error);
-        this.cargando.set(false);
-        this.snackBar.open('ERROR AL CARGAR LOS VEHÍCULOS', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-      }
-    });
-  }
-
-  cargarEmpresas(): void {
-    this.empresaService.getEmpresas(0, 100).subscribe({
-      next: (empresas) => {
-        this.empresas.set(empresas);
-      },
-      error: (error) => {
-        console.error('ERROR CARGANDO EMPRESAS:', error);
-      }
-    });
-  }
-
-  recargarVehiculos(): void {
-    console.log('RECARGANDO VEHÍCULOS MANUALMENTE...');
-    this.cargarVehiculos();
-  }
-
-  aplicarFiltros(): void {
-    const filtros = this.filtrosForm.value;
-    console.log('APLICANDO FILTROS:', filtros);
-
-    let vehiculosFiltrados = [...this.vehiculos()];
+    // FILTRO POR DEFECTO: Solo mostrar vehículos con resolución y empresa
+    // A menos que se active explícitamente el checkbox para mostrar sin resolución
+    if (!filtros.mostrarSinResolucion) {
+      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
+        v.resolucionId && v.empresaActualId
+      );
+    }
 
     if (filtros.placa) {
       vehiculosFiltrados = vehiculosFiltrados.filter(v => 
@@ -172,7 +149,7 @@ export class VehiculosComponent implements OnInit {
 
     if (filtros.marca) {
       vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.marca.toLowerCase().includes(filtros.marca.toLowerCase())
+        v.marca?.toLowerCase().includes(filtros.marca.toLowerCase())
       );
     }
 
@@ -194,42 +171,84 @@ export class VehiculosComponent implements OnInit {
       );
     }
 
-    // Filtro de resolución: por defecto solo mostrar vehículos CON resolución
-    // Si está marcado "mostrarSinResolucion", mostrar todos
-    if (!filtros.mostrarSinResolucion) {
+    // Si está activado el checkbox, mostrar SOLO los que NO tienen resolución
+    if (filtros.mostrarSinResolucion) {
       vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.resolucionId && v.resolucionId.trim() !== ''
+        !v.resolucionId || !v.empresaActualId
       );
     }
 
-    this.vehiculosFiltrados.set(vehiculosFiltrados);
-    this.currentPage = 0;
+    // ORDENAMIENTO POR FECHA MÁS RECIENTE PRIMERO
+    // Prioridad: fechaActualizacion > fechaRegistro > fechaCreacion
+    vehiculosFiltrados = vehiculosFiltrados.sort((a, b) => {
+      const fechaA = this.obtenerFechaMasReciente(a);
+      const fechaB = this.obtenerFechaMasReciente(b);
+      
+      // Ordenar de más reciente a más antiguo (descendente)
+      return fechaB.getTime() - fechaA.getTime();
+    });
+
+    return vehiculosFiltrados;
+  });
+
+  displayedColumns = computed(() => 
+    this.availableColumns
+      .filter(col => col.visible)
+      .map(col => col.key)
+  );
+
+  // Getter para usar en el template (Angular no puede usar computed directamente en matHeaderRowDef)
+  get displayedColumnsArray(): string[] {
+    return this.displayedColumns();
+  }
+
+  ngOnInit(): void {
+    this.cargarDatos();
+    
+    // Suscribirse a cambios en el formulario de filtros y actualizar el signal
+    this.filtrosForm.valueChanges.subscribe((values) => {
+      this.filtrosValues.set(values);
+      this.paginaActual.set(0);
+    });
+
+    // Inicializar el signal con los valores iniciales del formulario
+    this.filtrosValues.set(this.filtrosForm.value);
+  }
+
+  private cargarDatos(): void {
+    this.cargando.set(true);
+    
+    Promise.all([
+      this.vehiculoService.getVehiculos().toPromise(),
+      this.empresaService.getEmpresas().toPromise(),
+      this.rutaService.getRutas().toPromise()
+    ]).then(([vehiculos, empresas, rutas]) => {
+      this.vehiculos.set(vehiculos || []);
+      this.empresas.set(empresas || []);
+      this.rutas.set(rutas || []);
+      this.cargando.set(false);
+    }).catch((error: any) => {
+      console.error('Error cargando datos:', error);
+      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      this.cargando.set(false);
+    });
+  }
+
+  // Métodos de filtros
+  aplicarFiltros(): void {
+    // Actualizar el signal con los valores actuales del formulario
+    this.filtrosValues.set(this.filtrosForm.value);
+    this.paginaActual.set(0);
   }
 
   limpiarFiltros(): void {
-    this.filtrosForm.reset({
-      placa: '',
-      marca: '',
-      empresaId: '',
-      estado: '',
-      categoria: '',
-      mostrarSinResolucion: false
-    });
-    this.aplicarFiltros();
-    this.currentPage = 0;
+    this.filtrosForm.reset();
+    // Actualizar el signal con los valores reseteados
+    this.filtrosValues.set(this.filtrosForm.value);
+    this.paginaActual.set(0);
   }
 
-  getPaginatedVehiculos(): Vehiculo[] {
-    const start = this.currentPage * this.pageSize;
-    const end = start + this.pageSize;
-    return this.vehiculosFiltrados().slice(start, end);
-  }
-
-  onPageChange(event: PageEvent): void {
-    this.pageSize = event.pageSize;
-    this.currentPage = event.pageIndex;
-  }
-
+  // Métodos de estadísticas
   getVehiculosActivos(): number {
     return this.vehiculos().filter(v => v.estado === 'ACTIVO').length;
   }
@@ -238,274 +257,64 @@ export class VehiculosComponent implements OnInit {
     return this.vehiculos().filter(v => v.estado === estado).length;
   }
 
-  getEmpresaNombre(empresaId: string): string {
-    const empresa = this.empresas().find(e => e.id === empresaId);
-    return empresa?.razonSocial?.principal || 'N/A';
+  // Métodos de paginación
+  getPaginatedVehiculos(): Vehiculo[] {
+    const vehiculos = this.vehiculosFiltrados();
+    const inicio = this.paginaActual() * this.elementosPorPagina();
+    const fin = inicio + this.elementosPorPagina();
+    return vehiculos.slice(inicio, fin);
   }
 
-  nuevoVehiculo(): void {
-    console.log('🔍 ABRIENDO MODAL NUEVO VEHÍCULO...');
-    
-    try {
-      const dialogRef = this.dialog.open(VehiculoModalComponent, {
-        width: '900px',
-        maxHeight: '90vh',
-        data: {
-          mode: 'create'
-        },
-        disableClose: true
-      });
+  // Métodos de selección
+  isVehiculoSeleccionado(vehiculoId: string): boolean {
+    return this.vehiculosSeleccionados().has(vehiculoId);
+  }
 
-      console.log('✅ Modal abierto directamente:', dialogRef);
-
-      dialogRef.afterClosed().subscribe(result => {
-        console.log('🔍 Modal cerrado con resultado:', result);
-        
-        if (result && result.success && result.vehiculosCreados) {
-          // Modo múltiple - vehículos ya fueron guardados en el modal
-          console.log('✅ Vehículos creados en modo múltiple:', result.vehiculosCreados);
-          this.snackBar.open(`${result.count} VEHÍCULO(S) CREADO(S) CORRECTAMENTE`, 'CERRAR', { duration: 3000 });
-          this.cargarVehiculos();
-        } else if (result && result.vehiculo) {
-          // Modo individual - necesitamos guardar el vehículo
-          console.log('✅ Datos del vehículo recibidos:', result.vehiculo);
-          
-          // Llamar al servicio para guardar en el backend
-          this.cargando.set(true);
-          this.vehiculoService.createVehiculo(result.vehiculo).subscribe({
-            next: (vehiculoCreado) => {
-              console.log('✅ Vehículo guardado en backend:', vehiculoCreado);
-              this.cargando.set(false);
-              this.snackBar.open('VEHÍCULO CREADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
-              this.cargarVehiculos();
-            },
-            error: (error) => {
-              console.error('❌ Error guardando vehículo en backend:', error);
-              this.cargando.set(false);
-              this.snackBar.open('ERROR AL GUARDAR EL VEHÍCULO', 'CERRAR', { 
-                duration: 5000,
-                horizontalPosition: 'center',
-                verticalPosition: 'top'
-              });
-            }
-          });
-        } else {
-          console.log('ℹ️ Modal cerrado sin crear vehículo');
-        }
-      });
-    } catch (error) {
-      console.error('❌ Error abriendo modal:', error);
-      this.snackBar.open('ERROR ABRIENDO EL MODAL', 'CERRAR', { duration: 3000 });
+  toggleVehiculoSeleccion(vehiculoId: string): void {
+    const seleccionados = new Set(this.vehiculosSeleccionados());
+    if (seleccionados.has(vehiculoId)) {
+      seleccionados.delete(vehiculoId);
+    } else {
+      seleccionados.add(vehiculoId);
     }
+    this.vehiculosSeleccionados.set(seleccionados);
   }
 
-  cargaMasivaVehiculos(): void {
-    this.router.navigate(['/vehiculos/carga-masiva']);
+  seleccionarTodos(): boolean {
+    const vehiculosVisibles = this.getPaginatedVehiculos();
+    return vehiculosVisibles.length > 0 && 
+           vehiculosVisibles.every(v => this.vehiculosSeleccionados().has(v.id));
   }
 
-  verDetalle(vehiculo: Vehiculo): void {
-    this.router.navigate(['/vehiculos', vehiculo.id]);
-  }
-
-  editarVehiculo(vehiculo: Vehiculo): void {
-    console.log('🔍 ABRIENDO MODAL EDITAR VEHÍCULO:', vehiculo);
+  toggleSeleccionarTodos(): void {
+    const vehiculosVisibles = this.getPaginatedVehiculos();
+    const seleccionados = new Set(this.vehiculosSeleccionados());
     
-    try {
-      const dialogRef = this.dialog.open(VehiculoModalComponent, {
-        width: '900px',
-        maxHeight: '90vh',
-        data: {
-          mode: 'edit',
-          vehiculo: vehiculo
-        },
-        disableClose: true
-      });
-
-      console.log('✅ Modal de edición abierto:', dialogRef);
-
-      dialogRef.afterClosed().subscribe(result => {
-        console.log('🔍 Modal de edición cerrado con resultado:', result);
-        if (result && result.vehiculo) {
-          console.log('✅ Datos del vehículo actualizados:', result.vehiculo);
-          
-          // Llamar al servicio para actualizar en el backend
-          this.cargando.set(true);
-          this.vehiculoService.updateVehiculo(vehiculo.id, result.vehiculo).subscribe({
-            next: (vehiculoActualizado) => {
-              console.log('✅ Vehículo actualizado en backend:', vehiculoActualizado);
-              this.cargando.set(false);
-              this.snackBar.open('VEHÍCULO ACTUALIZADO CORRECTAMENTE', 'CERRAR', { duration: 3000 });
-              this.cargarVehiculos();
-            },
-            error: (error) => {
-              console.error('❌ Error actualizando vehículo en backend:', error);
-              this.cargando.set(false);
-              this.snackBar.open('ERROR AL ACTUALIZAR EL VEHÍCULO', 'CERRAR', { 
-                duration: 5000,
-                horizontalPosition: 'center',
-                verticalPosition: 'top'
-              });
-            }
-          });
-        } else {
-          console.log('ℹ️ Modal cerrado sin actualizar vehículo');
-        }
-      });
-    } catch (error) {
-      console.error('❌ Error abriendo modal de edición:', error);
-      this.snackBar.open('ERROR ABRIENDO EL MODAL DE EDICIÓN', 'CERRAR', { duration: 3000 });
-    }
-  }
-
-  verHistorial(vehiculo: Vehiculo): void {
-    this.router.navigate(['/vehiculos', vehiculo.id, 'historial']);
-  }
-
-  transferirVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(TransferirVehiculoModalComponent, {
-      width: '600px',
-      data: {
-        vehiculo: vehiculo,
-        empresas: this.empresas()
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('VEHÍCULO TRANSFERIDO:', result);
-        this.snackBar.open('VEHÍCULO TRANSFERIDO EXITOSAMENTE', 'CERRAR', { duration: 3000 });
-        this.cargarVehiculos();
-      }
-    });
-  }
-
-  duplicarVehiculo(vehiculo: Vehiculo): void {
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
-  }
-
-  solicitarBajaVehiculo(vehiculo: Vehiculo): void {
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
-  }
-
-  eliminarVehiculo(vehiculo: Vehiculo): void {
-    if (confirm('¿ESTÁ SEGURO DE QUE DESEA ELIMINAR ESTE VEHÍCULO? ESTA ACCIÓN NO SE PUEDE DESHACER.')) {
-      this.vehiculoService.deleteVehiculo(vehiculo.id).subscribe({
-        next: () => {
-          this.snackBar.open('VEHÍCULO ELIMINADO EXITOSAMENTE', 'CERRAR', { duration: 3000 });
-          this.cargarVehiculos();
-        },
-        error: (error) => {
-          console.error('ERROR ELIMINANDO VEHÍCULO:', error);
-          this.snackBar.open('ERROR AL ELIMINAR EL VEHÍCULO', 'CERRAR', { duration: 3000 });
-        }
-      });
-    }
-  }
-
-  exportarVehiculos(): void {
-    // TODO: Implementar exportación cuando el servicio esté disponible
-    this.snackBar.open('FUNCIÓN DE EXPORTACIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
-  }
-
-  getRutasEspecificasCount(vehiculo: Vehiculo): number {
-    // TODO: Implementar conteo real de rutas específicas
-    // Por ahora retorna un valor simulado
-    return Math.floor(Math.random() * 4); // 0-3 rutas específicas
-  }
-
-  gestionarRutasEspecificas(vehiculo: Vehiculo): void {
-    console.log('🛣️ Gestionar rutas específicas para vehículo:', vehiculo.placa);
-    
-    // Verificar que el vehículo tenga resolución
-    if (!vehiculo.resolucionId) {
-      this.snackBar.open('El vehículo debe tener una resolución asociada para gestionar rutas específicas', 'Cerrar', { duration: 5000 });
-      return;
+    if (this.seleccionarTodos()) {
+      // Deseleccionar todos los visibles
+      vehiculosVisibles.forEach(v => seleccionados.delete(v.id));
+    } else {
+      // Seleccionar todos los visibles
+      vehiculosVisibles.forEach(v => seleccionados.add(v.id));
     }
     
-    const dialogRef = this.dialog.open(GestionarRutasEspecificasModalComponent, {
-      width: '1000px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      data: {
-        vehiculo: vehiculo,
-        modo: 'individual'
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('Rutas específicas actualizadas:', result);
-        this.snackBar.open('Rutas específicas actualizadas exitosamente', 'Cerrar', { duration: 3000 });
-        this.cargarVehiculos();
-      }
-    });
+    this.vehiculosSeleccionados.set(seleccionados);
   }
 
-  // Métodos de historial
-  actualizarHistorialTodos(): void {
-    this.snackBar.open('ACTUALIZANDO HISTORIAL...', 'CERRAR', { duration: 2000 });
-    // TODO: Implementar actualización de historial
+  getVehiculosSeleccionadosCount(): number {
+    return this.vehiculosSeleccionados().size;
   }
 
-  verEstadisticasHistorial(): void {
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
+  limpiarSeleccion(): void {
+    this.vehiculosSeleccionados.set(new Set());
   }
 
-  marcarVehiculosActuales(): void {
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
-  }
-
-  verEstadisticasFiltrado(): void {
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', { duration: 3000 });
-  }
-
-  // Métodos de configuración de columnas
-  loadColumnConfiguration(): void {
-    const savedConfig = localStorage.getItem('vehiculos-column-config');
-    if (savedConfig) {
-      try {
-        const config = JSON.parse(savedConfig);
-        this.availableColumns.forEach(col => {
-          const savedCol = config.find((c: any) => c.key === col.key);
-          if (savedCol && !col.required) {
-            col.visible = savedCol.visible;
-          }
-        });
-      } catch (error) {
-        console.error('Error cargando configuración de columnas:', error);
-      }
-    }
-  }
-
-  saveColumnConfiguration(): void {
-    const config = this.availableColumns.map(col => ({
-      key: col.key,
-      visible: col.visible
-    }));
-    localStorage.setItem('vehiculos-column-config', JSON.stringify(config));
-  }
-
+  // Métodos de columnas
   toggleColumn(columnKey: string): void {
     const column = this.availableColumns.find(col => col.key === columnKey);
     if (column && !column.required) {
       column.visible = !column.visible;
-      this.saveColumnConfiguration();
     }
-  }
-
-  resetColumns(): void {
-    this.availableColumns.forEach(col => {
-      if (col.key === 'placa' || col.key === 'acciones') {
-        col.visible = true; // Columnas requeridas siempre visibles
-      } else if (col.key === 'marca' || col.key === 'empresa' || col.key === 'categoria' || 
-                 col.key === 'estado' || col.key === 'anio' || col.key === 'rutas-especificas') {
-        col.visible = true; // Columnas por defecto visibles
-      } else {
-        col.visible = false; // Otras columnas ocultas por defecto
-      }
-    });
-    this.saveColumnConfiguration();
-    this.snackBar.open('CONFIGURACIÓN DE COLUMNAS RESTABLECIDA', 'CERRAR', { duration: 3000 });
   }
 
   getVisibleColumnsCount(): number {
@@ -513,19 +322,354 @@ export class VehiculosComponent implements OnInit {
   }
 
   getHiddenColumnsCount(): number {
-    return this.availableColumns.filter(col => !col.visible && !col.required).length;
+    return this.availableColumns.filter(col => !col.visible).length;
   }
 
-  // Métodos para obtener datos adicionales de columnas opcionales
+  resetColumns(): void {
+    // Restaurar configuración por defecto
+    this.availableColumns.forEach(col => {
+      if (['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'].includes(col.key)) {
+        col.visible = true;
+      } else {
+        col.visible = false;
+      }
+    });
+  }
+
+  // Métodos de utilidad para mostrar datos
+  getEmpresaNombre(empresaId: string): string {
+    const empresa = this.empresas().find(e => e.id === empresaId);
+    return empresa?.razonSocial?.principal || 'Sin empresa';
+  }
+
   getVehiculoTuc(vehiculo: Vehiculo): string {
-    if (vehiculo.tuc && typeof vehiculo.tuc === 'object' && 'nroTuc' in vehiculo.tuc) {
-      return vehiculo.tuc.nroTuc;
-    }
-    return 'N/A';
+    return vehiculo.tuc?.nroTuc || 'N/A';
   }
 
   getVehiculoResolucion(vehiculo: Vehiculo): string {
-    // TODO: Implementar obtención de número de resolución
-    return vehiculo.resolucionId ? 'R-XXXX-2024' : 'N/A';
+    return vehiculo.resolucionId || 'Sin resolución';
+  }
+
+  getMedidas(vehiculo: Vehiculo): string {
+    const medidas = vehiculo.datosTecnicos?.medidas;
+    if (!medidas) return 'N/A';
+    return `${medidas.largo || 0}x${medidas.ancho || 0}x${medidas.alto || 0}m`;
+  }
+
+  getFechaRegistro(vehiculo: Vehiculo): string {
+    return vehiculo.fechaRegistro ? new Date(vehiculo.fechaRegistro).toLocaleDateString() : 'N/A';
+  }
+
+  getFechaActualizacion(vehiculo: Vehiculo): string {
+    return vehiculo.fechaActualizacion ? new Date(vehiculo.fechaActualizacion).toLocaleDateString() : 'N/A';
+  }
+
+  getRutasEspecificasCount(vehiculo: Vehiculo): number {
+    // Verificar si tiene rutasAsignadasIds (array de IDs de rutas)
+    if (vehiculo.rutasAsignadasIds && Array.isArray(vehiculo.rutasAsignadasIds)) {
+      return vehiculo.rutasAsignadasIds.length;
+    }
+    
+    // Fallback a rutasEspecificas si existe
+    if (vehiculo.rutasEspecificas && Array.isArray(vehiculo.rutasEspecificas)) {
+      return vehiculo.rutasEspecificas.length;
+    }
+    
+    return 0;
+  }
+
+  getRutasEspecificasText(vehiculo: Vehiculo): string {
+    const count = this.getRutasEspecificasCount(vehiculo);
+    if (count === 0) return 'Sin rutas';
+    
+    // Obtener los códigos de las rutas asignadas
+    const codigosRutas = this.getRutasCodigosArray(vehiculo);
+    
+    if (codigosRutas.length === 0) {
+      return count === 1 ? '1 ruta' : `${count} rutas`;
+    }
+    
+    // Mostrar los códigos, truncar a 12 caracteres si es muy largo
+    const codigosTexto = codigosRutas.join(',');
+    if (codigosTexto.length > 12) {
+      return codigosTexto.substring(0, 12) + '...';
+    }
+    
+    return codigosTexto;
+  }
+
+  getRutasCodigosArray(vehiculo: Vehiculo): string[] {
+    const rutasIds = vehiculo.rutasAsignadasIds || [];
+    const rutas = this.rutas();
+    
+    return rutasIds
+      .map(rutaId => {
+        const ruta = rutas.find((r: Ruta) => r.id === rutaId);
+        return ruta?.codigoRuta || null;
+      })
+      .filter(codigo => codigo !== null)
+      .map(codigo => codigo as string)
+      .sort(); // Ordenar los códigos
+  }
+
+  getRutasCodigosCompletos(vehiculo: Vehiculo): string {
+    const codigosRutas = this.getRutasCodigosArray(vehiculo);
+    
+    if (codigosRutas.length === 0) {
+      return 'Sin rutas asignadas';
+    }
+    
+    return codigosRutas.join(', ');
+  }
+
+  // Método para obtener la fecha más reciente de un vehículo
+  private obtenerFechaMasReciente(vehiculo: Vehiculo): Date {
+    const fechas: Date[] = [];
+    
+    // Agregar fechaActualizacion si existe
+    if (vehiculo.fechaActualizacion) {
+      fechas.push(new Date(vehiculo.fechaActualizacion));
+    }
+    
+    // Agregar fechaRegistro si existe
+    if (vehiculo.fechaRegistro) {
+      fechas.push(new Date(vehiculo.fechaRegistro));
+    }
+    
+    // Si no hay fechas, usar fecha muy antigua para que aparezca al final
+    if (fechas.length === 0) {
+      return new Date(0);
+    }
+    
+    // Retornar la fecha más reciente
+    return new Date(Math.max(...fechas.map(fecha => fecha.getTime())));
+  }
+
+  // Métodos adicionales requeridos por el template
+  gestionarRutasEspecificas(vehiculo: Vehiculo): void {
+    this.gestionarRutasVehiculo(vehiculo);
+  }
+
+  getRutasAsignadasCompletas(vehiculo: Vehiculo): string {
+    return this.getRutasCodigosCompletos(vehiculo);
+  }
+
+  getRutasAsignadasCount(vehiculo: Vehiculo): number {
+    return this.getRutasEspecificasCount(vehiculo);
+  }
+
+  getRutasAsignadas(vehiculo: Vehiculo): string {
+    return this.getRutasEspecificasText(vehiculo);
+  }
+
+  verDetalle(vehiculo: Vehiculo): void {
+    this.verDetalleVehiculo(vehiculo);
+  }
+
+  verHistorial(vehiculo: Vehiculo): void {
+    this.verHistorialVehiculo(vehiculo);
+  }
+
+  transferirVehiculo(vehiculo: Vehiculo): void {
+    this.snackBar.open('Función de transferencia en desarrollo', 'Cerrar', { duration: 3000 });
+  }
+
+  duplicarVehiculo(vehiculo: Vehiculo): void {
+    this.snackBar.open('Función de duplicación en desarrollo', 'Cerrar', { duration: 3000 });
+  }
+
+  solicitarBajaVehiculo(vehiculo: Vehiculo): void {
+    this.snackBar.open('Función de solicitud de baja en desarrollo', 'Cerrar', { duration: 3000 });
+  }
+
+  // Propiedades para el paginador
+  get pageSize(): number {
+    return this.elementosPorPagina();
+  }
+
+  get currentPage(): number {
+    return this.paginaActual();
+  }
+
+  onPageChange(event: any): void {
+    this.paginaActual.set(event.pageIndex);
+    this.elementosPorPagina.set(event.pageSize);
+  }
+
+  // Métodos de acciones
+  nuevoVehiculo(): void {
+    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+      width: '900px',
+      maxHeight: '90vh',
+      data: { mode: 'create' }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.recargarVehiculos();
+      }
+    });
+  }
+
+  editarVehiculo(vehiculo: Vehiculo): void {
+    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+      width: '900px',
+      maxHeight: '90vh',
+      data: { 
+        mode: 'edit',
+        vehiculo: vehiculo
+      }
+    });
+
+    // Suscribirse al evento de actualización del modal
+    const modalInstance = dialogRef.componentInstance;
+    
+    modalInstance.vehiculoUpdated.subscribe((vehiculoActualizado) => {
+      console.log('Vehículo actualizado:', vehiculoActualizado);
+      this.recargarVehiculos();
+    });
+
+    modalInstance.modalClosed.subscribe(() => {
+      console.log('Modal cerrado');
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.recargarVehiculos();
+      }
+    });
+  }
+
+  verDetalleVehiculo(vehiculo: Vehiculo): void {
+    const dialogRef = this.dialog.open(VehiculoDetalleComponent, {
+      width: '1000px',
+      maxHeight: '90vh',
+      data: { vehiculo: vehiculo }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result?.action === 'edit') {
+        this.editarVehiculo(result.vehiculo);
+      }
+    });
+  }
+
+  cambiarEstadoVehiculo(vehiculo: Vehiculo): void {
+    const dialogRef = this.dialog.open(CambiarEstadoModalComponent, {
+      width: '600px',
+      data: { vehiculo: vehiculo }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.recargarVehiculos();
+      }
+    });
+  }
+
+  verHistorialVehiculo(vehiculo: Vehiculo): void {
+    this.dialog.open(HistorialVehicularComponent, {
+      width: '1200px',
+      maxHeight: '90vh',
+      data: { 
+        vehiculoId: vehiculo.id,
+        placa: vehiculo.placa
+      }
+    });
+  }
+
+  gestionarRutasVehiculo(vehiculo: Vehiculo): void {
+    const dialogRef = this.dialog.open(GestionarRutasEspecificasModalComponent, {
+      width: '1000px',
+      maxHeight: '90vh',
+      data: { vehiculo: vehiculo }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.recargarVehiculos();
+      }
+    });
+  }
+
+  eliminarVehiculo(vehiculo: Vehiculo): void {
+    const confirmar = confirm(
+      `¿Estás seguro de que deseas eliminar el vehículo ${vehiculo.placa}?\n\n` +
+      `Esta acción no se puede deshacer.`
+    );
+
+    if (confirmar) {
+      this.vehiculoService.deleteVehiculo(vehiculo.id).subscribe({
+        next: () => {
+          this.snackBar.open(
+            `Vehículo ${vehiculo.placa} eliminado exitosamente`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+          this.recargarVehiculos();
+        },
+        error: (error: any) => {
+          console.error('Error eliminando vehículo:', error);
+          this.snackBar.open('Error al eliminar vehículo', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  cargaMasivaVehiculos(): void {
+    const dialogRef = this.dialog.open(CargaMasivaVehiculosComponent, {
+      width: '800px',
+      maxHeight: '90vh'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.recargarVehiculos();
+      }
+    });
+  }
+
+  gestionarRutasEnBloque(): void {
+    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
+      .map(id => this.vehiculos().find(v => v.id === id))
+      .filter(v => v !== undefined) as Vehiculo[];
+
+    if (vehiculosSeleccionados.length === 0) {
+      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Aquí implementarías la lógica para gestionar rutas en bloque
+    this.snackBar.open(
+      `Gestionando rutas para ${vehiculosSeleccionados.length} vehículos`,
+      'Cerrar',
+      { duration: 3000 }
+    );
+  }
+
+  exportarVehiculos(): void {
+    // Implementar exportación
+    this.snackBar.open('Exportando vehículos...', 'Cerrar', { duration: 3000 });
+  }
+
+  recargarVehiculos(): void {
+    this.cargarDatos();
+  }
+
+  // Métodos de historial (placeholders)
+  actualizarHistorialTodos(): void {
+    this.snackBar.open('Actualizando historial de todos los vehículos...', 'Cerrar', { duration: 3000 });
+  }
+
+  verEstadisticasHistorial(): void {
+    this.snackBar.open('Mostrando estadísticas del historial...', 'Cerrar', { duration: 3000 });
+  }
+
+  marcarVehiculosActuales(): void {
+    this.snackBar.open('Marcando vehículos como actuales...', 'Cerrar', { duration: 3000 });
+  }
+
+  verEstadisticasFiltrado(): void {
+    this.snackBar.open('Mostrando estadísticas del filtrado actual...', 'Cerrar', { duration: 3000 });
   }
 }

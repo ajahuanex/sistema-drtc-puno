@@ -155,7 +155,7 @@
                     formControlName="mostrarSinResolucion" 
                     (change)="aplicarFiltros()"
                     color="primary">
-                    Mostrar vehículos sin resolución
+                    Mostrar vehículos sin resolución o empresa (por defecto se ocultan)
                 </mat-checkbox>
             </div>
 
@@ -213,12 +213,35 @@
             <div class="table-info">
                 <h3>VEHÍCULOS REGISTRADOS</h3>
                 <p class="table-subtitle">SE ENCONTRARON {{vehiculosFiltrados().length}} VEHÍCULOS</p>
+                <p class="table-sort-info">
+                    <mat-icon class="sort-icon">schedule</mat-icon>
+                    ORDENADOS POR FECHA MÁS RECIENTE PRIMERO
+                </p>
             </div>
             <div class="table-actions">
-                <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
-                    <mat-icon>view_column</mat-icon>
-                    COLUMNAS ({{ getVisibleColumnsCount() }})
-                </button>
+                <!-- Acciones en bloque -->
+                @if (getVehiculosSeleccionadosCount() > 0) {
+                    <div class="bulk-actions">
+                        <span class="selection-info">{{ getVehiculosSeleccionadosCount() }} seleccionado(s)</span>
+                        <button mat-raised-button color="primary" (click)="gestionarRutasEnBloque()">
+                            <mat-icon>route</mat-icon>
+                            GESTIONAR RUTAS ({{ getVehiculosSeleccionadosCount() }})
+                        </button>
+                        <button mat-button (click)="limpiarSeleccion()">
+                            <mat-icon>clear</mat-icon>
+                            LIMPIAR
+                        </button>
+                    </div>
+                } @else {
+                    <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
+                        <mat-icon>view_column</mat-icon>
+                        COLUMNAS ({{ getVisibleColumnsCount() }})
+                    </button>
+                    <button mat-button color="accent" (click)="recargarVehiculos()">
+                        <mat-icon>refresh</mat-icon>
+                        RECARGAR
+                    </button>
+                }
                 <mat-menu #columnMenu="matMenu" class="column-menu">
                     <div class="column-menu-header">
                         <h4>CONFIGURAR COLUMNAS</h4>
@@ -254,6 +277,25 @@
 
         <div class="table-container">
             <table mat-table [dataSource]="getPaginatedVehiculos()" class="modern-table">
+                <!-- Selección Column -->
+                <ng-container matColumnDef="select">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell select-column">
+                        <mat-checkbox 
+                            [checked]="seleccionarTodos()"
+                            [indeterminate]="getVehiculosSeleccionadosCount() > 0 && !seleccionarTodos()"
+                            (change)="toggleSeleccionarTodos()"
+                            color="primary">
+                        </mat-checkbox>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell select-column">
+                        <mat-checkbox 
+                            [checked]="isVehiculoSeleccionado(vehiculo.id)"
+                            (change)="toggleVehiculoSeleccion(vehiculo.id)"
+                            color="primary">
+                        </mat-checkbox>
+                    </td>
+                </ng-container>
+
                 <!-- Placa Column -->
                 <ng-container matColumnDef="placa">
                     <th mat-header-cell *matHeaderCellDef class="table-header-cell">
@@ -368,21 +410,249 @@
                     </td>
                 </ng-container>
 
-                <!-- Rutas Específicas Column -->
-                <ng-container matColumnDef="rutas-especificas">
+                <!-- Sede Registro Column -->
+                <ng-container matColumnDef="sede-registro">
                     <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                         <div class="header-content">
-                            <span>RUTAS</span>
+                            <span>SEDE REGISTRO</span>
                         </div>
                     </th>
                     <td mat-cell *matCellDef="let vehiculo" class="table-cell">
                         <div class="cell-content">
-                            <button mat-icon-button 
+                            <span class="cell-text">{{ vehiculo.sedeRegistro || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Color Column -->
+                <ng-container matColumnDef="color">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>COLOR</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.color || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Número Serie Column -->
+                <ng-container matColumnDef="numero-serie">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>N° SERIE</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.numeroSerie || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Motor Column -->
+                <ng-container matColumnDef="motor">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>MOTOR</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.motor || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Chasis Column -->
+                <ng-container matColumnDef="chasis">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>CHASIS</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.chasis || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Ejes Column -->
+                <ng-container matColumnDef="ejes">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>EJES</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.ejes || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Asientos Column -->
+                <ng-container matColumnDef="asientos">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>ASIENTOS</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.asientos || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Peso Neto Column -->
+                <ng-container matColumnDef="peso-neto">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>PESO NETO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.pesoNeto ? vehiculo.datosTecnicos.pesoNeto + ' kg' : 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Peso Bruto Column -->
+                <ng-container matColumnDef="peso-bruto">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>PESO BRUTO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.pesoBruto ? vehiculo.datosTecnicos.pesoBruto + ' kg' : 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Combustible Column -->
+                <ng-container matColumnDef="combustible">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>COMBUSTIBLE</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.tipoCombustible || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Cilindrada Column -->
+                <ng-container matColumnDef="cilindrada">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>CILINDRADA</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.cilindrada ? vehiculo.datosTecnicos.cilindrada + ' cc' : 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Potencia Column -->
+                <ng-container matColumnDef="potencia">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>POTENCIA</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.datosTecnicos?.potencia ? vehiculo.datosTecnicos.potencia + ' HP' : 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Medidas Column -->
+                <ng-container matColumnDef="medidas">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>MEDIDAS</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getMedidas(vehiculo) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Fecha Registro Column -->
+                <ng-container matColumnDef="fecha-registro">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>FECHA REGISTRO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getFechaRegistro(vehiculo) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Fecha Actualización Column -->
+                <ng-container matColumnDef="fecha-actualizacion">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>ÚLTIMA ACTUALIZACIÓN</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ getFechaActualizacion(vehiculo) }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Observaciones Column -->
+                <ng-container matColumnDef="observaciones">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>OBSERVACIONES</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ vehiculo.observaciones || 'N/A' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+
+                <!-- Rutas Específicas Column -->
+                <ng-container matColumnDef="rutas-especificas">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>RUTAS ASIGNADAS</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                        <div class="cell-content">
+                            <button mat-button 
                                     color="primary"
                                     (click)="gestionarRutasEspecificas(vehiculo)"
-                                    class="route-button-fixed"
-                                    matTooltip="Gestionar rutas específicas">
-                                <mat-icon>route</mat-icon>
+                                    class="rutas-button"
+                                    [matTooltip]="getRutasCodigosCompletos(vehiculo)"
+                                    matTooltipClass="rutas-tooltip">
+                                <div class="rutas-content">
+                                    <span class="rutas-count">{{ getRutasEspecificasCount(vehiculo) }}</span>
+                                    <span class="rutas-text">{{ getRutasEspecificasText(vehiculo) }}</span>
+                                </div>
                             </button>
                         </div>
                     </td>
@@ -438,8 +708,8 @@
                     </td>
                 </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header-row"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+                <tr mat-header-row *matHeaderRowDef="displayedColumnsArray" class="table-header-row"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumnsArray;" class="table-row"></tr>
             </table>
         </div>
 

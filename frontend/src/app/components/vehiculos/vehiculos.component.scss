@@ -337,6 +337,23 @@
     font-size: 12px;
 }
 
+.table-sort-info {
+    margin: 4px 0 0 0;
+    color: #1976d2;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sort-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
 .table-container {
     overflow-x: auto;
     background-color: #ffffff !important;
@@ -1058,6 +1075,326 @@
             font-size: 18px;
             width: 18px;
             height: 18px;
+        }
+    }
+}
+
+// ============================================
+// SELECCIÓN MÚLTIPLE Y ACCIONES EN BLOQUE
+// ============================================
+
+// Columna de selección
+.select-column {
+    width: 60px !important;
+    text-align: center !important;
+    padding: 12px 8px !important;
+    
+    mat-checkbox {
+        display: flex !important;
+        justify-content: center !important;
+        
+        ::ng-deep .mat-checkbox-frame {
+            border-color: #1976d2 !important;
+        }
+        
+        ::ng-deep .mat-checkbox-checked .mat-checkbox-background {
+            background-color: #1976d2 !important;
+        }
+        
+        ::ng-deep .mat-checkbox-indeterminate .mat-checkbox-background {
+            background-color: #1976d2 !important;
+        }
+    }
+}
+
+// Acciones en bloque
+.bulk-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 8px 16px !important;
+    background-color: #e3f2fd !important;
+    border: 1px solid #1976d2 !important;
+    border-radius: 8px !important;
+    animation: slideIn 0.3s ease-out !important;
+    
+    .selection-info {
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #1976d2 !important;
+        background-color: #ffffff !important;
+        padding: 4px 8px !important;
+        border-radius: 12px !important;
+        border: 1px solid #1976d2 !important;
+    }
+    
+    button {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        
+        &[color="primary"] {
+            background-color: #1976d2 !important;
+            color: #ffffff !important;
+            
+            &:hover {
+                background-color: #1565c0 !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3) !important;
+            }
+        }
+        
+        &:not([color="primary"]) {
+            color: #1976d2 !important;
+            border: 1px solid #1976d2 !important;
+            background-color: #ffffff !important;
+            
+            &:hover {
+                background-color: #f5f5f5 !important;
+            }
+        }
+        
+        mat-icon {
+            font-size: 16px !important;
+            width: 16px !important;
+            height: 16px !important;
+            margin-right: 4px !important;
+        }
+    }
+}
+
+// Animación para las acciones en bloque
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Filas seleccionadas
+.table-row.selected {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #1976d2 !important;
+    
+    &:hover {
+        background-color: #bbdefb !important;
+    }
+}
+
+// Responsive para acciones en bloque
+@media (max-width: 768px) {
+    .bulk-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        
+        .selection-info {
+            text-align: center !important;
+            margin-bottom: 4px !important;
+        }
+        
+        button {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+    }
+    
+    .table-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .select-column {
+        width: 50px !important;
+        padding: 8px 4px !important;
+    }
+    
+    .bulk-actions {
+        padding: 8px !important;
+        
+        .selection-info {
+            font-size: 12px !important;
+            padding: 3px 6px !important;
+        }
+        
+        button {
+            font-size: 11px !important;
+            padding: 8px 12px !important;
+            
+            mat-icon {
+                font-size: 14px !important;
+                width: 14px !important;
+                height: 14px !important;
+            }
+        }
+    }
+}
+
+// ============================================
+// BOTÓN DE RUTAS CON CONTENIDO
+// ============================================
+
+.rutas-button {
+    background-color: #e3f2fd !important;
+    border: 1px solid #1976d2 !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    min-height: 36px !important;
+    transition: all 0.2s ease !important;
+    
+    &:hover {
+        background-color: #bbdefb !important;
+        border-color: #1565c0 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
+    }
+    
+    .rutas-content {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        
+        .rutas-count {
+            background-color: #1976d2 !important;
+            color: #ffffff !important;
+            border-radius: 50% !important;
+            width: 20px !important;
+            height: 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .rutas-text {
+            color: #1976d2 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-transform: none !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 90px !important; /* Aproximadamente 12 caracteres */
+            font-family: 'Courier New', monospace !important; /* Fuente monoespaciada para mejor alineación */
+        }
+    }
+}
+
+// Estado sin rutas
+.rutas-button .rutas-content .rutas-text:contains("Sin rutas") {
+    color: #666 !important;
+    font-style: italic !important;
+}
+
+// Responsive para botón de rutas
+@media (max-width: 768px) {
+    .rutas-button {
+        padding: 4px 8px !important;
+        min-height: 32px !important;
+        
+        .rutas-content {
+            gap: 6px !important;
+            
+            .rutas-count {
+                width: 18px !important;
+                height: 18px !important;
+                font-size: 10px !important;
+            }
+            
+            .rutas-text {
+                font-size: 11px !important;
+                max-width: 70px !important; /* Ajustado para móviles */
+            }
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .rutas-button {
+        padding: 3px 6px !important;
+        min-height: 28px !important;
+        
+        .rutas-content {
+            gap: 4px !important;
+            
+            .rutas-count {
+                width: 16px !important;
+                height: 16px !important;
+                font-size: 9px !important;
+            }
+            
+            .rutas-text {
+                font-size: 10px !important;
+                max-width: 50px !important; /* Ajustado para pantallas muy pequeñas */
+            }
+        }
+    }
+}
+
+// Override global para asegurar que funcione
+::ng-deep {
+    .rutas-button {
+        .mat-button-wrapper {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+    }
+}
+
+// ============================================
+// TOOLTIP PERSONALIZADO PARA RUTAS
+// ============================================
+
+::ng-deep .rutas-tooltip {
+    background-color: #263238 !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    max-width: 300px !important;
+    white-space: pre-line !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    
+    .mat-tooltip-content {
+        white-space: pre-line !important;
+    }
+}
+
+// ============================================
+// TOOLTIP SIMPLE PARA CÓDIGOS DE RUTAS
+// ============================================
+
+::ng-deep .rutas-tooltip {
+    background-color: #263238 !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    font-family: 'Courier New', monospace !important;
+    line-height: 1.2 !important;
+    max-width: 250px !important;
+    white-space: nowrap !important;
+    padding: 6px 10px !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+// Mejorar el hover del botón de rutas
+.rutas-button {
+    &:hover {
+        .rutas-content .rutas-text {
+            color: #1565c0 !important;
         }
     }
 }

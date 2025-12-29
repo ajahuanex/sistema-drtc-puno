@@ -40,7 +40,7 @@ import { LoginRequest } from '../../models/usuario.model';
               <div class="logo-fallback" [style.display]="logoError() ? 'flex' : 'none'">SIGRET</div>
             </div>
             <h1 class="system-title">SIGRET</h1>
-            <p class="system-subtitle">Sistema Integral de Gestión y Regulación de Empresas de Transporte</p>
+            <p class="system-subtitle">Sistema de Gestión de Registros de Transporte</p>
             <p class="system-organization">Dirección Regional de Transportes y Comunicaciones - Puno</p>
           </div>
         </div>
@@ -511,8 +511,13 @@ export class LoginComponent {
       this.authService.login(loginRequest).subscribe({
         next: (response) => {
           this.isLoading.set(false);
-          this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', { duration: 3000 });
-          this.router.navigate(['/dashboard']);
+          console.log('Login exitoso, redirigiendo al dashboard...');
+          
+          // Usar setTimeout para asegurar que el estado se actualice antes de navegar
+          setTimeout(() => {
+            this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', { duration: 3000 });
+            this.router.navigate(['/dashboard'], { replaceUrl: true });
+          }, 100);
         },
         error: (error) => {
           this.isLoading.set(false);

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, signal, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, ChangeDetectionStrategy, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -276,7 +276,7 @@ import { SmartIconComponent } from './smart-icon.component';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ResolucionSelectorComponent implements OnInit {
+export class ResolucionSelectorComponent implements OnInit, OnChanges {
   /**
    * Etiqueta del campo de entrada
    * @default 'Resolución'
@@ -387,11 +387,60 @@ export class ResolucionSelectorComponent implements OnInit {
     this.configurarAutocompletado();
     
     if (this.resolucionId) {
-      this.resolucionControl.setValue(this.resolucionId);
+      this.setResolucionById(this.resolucionId);
     }
     
     if (this.disabled) {
       this.resolucionControl.disable();
+    }
+  }
+
+  /**
+   * Detecta cambios en los inputs del componente
+   * @param changes - Objeto con los cambios detectados
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['resolucionId'] && !changes['resolucionId'].firstChange) {
+      const newResolucionId = changes['resolucionId'].currentValue;
+      console.log('🔄 ResolucionSelector: resolucionId cambió a:', newResolucionId);
+      
+      if (newResolucionId) {
+        this.setResolucionById(newResolucionId);
+      } else {
+        this.resolucionControl.setValue('');
+      }
+    }
+
+    if (changes['empresaId'] && !changes['empresaId'].firstChange) {
+      console.log('🔄 ResolucionSelector: empresaId cambió, recargando resoluciones');
+      this.cargarResoluciones();
+    }
+  }
+
+  /**
+   * Establece la resolución seleccionada por su ID
+   * @private
+   * @param resolucionId - ID de la resolución a seleccionar
+   */
+  private setResolucionById(resolucionId: string): void {
+    console.log('🎯 Buscando resolución con ID:', resolucionId);
+    
+    // Si ya tenemos las resoluciones cargadas, buscar inmediatamente
+    const resoluciones = this.resoluciones();
+    if (resoluciones.length > 0) {
+      const resolucion = resoluciones.find(r => r.id === resolucionId);
+      if (resolucion) {
+        console.log('✅ Resolución encontrada:', resolucion.nroResolucion);
+        // En lugar de usar displayFn, establecer el ID directamente
+        // El autocompletado mostrará el texto correcto automáticamente
+        this.resolucionControl.setValue(resolucionId);
+      } else {
+        console.log('❌ Resolución no encontrada con ID:', resolucionId);
+      }
+    } else {
+      // Si no tenemos resoluciones aún, esperar a que se carguen
+      console.log('⏳ Esperando a que se carguen las resoluciones...');
+      setTimeout(() => this.setResolucionById(resolucionId), 100);
     }
   }
 

@@ -28,7 +28,7 @@ import { ResolucionCardMobileComponent, AccionCard } from './resolucion-card-mob
 import { ResolucionService } from '../services/resolucion.service';
 
 export interface AccionTabla {
-  accion: 'ver' | 'editar' | 'eliminar' | 'exportar' | 'seleccionar';
+  accion: 'ver' | 'editar' | 'eliminar' | 'exportar' | 'seleccionar' | 'ver-rutas-autorizadas' | 'ver-vehiculos-habilitados';
   resolucion?: ResolucionConEmpresa;
   resoluciones?: ResolucionConEmpresa[];
   formato?: 'excel' | 'pdf';
@@ -367,6 +367,80 @@ export interface AccionTabla {
             </mat-cell>
           </ng-container>
 
+          <!-- Columna: Rutas Autorizadas -->
+          <ng-container matColumnDef="rutasAutorizadas">
+            <mat-header-cell *matHeaderCellDef class="rutas-column">
+              <span>Rutas Autorizadas</span>
+            </mat-header-cell>
+            <mat-cell *matCellDef="let resolucion" class="rutas-column">
+              <div class="rutas-info" 
+                   (click)="verRutasAutorizadas(resolucion)" 
+                   [class.clickable]="resolucion.cantidadRutas && resolucion.cantidadRutas > 0"
+                   matTooltip="{{ resolucion.cantidadRutas && resolucion.cantidadRutas > 0 ? 'Clic para ver detalles' : 'Sin rutas autorizadas' }}">
+                @if (resolucion.cantidadRutas && resolucion.cantidadRutas > 0) {
+                  <div class="rutas-count">
+                    <app-smart-icon iconName="route" [size]="16" class="rutas-icon"></app-smart-icon>
+                    <span class="count-text">{{ resolucion.cantidadRutas }}</span>
+                    <span class="count-label">{{ resolucion.cantidadRutas === 1 ? 'ruta' : 'rutas' }}</span>
+                  </div>
+                  @if (resolucion.tipoResolucion === 'PADRE') {
+                    <div class="rutas-tipo padre">
+                      <app-smart-icon iconName="account_tree" [size]="12"></app-smart-icon>
+                      <span>Generales</span>
+                    </div>
+                  } @else if (resolucion.tipoResolucion === 'HIJO') {
+                    <div class="rutas-tipo hijo">
+                      <app-smart-icon iconName="subdirectory_arrow_right" [size]="12"></app-smart-icon>
+                      <span>Específicas</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="sin-rutas">
+                    <app-smart-icon iconName="route" [size]="16" class="sin-rutas-icon"></app-smart-icon>
+                    <span>Sin rutas</span>
+                  </div>
+                }
+              </div>
+            </mat-cell>
+          </ng-container>
+
+          <!-- Columna: Vehículos Habilitados -->
+          <ng-container matColumnDef="vehiculosHabilitados">
+            <mat-header-cell *matHeaderCellDef class="vehiculos-column">
+              <span>Vehículos Habilitados</span>
+            </mat-header-cell>
+            <mat-cell *matCellDef="let resolucion" class="vehiculos-column">
+              <div class="vehiculos-info" 
+                   (click)="verVehiculosHabilitados(resolucion)" 
+                   [class.clickable]="resolucion.cantidadVehiculos && resolucion.cantidadVehiculos > 0"
+                   matTooltip="{{ resolucion.cantidadVehiculos && resolucion.cantidadVehiculos > 0 ? 'Clic para ver detalles' : 'Sin vehículos habilitados' }}">
+                @if (resolucion.cantidadVehiculos && resolucion.cantidadVehiculos > 0) {
+                  <div class="vehiculos-count">
+                    <app-smart-icon iconName="directions_car" [size]="16" class="vehiculos-icon"></app-smart-icon>
+                    <span class="count-text">{{ resolucion.cantidadVehiculos }}</span>
+                    <span class="count-label">{{ resolucion.cantidadVehiculos === 1 ? 'vehículo' : 'vehículos' }}</span>
+                  </div>
+                  @if (resolucion.tipoResolucion === 'PADRE') {
+                    <div class="vehiculos-tipo padre">
+                      <app-smart-icon iconName="account_tree" [size]="12"></app-smart-icon>
+                      <span>Generales</span>
+                    </div>
+                  } @else if (resolucion.tipoResolucion === 'HIJO') {
+                    <div class="vehiculos-tipo hijo">
+                      <app-smart-icon iconName="subdirectory_arrow_right" [size]="12"></app-smart-icon>
+                      <span>Específicos</span>
+                    </div>
+                  }
+                } @else {
+                  <div class="sin-vehiculos">
+                    <app-smart-icon iconName="directions_car" [size]="16" class="sin-vehiculos-icon"></app-smart-icon>
+                    <span>Sin vehículos</span>
+                  </div>
+                }
+              </div>
+            </mat-cell>
+          </ng-container>
+
           <!-- Columna: Activo -->
           <ng-container matColumnDef="estaActivo">
             <mat-header-cell *matHeaderCellDef class="activo-column">
@@ -649,6 +723,10 @@ export interface AccionTabla {
       width: 120px;
     }
 
+    .rutas-column {
+      width: 180px;
+    }
+
     .activo-column {
       width: 100px;
     }
@@ -824,6 +902,157 @@ export interface AccionTabla {
 
     .icon-inactivo {
       color: #f44336;
+    }
+
+    .rutas-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .rutas-count {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1976d2;
+    }
+
+    .rutas-icon {
+      color: #1976d2;
+    }
+
+    .count-text {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .count-label {
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+
+    .rutas-tipo {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .rutas-tipo.padre {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .rutas-tipo.hijo {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .sin-rutas {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.4);
+      font-style: italic;
+    }
+
+    .sin-rutas-icon {
+      color: rgba(0, 0, 0, 0.3);
+    }
+
+    .rutas-info.clickable {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .rutas-info.clickable:hover {
+      background-color: #e3f2fd;
+      transform: scale(1.02);
+    }
+
+    .rutas-info.clickable:active {
+      transform: scale(0.98);
+    }
+
+    /* Estilos para columna de vehículos */
+    .vehiculos-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .vehiculos-count {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #388e3c;
+    }
+
+    .vehiculos-icon {
+      color: #388e3c;
+    }
+
+    .vehiculos-tipo {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .vehiculos-tipo.padre {
+      background-color: #e8f5e8;
+      color: #388e3c;
+    }
+
+    .vehiculos-tipo.hijo {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .sin-vehiculos {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.4);
+      font-style: italic;
+    }
+
+    .sin-vehiculos-icon {
+      color: rgba(0, 0, 0, 0.3);
+    }
+
+    .vehiculos-info.clickable {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 6px;
+      padding: 4px;
+    }
+
+    .vehiculos-info.clickable:hover {
+      background-color: #e8f5e8;
+      transform: scale(1.02);
+    }
+
+    .vehiculos-info.clickable:active {
+      transform: scale(0.98);
     }
 
     .acciones-buttons {
@@ -1029,8 +1258,12 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   
   // Señales computadas
   totalResultados = signal(0);
+  
+  // Signal interno para la configuración reactiva
+  private configuracionInterna = signal<ResolucionTableConfig>(this.configuracion);
+  
   columnasVisibles = computed(() => {
-    const columnas = [...this.configuracion.columnasVisibles];
+    const columnas = [...this.configuracionInterna().columnasVisibles];
     if (this.seleccionMultiple && !columnas.includes('seleccion')) {
       columnas.unshift('seleccion');
     }
@@ -1043,6 +1276,9 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   });
 
   ngOnInit(): void {
+    // Inicializar el signal interno con la configuración inicial
+    this.configuracionInterna.set(this.configuracion);
+    
     this.actualizarDataSource();
     this.detectarDispositivo();
   }
@@ -1075,6 +1311,9 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     }
     
     if (changes['configuracion']) {
+      // Actualizar el signal interno cuando cambia la configuración desde el padre
+      this.configuracionInterna.set(changes['configuracion'].currentValue);
+      
       // Si cambió el ordenamiento, actualizar datasource
       if (changes['configuracion'].currentValue?.ordenamiento) {
         this.actualizarDataSource();
@@ -1119,18 +1358,44 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Maneja el cambio de columnas visibles
    */
   onColumnasVisiblesChange(columnas: string[]): void {
-    this.configuracionChange.emit({
+    // Actualizar la configuración local
+    const nuevaConfiguracion = {
+      ...this.configuracion,
       columnasVisibles: columnas
-    });
+    };
+    
+    this.configuracion = nuevaConfiguracion;
+    
+    // Actualizar el signal interno para trigger la reactividad
+    this.configuracionInterna.set(nuevaConfiguracion);
+    
+    // Emitir el cambio completo
+    this.configuracionChange.emit(nuevaConfiguracion);
+    
+    console.log('Columnas visibles actualizadas:', columnas);
+    console.log('Configuración actualizada:', nuevaConfiguracion);
   }
 
   /**
    * Maneja el cambio de orden de columnas
    */
   onOrdenColumnasChange(orden: string[]): void {
-    this.configuracionChange.emit({
+    // Actualizar la configuración local
+    const nuevaConfiguracion = {
+      ...this.configuracion,
       ordenColumnas: orden
-    });
+    };
+    
+    this.configuracion = nuevaConfiguracion;
+    
+    // Actualizar el signal interno para trigger la reactividad
+    this.configuracionInterna.set(nuevaConfiguracion);
+    
+    // Emitir el cambio completo
+    this.configuracionChange.emit(nuevaConfiguracion);
+    
+    console.log('Orden de columnas actualizado:', orden);
+    console.log('Configuración actualizada:', nuevaConfiguracion);
   }
 
   // ========================================
@@ -1597,5 +1862,41 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     
     // Exportar a Excel por defecto para selecciones
     this.exportarResoluciones('excel');
+  }
+
+  /**
+   * Abre el modal para ver rutas autorizadas de una resolución
+   */
+  verRutasAutorizadas(resolucion: ResolucionConEmpresa): void {
+    // Solo abrir modal si tiene rutas autorizadas
+    if (!resolucion.cantidadRutas || resolucion.cantidadRutas === 0) {
+      return;
+    }
+
+    console.log('🛣️ Ver rutas autorizadas de la resolución:', resolucion.nroResolucion);
+    
+    // Emitir acción para que el componente padre maneje la apertura del modal
+    this.accionEjecutada.emit({
+      accion: 'ver-rutas-autorizadas',
+      resolucion: resolucion
+    });
+  }
+
+  /**
+   * Abre el modal para ver vehículos habilitados de una resolución
+   */
+  verVehiculosHabilitados(resolucion: ResolucionConEmpresa): void {
+    // Solo abrir modal si tiene vehículos habilitados
+    if (!resolucion.cantidadVehiculos || resolucion.cantidadVehiculos === 0) {
+      return;
+    }
+
+    console.log('🚗 Ver vehículos habilitados de la resolución:', resolucion.nroResolucion);
+    
+    // Emitir acción para que el componente padre maneje la apertura del modal
+    this.accionEjecutada.emit({
+      accion: 'ver-vehiculos-habilitados',
+      resolucion: resolucion
+    });
   }
 }

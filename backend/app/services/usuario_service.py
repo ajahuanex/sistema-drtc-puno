@@ -44,7 +44,7 @@ class UsuarioService:
             raise ValueError(f"Ya existe un usuario con email {usuario_data.email}")
         
         usuario_dict = usuario_data.model_dump()
-        usuario_dict["passwordHash"] = self.get_password_hash(usuario_data.password)
+        usuario_dict["password_hash"] = self.get_password_hash(usuario_data.password)  # Usar password_hash
         usuario_dict["fechaCreacion"] = datetime.utcnow()
         del usuario_dict["password"]
         
@@ -56,6 +56,9 @@ class UsuarioService:
         usuario = await self.collection.find_one({"_id": ObjectId(usuario_id)})
         if usuario:
             usuario["id"] = str(usuario.pop("_id"))
+            # Mapear password_hash a passwordHash para compatibilidad con el modelo
+            if "password_hash" in usuario:
+                usuario["passwordHash"] = usuario.pop("password_hash")
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuario_by_dni(self, dni: str) -> Optional[UsuarioInDB]:
@@ -63,6 +66,9 @@ class UsuarioService:
         usuario = await self.collection.find_one({"dni": dni})
         if usuario:
             usuario["id"] = str(usuario.pop("_id"))
+            # Mapear password_hash a passwordHash para compatibilidad con el modelo
+            if "password_hash" in usuario:
+                usuario["passwordHash"] = usuario.pop("password_hash")
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuario_by_email(self, email: str) -> Optional[UsuarioInDB]:
@@ -70,6 +76,9 @@ class UsuarioService:
         usuario = await self.collection.find_one({"email": email})
         if usuario:
             usuario["id"] = str(usuario.pop("_id"))
+            # Mapear password_hash a passwordHash para compatibilidad con el modelo
+            if "password_hash" in usuario:
+                usuario["passwordHash"] = usuario.pop("password_hash")
         return UsuarioInDB(**usuario) if usuario else None
 
     async def get_usuarios_activos(self) -> List[UsuarioInDB]:

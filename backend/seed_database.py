@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuración de MongoDB
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://admin:password@localhost:27017/")
-DATABASE_NAME = "drtc_puno_db"
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DATABASE_NAME = "drtc_puno"
 
 async def seed_database():
     """Poblar la base de datos con datos iniciales"""

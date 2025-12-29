@@ -70,6 +70,14 @@ export class ResolucionService {
 
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
+    
+    // Si no hay token, devolver headers básicos sin Authorization
+    if (!token) {
+      return new HttpHeaders({
+        'Content-Type': 'application/json'
+      });
+    }
+    
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -89,6 +97,13 @@ export class ResolucionService {
       .pipe(
         catchError(error => {
           console.error('Error fetching resoluciones:', error);
+          
+          // Si es error de autenticación y no hay token, devolver array vacío
+          if ((error.status === 401 || error.status === 403) && !this.authService.getToken()) {
+            console.log('Sin autenticación: devolviendo resoluciones vacías');
+            return of([]);
+          }
+          
           return throwError(() => error);
         })
       );
@@ -105,6 +120,13 @@ export class ResolucionService {
           return throwError(() => new Error('Resolución no encontrada'));
         })
       );
+  }
+
+  /**
+   * Alias para getResolucionById para compatibilidad
+   */
+  getResolucionPorId(id: string): Observable<Resolucion> {
+    return this.getResolucionById(id);
   }
 
   /**
@@ -426,7 +448,7 @@ export class ResolucionService {
   }
 
   /**
-   * Enriquece las resoluciones con datos de empresa
+   * Enriquece las resoluciones con datos de empresa y conteos
    * @param resoluciones - Array de resoluciones a enriquecer
    * @returns Observable con las resoluciones enriquecidas
    */
@@ -458,32 +480,40 @@ export class ResolucionService {
           }
         });
 
-        // Enriquecer resoluciones con datos de empresa
+        // Enriquecer resoluciones con datos de empresa y conteos
         const resolucionesConEmpresa: ResolucionConEmpresa[] = resoluciones.map(resolucion => {
           const empresa = empresaMap.get(resolucion.empresaId);
 
+          const resolucionEnriquecida: ResolucionConEmpresa = {
+            ...resolucion,
+            // Agregar conteos directos de los arrays existentes
+            cantidadRutas: resolucion.rutasAutorizadasIds?.length || 0,
+            cantidadVehiculos: resolucion.vehiculosHabilitadosIds?.length || 0
+          };
+
+          // Log para debuggear
+          console.log(`📊 Resolución ${resolucion.nroResolucion}:`, {
+            rutasAutorizadasIds: resolucion.rutasAutorizadasIds,
+            vehiculosHabilitadosIds: resolucion.vehiculosHabilitadosIds,
+            cantidadRutas: resolucionEnriquecida.cantidadRutas,
+            cantidadVehiculos: resolucionEnriquecida.cantidadVehiculos
+          });
+
           if (empresa) {
-            return {
-              ...resolucion,
-              empresa: {
-                id: empresa.id,
-                razonSocial: {
-                  principal: empresa.razonSocial.principal,
-                  comercial: empresa.razonSocial.minimo
-                },
-                ruc: empresa.ruc
-              }
-            } as ResolucionConEmpresa;
+            resolucionEnriquecida.empresa = {
+              id: empresa.id,
+              razonSocial: {
+                principal: empresa.razonSocial.principal,
+                comercial: empresa.razonSocial.minimo
+              },
+              ruc: empresa.ruc
+            };
           }
 
-          // Si no se encuentra la empresa, retornar sin datos de empresa
-          return {
-            ...resolucion,
-            empresa: undefined
-          } as ResolucionConEmpresa;
+          return resolucionEnriquecida;
         });
 
-        console.log('Resoluciones enriquecidas con empresa:', resolucionesConEmpresa.length);
+        console.log('Resoluciones enriquecidas con empresa y conteos:', resolucionesConEmpresa.length);
         return resolucionesConEmpresa;
       })
     );
@@ -587,6 +617,111 @@ export class ResolucionService {
         });
 
         console.log('Estadísticas calculadas:', estadisticas);
+        return estadisticas;
+      })
+    );
+  }
+
+  /**
+   * Obtiene información completa de una resolución incluyendo rutas y vehículos
+   * @param resolucionId - ID de la resolución
+   * @returns Observable con la información completa
+   */
+  getResolucionCompleta(resolucionId: string): Observable<any> {
+    console.log('=== getResolucionCompleta ===');
+    console.log('Resolución ID:', resolucionId);
+
+    return forkJoin({
+      resolucion: this.getResolucionById(resolucionId),
+      rutas: this.getRutasPorResolucion(resolucionId),
+      vehiculos: this.getVehiculosPorResolucion(resolucionId)
+    }).pipe(
+      map(({ resolucion, rutas, vehiculos }) => ({
+        ...resolucion,
+        rutasRelacionadas: rutas,
+        vehiculosRelacionados: vehiculos,
+        cantidadRutas: rutas.length,
+        cantidadVehiculos: vehiculos.length
+      })),
+      catchError(error => {
+        console.error('Error obteniendo resolución completa:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Obtiene las rutas asociadas a una resolución
+   * @param resolucionId - ID de la resolución
+   * @returns Observable con las rutas
+   */
+  getRutasPorResolucion(resolucionId: string): Observable<any[]> {
+    const url = `${this.apiUrl}/resoluciones/${resolucionId}/rutas`;
+    
+    return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo rutas por resolución:', error);
+        // Fallback: retornar array vacío
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtiene los vehículos asociados a una resolución
+   * @param resolucionId - ID de la resolución
+   * @returns Observable con los vehículos
+   */
+  getVehiculosPorResolucion(resolucionId: string): Observable<any[]> {
+    const url = `${this.apiUrl}/resoluciones/${resolucionId}/vehiculos`;
+    
+    return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo vehículos por resolución:', error);
+        // Fallback: retornar array vacío
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtiene estadísticas de relaciones para todas las resoluciones
+   * @returns Observable con las estadísticas de relaciones
+   */
+  getEstadisticasRelaciones(): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/estadisticas/relaciones`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo estadísticas de relaciones:', error);
+        // Fallback: calcular estadísticas localmente
+        return this.calcularEstadisticasRelacionesLocal();
+      })
+    );
+  }
+
+  /**
+   * Calcula estadísticas de relaciones localmente como fallback
+   * @returns Observable con estadísticas calculadas localmente
+   */
+  private calcularEstadisticasRelacionesLocal(): Observable<any> {
+    return this.getResoluciones().pipe(
+      map(resoluciones => {
+        const estadisticas = {
+          totalResoluciones: resoluciones.length,
+          resolucionesPadre: resoluciones.filter(r => r.tipoResolucion === 'PADRE').length,
+          resolucionesHijo: resoluciones.filter(r => r.tipoResolucion === 'HIJO').length,
+          totalRutas: resoluciones.reduce((sum, r) => sum + (r.rutasAutorizadasIds?.length || 0), 0),
+          totalVehiculos: resoluciones.reduce((sum, r) => sum + (r.vehiculosHabilitadosIds?.length || 0), 0),
+          promedioRutasPorResolucion: 0,
+          promedioVehiculosPorResolucion: 0
+        };
+
+        if (estadisticas.totalResoluciones > 0) {
+          estadisticas.promedioRutasPorResolucion = Math.round(estadisticas.totalRutas / estadisticas.totalResoluciones * 100) / 100;
+          estadisticas.promedioVehiculosPorResolucion = Math.round(estadisticas.totalVehiculos / estadisticas.totalResoluciones * 100) / 100;
+        }
+
         return estadisticas;
       })
     );

@@ -2,7 +2,7 @@
 
 ## 📁 Ubicación del Logo
 
-Para que el logo aparezca correctamente en el sistema SIGRET, sigue estos pasos:
+Para que el logo aparezca correctamente en el sistema SIGRET (Sistema de Gestión de Registros de Transporte), sigue estos pasos:
 
 ### 1. Guardar el Logo
 - **Nombre del archivo**: `logo.png`

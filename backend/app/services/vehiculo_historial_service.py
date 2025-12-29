@@ -1,339 +1,429 @@
 """
-Servicio para gestionar el historial de validaciones de vehículos.
-
-Este servicio se encarga de:
-1. Calcular números secuenciales de historial basados en resoluciones
-2. Actualizar el historial cuando se agregan nuevas resoluciones
-3. Generar estadísticas del historial de validaciones
-4. Mantener la consistencia del historial entre vehículos
+Servicio para gestión del historial de vehículos
 """
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from collections import defaultdict
 
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple
-from app.services.vehiculo_service import VehiculoService
-from app.services.resolucion_service import ResolucionService
-from app.models.vehiculo import Vehiculo, VehiculoUpdate
-from app.models.resolucion import Resolucion
-import logging
+from app.models.vehiculo_historial import (
+    VehiculoHistorialCreate,
+    VehiculoHistorialUpdate,
+    VehiculoHistorialInDB,
+    VehiculoHistorialFiltros,
+    EstadisticasHistorial,
+    ResumenHistorialVehiculo,
+    TipoMovimientoHistorial,
+    OperacionHistorialResponse
+)
+from app.utils.exceptions import (
+    VehiculoHistorialNotFoundException,
+    ValidationErrorException
+)
 
-logger = logging.getLogger(__name__)
 
 class VehiculoHistorialService:
-    """Servicio para gestionar el historial de validaciones de vehículos"""
+    """Servicio para operaciones CRUD del historial de vehículos"""
     
-    def __init__(self, db=None):
-        from app.dependencies.db import get_database
-        if db is None:
-            # Para uso en tests o cuando no se pasa db
-            import asyncio
-            try:
-                db = asyncio.get_event_loop().run_until_complete(get_database())
-            except:
-                db = None
-        self.vehiculo_service = VehiculoService(db) if db else None
-        self.resolucion_service = ResolucionService(db) if db else None
+    def __init__(self, db: AsyncIOMotorDatabase):
+        self.db = db
+        self.collection = db["vehiculos_historial"]
+        self.vehiculos_collection = db["vehiculos"]
+        self.empresas_collection = db["empresas"]
+        self.resoluciones_collection = db["resoluciones"]
     
-    async def calcular_historial_validaciones_todos(self) -> Dict[str, int]:
-        """
-        Calcula el número de historial de validaciones para todos los vehículos.
+    async def create_historial(self, historial_data: VehiculoHistorialCreate) -> VehiculoHistorialInDB:
+        """Crear un nuevo registro de historial"""
         
-        Lógica:
-        1. Obtiene todos los vehículos activos
-        2. Para cada vehículo, busca todas sus resoluciones
-        3. Ordena las resoluciones por fecha de emisión (más antigua primero)
-        4. Asigna números secuenciales: 1, 2, 3, etc.
+        # Obtener datos del vehículo actual
+        vehiculo = await self.vehiculos_collection.find_one({"_id": ObjectId(historial_data.vehiculo_id)})
+        if not vehiculo:
+            raise ValidationErrorException("vehiculo_id", "Vehículo no encontrado")
         
-        Returns:
-            Dict[str, int]: Mapeo de vehiculo_id -> numero_historial
-        """
-        logger.info("🔄 Iniciando cálculo de historial de validaciones para todos los vehículos")
+        # Obtener el siguiente número de historial para este vehículo
+        ultimo_historial = await self.collection.find_one(
+            {"vehiculo_id": historial_data.vehiculo_id},
+            sort=[("numero_historial", -1)]
+        )
+        numero_historial = (ultimo_historial["numero_historial"] + 1) if ultimo_historial else 1
         
-        # Obtener todos los vehículos activos
-        vehiculos = await self.vehiculo_service.get_vehiculos_activos()
-        logger.info(f"📊 Total de vehículos activos: {len(vehiculos)}")
-        
-        # Obtener todas las resoluciones
-        resoluciones = await self.resolucion_service.get_resoluciones_activas()
-        logger.info(f"📊 Total de resoluciones activas: {len(resoluciones)}")
-        
-        # Crear mapeo de resolución_id -> resolución para acceso rápido
-        resoluciones_map = {r.id: r for r in resoluciones}
-        
-        historial_map = {}
-        
-        for vehiculo in vehiculos:
-            numero_historial = await self._calcular_numero_historial_vehiculo(
-                vehiculo, resoluciones_map
-            )
-            historial_map[vehiculo.id] = numero_historial
-            
-            logger.debug(f"🚗 Vehículo {vehiculo.placa}: Historial #{numero_historial}")
-        
-        logger.info(f"✅ Cálculo completado. {len(historial_map)} vehículos procesados")
-        return historial_map
-    
-    async def _calcular_numero_historial_vehiculo(
-        self, 
-        vehiculo: Vehiculo, 
-        resoluciones_map: Dict[str, Resolucion]
-    ) -> int:
-        """
-        Calcula el número de historial para un vehículo específico.
-        
-        Args:
-            vehiculo: El vehículo a procesar
-            resoluciones_map: Mapeo de resolución_id -> resolución
-            
-        Returns:
-            int: Número de historial (1, 2, 3, etc.)
-        """
-        # Buscar todas las resoluciones que incluyen este vehículo
-        resoluciones_vehiculo = []
-        
-        for resolucion in resoluciones_map.values():
-            if (resolucion.vehiculosHabilitadosIds and 
-                vehiculo.id in resolucion.vehiculosHabilitadosIds):
-                resoluciones_vehiculo.append(resolucion)
-        
-        # Si no hay resoluciones, asignar número 1 por defecto
-        if not resoluciones_vehiculo:
-            logger.warning(f"⚠️ Vehículo {vehiculo.placa} sin resoluciones asociadas")
-            return 1
-        
-        # Ordenar resoluciones por fecha de emisión (más antigua primero)
-        resoluciones_vehiculo.sort(key=lambda r: r.fechaEmision)
-        
-        # El número de historial es la posición en la lista ordenada + 1
-        # La resolución más antigua será #1, la siguiente #2, etc.
-        numero_historial = len(resoluciones_vehiculo)
-        
-        logger.debug(f"🔍 Vehículo {vehiculo.placa}: {len(resoluciones_vehiculo)} resoluciones encontradas")
-        logger.debug(f"📅 Resolución más antigua: {resoluciones_vehiculo[0].nroResolucion} ({resoluciones_vehiculo[0].fechaEmision})")
-        if len(resoluciones_vehiculo) > 1:
-            logger.debug(f"📅 Resolución más reciente: {resoluciones_vehiculo[-1].nroResolucion} ({resoluciones_vehiculo[-1].fechaEmision})")
-        
-        return numero_historial
-    
-    async def actualizar_historial_todos_vehiculos(self) -> Dict[str, any]:
-        """
-        Actualiza el campo numeroHistorialValidacion para todos los vehículos.
-        
-        Returns:
-            Dict con estadísticas de la actualización
-        """
-        logger.info("🔄 Iniciando actualización masiva de historial de validaciones")
-        
-        # Calcular historial para todos los vehículos
-        historial_map = await self.calcular_historial_validaciones_todos()
-        
-        actualizados = 0
-        errores = 0
-        
-        for vehiculo_id, numero_historial in historial_map.items():
-            try:
-                # Actualizar el vehículo con el nuevo número de historial
-                update_data = VehiculoUpdate(
-                    numeroHistorialValidacion=numero_historial,
-                    fechaActualizacion=datetime.utcnow()
-                )
-                
-                await self.vehiculo_service.update_vehiculo(vehiculo_id, update_data)
-                actualizados += 1
-                
-            except Exception as e:
-                logger.error(f"❌ Error actualizando vehículo {vehiculo_id}: {str(e)}")
-                errores += 1
-        
-        resultado = {
-            "total_procesados": len(historial_map),
-            "actualizados": actualizados,
-            "errores": errores,
-            "historial_map": historial_map
-        }
-        
-        logger.info(f"✅ Actualización completada: {actualizados} actualizados, {errores} errores")
-        return resultado
-    
-    async def obtener_estadisticas_historial(self) -> Dict[str, any]:
-        """
-        Genera estadísticas del historial de validaciones.
-        
-        Returns:
-            Dict con estadísticas detalladas
-        """
-        logger.info("📊 Generando estadísticas de historial de validaciones")
-        
-        vehiculos = await self.vehiculo_service.get_vehiculos_activos()
-        
-        # Estadísticas básicas
-        total_vehiculos = len(vehiculos)
-        vehiculos_con_historial = len([v for v in vehiculos if v.numeroHistorialValidacion is not None])
-        vehiculos_sin_historial = total_vehiculos - vehiculos_con_historial
-        
-        # Distribución por número de historial
-        distribucion_historial = {}
-        numeros_historial = [v.numeroHistorialValidacion for v in vehiculos if v.numeroHistorialValidacion is not None]
-        
-        for numero in numeros_historial:
-            distribucion_historial[numero] = distribucion_historial.get(numero, 0) + 1
-        
-        # Vehículos con más resoluciones (historial más alto)
-        vehiculos_ordenados = sorted(
-            [v for v in vehiculos if v.numeroHistorialValidacion is not None],
-            key=lambda x: x.numeroHistorialValidacion,
-            reverse=True
+        # Marcar registros anteriores como no actuales
+        await self.collection.update_many(
+            {"vehiculo_id": historial_data.vehiculo_id},
+            {"$set": {"es_registro_actual": False, "fecha_actualizacion": datetime.now()}}
         )
         
-        top_vehiculos = vehiculos_ordenados[:10]  # Top 10
+        # Preparar datos del historial
+        historial_dict = historial_data.model_dump()
+        historial_dict.update({
+            "numero_historial": numero_historial,
+            "fecha_movimiento": datetime.now(),
+            "placa": vehiculo["placa"],
+            "marca": vehiculo["marca"],
+            "modelo": vehiculo["modelo"],
+            "anio_fabricacion": vehiculo["anioFabricacion"],
+            "categoria": vehiculo["categoria"],
+            "datos_tecnicos": vehiculo.get("datosTecnicos", {}),
+            "es_registro_actual": True,
+            "fecha_creacion": datetime.now(),
+            "esta_activo": True
+        })
         
-        estadisticas = {
-            "resumen": {
-                "total_vehiculos": total_vehiculos,
-                "vehiculos_con_historial": vehiculos_con_historial,
-                "vehiculos_sin_historial": vehiculos_sin_historial,
-                "porcentaje_con_historial": round((vehiculos_con_historial / total_vehiculos * 100), 2) if total_vehiculos > 0 else 0
-            },
-            "distribucion_historial": distribucion_historial,
-            "top_vehiculos_mas_resoluciones": [
-                {
-                    "placa": v.placa,
-                    "empresa_id": v.empresaActualId,
-                    "numero_historial": v.numeroHistorialValidacion,
-                    "categoria": v.categoria,
-                    "marca": v.marca,
-                    "modelo": v.modelo
-                }
-                for v in top_vehiculos
-            ],
-            "promedio_resoluciones": round(sum(numeros_historial) / len(numeros_historial), 2) if numeros_historial else 0,
-            "maximo_resoluciones": max(numeros_historial) if numeros_historial else 0,
-            "minimo_resoluciones": min(numeros_historial) if numeros_historial else 0
-        }
+        # Insertar en MongoDB
+        insert_result = await self.collection.insert_one(historial_dict)
+        historial_id = str(insert_result.inserted_id)
         
-        logger.info("✅ Estadísticas generadas exitosamente")
-        return estadisticas
+        # Obtener el historial creado
+        created_historial = await self.collection.find_one({"_id": insert_result.inserted_id})
+        created_historial["id"] = str(created_historial.pop("_id"))
+        
+        return VehiculoHistorialInDB(**created_historial)
     
-    async def recalcular_historial_por_empresa(self, empresa_id: str) -> Dict[str, any]:
-        """
-        Recalcula el historial de validaciones para todos los vehículos de una empresa específica.
-        
-        Args:
-            empresa_id: ID de la empresa
-            
-        Returns:
-            Dict con resultados de la actualización
-        """
-        logger.info(f"🔄 Recalculando historial para empresa {empresa_id}")
-        
-        # Obtener vehículos de la empresa
-        vehiculos_empresa = await self.vehiculo_service.get_vehiculos_por_empresa(empresa_id)
-        logger.info(f"📊 Vehículos de la empresa: {len(vehiculos_empresa)}")
-        
-        # Obtener todas las resoluciones
-        resoluciones = await self.resolucion_service.get_resoluciones_activas()
-        resoluciones_map = {r.id: r for r in resoluciones}
-        
-        actualizados = 0
-        errores = 0
-        historial_empresa = {}
-        
-        for vehiculo in vehiculos_empresa:
-            try:
-                numero_historial = await self._calcular_numero_historial_vehiculo(
-                    vehiculo, resoluciones_map
-                )
-                
-                # Actualizar el vehículo
-                update_data = VehiculoUpdate(
-                    numeroHistorialValidacion=numero_historial,
-                    fechaActualizacion=datetime.utcnow()
-                )
-                
-                await self.vehiculo_service.update_vehiculo(vehiculo.id, update_data)
-                
-                historial_empresa[vehiculo.id] = numero_historial
-                actualizados += 1
-                
-                logger.debug(f"✅ Vehículo {vehiculo.placa}: Historial #{numero_historial}")
-                
-            except Exception as e:
-                logger.error(f"❌ Error procesando vehículo {vehiculo.placa}: {str(e)}")
-                errores += 1
-        
-        resultado = {
-            "empresa_id": empresa_id,
-            "total_vehiculos": len(vehiculos_empresa),
-            "actualizados": actualizados,
-            "errores": errores,
-            "historial_empresa": historial_empresa
-        }
-        
-        logger.info(f"✅ Recálculo completado para empresa {empresa_id}: {actualizados} actualizados, {errores} errores")
-        return resultado
+    async def get_historial(self, historial_id: str) -> Optional[VehiculoHistorialInDB]:
+        """Obtener un registro de historial por ID"""
+        try:
+            historial = await self.collection.find_one({"_id": ObjectId(historial_id)})
+            if historial:
+                historial["id"] = str(historial.pop("_id"))
+                return VehiculoHistorialInDB(**historial)
+            return None
+        except Exception:
+            return None
     
-    async def obtener_historial_vehiculo_detallado(self, vehiculo_id: str) -> Dict[str, any]:
-        """
-        Obtiene el historial detallado de un vehículo específico.
+    async def get_historial_vehiculo(self, vehiculo_id: str) -> List[VehiculoHistorialInDB]:
+        """Obtener todo el historial de un vehículo específico"""
+        cursor = self.collection.find(
+            {"vehiculo_id": vehiculo_id, "esta_activo": True}
+        ).sort("numero_historial", -1)
         
-        Args:
-            vehiculo_id: ID del vehículo
+        historial = []
+        async for registro in cursor:
+            registro["id"] = str(registro.pop("_id"))
+            historial.append(VehiculoHistorialInDB(**registro))
+        
+        return historial
+    
+    async def get_historial_con_filtros(
+        self,
+        filtros: VehiculoHistorialFiltros,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[VehiculoHistorialInDB]:
+        """Obtener historial con filtros"""
+        
+        query = {"esta_activo": True}
+        
+        if filtros.vehiculo_id:
+            query["vehiculo_id"] = filtros.vehiculo_id
+        
+        if filtros.empresa_id:
+            query["$or"] = [
+                {"empresa_actual_id": filtros.empresa_id},
+                {"empresa_anterior_id": filtros.empresa_id}
+            ]
+        
+        if filtros.resolucion_id:
+            query["$or"] = [
+                {"resolucion_actual_id": filtros.resolucion_id},
+                {"resolucion_anterior_id": filtros.resolucion_id}
+            ]
+        
+        if filtros.tipo_movimiento:
+            query["tipo_movimiento"] = filtros.tipo_movimiento
+        
+        if filtros.fecha_desde or filtros.fecha_hasta:
+            fecha_query = {}
+            if filtros.fecha_desde:
+                fecha_query["$gte"] = filtros.fecha_desde
+            if filtros.fecha_hasta:
+                fecha_query["$lte"] = filtros.fecha_hasta
+            query["fecha_movimiento"] = fecha_query
+        
+        if filtros.usuario_id:
+            query["usuario_id"] = filtros.usuario_id
+        
+        if filtros.es_registro_actual is not None:
+            query["es_registro_actual"] = filtros.es_registro_actual
+        
+        cursor = self.collection.find(query).sort("fecha_movimiento", -1).skip(skip).limit(limit)
+        
+        historial = []
+        async for registro in cursor:
+            registro["id"] = str(registro.pop("_id"))
+            historial.append(VehiculoHistorialInDB(**registro))
+        
+        return historial
+    
+    async def update_historial(
+        self,
+        historial_id: str,
+        historial_data: VehiculoHistorialUpdate
+    ) -> Optional[VehiculoHistorialInDB]:
+        """Actualizar un registro de historial"""
+        
+        # Verificar que existe
+        existing = await self.get_historial(historial_id)
+        if not existing:
+            raise VehiculoHistorialNotFoundException(historial_id)
+        
+        # Preparar datos de actualización
+        update_data = historial_data.model_dump(exclude_unset=True)
+        update_data["fecha_actualizacion"] = datetime.now()
+        
+        # Actualizar en MongoDB
+        await self.collection.update_one(
+            {"_id": ObjectId(historial_id)},
+            {"$set": update_data}
+        )
+        
+        # Obtener el historial actualizado
+        return await self.get_historial(historial_id)
+    
+    async def delete_historial(self, historial_id: str) -> bool:
+        """Eliminar un registro de historial (soft delete)"""
+        
+        # Verificar que existe
+        existing = await self.get_historial(historial_id)
+        if not existing:
+            raise VehiculoHistorialNotFoundException(historial_id)
+        
+        # Soft delete
+        await self.collection.update_one(
+            {"_id": ObjectId(historial_id)},
+            {"$set": {
+                "esta_activo": False,
+                "fecha_actualizacion": datetime.now()
+            }}
+        )
+        
+        return True
+    
+    async def registrar_movimiento_automatico(
+        self,
+        vehiculo_id: str,
+        tipo_movimiento: TipoMovimientoHistorial,
+        datos_anteriores: Dict[str, Any],
+        datos_nuevos: Dict[str, Any],
+        usuario_id: Optional[str] = None,
+        motivo_cambio: Optional[str] = None
+    ) -> VehiculoHistorialInDB:
+        """Registrar automáticamente un movimiento en el historial"""
+        
+        historial_data = VehiculoHistorialCreate(
+            vehiculo_id=vehiculo_id,
+            tipo_movimiento=tipo_movimiento,
+            empresa_anterior_id=datos_anteriores.get("empresaActualId"),
+            empresa_actual_id=datos_nuevos.get("empresaActualId"),
+            resolucion_anterior_id=datos_anteriores.get("resolucionId"),
+            resolucion_actual_id=datos_nuevos.get("resolucionId"),
+            estado_anterior=datos_anteriores.get("estado"),
+            estado_actual=datos_nuevos.get("estado"),
+            motivo_cambio=motivo_cambio,
+            usuario_id=usuario_id
+        )
+        
+        return await self.create_historial(historial_data)
+    
+    async def marcar_vehiculos_como_actuales(self) -> OperacionHistorialResponse:
+        """Marcar todos los vehículos como registros actuales en el historial"""
+        
+        try:
+            # Obtener todos los vehículos activos
+            vehiculos = await self.vehiculos_collection.find({"estaActivo": True}).to_list(None)
             
-        Returns:
-            Dict con historial detallado del vehículo
-        """
-        logger.info(f"🔍 Obteniendo historial detallado para vehículo {vehiculo_id}")
+            registros_procesados = 0
+            registros_creados = 0
+            errores = []
+            
+            for vehiculo in vehiculos:
+                try:
+                    vehiculo_id = str(vehiculo["_id"])
+                    
+                    # Verificar si ya tiene un registro actual
+                    registro_actual = await self.collection.find_one({
+                        "vehiculo_id": vehiculo_id,
+                        "es_registro_actual": True
+                    })
+                    
+                    if not registro_actual:
+                        # Crear registro inicial
+                        historial_data = VehiculoHistorialCreate(
+                            vehiculo_id=vehiculo_id,
+                            tipo_movimiento=TipoMovimientoHistorial.REGISTRO_INICIAL,
+                            empresa_actual_id=vehiculo["empresaActualId"],
+                            resolucion_actual_id=vehiculo.get("resolucionId"),
+                            estado_actual=vehiculo["estado"],
+                            motivo_cambio="Marcado como registro actual del sistema"
+                        )
+                        
+                        await self.create_historial(historial_data)
+                        registros_creados += 1
+                    
+                    registros_procesados += 1
+                    
+                except Exception as e:
+                    errores.append(f"Error procesando vehículo {vehiculo.get('placa', 'N/A')}: {str(e)}")
+            
+            return OperacionHistorialResponse(
+                success=True,
+                message=f"Procesados {registros_procesados} vehículos, creados {registros_creados} registros",
+                registros_procesados=registros_procesados,
+                registros_creados=registros_creados,
+                errores=errores
+            )
+            
+        except Exception as e:
+            return OperacionHistorialResponse(
+                success=False,
+                message=f"Error en la operación: {str(e)}",
+                errores=[str(e)]
+            )
+    
+    async def actualizar_historial_todos(self) -> OperacionHistorialResponse:
+        """Actualizar números de historial de todos los vehículos"""
         
-        # Obtener el vehículo
-        vehiculo = await self.vehiculo_service.get_vehiculo_by_id(vehiculo_id)
-        if not vehiculo:
-            raise ValueError(f"Vehículo {vehiculo_id} no encontrado")
+        try:
+            # Obtener todos los vehículos únicos con historial
+            vehiculos_con_historial = await self.collection.distinct("vehiculo_id")
+            
+            registros_procesados = 0
+            registros_actualizados = 0
+            errores = []
+            
+            for vehiculo_id in vehiculos_con_historial:
+                try:
+                    # Obtener todos los registros del vehículo ordenados por fecha
+                    registros = await self.collection.find(
+                        {"vehiculo_id": vehiculo_id, "esta_activo": True}
+                    ).sort("fecha_movimiento", 1).to_list(None)
+                    
+                    # Actualizar números de historial secuenciales
+                    for i, registro in enumerate(registros, 1):
+                        await self.collection.update_one(
+                            {"_id": registro["_id"]},
+                            {"$set": {
+                                "numero_historial": i,
+                                "es_registro_actual": i == len(registros),
+                                "fecha_actualizacion": datetime.now()
+                            }}
+                        )
+                        registros_actualizados += 1
+                    
+                    registros_procesados += 1
+                    
+                except Exception as e:
+                    errores.append(f"Error procesando vehículo {vehiculo_id}: {str(e)}")
+            
+            return OperacionHistorialResponse(
+                success=True,
+                message=f"Actualizados {registros_actualizados} registros de {registros_procesados} vehículos",
+                registros_procesados=registros_procesados,
+                registros_actualizados=registros_actualizados,
+                errores=errores
+            )
+            
+        except Exception as e:
+            return OperacionHistorialResponse(
+                success=False,
+                message=f"Error en la operación: {str(e)}",
+                errores=[str(e)]
+            )
+    
+    async def get_estadisticas(self) -> EstadisticasHistorial:
+        """Obtener estadísticas del historial"""
         
-        # Obtener todas las resoluciones que incluyen este vehículo
-        resoluciones = await self.resolucion_service.get_resoluciones_activas()
-        resoluciones_vehiculo = [
-            r for r in resoluciones 
-            if r.vehiculosHabilitadosIds and vehiculo_id in r.vehiculosHabilitadosIds
+        # Total de registros
+        total_registros = await self.collection.count_documents({"esta_activo": True})
+        
+        # Vehículos con historial
+        vehiculos_con_historial = len(await self.collection.distinct("vehiculo_id", {"esta_activo": True}))
+        
+        # Movimientos por tipo
+        pipeline_tipo = [
+            {"$match": {"esta_activo": True}},
+            {"$group": {"_id": "$tipo_movimiento", "count": {"$sum": 1}}}
+        ]
+        movimientos_tipo = await self.collection.aggregate(pipeline_tipo).to_list(None)
+        movimientos_por_tipo = {item["_id"]: item["count"] for item in movimientos_tipo}
+        
+        # Movimientos por mes (últimos 12 meses)
+        fecha_limite = datetime.now() - timedelta(days=365)
+        pipeline_mes = [
+            {"$match": {"esta_activo": True, "fecha_movimiento": {"$gte": fecha_limite}}},
+            {"$group": {
+                "_id": {
+                    "year": {"$year": "$fecha_movimiento"},
+                    "month": {"$month": "$fecha_movimiento"}
+                },
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"_id.year": 1, "_id.month": 1}}
+        ]
+        movimientos_mes = await self.collection.aggregate(pipeline_mes).to_list(None)
+        movimientos_por_mes = [
+            {
+                "mes": f"{item['_id']['year']}-{item['_id']['month']:02d}",
+                "cantidad": item["count"]
+            }
+            for item in movimientos_mes
         ]
         
-        # Ordenar por fecha de emisión
-        resoluciones_vehiculo.sort(key=lambda r: r.fechaEmision)
+        # Empresas con más movimientos
+        pipeline_empresa = [
+            {"$match": {"esta_activo": True}},
+            {"$group": {"_id": "$empresa_actual_id", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        empresas_movimientos = await self.collection.aggregate(pipeline_empresa).to_list(None)
+        empresas_con_mas_movimientos = [
+            {"empresaId": item["_id"], "cantidad": item["count"]}
+            for item in empresas_movimientos
+        ]
         
-        # Crear historial detallado
-        historial_detallado = []
-        for i, resolucion in enumerate(resoluciones_vehiculo, 1):
-            historial_detallado.append({
-                "numero_secuencial": i,
-                "resolucion_id": resolucion.id,
-                "numero_resolucion": resolucion.nroResolucion,
-                "fecha_emision": resolucion.fechaEmision,
-                "tipo_resolucion": resolucion.tipoResolucion,
-                "tipo_tramite": resolucion.tipoTramite,
-                "descripcion": resolucion.descripcion,
-                "estado": resolucion.estado,
-                "empresa_id": resolucion.empresaId
-            })
+        return EstadisticasHistorial(
+            total_registros=total_registros,
+            vehiculos_con_historial=vehiculos_con_historial,
+            movimientos_por_tipo=movimientos_por_tipo,
+            movimientos_por_mes=movimientos_por_mes,
+            empresas_con_mas_movimientos=empresas_con_mas_movimientos,
+            ultima_actualizacion=datetime.now()
+        )
+    
+    async def get_resumen_vehiculos(self) -> List[ResumenHistorialVehiculo]:
+        """Obtener resumen del historial por vehículo"""
         
-        resultado = {
-            "vehiculo": {
-                "id": vehiculo.id,
-                "placa": vehiculo.placa,
-                "empresa_actual_id": vehiculo.empresaActualId,
-                "categoria": vehiculo.categoria,
-                "marca": vehiculo.marca,
-                "modelo": vehiculo.modelo,
-                "numero_historial_actual": vehiculo.numeroHistorialValidacion
-            },
-            "total_resoluciones": len(resoluciones_vehiculo),
-            "historial_resoluciones": historial_detallado,
-            "resolucion_mas_antigua": {
-                "numero": resoluciones_vehiculo[0].nroResolucion,
-                "fecha": resoluciones_vehiculo[0].fechaEmision
-            } if resoluciones_vehiculo else None,
-            "resolucion_mas_reciente": {
-                "numero": resoluciones_vehiculo[-1].nroResolucion,
-                "fecha": resoluciones_vehiculo[-1].fechaEmision
-            } if resoluciones_vehiculo else None
-        }
+        pipeline = [
+            {"$match": {"esta_activo": True}},
+            {"$group": {
+                "_id": "$vehiculo_id",
+                "placa": {"$first": "$placa"},
+                "total_movimientos": {"$sum": 1},
+                "primer_registro": {"$min": "$fecha_movimiento"},
+                "ultimo_movimiento": {"$max": "$fecha_movimiento"},
+                "empresas_historicas": {"$addToSet": "$empresa_actual_id"},
+                "resoluciones_historicas": {"$addToSet": "$resolucion_actual_id"},
+                "estados_historicos": {"$addToSet": "$estado_actual"},
+                "es_actual": {"$max": "$es_registro_actual"}
+            }},
+            {"$sort": {"ultimo_movimiento": -1}}
+        ]
         
-        logger.info(f"✅ Historial detallado generado para vehículo {vehiculo.placa}")
-        return resultado
+        resultados = await self.collection.aggregate(pipeline).to_list(None)
+        
+        resumen = []
+        for item in resultados:
+            resumen.append(ResumenHistorialVehiculo(
+                vehiculo_id=item["_id"],
+                placa=item["placa"],
+                total_movimientos=item["total_movimientos"],
+                primer_registro=item["primer_registro"],
+                ultimo_movimiento=item["ultimo_movimiento"],
+                empresas_historicas=[e for e in item["empresas_historicas"] if e],
+                resoluciones_historicas=[r for r in item["resoluciones_historicas"] if r],
+                estados_historicos=item["estados_historicos"],
+                es_actual=item["es_actual"]
+            ))
+        
+        return resumen

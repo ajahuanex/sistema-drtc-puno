@@ -12,12 +12,23 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   canActivate(): boolean {
-    if (this.authService.isAuthenticated()) {
+    const isAuthenticated = this.authService.isAuthenticated();
+    const currentUrl = this.router.url;
+    
+    console.log('AuthGuard - Verificando acceso:', {
+      isAuthenticated,
+      currentUrl,
+      hasToken: !!this.authService.getToken()
+    });
+    
+    if (isAuthenticated) {
       return true;
     } else {
-      console.log('Usuario no autenticado, redirigiendo al login...');
-      // Usar replaceUrl para evitar conflictos de navegación
-      this.router.navigate(['/login'], { replaceUrl: true });
+      // Solo redirigir si no estamos ya en login
+      if (!currentUrl.includes('/login')) {
+        console.log('Usuario no autenticado, redirigiendo al login...');
+        this.router.navigate(['/login'], { replaceUrl: true });
+      }
       return false;
     }
   }

@@ -7,6 +7,8 @@ import time
 from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router, localidades_router
 from app.routers.data_manager_router import router as data_manager_router
+from app.routers.ruta_especifica_router import router as ruta_especifica_router
+from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
 # from app.routers.mesa_partes.documentos_router import router as documentos_router
@@ -41,14 +43,8 @@ app = FastAPI(
 # Middleware de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://localhost:3000",
-        "http://127.0.0.1:4200",
-        "http://127.0.0.1:3000",
-        "*"  # Temporalmente permitir todos los orígenes para desarrollo
-    ],
-    allow_credentials=False,
+    allow_origins=["*"],  # Temporalmente permitir todos los orígenes para desarrollo
+    allow_credentials=False,  # Debe ser False cuando allow_origins es "*"
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"]
@@ -79,8 +75,10 @@ async def log_requests(request, call_next):
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
+app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
 app.include_router(rutas_router, prefix=settings.API_V1_STR)
+app.include_router(ruta_especifica_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
 app.include_router(expedientes_router, prefix=settings.API_V1_STR)
 app.include_router(tucs_router, prefix=settings.API_V1_STR)
