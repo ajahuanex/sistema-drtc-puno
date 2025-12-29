@@ -23,9 +23,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { RutaService } from '../../services/ruta.service';
+import { SolicitudBajaService } from '../../services/solicitud-baja.service';
 import { Vehiculo } from '../../models/vehiculo.model';
 import { Empresa } from '../../models/empresa.model';
 import { Ruta } from '../../models/ruta.model';
+import { SolicitudBajaCreate, MotivoBaja } from '../../models/solicitud-baja.model';
 import { VehiculoModalComponent } from './vehiculo-modal.component';
 import { HistorialVehicularComponent } from './historial-vehicular.component';
 import { VehiculosEliminadosModalComponent } from './vehiculos-eliminados-modal.component';
@@ -34,6 +36,7 @@ import { CambiarEstadoModalComponent } from './cambiar-estado-modal.component';
 import { CargaMasivaVehiculosComponent } from './carga-masiva-vehiculos.component';
 import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
 import { TransferirEmpresaModalComponent } from './transferir-empresa-modal.component';
+import { SolicitarBajaModalComponent } from './solicitar-baja-modal.component';
 
 @Component({
   selector: 'app-vehiculos',
@@ -65,6 +68,7 @@ export class VehiculosComponent implements OnInit {
   private vehiculoService = inject(VehiculoService);
   private empresaService = inject(EmpresaService);
   private rutaService = inject(RutaService);
+  private solicitudBajaService = inject(SolicitudBajaService);
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -737,5 +741,63 @@ export class VehiculosComponent implements OnInit {
 
   verEstadisticasFiltrado(): void {
     this.snackBar.open('Mostrando estadísticas del filtrado actual...', 'Cerrar', { duration: 3000 });
+  }
+
+  solicitarBajaVehiculo(vehiculo: Vehiculo): void {
+    const dialogRef = this.dialog.open(SolicitarBajaModalComponent, {
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      data: { vehiculo },
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Crear la solicitud de baja
+        const solicitudBaja: SolicitudBajaCreate = {
+          vehiculoId: vehiculo.id,
+          motivo: result.motivo as MotivoBaja,
+          descripcion: result.descripcion,
+          fechaSolicitud: result.fechaSolicitud.toISOString()
+        };
+
+        this.solicitudBajaService.crearSolicitudBaja(solicitudBaja).subscribe({
+          next: (solicitudCreada) => {
+            this.snackBar.open(
+              `Solicitud de baja enviada exitosamente para el vehículo ${vehiculo.placa}`,
+              'Cerrar',
+              { 
+                duration: 5000,
+                panelClass: ['snackbar-success']
+              }
+            );
+            
+            // Opcional: Recargar datos para reflejar cambios
+            this.cargarDatos();
+          },
+          error: (error) => {
+            console.error('Error creando solicitud de baja:', error);
+            
+            let mensaje = 'Error al enviar la solicitud de baja';
+            
+            if (error.status === 422) {
+              mensaje = 'No se puede solicitar la baja de este vehículo. Verifique que no tenga procesos pendientes.';
+            } else if (error.status === 409) {
+              mensaje = 'Ya existe una solicitud de baja pendiente para este vehículo.';
+            } else if (error.status === 403) {
+              mensaje = 'No tienes permisos para solicitar la baja de este vehículo.';
+            } else if (error.status === 0) {
+              mensaje = 'Error de conexión. Verifica tu conexión a internet.';
+            }
+            
+            this.snackBar.open(mensaje, 'Cerrar', { 
+              duration: 5000,
+              panelClass: ['snackbar-error']
+            });
+          }
+        });
+      }
+    });
   }
 }

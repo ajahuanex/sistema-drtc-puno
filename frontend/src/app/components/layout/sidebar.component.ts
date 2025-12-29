@@ -104,6 +104,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           }
         </a>
 
+        <!-- Solicitudes de Baja -->
+        <a mat-list-item 
+           routerLink="/vehiculos/solicitudes-baja" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Solicitudes de Baja' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'assignment'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Solicitudes de Baja</span>
+          }
+        </a>
+
         <!-- Conductores -->
         <a mat-list-item 
            routerLink="/conductores" 

@@ -31,6 +31,7 @@ export const routes: Routes = [
       { path: 'vehiculos/:id', loadComponent: () => import('./components/vehiculos/vehiculo-detail.component').then(m => m.VehiculoDetailComponent) },
       { path: 'vehiculos/:id/editar', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/:id/historial', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },
+      { path: 'vehiculos/solicitudes-baja', loadComponent: () => import('./components/vehiculos/solicitudes-baja.component').then(m => m.SolicitudesBajaComponent) },
       { path: 'historial-vehiculos', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },
       { path: 'conductores', loadComponent: () => import('./components/conductores/conductores.component').then(m => m.ConductoresComponent) },
       { path: 'conductores/nuevo', loadComponent: () => import('./components/conductores/conductor-form.component').then(m => m.ConductorFormComponent) },
