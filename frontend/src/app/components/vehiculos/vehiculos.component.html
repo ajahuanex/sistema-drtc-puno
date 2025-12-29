@@ -35,6 +35,11 @@
                 <mat-icon>filter_list</mat-icon>
                 <span>ESTADÍSTICAS FILTRADO</span>
             </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="verVehiculosEliminados()">
+                <mat-icon>delete_sweep</mat-icon>
+                <span>VEHÍCULOS ELIMINADOS</span>
+            </button>
         </mat-menu>
         <button mat-button color="accent" (click)="exportarVehiculos()" class="action-button">
             <mat-icon>download</mat-icon>

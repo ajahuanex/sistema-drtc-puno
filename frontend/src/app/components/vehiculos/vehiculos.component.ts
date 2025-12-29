@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -27,10 +28,12 @@ import { Empresa } from '../../models/empresa.model';
 import { Ruta } from '../../models/ruta.model';
 import { VehiculoModalComponent } from './vehiculo-modal.component';
 import { HistorialVehicularComponent } from './historial-vehicular.component';
+import { VehiculosEliminadosModalComponent } from './vehiculos-eliminados-modal.component';
 import { VehiculoDetalleComponent } from './vehiculo-detalle.component';
 import { CambiarEstadoModalComponent } from './cambiar-estado-modal.component';
 import { CargaMasivaVehiculosComponent } from './carga-masiva-vehiculos.component';
 import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
+import { TransferirEmpresaModalComponent } from './transferir-empresa-modal.component';
 
 @Component({
   selector: 'app-vehiculos',
@@ -65,6 +68,7 @@ export class VehiculosComponent implements OnInit {
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
+  private router = inject(Router);
 
   // Signals para el estado del componente
   vehiculos = signal<Vehiculo[]>([]);
@@ -471,7 +475,22 @@ export class VehiculosComponent implements OnInit {
   }
 
   transferirVehiculo(vehiculo: Vehiculo): void {
-    this.snackBar.open('Función de transferencia en desarrollo', 'Cerrar', { duration: 3000 });
+    const dialogRef = this.dialog.open(TransferirEmpresaModalComponent, {
+      width: '800px',
+      maxHeight: '90vh',
+      data: { vehiculo: vehiculo }
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result?.success) {
+        this.snackBar.open(
+          `Vehículo ${vehiculo.placa} transferido exitosamente`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+        this.recargarVehiculos();
+      }
+    });
   }
 
   duplicarVehiculo(vehiculo: Vehiculo): void {
@@ -568,10 +587,9 @@ export class VehiculosComponent implements OnInit {
   }
 
   verHistorialVehiculo(vehiculo: Vehiculo): void {
-    this.dialog.open(HistorialVehicularComponent, {
-      width: '1200px',
-      maxHeight: '90vh',
-      data: { 
+    // Navegar a la página del historial vehicular con filtros específicos del vehículo
+    this.router.navigate(['/historial-vehiculos'], {
+      queryParams: {
         vehiculoId: vehiculo.id,
         placa: vehiculo.placa
       }
@@ -595,7 +613,7 @@ export class VehiculosComponent implements OnInit {
   eliminarVehiculo(vehiculo: Vehiculo): void {
     const confirmar = confirm(
       `¿Estás seguro de que deseas eliminar el vehículo ${vehiculo.placa}?\n\n` +
-      `Esta acción no se puede deshacer.`
+      `El vehículo será marcado como eliminado pero se mantendrá en el sistema para fines de auditoría.`
     );
 
     if (confirmar) {
@@ -604,13 +622,34 @@ export class VehiculosComponent implements OnInit {
           this.snackBar.open(
             `Vehículo ${vehiculo.placa} eliminado exitosamente`,
             'Cerrar',
-            { duration: 3000 }
+            { 
+              duration: 3000,
+              panelClass: ['snackbar-success']
+            }
           );
-          this.recargarVehiculos();
+          this.cargarDatos(); // Recargar la lista
         },
-        error: (error: any) => {
+        error: (error) => {
           console.error('Error eliminando vehículo:', error);
-          this.snackBar.open('Error al eliminar vehículo', 'Cerrar', { duration: 3000 });
+          
+          let mensaje = 'Error al eliminar el vehículo';
+          
+          if (error.status === 422) {
+            // Error de validación - el vehículo tiene dependencias
+            mensaje = `No se puede eliminar el vehículo ${vehiculo.placa}. ` +
+                     'Es posible que tenga rutas asignadas, resoluciones activas o esté siendo utilizado en otros procesos.';
+          } else if (error.status === 404) {
+            mensaje = 'El vehículo no fue encontrado';
+          } else if (error.status === 403) {
+            mensaje = 'No tienes permisos para eliminar este vehículo';
+          } else if (error.status === 0) {
+            mensaje = 'Error de conexión. Verifica tu conexión a internet';
+          }
+          
+          this.snackBar.open(mensaje, 'Cerrar', { 
+            duration: 5000,
+            panelClass: ['snackbar-error']
+          });
         }
       });
     }
@@ -647,8 +686,35 @@ export class VehiculosComponent implements OnInit {
     );
   }
 
+  verVehiculosEliminados(): void {
+    this.vehiculoService.getVehiculosEliminados().subscribe({
+      next: (vehiculosEliminados) => {
+        if (vehiculosEliminados.length === 0) {
+          this.snackBar.open('No hay vehículos eliminados', 'Cerrar', { duration: 3000 });
+          return;
+        }
+
+        // Mostrar modal con vehículos eliminados
+        const dialogRef = this.dialog.open(VehiculosEliminadosModalComponent, {
+          width: '90%',
+          maxWidth: '1200px',
+          data: { vehiculosEliminados }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result?.restaurado) {
+            this.cargarDatos(); // Recargar datos si se restauró algún vehículo
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error obteniendo vehículos eliminados:', error);
+        this.snackBar.open('Error al obtener vehículos eliminados', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
   exportarVehiculos(): void {
-    // Implementar exportación
     this.snackBar.open('Exportando vehículos...', 'Cerrar', { duration: 3000 });
   }
 

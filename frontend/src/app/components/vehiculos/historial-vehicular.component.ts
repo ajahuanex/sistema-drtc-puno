@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed, input, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -59,13 +60,25 @@ import {
             <div>
               <h2>Historial Vehicular</h2>
               <p class="header-subtitle">
-                {{ vehiculoId() ? 'Historial del vehículo seleccionado' : 'Historial completo de todos los vehículos' }}
+                @if (vehiculoIdFromUrl()) {
+                  Historial del vehículo {{ placaFromUrl() || 'seleccionado' }}
+                } @else if (vehiculoId()) {
+                  Historial del vehículo seleccionado
+                } @else {
+                  Historial completo de todos los vehículos
+                }
               </p>
             </div>
           </div>
           
           <!-- Acciones rápidas -->
           <div class="header-actions">
+            @if (vehiculoIdFromUrl()) {
+              <button mat-button (click)="volverAVehiculos()">
+                <app-smart-icon [iconName]="'arrow_back'" [size]="20"></app-smart-icon>
+                Volver a Vehículos
+              </button>
+            }
             <button mat-button (click)="toggleFiltros()">
               <app-smart-icon [iconName]="mostrarFiltros() ? 'filter_list_off' : 'filter_list'" [size]="20"></app-smart-icon>
               {{ mostrarFiltros() ? 'Ocultar' : 'Mostrar' }} Filtros
@@ -85,7 +98,7 @@ import {
         </div>
 
         <!-- Resumen rápido si es un vehículo específico -->
-        @if (vehiculoId() && resumenVehiculo()) {
+        @if ((vehiculoId() || vehiculoIdFromUrl()) && resumenVehiculo()) {
           <mat-card class="resumen-card">
             <mat-card-content>
               <div class="resumen-stats">
@@ -594,6 +607,8 @@ export class HistorialVehicularComponent implements OnInit {
   private historialService = inject(HistorialVehicularService);
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   // Estado del componente
   cargando = signal(false);
@@ -603,6 +618,10 @@ export class HistorialVehicularComponent implements OnInit {
   mostrarFiltros = signal(false);
   resumenVehiculo = signal<ResumenHistorialVehicular | null>(null);
   error = signal<string | null>(null);
+
+  // Parámetros de URL (públicos para el template)
+  vehiculoIdFromUrl = signal<string | null>(null);
+  placaFromUrl = signal<string | null>(null);
 
   // Computed signals
   tieneHistorial = computed(() => this.historialData().length > 0);
@@ -654,7 +673,9 @@ export class HistorialVehicularComponent implements OnInit {
     // Effect para reaccionar a cambios en vehiculoId
     effect(() => {
       const vehiculoId = this.vehiculoId();
-      if (vehiculoId) {
+      const vehiculoIdFromUrl = this.vehiculoIdFromUrl();
+
+      if (vehiculoId || vehiculoIdFromUrl) {
         this.cargarResumenVehiculo();
         // Ocultar la columna de placa si es un vehículo específico
         this.columnasTabla = this.columnasTabla.filter(col => col !== 'placa');
@@ -668,15 +689,45 @@ export class HistorialVehicularComponent implements OnInit {
         this.filtrosForm.patchValue({ placa });
       }
     });
+
+    // Effect para reaccionar a cambios en placa desde parámetros
+    effect(() => {
+      const placa = this.placa();
+      if (placa) {
+        this.filtrosForm.patchValue({ placa });
+      }
+    });
   }
 
   ngOnInit(): void {
-    // Cargar historial inicial
-    this.cargarHistorial();
+    // Leer parámetros de la URL
+    this.route.queryParams.subscribe(params => {
+      this.vehiculoIdFromUrl.set(params['vehiculoId'] || null);
+      this.placaFromUrl.set(params['placa'] || null);
+
+      if (params['vehiculoId']) {
+        // Si viene un vehiculoId específico, aplicar filtros automáticamente
+        this.filtrosForm.patchValue({
+          placa: params['placa'] || '',
+        });
+
+        // Ocultar la columna de placa si es un vehículo específico
+        this.columnasTabla = this.columnasTabla.filter(col => col !== 'placa');
+
+        // Actualizar el título para mostrar que es específico de un vehículo
+        this.mostrarFiltros.set(false); // Ocultar filtros por defecto
+
+        // Aplicar filtros automáticamente
+        this.aplicarFiltros();
+      } else {
+        // Cargar historial general
+        this.cargarHistorial();
+      }
+    });
   }
 
   private cargarResumenVehiculo(): void {
-    const vehiculoId = this.vehiculoId();
+    const vehiculoId = this.vehiculoIdFromUrl() || this.vehiculoId();
     if (!vehiculoId) return;
 
     this.historialService.getResumenHistorialVehiculo(vehiculoId).subscribe({
@@ -725,8 +776,11 @@ export class HistorialVehicularComponent implements OnInit {
       sortOrder: 'desc'
     };
 
-    // Agregar vehículo específico si se proporciona
-    if (this.vehiculoId()) {
+    // Priorizar vehiculoId de los parámetros de URL
+    const vehiculoIdFromUrl = this.vehiculoIdFromUrl();
+    if (vehiculoIdFromUrl) {
+      filtros.vehiculoId = vehiculoIdFromUrl;
+    } else if (this.vehiculoId()) {
       filtros.vehiculoId = this.vehiculoId();
     }
 
@@ -877,5 +931,9 @@ export class HistorialVehicularComponent implements OnInit {
     const diferencia = fechaActual.getTime() - fechaUltimo.getTime();
 
     return Math.floor(diferencia / (1000 * 60 * 60 * 24));
+  }
+
+  volverAVehiculos(): void {
+    this.router.navigate(['/vehiculos']);
   }
 }

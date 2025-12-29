@@ -72,9 +72,88 @@ export class VehiculoService {
     return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
       headers: this.getHeaders()
     }).pipe(
+      map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estado !== 'ELIMINADO')), // Filtrar eliminados
       catchError(error => {
         console.error('Error obteniendo vehículos:', error);
         return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtener todos los vehículos incluyendo los eliminados (para administradores)
+   */
+  getTodosLosVehiculos(): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/todos`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo todos los vehículos:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtener solo los vehículos eliminados
+   */
+  getVehiculosEliminados(): Observable<Vehiculo[]> {
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estado === 'ELIMINADO')),
+      catchError(error => {
+        console.error('Error obteniendo vehículos eliminados:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Restaurar un vehículo eliminado (cambiar estado de ELIMINADO a ACTIVO)
+   */
+  restaurarVehiculo(id: string): Observable<void> {
+    return this.getVehiculo(id).pipe(
+      switchMap(vehiculo => {
+        if (!vehiculo) {
+          return throwError(() => new Error('Vehículo no encontrado'));
+        }
+
+        if (vehiculo.estado !== 'ELIMINADO') {
+          return throwError(() => new Error('El vehículo no está eliminado'));
+        }
+
+        const vehiculoRestaurado: VehiculoUpdate = {
+          estado: 'ACTIVO'
+        };
+
+        return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, vehiculoRestaurado, {
+          headers: this.getHeaders()
+        }).pipe(
+          switchMap(() => {
+            // Registrar restauración en el historial
+            return this.historialService.crearRegistroHistorial({
+              vehiculoId: id,
+              placa: vehiculo.placa,
+              tipoEvento: TipoEventoHistorial.MODIFICACION,
+              descripcion: `Vehículo ${vehiculo.placa} restaurado del estado eliminado`,
+              fechaEvento: new Date().toISOString(),
+              estadoAnterior: EstadoVehiculo.BAJA_DEFINITIVA,
+              estadoNuevo: EstadoVehiculo.ACTIVO,
+              observaciones: 'Restauración de vehículo previamente eliminado'
+            }).pipe(
+              map(() => undefined),
+              catchError(error => {
+                console.error('Error registrando restauración:', error);
+                return of(undefined);
+              })
+            );
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('Error restaurando vehículo:', error);
+        return throwError(() => error);
       })
     );
   }
@@ -202,24 +281,25 @@ export class VehiculoService {
           return throwError(() => new Error('Vehículo no encontrado'));
         }
 
+        // Usar DELETE en lugar de PUT para eliminación lógica
         return this.http.delete<void>(`${this.apiUrl}/vehiculos/${id}`, {
           headers: this.getHeaders()
         }).pipe(
           switchMap(() => {
-            // Registrar baja definitiva en el historial
+            // Registrar eliminación lógica en el historial
             return this.historialService.crearRegistroHistorial({
               vehiculoId: id,
               placa: vehiculo.placa,
               tipoEvento: TipoEventoHistorial.BAJA_DEFINITIVA,
-              descripcion: `Vehículo ${vehiculo.placa} dado de baja definitivamente`,
+              descripcion: `Vehículo ${vehiculo.placa} eliminado del sistema (borrado lógico)`,
               fechaEvento: new Date().toISOString(),
               estadoAnterior: vehiculo.estado as EstadoVehiculo,
               estadoNuevo: EstadoVehiculo.BAJA_DEFINITIVA,
-              observaciones: 'Baja definitiva del vehículo del sistema'
+              observaciones: 'Eliminación lógica del vehículo - El registro se mantiene en la base de datos'
             }).pipe(
               map(() => undefined),
               catchError(error => {
-                console.error('Error registrando baja definitiva:', error);
+                console.error('Error registrando eliminación lógica:', error);
                 return of(undefined);
               })
             );
@@ -227,7 +307,7 @@ export class VehiculoService {
         );
       }),
       catchError(error => {
-        console.error('Error eliminando vehículo:', error);
+        console.error('Error eliminando vehículo (borrado lógico):', error);
         return throwError(() => error);
       })
     );

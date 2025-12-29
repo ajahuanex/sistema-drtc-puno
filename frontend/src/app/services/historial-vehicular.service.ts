@@ -62,7 +62,7 @@ export class HistorialVehicularService {
     if (filtros.sortBy) params.append('sortBy', filtros.sortBy);
     if (filtros.sortOrder) params.append('sortOrder', filtros.sortOrder);
 
-    return this.http.get<any>(`${this.apiUrl}/vehiculos-historial?${params.toString()}`, {
+    return this.http.get<any>(`${this.apiUrl}/historial-vehicular?${params.toString()}`, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
@@ -82,7 +82,7 @@ export class HistorialVehicularService {
    * Crea un nuevo registro en el historial
    */
   crearRegistroHistorial(registro: HistorialVehicularCreate): Observable<HistorialVehicular> {
-    return this.http.post<HistorialVehicular>(`${this.apiUrl}/vehiculos-historial`, registro, {
+    return this.http.post<HistorialVehicular>(`${this.apiUrl}/historial-vehicular/eventos`, registro, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
@@ -101,7 +101,7 @@ export class HistorialVehicularService {
       return of(this.resumenCache.get(vehiculoId)!);
     }
 
-    return this.http.get<ResumenHistorialVehicular>(`${this.apiUrl}/vehiculos-historial/${vehiculoId}/resumen`, {
+    return this.http.get<ResumenHistorialVehicular>(`${this.apiUrl}/historial-vehicular/vehiculos/${vehiculoId}/resumen`, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
@@ -142,7 +142,7 @@ export class HistorialVehicularService {
     if (filtros.fechaHasta) params.append('fechaHasta', filtros.fechaHasta);
     params.append('formato', formato);
 
-    return this.http.get(`${this.apiUrl}/vehiculos-historial/exportar?${params.toString()}`, {
+    return this.http.get(`${this.apiUrl}/historial-vehicular/exportar?${params.toString()}`, {
       headers: this.getHeaders(),
       responseType: 'blob'
     }).pipe(

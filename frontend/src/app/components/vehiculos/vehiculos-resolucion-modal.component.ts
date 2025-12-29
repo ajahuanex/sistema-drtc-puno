@@ -760,15 +760,18 @@ export class VehiculosResolucionModalComponent {
   }
 
   eliminarVehiculo(vehiculo: Vehiculo): void {
-    if (confirm(`¿Estás seguro de eliminar el vehículo ${vehiculo.placa}?`)) {
+    if (confirm(
+      `¿Estás seguro de eliminar el vehículo ${vehiculo.placa}?\n\n` +
+      `El vehículo será marcado como eliminado pero se mantendrá en el sistema para fines de auditoría.`
+    )) {
       this.vehiculoService.deleteVehiculo(vehiculo.id).subscribe({
         next: () => {
           this.snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
-          this.cargarVehiculos();
+          this.cargarVehiculos(); // Recargar la lista
         },
-        error: (error: any) => {
+        error: (error) => {
           console.error('Error eliminando vehículo:', error);
-          this.snackBar.open('Error al eliminar vehículo', 'Cerrar', { duration: 3000 });
+          this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
         }
       });
     }

@@ -595,15 +595,19 @@ export class VehiculoDetailComponent implements OnInit {
 
   eliminarVehiculo(): void {
     if (this.vehiculo()) {
-      if (confirm('¿Estás seguro de que deseas eliminar este vehículo? Esta acción no se puede deshacer.')) {
+      if (confirm(
+        `¿Estás seguro de que deseas eliminar el vehículo ${this.vehiculo()?.placa}?\n\n` +
+        `El vehículo será marcado como eliminado pero se mantendrá en el sistema para fines de auditoría.`
+      )) {
         this.vehiculoService.deleteVehiculo(this.vehiculo()!.id).subscribe({
           next: () => {
             this.snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
-            this.volver();
+            // Redirigir a la lista de vehículos
+            window.history.back();
           },
           error: (error) => {
             console.error('Error eliminando vehículo:', error);
-            this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 5000 });
+            this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
           }
         });
       }

@@ -91,6 +91,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           }
         </a>
 
+        <!-- Historial Vehicular -->
+        <a mat-list-item 
+           routerLink="/historial-vehiculos" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Historial Vehicular' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'history'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Historial Vehicular</span>
+          }
+        </a>
+
         <!-- Conductores -->
         <a mat-list-item 
            routerLink="/conductores" 

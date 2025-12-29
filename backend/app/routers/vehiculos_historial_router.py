@@ -74,6 +74,12 @@ async def get_resumen_historial(
     """Obtener resumen del historial por vehículo"""
     return await historial_service.get_resumen_vehiculos()
 
+# Endpoints de utilidad
+@router.get("/tipos-movimiento", response_model=List[str])
+async def get_tipos_movimiento() -> List[str]:
+    """Obtener lista de tipos de movimiento disponibles"""
+    return [tipo.value for tipo in TipoMovimientoHistorial]
+
 @router.get("/{historial_id}", response_model=VehiculoHistorialResponse)
 async def get_historial_by_id(
     historial_id: str,
@@ -162,8 +168,6 @@ async def get_historial_vehiculo(
     
     historial = await historial_service.get_historial_vehiculo(vehiculo_id)
     return [VehiculoHistorialResponse(**h.model_dump()) for h in historial]
-
-# Endpoints de operaciones masivas
 @router.post("/marcar-actuales", response_model=OperacionHistorialResponse)
 async def marcar_vehiculos_actuales(
     historial_service: VehiculoHistorialService = Depends(get_historial_service)
@@ -177,12 +181,6 @@ async def actualizar_historial_todos(
 ) -> OperacionHistorialResponse:
     """Actualizar números de historial de todos los vehículos"""
     return await historial_service.actualizar_historial_todos()
-
-# Endpoints de utilidad
-@router.get("/tipos-movimiento", response_model=List[str])
-async def get_tipos_movimiento() -> List[str]:
-    """Obtener lista de tipos de movimiento disponibles"""
-    return [tipo.value for tipo in TipoMovimientoHistorial]
 
 @router.post("/registrar-movimiento/{vehiculo_id}", response_model=VehiculoHistorialResponse)
 async def registrar_movimiento_automatico(

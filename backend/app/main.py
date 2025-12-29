@@ -9,6 +9,7 @@ from app.routers import auth_router, empresas_router, vehiculos_router, rutas_ro
 from app.routers.data_manager_router import router as data_manager_router
 from app.routers.ruta_especifica_router import router as ruta_especifica_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
+from app.routers.historial_vehicular_router import router as historial_vehicular_router
 
 # Mesa de Partes routers - Temporarily commented out due to import issues
 # from app.routers.mesa_partes.documentos_router import router as documentos_router
@@ -76,6 +77,7 @@ app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
+app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
 app.include_router(rutas_router, prefix=settings.API_V1_STR)
 app.include_router(ruta_especifica_router, prefix=settings.API_V1_STR)
