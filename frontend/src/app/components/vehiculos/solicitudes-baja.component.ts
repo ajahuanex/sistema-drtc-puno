@@ -502,16 +502,17 @@ export class SolicitudesBajaComponent implements OnInit {
 
   aprobarSolicitud(solicitud: SolicitudBaja): void {
     const confirmar = confirm(
-      `¿Estás seguro de que deseas aprobar la solicitud de baja del vehículo ${solicitud.vehiculoPlaca}?`
+      `¿Estás seguro de que deseas aprobar la solicitud de baja del vehículo ${solicitud.vehiculoPlaca}?\n\n` +
+      `IMPORTANTE: Al aprobar esta solicitud, el vehículo será marcado automáticamente como "BAJA DEFINITIVA" y no podrá ser utilizado en operaciones futuras.`
     );
 
     if (confirmar) {
       this.solicitudBajaService.aprobarSolicitudBaja(solicitud.id).subscribe({
         next: () => {
           this.snackBar.open(
-            `Solicitud de baja aprobada para el vehículo ${solicitud.vehiculoPlaca}`,
+            `Solicitud de baja aprobada para el vehículo ${solicitud.vehiculoPlaca}. El vehículo ha sido marcado como BAJA DEFINITIVA.`,
             'Cerrar',
-            { duration: 3000, panelClass: ['snackbar-success'] }
+            { duration: 5000, panelClass: ['snackbar-success'] }
           );
           this.cargarSolicitudes();
         },

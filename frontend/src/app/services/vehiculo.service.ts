@@ -72,7 +72,6 @@ export class VehiculoService {
     return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
       headers: this.getHeaders()
     }).pipe(
-      map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estado !== 'ELIMINADO')), // Filtrar eliminados
       catchError(error => {
         console.error('Error obteniendo vehículos:', error);
         return of([]);
@@ -101,7 +100,7 @@ export class VehiculoService {
     return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
       headers: this.getHeaders()
     }).pipe(
-      map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estado === 'ELIMINADO')),
+      map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estaActivo === false)),
       catchError(error => {
         console.error('Error obteniendo vehículos eliminados:', error);
         return of([]);
@@ -119,12 +118,13 @@ export class VehiculoService {
           return throwError(() => new Error('Vehículo no encontrado'));
         }
 
-        if (vehiculo.estado !== 'ELIMINADO') {
+        if (vehiculo.estaActivo !== false) {
           return throwError(() => new Error('El vehículo no está eliminado'));
         }
 
         const vehiculoRestaurado: VehiculoUpdate = {
-          estado: 'ACTIVO'
+          estado: 'ACTIVO',
+          estaActivo: true
         };
 
         return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${id}`, vehiculoRestaurado, {
@@ -138,7 +138,7 @@ export class VehiculoService {
               tipoEvento: TipoEventoHistorial.MODIFICACION,
               descripcion: `Vehículo ${vehiculo.placa} restaurado del estado eliminado`,
               fechaEvento: new Date().toISOString(),
-              estadoAnterior: EstadoVehiculo.BAJA_DEFINITIVA,
+              estadoAnterior: EstadoVehiculo.DADO_DE_BAJA,
               estadoNuevo: EstadoVehiculo.ACTIVO,
               observaciones: 'Restauración de vehículo previamente eliminado'
             }).pipe(
@@ -294,7 +294,7 @@ export class VehiculoService {
               descripcion: `Vehículo ${vehiculo.placa} eliminado del sistema (borrado lógico)`,
               fechaEvento: new Date().toISOString(),
               estadoAnterior: vehiculo.estado as EstadoVehiculo,
-              estadoNuevo: EstadoVehiculo.BAJA_DEFINITIVA,
+              estadoNuevo: EstadoVehiculo.DADO_DE_BAJA,
               observaciones: 'Eliminación lógica del vehículo - El registro se mantiene en la base de datos'
             }).pipe(
               map(() => undefined),
@@ -854,5 +854,71 @@ export class VehiculoService {
       // Backend no disponible - asumir placa disponible
       return of(true);
     }
+  }
+
+  /**
+   * Cambiar el estado de un vehículo y registrar en el historial
+   */
+  cambiarEstadoVehiculo(
+    vehiculoId: string, 
+    nuevoEstado: string, 
+    motivo?: string, 
+    observaciones?: string
+  ): Observable<Vehiculo> {
+    return this.getVehiculo(vehiculoId).pipe(
+      switchMap(vehiculo => {
+        if (!vehiculo) {
+          return throwError(() => new Error('Vehículo no encontrado'));
+        }
+
+        const estadoAnterior = vehiculo.estado;
+        
+        // Actualizar el vehículo - versión simplificada para debugging
+        const updateData: any = {
+          estado: nuevoEstado
+        };
+
+        // Solo agregar campos de baja si realmente es necesario
+        if (nuevoEstado !== 'ACTIVO') {
+          updateData.fechaBaja = new Date().toISOString();
+          if (motivo) {
+            updateData.motivoBaja = motivo;
+          }
+          if (observaciones) {
+            updateData.observacionesBaja = observaciones;
+          }
+        }
+
+        console.log('🔄 Actualizando estado del vehículo:', {
+          vehiculoId,
+          estadoAnterior,
+          estadoNuevo: nuevoEstado
+        });
+
+        return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${vehiculoId}`, updateData, {
+          headers: this.getHeaders()
+        }).pipe(
+          tap(vehiculoActualizado => {
+            // Registrar en el historial vehicular general
+            this.historialService.crearRegistroHistorial({
+              vehiculoId: vehiculoId,
+              placa: vehiculo.placa,
+              tipoEvento: TipoEventoHistorial.CAMBIO_ESTADO,
+              descripcion: `Estado cambiado de ${estadoAnterior} a ${nuevoEstado}`,
+              estadoAnterior: estadoAnterior as EstadoVehiculo,
+              estadoNuevo: nuevoEstado as EstadoVehiculo,
+              observaciones: `Motivo: ${motivo}. ${observaciones || ''}`
+            }).subscribe({
+              next: () => console.log('✅ Evento de cambio de estado registrado en historial vehicular'),
+              error: (error: any) => console.error('❌ Error registrando evento en historial vehicular:', error)
+            });
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('Error cambiando estado del vehículo:', error);
+        return throwError(() => error);
+      })
+    );
   }
 }

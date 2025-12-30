@@ -33,10 +33,12 @@ import { HistorialVehicularComponent } from './historial-vehicular.component';
 import { VehiculosEliminadosModalComponent } from './vehiculos-eliminados-modal.component';
 import { VehiculoDetalleComponent } from './vehiculo-detalle.component';
 import { CambiarEstadoModalComponent } from './cambiar-estado-modal.component';
+import { CambiarEstadoBloqueModalComponent } from './cambiar-estado-bloque-modal.component';
 import { CargaMasivaVehiculosComponent } from './carga-masiva-vehiculos.component';
 import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
 import { TransferirEmpresaModalComponent } from './transferir-empresa-modal.component';
 import { SolicitarBajaModalComponent } from './solicitar-baja-modal.component';
+import { VehiculoEstadoSelectorComponent } from './vehiculo-estado-selector.component';
 
 @Component({
   selector: 'app-vehiculos',
@@ -59,7 +61,8 @@ import { SolicitarBajaModalComponent } from './solicitar-baja-modal.component';
     MatDividerModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    VehiculoEstadoSelectorComponent
   ],
   templateUrl: './vehiculos.component.html',
   styleUrls: ['./vehiculos.component.scss']
@@ -235,8 +238,13 @@ export class VehiculosComponent implements OnInit {
       this.empresas.set(empresas || []);
       this.rutas.set(rutas || []);
       this.cargando.set(false);
+      
+      // Log solo si no hay datos para diagnosticar
+      if (!vehiculos?.length && !empresas?.length && !rutas?.length) {
+        console.warn('⚠️ No se cargaron datos. Verificar backend y base de datos.');
+      }
     }).catch((error: any) => {
-      console.error('Error cargando datos:', error);
+      console.error('❌ Error cargando datos:', error);
       this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
       this.cargando.set(false);
     });
@@ -315,6 +323,37 @@ export class VehiculosComponent implements OnInit {
 
   limpiarSeleccion(): void {
     this.vehiculosSeleccionados.set(new Set());
+  }
+
+  cambiarEstadoEnBloque(): void {
+    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
+      .map(id => this.vehiculos().find(v => v.id === id))
+      .filter(v => v !== undefined) as Vehiculo[];
+
+    if (vehiculosSeleccionados.length === 0) {
+      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+      data: { vehiculos: vehiculosSeleccionados },
+      width: '700px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'cambiar-estado-bloque-modal-panel'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Limpiar selección después del cambio exitoso
+        this.limpiarSeleccion();
+        
+        // Recargar vehículos para mostrar los cambios
+        this.recargarVehiculos();
+        
+        console.log(`Estados cambiados para ${result.vehiculos.length} vehículos a ${result.nuevoEstado}`);
+      }
+    });
   }
 
   // Métodos de columnas
@@ -499,10 +538,6 @@ export class VehiculosComponent implements OnInit {
 
   duplicarVehiculo(vehiculo: Vehiculo): void {
     this.snackBar.open('Función de duplicación en desarrollo', 'Cerrar', { duration: 3000 });
-  }
-
-  solicitarBajaVehiculo(vehiculo: Vehiculo): void {
-    this.snackBar.open('Función de solicitud de baja en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
   // Propiedades para el paginador
@@ -799,5 +834,18 @@ export class VehiculosComponent implements OnInit {
         });
       }
     });
+  }
+
+  // Método para manejar cambios de estado desde la tabla
+  onEstadoVehiculoChanged(event: { vehiculo: Vehiculo; nuevoEstado: string }): void {
+    // Actualizar el vehículo en la lista local
+    const vehiculos = this.vehiculos();
+    const index = vehiculos.findIndex(v => v.id === event.vehiculo.id);
+    
+    if (index !== -1) {
+      const vehiculosActualizados = [...vehiculos];
+      vehiculosActualizados[index] = { ...vehiculosActualizados[index], estado: event.nuevoEstado };
+      this.vehiculos.set(vehiculosActualizados);
+    }
   }
 }

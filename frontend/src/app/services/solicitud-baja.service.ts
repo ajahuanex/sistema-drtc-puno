@@ -176,10 +176,22 @@ export class SolicitudBajaService {
    * Obtener solicitudes de baja por vehículo
    */
   getSolicitudesBajaPorVehiculo(vehiculoId: string): Observable<SolicitudBaja[]> {
-    const filtros: SolicitudBajaFilter = {
-      vehiculoPlaca: vehiculoId // Nota: Aquí debería ser vehiculoId, pero el filtro usa placa
-    };
-    return this.getSolicitudesBaja(filtros);
+    if (environment.useDataManager) {
+      const filtros: SolicitudBajaFilter = {
+        vehiculoPlaca: vehiculoId // Para mock, usamos placa como filtro
+      };
+      return this.getSolicitudesBaja(filtros);
+    }
+
+    // Para API real, usar el endpoint específico
+    return this.http.get<SolicitudBaja[]>(`${this.apiUrl}/solicitudes-baja/vehiculo/${vehiculoId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo solicitudes por vehículo:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   // ========================================

@@ -18,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { HistorialVehicularService } from '../../services/historial-vehicular.service';
 import {
@@ -26,6 +27,8 @@ import {
   TipoEventoHistorial,
   ResumenHistorialVehicular
 } from '../../models/historial-vehicular.model';
+import { HistorialDetalleModalComponent } from './historial-detalle-modal.component';
+import { DocumentosHistorialModalComponent } from './documentos-historial-modal.component';
 
 @Component({
   selector: 'app-historial-vehicular',
@@ -609,6 +612,7 @@ export class HistorialVehicularComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private dialog = inject(MatDialog);
 
   // Estado del componente
   cargando = signal(false);
@@ -864,13 +868,33 @@ export class HistorialVehicularComponent implements OnInit {
   }
 
   verDetalleRegistro(registro: HistorialVehicular): void {
-    // TODO: Implementar modal de detalle
-    console.log('Ver detalle del registro:', registro);
+    this.dialog.open(HistorialDetalleModalComponent, {
+      data: registro,
+      width: '800px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'historial-detalle-modal-panel'
+    });
   }
 
   verDocumentos(registro: HistorialVehicular): void {
-    // TODO: Implementar modal de documentos
-    console.log('Ver documentos del registro:', registro);
+    if (!registro.documentosSoporte || registro.documentosSoporte.length === 0) {
+      this.snackBar.open('No hay documentos disponibles para este registro', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.dialog.open(DocumentosHistorialModalComponent, {
+      data: {
+        documentos: registro.documentosSoporte,
+        tipoEvento: this.getLabelTipoEvento(registro.tipoEvento),
+        fechaEvento: registro.fechaEvento,
+        placa: registro.placa
+      },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'documentos-historial-modal-panel'
+    });
   }
 
   // Métodos de utilidad para la UI

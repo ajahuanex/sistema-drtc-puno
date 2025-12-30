@@ -113,11 +113,16 @@ class VehiculoService:
         skip: int = 0, 
         limit: int = 100,
         empresa_id: Optional[str] = None,
-        estado: Optional[str] = None
+        estado: Optional[str] = None,
+        incluir_inactivos: bool = False
     ) -> List[VehiculoInDB]:
         """Obtener lista de vehículos con filtros opcionales"""
         
         query = {}
+        
+        # Por defecto, solo mostrar vehículos activos (no eliminados lógicamente)
+        if not incluir_inactivos:
+            query["estaActivo"] = {"$ne": False}
         
         if empresa_id:
             # Buscar por empresaActualId (puede ser ObjectId o UUID)

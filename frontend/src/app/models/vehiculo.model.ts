@@ -1,3 +1,12 @@
+export enum EstadoVehiculo {
+  ACTIVO = 'ACTIVO',
+  INACTIVO = 'INACTIVO',
+  MANTENIMIENTO = 'MANTENIMIENTO',
+  SUSPENDIDO = 'SUSPENDIDO',
+  FUERA_DE_SERVICIO = 'FUERA_DE_SERVICIO',
+  DADO_DE_BAJA = 'DADO_DE_BAJA'
+}
+
 export interface DatosTecnicos {
   motor: string;
   chasis: string;
@@ -48,7 +57,7 @@ export interface Vehiculo {
   marca: string;
   modelo: string;
   anioFabricacion: number;
-  estado: string;
+  estado: EstadoVehiculo | string; // Permitir tanto enum como string para compatibilidad
   estaActivo: boolean;
   tuc?: Tuc;
   datosTecnicos: DatosTecnicos;
@@ -58,6 +67,10 @@ export interface Vehiculo {
   observaciones?: string;
   fechaRegistro?: Date | string;
   fechaActualizacion?: Date | string;
+  // Campos específicos para baja
+  fechaBaja?: Date | string;
+  motivoBaja?: string;
+  observacionesBaja?: string;
   // Campos de historial de validaciones
   numeroHistorialValidacion?: number; // Número secuencial basado en orden de resoluciones
   esHistorialActual?: boolean; // Si es el registro actual del vehículo (historial más alto)
@@ -94,6 +107,32 @@ export interface VehiculoUpdate {
   modelo?: string;
   anioFabricacion?: number;
   estado?: string;
+  estaActivo?: boolean; // NUEVO: Para activar/desactivar vehículos
+  fechaBaja?: Date | string; // NUEVO: Para registrar fecha de baja
+  motivoBaja?: string; // NUEVO: Para registrar motivo de baja
+  observacionesBaja?: string; // NUEVO: Para registrar observaciones de baja
   tuc?: Tuc;
   datosTecnicos?: DatosTecnicos;
+}
+
+// Labels para mostrar en la UI
+export const ESTADOS_VEHICULO_LABELS: Record<EstadoVehiculo, string> = {
+  [EstadoVehiculo.ACTIVO]: 'Activo',
+  [EstadoVehiculo.INACTIVO]: 'Inactivo',
+  [EstadoVehiculo.MANTENIMIENTO]: 'En Mantenimiento',
+  [EstadoVehiculo.SUSPENDIDO]: 'Suspendido',
+  [EstadoVehiculo.FUERA_DE_SERVICIO]: 'Fuera de Servicio',
+  [EstadoVehiculo.DADO_DE_BAJA]: 'Dado de Baja'
+};
+
+// Función helper para verificar si un vehículo está habilitado o activo
+export function isVehiculoHabilitado(vehiculo: Vehiculo): boolean {
+  return vehiculo.estado === EstadoVehiculo.ACTIVO;
+}
+
+// Función helper para verificar si un vehículo está dado de baja
+export function isVehiculoBaja(vehiculo: Vehiculo): boolean {
+  return vehiculo.estado === EstadoVehiculo.DADO_DE_BAJA || 
+         vehiculo.estado === EstadoVehiculo.FUERA_DE_SERVICIO ||
+         vehiculo.estado === EstadoVehiculo.INACTIVO;
 } 

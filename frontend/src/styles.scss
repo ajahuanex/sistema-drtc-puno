@@ -738,3 +738,116 @@ body {
   cursor: not-allowed !important;
   opacity: 0.6 !important;
 }
+/*
+ Estilos globales para modales de historial */
+.historial-detalle-modal-panel,
+.documentos-historial-modal-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  .mat-mdc-dialog-content {
+    padding: 0;
+    margin: 0;
+    max-height: none;
+  }
+
+  .mat-mdc-dialog-actions {
+    padding: 0;
+    margin: 0;
+    min-height: auto;
+  }
+}
+
+/* Estilos para scrollbar personalizado en modales */
+.historial-detalle-modal .modal-content,
+.documentos-modal .modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f5f5f5;
+}
+
+.historial-detalle-modal .modal-content::-webkit-scrollbar,
+.documentos-modal .modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.historial-detalle-modal .modal-content::-webkit-scrollbar-track,
+.documentos-modal .modal-content::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.historial-detalle-modal .modal-content::-webkit-scrollbar-thumb,
+.documentos-modal .modal-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.historial-detalle-modal .modal-content::-webkit-scrollbar-thumb:hover,
+.documentos-modal .modal-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* Animaciones para los modales */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.historial-detalle-modal,
+.documentos-modal {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Responsive para modales en móviles */
+@media (max-width: 768px) {
+  .historial-detalle-modal-panel,
+  .documentos-historial-modal-panel {
+    .mat-mdc-dialog-container {
+      margin: 8px;
+      max-width: calc(100vw - 16px);
+      max-height: calc(100vh - 16px);
+    }
+  }
+}/* Est
+ilos para el modal de cambio de estado */
+.cambiar-estado-modal-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.cambiar-estado-modal-panel .mat-mdc-dialog-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Estilos para snackbars de éxito y error */
+.snackbar-success {
+  background-color: #4caf50 !important;
+  color: white !important;
+}
+
+.snackbar-error {
+  background-color: #f44336 !important;
+  color: white !important;
+}/* Estilos
+ para el modal de cambio de estado en bloque */
+.cambiar-estado-bloque-modal-panel .mat-mdc-dialog-container {
+  padding: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.cambiar-estado-bloque-modal-panel .mat-mdc-dialog-content {
+  padding: 0 !important;
+  margin: 0 !important;
+}

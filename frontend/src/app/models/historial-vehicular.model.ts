@@ -1,3 +1,7 @@
+import { EstadoVehiculo } from './vehiculo.model';
+
+export { EstadoVehiculo };
+
 export interface HistorialVehicular {
   id: string;
   vehiculoId: string;
@@ -73,14 +77,6 @@ export enum TipoEventoHistorial {
   CAMBIO_PROPIETARIO = 'CAMBIO_PROPIETARIO',
   ACTUALIZACION_DATOS_TECNICOS = 'ACTUALIZACION_DATOS_TECNICOS',
   OTROS = 'OTROS'
-}
-
-export enum EstadoVehiculo {
-  ACTIVO = 'ACTIVO',
-  INACTIVO = 'INACTIVO',
-  SUSPENDIDO = 'SUSPENDIDO',
-  MANTENIMIENTO = 'MANTENIMIENTO',
-  BAJA_DEFINITIVA = 'BAJA_DEFINITIVA'
 }
 
 export interface DocumentoSoporte {

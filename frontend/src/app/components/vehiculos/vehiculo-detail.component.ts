@@ -10,9 +10,11 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { VehiculoService } from '../../services/vehiculo.service';
-import { Vehiculo } from '../../models/vehiculo.model';
+import { SolicitudBajaService } from '../../services/solicitud-baja.service';
+import { Vehiculo, EstadoVehiculo, ESTADOS_VEHICULO_LABELS, isVehiculoHabilitado, isVehiculoBaja } from '../../models/vehiculo.model';
+import { SolicitudBajaCreate, MotivoBaja } from '../../models/solicitud-baja.model';
 import { TransferirVehiculoModalComponent, TransferirVehiculoData } from './transferir-vehiculo-modal.component';
-import { SolicitarBajaVehiculoModalComponent } from './solicitar-baja-vehiculo-modal.component';
+import { SolicitarBajaModalComponent } from './solicitar-baja-modal.component';
 
 @Component({
   selector: 'app-vehiculo-detail',
@@ -102,131 +104,33 @@ import { SolicitarBajaVehiculoModalComponent } from './solicitar-baja-vehiculo-m
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">Placa:</span>
-                <span class="info-value">{{ vehiculo()?.placa }}</span>
+                <span class="info-value highlight">{{ vehiculo()?.placa }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Marca:</span>
-                <span class="info-value">{{ vehiculo()?.marca }}</span>
+                <span class="info-value">{{ vehiculo()?.marca || 'No especificada' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Modelo:</span>
+                <span class="info-value">{{ vehiculo()?.modelo || 'No especificado' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Año:</span>
+                <span class="info-value">{{ vehiculo()?.anioFabricacion || 'No especificado' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Color:</span>
+                <span class="info-value">{{ vehiculo()?.color || 'No especificado' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Categoría:</span>
-                <span class="info-value">{{ vehiculo()?.categoria }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Año de Fabricación:</span>
-                <span class="info-value">{{ vehiculo()?.anioFabricacion }}</span>
+                <span class="info-value">{{ vehiculo()?.categoria || 'No especificada' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">Estado:</span>
-                <span class="status-chip" [class]="'status-' + vehiculo()?.estado?.toLowerCase()">
-                  {{ vehiculo()?.estado }}
-                </span>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Technical Data -->
-        <mat-card class="detail-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>build</mat-icon>
-              Datos Técnicos
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Motor:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.motor }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Chasis:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.chasis }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Número de Ejes:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.ejes }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Número de Asientos:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.asientos }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Peso Neto:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.pesoNeto }} kg</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Peso Bruto:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.pesoBruto }} kg</span>
-              </div>
-            </div>
-
-            <mat-divider class="divider"></mat-divider>
-
-            <h4 class="section-title">Medidas del Vehículo</h4>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Largo:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.medidas?.largo }} m</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Ancho:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.medidas?.ancho }} m</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Alto:</span>
-                <span class="info-value">{{ vehiculo()?.datosTecnicos?.medidas?.alto }} m</span>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- TUC Information -->
-        @if (vehiculo()?.tuc) {
-          <mat-card class="detail-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>receipt</mat-icon>
-              Información TUC
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">Número TUC:</span>
-                <span class="info-value">{{ vehiculo()?.tuc?.nroTuc }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Fecha de Emisión:</span>
-                <span class="info-value">{{ vehiculo()?.tuc?.fechaEmision | date:'dd/MM/yyyy HH:mm' }}</span>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
-        }
-
-        <!-- Company Information -->
-        <mat-card class="detail-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>business</mat-icon>
-              Información de Empresa
-            </mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">ID de Empresa:</span>
-                <span class="info-value">{{ vehiculo()?.empresaActualId }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">ID de Resolución:</span>
-                <span class="info-value">{{ vehiculo()?.resolucionId }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Rutas Asignadas:</span>
-                <span class="info-value">{{ vehiculo()?.rutasAsignadasIds?.length || 0 }} rutas</span>
+                <mat-chip class="status-chip" [class]="getEstadoClass(vehiculo())">
+                  {{ getEstadoDisplay(vehiculo()) }}
+                </mat-chip>
               </div>
             </div>
           </mat-card-content>
@@ -247,155 +151,96 @@ import { SolicitarBajaVehiculoModalComponent } from './solicitar-baja-vehiculo-m
     .page-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 32px;
+      align-items: flex-start;
+      margin-bottom: 24px;
       padding: 24px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
 
     .header-content {
       flex: 1;
     }
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 8px;
-    }
-
     .header-title h1 {
-      margin: 0;
+      margin: 0 0 8px 0;
       font-size: 28px;
       font-weight: 600;
-      color: #2c3e50;
     }
 
     .header-subtitle {
       margin: 0;
-      color: #6c757d;
+      opacity: 0.9;
       font-size: 16px;
     }
 
     .header-actions {
       display: flex;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .secondary-button, .action-button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 4px;
+    .action-button, .secondary-button {
+      border-radius: 8px;
       font-weight: 500;
-      text-transform: uppercase;
+      text-transform: none;
       letter-spacing: 0.5px;
-      min-height: 40px;
-      padding: 0 24px;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .secondary-button:hover, .action-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    .secondary-button:active, .action-button:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .danger-button {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 4px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      min-height: 40px;
-      padding: 0 24px;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .danger-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
-    .danger-button:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .content-section {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
+      padding: 0 24px;
     }
 
     .loading-container, .error-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 80px 24px;
+      min-height: 400px;
+    }
+
+    .loading-content, .error-content {
       text-align: center;
+      max-width: 400px;
     }
 
-    .loading-content h3, .error-content h2 {
-      margin: 24px 0 8px 0;
-      color: #2c3e50;
-      font-weight: 500;
-    }
-
-    .loading-content p, .error-content p {
-      margin: 0 0 24px 0;
-      color: #6c757d;
+    .loading-spinner {
+      margin-bottom: 24px;
     }
 
     .error-icon {
       font-size: 64px;
       width: 64px;
       height: 64px;
-      color: #dc3545;
+      color: #f44336;
+      margin-bottom: 16px;
     }
 
     .details-container {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .detail-card {
+      margin-bottom: 24px;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .detail-card mat-card-header {
-      padding: 16px 16px 0 16px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     }
 
     .detail-card mat-card-title {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 18px;
-      font-weight: 600;
+      gap: 12px;
       color: #2c3e50;
-    }
-
-    .detail-card mat-card-content {
-      padding: 16px;
+      font-size: 18px;
     }
 
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
+      gap: 20px;
+      margin-top: 16px;
     }
 
     .info-item {
@@ -403,63 +248,56 @@ import { SolicitarBajaVehiculoModalComponent } from './solicitar-baja-vehiculo-m
       justify-content: space-between;
       align-items: center;
       padding: 12px 0;
-      border-bottom: 1px solid #f1f3f4;
-    }
-
-    .info-item:last-child {
-      border-bottom: none;
+      border-bottom: 1px solid #f0f0f0;
     }
 
     .info-label {
       font-weight: 600;
-      color: #6c757d;
+      color: #555;
       font-size: 14px;
     }
 
     .info-value {
-      font-weight: 500;
-      color: #2c3e50;
-      text-align: right;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .info-value.highlight {
+      font-weight: 600;
+      color: #2196f3;
+      font-size: 16px;
     }
 
     .status-chip {
-      padding: 4px 12px;
-      border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    .status-activo {
-      background: #d4edda;
-      color: #155724;
+    .status-habilitado {
+      background: #e8f5e8;
+      color: #2e7d32;
+      font-weight: 700;
     }
 
-    .status-inactivo {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .status-en_tramite {
-      background: #fff3cd;
-      color: #856404;
-    }
-
-    .status-suspendido {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .divider {
-      margin: 24px 0;
-    }
-
-    .section-title {
-      margin: 0 0 16px 0;
-      color: #2c3e50;
+    .status-baja {
+      background: #fce4ec;
+      color: #c2185b;
       font-weight: 600;
-      font-size: 16px;
+    }
+
+    .status-baja_de_oficio {
+      background: #ffebee;
+      color: #d32f2f;
+      font-weight: 700;
+      border: 2px solid #d32f2f;
+    }
+
+    .status-baja_definitiva {
+      background: #f3e5f5;
+      color: #7b1fa2;
+      font-weight: 700;
+      border: 2px solid #7b1fa2;
     }
 
     .action-buttons {
@@ -513,6 +351,7 @@ export class VehiculoDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private vehiculoService = inject(VehiculoService);
+  private solicitudBajaService = inject(SolicitudBajaService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
 
@@ -531,18 +370,22 @@ export class VehiculoDetailComponent implements OnInit {
     }
 
     this.isLoading.set(true);
-    this.vehiculoService.getVehiculoById(id).subscribe({
+    this.vehiculoService.getVehiculo(id).subscribe({
       next: (vehiculo) => {
         this.vehiculo.set(vehiculo);
         this.isLoading.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando vehículo:', error);
-        this.snackBar.open('Error al cargar el vehículo', 'Cerrar', { duration: 5000 });
         this.isLoading.set(false);
+        this.snackBar.open('Error al cargar el vehículo', 'Cerrar', { duration: 3000 });
         this.volver();
       }
     });
+  }
+
+  volver(): void {
+    this.router.navigate(['/vehiculos']);
   }
 
   editarVehiculo(): void {
@@ -561,15 +404,16 @@ export class VehiculoDetailComponent implements OnInit {
     if (this.vehiculo()) {
       const dialogRef = this.dialog.open(TransferirVehiculoModalComponent, {
         width: '800px',
+        maxHeight: '85vh',
         data: { vehiculo: this.vehiculo() } as TransferirVehiculoData,
         disableClose: true
       });
 
       dialogRef.afterClosed().subscribe((result: any) => {
         if (result?.success) {
-          console.log('✅ Vehículo transferido:', result.vehiculo);
+          console.log('✅ Transferencia exitosa:', result.transferencia);
           this.snackBar.open('Vehículo transferido exitosamente', 'Cerrar', { duration: 3000 });
-          this.loadVehiculo(); // Recargar datos para mostrar cambios
+          this.loadVehiculo();
         }
       });
     }
@@ -577,17 +421,55 @@ export class VehiculoDetailComponent implements OnInit {
 
   solicitarBajaVehiculo(): void {
     if (this.vehiculo()) {
-      const dialogRef = this.dialog.open(SolicitarBajaVehiculoModalComponent, {
-        width: '800px',
-        maxHeight: '85vh',
+      const dialogRef = this.dialog.open(SolicitarBajaModalComponent, {
+        width: '700px',
+        maxWidth: '95vw',
+        maxHeight: '90vh',
         data: { vehiculo: this.vehiculo() },
         disableClose: true
       });
 
       dialogRef.afterClosed().subscribe((result: any) => {
-        if (result?.success) {
-          console.log('✅ Solicitud de baja creada:', result.baja);
-          this.snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', { duration: 3000 });
+        if (result) {
+          const solicitudBaja: SolicitudBajaCreate = {
+            vehiculoId: this.vehiculo()!.id,
+            motivo: result.motivo as MotivoBaja,
+            descripcion: result.descripcion,
+            fechaSolicitud: result.fechaSolicitud.toISOString()
+          };
+
+          this.solicitudBajaService.crearSolicitudBaja(solicitudBaja).subscribe({
+            next: (solicitudCreada: any) => {
+              this.snackBar.open(
+                `Solicitud de baja enviada exitosamente para el vehículo ${this.vehiculo()!.placa}`,
+                'Cerrar',
+                { 
+                  duration: 5000,
+                  panelClass: ['snackbar-success']
+                }
+              );
+            },
+            error: (error: any) => {
+              console.error('Error creando solicitud de baja:', error);
+              
+              let mensaje = 'Error al enviar la solicitud de baja';
+              
+              if (error.status === 422) {
+                mensaje = 'No se puede solicitar la baja de este vehículo. Verifique que no tenga procesos pendientes.';
+              } else if (error.status === 409) {
+                mensaje = 'Ya existe una solicitud de baja pendiente para este vehículo.';
+              } else if (error.status === 403) {
+                mensaje = 'No tienes permisos para solicitar la baja de este vehículo.';
+              } else if (error.status === 0) {
+                mensaje = 'Error de conexión. Verifica tu conexión a internet.';
+              }
+              
+              this.snackBar.open(mensaje, 'Cerrar', { 
+                duration: 5000,
+                panelClass: ['snackbar-error']
+              });
+            }
+          });
         }
       });
     }
@@ -602,10 +484,9 @@ export class VehiculoDetailComponent implements OnInit {
         this.vehiculoService.deleteVehiculo(this.vehiculo()!.id).subscribe({
           next: () => {
             this.snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
-            // Redirigir a la lista de vehículos
-            window.history.back();
+            this.volver();
           },
-          error: (error) => {
+          error: (error: any) => {
             console.error('Error eliminando vehículo:', error);
             this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
           }
@@ -614,7 +495,16 @@ export class VehiculoDetailComponent implements OnInit {
     }
   }
 
-  volver(): void {
-    this.router.navigate(['/vehiculos']);
+  // Funciones helper para mostrar el estado del vehículo
+  getEstadoDisplay(vehiculo: Vehiculo | null): string {
+    if (!vehiculo) return '';
+    
+    return ESTADOS_VEHICULO_LABELS[vehiculo.estado as EstadoVehiculo] || vehiculo.estado || 'Sin Estado';
   }
-} 
+
+  getEstadoClass(vehiculo: Vehiculo | null): string {
+    if (!vehiculo) return '';
+    
+    return `status-${vehiculo.estado?.toLowerCase()}` || '';
+  }
+}

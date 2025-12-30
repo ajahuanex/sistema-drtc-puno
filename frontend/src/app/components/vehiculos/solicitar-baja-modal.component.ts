@@ -78,7 +78,12 @@ export interface SolicitudBajaResult {
               @if (data.vehiculo.empresaActualId) {
                 <div class="info-item">
                   <strong>Empresa:</strong>
-                  <span class="info-value">{{ 'Empresa asignada' || 'No asignada' }}</span>
+                  <span class="info-value">Empresa asignada</span>
+                </div>
+              } @else {
+                <div class="info-item">
+                  <strong>Empresa:</strong>
+                  <span class="info-value">No asignada</span>
                 </div>
               }
             </div>

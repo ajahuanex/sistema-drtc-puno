@@ -62,6 +62,120 @@ async def get_vehiculo_service():
     db = await get_database()
     return VehiculoService(db)
 
+@router.get("/debug")
+async def debug_vehiculos(
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
+):
+    """Endpoint de debug para verificar datos en la base de datos"""
+    try:
+        # Contar documentos directamente en la colección
+        total_count = await vehiculo_service.collection.count_documents({})
+        activos_count = await vehiculo_service.collection.count_documents({"estaActivo": {"$ne": False}})
+        
+        # Obtener algunos documentos de ejemplo
+        sample_docs = []
+        async for doc in vehiculo_service.collection.find({}).limit(3):
+            doc["_id"] = str(doc["_id"])
+            sample_docs.append({
+                "id": doc.get("_id"),
+                "placa": doc.get("placa"),
+                "estado": doc.get("estado"),
+                "estaActivo": doc.get("estaActivo"),
+                "empresaActualId": doc.get("empresaActualId")
+            })
+        
+        return {
+            "total_vehiculos_en_bd": total_count,
+            "vehiculos_activos": activos_count,
+            "ejemplos": sample_docs,
+            "query_usado": {"estaActivo": {"$ne": False}},
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "total_vehiculos_en_bd": 0,
+            "vehiculos_activos": 0,
+            "ejemplos": [],
+            "timestamp": datetime.now().isoformat()
+        }
+
+@router.post("/init-test-data")
+async def init_test_data(
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
+):
+    """Crear datos de prueba si no existen"""
+    try:
+        # Verificar si ya hay datos
+        count = await vehiculo_service.collection.count_documents({})
+        if count > 0:
+            return {"message": f"Ya existen {count} vehículos en la base de datos"}
+        
+        # Crear vehículos de prueba
+        test_vehiculos = [
+            {
+                "placa": "ABC-123",
+                "empresaActualId": "empresa-test-1",
+                "categoria": "AUTOMOVIL",
+                "marca": "Toyota",
+                "modelo": "Corolla",
+                "anioFabricacion": 2020,
+                "estado": "HABILITADO",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "datosTecnicos": {
+                    "motor": "1.8L",
+                    "chasis": "ABC123456789",
+                    "ejes": 2,
+                    "asientos": 5,
+                    "pesoNeto": 1200,
+                    "pesoBruto": 1500,
+                    "tipoCombustible": "GASOLINA",
+                    "medidas": {"largo": 4.5, "ancho": 1.8, "alto": 1.5}
+                }
+            },
+            {
+                "placa": "DEF-456",
+                "empresaActualId": "empresa-test-2",
+                "categoria": "CAMIONETA",
+                "marca": "Ford",
+                "modelo": "Ranger",
+                "anioFabricacion": 2019,
+                "estado": "HABILITADO",
+                "estaActivo": True,
+                "fechaRegistro": datetime.utcnow(),
+                "datosTecnicos": {
+                    "motor": "2.5L",
+                    "chasis": "DEF123456789",
+                    "ejes": 2,
+                    "asientos": 5,
+                    "pesoNeto": 1800,
+                    "pesoBruto": 2500,
+                    "tipoCombustible": "DIESEL",
+                    "medidas": {"largo": 5.2, "ancho": 1.9, "alto": 1.8}
+                }
+            }
+        ]
+        
+        # Insertar datos de prueba
+        result = await vehiculo_service.collection.insert_many(test_vehiculos)
+        
+        return {
+            "message": f"Se crearon {len(result.inserted_ids)} vehículos de prueba",
+            "ids": [str(id) for id in result.inserted_ids]
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/test")
+async def test_vehiculos():
+    """Endpoint de prueba para verificar que el servicio funciona"""
+    return {
+        "message": "Servicio de vehículos funcionando correctamente",
+        "timestamp": datetime.now().isoformat()
+    }
+
 @router.get("/", response_model=List[VehiculoResponse])
 async def get_vehiculos(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),

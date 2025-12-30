@@ -131,10 +131,11 @@
                     <mat-label>ESTADO</mat-label>
                     <mat-select formControlName="estado">
                         <mat-option value="">TODOS LOS ESTADOS</mat-option>
+                        <mat-option value="HABILITADO">HABILITADO</mat-option>
                         <mat-option value="ACTIVO">ACTIVO</mat-option>
-                        <mat-option value="INACTIVO">INACTIVO</mat-option>
-                        <mat-option value="SUSPENDIDO">SUSPENDIDO</mat-option>
-                        <mat-option value="EN_REVISION">EN REVISIÓN</mat-option>
+                        <mat-option value="BAJA">BAJA</mat-option>
+                        <mat-option value="BAJA_DE_OFICIO">BAJA DE OFICIO</mat-option>
+                        <mat-option value="BAJA_DEFINITIVA">BAJA DEFINITIVA</mat-option>
                     </mat-select>
                     <mat-icon matSuffix>info</mat-icon>
                 </mat-form-field>
@@ -228,7 +229,11 @@
                 @if (getVehiculosSeleccionadosCount() > 0) {
                     <div class="bulk-actions">
                         <span class="selection-info">{{ getVehiculosSeleccionadosCount() }} seleccionado(s)</span>
-                        <button mat-raised-button color="primary" (click)="gestionarRutasEnBloque()">
+                        <button mat-raised-button color="primary" (click)="cambiarEstadoEnBloque()">
+                            <mat-icon>swap_horiz</mat-icon>
+                            CAMBIAR ESTADO ({{ getVehiculosSeleccionadosCount() }})
+                        </button>
+                        <button mat-raised-button color="accent" (click)="gestionarRutasEnBloque()">
                             <mat-icon>route</mat-icon>
                             GESTIONAR RUTAS ({{ getVehiculosSeleccionadosCount() }})
                         </button>
@@ -364,11 +369,12 @@
                             <span>ESTADO</span>
                         </div>
                     </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
+                    <td mat-cell *matCellDef="let vehiculo" class="table-cell estado-cell">
                         <div class="cell-content">
-                            <span class="status-badge" [class]="'status-' + vehiculo.estado.toLowerCase()">
-                                {{ vehiculo.estado }}
-                            </span>
+                            <app-vehiculo-estado-selector 
+                                [vehiculo]="vehiculo"
+                                (estadoChanged)="onEstadoVehiculoChanged($event)">
+                            </app-vehiculo-estado-selector>
                         </div>
                     </td>
                 </ng-container>
