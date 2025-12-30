@@ -93,10 +93,6 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
               <app-smart-icon [iconName]="'download'" [size]="20"></app-smart-icon>
               Exportar
             </button>
-            <button mat-button (click)="actualizarHistorial()">
-              <app-smart-icon [iconName]="'refresh'" [size]="20"></app-smart-icon>
-              Actualizar
-            </button>
           </div>
         </div>
 
@@ -148,6 +144,12 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
             </mat-form-field>
 
             <mat-form-field appearance="outline">
+              <mat-label>Empresa</mat-label>
+              <input matInput formControlName="empresa" placeholder="Nombre o RUC de la empresa">
+              <app-smart-icon [iconName]="'business'" [size]="20" matSuffix></app-smart-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
               <mat-label>Tipo de Evento</mat-label>
               <mat-select formControlName="tipoEvento" multiple>
                 @for (tipo of tiposEvento; track tipo.value) {
@@ -156,7 +158,9 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
               </mat-select>
               <app-smart-icon [iconName]="'event'" [size]="20" matSuffix></app-smart-icon>
             </mat-form-field>
+          </div>
 
+          <div class="filtros-row">
             <mat-form-field appearance="outline">
               <mat-label>Fecha Desde</mat-label>
               <input matInput [matDatepicker]="fechaDesde" formControlName="fechaDesde">
@@ -169,6 +173,26 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
               <input matInput [matDatepicker]="fechaHasta" formControlName="fechaHasta">
               <mat-datepicker-toggle matSuffix [for]="fechaHasta"></mat-datepicker-toggle>
               <mat-datepicker #fechaHasta></mat-datepicker>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Ordenar por</mat-label>
+              <mat-select formControlName="ordenarPor">
+                <mat-option value="fechaEvento">Fecha</mat-option>
+                <mat-option value="empresa">Empresa</mat-option>
+                <mat-option value="placa">Placa</mat-option>
+                <mat-option value="tipoEvento">Tipo de Evento</mat-option>
+              </mat-select>
+              <app-smart-icon [iconName]="'sort'" [size]="20" matSuffix></app-smart-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Orden</mat-label>
+              <mat-select formControlName="ordenDireccion">
+                <mat-option value="desc">Descendente</mat-option>
+                <mat-option value="asc">Ascendente</mat-option>
+              </mat-select>
+              <app-smart-icon [iconName]="'swap_vert'" [size]="20" matSuffix></app-smart-icon>
             </mat-form-field>
           </div>
 
@@ -246,6 +270,17 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
                     <div class="placa-cell">
                       <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
                       <span class="placa-text">{{ registro.placa }}</span>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Columna Empresa -->
+                <ng-container matColumnDef="empresa">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Empresa</th>
+                  <td mat-cell *matCellDef="let registro">
+                    <div class="empresa-cell">
+                      <app-smart-icon [iconName]="'business'" [size]="16"></app-smart-icon>
+                      <span class="empresa-text">{{ registro.empresaNombre || 'No especificada' }}</span>
                     </div>
                   </td>
                 </ng-container>
@@ -529,6 +564,18 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
       color: #1976d2;
     }
 
+    .empresa-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .empresa-text {
+      font-weight: 500;
+      color: #4caf50;
+      font-size: 13px;
+    }
+
     .evento-chip {
       display: flex;
       align-items: center;
@@ -632,7 +679,7 @@ export class HistorialVehicularComponent implements OnInit {
   puedeExportar = computed(() => this.tieneHistorial() && !this.cargando());
 
   // Configuración de la tabla
-  columnasTabla = ['fecha', 'placa', 'tipoEvento', 'descripcion', 'usuario', 'acciones'];
+  columnasTabla = ['fecha', 'placa', 'empresa', 'tipoEvento', 'descripcion', 'usuario', 'acciones'];
 
   // Tipos de evento para el filtro
   tiposEvento = [
@@ -653,10 +700,13 @@ export class HistorialVehicularComponent implements OnInit {
   // Formulario de filtros
   filtrosForm = this.fb.group({
     placa: [''],
+    empresa: [''],
     tipoEvento: [[] as TipoEventoHistorial[]],
     fechaDesde: [null as Date | null],
     fechaHasta: [null as Date | null],
-    usuarioId: ['']
+    usuarioId: [''],
+    ordenarPor: ['fechaEvento'],
+    ordenDireccion: ['desc']
   });
 
   // Computed para filtros activos
@@ -665,6 +715,7 @@ export class HistorialVehicularComponent implements OnInit {
     let count = 0;
 
     if (valores.placa) count++;
+    if (valores.empresa) count++;
     if (valores.tipoEvento && valores.tipoEvento.length > 0) count++;
     if (valores.fechaDesde) count++;
     if (valores.fechaHasta) count++;
@@ -776,8 +827,8 @@ export class HistorialVehicularComponent implements OnInit {
     const filtros: FiltrosHistorialVehicular = {
       page: this.paginacion().page,
       limit: this.paginacion().limit,
-      sortBy: 'fechaEvento',
-      sortOrder: 'desc'
+      sortBy: formValues.ordenarPor || 'fechaEvento',
+      sortOrder: (formValues.ordenDireccion as 'asc' | 'desc') || 'desc'
     };
 
     // Priorizar vehiculoId de los parámetros de URL
@@ -791,6 +842,10 @@ export class HistorialVehicularComponent implements OnInit {
     // Agregar filtros del formulario
     if (formValues.placa) {
       filtros.placa = formValues.placa;
+    }
+
+    if (formValues.empresa) {
+      filtros.empresaId = formValues.empresa;
     }
 
     if (formValues.tipoEvento && formValues.tipoEvento.length > 0) {

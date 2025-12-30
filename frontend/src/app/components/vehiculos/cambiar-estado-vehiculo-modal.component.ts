@@ -12,6 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { Vehiculo, EstadoVehiculo, ESTADOS_VEHICULO_LABELS } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../services/vehiculo.service';
+import { ConfiguracionService } from '../../services/configuracion.service';
 
 export interface CambiarEstadoModalData {
   vehiculo: Vehiculo;
@@ -54,7 +55,9 @@ export interface CambiarEstadoModalData {
             <app-smart-icon [iconName]="'info'" [size]="20"></app-smart-icon>
             <span>Estado Actual</span>
           </div>
-          <div class="estado-actual-badge" [class]="'estado-' + data.vehiculo.estado.toLowerCase()">
+          <div class="estado-actual-badge" 
+               [style.background-color]="getColorEstado(data.vehiculo.estado)"
+               [style.color]="getColorTexto(getColorEstado(data.vehiculo.estado))">
             <app-smart-icon [iconName]="getIconoEstado(data.vehiculo.estado)" [size]="18"></app-smart-icon>
             {{ getLabelEstado(data.vehiculo.estado) }}
           </div>
@@ -351,18 +354,19 @@ export class CambiarEstadoVehiculoModalComponent {
   data = inject(MAT_DIALOG_DATA) as CambiarEstadoModalData;
   private fb = inject(FormBuilder);
   private vehiculoService = inject(VehiculoService);
+  private configuracionService = inject(ConfiguracionService);
   private snackBar = inject(MatSnackBar);
 
   procesando = signal(false);
 
-  estadosDisponibles = [
-    { value: EstadoVehiculo.ACTIVO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.ACTIVO], icon: 'check_circle' },
-    { value: EstadoVehiculo.INACTIVO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.INACTIVO], icon: 'cancel' },
-    { value: EstadoVehiculo.MANTENIMIENTO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.MANTENIMIENTO], icon: 'build' },
-    { value: EstadoVehiculo.SUSPENDIDO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.SUSPENDIDO], icon: 'pause_circle' },
-    { value: EstadoVehiculo.FUERA_DE_SERVICIO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.FUERA_DE_SERVICIO], icon: 'block' },
-    { value: EstadoVehiculo.DADO_DE_BAJA, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.DADO_DE_BAJA], icon: 'delete_forever' }
-  ];
+  // Obtener estados desde la configuración
+  estadosDisponibles = this.configuracionService.estadosVehiculosConfig().map((estado: any) => ({
+    value: estado.codigo,
+    label: estado.nombre,
+    icon: this.getIconoParaEstado(estado.codigo),
+    color: estado.color,
+    descripcion: estado.descripcion
+  }));
 
   estadoForm = this.fb.group({
     nuevoEstado: ['', Validators.required],
@@ -380,13 +384,47 @@ export class CambiarEstadoVehiculoModalComponent {
     return !!(nuevoEstado && nuevoEstado !== this.data.vehiculo.estado);
   }
 
+  /**
+   * Obtiene el icono apropiado para cada estado
+   */
+  private getIconoParaEstado(codigo: string): string {
+    const iconos: { [key: string]: string } = {
+      'ACTIVO': 'check_circle',
+      'INACTIVO': 'cancel',
+      'MANTENIMIENTO': 'build',
+      'SUSPENDIDO': 'pause_circle',
+      'FUERA_DE_SERVICIO': 'block',
+      'DADO_DE_BAJA': 'delete_forever'
+    };
+    return iconos[codigo] || 'help';
+  }
+
   getIconoEstado(estado: string): string {
-    const estadoConfig = this.estadosDisponibles.find(e => e.value === estado);
+    const estadoConfig = this.estadosDisponibles.find((e: any) => e.value === estado);
     return estadoConfig?.icon || 'help';
   }
 
   getLabelEstado(estado: string): string {
-    return ESTADOS_VEHICULO_LABELS[estado as EstadoVehiculo] || estado;
+    const estadoConfig = this.estadosDisponibles.find((e: any) => e.value === estado);
+    return estadoConfig?.label || estado;
+  }
+
+  getColorEstado(estado: string): string {
+    const estadoConfig = this.estadosDisponibles.find((e: any) => e.value === estado);
+    return estadoConfig?.color || '#757575';
+  }
+
+  getColorTexto(colorFondo: string): string {
+    // Convertir hex a RGB y calcular luminancia
+    const hex = colorFondo.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calcular luminancia
+    const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    return luminancia > 0.5 ? '#000000' : '#FFFFFF';
   }
 
   cancelar(): void {

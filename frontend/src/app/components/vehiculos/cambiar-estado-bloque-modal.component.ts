@@ -14,6 +14,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { Vehiculo, EstadoVehiculo, ESTADOS_VEHICULO_LABELS } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../services/vehiculo.service';
+import { ConfiguracionService } from '../../services/configuracion.service';
 import { forkJoin } from 'rxjs';
 
 export interface CambiarEstadoBloqueModalData {
@@ -63,7 +64,9 @@ export interface CambiarEstadoBloqueModalData {
                   <span class="vehiculo-placa">{{ vehiculo.placa }}</span>
                   <span class="vehiculo-marca">{{ vehiculo.marca }} {{ vehiculo.modelo }}</span>
                 </div>
-                <div class="vehiculo-estado-actual" [class]="'estado-' + vehiculo.estado.toLowerCase()">
+                <div class="vehiculo-estado-actual" 
+                     [style.background-color]="getColorEstado(vehiculo.estado)"
+                     [style.color]="getColorTexto(getColorEstado(vehiculo.estado))">
                   {{ getLabelEstado(vehiculo.estado) }}
                 </div>
               </div>
@@ -117,7 +120,9 @@ export interface CambiarEstadoBloqueModalData {
               </div>
               <div class="resumen-item">
                 <span class="resumen-label">Nuevo estado:</span>
-                <span class="resumen-value estado-badge" [class]="'estado-' + estadoForm.get('nuevoEstado')?.value?.toLowerCase()">
+                <span class="resumen-value estado-badge" 
+                      [style.background-color]="getColorEstado(estadoForm.get('nuevoEstado')?.value || '')"
+                      [style.color]="getColorTexto(getColorEstado(estadoForm.get('nuevoEstado')?.value || ''))">
                   {{ getLabelEstado(estadoForm.get('nuevoEstado')?.value || '') }}
                 </span>
               </div>
@@ -469,19 +474,20 @@ export class CambiarEstadoBloqueModalComponent {
   data = inject(MAT_DIALOG_DATA) as CambiarEstadoBloqueModalData;
   private fb = inject(FormBuilder);
   private vehiculoService = inject(VehiculoService);
+  private configuracionService = inject(ConfiguracionService);
   private snackBar = inject(MatSnackBar);
 
   procesando = signal(false);
   progreso = signal(0);
 
-  estadosDisponibles = [
-    { value: EstadoVehiculo.ACTIVO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.ACTIVO], icon: 'check_circle' },
-    { value: EstadoVehiculo.INACTIVO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.INACTIVO], icon: 'cancel' },
-    { value: EstadoVehiculo.MANTENIMIENTO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.MANTENIMIENTO], icon: 'build' },
-    { value: EstadoVehiculo.SUSPENDIDO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.SUSPENDIDO], icon: 'pause_circle' },
-    { value: EstadoVehiculo.FUERA_DE_SERVICIO, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.FUERA_DE_SERVICIO], icon: 'block' },
-    { value: EstadoVehiculo.DADO_DE_BAJA, label: ESTADOS_VEHICULO_LABELS[EstadoVehiculo.DADO_DE_BAJA], icon: 'delete_forever' }
-  ];
+  // Obtener estados desde la configuración
+  estadosDisponibles = this.configuracionService.estadosVehiculosConfig().map((estado: any) => ({
+    value: estado.codigo,
+    label: estado.nombre,
+    icon: this.getIconoParaEstado(estado.codigo),
+    color: estado.color,
+    descripcion: estado.descripcion
+  }));
 
   estadoForm = this.fb.group({
     nuevoEstado: ['', Validators.required],
@@ -498,12 +504,46 @@ export class CambiarEstadoBloqueModalComponent {
   }
 
   getLabelEstado(estado: string): string {
-    return ESTADOS_VEHICULO_LABELS[estado as EstadoVehiculo] || estado;
+    const estadoConfig = this.estadosDisponibles.find((e: any) => e.value === estado);
+    return estadoConfig?.label || estado;
+  }
+
+  /**
+   * Obtiene el icono apropiado para cada estado
+   */
+  private getIconoParaEstado(codigo: string): string {
+    const iconos: { [key: string]: string } = {
+      'ACTIVO': 'check_circle',
+      'INACTIVO': 'cancel',
+      'MANTENIMIENTO': 'build',
+      'SUSPENDIDO': 'pause_circle',
+      'FUERA_DE_SERVICIO': 'block',
+      'DADO_DE_BAJA': 'delete_forever'
+    };
+    return iconos[codigo] || 'help';
+  }
+
+  getColorEstado(estado: string): string {
+    const estadoConfig = this.estadosDisponibles.find((e: any) => e.value === estado);
+    return estadoConfig?.color || '#757575';
+  }
+
+  getColorTexto(colorFondo: string): string {
+    // Convertir hex a RGB y calcular luminancia
+    const hex = colorFondo.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+
+    // Calcular luminancia
+    const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    return luminancia > 0.5 ? '#000000' : '#FFFFFF';
   }
 
   getEstadosActuales() {
     const estadosMap = new Map<string, number>();
-    
+
     this.data.vehiculos.forEach(vehiculo => {
       const estado = vehiculo.estado;
       estadosMap.set(estado, (estadosMap.get(estado) || 0) + 1);
@@ -546,8 +586,8 @@ export class CambiarEstadoBloqueModalComponent {
     // Crear array de observables para cambiar el estado de cada vehículo
     const cambios = this.data.vehiculos.map(vehiculo => {
       const motivo = this.generarMotivoAutomatico(vehiculo.estado, nuevoEstado);
-      const observacionesCompletas = observaciones ? 
-        `Cambio en bloque: ${observaciones}` : 
+      const observacionesCompletas = observaciones ?
+        `Cambio en bloque: ${observaciones}` :
         'Cambio de estado realizado en bloque';
 
       return this.vehiculoService.cambiarEstadoVehiculo(
@@ -562,13 +602,13 @@ export class CambiarEstadoBloqueModalComponent {
     forkJoin(cambios).subscribe({
       next: (vehiculosActualizados) => {
         this.procesando.set(false);
-        
+
         // Mostrar notificación de éxito
         const estadoLabel = this.getLabelEstado(nuevoEstado);
         this.snackBar.open(
           `Estado de ${vehiculosActualizados.length} vehículo(s) cambiado a ${estadoLabel}`,
           'Cerrar',
-          { 
+          {
             duration: 4000,
             panelClass: ['snackbar-success']
           }
@@ -583,9 +623,9 @@ export class CambiarEstadoBloqueModalComponent {
       error: (error) => {
         this.procesando.set(false);
         console.error('Error cambiando estado de vehículos en bloque:', error);
-        
+
         let mensaje = 'Error al cambiar el estado de los vehículos';
-        
+
         if (error.status === 422) {
           mensaje = 'Error de validación en algunos vehículos';
         } else if (error.status === 404) {
@@ -618,7 +658,7 @@ export class CambiarEstadoBloqueModalComponent {
     } else if (estadoNuevo === EstadoVehiculo.DADO_DE_BAJA) {
       return 'BAJA_ADMINISTRATIVA';
     }
-    
+
     return 'CAMBIO_ADMINISTRATIVO';
   }
 }
