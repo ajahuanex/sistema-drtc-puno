@@ -210,5 +210,42 @@ export const CONFIGURACIONES_DEFAULT = {
     descripcion: 'Habilita las notificaciones push en tiempo real dentro de la aplicación para alertar sobre cambios importantes, tareas pendientes, o actualizaciones de estado sin necesidad de recargar la página.',
     categoria: CategoriaConfiguracion.NOTIFICACIONES,
     esEditable: true
+  },
+
+  // Estados de Vehículos
+  ESTADOS_VEHICULOS_CONFIG: {
+    nombre: 'ESTADOS_VEHICULOS_CONFIG',
+    valor: JSON.stringify([
+      { codigo: 'ACTIVO', nombre: 'Activo', color: '#4CAF50', descripcion: 'Vehículo operativo y disponible para servicio' },
+      { codigo: 'INACTIVO', nombre: 'Inactivo', color: '#F44336', descripcion: 'Vehículo temporalmente fuera de servicio' },
+      { codigo: 'MANTENIMIENTO', nombre: 'Mantenimiento', color: '#FF9800', descripcion: 'Vehículo en proceso de reparación o mantenimiento' },
+      { codigo: 'SUSPENDIDO', nombre: 'Suspendido', color: '#9C27B0', descripcion: 'Vehículo suspendido por motivos administrativos' },
+      { codigo: 'FUERA_DE_SERVICIO', nombre: 'Fuera de Servicio', color: '#E91E63', descripcion: 'Vehículo no operativo por tiempo indefinido' },
+      { codigo: 'DADO_DE_BAJA', nombre: 'Dado de Baja', color: '#795548', descripcion: 'Vehículo dado de baja definitivamente' }
+    ]),
+    descripcion: 'Configuración de estados disponibles para vehículos con sus colores y descripciones. Formato JSON con array de objetos {codigo, nombre, color, descripcion}.',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true
+  },
+  ESTADO_VEHICULO_DEFAULT: {
+    nombre: 'ESTADO_VEHICULO_DEFAULT',
+    valor: 'ACTIVO',
+    descripcion: 'Estado por defecto que se asigna a los vehículos recién registrados en el sistema.',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true
+  },
+  PERMITIR_CAMBIO_ESTADO_MASIVO: {
+    nombre: 'PERMITIR_CAMBIO_ESTADO_MASIVO',
+    valor: 'true',
+    descripcion: 'Habilita la funcionalidad de cambio de estado masivo para múltiples vehículos simultáneamente.',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true
+  },
+  MOTIVO_OBLIGATORIO_CAMBIO_ESTADO: {
+    nombre: 'MOTIVO_OBLIGATORIO_CAMBIO_ESTADO',
+    valor: 'false',
+    descripcion: 'Define si es obligatorio proporcionar un motivo al cambiar el estado de un vehículo.',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true
   }
 }; 

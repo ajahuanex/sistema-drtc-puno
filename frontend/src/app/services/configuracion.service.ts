@@ -104,7 +104,7 @@ export class ConfiguracionService {
     if (config && config.valor) {
       return config.valor.split(',').map(cat => cat.trim()).filter(cat => cat.length > 0);
     }
-    return ['M1', 'M2', 'M3', 'N1', 'N2', 'N3'];
+    return ['M1', 'M2', 'M2-C3', 'M3', 'N1', 'N2', 'N3'];
   });
 
   estadosVehiculos = computed(() => {
@@ -138,8 +138,52 @@ export class ConfiguracionService {
     return config ? config.valor : 'DIESEL';
   });
 
+  // Configuraciones de carrocería
+  tiposCarroceria = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'TIPOS_CARROCERIA');
+    if (config && config.valor) {
+      return config.valor.split(',').map(tipo => tipo.trim()).filter(tipo => tipo.length > 0);
+    }
+    return ['MICROBUS', 'MINIBUS', 'OMNIBUS', 'COASTER', 'FURGON', 'CAMIONETA'];
+  });
+
+  tipoCarroceriaDefault = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'TIPO_CARROCERIA_DEFAULT');
+    return config ? config.valor : 'MICROBUS';
+  });
+
+  // Configuraciones de estados de vehículos
+  estadosVehiculosConfig = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'ESTADOS_VEHICULOS_CONFIG');
+    if (config && config.valor) {
+      try {
+        return JSON.parse(config.valor);
+      } catch (error) {
+        console.error('Error parseando configuración de estados de vehículos:', error);
+        return this.getEstadosVehiculosDefault();
+      }
+    }
+    return this.getEstadosVehiculosDefault();
+  });
+
+  permitirCambioEstadoMasivo = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'PERMITIR_CAMBIO_ESTADO_MASIVO');
+    return config ? config.valor.toLowerCase() === 'true' : true;
+  });
+
+  motivoObligatorioCambioEstado = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'MOTIVO_OBLIGATORIO_CAMBIO_ESTADO');
+    return config ? config.valor.toLowerCase() === 'true' : false;
+  });
+
   constructor() {
-    console.log('🔧 ConfiguracionService inicializado - usando únicamente API');
+    console.log('🔧 ConfiguracionService inicializado - cargando configuraciones automáticamente');
+    // Cargar configuraciones automáticamente al inicializar el servicio
+    this.cargarConfiguraciones().then(() => {
+      console.log('✅ Configuraciones cargadas automáticamente');
+    }).catch(error => {
+      console.error('❌ Error cargando configuraciones automáticamente:', error);
+    });
   }
 
   private getHeaders(): HttpHeaders {
@@ -151,29 +195,35 @@ export class ConfiguracionService {
   }
 
   /**
-   * Carga todas las configuraciones desde el backend
+   * Carga las configuraciones desde la API
    */
-  cargarConfiguraciones(): Observable<ConfiguracionSistema[]> {
-    console.log('🔍 Cargando configuraciones desde API...');
-    
-    return this.http.get<ConfiguracionSistema[]>(this.apiUrl, { headers: this.getHeaders() })
-      .pipe(
-        tap((configuraciones) => {
-          console.log('✅ Configuraciones cargadas desde API:', configuraciones.length);
-          this.configuracionesSignal.set(configuraciones);
-          this.configuracionesCargadasSignal.set(true);
-          this.actualizarBehaviorSubjects(configuraciones);
-        }),
-        catchError(error => {
-          console.warn('⚠️ API de configuraciones no disponible, usando valores por defecto:', error);
-          // Usar configuraciones por defecto cuando la API no esté disponible
-          const configuracionesDefault = this.getConfiguracionesDefault();
-          this.configuracionesSignal.set(configuracionesDefault);
-          this.configuracionesCargadasSignal.set(true);
-          this.actualizarBehaviorSubjects(configuracionesDefault);
-          return of(configuracionesDefault);
-        })
-      );
+  async cargarConfiguraciones(): Promise<void> {
+    try {
+      this.configuracionesCargadasSignal.set(false);
+      
+      // Intentar cargar desde la API (sin autenticación para pruebas)
+      const response = await this.http.get<ConfiguracionSistema[]>(`${this.apiUrl}`).toPromise();
+      
+      if (response && response.length > 0) {
+        console.log('✅ Configuraciones cargadas desde la API:', response.length);
+        this.configuracionesSignal.set(response);
+        this.configuracionesCargadasSignal.set(true);
+        this.actualizarBehaviorSubjects(response);
+        return;
+      }
+      
+      throw new Error('No se recibieron configuraciones de la API');
+      
+    } catch (error) {
+      console.warn('⚠️ Error cargando configuraciones desde la API:', error);
+      console.log('🔄 Usando configuraciones por defecto...');
+      
+      // Usar configuraciones por defecto directamente
+      const configuracionesDefault = this.getConfiguracionesDefault();
+      this.configuracionesSignal.set(configuracionesDefault);
+      this.configuracionesCargadasSignal.set(true);
+      this.actualizarBehaviorSubjects(configuracionesDefault);
+    }
   }
 
   /**
@@ -206,7 +256,7 @@ export class ConfiguracionService {
       {
         id: 'default-3',
         nombre: 'CATEGORIAS_VEHICULOS',
-        valor: 'M1,M2,M3,N1,N2,N3',
+        valor: 'M1,M2,M2-C3,M3,N1,N2,N3',
         descripcion: 'Categorías de vehículos disponibles',
         categoria: CategoriaConfiguracion.VEHICULOS,
         activo: true,
@@ -263,6 +313,68 @@ export class ConfiguracionService {
         nombre: 'TIPO_COMBUSTIBLE_DEFAULT',
         valor: 'DIESEL',
         descripcion: 'Tipo de combustible por defecto',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-8a',
+        nombre: 'TIPOS_CARROCERIA',
+        valor: 'MICROBUS,MINIBUS,OMNIBUS,COASTER,FURGON,CAMIONETA',
+        descripcion: 'Tipos de carrocería disponibles',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-8b',
+        nombre: 'TIPO_CARROCERIA_DEFAULT',
+        valor: 'MICROBUS',
+        descripcion: 'Tipo de carrocería por defecto',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-9',
+        nombre: 'ESTADOS_VEHICULOS_CONFIG',
+        valor: JSON.stringify([
+          { codigo: 'ACTIVO', nombre: 'Activo', color: '#4CAF50', descripcion: 'Vehículo operativo y disponible para servicio' },
+          { codigo: 'INACTIVO', nombre: 'Inactivo', color: '#F44336', descripcion: 'Vehículo temporalmente fuera de servicio' },
+          { codigo: 'MANTENIMIENTO', nombre: 'Mantenimiento', color: '#FF9800', descripcion: 'Vehículo en proceso de reparación o mantenimiento' },
+          { codigo: 'SUSPENDIDO', nombre: 'Suspendido', color: '#9C27B0', descripcion: 'Vehículo suspendido por motivos administrativos' },
+          { codigo: 'FUERA_DE_SERVICIO', nombre: 'Fuera de Servicio', color: '#E91E63', descripcion: 'Vehículo no operativo por tiempo indefinido' },
+          { codigo: 'DADO_DE_BAJA', nombre: 'Dado de Baja', color: '#795548', descripcion: 'Vehículo dado de baja definitivamente' }
+        ]),
+        descripcion: 'Configuración de estados disponibles para vehículos',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-10',
+        nombre: 'PERMITIR_CAMBIO_ESTADO_MASIVO',
+        valor: 'true',
+        descripcion: 'Habilita cambio de estado masivo',
+        categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-11',
+        nombre: 'MOTIVO_OBLIGATORIO_CAMBIO_ESTADO',
+        valor: 'false',
+        descripcion: 'Define si el motivo es obligatorio al cambiar estado',
         categoria: CategoriaConfiguracion.VEHICULOS,
         activo: true,
         esEditable: true,
@@ -326,28 +438,39 @@ export class ConfiguracionService {
   /**
    * Actualiza una configuración específica
    */
-  actualizarConfiguracion(id: string, configuracion: ConfiguracionUpdate): Observable<ConfiguracionSistema> {
-    console.log('📤 Actualizando configuración en backend:', id, configuracion);
-    
-    const url = `${this.apiUrl}/${id}`;
-    return this.http.put<ConfiguracionSistema>(url, configuracion, { headers: this.getHeaders() })
-      .pipe(
-        tap((configuracionActualizada) => {
-          console.log('✅ Configuración actualizada en backend:', configuracionActualizada);
-          // Actualizar en el signal local
-          const configuraciones = this.configuraciones();
-          const index = configuraciones.findIndex(c => c.id === id);
-          if (index !== -1) {
-            configuraciones[index] = configuracionActualizada;
-            this.configuracionesSignal.set([...configuraciones]);
-            this.actualizarBehaviorSubjects(configuraciones);
-          }
-        }),
-        catchError(error => {
-          console.error('❌ Error actualizando configuración:', error);
-          return throwError(() => error);
-        })
-      );
+  /**
+   * Actualiza una configuración
+   */
+  async actualizarConfiguracion(id: string, valor: string): Promise<boolean> {
+    try {
+      const updateData = { valor };
+      
+      const response = await this.http.put<ConfiguracionSistema>(
+        `${this.apiUrl}/${id}`,
+        updateData,
+        { headers: this.getHeaders() }
+      ).toPromise();
+      
+      if (response) {
+        // Actualizar la configuración en el signal
+        const configuraciones = this.configuracionesSignal();
+        const index = configuraciones.findIndex(c => c.id === id);
+        if (index !== -1) {
+          configuraciones[index] = response;
+          this.configuracionesSignal.set([...configuraciones]);
+          this.actualizarBehaviorSubjects(configuraciones);
+        }
+        
+        console.log('✅ Configuración actualizada exitosamente');
+        return true;
+      }
+      
+      return false;
+      
+    } catch (error) {
+      console.error('❌ Error actualizando configuración:', error);
+      throw error;
+    }
   }
 
   /**
@@ -373,7 +496,25 @@ export class ConfiguracionService {
   }
 
   /**
-   * Obtiene configuraciones por categoría
+   * Obtiene configuraciones por categoría desde la API
+   */
+  async obtenerConfiguracionesPorCategoria(categoria: CategoriaConfiguracion): Promise<ConfiguracionSistema[]> {
+    try {
+      const response = await this.http.get<ConfiguracionSistema[]>(
+        `${this.apiUrl}?categoria=${categoria}`,
+        { headers: this.getHeaders() }
+      ).toPromise();
+      
+      return response || [];
+      
+    } catch (error) {
+      console.error(`❌ Error obteniendo configuraciones de ${categoria}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Obtiene configuraciones por categoría (método local)
    */
   getConfiguracionesPorCategoria(categoria: CategoriaConfiguracion): ConfiguracionSistema[] {
     return this.configuraciones().filter(c => c.categoria === categoria);
@@ -452,10 +593,7 @@ export class ConfiguracionService {
       // Validar y actualizar configuraciones
       const actualizaciones = datos.configuraciones.map((config: any) => {
         if (config.id && config.valor) {
-          return this.actualizarConfiguracion(config.id, {
-            valor: config.valor,
-            descripcion: config.descripcion || ''
-          });
+          return this.actualizarConfiguracion(config.id, config.valor);
         }
         return of(null);
       });
@@ -533,5 +671,35 @@ export class ConfiguracionService {
     const ahora = new Date();
     const offset = this.offsetZonaHoraria();
     return new Date(ahora.getTime() + (offset * 60 * 60 * 1000));
+  }
+
+  /**
+   * Obtiene los estados de vehículos por defecto
+   */
+  private getEstadosVehiculosDefault() {
+    return [
+      { codigo: 'ACTIVO', nombre: 'Activo', color: '#4CAF50', descripcion: 'Vehículo operativo y disponible para servicio' },
+      { codigo: 'INACTIVO', nombre: 'Inactivo', color: '#F44336', descripcion: 'Vehículo temporalmente fuera de servicio' },
+      { codigo: 'MANTENIMIENTO', nombre: 'Mantenimiento', color: '#FF9800', descripcion: 'Vehículo en proceso de reparación o mantenimiento' },
+      { codigo: 'SUSPENDIDO', nombre: 'Suspendido', color: '#9C27B0', descripcion: 'Vehículo suspendido por motivos administrativos' },
+      { codigo: 'FUERA_DE_SERVICIO', nombre: 'Fuera de Servicio', color: '#E91E63', descripcion: 'Vehículo no operativo por tiempo indefinido' },
+      { codigo: 'DADO_DE_BAJA', nombre: 'Dado de Baja', color: '#795548', descripcion: 'Vehículo dado de baja definitivamente' }
+    ];
+  }
+
+  /**
+   * Obtiene un estado específico por código
+   */
+  getEstadoVehiculo(codigo: string) {
+    const estados = this.estadosVehiculosConfig();
+    return estados.find((estado: any) => estado.codigo === codigo);
+  }
+
+  /**
+   * Obtiene el color de un estado específico
+   */
+  getColorEstadoVehiculo(codigo: string): string {
+    const estado = this.getEstadoVehiculo(codigo);
+    return estado ? estado.color : '#757575';
   }
 }

@@ -300,90 +300,314 @@ export interface VehiculoModalData {
               </mat-expansion-panel-header>
               
               <div class="expansion-content">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Marca</mat-label>
-                    <input matInput formControlName="marca" placeholder="Ej: Toyota, Mercedes, etc." (input)="convertirAMayusculas($event, 'marca')">
-                    <app-smart-icon [iconName]="'branding_watermark'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Marca del vehículo</mat-hint>
-                  </mat-form-field>
+                <!-- Información básica del vehículo -->
+                <div class="form-section">
+                  <h4 class="section-title">
+                    <app-smart-icon [iconName]="'info'" [size]="18"></app-smart-icon>
+                    Información Básica
+                  </h4>
+                  
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Marca</mat-label>
+                      <input matInput formControlName="marca" placeholder="Ej: Toyota, Mercedes, etc." (input)="convertirAMayusculas($event, 'marca')">
+                      <app-smart-icon [iconName]="'branding_watermark'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Marca del vehículo</mat-hint>
+                    </mat-form-field>
 
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Modelo</mat-label>
-                    <input matInput formControlName="modelo" placeholder="Ej: Corolla, Sprinter, etc." (input)="convertirAMayusculas($event, 'modelo')">
-                    <app-smart-icon [iconName]="'model_training'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Modelo del vehículo</mat-hint>
-                  </mat-form-field>
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Modelo</mat-label>
+                      <input matInput formControlName="modelo" placeholder="Ej: Corolla, Sprinter, etc." (input)="convertirAMayusculas($event, 'modelo')">
+                      <app-smart-icon [iconName]="'model_training'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Modelo del vehículo</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Año de Fabricación</mat-label>
+                      <input matInput formControlName="anioFabricacion" type="number" placeholder="Ej: 2020">
+                      <app-smart-icon [iconName]="'calendar_today'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Entre 1990 y {{ getCurrentYear() + 1 }}</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMinimo')">
+                        {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMaximo')">
+                        {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioInvalido')">
+                        {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Categoría</mat-label>
+                      <mat-select formControlName="categoria">
+                        @for (categoria of configuracionService.categoriasVehiculos(); track categoria) {
+                          <mat-option [value]="categoria">{{ categoria }} - Vehículo de transporte</mat-option>
+                        }
+                      </mat-select>
+                      <app-smart-icon [iconName]="'category'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Categoría del vehículo</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Carrocería</mat-label>
+                      <mat-select formControlName="carroceria">
+                        @for (carroceria of configuracionService.tiposCarroceria(); track carroceria) {
+                          <mat-option [value]="carroceria">{{ carroceria }}</mat-option>
+                        }
+                      </mat-select>
+                      <app-smart-icon [iconName]="'directions_bus'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Tipo de carrocería del vehículo</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Color</mat-label>
+                      <input matInput formControlName="color" placeholder="Ej: Blanco, Azul, etc." (input)="convertirAMayusculas($event, 'color')">
+                      <app-smart-icon [iconName]="'palette'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Color del vehículo</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Asientos</mat-label>
+                      <input matInput formControlName="asientos" type="number" placeholder="Ej: 45" min="1" max="100">
+                      <app-smart-icon [iconName]="'airline_seat_recline_normal'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Capacidad de pasajeros (1-100)</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMinima')">
+                        {{ vehiculoForm.get('asientos')?.errors?.['capacidadMinima']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMaxima')">
+                        {{ vehiculoForm.get('asientos')?.errors?.['capacidadMaxima']?.message }}
+                      </mat-error>
+                      <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadInvalida')">
+                        {{ vehiculoForm.get('asientos')?.errors?.['capacidadInvalida']?.message }}
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Estado</mat-label>
+                      <mat-select formControlName="estado">
+                        @for (estado of configuracionService.estadosVehiculos(); track estado) {
+                          <mat-option [value]="estado">{{ estado }}</mat-option>
+                        }
+                      </mat-select>
+                      <app-smart-icon [iconName]="'check_circle'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Estado actual del vehículo</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de TUC</mat-label>
+                      <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
+                      <app-smart-icon [iconName]="'receipt'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Formato: T-123456-2025</mat-hint>
+                      <mat-error *ngIf="vehiculoForm.get('numeroTuc')?.hasError('numeroTucInvalido')">
+                        {{ vehiculoForm.get('numeroTuc')?.errors?.['numeroTucInvalido']?.message }}
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
                 </div>
 
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Año de Fabricación</mat-label>
-                    <input matInput formControlName="anioFabricacion" type="number" placeholder="Ej: 2020">
-                    <app-smart-icon [iconName]="'calendar_today'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Entre 1990 y {{ getCurrentYear() + 1 }}</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMinimo')">
-                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
-                    </mat-error>
-                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMaximo')">
-                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
-                    </mat-error>
-                    <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioInvalido')">
-                      {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
-                    </mat-error>
-                  </mat-form-field>
+                <mat-divider></mat-divider>
 
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Categoría</mat-label>
-                    <mat-select formControlName="categoria">
-                      @for (categoria of configuracionService.categoriasVehiculos(); track categoria) {
-                        <mat-option [value]="categoria">{{ categoria }} - Vehículo de transporte</mat-option>
-                      }
-                    </mat-select>
-                    <app-smart-icon [iconName]="'category'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Categoría del vehículo</mat-hint>
-                  </mat-form-field>
+                <!-- Datos técnicos del motor -->
+                <div class="form-section">
+                  <h4 class="section-title">
+                    <app-smart-icon [iconName]="'settings'" [size]="18"></app-smart-icon>
+                    Datos Técnicos del Motor
+                  </h4>
+                  
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Motor</mat-label>
+                      <input matInput formControlName="motor" placeholder="Número de motor" (input)="convertirAMayusculas($event, 'motor')">
+                      <app-smart-icon [iconName]="'precision_manufacturing'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Número de serie del motor</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Chasis</mat-label>
+                      <input matInput formControlName="chasis" placeholder="Número de chasis" (input)="convertirAMayusculas($event, 'chasis')">
+                      <app-smart-icon [iconName]="'engineering'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Número de serie del chasis</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Tipo de Combustible</mat-label>
+                      <mat-select formControlName="tipoCombustible">
+                        @for (combustible of configuracionService.tiposCombustible(); track combustible) {
+                          <mat-option [value]="combustible">{{ combustible }}</mat-option>
+                        }
+                      </mat-select>
+                      <app-smart-icon [iconName]="'local_gas_station'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Tipo de combustible que usa</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Cilindros</mat-label>
+                      <input matInput formControlName="cilindros" type="number" placeholder="Ej: 4" min="1" max="12">
+                      <app-smart-icon [iconName]="'settings_applications'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Cantidad de cilindros del motor</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Ejes</mat-label>
+                      <input matInput formControlName="ejes" type="number" placeholder="Ej: 2" min="2" max="4">
+                      <app-smart-icon [iconName]="'linear_scale'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Cantidad de ejes del vehículo</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Número de Llantas</mat-label>
+                      <input matInput formControlName="ruedas" type="number" placeholder="Ej: 6" min="4" max="18">
+                      <app-smart-icon [iconName]="'trip_origin'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Cantidad total de llantas</mat-hint>
+                    </mat-form-field>
+                  </div>
                 </div>
 
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de Asientos</mat-label>
-                    <input matInput formControlName="asientos" type="number" placeholder="Ej: 45">
-                    <app-smart-icon [iconName]="'airline_seat_recline_normal'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Capacidad de pasajeros (1-100)</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMinima')">
-                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadMinima']?.message }}
-                    </mat-error>
-                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadMaxima')">
-                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadMaxima']?.message }}
-                    </mat-error>
-                    <mat-error *ngIf="vehiculoForm.get('asientos')?.hasError('capacidadInvalida')">
-                      {{ vehiculoForm.get('asientos')?.errors?.['capacidadInvalida']?.message }}
-                    </mat-error>
-                  </mat-form-field>
+                <mat-divider></mat-divider>
 
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Número de TUC</mat-label>
-                    <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
-                    <app-smart-icon [iconName]="'receipt'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Formato: T-123456-2025</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('numeroTuc')?.hasError('numeroTucInvalido')">
-                      {{ vehiculoForm.get('numeroTuc')?.errors?.['numeroTucInvalido']?.message }}
-                    </mat-error>
-                  </mat-form-field>
+                <!-- Capacidad y dimensiones -->
+                <div class="form-section">
+                  <h4 class="section-title">
+                    <app-smart-icon [iconName]="'straighten'" [size]="18"></app-smart-icon>
+                    Capacidad y Dimensiones
+                  </h4>
+                  
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Peso Neto (t)</mat-label>
+                      <input matInput formControlName="pesoNeto" type="number" step="0.001" placeholder="Ej: 2.500" min="0.5" (input)="calcularCargaUtil()">
+                      <app-smart-icon [iconName]="'fitness_center'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Peso del vehículo vacío en toneladas</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Peso Bruto (t)</mat-label>
+                      <input matInput formControlName="pesoBruto" type="number" step="0.001" placeholder="Ej: 3.500" min="1.0" (input)="calcularCargaUtil()">
+                      <app-smart-icon [iconName]="'scale'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Peso máximo con carga en toneladas</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Carga Útil (t)</mat-label>
+                      <input matInput formControlName="cargaUtil" type="number" step="0.001" placeholder="Se calcula automáticamente" readonly>
+                      <app-smart-icon [iconName]="'local_shipping'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Diferencia entre peso bruto y peso neto (calculado automáticamente)</mat-hint>
+                    </mat-form-field>
+                  </div>
                 </div>
 
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Estado</mat-label>
-                    <mat-select formControlName="estado">
-                      @for (estado of configuracionService.estadosVehiculos(); track estado) {
-                        <mat-option [value]="estado">{{ estado }}</mat-option>
-                      }
-                    </mat-select>
-                    <app-smart-icon [iconName]="'check_circle'" [size]="20" matSuffix></app-smart-icon>
-                    <mat-hint>Estado actual del vehículo</mat-hint>
-                  </mat-form-field>
+                <mat-divider></mat-divider>
+
+                <!-- Medidas del vehículo -->
+                <div class="form-section">
+                  <h4 class="section-title">
+                    <app-smart-icon [iconName]="'aspect_ratio'" [size]="18"></app-smart-icon>
+                    Medidas del Vehículo
+                  </h4>
+                  
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Largo (m)</mat-label>
+                      <input matInput formControlName="largo" type="number" step="0.1" placeholder="Ej: 12.0" min="3" max="20">
+                      <app-smart-icon [iconName]="'height'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Longitud del vehículo en metros</mat-hint>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Ancho (m)</mat-label>
+                      <input matInput formControlName="ancho" type="number" step="0.1" placeholder="Ej: 2.5" min="1.5" max="3">
+                      <app-smart-icon [iconName]="'swap_horiz'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Ancho del vehículo en metros</mat-hint>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Alto (m)</mat-label>
+                      <input matInput formControlName="alto" type="number" step="0.1" placeholder="Ej: 3.0" min="1.5" max="4">
+                      <app-smart-icon [iconName]="'swap_vert'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Altura del vehículo en metros</mat-hint>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- Observaciones -->
+                <div class="form-section">
+                  <h4 class="section-title">
+                    <app-smart-icon [iconName]="'note'" [size]="18"></app-smart-icon>
+                    Observaciones Adicionales
+                  </h4>
+                  
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field full-width">
+                      <mat-label>Observaciones</mat-label>
+                      <textarea matInput formControlName="observaciones" rows="3" placeholder="Observaciones adicionales sobre el vehículo..."></textarea>
+                      <app-smart-icon [iconName]="'comment'" [size]="20" matSuffix></app-smart-icon>
+                      <mat-hint>Información adicional relevante</mat-hint>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- Campos Opcionales Avanzados -->
+                <div class="form-section">
+                  <div class="section-header-with-toggle">
+                    <h4 class="section-title">
+                      <app-smart-icon [iconName]="'tune'" [size]="18"></app-smart-icon>
+                      Información Técnica Avanzada
+                    </h4>
+                    
+                    <button type="button" mat-stroked-button (click)="toggleCamposOpcionales()" class="toggle-button-advanced">
+                      <app-smart-icon [iconName]="mostrarCamposOpcionales() ? 'expand_less' : 'expand_more'" [size]="20"></app-smart-icon>
+                      {{ mostrarCamposOpcionales() ? 'Ocultar' : 'Mostrar' }} Campos Avanzados
+                    </button>
+                  </div>
+
+                  <!-- Campos opcionales expandibles -->
+                  @if (mostrarCamposOpcionales()) {
+                    <div class="campos-opcionales-container">
+                      <div class="form-row campos-opcionales">
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>Cilindrada (cc)</mat-label>
+                          <input matInput formControlName="cilindrada" type="number" placeholder="Ej: 2500">
+                          <app-smart-icon [iconName]="'speed'" [size]="20" matSuffix></app-smart-icon>
+                          <mat-hint>Cilindrada del motor en centímetros cúbicos</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>Potencia (HP)</mat-label>
+                          <input matInput formControlName="potencia" type="number" placeholder="Ej: 150">
+                          <app-smart-icon [iconName]="'flash_on'" [size]="20" matSuffix></app-smart-icon>
+                          <mat-hint>Potencia del motor en caballos de fuerza</mat-hint>
+                        </mat-form-field>
+                      </div>
+
+                      <div class="form-row campos-opcionales">
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>Número de Serie</mat-label>
+                          <input matInput formControlName="numeroSerie" placeholder="Número de serie del vehículo" (input)="convertirAMayusculas($event, 'numeroSerie')">
+                          <app-smart-icon [iconName]="'confirmation_number'" [size]="20" matSuffix></app-smart-icon>
+                          <mat-hint>Número de serie del fabricante</mat-hint>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
             </mat-expansion-panel>
@@ -402,13 +626,29 @@ export interface VehiculoModalData {
           
           <button mat-raised-button 
                   color="primary" 
-                  (click)="onSubmit()" 
-                  [disabled]="!vehiculoForm.valid || isSubmitting()"
+                  (click)="testClick(); onSubmit()" 
+                  [disabled]="!vehiculoForm?.valid || isSubmitting()"
                   class="submit-button">
             <app-smart-icon [iconName]="isEditing() ? 'save' : 'add'" [size]="20"></app-smart-icon>
             <span *ngIf="!isSubmitting()">{{ isEditing() ? 'Guardar Cambios' : 'Crear Vehículo' }}</span>
             <span *ngIf="isSubmitting()">Procesando...</span>
           </button>
+          
+          <!-- Debug info (temporal) -->
+          <div style="margin-top: 10px; font-size: 12px; color: #666; background: #f5f5f5; padding: 10px; border-radius: 4px;">
+            <p><strong>Debug Info:</strong></p>
+            <p>Formulario válido: {{ vehiculoForm?.valid }}</p>
+            <p>Enviando: {{ isSubmitting() }}</p>
+            <p>Modo edición: {{ isEditing() }}</p>
+            <p>Botón habilitado: {{ vehiculoForm?.valid && !isSubmitting() }}</p>
+            
+            <div style="margin-top: 10px;">
+              <p><strong>Errores del formulario:</strong></p>
+              <div *ngFor="let control of getFormErrors()" style="color: red; font-size: 11px;">
+                • {{ control.field }}: {{ control.errors.join(', ') }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -737,6 +977,88 @@ export interface VehiculoModalData {
         gap: 4px;
       }
     }
+
+    /* Estilos para las secciones del formulario */
+    .form-section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #1976d2;
+      border-bottom: 1px solid #e3f2fd;
+      padding-bottom: 8px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .expansion-content {
+      padding: 16px 0;
+    }
+
+    .expansion-content mat-divider {
+      margin: 24px 0;
+    }
+
+    /* Estilos para la nueva sección de campos opcionales avanzados */
+    .section-header-with-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .toggle-button-advanced {
+      border: 1px solid #9c27b0;
+      color: #9c27b0;
+      background-color: transparent;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+      padding: 6px 12px;
+    }
+
+    .toggle-button-advanced:hover {
+      background-color: #f3e5f5;
+      border-color: #7b1fa2;
+      color: #7b1fa2;
+    }
+
+    .campos-opcionales-container {
+      animation: slideDown 0.3s ease-out;
+      border: 1px solid #e1bee7;
+      border-radius: 8px;
+      padding: 20px;
+      background: linear-gradient(135deg, #fce4ec 0%, #f3e5f5 100%);
+      margin-top: 12px;
+      box-shadow: 0 2px 4px rgba(156, 39, 176, 0.1);
+    }
+
+    .campos-opcionales-container .form-field {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 4px;
+    }
+
+    .campos-opcionales-container .mat-mdc-form-field {
+      margin-bottom: 8px;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   `]
 })
 export class VehiculoModalComponent {
@@ -766,6 +1088,7 @@ export class VehiculoModalComponent {
   isLoading = signal(false);
   isSubmitting = signal(false);
   vehiculosActuales = signal<Vehiculo[]>([]);
+  mostrarCamposOpcionales = signal(false); // Nuevo signal para controlar visibilidad
 
   // Sedes disponibles desde configuración
   sedesDisponibles = computed(() => this.configuracionService.sedesDisponibles());
@@ -853,33 +1176,32 @@ export class VehiculoModalComponent {
     console.log('🔍 modalData:', this.modalData());
     console.log('🔍 dialogData:', this.dialogData);
     
-    // Cargar configuraciones primero
-    this.configuracionService.cargarConfiguraciones().subscribe({
-      next: () => {
-        this.initializeForm();
-        this.loadEmpresas();
-        this.loadVehiculosActuales();
-        this.configurarAutocompletadoSedes();
+    // Inicializar formulario inmediatamente para evitar errores de template
+    this.initializeForm();
+    
+    // Cargar configuraciones y actualizar formulario si es necesario
+    this.configuracionService.cargarConfiguraciones().then(() => {
+      // Recargar formulario con configuraciones actualizadas si es necesario
+      this.loadEmpresas();
+      this.loadVehiculosActuales();
+      this.configurarAutocompletadoSedes();
 
-        // Inicializar datos del modal después de un breve delay para asegurar que todo esté listo
-        setTimeout(() => {
-          console.log('⏰ Ejecutando initializeModalData después del delay');
-          this.initializeModalData();
-        }, 100);
-      },
-      error: (error) => {
-        console.error('Error cargando configuraciones, usando valores por defecto:', error);
-        // Continuar con valores por defecto si falla la carga
-        this.initializeForm();
-        this.loadEmpresas();
-        this.loadVehiculosActuales();
-        this.configurarAutocompletadoSedes();
+      // Inicializar datos del modal después de un breve delay para asegurar que todo esté listo
+      setTimeout(() => {
+        console.log('⏰ Ejecutando initializeModalData después del delay');
+        this.initializeModalData();
+      }, 100);
+    }).catch((error: any) => {
+      console.error('Error cargando configuraciones, usando valores por defecto:', error);
+      // Continuar con valores por defecto si falla la carga
+      this.loadEmpresas();
+      this.loadVehiculosActuales();
+      this.configurarAutocompletadoSedes();
 
-        setTimeout(() => {
-          console.log('⏰ Ejecutando initializeModalData después del delay (error case)');
-          this.initializeModalData();
-        }, 100);
-      }
+      setTimeout(() => {
+        console.log('⏰ Ejecutando initializeModalData después del delay (error case)');
+        this.initializeModalData();
+      }, 100);
     });
   }
 
@@ -947,6 +1269,13 @@ export class VehiculoModalComponent {
    */
   limpiarSede(): void {
     this.vehiculoForm.patchValue({ sedeRegistro: '' });
+  }
+
+  /**
+   * Alterna la visibilidad de los campos opcionales
+   */
+  toggleCamposOpcionales(): void {
+    this.mostrarCamposOpcionales.set(!this.mostrarCamposOpcionales());
   }
 
   /**
@@ -1046,6 +1375,7 @@ export class VehiculoModalComponent {
       marca: [''],
       modelo: [''],
       categoria: [this.configuracionService.categoriaVehiculoDefault()],
+      carroceria: [this.configuracionService.tipoCarroceriaDefault()],
       anioFabricacion: [new Date().getFullYear(), [anioFabricacionValidator()]],
       estado: [this.configuracionService.estadoVehiculoDefault()],
       color: [''],
@@ -1057,14 +1387,54 @@ export class VehiculoModalComponent {
       motor: [''],
       chasis: [''],
       ejes: [2],
-      pesoNeto: [2500],
-      pesoBruto: [3500],
+      cilindros: [null], // Nuevo campo
+      ruedas: [null], // Nuevo campo (número de llantas)
+      pesoNeto: [2.500, [Validators.min(0.5)]], // Cambiado a toneladas con 3 decimales
+      pesoBruto: [3.500, [Validators.min(1.0)]], // Cambiado a toneladas con 3 decimales
+      cargaUtil: [{value: 1.000, disabled: true}], // Campo calculado automáticamente
       tipoCombustible: [this.configuracionService.tipoCombustibleDefault()],
       cilindrada: [null],
       potencia: [null],
       largo: [12],
       ancho: [2.5],
       alto: [3]
+    });
+
+    // Configurar listeners para auto-completar campos relacionados
+    this.setupFormListeners();
+  }
+
+  /**
+   * Configura listeners para auto-completar campos relacionados
+   */
+  private setupFormListeners(): void {
+    // Listener para número de serie -> chasis
+    this.vehiculoForm.get('numeroSerie')?.valueChanges.subscribe(value => {
+      if (value && value.trim() && !this.vehiculoForm.get('chasis')?.value) {
+        this.vehiculoForm.get('chasis')?.setValue(value, { emitEvent: false });
+      }
+    });
+
+    // Listener para chasis -> número de serie
+    this.vehiculoForm.get('chasis')?.valueChanges.subscribe(value => {
+      if (value && value.trim() && !this.vehiculoForm.get('numeroSerie')?.value) {
+        this.vehiculoForm.get('numeroSerie')?.setValue(value, { emitEvent: false });
+      }
+    });
+
+    // Listener para validar que peso bruto sea mayor que peso neto
+    this.vehiculoForm.get('pesoNeto')?.valueChanges.subscribe(pesoNeto => {
+      const pesoBruto = this.vehiculoForm.get('pesoBruto')?.value;
+      if (pesoNeto && pesoBruto && pesoNeto >= pesoBruto) {
+        this.vehiculoForm.get('pesoBruto')?.setValue(pesoNeto + 0.5, { emitEvent: false });
+      }
+    });
+
+    this.vehiculoForm.get('pesoBruto')?.valueChanges.subscribe(pesoBruto => {
+      const pesoNeto = this.vehiculoForm.get('pesoNeto')?.value;
+      if (pesoNeto && pesoBruto && pesoBruto <= pesoNeto) {
+        this.vehiculoForm.get('pesoNeto')?.setValue(pesoBruto - 0.5, { emitEvent: false });
+      }
     });
   }
 
@@ -1107,6 +1477,7 @@ export class VehiculoModalComponent {
       modelo: vehiculo.modelo || '',
       anioFabricacion: vehiculo.anioFabricacion || new Date().getFullYear(),
       categoria: vehiculo.categoria || 'M3',
+      carroceria: vehiculo.carroceria || this.configuracionService.tipoCarroceriaDefault(),
       estado: vehiculo.estado || 'ACTIVO',
       color: vehiculo.color || '',
       numeroSerie: vehiculo.numeroSerie || '',
@@ -1117,8 +1488,12 @@ export class VehiculoModalComponent {
       motor: vehiculo.datosTecnicos?.motor || '',
       chasis: vehiculo.datosTecnicos?.chasis || '',
       ejes: vehiculo.datosTecnicos?.ejes || 2,
-      pesoNeto: vehiculo.datosTecnicos?.pesoNeto || 2500,
-      pesoBruto: vehiculo.datosTecnicos?.pesoBruto || 3500,
+      cilindros: vehiculo.datosTecnicos?.cilindros || null,
+      ruedas: vehiculo.datosTecnicos?.ruedas || null,
+      // Convertir pesos de kg a toneladas (dividir por 1000)
+      pesoNeto: vehiculo.datosTecnicos?.pesoNeto ? (vehiculo.datosTecnicos.pesoNeto / 1000) : 2.500,
+      pesoBruto: vehiculo.datosTecnicos?.pesoBruto ? (vehiculo.datosTecnicos.pesoBruto / 1000) : 3.500,
+      cargaUtil: vehiculo.datosTecnicos?.cargaUtil ? (vehiculo.datosTecnicos.cargaUtil / 1000) : null,
       tipoCombustible: vehiculo.datosTecnicos?.tipoCombustible || 'DIESEL',
       cilindrada: vehiculo.datosTecnicos?.cilindrada || null,
       potencia: vehiculo.datosTecnicos?.potencia || null,
@@ -1126,6 +1501,16 @@ export class VehiculoModalComponent {
       ancho: vehiculo.datosTecnicos?.medidas?.ancho || 2.5,
       alto: vehiculo.datosTecnicos?.medidas?.alto || 3
     });
+
+    // Mostrar campos opcionales si tienen valores
+    if (vehiculo.datosTecnicos?.cilindrada || vehiculo.datosTecnicos?.potencia) {
+      this.mostrarCamposOpcionales.set(true);
+    }
+
+    // Calcular carga útil si no existe pero hay pesos
+    if (!vehiculo.datosTecnicos?.cargaUtil && vehiculo.datosTecnicos?.pesoNeto && vehiculo.datosTecnicos?.pesoBruto) {
+      this.calcularCargaUtil();
+    }
 
     // DESPUÉS establecer los signals para que los selectores reaccionen
     setTimeout(() => {
@@ -1157,6 +1542,21 @@ export class VehiculoModalComponent {
     const input = event.target as HTMLInputElement;
     const valor = input.value.toUpperCase();
     this.vehiculoForm.get(campo)?.setValue(valor, { emitEvent: false });
+  }
+
+  /**
+   * Calcula automáticamente la carga útil basada en peso bruto - peso neto
+   */
+  calcularCargaUtil(): void {
+    const pesoNeto = this.vehiculoForm.get('pesoNeto')?.value;
+    const pesoBruto = this.vehiculoForm.get('pesoBruto')?.value;
+    
+    if (pesoNeto && pesoBruto && !isNaN(pesoNeto) && !isNaN(pesoBruto)) {
+      const cargaUtil = pesoBruto - pesoNeto;
+      this.vehiculoForm.get('cargaUtil')?.setValue(cargaUtil.toFixed(3), { emitEvent: false });
+    } else {
+      this.vehiculoForm.get('cargaUtil')?.setValue(null, { emitEvent: false });
+    }
   }
 
   /**
@@ -1239,7 +1639,14 @@ export class VehiculoModalComponent {
   }
 
   onSubmit(): void {
-    if (!this.vehiculoForm.valid) {
+    console.log('🔄 onSubmit llamado');
+    console.log('🔍 vehiculoForm válido:', this.vehiculoForm?.valid);
+    console.log('🔍 isEditing:', this.isEditing());
+    console.log('🔍 modalData:', this.modalData());
+    console.log('🔍 dialogData:', this.dialogData);
+    
+    if (!this.vehiculoForm?.valid) {
+      console.log('❌ Formulario no válido');
       this.snackBar.open('Por favor, completa todos los campos obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -1247,10 +1654,50 @@ export class VehiculoModalComponent {
     this.isSubmitting.set(true);
 
     if (this.isEditing()) {
+      console.log('✅ Llamando updateVehiculo');
       this.updateVehiculo();
     } else {
+      console.log('✅ Llamando createVehiculo');
       this.createVehiculo();
     }
+  }
+
+  testClick(): void {
+    console.log('🔥 BOTÓN CLICKEADO - testClick ejecutado');
+    console.log('🔍 Estado del formulario:', {
+      valid: this.vehiculoForm?.valid,
+      isSubmitting: this.isSubmitting(),
+      isEditing: this.isEditing()
+    });
+  }
+
+  getFormErrors(): Array<{field: string, errors: string[]}> {
+    const errors: Array<{field: string, errors: string[]}> = [];
+    
+    if (!this.vehiculoForm) return errors;
+    
+    Object.keys(this.vehiculoForm.controls).forEach(key => {
+      const control = this.vehiculoForm.get(key);
+      if (control && control.invalid && control.errors) {
+        const fieldErrors: string[] = [];
+        
+        if (control.errors['required']) fieldErrors.push('Campo requerido');
+        if (control.errors['pattern']) fieldErrors.push('Formato inválido');
+        if (control.errors['minlength']) fieldErrors.push(`Mínimo ${control.errors['minlength'].requiredLength} caracteres`);
+        if (control.errors['maxlength']) fieldErrors.push(`Máximo ${control.errors['maxlength'].requiredLength} caracteres`);
+        if (control.errors['min']) fieldErrors.push(`Valor mínimo: ${control.errors['min'].min}`);
+        if (control.errors['max']) fieldErrors.push(`Valor máximo: ${control.errors['max'].max}`);
+        if (control.errors['placaPeruana']) fieldErrors.push('Formato de placa inválido');
+        if (control.errors['placaDuplicada']) fieldErrors.push('Placa ya existe');
+        if (control.errors['anioFabricacion']) fieldErrors.push('Año de fabricación inválido');
+        
+        if (fieldErrors.length > 0) {
+          errors.push({ field: key, errors: fieldErrors });
+        }
+      }
+    });
+    
+    return errors;
   }
 
   private createVehiculo(): void {
@@ -1273,19 +1720,29 @@ export class VehiculoModalComponent {
 
   private updateVehiculo(): void {
     const data = this.modalData() || this.dialogData;
-    if (!data?.vehiculo?.id) return;
+    console.log('🔄 updateVehiculo llamado');
+    console.log('🔍 data:', data);
+    console.log('🔍 vehiculo.id:', data?.vehiculo?.id);
+    
+    if (!data?.vehiculo?.id) {
+      console.log('❌ No hay ID de vehículo para actualizar');
+      this.isSubmitting.set(false);
+      return;
+    }
 
     const vehiculoData = this.buildVehiculoUpdateData();
+    console.log('🔍 vehiculoData para actualizar:', vehiculoData);
 
     this.vehiculoService.updateVehiculo(data.vehiculo.id, vehiculoData).subscribe({
       next: (vehiculo) => {
+        console.log('✅ Vehículo actualizado exitosamente:', vehiculo);
         this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
         this.vehiculoUpdated.emit(vehiculoData);
         this.isSubmitting.set(false);
         this.close();
       },
       error: (error) => {
-        console.error('Error actualizando vehículo:', error);
+        console.error('❌ Error actualizando vehículo:', error);
         this.snackBar.open('Error al actualizar vehículo', 'Cerrar', { duration: 3000 });
         this.isSubmitting.set(false);
       }
@@ -1303,24 +1760,29 @@ export class VehiculoModalComponent {
       anioFabricacion: formValue.anioFabricacion || new Date().getFullYear(),
       sedeRegistro: formValue.sedeRegistro!,
       categoria: formValue.categoria || 'M3',
+      carroceria: formValue.carroceria || this.configuracionService.tipoCarroceriaDefault(),
       color: formValue.color || '',
       numeroSerie: formValue.numeroSerie || '',
       observaciones: formValue.observaciones || '',
       rutasAsignadasIds: formValue.rutasAsignadasIds || [],
       datosTecnicos: {
-        motor: formValue.datosTecnicos?.motor || '',
-        chasis: formValue.datosTecnicos?.chasis || '',
-        ejes: formValue.datosTecnicos?.ejes || 2,
+        motor: formValue.motor || '',
+        chasis: formValue.chasis || '',
+        ejes: formValue.ejes || 2,
+        cilindros: formValue.cilindros || undefined,
+        ruedas: formValue.ruedas || undefined,
         asientos: formValue.asientos || 15,
-        pesoNeto: formValue.datosTecnicos?.pesoNeto || 2500,
-        pesoBruto: formValue.datosTecnicos?.pesoBruto || 3500,
-        tipoCombustible: formValue.datosTecnicos?.tipoCombustible || 'DIESEL',
-        cilindrada: formValue.datosTecnicos?.cilindrada || null,
-        potencia: formValue.datosTecnicos?.potencia || null,
+        // Convertir pesos de toneladas a kilogramos (multiplicar por 1000)
+        pesoNeto: formValue.pesoNeto ? Math.round(formValue.pesoNeto * 1000) : 2500,
+        pesoBruto: formValue.pesoBruto ? Math.round(formValue.pesoBruto * 1000) : 3500,
+        cargaUtil: formValue.cargaUtil ? Math.round(formValue.cargaUtil * 1000) : undefined,
+        tipoCombustible: formValue.tipoCombustible || 'DIESEL',
+        cilindrada: formValue.cilindrada || undefined,
+        potencia: formValue.potencia || undefined,
         medidas: {
-          largo: formValue.datosTecnicos?.medidas?.largo || 12,
-          ancho: formValue.datosTecnicos?.medidas?.ancho || 2.5,
-          alto: formValue.datosTecnicos?.medidas?.alto || 3
+          largo: formValue.largo || 12,
+          ancho: formValue.ancho || 2.5,
+          alto: formValue.alto || 3
         }
       }
     };
@@ -1353,15 +1815,20 @@ export class VehiculoModalComponent {
       anioFabricacion: formValue.anioFabricacion,
       sedeRegistro: formValue.sedeRegistro,
       categoria: formValue.categoria,
+      carroceria: formValue.carroceria,
       estado: formValue.estado,
       rutasAsignadasIds: formValue.rutasAsignadasIds || [],
       datosTecnicos: {
         motor: formValue.motor || '',
         chasis: formValue.chasis || '',
         ejes: formValue.ejes || 2,
+        cilindros: formValue.cilindros || undefined,
+        ruedas: formValue.ruedas || undefined,
         asientos: formValue.asientos || 15,
-        pesoNeto: formValue.pesoNeto || 2500,
-        pesoBruto: formValue.pesoBruto || 3500,
+        // Convertir pesos de toneladas a kilogramos (multiplicar por 1000)
+        pesoNeto: formValue.pesoNeto ? Math.round(formValue.pesoNeto * 1000) : 2500,
+        pesoBruto: formValue.pesoBruto ? Math.round(formValue.pesoBruto * 1000) : 3500,
+        cargaUtil: formValue.cargaUtil ? Math.round(formValue.cargaUtil * 1000) : undefined,
         tipoCombustible: formValue.tipoCombustible || 'DIESEL',
         cilindrada: formValue.cilindrada,
         potencia: formValue.potencia,

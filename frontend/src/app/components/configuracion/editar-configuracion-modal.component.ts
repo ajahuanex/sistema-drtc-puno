@@ -465,7 +465,7 @@ export class EditarConfiguracionModalComponent {
     return this.esConfiguracionNumerica() || this.esConfiguracionBooleana();
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     if (this.formulario.invalid) {
       this.snackBar.open('Por favor, corrija los errores en el formulario', 'Cerrar', { duration: 3000 });
       return;
@@ -474,25 +474,24 @@ export class EditarConfiguracionModalComponent {
     this.guardando = true;
     const datos = this.formulario.value;
 
-    this.configuracionService.actualizarConfiguracion(
-      this.data.configuracion.id,
-      {
-        valor: datos.valor,
-        descripcion: datos.descripcion,
-        esEditable: datos.esEditable
-      }
-    ).subscribe({
-      next: (configuracion) => {
+    try {
+      const resultado = await this.configuracionService.actualizarConfiguracion(
+        this.data.configuracion.id,
+        datos.valor
+      );
+
+      if (resultado) {
         this.guardando = false;
         this.snackBar.open('Configuración actualizada exitosamente', 'Cerrar', { duration: 3000 });
-        this.dialogRef.close(configuracion);
-      },
-      error: (error) => {
-        this.guardando = false;
-        console.error('Error actualizando configuración:', error);
-        this.snackBar.open('Error actualizando configuración', 'Cerrar', { duration: 3000 });
+        this.dialogRef.close(true);
+      } else {
+        throw new Error('No se pudo actualizar la configuración');
       }
-    });
+    } catch (error) {
+      this.guardando = false;
+      console.error('Error actualizando configuración:', error);
+      this.snackBar.open('Error actualizando configuración', 'Cerrar', { duration: 3000 });
+    }
   }
 
   cerrar(): void {

@@ -26,6 +26,7 @@ import { Localidad, TipoLocalidad } from '../../models/localidad.model';
 import { ConfiguracionService } from '../../services/configuracion.service';
 import { LocalidadService } from '../../services/localidad.service';
 import { EditarConfiguracionModalComponent } from './editar-configuracion-modal.component';
+import { EditarEstadosVehiculosModalComponent } from './editar-estados-vehiculos-modal.component';
 import { GestionarLocalidadModalComponent } from './gestionar-localidad-modal.component';
 
 export interface TipoRuta {
@@ -297,6 +298,52 @@ export interface TipoRuta {
                       <div class="config-value">
                         <strong>Valor actual:</strong> 
                         <span class="value-display">{{ config.valor }}</span>
+                      </div>
+                    </div>
+                    <div class="config-actions" *ngIf="config.esEditable">
+                      <button mat-icon-button 
+                              color="primary" 
+                              (click)="editarConfiguracion(config)"
+                              matTooltip="Editar valor">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              color="accent" 
+                              (click)="resetearConfiguracion(config.nombre)"
+                              matTooltip="Restaurar valor por defecto">
+                        <mat-icon>restore</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Vehículos -->
+              <mat-expansion-panel class="config-category-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>directions_bus</mat-icon>
+                    Vehículos
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Configuraciones para el módulo de vehículos y estados
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="configuraciones-list">
+                  <div *ngFor="let config of getConfiguracionesPorCategoria(CategoriaConfiguracion.VEHICULOS)" 
+                       class="config-item">
+                    <div class="config-info">
+                      <div class="config-header">
+                        <h4>{{ config.nombre | titlecase }}</h4>
+                        <mat-chip [color]="config.esEditable ? 'primary' : 'warn'">
+                          {{ config.esEditable ? 'Editable' : 'Solo Lectura' }}
+                        </mat-chip>
+                      </div>
+                      <p class="config-description">{{ config.descripcion }}</p>
+                      <div class="config-value">
+                        <strong>Valor actual:</strong> 
+                        <span class="value-display" [innerHTML]="formatearValorConfiguracion(config)"></span>
                       </div>
                     </div>
                     <div class="config-actions" *ngIf="config.esEditable">
@@ -588,6 +635,24 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   editarConfiguracion(config: ConfiguracionSistema): void {
+    // Usar modal especializado para estados de vehículos
+    if (config.nombre === 'ESTADOS_VEHICULOS_CONFIG') {
+      const dialogRef = this.dialog.open(EditarEstadosVehiculosModalComponent, {
+        width: '800px',
+        maxWidth: '90vw',
+        data: { configuracion: config },
+        disableClose: false
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          console.log('🔧 Estados de vehículos actualizados:', result);
+        }
+      });
+      return;
+    }
+
+    // Modal estándar para otras configuraciones
     const dialogRef = this.dialog.open(EditarConfiguracionModalComponent, {
       width: '600px',
       data: { configuracion: config },
@@ -597,7 +662,6 @@ export class ConfiguracionComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         console.log('🔧 Configuración actualizada:', result);
-        // La configuración ya se actualizó en el servicio, no necesitamos hacer nada más
       }
     });
   }
@@ -826,5 +890,19 @@ export class ConfiguracionComponent implements OnInit {
       'CENTRO_POBLADO': 'Centro Poblado'
     };
     return tipos[tipo] || tipo;
+  }
+
+  formatearValorConfiguracion(config: ConfiguracionSistema): string {
+    if (config.nombre === 'ESTADOS_VEHICULOS_CONFIG') {
+      try {
+        const estados = JSON.parse(config.valor);
+        return estados.map((estado: any) => 
+          `<span class="estado-chip" style="background-color: ${estado.color}; color: white; padding: 2px 8px; border-radius: 12px; margin: 2px; display: inline-block; font-size: 12px;">${estado.nombre}</span>`
+        ).join(' ');
+      } catch (error) {
+        return config.valor;
+      }
+    }
+    return config.valor;
   }
 }
