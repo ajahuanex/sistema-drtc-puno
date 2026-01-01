@@ -54,9 +54,12 @@ class DatosTecnicos(BaseModel):
     motor: str
     chasis: str
     ejes: int
+    cilindros: Optional[int] = None  # Número de cilindros del motor
+    ruedas: Optional[int] = None  # Número de llantas/ruedas
     asientos: int
     pesoNeto: float  # en kg
     pesoBruto: float  # en kg
+    cargaUtil: Optional[float] = None  # en kg (pesoBruto - pesoNeto)
     medidas: dict  # {largo, ancho, alto} en metros
     tipoCombustible: TipoCombustible
     cilindrada: Optional[float] = None
@@ -231,6 +234,8 @@ class VehiculoExcel(BaseModel):
     motor: str
     chasis: str
     ejes: int
+    cilindros: Optional[int] = None  # Número de cilindros del motor
+    ruedas: Optional[int] = None  # Número de llantas/ruedas
     asientos: int
     peso_neto: float
     peso_bruto: float

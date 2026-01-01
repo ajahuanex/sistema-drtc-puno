@@ -136,6 +136,7 @@ export class EagerInitService {
       this.preloadUserPreferences(),
       this.preloadCommonData(),
       this.preloadUIComponents()
+      // Removemos preloadConfiguraciones() ya que se carga automáticamente en el servicio
     ];
 
     await Promise.allSettled(preloadTasks);

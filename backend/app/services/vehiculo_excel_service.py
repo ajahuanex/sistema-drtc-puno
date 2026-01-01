@@ -54,9 +54,12 @@ class VehiculoExcelService:
             'motor': 'Motor',
             'chasis': 'Chasis',
             'ejes': 'Ejes',
+            'cilindros': 'Cilindros',  # NUEVO CAMPO
+            'ruedas': 'Ruedas',        # NUEVO CAMPO
             'asientos': 'Asientos',
             'peso_neto': 'Peso Neto (kg)',
             'peso_bruto': 'Peso Bruto (kg)',
+            'carga_util': 'Carga Útil (kg)',
             'largo': 'Largo (m)',
             'ancho': 'Ancho (m)',
             'alto': 'Alto (m)',
@@ -249,6 +252,7 @@ class VehiculoExcelService:
             'Asientos': (1, 100),
             'Peso Neto (kg)': (100, 50000),
             'Peso Bruto (kg)': (100, 100000),
+            'Carga Útil (kg)': (50, 50000),
             'Largo (m)': (1, 30),
             'Ancho (m)': (0.5, 5),
             'Alto (m)': (0.5, 5)
@@ -354,9 +358,12 @@ class VehiculoExcelService:
                 motor=str(row.get('Motor', '')).strip(),
                 chasis=str(row.get('Chasis', '')).strip(),
                 ejes=int(float(str(row.get('Ejes', 2)))),
+                cilindros=int(float(str(row.get('Cilindros')))) if pd.notna(row.get('Cilindros')) and str(row.get('Cilindros')).strip() else None,  # NUEVO CAMPO
+                ruedas=int(float(str(row.get('Ruedas')))) if pd.notna(row.get('Ruedas')) and str(row.get('Ruedas')).strip() else None,  # NUEVO CAMPO
                 asientos=int(float(str(row.get('Asientos', 1)))),
                 pesoNeto=float(str(row.get('Peso Neto (kg)', 1000))),
                 pesoBruto=float(str(row.get('Peso Bruto (kg)', 2000))),
+                cargaUtil=float(str(row.get('Peso Bruto (kg)', 2000))) - float(str(row.get('Peso Neto (kg)', 1000))),
                 medidas={
                     'largo': float(str(row.get('Largo (m)', 5))),
                     'ancho': float(str(row.get('Ancho (m)', 2))),
@@ -528,6 +535,7 @@ class VehiculoExcelService:
             'Asientos': [50, 2],
             'Peso Neto (kg)': [8500.0, 12000.0],
             'Peso Bruto (kg)': [16000.0, 26000.0],
+            'Carga Útil (kg)': [7500.0, 14000.0],
             'Largo (m)': [12.0, 16.0],
             'Ancho (m)': [2.55, 2.6],
             'Alto (m)': [3.2, 3.8],

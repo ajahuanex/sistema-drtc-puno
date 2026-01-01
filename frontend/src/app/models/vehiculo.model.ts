@@ -16,6 +16,7 @@ export interface DatosTecnicos {
   asientos: number;
   pesoNeto: number;
   pesoBruto: number;
+  cargaUtil?: number; // Opcional - diferencia entre peso bruto y peso neto
   tipoCombustible: string; // Campo requerido por el backend
   medidas: {
     largo: number;
@@ -54,6 +55,7 @@ export interface Vehiculo {
   rutasAsignadasIds: string[]; // Rutas generales (de resoluciones padre)
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas del vehículo
   categoria: string;
+  carroceria?: string; // Nuevo campo para tipo de carrocería
   marca: string;
   modelo: string;
   anioFabricacion: number;
@@ -85,6 +87,7 @@ export interface VehiculoCreate {
   rutasAsignadasIds?: string[]; // Opcional - Rutas generales
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas
   categoria: string;
+  carroceria?: string; // Nuevo campo para tipo de carrocería
   marca: string;
   modelo: string;
   anioFabricacion: number;
@@ -103,6 +106,7 @@ export interface VehiculoUpdate {
   rutasAsignadasIds?: string[]; // Rutas generales
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas
   categoria?: string;
+  carroceria?: string;
   marca?: string;
   modelo?: string;
   anioFabricacion?: number;
