@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, input, OnInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, input, OnInit, effect, ChangeDetectorRef, ApplicationRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -17,6 +17,9 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
@@ -51,6 +54,9 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
     MatTooltipModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
+    MatMenuModule,
+    MatDividerModule,
     SmartIconComponent
   ],
   template: `
@@ -219,6 +225,33 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
           <mat-card-subtitle>
             {{ totalRegistros() }} registro(s) encontrado(s)
           </mat-card-subtitle>
+          
+          <!-- Selector de columnas -->
+          <div class="table-controls">
+            <button mat-icon-button [matMenuTriggerFor]="historialColumnasMenu" matTooltip="Configurar columnas">
+              <app-smart-icon [iconName]="'view_column'" [size]="20"></app-smart-icon>
+            </button>
+            <mat-menu #historialColumnasMenu="matMenu" class="columnas-menu historial-columnas-menu" xPosition="before">
+              <div class="columnas-menu-header" (click)="$event.stopPropagation()">
+                <h4>Mostrar columnas</h4>
+              </div>
+              @for (columna of columnasDisponibles; track columna.key) {
+                <div class="columna-checkbox" (click)="$event.stopPropagation()">
+                  <mat-checkbox 
+                    [checked]="columnaVisible(columna.key)"
+                    (change)="toggleColumna(columna.key, $event.checked)"
+                    [disabled]="columna.required">
+                    {{ columna.label }}
+                  </mat-checkbox>
+                </div>
+              }
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="resetearColumnas()">
+                <app-smart-icon [iconName]="'refresh'" [size]="16"></app-smart-icon>
+                <span>Restablecer por defecto</span>
+              </button>
+            </mat-menu>
+          </div>
         </mat-card-header>
 
         <mat-card-content>
@@ -251,11 +284,16 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
             </div>
           } @else {
             <div class="table-container">
-              <table mat-table [dataSource]="historialData()" class="historial-table" matSort>
+              <table mat-table 
+                     [dataSource]="historialData()" 
+                     class="historial-table" 
+                     matSort
+                     [attr.data-render-key]="tablaRenderKey()"
+                     id="historial-vehicular-table">
                 <!-- Columna Fecha -->
                 <ng-container matColumnDef="fecha">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-fecha">Fecha</th>
+                  <td mat-cell *matCellDef="let registro" class="col-fecha">
                     <div class="fecha-cell">
                       <span class="fecha-principal">{{ formatearFecha(registro.fechaEvento) }}</span>
                       <span class="fecha-hora">{{ formatearHora(registro.fechaEvento) }}</span>
@@ -265,8 +303,8 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
                 <!-- Columna Placa -->
                 <ng-container matColumnDef="placa">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Placa</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-placa">Placa</th>
+                  <td mat-cell *matCellDef="let registro" class="col-placa">
                     <div class="placa-cell">
                       <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
                       <span class="placa-text">{{ registro.placa }}</span>
@@ -276,19 +314,21 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
                 <!-- Columna Empresa -->
                 <ng-container matColumnDef="empresa">
-                  <th mat-header-cell *matHeaderCellDef mat-sort-header>Empresa</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-empresa">Empresa</th>
+                  <td mat-cell *matCellDef="let registro" class="col-empresa">
                     <div class="empresa-cell">
                       <app-smart-icon [iconName]="'business'" [size]="16"></app-smart-icon>
-                      <span class="empresa-text">{{ registro.empresaNombre || 'No especificada' }}</span>
+                      <span class="empresa-text" [matTooltip]="registro.empresaNombre || 'No especificada'">
+                        {{ registro.empresaNombre || 'No especificada' }}
+                      </span>
                     </div>
                   </td>
                 </ng-container>
 
                 <!-- Columna Tipo de Evento -->
                 <ng-container matColumnDef="tipoEvento">
-                  <th mat-header-cell *matHeaderCellDef>Tipo de Evento</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef class="col-tipo-evento">Tipo de Evento</th>
+                  <td mat-cell *matCellDef="let registro" class="col-tipo-evento">
                     <mat-chip [class]="'evento-chip evento-' + registro.tipoEvento.toLowerCase()">
                       <app-smart-icon [iconName]="getIconoTipoEvento(registro.tipoEvento)" [size]="16"></app-smart-icon>
                       {{ getLabelTipoEvento(registro.tipoEvento) }}
@@ -298,12 +338,16 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
                 <!-- Columna Descripción -->
                 <ng-container matColumnDef="descripcion">
-                  <th mat-header-cell *matHeaderCellDef>Descripción</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef class="col-descripcion">Descripción</th>
+                  <td mat-cell *matCellDef="let registro" class="col-descripcion">
                     <div class="descripcion-cell">
-                      <span class="descripcion-principal">{{ registro.descripcion }}</span>
+                      <span class="descripcion-principal" [matTooltip]="registro.descripcion">
+                        {{ registro.descripcion }}
+                      </span>
                       @if (registro.observaciones) {
-                        <span class="descripcion-observaciones">{{ registro.observaciones }}</span>
+                        <span class="descripcion-observaciones" [matTooltip]="registro.observaciones">
+                          {{ registro.observaciones }}
+                        </span>
                       }
                     </div>
                   </td>
@@ -311,12 +355,12 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
                 <!-- Columna Usuario -->
                 <ng-container matColumnDef="usuario">
-                  <th mat-header-cell *matHeaderCellDef>Usuario</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef class="col-usuario">Usuario</th>
+                  <td mat-cell *matCellDef="let registro" class="col-usuario">
                     <div class="usuario-cell">
                       @if (registro.usuarioNombre) {
                         <app-smart-icon [iconName]="'person'" [size]="16"></app-smart-icon>
-                        <span>{{ registro.usuarioNombre }}</span>
+                        <span [matTooltip]="registro.usuarioNombre">{{ registro.usuarioNombre }}</span>
                       } @else {
                         <span class="usuario-sistema">Sistema</span>
                       }
@@ -326,17 +370,17 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
                 <!-- Columna Acciones -->
                 <ng-container matColumnDef="acciones">
-                  <th mat-header-cell *matHeaderCellDef>Acciones</th>
-                  <td mat-cell *matCellDef="let registro">
+                  <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
+                  <td mat-cell *matCellDef="let registro" class="col-acciones">
                     <div class="acciones-cell">
                       <button mat-icon-button 
-                              (click)="verDetalleRegistro(registro)"
+                              (click)="verDetalleRegistro(registro); $event.stopPropagation()"
                               matTooltip="Ver detalles">
                         <app-smart-icon [iconName]="'visibility'" [size]="20"></app-smart-icon>
                       </button>
                       @if (registro.documentosSoporte?.length) {
                         <button mat-icon-button 
-                                (click)="verDocumentos(registro)"
+                                (click)="verDocumentos(registro); $event.stopPropagation()"
                                 matTooltip="Ver documentos">
                           <app-smart-icon [iconName]="'attach_file'" [size]="20"></app-smart-icon>
                         </button>
@@ -345,8 +389,8 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
                   </td>
                 </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="columnasTabla"></tr>
-                <tr mat-row *matRowDef="let row; columns: columnasTabla;" 
+                <tr mat-header-row *matHeaderRowDef="columnasVisibles()"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasVisibles();" 
                     class="historial-row"
                     (click)="verDetalleRegistro(row)"></tr>
               </table>
@@ -465,6 +509,50 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
+    .table-controls {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .columnas-menu {
+      min-width: 250px;
+      max-width: 300px;
+    }
+
+    .columnas-menu-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      background-color: #f8f9fa;
+    }
+
+    .columnas-menu-header h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .columna-checkbox {
+      display: block;
+      padding: 12px 16px;
+      margin: 0;
+      width: 100%;
+    }
+
+    .columna-checkbox:hover {
+      background-color: #f5f5f5;
+    }
+
+    .columna-checkbox .mdc-checkbox {
+      margin-right: 8px;
+    }
+
+    .columna-checkbox .mdc-form-field {
+      width: 100%;
+    }
+
     .loading-container {
       display: flex;
       flex-direction: column;
@@ -522,11 +610,105 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
 
     .table-container {
       overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
     }
 
     .historial-table {
       width: 100%;
-      min-width: 800px;
+      min-width: 1000px;
+      background: white;
+    }
+
+    /* Anchos específicos para columnas */
+    .col-fecha {
+      width: 120px;
+      min-width: 120px;
+    }
+
+    .col-placa {
+      width: 100px;
+      min-width: 100px;
+    }
+
+    .col-empresa {
+      width: 200px;
+      min-width: 150px;
+      max-width: 250px;
+    }
+
+    .col-tipo-evento {
+      width: 160px;
+      min-width: 160px;
+    }
+
+    .col-descripcion {
+      width: auto;
+      min-width: 200px;
+      max-width: 400px;
+    }
+
+    .col-usuario {
+      width: 140px;
+      min-width: 120px;
+    }
+
+    .col-acciones {
+      width: 100px;
+      min-width: 100px;
+    }
+
+    /* Headers con mejor estilo */
+    .mat-mdc-header-cell {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    /* Texto truncado con ellipsis */
+    .empresa-text,
+    .descripcion-principal,
+    .descripcion-observaciones {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Mejoras en las celdas */
+    .mat-mdc-cell {
+      padding: 12px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .mat-mdc-row:hover {
+      background-color: #f8f9fa;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+      .col-descripcion {
+        max-width: 250px;
+      }
+      
+      .col-empresa {
+        max-width: 180px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .historial-table {
+        min-width: 800px;
+      }
+      
+      .col-descripcion {
+        max-width: 200px;
+      }
+      
+      .col-empresa {
+        max-width: 150px;
+      }
     }
 
     .historial-row {
@@ -594,7 +776,6 @@ import { DocumentosHistorialModalComponent } from './documentos-historial-modal.
     .descripcion-cell {
       display: flex;
       flex-direction: column;
-      max-width: 300px;
     }
 
     .descripcion-principal {
@@ -660,6 +841,8 @@ export class HistorialVehicularComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private dialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
+  private appRef = inject(ApplicationRef);
 
   // Estado del componente
   cargando = signal(false);
@@ -680,6 +863,44 @@ export class HistorialVehicularComponent implements OnInit {
 
   // Configuración de la tabla
   columnasTabla = ['fecha', 'placa', 'empresa', 'tipoEvento', 'descripcion', 'usuario', 'acciones'];
+  
+  // Configuración de columnas disponibles
+  columnasDisponibles = [
+    { key: 'fecha', label: 'Fecha', required: true },
+    { key: 'placa', label: 'Placa', required: false },
+    { key: 'empresa', label: 'Empresa', required: false },
+    { key: 'tipoEvento', label: 'Tipo de Evento', required: true },
+    { key: 'descripcion', label: 'Descripción', required: true },
+    { key: 'usuario', label: 'Usuario', required: false },
+    { key: 'acciones', label: 'Acciones', required: true }
+  ];
+
+  // Estado de columnas visibles
+  columnasVisiblesState = signal<string[]>(['fecha', 'placa', 'empresa', 'tipoEvento', 'descripcion', 'usuario', 'acciones']);
+  
+  // Signal para forzar re-renderización de la tabla
+  tablaRenderKey = signal(0);
+  
+  // Computed para columnas visibles
+  columnasVisibles = computed(() => {
+    const visibles = this.columnasVisiblesState();
+    const vehiculoId = this.vehiculoId() || this.vehiculoIdFromUrl();
+    
+    console.log('[HISTORIAL-COMPUTED] ⚡ Computed columnasVisibles ejecutado');
+    console.log('[HISTORIAL-COMPUTED] 📊 Estado actual:', visibles);
+    console.log('[HISTORIAL-COMPUTED] 🚗 VehiculoId:', vehiculoId);
+    
+    // SIMPLIFICADO: No filtrar automáticamente la placa, dejar que el usuario decida
+    console.log('[HISTORIAL-COMPUTED] 📋 TABLA RECIBIRÁ ESTAS COLUMNAS:', visibles);
+    
+    // Forzar nueva referencia y notificar cambios
+    const resultado = [...visibles];
+    
+    // Incrementar el key de renderización para forzar actualización
+    this.tablaRenderKey.update(key => key + 1);
+    
+    return resultado;
+  });
 
   // Tipos de evento para el filtro
   tiposEvento = [
@@ -725,6 +946,8 @@ export class HistorialVehicularComponent implements OnInit {
   });
 
   constructor() {
+    console.log('[HISTORIAL-INIT] 🚀 CONSTRUCTOR del historial vehicular iniciado');
+    
     // Effect para reaccionar a cambios en vehiculoId
     effect(() => {
       const vehiculoId = this.vehiculoId();
@@ -732,8 +955,6 @@ export class HistorialVehicularComponent implements OnInit {
 
       if (vehiculoId || vehiculoIdFromUrl) {
         this.cargarResumenVehiculo();
-        // Ocultar la columna de placa si es un vehículo específico
-        this.columnasTabla = this.columnasTabla.filter(col => col !== 'placa');
       }
     });
 
@@ -745,13 +966,28 @@ export class HistorialVehicularComponent implements OnInit {
       }
     });
 
-    // Effect para reaccionar a cambios en placa desde parámetros
+    // Effect para reaccionar a cambios en columnas visibles
     effect(() => {
-      const placa = this.placa();
-      if (placa) {
-        this.filtrosForm.patchValue({ placa });
-      }
+      const columnas = this.columnasVisiblesState();
+      const renderKey = this.tablaRenderKey();
+      
+      console.log('[HISTORIAL-EFFECT] 🔄 Effect detectó cambio en columnas:', columnas);
+      console.log('[HISTORIAL-EFFECT] 🔑 Render key:', renderKey);
+      
+      // Forzar detección de cambios cuando cambian las columnas
+      this.cdr.markForCheck();
+      
+      // Programar actualización de la tabla en el próximo ciclo
+      setTimeout(() => {
+        this.forzarActualizacionTabla();
+        console.log('[HISTORIAL-EFFECT] ✅ Tabla actualizada por effect');
+      }, 0);
     });
+
+    // Cargar configuración de columnas desde localStorage
+    console.log('[HISTORIAL-INIT] 📂 Cargando configuración de columnas...');
+    this.cargarConfiguracionColumnas();
+    console.log('[HISTORIAL-INIT] ✅ Constructor completado');
   }
 
   ngOnInit(): void {
@@ -765,9 +1001,6 @@ export class HistorialVehicularComponent implements OnInit {
         this.filtrosForm.patchValue({
           placa: params['placa'] || '',
         });
-
-        // Ocultar la columna de placa si es un vehículo específico
-        this.columnasTabla = this.columnasTabla.filter(col => col !== 'placa');
 
         // Actualizar el título para mostrar que es específico de un vehículo
         this.mostrarFiltros.set(false); // Ocultar filtros por defecto
@@ -925,7 +1158,7 @@ export class HistorialVehicularComponent implements OnInit {
   verDetalleRegistro(registro: HistorialVehicular): void {
     this.dialog.open(HistorialDetalleModalComponent, {
       data: registro,
-      width: '800px',
+      width: '1000px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       panelClass: 'historial-detalle-modal-panel'
@@ -945,7 +1178,7 @@ export class HistorialVehicularComponent implements OnInit {
         fechaEvento: registro.fechaEvento,
         placa: registro.placa
       },
-      width: '900px',
+      width: '1200px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       panelClass: 'documentos-historial-modal-panel'
@@ -1014,5 +1247,176 @@ export class HistorialVehicularComponent implements OnInit {
 
   volverAVehiculos(): void {
     this.router.navigate(['/vehiculos']);
+  }
+
+  // Métodos para el selector de columnas
+  
+  /**
+   * TrackBy function para forzar re-renderización de la tabla
+   */
+  trackByTabla = (index: number, item: any): any => {
+    return `${item.id || index}-${this.tablaRenderKey()}`;
+  };
+  
+  columnaVisible(columna: string): boolean {
+    const visible = this.columnasVisiblesState().includes(columna);
+    console.log(`[HISTORIAL-CHECK] 🔍 Verificando columna "${columna}": ${visible ? '✅ VISIBLE' : '❌ OCULTA'}`);
+    console.log(`[HISTORIAL-CHECK] 📊 Estado completo:`, this.columnasVisiblesState());
+    console.log(`[HISTORIAL-CHECK] 🏷️ Componente: HISTORIAL-VEHICULAR`);
+    return visible;
+  }
+
+  toggleColumna(columna: string, visible: boolean): void {
+    console.log(`[HISTORIAL-TOGGLE] 🔄 INICIO - Columna "${columna}" ${visible ? 'MOSTRAR' : 'OCULTAR'}`);
+    console.log(`[HISTORIAL-TOGGLE] 🏷️ COMPONENTE: HISTORIAL-VEHICULAR`);
+    
+    const columnasActuales = this.columnasVisiblesState();
+    console.log(`[HISTORIAL-TOGGLE] 📊 Estado ANTES del cambio:`, columnasActuales);
+    
+    let nuevasColumnas: string[];
+    
+    if (visible && !columnasActuales.includes(columna)) {
+      // Agregar columna manteniendo el orden original
+      nuevasColumnas = this.columnasDisponibles
+        .map(col => col.key)
+        .filter(key => columnasActuales.includes(key) || key === columna);
+      
+      console.log(`[HISTORIAL-TOGGLE] ✅ Columna AGREGADA:`, nuevasColumnas);
+    } else if (!visible && columnasActuales.includes(columna)) {
+      // Remover columna
+      nuevasColumnas = columnasActuales.filter(col => col !== columna);
+      console.log(`[HISTORIAL-TOGGLE] ❌ Columna REMOVIDA:`, nuevasColumnas);
+    } else {
+      console.log(`[HISTORIAL-TOGGLE] ⚠️ Sin cambios necesarios`);
+      return;
+    }
+    
+    // Actualizar el estado (esto disparará el computed)
+    this.columnasVisiblesState.set(nuevasColumnas);
+    
+    // Guardar configuración
+    this.guardarConfiguracionColumnas();
+    
+    // Forzar actualización inmediata
+    this.forzarActualizacionTabla();
+    
+    console.log(`[HISTORIAL-TOGGLE] ✅ CAMBIO COMPLETADO`);
+  }
+
+  resetearColumnas(): void {
+    console.log('[HISTORIAL-TOGGLE] 🔄 Reseteando columnas a valores por defecto');
+    const columnasDefault = this.columnasDisponibles.map(col => col.key);
+    this.columnasVisiblesState.set(columnasDefault);
+    this.guardarConfiguracionColumnas();
+    
+    // Forzar actualización de la tabla
+    this.forzarActualizacionTabla();
+    
+    console.log('[HISTORIAL-TOGGLE] ✅ RESET COMPLETADO');
+  }
+
+  private cargarConfiguracionColumnas(): void {
+    console.log('[HISTORIAL-CONFIG] 📂 INICIANDO carga de configuración');
+    
+    try {
+      const configuracion = localStorage.getItem('historial-vehicular-columnas-config');
+      console.log('[HISTORIAL-CONFIG] 💾 Configuración en localStorage:', configuracion);
+      
+      if (configuracion) {
+        const columnas = JSON.parse(configuracion);
+        if (Array.isArray(columnas) && columnas.length > 0) {
+          // Validar que las columnas existen
+          const columnasValidas = columnas.filter(col => 
+            this.columnasDisponibles.some(disponible => disponible.key === col)
+          );
+          
+          // Asegurar que las columnas requeridas estén presentes
+          const columnasRequeridas = this.columnasDisponibles
+            .filter(col => col.required)
+            .map(col => col.key);
+          
+          const columnasFinales = [...new Set([...columnasValidas, ...columnasRequeridas])];
+          this.columnasVisiblesState.set(columnasFinales);
+          console.log('[HISTORIAL-CONFIG] ✅ Columnas cargadas desde localStorage:', columnasFinales);
+          return;
+        }
+      }
+      
+      // Si no hay configuración válida, usar valores por defecto
+      const columnasDefault = this.columnasDisponibles.map(col => col.key);
+      this.columnasVisiblesState.set(columnasDefault);
+      console.log('[HISTORIAL-CONFIG] 🔄 Usando columnas por defecto:', columnasDefault);
+      
+    } catch (error) {
+      console.warn('[HISTORIAL-CONFIG] ❌ Error cargando configuración:', error);
+      // En caso de error, usar valores por defecto
+      const columnasDefault = this.columnasDisponibles.map(col => col.key);
+      this.columnasVisiblesState.set(columnasDefault);
+      console.log('[HISTORIAL-CONFIG] 🔄 Fallback a columnas por defecto:', columnasDefault);
+    }
+    
+    console.log('[HISTORIAL-CONFIG] ✅ Carga de configuración COMPLETADA');
+  }
+
+  private guardarConfiguracionColumnas(): void {
+    try {
+      const columnas = this.columnasVisiblesState();
+      localStorage.setItem('historial-vehicular-columnas-config', JSON.stringify(columnas));
+      console.log('[HISTORIAL] Configuración guardada:', columnas);
+    } catch (error) {
+      console.warn('[HISTORIAL] Error guardando configuración de columnas:', error);
+    }
+  }
+
+  /**
+   * Método para forzar la actualización visual de la tabla
+   * Útil cuando los cambios en las columnas no se reflejan inmediatamente
+   */
+  private forzarActualizacionTabla(): void {
+    console.log('[HISTORIAL-UPDATE] 🔄 Forzando actualización visual de la tabla...');
+    
+    // Estrategia 1: Incrementar el key de renderización
+    this.tablaRenderKey.update(key => key + 1);
+    
+    // Estrategia 2: Forzar detección de cambios
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+    
+    // Estrategia 3: Re-renderizar la tabla con timeout
+    setTimeout(() => {
+      const tabla = document.getElementById('historial-vehicular-table');
+      if (tabla) {
+        // Forzar re-layout
+        const display = tabla.style.display;
+        tabla.style.display = 'none';
+        tabla.offsetHeight; // Trigger reflow
+        tabla.style.display = display || '';
+        
+        // Forzar recálculo de columnas
+        const headers = tabla.querySelectorAll('th');
+        headers.forEach(header => {
+          const width = header.style.width;
+          header.style.width = '';
+          header.offsetWidth; // Trigger reflow
+          header.style.width = width;
+        });
+        
+        // Forzar recálculo de celdas
+        const cells = tabla.querySelectorAll('td');
+        cells.forEach(cell => {
+          cell.offsetWidth; // Trigger reflow
+        });
+      }
+      
+      // Detección final de cambios
+      this.cdr.detectChanges();
+      console.log('[HISTORIAL-UPDATE] ✅ Actualización visual completada');
+    }, 10);
+    
+    // Estrategia 4: Actualización adicional con más delay
+    setTimeout(() => {
+      this.cdr.detectChanges();
+      console.log('[HISTORIAL-UPDATE] 🔄 Actualización adicional completada');
+    }, 100);
   }
 }

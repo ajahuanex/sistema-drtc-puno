@@ -134,19 +134,21 @@ export class VehiculoEstadoSelectorComponent {
 
   abrirModalCambioEstado(): void {
     const dialogRef = this.dialog.open(CambiarEstadoVehiculoModalComponent, {
-      data: { vehiculo: this.vehiculo },
-      width: '600px',
+      data: { 
+        vehiculo: this.vehiculo
+      },
+      width: '500px',
       maxWidth: '95vw',
       maxHeight: '90vh',
-      panelClass: 'cambiar-estado-modal-panel'
+      panelClass: 'cambiar-estado-individual-modal'
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         // Emitir el evento de cambio de estado
         this.estadoChanged.emit({
-          vehiculo: result.vehiculo,
-          nuevoEstado: result.nuevoEstado
+          vehiculo: { ...this.vehiculo, estado: result.estadoNuevo },
+          nuevoEstado: result.estadoNuevo
         });
       }
     });

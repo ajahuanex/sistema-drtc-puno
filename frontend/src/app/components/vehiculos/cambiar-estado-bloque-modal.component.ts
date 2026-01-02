@@ -18,7 +18,8 @@ import { ConfiguracionService } from '../../services/configuracion.service';
 import { forkJoin } from 'rxjs';
 
 export interface CambiarEstadoBloqueModalData {
-  vehiculos: Vehiculo[];
+  vehiculos?: Vehiculo[];
+  vehiculo?: Vehiculo;
 }
 
 @Component({

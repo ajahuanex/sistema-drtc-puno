@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { VehiculoModalComponent, VehiculoModalData } from '../components/vehiculos/vehiculo-modal.component';
-import { TransferirVehiculoModalComponent, TransferirVehiculoData } from '../components/vehiculos/transferir-vehiculo-modal.component';
-import { SolicitarBajaVehiculoModalComponent } from '../components/vehiculos/solicitar-baja-vehiculo-modal.component';
+import { TransferirEmpresaModalComponent } from '../components/vehiculos/transferir-empresa-modal.component';
+import { SolicitarBajaVehiculoUnifiedComponent } from '../components/vehiculos/solicitar-baja-vehiculo-unified.component';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate } from '../models/vehiculo.model';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -113,9 +113,9 @@ export class VehiculoModalService {
    * @returns Observable que emite el resultado de la transferencia
    */
   openTransferirModal(vehiculo: Vehiculo): Observable<any> {
-    const dialogRef = this.dialog.open(TransferirVehiculoModalComponent, {
+    const dialogRef = this.dialog.open(TransferirEmpresaModalComponent, {
       width: '800px',
-      data: { vehiculo } as TransferirVehiculoData,
+      data: { vehiculo },
       disableClose: true
     });
 
@@ -133,7 +133,7 @@ export class VehiculoModalService {
    * @returns Observable que emite el resultado de la solicitud
    */
   openSolicitarBajaModal(vehiculo: Vehiculo): Observable<any> {
-    const dialogRef = this.dialog.open(SolicitarBajaVehiculoModalComponent, {
+    const dialogRef = this.dialog.open(SolicitarBajaVehiculoUnifiedComponent, {
       width: '800px',
       maxHeight: '85vh',
       data: { vehiculo },

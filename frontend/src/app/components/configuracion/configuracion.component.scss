@@ -89,10 +89,12 @@
 }
 
 // Estilos para las configuraciones del sistema
-.configuraciones-grid {
+.configuraciones-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  max-width: 800px; // Limitar el ancho para una sola columna
+  margin: 0 auto;
 }
 
 .config-category-panel {

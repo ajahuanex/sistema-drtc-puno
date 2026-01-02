@@ -28,7 +28,7 @@ import {
   ResumenBajasVehiculo
 } from '../../models/baja-vehiculo.model';
 import { BajaVehiculoService } from '../../services/baja-vehiculo.service';
-import { SolicitarBajaVehiculoModalComponent } from '../vehiculos/solicitar-baja-vehiculo-modal.component';
+import { SolicitarBajaVehiculoUnifiedComponent } from '../vehiculos/solicitar-baja-vehiculo-unified.component';
 
 @Component({
   selector: 'app-bajas-vehiculos',

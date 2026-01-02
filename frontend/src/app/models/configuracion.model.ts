@@ -8,6 +8,10 @@ export interface ConfiguracionSistema {
   esEditable?: boolean;
   fechaCreacion: string;
   fechaActualizacion: string;
+  // Nuevo campo para manejar valores por defecto
+  tieneValorDefault?: boolean;
+  valorDefault?: string;
+  configuracionDefaultAsociada?: string;
 }
 
 export interface ConfiguracionCreate {
@@ -216,23 +220,48 @@ export const CONFIGURACIONES_DEFAULT = {
   ESTADOS_VEHICULOS_CONFIG: {
     nombre: 'ESTADOS_VEHICULOS_CONFIG',
     valor: JSON.stringify([
-      { codigo: 'ACTIVO', nombre: 'Activo', color: '#4CAF50', descripcion: 'Vehículo operativo y disponible para servicio' },
-      { codigo: 'INACTIVO', nombre: 'Inactivo', color: '#F44336', descripcion: 'Vehículo temporalmente fuera de servicio' },
-      { codigo: 'MANTENIMIENTO', nombre: 'Mantenimiento', color: '#FF9800', descripcion: 'Vehículo en proceso de reparación o mantenimiento' },
-      { codigo: 'SUSPENDIDO', nombre: 'Suspendido', color: '#9C27B0', descripcion: 'Vehículo suspendido por motivos administrativos' },
-      { codigo: 'FUERA_DE_SERVICIO', nombre: 'Fuera de Servicio', color: '#E91E63', descripcion: 'Vehículo no operativo por tiempo indefinido' },
-      { codigo: 'DADO_DE_BAJA', nombre: 'Dado de Baja', color: '#795548', descripcion: 'Vehículo dado de baja definitivamente' }
+      { codigo: 'HABILITADO', nombre: 'Habilitado', color: '#4CAF50', descripcion: 'Vehículo operativo y disponible para servicio', esDefault: true },
+      { codigo: 'NO_HABILITADO', nombre: 'No Habilitado', color: '#F44336', descripcion: 'Vehículo temporalmente fuera de servicio', esDefault: false },
+      { codigo: 'SUSPENDIDO', nombre: 'Suspendido', color: '#FF9800', descripcion: 'Vehículo suspendido por motivos administrativos', esDefault: false },
+      { codigo: 'MANTENIMIENTO', nombre: 'Mantenimiento', color: '#9C27B0', descripcion: 'Vehículo en proceso de reparación o mantenimiento', esDefault: false }
     ]),
-    descripcion: 'Configuración de estados disponibles para vehículos con sus colores y descripciones. Formato JSON con array de objetos {codigo, nombre, color, descripcion}.',
+    descripcion: 'Configuración de estados disponibles para vehículos con sus colores y descripciones. Uno de los estados debe marcarse como por defecto (esDefault: true).',
     categoria: CategoriaConfiguracion.VEHICULOS,
-    esEditable: true
+    esEditable: true,
+    tieneValorDefault: true
   },
-  ESTADO_VEHICULO_DEFAULT: {
-    nombre: 'ESTADO_VEHICULO_DEFAULT',
-    valor: 'ACTIVO',
-    descripcion: 'Estado por defecto que se asigna a los vehículos recién registrados en el sistema.',
+  
+  // Categorías de Vehículos
+  CATEGORIAS_VEHICULOS: {
+    nombre: 'CATEGORIAS_VEHICULOS',
+    valor: 'M1,M2,M2-C3,M3,N1',
+    descripcion: 'Categorías de vehículos disponibles separadas por comas',
     categoria: CategoriaConfiguracion.VEHICULOS,
-    esEditable: true
+    esEditable: true,
+    tieneValorDefault: true,
+    valorDefault: 'M2-C3'
+  },
+  
+  // Tipos de Carrocería
+  TIPOS_CARROCERIA: {
+    nombre: 'TIPOS_CARROCERIA',
+    valor: 'MICROBUS,MINIBUS,OMNIBUS,COASTER,FURGON,CAMIONETA',
+    descripcion: 'Tipos de carrocería disponibles separados por comas',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true,
+    tieneValorDefault: true,
+    valorDefault: 'MICROBUS'
+  },
+  
+  // Tipos de Combustible
+  TIPOS_COMBUSTIBLE: {
+    nombre: 'TIPOS_COMBUSTIBLE',
+    valor: 'GASOLINA,DIESEL,GAS_NATURAL,GLP,ELECTRICO,HIBRIDO',
+    descripcion: 'Tipos de combustible disponibles separados por comas',
+    categoria: CategoriaConfiguracion.VEHICULOS,
+    esEditable: true,
+    tieneValorDefault: true,
+    valorDefault: 'DIESEL'
   },
   PERMITIR_CAMBIO_ESTADO_MASIVO: {
     nombre: 'PERMITIR_CAMBIO_ESTADO_MASIVO',

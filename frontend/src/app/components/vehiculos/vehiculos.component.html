@@ -19,6 +19,11 @@
             HISTORIAL
         </button>
         <mat-menu #historialMenu="matMenu">
+            <button mat-menu-item (click)="verHistorialCompleto()">
+                <mat-icon>history</mat-icon>
+                <span>VER HISTORIAL COMPLETO</span>
+            </button>
+            <mat-divider></mat-divider>
             <button mat-menu-item (click)="actualizarHistorialTodos()">
                 <mat-icon>refresh</mat-icon>
                 <span>ACTUALIZAR HISTORIAL</span>
@@ -43,7 +48,11 @@
         </mat-menu>
         <button mat-button color="accent" (click)="exportarVehiculos()" class="action-button">
             <mat-icon>download</mat-icon>
-            EXPORTAR
+            @if (getVehiculosSeleccionadosCount() > 0) {
+                EXPORTAR SELECCIONADOS ({{ getVehiculosSeleccionadosCount() }})
+            } @else {
+                EXPORTAR TODOS
+            }
         </button>
     </div>
 </div>
@@ -252,36 +261,33 @@
                         RECARGAR
                     </button>
                 }
-                <mat-menu #columnMenu="matMenu" class="column-menu">
-                    <div class="column-menu-header">
-                        <h4>CONFIGURAR COLUMNAS</h4>
-                        <button mat-icon-button (click)="resetColumns()" matTooltip="Restablecer columnas por defecto">
-                            <mat-icon>refresh</mat-icon>
-                        </button>
+                <mat-menu #columnMenu="matMenu" class="columnas-menu vehiculos-columnas-menu">
+                    <div class="columnas-menu-header" (click)="$event.stopPropagation()">
+                        <h4>Mostrar columnas</h4>
                     </div>
                     <mat-divider></mat-divider>
-                    @for (column of availableColumns; track column.key) {
-                        <div class="column-menu-item" (click)="$event.stopPropagation()">
-                            <mat-checkbox 
-                                [checked]="column.visible"
-                                [disabled]="column.required"
-                                (change)="toggleColumn(column.key)">
-                                {{ column.label }}
-                            </mat-checkbox>
-                            @if (column.required) {
-                                <mat-icon class="required-icon" matTooltip="Columna requerida">lock</mat-icon>
-                            }
-                        </div>
-                    }
-                    <mat-divider></mat-divider>
-                    <div class="column-menu-footer">
-                        <small>{{ getVisibleColumnsCount() }} visibles, {{ getHiddenColumnsCount() }} ocultas</small>
+                    
+                    <div class="column-menu-content">
+                        @for (column of availableColumns(); track column.key) {
+                            <button mat-menu-item class="columna-checkbox" 
+                                    [class.disabled-column]="column.required"
+                                    (click)="$event.stopPropagation()">
+                                <mat-checkbox 
+                                    [checked]="column.visible"
+                                    [disabled]="column.required"
+                                    (change)="toggleColumn(column.key)"
+                                    (click)="$event.stopPropagation()">
+                                    {{ column.label }}
+                                </mat-checkbox>
+                            </button>
+                        }
                     </div>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item (click)="resetColumns()">
+                        <mat-icon>refresh</mat-icon>
+                        <span>Restablecer</span>
+                    </button>
                 </mat-menu>
-                <button mat-button color="accent" (click)="recargarVehiculos()">
-                    <mat-icon>refresh</mat-icon>
-                    RECARGAR
-                </button>
             </div>
         </div>
 

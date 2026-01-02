@@ -29,7 +29,7 @@ export const routes: Routes = [
       { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
       { path: 'vehiculos/nuevo', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/solicitudes-baja', loadComponent: () => import('./components/vehiculos/solicitudes-baja.component').then(m => m.SolicitudesBajaComponent) },
-      { path: 'vehiculos/:id', loadComponent: () => import('./components/vehiculos/vehiculo-detail.component').then(m => m.VehiculoDetailComponent) },
+      { path: 'vehiculos/:id', loadComponent: () => import('./components/vehiculos/vehiculo-detalle.component').then(m => m.VehiculoDetalleComponent) },
       { path: 'vehiculos/:id/editar', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/:id/historial', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },
       { path: 'historial-vehiculos', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },

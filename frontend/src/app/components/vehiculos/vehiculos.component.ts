@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -32,12 +32,11 @@ import { VehiculoModalComponent } from './vehiculo-modal.component';
 import { HistorialVehicularComponent } from './historial-vehicular.component';
 import { VehiculosEliminadosModalComponent } from './vehiculos-eliminados-modal.component';
 import { VehiculoDetalleComponent } from './vehiculo-detalle.component';
-import { CambiarEstadoModalComponent } from './cambiar-estado-modal.component';
 import { CambiarEstadoBloqueModalComponent } from './cambiar-estado-bloque-modal.component';
 import { CargaMasivaVehiculosComponent } from './carga-masiva-vehiculos.component';
 import { GestionarRutasEspecificasModalComponent } from './gestionar-rutas-especificas-modal.component';
 import { TransferirEmpresaModalComponent } from './transferir-empresa-modal.component';
-import { SolicitarBajaModalComponent } from './solicitar-baja-modal.component';
+import { SolicitarBajaVehiculoUnifiedComponent } from './solicitar-baja-vehiculo-unified.component';
 import { VehiculoEstadoSelectorComponent } from './vehiculo-estado-selector.component';
 
 @Component({
@@ -76,6 +75,7 @@ export class VehiculosComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   // Signals para el estado del componente
   vehiculos = signal<Vehiculo[]>([]);
@@ -108,36 +108,60 @@ export class VehiculosComponent implements OnInit {
     mostrarSinResolucion: [false]
   });
 
-  // Configuración de columnas
-  availableColumns = [
-    { key: 'select', label: 'Selección', visible: true, required: true },
-    { key: 'placa', label: 'Placa', visible: true, required: true },
-    { key: 'marca', label: 'Marca/Modelo', visible: true, required: false },
-    { key: 'empresa', label: 'Empresa', visible: true, required: false },
-    { key: 'categoria', label: 'Categoría', visible: true, required: false },
-    { key: 'estado', label: 'Estado', visible: true, required: false },
-    { key: 'anio', label: 'Año', visible: false, required: false },
-    { key: 'tuc', label: 'TUC', visible: false, required: false },
-    { key: 'resolucion', label: 'Resolución', visible: false, required: false },
-    { key: 'sede-registro', label: 'Sede Registro', visible: false, required: false },
-    { key: 'color', label: 'Color', visible: false, required: false },
-    { key: 'numero-serie', label: 'N° Serie', visible: false, required: false },
-    { key: 'motor', label: 'Motor', visible: false, required: false },
-    { key: 'chasis', label: 'Chasis', visible: false, required: false },
-    { key: 'ejes', label: 'Ejes', visible: false, required: false },
-    { key: 'asientos', label: 'Asientos', visible: false, required: false },
-    { key: 'peso-neto', label: 'Peso Neto', visible: false, required: false },
-    { key: 'peso-bruto', label: 'Peso Bruto', visible: false, required: false },
-    { key: 'combustible', label: 'Combustible', visible: false, required: false },
-    { key: 'cilindrada', label: 'Cilindrada', visible: false, required: false },
-    { key: 'potencia', label: 'Potencia', visible: false, required: false },
-    { key: 'medidas', label: 'Medidas', visible: false, required: false },
-    { key: 'fecha-registro', label: 'Fecha Registro', visible: false, required: false },
-    { key: 'fecha-actualizacion', label: 'Última Actualización', visible: false, required: false },
-    { key: 'observaciones', label: 'Observaciones', visible: false, required: false },
-    { key: 'rutas-especificas', label: 'Rutas Específicas', visible: true, required: false },
-    { key: 'acciones', label: 'Acciones', visible: true, required: true }
+  // Configuración de columnas disponibles
+  columnasDisponibles = [
+    { key: 'select', label: 'Selección', required: true },
+    { key: 'placa', label: 'Placa', required: true },
+    { key: 'marca', label: 'Marca/Modelo', required: false },
+    { key: 'empresa', label: 'Empresa', required: false },
+    { key: 'categoria', label: 'Categoría', required: false },
+    { key: 'estado', label: 'Estado', required: false },
+    { key: 'anio', label: 'Año', required: false },
+    { key: 'tuc', label: 'TUC', required: false },
+    { key: 'resolucion', label: 'Resolución', required: false },
+    { key: 'sede-registro', label: 'Sede Registro', required: false },
+    { key: 'color', label: 'Color', required: false },
+    { key: 'numero-serie', label: 'N° Serie', required: false },
+    { key: 'motor', label: 'Motor', required: false },
+    { key: 'chasis', label: 'Chasis', required: false },
+    { key: 'ejes', label: 'Ejes', required: false },
+    { key: 'asientos', label: 'Asientos', required: false },
+    { key: 'peso-neto', label: 'Peso Neto', required: false },
+    { key: 'peso-bruto', label: 'Peso Bruto', required: false },
+    { key: 'combustible', label: 'Combustible', required: false },
+    { key: 'cilindrada', label: 'Cilindrada', required: false },
+    { key: 'potencia', label: 'Potencia', required: false },
+    { key: 'medidas', label: 'Medidas', required: false },
+    { key: 'fecha-registro', label: 'Fecha Registro', required: false },
+    { key: 'fecha-actualizacion', label: 'Última Actualización', required: false },
+    { key: 'observaciones', label: 'Observaciones', required: false },
+    { key: 'rutas-especificas', label: 'Rutas Específicas', required: false },
+    { key: 'acciones', label: 'Acciones', required: true }
   ];
+
+  // Estado de columnas visibles con signals
+  columnasVisiblesState = signal<string[]>([
+    'select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'
+  ]);
+  
+  // Signal para forzar re-renderización
+  tablaRenderKey = signal(0);
+  
+  // Computed para columnas visibles
+  columnasVisibles = computed(() => {
+    const visibles = this.columnasVisiblesState();
+    console.log('[VEHICULOS-COMPUTED] Columnas visibles:', visibles);
+    return [...visibles];
+  });
+
+  // Computed para availableColumns (para compatibilidad con el template)
+  availableColumns = computed(() => {
+    const visibles = this.columnasVisiblesState();
+    return this.columnasDisponibles.map(col => ({
+      ...col,
+      visible: visibles.includes(col.key)
+    }));
+  });
 
   // Computed properties
   vehiculosFiltrados = computed(() => {
@@ -202,18 +226,28 @@ export class VehiculosComponent implements OnInit {
     return vehiculosFiltrados;
   });
 
-  displayedColumns = computed(() => 
-    this.availableColumns
-      .filter(col => col.visible)
-      .map(col => col.key)
-  );
+  displayedColumns = computed(() => {
+    const columnas = this.columnasVisibles();
+    console.log('[VEHICULOS-COMPUTED] DisplayedColumns:', columnas);
+    return columnas;
+  });
 
   // Getter para usar en el template (Angular no puede usar computed directamente en matHeaderRowDef)
   get displayedColumnsArray(): string[] {
     return this.displayedColumns();
   }
 
+  constructor() {
+    // Effect para reaccionar a cambios en columnas
+    effect(() => {
+      const columnas = this.columnasVisiblesState();
+      console.log('[VEHICULOS-EFFECT] Columnas cambiaron:', columnas);
+      this.cdr.markForCheck();
+    });
+  }
+
   ngOnInit(): void {
+    this.loadColumnPreferences();
     this.cargarDatos();
     
     // Suscribirse a cambios en el formulario de filtros y actualizar el signal
@@ -357,30 +391,78 @@ export class VehiculosComponent implements OnInit {
   }
 
   // Métodos de columnas
+  columnaVisible(columna: string): boolean {
+    const visible = this.columnasVisiblesState().includes(columna);
+    console.log(`[VEHICULOS-CHECK] Columna "${columna}": ${visible ? 'VISIBLE' : 'OCULTA'}`);
+    return visible;
+  }
+
   toggleColumn(columnKey: string): void {
-    const column = this.availableColumns.find(col => col.key === columnKey);
-    if (column && !column.required) {
-      column.visible = !column.visible;
+    console.log(`[VEHICULOS-TOGGLE] Toggling columna "${columnKey}"`);
+    
+    const columnasActuales = this.columnasVisiblesState();
+    const columnaConfig = this.columnasDisponibles.find(col => col.key === columnKey);
+    
+    if (!columnaConfig || columnaConfig.required) {
+      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" es requerida, no se puede cambiar`);
+      return;
     }
+    
+    let nuevasColumnas: string[];
+    
+    if (columnasActuales.includes(columnKey)) {
+      // Remover columna
+      nuevasColumnas = columnasActuales.filter(col => col !== columnKey);
+      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" REMOVIDA`);
+    } else {
+      // Agregar columna manteniendo el orden original
+      nuevasColumnas = this.columnasDisponibles
+        .map(col => col.key)
+        .filter(key => columnasActuales.includes(key) || key === columnKey);
+      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" AGREGADA`);
+    }
+    
+    // Actualizar estado
+    this.columnasVisiblesState.set(nuevasColumnas);
+    
+    // Incrementar key para forzar re-renderización
+    this.tablaRenderKey.update(key => key + 1);
+    
+    // Guardar preferencias
+    this.saveColumnPreferences();
+    
+    // Forzar detección de cambios
+    this.cdr.detectChanges();
+    
+    console.log(`[VEHICULOS-TOGGLE] Nuevas columnas:`, nuevasColumnas);
   }
 
   getVisibleColumnsCount(): number {
-    return this.availableColumns.filter(col => col.visible).length;
+    return this.columnasVisiblesState().length;
   }
 
   getHiddenColumnsCount(): number {
-    return this.availableColumns.filter(col => !col.visible).length;
+    return this.columnasDisponibles.length - this.columnasVisiblesState().length;
   }
 
   resetColumns(): void {
-    // Restaurar configuración por defecto
-    this.availableColumns.forEach(col => {
-      if (['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'].includes(col.key)) {
-        col.visible = true;
-      } else {
-        col.visible = false;
-      }
-    });
+    console.log('[VEHICULOS-RESET] Reseteando columnas a configuración por defecto');
+    
+    const columnasDefault = ['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'];
+    
+    // Actualizar estado
+    this.columnasVisiblesState.set(columnasDefault);
+    
+    // Incrementar key para forzar re-renderización
+    this.tablaRenderKey.update(key => key + 1);
+    
+    // Guardar preferencias
+    this.saveColumnPreferences();
+    
+    // Forzar detección de cambios
+    this.cdr.detectChanges();
+    
+    console.log('[VEHICULOS-RESET] Columnas reseteadas:', columnasDefault);
   }
 
   // Métodos de utilidad para mostrar datos
@@ -569,6 +651,10 @@ export class VehiculosComponent implements OnInit {
     });
   }
 
+  verHistorialCompleto(): void {
+    this.router.navigate(['/historial-vehiculos']);
+  }
+
   editarVehiculo(vehiculo: Vehiculo): void {
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
       width: '900px',
@@ -613,9 +699,11 @@ export class VehiculosComponent implements OnInit {
   }
 
   cambiarEstadoVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(CambiarEstadoModalComponent, {
+    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
       width: '600px',
-      data: { vehiculo: vehiculo }
+      data: { 
+        vehiculo: vehiculo
+      }
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
@@ -694,19 +782,6 @@ export class VehiculosComponent implements OnInit {
     }
   }
 
-  cargaMasivaVehiculos(): void {
-    const dialogRef = this.dialog.open(CargaMasivaVehiculosComponent, {
-      width: '800px',
-      maxHeight: '90vh'
-    });
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        this.recargarVehiculos();
-      }
-    });
-  }
-
   gestionarRutasEnBloque(): void {
     const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
       .map(id => this.vehiculos().find(v => v.id === id))
@@ -754,7 +829,242 @@ export class VehiculosComponent implements OnInit {
   }
 
   exportarVehiculos(): void {
-    this.snackBar.open('Exportando vehículos...', 'Cerrar', { duration: 3000 });
+    console.log('[VEHICULOS-EXPORT] Iniciando exportación de vehículos');
+    
+    // Verificar si hay vehículos seleccionados
+    const vehiculosSeleccionadosIds = Array.from(this.vehiculosSeleccionados());
+    const vehiculosSeleccionados = this.vehiculosFiltrados().filter(v => vehiculosSeleccionadosIds.includes(v.id));
+    const exportarSoloSeleccionados = vehiculosSeleccionados.length > 0;
+    
+    if (exportarSoloSeleccionados) {
+      console.log(`[VEHICULOS-EXPORT] Exportando ${vehiculosSeleccionados.length} vehículos seleccionados`);
+    } else {
+      console.log('[VEHICULOS-EXPORT] Exportando todos los vehículos filtrados');
+    }
+    
+    // Construir filtros basados en el estado actual
+    const filtros: any = {
+      // Filtros de búsqueda
+      busqueda: this.filtrosForm.get('busqueda')?.value || '',
+      
+      // Filtros específicos
+      empresa: this.filtrosForm.get('empresa')?.value || '',
+      categoria: this.filtrosForm.get('categoria')?.value || '',
+      estado: this.filtrosForm.get('estado')?.value || '',
+      sedeRegistro: this.filtrosForm.get('sedeRegistro')?.value || '',
+      
+      // Filtros de fecha si existen
+      fechaDesde: this.filtrosForm.get('fechaDesde')?.value || '',
+      fechaHasta: this.filtrosForm.get('fechaHasta')?.value || '',
+      
+      // Columnas visibles para exportar solo las necesarias
+      columnas: this.columnasVisibles().join(','),
+      
+      // Formato de exportación
+      formato: 'excel'
+    };
+
+    // Si hay vehículos seleccionados, agregar sus IDs
+    if (exportarSoloSeleccionados) {
+      filtros.vehiculosSeleccionados = vehiculosSeleccionados.map((v: any) => v.id).join(',');
+      filtros.soloSeleccionados = 'true';
+    }
+
+    // Limpiar filtros vacíos
+    Object.keys(filtros).forEach(key => {
+      if (!filtros[key] || filtros[key] === '') {
+        delete filtros[key];
+      }
+    });
+
+    console.log('[VEHICULOS-EXPORT] Filtros aplicados:', filtros);
+
+    // Mostrar mensaje de carga
+    const totalVehiculos = exportarSoloSeleccionados ? vehiculosSeleccionados.length : this.vehiculosFiltrados().length;
+    this.snackBar.open(`Exportando ${totalVehiculos} vehículos...`, 'Cerrar', { duration: 2000 });
+
+    // Usar endpoint genérico de exportación que debería existir
+    this.exportarVehiculosGenerico(filtros, totalVehiculos);
+  }
+
+  private exportarVehiculosGenerico(filtros: any, totalVehiculos: number): void {
+    // Intentar diferentes endpoints hasta encontrar uno que funcione
+    const endpoints = [
+      '/vehiculos/exportar',
+      '/vehiculos/export',
+      '/export/vehiculos',
+      '/reportes/vehiculos'
+    ];
+
+    this.intentarExportacion(endpoints, 0, filtros, totalVehiculos);
+  }
+
+  private intentarExportacion(endpoints: string[], index: number, filtros: any, totalVehiculos: number): void {
+    if (index >= endpoints.length) {
+      // Si ningún endpoint funciona, generar CSV localmente
+      this.exportarCSVLocal(filtros, totalVehiculos);
+      return;
+    }
+
+    const endpoint = endpoints[index];
+    console.log(`[VEHICULOS-EXPORT] Intentando endpoint: ${endpoint}`);
+
+    // Construir URL con parámetros
+    const params = new URLSearchParams();
+    Object.keys(filtros).forEach(key => {
+      if (filtros[key] !== null && filtros[key] !== undefined && filtros[key] !== '') {
+        params.append(key, filtros[key]);
+      }
+    });
+
+    const url = `${this.vehiculoService['apiUrl']}${endpoint}?${params.toString()}`;
+    
+    // Hacer petición HTTP directa
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.vehiculoService['authService'].getToken()}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.blob();
+      } else if (response.status === 404) {
+        // Probar siguiente endpoint
+        this.intentarExportacion(endpoints, index + 1, filtros, totalVehiculos);
+        return null;
+      } else {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+    })
+    .then(blob => {
+      if (blob) {
+        // Descargar archivo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        const fecha = new Date().toISOString().split('T')[0];
+        const tipoExportacion = filtros.soloSeleccionados ? 'seleccionados' : 'filtrados';
+        const nombreArchivo = `vehiculos-${tipoExportacion}-${fecha}-${totalVehiculos}registros.xlsx`;
+        
+        link.download = nombreArchivo;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        this.snackBar.open(
+          `Vehículos exportados exitosamente (${totalVehiculos} registros)`, 
+          'Cerrar', 
+          { duration: 4000 }
+        );
+      }
+    })
+    .catch(error => {
+      console.error(`[VEHICULOS-EXPORT] Error en endpoint ${endpoint}:`, error);
+      // Probar siguiente endpoint
+      this.intentarExportacion(endpoints, index + 1, filtros, totalVehiculos);
+    });
+  }
+
+  private exportarCSVLocal(filtros: any, totalVehiculos: number): void {
+    console.log('[VEHICULOS-EXPORT] Generando CSV localmente');
+    
+    try {
+      // Obtener datos a exportar
+      let datosExportar = this.vehiculosFiltrados();
+      
+      // Si hay seleccionados, usar solo esos
+      if (filtros.soloSeleccionados === 'true') {
+        const vehiculosSeleccionadosIds = Array.from(this.vehiculosSeleccionados());
+        datosExportar = this.vehiculosFiltrados().filter(v => vehiculosSeleccionadosIds.includes(v.id));
+      }
+
+      // Obtener columnas visibles
+      const columnasVisibles = this.columnasVisibles().filter(col => col !== 'select' && col !== 'acciones');
+      
+      // Crear headers CSV
+      const headers = columnasVisibles.map(col => {
+        const columnaConfig = this.columnasDisponibles.find(c => c.key === col);
+        return columnaConfig?.label || col;
+      });
+
+      // Crear filas CSV
+      const filas = datosExportar.map(vehiculo => {
+        return columnasVisibles.map(col => {
+          let valor = '';
+          switch (col) {
+            case 'placa':
+              valor = vehiculo.placa || '';
+              break;
+            case 'marca':
+              valor = `${vehiculo.marca || ''} ${vehiculo.modelo || ''}`.trim();
+              break;
+            case 'empresa':
+              // Necesitamos obtener el nombre de la empresa desde el ID
+              valor = vehiculo.empresaActualId || '';
+              break;
+            case 'categoria':
+              valor = vehiculo.categoria || '';
+              break;
+            case 'estado':
+              valor = vehiculo.estado || '';
+              break;
+            case 'anio':
+              valor = vehiculo.anioFabricacion?.toString() || '';
+              break;
+            case 'rutas-especificas':
+              valor = vehiculo.rutasEspecificas?.length?.toString() || '0';
+              break;
+            default:
+              valor = vehiculo[col as keyof typeof vehiculo]?.toString() || '';
+          }
+          // Escapar comillas y comas para CSV
+          return `"${valor.replace(/"/g, '""')}"`;
+        });
+      });
+
+      // Combinar headers y filas
+      const csvContent = [
+        headers.map(h => `"${h}"`).join(','),
+        ...filas.map(fila => fila.join(','))
+      ].join('\n');
+
+      // Agregar BOM UTF-8 para correcta codificación en Excel
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+
+      // Crear y descargar archivo
+      const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const fecha = new Date().toISOString().split('T')[0];
+      const tipoExportacion = filtros.soloSeleccionados ? 'seleccionados' : 'filtrados';
+      const nombreArchivo = `vehiculos-${tipoExportacion}-${fecha}-${totalVehiculos}registros.csv`;
+      
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      this.snackBar.open(
+        `Vehículos exportados como CSV (${totalVehiculos} registros)`, 
+        'Cerrar', 
+        { duration: 4000 }
+      );
+      
+    } catch (error) {
+      console.error('[VEHICULOS-EXPORT] Error generando CSV:', error);
+      this.snackBar.open('Error al exportar vehículos', 'Cerrar', { 
+        duration: 5000,
+        panelClass: ['error-snackbar']
+      });
+    }
   }
 
   recargarVehiculos(): void {
@@ -779,7 +1089,7 @@ export class VehiculosComponent implements OnInit {
   }
 
   solicitarBajaVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(SolicitarBajaModalComponent, {
+    const dialogRef = this.dialog.open(SolicitarBajaVehiculoUnifiedComponent, {
       width: '700px',
       maxWidth: '95vw',
       maxHeight: '90vh',
@@ -847,5 +1157,92 @@ export class VehiculosComponent implements OnInit {
       vehiculosActualizados[index] = { ...vehiculosActualizados[index], estado: event.nuevoEstado };
       this.vehiculos.set(vehiculosActualizados);
     }
+  }
+
+  private saveColumnPreferences(): void {
+    try {
+      const columnas = this.columnasVisiblesState();
+      localStorage.setItem('vehiculos-columnas-config', JSON.stringify(columnas));
+      console.log('[VEHICULOS-CONFIG] Configuración guardada:', columnas);
+    } catch (error) {
+      console.warn('Error guardando configuración de columnas:', error);
+    }
+  }
+
+  private loadColumnPreferences(): void {
+    console.log('[VEHICULOS-CONFIG] Cargando preferencias de columnas...');
+    try {
+      const configuracion = localStorage.getItem('vehiculos-columnas-config');
+      if (configuracion) {
+        const columnas = JSON.parse(configuracion);
+        if (Array.isArray(columnas) && columnas.length > 0) {
+          // Validar que las columnas existen
+          const columnasValidas = columnas.filter(col => 
+            this.columnasDisponibles.some(disponible => disponible.key === col)
+          );
+          
+          // Asegurar que las columnas requeridas estén presentes
+          const columnasRequeridas = this.columnasDisponibles
+            .filter(col => col.required)
+            .map(col => col.key);
+          
+          const columnasFinales = [...new Set([...columnasValidas, ...columnasRequeridas])];
+          this.columnasVisiblesState.set(columnasFinales);
+          console.log('[VEHICULOS-CONFIG] Configuración cargada:', columnasFinales);
+          return;
+        }
+      }
+      
+      // Si no hay configuración válida, usar valores por defecto
+      const columnasDefault = ['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'];
+      this.columnasVisiblesState.set(columnasDefault);
+      console.log('[VEHICULOS-CONFIG] Usando configuración por defecto:', columnasDefault);
+    } catch (error) {
+      console.warn('Error cargando configuración de columnas:', error);
+      const columnasDefault = ['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'];
+      this.columnasVisiblesState.set(columnasDefault);
+    }
+  }
+
+  cargaMasivaVehiculos(): void {
+    console.log('[VEHICULOS] Abriendo modal de carga masiva');
+    
+    const dialogRef = this.dialog.open(CargaMasivaVehiculosComponent, {
+      width: '1000px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      disableClose: true,
+      panelClass: 'carga-masiva-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(resultado => {
+      if (resultado && resultado.exitosos > 0) {
+        console.log('[VEHICULOS] Carga masiva completada:', resultado);
+        
+        // Mostrar mensaje de éxito
+        this.snackBar.open(
+          `Carga masiva completada: ${resultado.exitosos} vehículos creados exitosamente`,
+          'Cerrar',
+          { 
+            duration: 5000,
+            panelClass: ['snackbar-success']
+          }
+        );
+        
+        // Recargar la lista de vehículos
+        this.cargarDatos();
+      } else if (resultado && resultado.errores > 0) {
+        console.log('[VEHICULOS] Carga masiva con errores:', resultado);
+        
+        this.snackBar.open(
+          `Carga completada con ${resultado.errores} errores. Revise el detalle.`,
+          'Cerrar',
+          { 
+            duration: 5000,
+            panelClass: ['snackbar-warning']
+          }
+        );
+      }
+    });
   }
 }

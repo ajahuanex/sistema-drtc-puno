@@ -1,2 +1,2 @@
 export { BajasVehiculosComponent } from './bajas-vehiculos.component';
-export { SolicitarBajaVehiculoModalComponent } from '../vehiculos/solicitar-baja-vehiculo-modal.component'; 
+export { SolicitarBajaVehiculoUnifiedComponent } from '../vehiculos/solicitar-baja-vehiculo-unified.component'; 
