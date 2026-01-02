@@ -39,10 +39,10 @@
 
 **Evidencia**:
 ```
-🚀 Iniciando Sistema de Gestión DRTC Puno...
+🚀 Iniciando Sistema de Gestión SIRRET...
 🔌 Conectando a MongoDB...
 ✅ Conectado a MongoDB exitosamente
-🗄️ Base de datos activa: drtc_puno_db
+🗄️ Base de datos activa: sirret_db
 ```
 
 **Estado**: ✅ COMPLETADO
@@ -55,7 +55,7 @@
 |------------|--------|--------|---------------|
 | Backend | ✅ Running | 8000 | MongoDB Activo |
 | Frontend | ✅ Running | 4200 | Apunta a :8000 |
-| MongoDB | ✅ Running | 27017 | drtc_puno_db |
+| MongoDB | ✅ Running | 27017 | sirret_db |
 | Nginx | ✅ Running | 80/443 | Proxy configurado |
 
 ---
@@ -162,8 +162,8 @@ http://localhost:8000/docs
 verificar-mongodb.bat
 
 # O manualmente
-docker exec -it drtc-mongodb mongosh -u admin -p password
-use drtc_puno_db
+docker exec -it sirret-mongodb mongosh -u admin -p password
+use sirret_db
 show collections
 ```
 

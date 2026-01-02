@@ -1,8 +1,8 @@
 // Script para agregar la colección de Historial Vehicular a una base de datos existente
-print('🚀 Agregando colección de Historial Vehicular a DRTC Puno...');
+print('🚀 Agregando colección de Historial Vehicular a SIRRET...');
 
-// Cambiar a la base de datos drtc_puno
-db = db.getSiblingDB('drtc_puno');
+// Cambiar a la base de datos sirret_db
+db = db.getSiblingDB('sirret_db');
 
 // Verificar si la colección ya existe
 const collections = db.getCollectionNames();
@@ -151,5 +151,5 @@ print('   - Documentos: ' + stats.count);
 print('   - Índices: ' + stats.nindexes);
 print('   - Tamaño: ' + Math.round(stats.size / 1024) + ' KB');
 
-print('✅ Historial Vehicular agregado exitosamente a DRTC Puno');
+print('✅ Historial Vehicular agregado exitosamente a SIRRET');
 print('🎯 La colección está lista para recibir eventos de historial vehicular');

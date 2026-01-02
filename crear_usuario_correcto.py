@@ -8,7 +8,7 @@ import sys
 
 # Configuración de MongoDB
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "drtc_puno_db"
+DATABASE_NAME = "sirret_db"
 
 # Configuración de encriptación de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -40,7 +40,7 @@ def crear_usuario_admin():
             "dni": "12345678",
             "nombres": "Administrador",
             "apellidos": "del Sistema",
-            "email": "admin@drtc.gob.pe",
+            "email": "admin@sirret.gob.pe",
             "passwordHash": pwd_context.hash("admin123"),
             "rolId": "administrador",
             "estaActivo": True,
@@ -57,7 +57,7 @@ def crear_usuario_admin():
         print("-" * 70)
         print(f"   DNI:         12345678")
         print(f"   Contraseña:  admin123")
-        print(f"   Email:       admin@drtc.gob.pe")
+        print(f"   Email:       admin@sirret.gob.pe")
         print(f"   Rol:         administrador")
         print("-" * 70)
         

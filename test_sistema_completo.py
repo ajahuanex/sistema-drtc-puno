@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de prueba completa del Sistema DRTC Puno
+Script de prueba completa del Sistema SIRRET
 Verifica que todos los componentes estén funcionando correctamente
 """
 
@@ -204,7 +204,7 @@ def test_frontend_build():
 
 def main():
     """Función principal de pruebas"""
-    print("🚀 INICIANDO PRUEBAS DEL SISTEMA DRTC PUNO")
+    print("🚀 INICIANDO PRUEBAS DEL SISTEMA SIRRET")
     print("=" * 50)
     
     resultados = []

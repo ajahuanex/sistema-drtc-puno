@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "drtc_puno_db"
+DATABASE_NAME = "sirret_db"
 
 EMPRESA_ID_UUID = "83e33a45-41d1-4607-bbd6-82eaeca87b91"
 VEHICULO_ID = "6931e28ca9fe4f83792f1b45"

@@ -50,7 +50,7 @@ auto_crear_resoluciones = False
 
 **Nuevo formato de resoluciones**:
 ```
-Formato anterior: 001-2024-DRTC-PUNO
+Formato anterior: 001-2024-SIRRET
 Formato nuevo:    R-1001-2024
 Patrón regex:     ^R-\d{4}-\d{4}$
 ```

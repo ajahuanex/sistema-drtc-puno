@@ -14,7 +14,7 @@ def test_crear_ruta_correcta():
     try:
         # Obtener IDs válidos de empresas y resoluciones
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         empresa = db.empresas.find_one({})
         resolucion = db.resoluciones.find_one({})

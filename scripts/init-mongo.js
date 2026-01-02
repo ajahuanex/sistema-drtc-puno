@@ -1,8 +1,8 @@
-// Script de inicialización de MongoDB para DRTC Puno
-print('🚀 Inicializando base de datos DRTC Puno...');
+// Script de inicialización de MongoDB para SIRRET
+print('🚀 Inicializando base de datos SIRRET...');
 
-// Cambiar a la base de datos drtc_puno
-db = db.getSiblingDB('drtc_puno');
+// Cambiar a la base de datos sirret_db
+db = db.getSiblingDB('sirret_db');
 
 // Crear usuario para la aplicación
 db.createUser({
@@ -11,7 +11,7 @@ db.createUser({
   roles: [
     {
       role: 'readWrite',
-      db: 'drtc_puno'
+      db: 'sirret_db'
     }
   ]
 });
@@ -72,6 +72,6 @@ db.createCollection('notificaciones');
 db.notificaciones.createIndex({ "usuarioId": 1 });
 db.notificaciones.createIndex({ "fechaCreacion": 1 });
 
-print('✅ Base de datos DRTC Puno inicializada correctamente');
+print('✅ Base de datos SIRRET inicializada correctamente');
 print('📊 Colecciones creadas: ' + db.getCollectionNames().length);
 print('🔐 Usuario de aplicación creado: drtc_user');

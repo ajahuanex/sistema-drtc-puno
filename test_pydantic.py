@@ -1,12 +1,12 @@
 import sys
-sys.path.insert(0, 'd:/2025/KIRO3/sistema-drtc-puno/backend')
+sys.path.insert(0, 'd:/2025/KIRO3/sistema-sirret/backend')
 
 from pymongo import MongoClient
 from app.models.empresa import EmpresaInDB
 
 # Conectar a MongoDB
 client = MongoClient("mongodb://admin:password@localhost:27017/")
-db = client["drtc_puno_db"]
+db = client["sirret_db"]
 collection = db["empresas"]
 
 # Obtener una empresa

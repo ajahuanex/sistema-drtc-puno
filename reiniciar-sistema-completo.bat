@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo REINICIO COMPLETO DEL SISTEMA DRTC
+echo REINICIO COMPLETO DEL SISTEMA SIRRET
 echo ========================================
 echo.
 
@@ -59,7 +59,7 @@ echo.
 echo MongoDB: http://localhost:27017
 echo   Usuario: admin
 echo   Password: admin123
-echo   Base de datos: drtc_puno_db
+echo   Base de datos: sirret_db
 echo.
 echo Para iniciar el backend: start-backend.bat
 echo Para iniciar el frontend: start-frontend.bat

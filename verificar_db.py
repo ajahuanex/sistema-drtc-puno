@@ -35,7 +35,7 @@ try:
     print("✅ Conexión exitosa a MongoDB")
     
     # Obtener base de datos
-    db = client["drtc_puno_db"]
+    db = client["sirret_db"]
     print(f"📦 Base de datos: {db.name}")
     
     # Listar colecciones
@@ -115,7 +115,7 @@ try:
     # Información de conexión
     print_section("INFORMACIÓN DE CONEXIÓN")
     print("URL: mongodb://admin:admin123@localhost:27017")
-    print("Base de datos: drtc_puno_db")
+    print("Base de datos: sirret_db")
     print("Usuario: admin")
     print("Autenticación: ✅ Habilitada")
     

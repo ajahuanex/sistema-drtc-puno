@@ -1,4 +1,4 @@
-# Documentación de API - Sistema DRTC Puno
+# Documentación de API - Sistema SIRRET
 
 ## Endpoints Principales
 

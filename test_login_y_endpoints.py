@@ -15,7 +15,7 @@ def test_login():
         {'username': 'admin', 'password': 'admin'},
         {'username': 'administrador', 'password': 'admin123'},
         {'email': 'admin@admin.com', 'password': 'admin123'},
-        {'email': 'admin@drtc.gob.pe', 'password': 'admin123'}
+        {'email': 'admin@sirret.gob.pe', 'password': 'admin123'}
     ]
     
     login_url = 'http://localhost:8000/api/v1/auth/login'

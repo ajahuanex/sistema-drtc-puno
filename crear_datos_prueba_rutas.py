@@ -8,7 +8,7 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "drtc_puno_db"
+DATABASE_NAME = "sirret_db"
 
 
 async def crear_datos_prueba():
@@ -71,7 +71,7 @@ async def crear_datos_prueba():
         
         if not resolucion:
             resolucion_data = {
-                "nroResolucion": "RD-001-2024-DRTC-PUNO",
+                "nroResolucion": "RD-001-2024-SIRRET",
                 "tipoTramite": "AUTORIZACION_NUEVA",
                 "empresaId": empresa_id,
                 "expedienteId": None,

@@ -3,7 +3,7 @@ from datetime import datetime
 
 # Conectar a MongoDB con credenciales
 client = MongoClient("mongodb://admin:password@localhost:27017/")
-db = client["drtc_puno_db"]
+db = client["sirret_db"]
 collection = db["empresas"]
 
 # Limpiar colección

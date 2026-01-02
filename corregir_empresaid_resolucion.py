@@ -6,7 +6,7 @@ from bson import ObjectId
 
 # Configuración
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "drtc_puno_db"
+DATABASE_NAME = "sirret_db"
 
 def corregir_empresaid():
     """Corrige el empresaId de la resolución"""

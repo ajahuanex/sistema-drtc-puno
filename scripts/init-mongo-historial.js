@@ -1,8 +1,8 @@
-// Script de inicialización de MongoDB para DRTC Puno - Actualizado con Historial Vehicular
-print('🚀 Inicializando base de datos DRTC Puno con Historial Vehicular...');
+// Script de inicialización de MongoDB para SIRRET - Actualizado con Historial Vehicular
+print('🚀 Inicializando base de datos SIRRET con Historial Vehicular...');
 
-// Cambiar a la base de datos drtc_puno
-db = db.getSiblingDB('drtc_puno');
+// Cambiar a la base de datos sirret_db
+db = db.getSiblingDB('sirret_db');
 
 // Crear usuario para la aplicación (si no existe)
 try {
@@ -12,7 +12,7 @@ try {
     roles: [
       {
         role: 'readWrite',
-        db: 'drtc_puno'
+        db: 'sirret_db'
       }
     ]
   });
@@ -230,7 +230,7 @@ db.historial_vehicular.insertOne({
   }
 });
 
-print('✅ Base de datos DRTC Puno inicializada correctamente con Historial Vehicular');
+print('✅ Base de datos SIRRET inicializada correctamente con Historial Vehicular');
 print('📊 Colecciones creadas: ' + db.getCollectionNames().length);
 print('🔐 Usuario de aplicación: drtc_user');
 print('📝 Nueva colección: historial_vehicular con validación de esquema');

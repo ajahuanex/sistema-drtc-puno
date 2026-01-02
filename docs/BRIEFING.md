@@ -1,4 +1,4 @@
-# 📋 BRIEFING - Sistema DRTC Puno 2025
+# 📋 BRIEFING - Sistema SIRRET 2025
 
 ## 🎯 **RESUMEN EJECUTIVO**
 

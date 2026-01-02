@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de diagnóstico completo del sistema DRTC
+Script de diagnóstico completo del sistema SIRRET
 Verifica MongoDB, backend, frontend y datos
 """
 
@@ -35,11 +35,11 @@ def verificar_mongodb():
         client.server_info()
         
         # Verificar base de datos
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         collections = db.list_collection_names()
         
         print("✅ MongoDB está corriendo")
-        print(f"   📊 Base de datos: drtc_puno_db")
+        print(f"   📊 Base de datos: sirret_db")
         print(f"   📋 Colecciones: {len(collections)}")
         
         # Contar documentos en colecciones principales
@@ -176,7 +176,7 @@ def mostrar_resumen(docker_ok, mongo_ok, backend_ok, frontend_ok, apis_ok):
 
 def main():
     """Función principal"""
-    print("🚀 DIAGNÓSTICO COMPLETO DEL SISTEMA DRTC")
+    print("🚀 DIAGNÓSTICO COMPLETO DEL SISTEMA SIRRET")
     print(f"📅 Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*50)
     

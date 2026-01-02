@@ -45,15 +45,15 @@ def main():
         print("✅ MongoDB responde correctamente")
         
         # 3. Verificar base de datos
-        print("\n3️⃣ Verificando base de datos drtc_puno...")
-        success, stdout, stderr = run_command('python -c "import pymongo; client = pymongo.MongoClient(\'mongodb://localhost:27017/\'); print(\'drtc_puno\' in client.list_database_names())"')
+        print("\n3️⃣ Verificando base de datos sirret_db...")
+        success, stdout, stderr = run_command('python -c "import pymongo; client = pymongo.MongoClient(\'mongodb://localhost:27017/\'); print(\'sirret_db\' in client.list_database_names())"')
         
         if "True" in stdout:
-            print("✅ Base de datos drtc_puno existe")
+            print("✅ Base de datos sirret_db existe")
             
             # 4. Verificar usuario admin
             print("\n4️⃣ Verificando usuario admin...")
-            success, stdout, stderr = run_command('python -c "import pymongo; db = pymongo.MongoClient(\'mongodb://localhost:27017/\').drtc_puno; print(db.usuarios.find_one({\'dni\': \'12345678\'}) is not None)"')
+            success, stdout, stderr = run_command('python -c "import pymongo; db = pymongo.MongoClient(\'mongodb://localhost:27017/\').sirret_db; print(db.usuarios.find_one({\'dni\': \'12345678\'}) is not None)"')
             
             if "True" in stdout:
                 print("✅ Usuario admin existe")
@@ -65,7 +65,7 @@ def main():
                 print("❌ Usuario admin no existe")
                 print("💡 Ejecuta: python crear_usuario_admin.py")
         else:
-            print("❌ Base de datos drtc_puno no existe")
+            print("❌ Base de datos sirret_db no existe")
             print("💡 Ejecuta: python crear_usuario_admin.py")
     else:
         print("❌ MongoDB no responde")

@@ -14,7 +14,7 @@ def corregir_relaciones_resoluciones():
     
     try:
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         # Obtener empresas disponibles
         empresas = list(db.empresas.find({"estaActivo": True}))

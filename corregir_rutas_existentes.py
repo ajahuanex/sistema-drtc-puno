@@ -15,7 +15,7 @@ def corregir_rutas_existentes():
     
     try:
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         # Obtener todas las rutas
         rutas = list(db.rutas.find())
@@ -128,7 +128,7 @@ def crear_localidades_basicas():
     
     try:
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         localidades = [
             {

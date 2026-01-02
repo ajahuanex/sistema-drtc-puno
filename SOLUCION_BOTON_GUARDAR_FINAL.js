@@ -45,7 +45,7 @@ async function configurarTokenReal() {
             dni: data.user?.dni || '12345678',
             nombres: data.user?.nombres || 'Administrador',
             apellidos: data.user?.apellidos || 'del Sistema',
-            email: data.user?.email || 'admin@drtc.gob.pe',
+            email: data.user?.email || 'admin@sirret.gob.pe',
             rolId: data.user?.rolId || 'administrador',
             estaActivo: data.user?.estaActivo !== false,
             fechaCreacion: data.user?.fechaCreacion || new Date().toISOString()

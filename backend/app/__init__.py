@@ -1,2 +1,2 @@
-# Sistema de Gestión DRTC Puno
+# Sistema de Gestión SIRRET
 # Backend FastAPI 

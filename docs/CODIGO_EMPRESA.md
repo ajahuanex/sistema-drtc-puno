@@ -2,7 +2,7 @@
 
 ## Descripción General
 
-El sistema de códigos de empresa implementa un identificador único para cada empresa registrada en el sistema DRTC Puno. Cada código sigue un formato específico que proporciona información sobre la empresa y garantiza su unicidad.
+El sistema de códigos de empresa implementa un identificador único para cada empresa registrada en el sistema SIRRET. Cada código sigue un formato específico que proporciona información sobre la empresa y garantiza su unicidad.
 
 ## Formato del Código
 
@@ -248,4 +248,4 @@ this.empresaService.getEmpresaByCodigo("0123PRT").subscribe(
 
 ## Conclusión
 
-El sistema de códigos de empresa proporciona una base sólida para la identificación única y gestión eficiente de empresas en el sistema DRTC Puno. Su diseño balancea simplicidad, funcionalidad y escalabilidad, facilitando tanto la operación diaria como el crecimiento futuro del sistema.
+El sistema de códigos de empresa proporciona una base sólida para la identificación única y gestión eficiente de empresas en el sistema SIRRET. Su diseño balancea simplicidad, funcionalidad y escalabilidad, facilitando tanto la operación diaria como el crecimiento futuro del sistema.

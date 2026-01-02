@@ -22,7 +22,7 @@
 ### Base de Datos (MongoDB)
 - **Estado:** ✅ YA DESPLEGADA (no se reinició)
 - **URL:** mongodb://admin:admin123@localhost:27017/
-- **Base de datos:** drtc_puno_db
+- **Base de datos:** sirret_db
 
 ## 📝 CORRECCIONES APLICADAS
 
@@ -69,7 +69,7 @@ http://localhost:8000/redoc
 INFO: Uvicorn running on http://0.0.0.0:8000
 INFO: Application startup complete
 ✅ Conectado a MongoDB exitosamente
-🗄️  Base de datos activa: drtc_puno_db
+🗄️  Base de datos activa: sirret_db
 ```
 
 ### Frontend

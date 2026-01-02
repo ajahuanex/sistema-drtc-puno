@@ -304,4 +304,4 @@ Para problemas o consultas sobre la carga masiva de empresas:
 
 **Versión**: 1.0.0  
 **Última actualización**: Diciembre 2024  
-**Autor**: Sistema DRTC Puno
+**Autor**: Sistema SIRRET

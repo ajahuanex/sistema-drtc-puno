@@ -7,7 +7,7 @@ import bcrypt
 
 # Conectar a MongoDB sin autenticación
 client = pymongo.MongoClient("mongodb://localhost:27017/")
-db = client["drtc_puno"]
+db = client["sirret_db"]
 
 print("👤 Insertando usuario administrador...")
 

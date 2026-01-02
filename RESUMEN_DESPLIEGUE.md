@@ -15,7 +15,7 @@
 ### 2. ✅ Configuración de Base de Datos
 - MongoDB corriendo en Docker (puerto 27017)
 - Credenciales: admin / admin123
-- Base de datos: drtc_puno_db
+- Base de datos: sirret_db
 - Estado: Vacía y lista para datos reales
 
 ### 3. ✅ Scripts de Despliegue Creados
@@ -88,7 +88,7 @@ Si no está corriendo, ábrelo y espera a que inicie completamente.
 ### 2. Verificar MongoDB
 ```bash
 docker ps
-# Debe mostrar: drtc-mongodb-local
+# Debe mostrar: sirret-mongodb-local
 ```
 
 ### 3. Iniciar Backend
@@ -190,7 +190,7 @@ docker-compose -f docker-compose.db-only.yml down
 docker-compose -f docker-compose.db-only.yml up -d
 
 # Verificar logs
-docker logs drtc-mongodb-local
+docker logs sirret-mongodb-local
 ```
 
 ### Backend no inicia

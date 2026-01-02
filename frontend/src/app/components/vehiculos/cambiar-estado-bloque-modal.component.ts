@@ -46,7 +46,7 @@ export interface CambiarEstadoBloqueModalData {
           <app-smart-icon [iconName]="'checklist'" [size]="28" class="header-icon"></app-smart-icon>
           <div>
             <h2>Cambiar Estado en Bloque</h2>
-            <p class="header-subtitle">{{ data.vehiculos.length }} vehículo(s) seleccionado(s)</p>
+            <p class="header-subtitle">{{ vehiculos.length }} vehículo(s) seleccionado(s)</p>
           </div>
         </div>
         <button mat-icon-button (click)="cancelar()" class="close-button">
@@ -59,7 +59,7 @@ export interface CambiarEstadoBloqueModalData {
         <div class="vehiculos-seleccionados">
           <h3>Vehículos a modificar:</h3>
           <div class="vehiculos-list">
-            @for (vehiculo of data.vehiculos; track vehiculo.id) {
+            @for (vehiculo of vehiculos; track vehiculo.id) {
               <div class="vehiculo-item">
                 <div class="vehiculo-info">
                   <span class="vehiculo-placa">{{ vehiculo.placa }}</span>
@@ -117,7 +117,7 @@ export interface CambiarEstadoBloqueModalData {
             <div class="resumen-info">
               <div class="resumen-item">
                 <span class="resumen-label">Vehículos afectados:</span>
-                <span class="resumen-value">{{ data.vehiculos.length }}</span>
+                <span class="resumen-value">{{ vehiculos.length }}</span>
               </div>
               <div class="resumen-item">
                 <span class="resumen-label">Nuevo estado:</span>
@@ -154,10 +154,10 @@ export interface CambiarEstadoBloqueModalData {
                 class="confirm-button">
           @if (procesando()) {
             <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            <span>Procesando {{ progreso() }}/{{ data.vehiculos.length }}...</span>
+            <span>Procesando {{ progreso() }}/{{ vehiculos.length }}...</span>
           } @else {
             <app-smart-icon [iconName]="'check'" [size]="20"></app-smart-icon>
-            <span>Cambiar Estado ({{ data.vehiculos.length }} vehículos)</span>
+            <span>Cambiar Estado ({{ vehiculos.length }} vehículos)</span>
           }
         </button>
       </div>
@@ -481,6 +481,11 @@ export class CambiarEstadoBloqueModalComponent {
   procesando = signal(false);
   progreso = signal(0);
 
+  // Getter para obtener los vehículos (maneja tanto vehiculos múltiples como vehiculo individual)
+  get vehiculos(): Vehiculo[] {
+    return this.data?.vehiculos || (this.data?.vehiculo ? [this.data.vehiculo] : []);
+  }
+
   // Obtener estados desde la configuración
   estadosDisponibles = this.configuracionService.estadosVehiculosConfig().map((estado: any) => ({
     value: estado.codigo,
@@ -545,7 +550,7 @@ export class CambiarEstadoBloqueModalComponent {
   getEstadosActuales() {
     const estadosMap = new Map<string, number>();
 
-    this.data.vehiculos.forEach(vehiculo => {
+    this.vehiculos.forEach(vehiculo => {
       const estado = vehiculo.estado;
       estadosMap.set(estado, (estadosMap.get(estado) || 0) + 1);
     });
@@ -571,9 +576,15 @@ export class CambiarEstadoBloqueModalComponent {
 
     const observaciones = this.estadoForm.get('observaciones')?.value || '';
 
+    // Verificar que tenemos vehículos
+    if (this.vehiculos.length === 0) {
+      console.error('No hay vehículos para cambiar estado');
+      return;
+    }
+
     // Mostrar confirmación
     const confirmacion = confirm(
-      `¿Está seguro de cambiar el estado de ${this.data.vehiculos.length} vehículo(s) a "${this.getLabelEstado(nuevoEstado)}"?\n\n` +
+      `¿Está seguro de cambiar el estado de ${this.vehiculos.length} vehículo(s) a "${this.getLabelEstado(nuevoEstado)}"?\n\n` +
       `Esta acción se registrará en el historial de cada vehículo.`
     );
 
@@ -585,7 +596,7 @@ export class CambiarEstadoBloqueModalComponent {
     this.progreso.set(0);
 
     // Crear array de observables para cambiar el estado de cada vehículo
-    const cambios = this.data.vehiculos.map(vehiculo => {
+    const cambios = this.vehiculos.map(vehiculo => {
       const motivo = this.generarMotivoAutomatico(vehiculo.estado, nuevoEstado);
       const observacionesCompletas = observaciones ?
         `Cambio en bloque: ${observaciones}` :

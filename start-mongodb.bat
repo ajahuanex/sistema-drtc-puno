@@ -37,12 +37,12 @@ if %errorlevel% equ 0 (
     echo   Puerto: 27017
     echo   Usuario: admin
     echo   Password: admin123
-    echo   Base de datos: drtc_db
+    echo   Base de datos: sirret_db
     echo.
     echo URL de conexión:
     echo   mongodb://admin:admin123@localhost:27017/
     echo.
-    echo Para ver los logs: docker logs -f drtc-mongodb-local
+    echo Para ver los logs: docker logs -f sirret-mongodb-local
     echo Para detener: docker-compose -f docker-compose.db-only.yml down
     echo.
 ) else (

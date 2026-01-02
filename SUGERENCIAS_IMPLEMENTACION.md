@@ -1,4 +1,4 @@
-# 🚀 SUGERENCIAS DE IMPLEMENTACIÓN - SISTEMA DRTC PUNO
+# 🚀 SUGERENCIAS DE IMPLEMENTACIÓN - SISTEMA SIRRET
 
 ## 📋 PRIORIDADES ESTRATÉGICAS
 
@@ -259,7 +259,7 @@ interface AppState {
 ```typescript
 // Biblioteca de componentes común
 @Component({
-  selector: 'drtc-data-table',
+  selector: 'sirret-data-table',
   template: `...`,
   standalone: true
 })
@@ -406,7 +406,7 @@ class FlowOptimizationAI:
 ### **2. Chatbot para Consultas**
 ```typescript
 // Asistente virtual para usuarios
-interface ChatbotDRTC {
+interface ChatbotSIRRET {
   consultarEstadoExpediente(nroExpediente: string): Promise<EstadoExpediente>;
   obtenerRequisitosTramite(tipoTramite: string): Promise<string[]>;
   programarCita(oficina: string, fecha: Date): Promise<boolean>;
@@ -457,7 +457,7 @@ contract ExpedienteTrazabilidad {
 
 ---
 
-**El proyecto DRTC Puno tiene el potencial de convertirse en el sistema de gestión pública más avanzado del país. La base está sólida, ahora es momento de ejecutar estas sugerencias para maximizar su impacto.**
+**El proyecto SIRRET tiene el potencial de convertirse en el sistema de gestión pública más avanzado del país. La base está sólida, ahora es momento de ejecutar estas sugerencias para maximizar su impacto.**
 ##
  🎯 **FUNCIONALIDADES ADICIONALES CRÍTICAS**
 
@@ -507,7 +507,7 @@ const workflowAutorizacionNueva: WorkflowConfig = {
   tiempoMaximo: 15,
   escalamiento: {
     diasParaEscalar: 10,
-    destinatario: 'director@drtc.gob.pe'
+    destinatario: 'director@sirret.gob.pe'
   }
 };
 ```
@@ -626,7 +626,7 @@ export default defineConfig({
 // Ejemplo de test E2E crítico
 describe('Flujo Completo Expediente', () => {
   it('debe crear expediente y moverlo por oficinas', () => {
-    cy.login('funcionario@drtc.gob.pe', 'password');
+    cy.login('funcionario@sirret.gob.pe', 'password');
     cy.visit('/expedientes');
     
     // Crear expediente
@@ -759,8 +759,8 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build Docker images
         run: |
-          docker build -t drtc-backend ./backend
-          docker build -t drtc-frontend ./frontend
+          docker build -t sirret-backend ./backend
+          docker build -t sirret-frontend ./frontend
       - name: Deploy to staging
         run: |
           # Deploy logic here
@@ -927,7 +927,7 @@ export class TutorialInteractivoComponent {
 
 **🎯 CONCLUSIÓN FINAL**
 
-El documento de sugerencias es excelente y con estas adiciones tendrás un roadmap completo para convertir el sistema DRTC Puno en una referencia nacional. Las prioridades están bien definidas y el enfoque técnico es sólido.
+El documento de sugerencias es excelente y con estas adiciones tendrás un roadmap completo para convertir el sistema SIRRET en una referencia nacional. Las prioridades están bien definidas y el enfoque técnico es sólido.
 
 **Próximo paso recomendado**: Comenzar con la integración backend-frontend y el sistema de notificaciones, ya que son la base para todas las demás funcionalidades.
 

@@ -119,7 +119,7 @@ async def create_vehiculo(vehiculo_data):
 mongo
 
 # Usar la base de datos
-use drtc_puno
+use sirret_db
 
 # Ver resoluciones de una empresa
 db.resoluciones.find({ empresaId: "ID_EMPRESA" })
@@ -154,7 +154,7 @@ Crear un script para verificar las relaciones:
 from pymongo import MongoClient
 
 client = MongoClient('mongodb://localhost:27017/')
-db = client['drtc_puno']
+db = client['sirret_db']
 
 empresa_id = "ID_EMPRESA"  # Reemplazar con ID real
 

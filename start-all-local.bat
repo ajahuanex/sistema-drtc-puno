@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Sistema DRTC Puno - Despliegue Local
+echo Sistema SIRRET - Despliegue Local
 echo ========================================
 echo.
 echo Este script iniciará:

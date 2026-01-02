@@ -2,7 +2,7 @@
 
 ## 📋 Descripción General
 
-El **DataManagerService** es un sistema de gestión de datos persistentes en memoria que mantiene las relaciones entre todos los módulos del sistema DRTC Puno mientras la aplicación esté ejecutándose.
+El **DataManagerService** es un sistema de gestión de datos persistentes en memoria que mantiene las relaciones entre todos los módulos del sistema SIRRET mientras la aplicación esté ejecutándose.
 
 ## 🎯 Características Principales
 

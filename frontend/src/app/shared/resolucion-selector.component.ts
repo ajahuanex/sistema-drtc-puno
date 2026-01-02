@@ -72,7 +72,7 @@ import { SmartIconComponent } from './smart-icon.component';
  * ```
  * 
  * @since 1.0.0
- * @author Sistema DRTC Puno
+ * @author Sistema SIRRET
  */
 @Component({
   selector: 'app-resolucion-selector',

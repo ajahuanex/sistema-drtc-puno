@@ -9,7 +9,7 @@ from datetime import datetime
 
 # Configuración de MongoDB
 MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "drtc_puno_db"
+DATABASE_NAME = "sirret_db"
 
 
 async def verificar_modulo_rutas():

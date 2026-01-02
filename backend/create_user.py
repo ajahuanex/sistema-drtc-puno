@@ -11,7 +11,7 @@ load_dotenv()
 
 # Configuración de MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = "drtc_puno"
+DATABASE_NAME = "sirret_db"
 
 async def create_test_user():
     """Crear usuario de prueba"""

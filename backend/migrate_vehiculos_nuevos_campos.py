@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Configuración de la base de datos
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://admin:admin123@localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "drtc_puno")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "sirret_db")
 
 async def migrate_vehiculos():
     """Migrar vehículos existentes para agregar los nuevos campos"""

@@ -7,7 +7,7 @@
 
 ## 🎯 RESUMEN EJECUTIVO
 
-El sistema de gestión DRTC Puno está **completamente funcional** con el filtro de resoluciones corregido y optimizado.
+El sistema de gestión SIRRET está **completamente funcional** con el filtro de resoluciones corregido y optimizado.
 
 ### **✅ Logros principales:**
 1. **Filtro simplificado** - De 6+ filtros complejos a 2 esenciales
@@ -22,7 +22,7 @@ El sistema de gestión DRTC Puno está **completamente funcional** con el filtro
 
 ### **✅ Backend (Puerto 8000)**
 - **Estado:** ✅ Funcionando perfectamente
-- **Servicio:** Sistema de Gestión DRTC Puno
+- **Servicio:** Sistema de Gestión SIRRET
 - **Base de datos:** ✅ Conectada (MongoDB)
 - **Resoluciones disponibles:** 11 registros
 - **Endpoints verificados:**
@@ -150,7 +150,7 @@ Limpiar → Debe resetear todo
 ### **Clonar y usar:**
 ```bash
 git clone <repository-url>
-cd sistema-drtc-puno
+cd sistema-sirret
 git checkout master
 git pull origin master
 ```

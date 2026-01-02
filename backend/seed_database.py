@@ -12,7 +12,7 @@ load_dotenv()
 
 # Configuración de MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = "drtc_puno"
+DATABASE_NAME = "sirret_db"
 
 async def seed_database():
     """Poblar la base de datos con datos iniciales"""
@@ -38,7 +38,7 @@ async def seed_database():
             "dni": "12345678",
             "nombres": "Juan Carlos",
             "apellidos": "Pérez Mamani",
-            "email": "admin@drtc.gob.pe",
+            "email": "admin@sirret.gob.pe",
             "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIq.Hs7K6W",  # password123
             "rol_id": "admin",
             "estaActivo": True,

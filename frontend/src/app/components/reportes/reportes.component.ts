@@ -80,7 +80,7 @@ interface ReporteRapido {
       <div class="header">
         <div class="title-section">
           <h1>Generador de Reportes</h1>
-          <p>Sistema integral de reportes y análisis del DRTC Puno</p>
+          <p>Sistema integral de reportes y análisis del SIRRET</p>
         </div>
         <div class="header-actions">
           <button mat-raised-button color="primary" (click)="crearReportePersonalizado()">
@@ -705,7 +705,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     {
       id: 'estadisticas_generales',
       nombre: 'Estadísticas Generales',
-      descripcion: 'Métricas y estadísticas del sistema DRTC',
+      descripcion: 'Métricas y estadísticas del sistema SIRRET',
       icono: 'analytics',
       color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
       tipo: TipoReporte.ESTADISTICAS_GENERALES,

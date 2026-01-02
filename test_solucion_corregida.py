@@ -48,7 +48,7 @@ def test_login_completo():
                 "dni": user_data.get('dni', '12345678'),
                 "nombres": user_data.get('nombres', 'Administrador'),
                 "apellidos": user_data.get('apellidos', 'del Sistema'),
-                "email": user_data.get('email', 'admin@drtc.gob.pe'),
+                "email": user_data.get('email', 'admin@sirret.gob.pe'),
                 "rolId": user_data.get('rolId', 'administrador'),
                 "estaActivo": user_data.get('estaActivo', True),
                 "fechaCreacion": user_data.get('fechaCreacion', '2025-12-28T00:00:00.000Z')

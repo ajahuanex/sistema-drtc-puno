@@ -1,10 +1,10 @@
-# Sistema DRTC Puno
+# Sistema SIRRET
 
 Sistema de gestión integral para la Dirección Regional de Transportes y Comunicaciones de Puno.
 
 ## 📚 Documentación
 
-- **[📋 Brief Oficial del Sistema](docs/BRIEF_SISTEMA_DRTC_PUNO.md)** - Documento de referencia para la lógica de negocio
+- **[📋 Brief Oficial del Sistema](docs/BRIEF_SISTEMA_SIRRET.md)** - Documento de referencia para la lógica de negocio
 - **[📋 Briefing Actualizado](docs/BRIEFING.md)** - Estado actual y cambios recientes implementados
 - **[🔌 API Documentation](docs/API.md)** - Especificaciones de la API REST
 - **[🏢 Mejoras Empresas](docs/MEJORAS_EMPRESAS.md)** - Funcionalidades específicas para gestión empresarial

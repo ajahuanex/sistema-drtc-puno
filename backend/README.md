@@ -1,4 +1,4 @@
-# Sistema de Gestión DRTC Puno - Backend
+# Sistema de Gestión SIRRET - Backend
 
 Backend FastAPI para el Sistema de Gestión de la Dirección Regional de Transportes y Comunicaciones Puno.
 

@@ -45,7 +45,7 @@ async function solucionarModalCompleto() {
             dni: loginData.user?.dni || '12345678',
             nombres: loginData.user?.nombres || 'Administrador',
             apellidos: loginData.user?.apellidos || 'del Sistema',
-            email: loginData.user?.email || 'admin@drtc.gob.pe',
+            email: loginData.user?.email || 'admin@sirret.gob.pe',
             rolId: loginData.user?.rolId || 'administrador',
             estaActivo: loginData.user?.estaActivo !== false,
             fechaCreacion: loginData.user?.fechaCreacion || new Date().toISOString()

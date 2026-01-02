@@ -4,26 +4,37 @@ import os
 
 class Settings(BaseSettings):
     # Configuración de la aplicación
-    PROJECT_NAME: str = "Sistema de Gestión DRTC Puno"
+    PROJECT_NAME: str = "Sistema Regional de Registros de Transporte (SIRRET)"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = True
     
     # Base de datos MongoDB
     MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017"
-    DATABASE_NAME: str = "drtc_puno"
+    DATABASE_NAME: str = "sirret_db"
     
     # Seguridad
-    SECRET_KEY: str = "tu_clave_secreta_muy_larga_y_segura_aqui"
+    SECRET_KEY: str = "tu_clave_secreta_muy_larga_y_segura_aqui_sirret_2024"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:4200"]
+    # CORS - URLs específicas para SIRRET
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ]
     
-    # DRTC Específico
+    # URLs del sistema SIRRET
     BASE_URL: str = "http://localhost:8000"
-    DRTC_NAME: str = "Dirección Regional de Transportes y Comunicaciones Puno"
+    FRONTEND_URL: str = "http://localhost:4200"
+    API_BASE_URL: str = "http://localhost:8000/api/v1"
+    
+    # Información del sistema
+    SISTEMA_NOMBRE: str = "SIRRET"
+    SISTEMA_NOMBRE_COMPLETO: str = "Sistema Regional de Registros de Transporte"
+    ENTIDAD_NOMBRE: str = "Dirección Regional de Transportes y Comunicaciones Puno"
     
     # APIs Externas
     RENIEC_API_URL: str = "https://api.reniec.gob.pe"
@@ -40,6 +51,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
-        extra = "ignore"  # Ignorar variables extra del .env
+        extra = "ignore"
 
-settings = Settings() 
+settings = Settings()

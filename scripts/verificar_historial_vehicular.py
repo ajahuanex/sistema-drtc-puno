@@ -9,8 +9,8 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 
 # Configuración de la base de datos
-MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno?authSource=admin'
-DB_NAME = 'drtc_puno'
+MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db?authSource=admin'
+DB_NAME = 'sirret_db'
 
 def conectar_mongodb():
     """Conecta a MongoDB y retorna la base de datos."""
@@ -34,7 +34,7 @@ def verificar_coleccion(db):
         return True
     else:
         print("❌ Colección 'historial_vehicular' NO existe")
-        print("   Ejecuta: mongo drtc_puno < scripts/add-historial-vehicular.js")
+        print("   Ejecuta: mongo sirret_db < scripts/add-historial-vehicular.js")
         return False
 
 def verificar_indices(db):
@@ -244,7 +244,7 @@ def main():
     client.close()
     
     print("\n📋 Comandos útiles:")
-    print("   - Agregar colección: mongo drtc_puno < scripts/add-historial-vehicular.js")
+    print("   - Agregar colección: mongo sirret_db < scripts/add-historial-vehicular.js")
     print("   - Generar datos: python scripts/generar_historial_vehicular.py")
     print("   - Setup completo: scripts/setup-historial-vehicular.bat")
     

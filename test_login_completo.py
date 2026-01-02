@@ -9,7 +9,7 @@ import json
 def test_login_completo():
     """Probar el login completo del sistema"""
     
-    print("🔐 PRUEBA COMPLETA DE LOGIN - SISTEMA DRTC PUNO")
+    print("🔐 PRUEBA COMPLETA DE LOGIN - SISTEMA SIRRET")
     print("=" * 60)
     
     backend_url = "http://localhost:8000"

@@ -1,4 +1,4 @@
-# 🚀 Guía de Despliegue Local - Sistema DRTC
+# 🚀 Guía de Despliegue Local - Sistema SIRRET
 
 ## 📋 Requisitos Previos
 
@@ -35,7 +35,7 @@ Este script:
 - URL: `mongodb://localhost:27017`
 - Usuario: `admin`
 - Password: `admin123`
-- Base de datos: `drtc_db`
+- Base de datos: `sirret_db`
 
 ### Paso 2: Iniciar el Backend (FastAPI)
 
@@ -90,7 +90,7 @@ Este script detendrá MongoDB. Para el backend y frontend, simplemente:
 ```bash
 docker ps
 ```
-Deberías ver un contenedor llamado `drtc-mongodb-local`
+Deberías ver un contenedor llamado `sirret-mongodb-local`
 
 ### Verificar Backend
 Abre en tu navegador: http://localhost:8000/docs
@@ -138,7 +138,7 @@ Si algún puerto está ocupado, puedes cambiarlos en el archivo `.env`:
    - Se instalan las dependencias de Python
    - Se instalan las dependencias de Node.js
 
-4. **Datos persistentes**: Los datos de MongoDB se guardan en un volumen Docker llamado `drtc-mongodb-data-local-v2`, por lo que no se pierden al detener el contenedor.
+4. **Datos persistentes**: Los datos de MongoDB se guardan en un volumen Docker llamado `sirret-mongodb-data-local-v2`, por lo que no se pierden al detener el contenedor.
 
 ## 🎉 ¡Listo!
 

@@ -11,7 +11,7 @@
 ### 2. MongoDB Activado ✅
 - Descomentado código de conexión
 - Backend conectado exitosamente
-- Base de datos `drtc_puno_db` activa
+- Base de datos `sirret_db` activa
 - **Tiempo**: ~30 minutos
 
 ### 3. Servicio de Empresas Migrado a MongoDB ✅
@@ -29,7 +29,7 @@
 |------------|--------|---------------|
 | Backend | ✅ Running | Puerto 8000, MongoDB activo |
 | Frontend | ✅ Running | Puerto 4200, apunta a :8000 |
-| MongoDB | ✅ Running | Puerto 27017, drtc_puno_db |
+| MongoDB | ✅ Running | Puerto 27017, sirret_db |
 | Nginx | ✅ Running | Puerto 80/443 |
 
 ---
@@ -130,8 +130,8 @@ curl -X POST http://localhost:8000/api/v1/empresas \
 curl http://localhost:8000/api/v1/empresas
 
 # Ver en MongoDB
-docker exec -it drtc-mongodb mongosh -u admin -p password
-use drtc_puno_db
+docker exec -it sirret-mongodb mongosh -u admin -p password
+use sirret_db
 db.empresas.find()
 ```
 
@@ -264,7 +264,7 @@ docker-compose restart backend
 verificar-mongodb.bat
 
 # Acceder a MongoDB
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 
 # Ver estado
 docker-compose ps

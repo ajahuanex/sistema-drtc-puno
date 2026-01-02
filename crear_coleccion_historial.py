@@ -9,13 +9,13 @@ from pymongo import MongoClient
 from datetime import datetime
 
 # Configuración de la base de datos
-MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno?authSource=admin'
-DB_NAME = 'drtc_puno'
+MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db?authSource=admin'
+DB_NAME = 'sirret_db'
 
 def crear_coleccion_historial():
     """Crea la colección de historial vehicular con índices y validación."""
     try:
-        print("🚀 Agregando colección de Historial Vehicular a DRTC Puno...")
+        print("🚀 Agregando colección de Historial Vehicular a SIRRET...")
         
         # Conectar a MongoDB
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
@@ -138,7 +138,7 @@ def crear_coleccion_historial():
             print(f'⚠️ Error obteniendo estadísticas: {e}')
         
         client.close()
-        print('✅ Historial Vehicular agregado exitosamente a DRTC Puno')
+        print('✅ Historial Vehicular agregado exitosamente a SIRRET')
         print('🎯 La colección está lista para recibir eventos de historial vehicular')
         return True
         

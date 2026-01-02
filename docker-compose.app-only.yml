@@ -5,12 +5,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: drtc-backend-local
+    container_name: sirret-backend-local
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://admin:admin123@drtc-mongodb-local:27017/
+      - MONGODB_URL=mongodb://admin:admin123@sirret-mongodb-local:27017/
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
       - ENVIRONMENT=development
       - DEBUG=true
@@ -31,7 +31,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: drtc-frontend-local
+    container_name: sirret-frontend-local
     restart: unless-stopped
     ports:
       - "4201:4200"

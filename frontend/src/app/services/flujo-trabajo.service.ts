@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 
 /**
  * Representa un flujo de trabajo completo para el manejo de expedientes
- * entre diferentes oficinas del sistema DRTC.
+ * entre diferentes oficinas del sistema SIRRET.
  */
 export interface FlujoTrabajo {
   id: string;
@@ -176,7 +176,7 @@ export interface FlujoFiltros {
  * ```
  * 
  * @since 1.0.0
- * @author Sistema DRTC Puno
+ * @author Sistema SIRRET
  * 
  * TODO: Integración futura
  * - Conectar con componentes de expedientes para mostrar flujos activos

@@ -11,21 +11,21 @@ try:
     # Configuración con credenciales correctas - probando diferentes formatos
     try:
         # Opción 1: Con authSource=admin
-        MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno?authSource=admin'
+        MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db?authSource=admin'
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         print(f"✅ MongoDB conectado con authSource=admin")
     except:
         try:
-            # Opción 2: Con authSource=drtc_puno
-            MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno?authSource=drtc_puno'
+            # Opción 2: Con authSource=sirret_db
+            MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db?authSource=sirret_db'
             client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
             client.admin.command('ping')
-            print(f"✅ MongoDB conectado con authSource=drtc_puno")
+            print(f"✅ MongoDB conectado con authSource=sirret_db")
         except:
             try:
                 # Opción 3: Sin authSource
-                MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno'
+                MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db'
                 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
                 client.admin.command('ping')
                 print(f"✅ MongoDB conectado sin authSource")
@@ -36,7 +36,7 @@ try:
                 client.admin.command('ping')
                 print(f"✅ MongoDB conectado sin autenticación")
     
-    DB_NAME = 'drtc_puno'
+    DB_NAME = 'sirret_db'
     
     # Intentar acceder a la base de datos
     db = client[DB_NAME]

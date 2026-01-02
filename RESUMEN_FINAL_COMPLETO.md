@@ -51,7 +51,7 @@
 ```
 DNI:        12345678
 Contraseña: admin123
-Email:      admin@drtc.gob.pe
+Email:      admin@sirret.gob.pe
 Rol:        administrador
 ```
 

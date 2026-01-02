@@ -34,7 +34,7 @@ def create_admin_user():
     """Crear usuario administrador"""
     try:
         client = pymongo.MongoClient('mongodb://localhost:27017/')
-        db = client.drtc_puno
+        db = client.sirret_db
         
         # Verificar si ya existe
         existing_user = db.usuarios.find_one({"dni": "12345678"})
@@ -50,7 +50,7 @@ def create_admin_user():
             "dni": "12345678",
             "nombres": "Administrador",
             "apellidos": "Sistema",
-            "email": "admin@drtc.gob.pe",
+            "email": "admin@sirret.gob.pe",
             "password_hash": password_hash,
             "rol": "admin",
             "activo": True,
@@ -95,7 +95,7 @@ def create_admin_user():
         return False
 
 def main():
-    print("🚀 INICIALIZANDO MONGODB PARA SISTEMA DRTC PUNO")
+    print("🚀 INICIALIZANDO MONGODB PARA SISTEMA SIRRET")
     print("=" * 60)
     
     # 1. Verificar si MongoDB ya está corriendo
@@ -122,7 +122,7 @@ def main():
     print("\n3️⃣ Verificando configuración...")
     try:
         client = pymongo.MongoClient('mongodb://localhost:27017/')
-        db = client.drtc_puno
+        db = client.sirret_db
         
         # Contar documentos
         user_count = db.usuarios.count_documents({})

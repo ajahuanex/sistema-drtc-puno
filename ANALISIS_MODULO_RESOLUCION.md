@@ -7,7 +7,7 @@
 
 ## 🎯 Resumen Ejecutivo
 
-El módulo de resolución es uno de los componentes centrales del Sistema DRTC Puno. Gestiona las resoluciones administrativas que autorizan a las empresas de transporte a operar vehículos en rutas específicas.
+El módulo de resolución es uno de los componentes centrales del Sistema SIRRET. Gestiona las resoluciones administrativas que autorizan a las empresas de transporte a operar vehículos en rutas específicas.
 
 ### Estado Actual
 - ✅ **Backend:** Completamente funcional con API REST
@@ -584,7 +584,7 @@ Acceder a: http://localhost:8000/docs
 ### Base de Datos
 
 MongoDB: mongodb://localhost:27017  
-Base de datos: `drtc_puno_db`  
+Base de datos: `sirret_db`  
 Colección: `resoluciones`
 
 ---

@@ -120,7 +120,7 @@ docker-compose ps mongodb
 docker-compose logs mongodb
 
 # Probar conexión
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 ```
 
 ## 📚 Documentación Completa

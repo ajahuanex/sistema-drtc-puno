@@ -1,6 +1,6 @@
-# 📝 Historial Vehicular - DRTC Puno
+# 📝 Historial Vehicular - SIRRET
 
-Este documento describe la implementación del sistema de historial vehicular para el proyecto DRTC Puno.
+Este documento describe la implementación del sistema de historial vehicular para el proyecto SIRRET.
 
 ## 🎯 Descripción
 
@@ -83,7 +83,7 @@ chmod +x scripts/setup.sh
 
 #### Paso 1: Agregar Colección a BD Existente
 ```bash
-mongo drtc_puno < scripts/add-historial-vehicular.js
+mongo sirret_db < scripts/add-historial-vehicular.js
 ```
 
 #### Paso 2: Generar Datos de Ejemplo
@@ -121,7 +121,7 @@ Este script verifica:
 
 ### Base de Datos
 - MongoDB 4.4+
-- Base de datos `drtc_puno` existente
+- Base de datos `sirret_db` existente
 - Colecciones `vehiculos` y `usuarios` con datos
 
 ### Scripts Python
@@ -257,7 +257,7 @@ db.historial_vehicular.stats();
 
 ### Error: Colección no existe
 ```bash
-mongo drtc_puno < scripts/add-historial-vehicular.js
+mongo sirret_db < scripts/add-historial-vehicular.js
 ```
 
 ### Error: Sin datos
@@ -267,7 +267,7 @@ python scripts/generar_historial_vehicular.py
 
 ### Error: Índices faltantes
 ```bash
-mongo drtc_puno < scripts/add-historial-vehicular.js
+mongo sirret_db < scripts/add-historial-vehicular.js
 ```
 
 ### Error: Validación de esquema
@@ -284,4 +284,4 @@ Para problemas o dudas sobre el historial vehicular:
 
 ---
 
-**Nota**: Este sistema de historial vehicular proporciona trazabilidad completa y es esencial para auditorías y seguimiento de cambios en el sistema DRTC Puno.
+**Nota**: Este sistema de historial vehicular proporciona trazabilidad completa y es esencial para auditorías y seguimiento de cambios en el sistema SIRRET.

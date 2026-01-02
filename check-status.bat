@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Verificación de Estado - Sistema DRTC
+echo Verificación de Estado - Sistema SIRRET
 echo ========================================
 echo.
 
@@ -14,7 +14,7 @@ if %errorlevel% equ 0 (
 
 echo.
 echo Verificando MongoDB...
-docker ps --filter "name=drtc-mongodb-local" --format "{{.Names}}: {{.Status}}" 2>nul
+docker ps --filter "name=sirret-mongodb-local" --format "{{.Names}}: {{.Status}}" 2>nul
 if %errorlevel% equ 0 (
     echo [OK] MongoDB verificado
 ) else (

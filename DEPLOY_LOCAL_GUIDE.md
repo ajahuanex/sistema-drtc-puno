@@ -1,4 +1,4 @@
-# 🚀 Guía de Despliegue Local - Sistema DRTC Puno
+# 🚀 Guía de Despliegue Local - Sistema SIRRET
 
 Esta guía te ayudará a ejecutar el sistema con **MongoDB en Docker** y **Backend/Frontend en tu PC local**.
 
@@ -47,7 +47,7 @@ start-mongodb.bat
 - Puerto: `27017`
 - Usuario: `admin`
 - Password: `admin123`
-- Base de datos: `drtc_db`
+- Base de datos: `sirret_db`
 - URL: `mongodb://admin:admin123@localhost:27017/`
 
 ### Paso 2: Iniciar Backend (FastAPI)
@@ -79,7 +79,7 @@ El frontend estará disponible en:
 ### Ver logs de MongoDB
 
 ```bash
-docker logs -f drtc-mongodb-local
+docker logs -f sirret-mongodb-local
 ```
 
 ### Ver contenedores en ejecución
@@ -91,7 +91,7 @@ docker ps
 ### Verificar salud de MongoDB
 
 ```bash
-docker exec drtc-mongodb-local mongosh --eval "db.adminCommand('ping')"
+docker exec sirret-mongodb-local mongosh --eval "db.adminCommand('ping')"
 ```
 
 ## 🛠️ Comandos Útiles
@@ -106,10 +106,10 @@ docker-compose -f docker-compose.db-only.yml down
 docker-compose -f docker-compose.db-only.yml restart
 
 # Ver logs
-docker logs -f drtc-mongodb-local
+docker logs -f sirret-mongodb-local
 
 # Acceder a la consola de MongoDB
-docker exec -it drtc-mongodb-local mongosh -u admin -p admin123
+docker exec -it sirret-mongodb-local mongosh -u admin -p admin123
 ```
 
 ### Backend
@@ -189,7 +189,7 @@ Si algún puerto está ocupado, puedes cambiarlos:
 ## 📁 Estructura de Archivos
 
 ```
-sistema-drtc-puno/
+sistema-sirret/
 ├── docker-compose.db-only.yml    # Docker Compose solo para MongoDB
 ├── .env.local.example            # Ejemplo de configuración local
 ├── start-all-local.bat           # Script maestro (inicia todo)
@@ -229,7 +229,7 @@ Una vez que todo esté corriendo:
    - Se instalan las dependencias de Python
    - Se instalan las dependencias de Node.js
 
-2. **Datos persistentes**: Los datos de MongoDB se guardan en un volumen de Docker llamado `drtc-mongodb-data-local`, por lo que no se perderán al detener el contenedor.
+2. **Datos persistentes**: Los datos de MongoDB se guardan en un volumen de Docker llamado `sirret-mongodb-data-local`, por lo que no se perderán al detener el contenedor.
 
 3. **Hot Reload**: Tanto el backend como el frontend tienen hot reload activado, por lo que los cambios en el código se reflejarán automáticamente.
 

@@ -12,7 +12,7 @@ Para que el logo aparezca correctamente en el sistema SIGRET (Sistema de Gestió
 
 ### 2. Estructura de Carpetas
 ```
-sistema-drtc-puno/
+sistema-sirret/
 ├── frontend/
 │   ├── src/
 │   │   ├── assets/

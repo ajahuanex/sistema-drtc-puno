@@ -11,7 +11,7 @@ def debug_usuario():
     try:
         print("🔍 Conectando a MongoDB...")
         client = MongoClient('mongodb://admin:admin123@localhost:27017')
-        db = client['drtc_puno']
+        db = client['sirret_db']
         
         print("📊 Buscando usuario con DNI 12345678...")
         usuario = db.usuarios.find_one({'dni': '12345678'})

@@ -2,7 +2,7 @@
 
 ## 📋 **RESUMEN DE IMPLEMENTACIÓN**
 
-El sistema de oficinas del **Sistema DRTC Puno** ha sido **completamente implementado** con todas las funcionalidades requeridas para el seguimiento integral de expedientes por oficina.
+El sistema de oficinas del **Sistema SIRRET** ha sido **completamente implementado** con todas las funcionalidades requeridas para el seguimiento integral de expedientes por oficina.
 
 ---
 
@@ -265,7 +265,7 @@ Dashboard → Métricas → Filtros → Acciones → Actualización Automática
 
 ## 🎉 **CONCLUSIÓN**
 
-El **Sistema de Oficinas** del Sistema DRTC Puno ha sido **completamente implementado** y está **listo para producción**. 
+El **Sistema de Oficinas** del Sistema SIRRET ha sido **completamente implementado** y está **listo para producción**. 
 
 ### **Beneficios Obtenidos:**
 - **Trazabilidad 100%** de expedientes

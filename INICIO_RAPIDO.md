@@ -35,7 +35,7 @@ Espera 10 segundos y verifica:
 docker ps
 ```
 
-Debes ver: `drtc-mongodb-local`
+Debes ver: `sirret-mongodb-local`
 
 ### Paso 3️⃣: Inicia Backend y Frontend
 

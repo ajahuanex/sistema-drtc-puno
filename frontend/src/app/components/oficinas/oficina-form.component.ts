@@ -157,7 +157,7 @@ import { Oficina, OficinaCreate, OficinaUpdate } from '../../models/oficina.mode
 
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Email</mat-label>
-                  <input matInput formControlName="email" placeholder="Ej: oficina@drtc-puno.gob.pe">
+                  <input matInput formControlName="email" placeholder="Ej: oficina@sirret.gob.pe">
                   <mat-error *ngIf="oficinaForm.get('email')?.hasError('required')">
                     El email es obligatorio
                   </mat-error>
@@ -205,7 +205,7 @@ import { Oficina, OficinaCreate, OficinaUpdate } from '../../models/oficina.mode
 
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Email del Responsable</mat-label>
-                  <input matInput formControlName="responsableEmail" placeholder="Ej: responsable@drtc-puno.gob.pe">
+                  <input matInput formControlName="responsableEmail" placeholder="Ej: responsable@sirret.gob.pe">
                   <mat-error *ngIf="oficinaForm.get('responsableEmail')?.hasError('required')">
                     El email del responsable es obligatorio
                   </mat-error>

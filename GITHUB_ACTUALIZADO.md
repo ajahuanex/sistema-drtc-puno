@@ -46,7 +46,7 @@
 
 ## 🔗 Repositorio
 
-**URL**: https://github.com/ajahuanex/sistema-drtc-puno.git  
+**URL**: https://github.com/ajahuanex/sistema-sirret.git  
 **Branch**: master  
 **Último commit**: 027405a
 
@@ -79,8 +79,8 @@ Para verificar que todo está correcto después de clonar:
 
 ```bash
 # 1. Clonar repositorio
-git clone https://github.com/ajahuanex/sistema-drtc-puno.git
-cd sistema-drtc-puno
+git clone https://github.com/ajahuanex/sistema-sirret.git
+cd sistema-sirret
 
 # 2. Verificar último commit
 git log -1

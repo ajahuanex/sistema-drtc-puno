@@ -1,4 +1,4 @@
-# BRIEF OFICIAL DEL SISTEMA DRTC PUNO
+# BRIEF OFICIAL DEL SISTEMA SIRRET
 ## Documento de Referencia para la Lógica de Negocio
 
 **Versión:** 2.0  
@@ -10,7 +10,7 @@
 ## 1. VISIÓN GENERAL DEL SISTEMA
 
 ### 1.1 Propósito
-El Sistema DRTC Puno es una plataforma integral de gestión para la Dirección Regional de Transportes y Comunicaciones de Puno, diseñada para digitalizar y optimizar todos los procesos administrativos, operativos y de fiscalización relacionados con el transporte terrestre en la región.
+El Sistema SIRRET es una plataforma integral de gestión para la Dirección Regional de Transportes y Comunicaciones de Puno, diseñada para digitalizar y optimizar todos los procesos administrativos, operativos y de fiscalización relacionados con el transporte terrestre en la región.
 
 ### 1.2 Objetivos Principales
 - **Digitalización completa** de expedientes y trámites administrativos
@@ -368,13 +368,13 @@ export interface HistorialOficina {
 
 ## 11. CONCLUSIÓN
 
-El Sistema DRTC Puno con la nueva funcionalidad de seguimiento de expedientes por oficina representa un salto cualitativo en la gestión administrativa de la institución. La implementación de esta funcionalidad no solo mejora la eficiencia operativa, sino que también fortalece la transparencia y la confianza de los usuarios en el sistema.
+El Sistema SIRRET con la nueva funcionalidad de seguimiento de expedientes por oficina representa un salto cualitativo en la gestión administrativa de la institución. La implementación de esta funcionalidad no solo mejora la eficiencia operativa, sino que también fortalece la transparencia y la confianza de los usuarios en el sistema.
 
 La arquitectura modular y escalable permite futuras expansiones y mejoras, mientras que el enfoque en la experiencia del usuario asegura una adopción exitosa por parte de todos los stakeholders.
 
 ---
 
-**Documento preparado por:** Equipo de Desarrollo DRTC Puno  
+**Documento preparado por:** Equipo de Desarrollo SIRRET  
 **Revisado por:** Jefatura de Sistemas  
 **Aprobado por:** Dirección General  
 

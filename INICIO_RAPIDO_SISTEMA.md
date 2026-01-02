@@ -1,4 +1,4 @@
-# 🚀 INICIO RÁPIDO - SISTEMA DRTC PUNO
+# 🚀 INICIO RÁPIDO - SISTEMA SIRRET
 
 ## ✅ Estado: SISTEMA OPERATIVO
 
@@ -160,4 +160,4 @@ El sistema está 100% operativo. Puedes empezar a:
 - ✅ Gestionar rutas
 - ✅ Tramitar expedientes
 
-**¡Bienvenido al Sistema DRTC Puno!** 🎉
+**¡Bienvenido al Sistema SIRRET!** 🎉

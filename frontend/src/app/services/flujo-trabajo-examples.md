@@ -1,6 +1,6 @@
 # FlujoTrabajoService - Ejemplos de Uso
 
-Este documento contiene ejemplos prácticos de cómo usar el `FlujoTrabajoService` en diferentes escenarios del sistema DRTC Puno.
+Este documento contiene ejemplos prácticos de cómo usar el `FlujoTrabajoService` en diferentes escenarios del sistema SIRRET.
 
 ## Tabla de Contenidos
 
@@ -1026,4 +1026,4 @@ export class MetricasTiempoRealComponent implements OnInit, OnDestroy {
 - Encriptar datos sensibles en tránsito y reposo
 - Implementar rate limiting para APIs
 
-Este servicio está completamente preparado para su integración futura en el sistema DRTC Puno.
+Este servicio está completamente preparado para su integración futura en el sistema SIRRET.

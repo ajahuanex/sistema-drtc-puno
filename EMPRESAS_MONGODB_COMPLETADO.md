@@ -41,10 +41,10 @@ class EmpresaRepository:
 ### 3. Backend Reiniciado ✅
 
 ```
-🚀 Iniciando Sistema de Gestión DRTC Puno...
+🚀 Iniciando Sistema de Gestión SIRRET...
 🔌 Conectando a MongoDB...
 ✅ Conectado a MongoDB exitosamente
-🗄️ Base de datos activa: drtc_puno_db
+🗄️ Base de datos activa: sirret_db
 ```
 
 ---
@@ -130,9 +130,9 @@ curl http://localhost:8000/api/v1/empresas/estadisticas
 ### 5. Verificar en MongoDB
 
 ```bash
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 
-use drtc_puno_db
+use sirret_db
 db.empresas.find().pretty()
 db.empresas.countDocuments()
 ```
@@ -273,7 +273,7 @@ http://localhost:8000/docs
 ### Colección MongoDB
 ```
 Nombre: empresas
-Base de datos: drtc_puno_db
+Base de datos: sirret_db
 Índices: _id, ruc, codigoEmpresa
 ```
 

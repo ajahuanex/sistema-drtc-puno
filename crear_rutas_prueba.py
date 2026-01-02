@@ -11,7 +11,7 @@ from bson import ObjectId
 
 # Configuración de MongoDB
 MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "drtc_db"
+DB_NAME = "sirret_db"
 
 def crear_rutas_prueba():
     """Crear rutas de prueba para el sistema"""

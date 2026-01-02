@@ -69,7 +69,7 @@ import { Empresa } from '../models/empresa.model';
  * ```
  * 
  * @since 1.0.0
- * @author Sistema DRTC Puno
+ * @author Sistema SIRRET
  */
 @Component({
   selector: 'app-empresa-selector',

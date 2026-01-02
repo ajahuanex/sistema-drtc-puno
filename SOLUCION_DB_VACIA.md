@@ -102,7 +102,7 @@ from pymongo import MongoClient
 from datetime import datetime
 
 client = MongoClient("mongodb://admin:admin123@localhost:27017/")
-db = client["drtc_puno_db"]
+db = client["sirret_db"]
 
 # Crear empresa de prueba
 empresa = {
@@ -131,7 +131,7 @@ print("✅ Empresa de prueba creada")
 ### 1. Verificar MongoDB
 ```bash
 docker ps
-# Debe mostrar: drtc-mongodb-local (healthy)
+# Debe mostrar: sirret-mongodb-local (healthy)
 ```
 
 ### 2. Verificar Backend
@@ -162,10 +162,10 @@ python verificar_db.py
 ### Línea de Comandos
 ```bash
 # Conectar a MongoDB
-docker exec -it drtc-mongodb-local mongosh -u admin -p admin123
+docker exec -it sirret-mongodb-local mongosh -u admin -p admin123
 
 # Dentro de mongosh:
-use drtc_puno_db
+use sirret_db
 show collections
 db.empresas.find()
 db.resoluciones.countDocuments()
@@ -178,7 +178,7 @@ db.resoluciones.countDocuments()
 Cuando crees datos, se crearán estas colecciones:
 
 ```
-drtc_puno_db/
+sirret_db/
 ├── empresas          # Empresas de transporte
 ├── vehiculos         # Vehículos habilitados
 ├── conductores       # Conductores registrados

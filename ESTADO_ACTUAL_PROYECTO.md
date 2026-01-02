@@ -1,4 +1,4 @@
-# Estado Actual del Proyecto - DRTC Puno
+# Estado Actual del Proyecto - SIRRET
 
 **Fecha de Actualización:** 23/11/2025  
 **Última Sesión:** Continuación de Integración de Componentes

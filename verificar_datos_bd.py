@@ -11,7 +11,7 @@ def verificar_datos():
     
     # Conectar a MongoDB
     client = MongoClient('mongodb://admin:admin123@localhost:27017/')
-    db = client['drtc_puno_db']
+    db = client['sirret_db']
     
     # 1. Verificar empresas
     print("\n1️⃣ Verificando empresas...")

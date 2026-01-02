@@ -37,7 +37,7 @@ goto opcion_invalida
 :agregar_historial
 echo.
 echo 📝 Agregando colección de historial vehicular...
-mongo drtc_puno < scripts/add-historial-vehicular.js
+mongo sirret_db < scripts/add-historial-vehicular.js
 if %errorlevel% equ 0 (
     echo ✅ Colección de historial vehicular agregada exitosamente
 ) else (
@@ -77,7 +77,7 @@ echo.
 echo 🔄 Ejecutando configuración completa...
 echo.
 echo 📝 Paso 1: Agregando colección de historial vehicular...
-mongo drtc_puno < scripts/add-historial-vehicular.js
+mongo sirret_db < scripts/add-historial-vehicular.js
 if %errorlevel% neq 0 (
     echo ❌ Error en paso 1
     goto fin

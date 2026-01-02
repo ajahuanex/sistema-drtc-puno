@@ -9,7 +9,7 @@ import time
 def test_frontend():
     """Probar el frontend"""
     
-    print("🌐 PROBANDO FRONTEND - SISTEMA DRTC PUNO")
+    print("🌐 PROBANDO FRONTEND - SISTEMA SIRRET")
     print("=" * 60)
     
     frontend_url = "http://localhost:4200"

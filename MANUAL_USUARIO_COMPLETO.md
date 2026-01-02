@@ -1,5 +1,5 @@
 # 📚 MANUAL DE USUARIO COMPLETO
-## Sistema de Gestión DRTC Puno
+## Sistema de Gestión SIRRET
 
 **Versión:** 2.0  
 **Fecha:** 26 de Diciembre, 2024  
@@ -21,9 +21,9 @@
 
 ## 🎯 INTRODUCCIÓN AL SISTEMA
 
-### ¿Qué es el Sistema DRTC Puno?
+### ¿Qué es el Sistema SIRRET?
 
-El Sistema de Gestión DRTC Puno es una plataforma integral diseñada para la **Dirección Regional de Transportes y Comunicaciones de Puno**. Permite gestionar de manera eficiente:
+El Sistema de Gestión SIRRET es una plataforma integral diseñada para la **Dirección Regional de Transportes y Comunicaciones de Puno**. Permite gestionar de manera eficiente:
 
 - **Empresas de transporte** y su documentación
 - **Vehículos** y sus autorizaciones (TUCs)
@@ -1030,4 +1030,4 @@ Para expedientes tipo **INCREMENTO**:
 
 ---
 
-*Este manual cubre todas las funcionalidades principales del Sistema DRTC Puno. Para consultas específicas o problemas no cubiertos en este documento, contactar al equipo de soporte técnico.*
+*Este manual cubre todas las funcionalidades principales del Sistema SIRRET. Para consultas específicas o problemas no cubiertos en este documento, contactar al equipo de soporte técnico.*

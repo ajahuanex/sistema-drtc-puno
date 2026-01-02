@@ -1,7 +1,7 @@
 # 📋 Guía de Prueba - Módulo de Expedientes
 
 ## 🎯 Objetivo
-Probar la creación de expedientes en el sistema DRTC Puno
+Probar la creación de expedientes en el sistema SIRRET
 
 ## ✅ Pre-requisitos
 - ✅ Backend corriendo en `http://localhost:8000`
@@ -74,7 +74,7 @@ Deberías ver 4 expedientes en la respuesta JSON.
 
 ### 6. Verificar en la Base de Datos
 ```powershell
-docker exec drtc-mongodb mongosh -u admin -p password --authenticationDatabase admin drtc_puno_db --eval "db.expedientes.countDocuments({})"
+docker exec sirret-mongodb mongosh -u admin -p password --authenticationDatabase admin sirret_db --eval "db.expedientes.countDocuments({})"
 ```
 
 Debería devolver: `4`
@@ -198,5 +198,5 @@ Al finalizar las pruebas, deberías tener:
 ---
 
 **Fecha de Prueba:** 23/11/2025  
-**Sistema:** DRTC Puno - Gestión de Expedientes  
+**Sistema:** SIRRET - Gestión de Expedientes  
 **Versión:** 1.0.0

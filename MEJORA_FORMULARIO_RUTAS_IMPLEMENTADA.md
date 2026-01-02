@@ -202,4 +202,4 @@ El formulario de nueva ruta ahora ofrece dos flujos de trabajo intuitivos:
 ---
 
 *Mejora implementada el 16 de diciembre de 2024*
-*Sistema DRTC Puno - Módulo de Gestión de Rutas*
+*Sistema SIRRET - Módulo de Gestión de Rutas*

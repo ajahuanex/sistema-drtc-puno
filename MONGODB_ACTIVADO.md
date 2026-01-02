@@ -12,12 +12,12 @@ Se cambió exitosamente de **MODO MOCK** a **BASE DE DATOS REAL (MongoDB)**.
 ### Evidencia de los Logs
 
 ```
-🚀 Iniciando Sistema de Gestión DRTC Puno...
+🚀 Iniciando Sistema de Gestión SIRRET...
 🔌 Conectando a MongoDB...
 📍 URL: mongodb://admin:password@mongodb:27017/
-📦 Base de datos: drtc_puno_db
+📦 Base de datos: sirret_db
 ✅ Conectado a MongoDB exitosamente
-🗄️ Base de datos activa: drtc_puno_db
+🗄️ Base de datos activa: sirret_db
 ```
 
 ---
@@ -39,7 +39,7 @@ Se cambió exitosamente de **MODO MOCK** a **BASE DE DATOS REAL (MongoDB)**.
 ```python
 # Conexión a MongoDB
 MONGODB_URL: mongodb://admin:password@mongodb:27017/
-DATABASE_NAME: drtc_puno_db
+DATABASE_NAME: sirret_db
 ```
 
 ---
@@ -55,7 +55,7 @@ docker-compose logs backend --tail 20
 Deberías ver:
 - ✅ "Conectando a MongoDB..."
 - ✅ "Conectado a MongoDB exitosamente"
-- ✅ "Base de datos activa: drtc_puno_db"
+- ✅ "Base de datos activa: sirret_db"
 
 ### Verificar MongoDB
 
@@ -64,10 +64,10 @@ Deberías ver:
 docker-compose ps mongodb
 
 # Conectarse a MongoDB
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 
 # Dentro de mongosh:
-use drtc_puno_db
+use sirret_db
 show collections
 ```
 
@@ -86,7 +86,7 @@ curl http://localhost:8000/docs
 |----------|--------|--------|---------------|
 | Backend | ✅ Running | 8000 | MongoDB |
 | Frontend | ✅ Running | 4200 | - |
-| MongoDB | ✅ Running | 27017 | drtc_puno_db |
+| MongoDB | ✅ Running | 27017 | sirret_db |
 | Nginx | ✅ Running | 80/443 | - |
 
 ---
@@ -120,9 +120,9 @@ El sistema está listo para un ambiente de producción.
 Puedes crear datos directamente en MongoDB:
 
 ```bash
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 
-use drtc_puno_db
+use sirret_db
 
 # Crear una empresa de prueba
 db.empresas.insertOne({
@@ -147,8 +147,8 @@ db.empresas.find().pretty()
 docker-compose restart backend
 
 # 3. Verificar que los datos siguen ahí
-docker exec -it drtc-mongodb mongosh -u admin -p password
-use drtc_puno_db
+docker exec -it sirret-mongodb mongosh -u admin -p password
+use sirret_db
 db.empresas.find()
 ```
 
@@ -226,17 +226,17 @@ docker-compose restart backend
 
 ### Acceder a MongoDB
 ```bash
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 ```
 
 ### Ver Todas las Bases de Datos
 ```bash
-docker exec -it drtc-mongodb mongosh -u admin -p password --eval "show dbs"
+docker exec -it sirret-mongodb mongosh -u admin -p password --eval "show dbs"
 ```
 
 ### Backup de MongoDB
 ```bash
-docker exec drtc-mongodb mongodump -u admin -p password --out /backup
+docker exec sirret-mongodb mongodump -u admin -p password --out /backup
 ```
 
 ---
@@ -283,7 +283,7 @@ async def ejemplo():
 - [x] MongoDB corriendo en Docker
 - [x] Backend conectado a MongoDB
 - [x] Logs muestran conexión exitosa
-- [x] Base de datos `drtc_puno_db` creada
+- [x] Base de datos `sirret_db` creada
 - [ ] Servicios actualizados para usar MongoDB
 - [ ] Datos de prueba creados
 - [ ] Persistencia verificada

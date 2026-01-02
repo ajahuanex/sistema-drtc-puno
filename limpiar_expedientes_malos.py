@@ -6,7 +6,7 @@ import re
 
 # Conectar a MongoDB
 client = MongoClient("mongodb://admin:admin123@localhost:27017/")
-db = client["drtc_puno_db"]
+db = client["sirret_db"]
 
 print("=" * 60)
 print("LIMPIEZA DE EXPEDIENTES MAL GUARDADOS")

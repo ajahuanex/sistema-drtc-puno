@@ -16,7 +16,7 @@ async def limpiar_db():
     try:
         # Conectar a MongoDB
         client = AsyncIOMotorClient('mongodb://localhost:27017')
-        db = client['drtc_puno']
+        db = client['sirret_db']
         
         print("🧹 Limpiando base de datos...")
         

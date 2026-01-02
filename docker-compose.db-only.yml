@@ -1,14 +1,14 @@
 services:
   mongodb:
     image: mongo:7.0
-    container_name: drtc-mongodb-local
+    container_name: sirret-mongodb-local
     restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin123
-      MONGO_INITDB_DATABASE: drtc_db
+      MONGO_INITDB_DATABASE: sirret_db
     volumes:
       - mongodb_data_local_v2:/data/db
     networks:
@@ -28,4 +28,4 @@ networks:
 volumes:
   mongodb_data_local_v2:
     driver: local
-    name: drtc-mongodb-data-local-v2
+    name: sirret-mongodb-data-local-v2

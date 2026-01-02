@@ -1,12 +1,11 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.drtc-puno.gob.pe', // URL de producción
-  useDataManager: false, // En producción usar base de datos real
-
-  features: {
-    persistentData: true,
-    realTimeUpdates: true,
-    dataValidation: true,
-    bulkOperations: true
-  }
+  apiUrl: 'http://localhost:8000/api/v1',
+  baseUrl: 'http://localhost:8000',
+  frontendUrl: 'http://localhost:4200',
+  systemName: 'SIRRET',
+  systemFullName: 'Sistema Regional de Registros de Transporte',
+  entityName: 'Dirección Regional de Transportes y Comunicaciones Puno',
+  version: '1.0.0',
+  useDataManager: false
 };

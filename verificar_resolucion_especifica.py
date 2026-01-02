@@ -11,7 +11,7 @@ def verificar_resolucion():
     
     # Conectar a MongoDB
     client = MongoClient('mongodb://admin:admin123@localhost:27017/')
-    db = client['drtc_puno_db']
+    db = client['sirret_db']
     
     resolucion_id = "6940105d1e90f8d55bb199f7"
     

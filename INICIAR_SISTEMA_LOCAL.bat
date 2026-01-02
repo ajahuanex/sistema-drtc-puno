@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo SISTEMA DRTC - DESPLIEGUE LOCAL
+echo SISTEMA SIRRET - DESPLIEGUE LOCAL
 echo ========================================
 echo.
 echo Este script iniciará:
@@ -48,7 +48,7 @@ echo.
 echo MongoDB: http://localhost:27017
 echo   Usuario: admin
 echo   Password: admin123
-echo   Base de datos: drtc_db
+echo   Base de datos: sirret_db
 echo.
 echo ========================================
 echo.

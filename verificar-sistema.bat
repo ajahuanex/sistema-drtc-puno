@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo VERIFICACIÓN DEL SISTEMA DRTC
+echo VERIFICACIÓN DEL SISTEMA SIRRET
 echo ========================================
 echo.
 
@@ -40,13 +40,13 @@ if errorlevel 1 (
 echo.
 
 echo [4/6] Verificando MongoDB en Docker...
-docker ps | findstr "drtc-mongodb-local" >nul 2>&1
+docker ps | findstr "sirret-mongodb-local" >nul 2>&1
 if errorlevel 1 (
     echo ❌ MongoDB NO está corriendo
     echo    Ejecuta: INICIAR_SISTEMA_LOCAL.bat
 ) else (
     echo ✅ MongoDB está corriendo en Docker
-    docker ps --filter "name=drtc-mongodb-local" --format "   Puerto: {{.Ports}}"
+    docker ps --filter "name=sirret-mongodb-local" --format "   Puerto: {{.Ports}}"
 )
 echo.
 

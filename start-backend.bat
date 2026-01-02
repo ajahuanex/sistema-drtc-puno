@@ -7,7 +7,7 @@ echo.
 
 REM Verificar si MongoDB está corriendo
 echo [1/4] Verificando MongoDB...
-docker ps | findstr "drtc-mongodb-local" >nul 2>&1
+docker ps | findstr "sirret-mongodb-local" >nul 2>&1
 if errorlevel 1 (
     echo [ADVERTENCIA] MongoDB no está corriendo en Docker
     echo Por favor, ejecuta primero: INICIAR_SISTEMA_LOCAL.bat

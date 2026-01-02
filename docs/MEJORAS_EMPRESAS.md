@@ -2,7 +2,7 @@
 
 ## 🚀 **Resumen de Mejoras**
 
-El módulo de empresas del Sistema DRTC Puno ha sido completamente mejorado con funcionalidades avanzadas que lo convierten en una herramienta de gestión integral y moderna.
+El módulo de empresas del Sistema SIRRET ha sido completamente mejorado con funcionalidades avanzadas que lo convierten en una herramienta de gestión integral y moderna.
 
 ## 📋 **Mejoras Implementadas**
 
@@ -193,4 +193,4 @@ El módulo de empresas ha sido transformado en una herramienta de gestión integ
 5. **Reporta** información detallada
 6. **Escala** para grandes volúmenes
 
-Estas mejoras posicionan al Sistema DRTC Puno como una solución moderna y robusta para la gestión de transporte público en la región.
+Estas mejoras posicionan al Sistema SIRRET como una solución moderna y robusta para la gestión de transporte público en la región.

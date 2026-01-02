@@ -6,7 +6,7 @@
 
 Evidencia de los logs:
 ```
-🚀 Iniciando Sistema de Gestión DRTC Puno (MODO MOCK)...
+🚀 Iniciando Sistema de Gestión SIRRET (MODO MOCK)...
 ✅ Iniciando sistema con datos mock
 ```
 
@@ -59,7 +59,7 @@ async def lifespan_shutdown():
 @asynccontextmanager
 async def lifespan(app):
     """Gestión del ciclo de vida de la aplicación"""
-    logger.info("🚀 Iniciando Sistema de Gestión DRTC Puno...")
+    logger.info("🚀 Iniciando Sistema de Gestión SIRRET...")
     async with lifespan_startup():
         yield
     async with lifespan_shutdown():
@@ -155,7 +155,7 @@ docker-compose logs backend --tail 20
 
 Deberías ver:
 ```
-🚀 Iniciando Sistema de Gestión DRTC Puno...
+🚀 Iniciando Sistema de Gestión SIRRET...
 🔌 Conectando a MongoDB...
 ✅ Conectado a MongoDB exitosamente
 ```
@@ -197,8 +197,8 @@ Después de cambiar a base de datos real:
 
 2. **Verificar en MongoDB:**
    ```bash
-   docker exec -it drtc-mongodb mongosh -u admin -p password
-   use drtc_puno_db
+   docker exec -it sirret-mongodb mongosh -u admin -p password
+   use sirret_db
    db.empresas.find()
    ```
 

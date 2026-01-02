@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   SISTEMA DRTC PUNO - INICIO COMPLETO
+echo   SISTEMA SIRRET - INICIO COMPLETO
 echo ========================================
 echo.
 
@@ -11,7 +11,7 @@ try:
     client = pymongo.MongoClient('mongodb://admin:admin123@localhost:27017', serverSelectionTimeoutMS=3000)
     client.server_info()
     print('✅ MongoDB conectado correctamente')
-    db = client['drtc_puno']
+    db = client['sirret_db']
     vehiculos_count = db.vehiculos.count_documents({})
     empresas_count = db.empresas.count_documents({})
     print(f'📊 Datos disponibles: {vehiculos_count} vehículos, {empresas_count} empresas')
@@ -25,7 +25,7 @@ except Exception as e:
 
 echo.
 echo 🚀 Iniciando Backend (FastAPI)...
-start "Backend DRTC" cmd /k "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "Backend SIRRET" cmd /k "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 echo.
 echo ⏳ Esperando que el backend inicie...
@@ -54,7 +54,7 @@ else:
 
 echo.
 echo 🎨 Iniciando Frontend (Angular)...
-start "Frontend DRTC" cmd /k "cd frontend && ng serve --host 0.0.0.0 --port 4200 --open"
+start "Frontend SIRRET" cmd /k "cd frontend && ng serve --host 0.0.0.0 --port 4200 --open"
 
 echo.
 echo ========================================

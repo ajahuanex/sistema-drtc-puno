@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 async def test_empresas():
     # Conectar a MongoDB
     client = AsyncIOMotorClient("mongodb://admin:admin123@localhost:27017/")
-    db = client.drtc_puno_db
+    db = client.sirret_db
     collection = db.empresas
     
     print("✅ Conectado a MongoDB")

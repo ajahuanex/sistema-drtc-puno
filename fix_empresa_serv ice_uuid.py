@@ -6,7 +6,7 @@ para soportar tanto UUIDs como ObjectIds
 import re
 
 # Leer el archivo
-with open(r'd:\2025\KIRO3\sistema-drtc-puno\backend\app\services\empresa_service.py', 'r', encoding='utf-8') as f:
+with open(r'd:\2025\KIRO3\sistema-sirret\backend\app\services\empresa_service.py', 'r', encoding='utf-8') as f:
     content = f.read()
 
 # Buscar y reemplazar el método get_empresa_by_id
@@ -38,7 +38,7 @@ if old_method in content:
     print("✅ Método actualizado correctamente")
     
     # Escribir el archivo
-    with open(r'd:\2025\KIRO3\sistema-drtc-puno\backend\app\services\empresa_service.py', 'w', encoding='utf-8') as f:
+    with open(r'd:\2025\KIRO3\sistema-sirret\backend\app\services\empresa_service.py', 'w', encoding='utf-8') as f:
         f.write(content)
     print("✅ Archivo guardado")
 else:

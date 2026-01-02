@@ -16,7 +16,7 @@
 ```json
 {
   "status": "healthy",
-  "service": "Sistema de Gestión DRTC Puno",
+  "service": "Sistema de Gestión SIRRET",
   "version": "1.0.0",
   "mode": "database",
   "database_status": "connected"

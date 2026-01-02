@@ -8,7 +8,7 @@ from app.models.empresa import EmpresaInDB
 load_dotenv()
 
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DB_NAME = "drtc_puno_db"
+DB_NAME = "sirret_db"
 
 async def debug_error():
     client = AsyncIOMotorClient(MONGODB_URL)

@@ -19,7 +19,7 @@ async def test_servicio():
         
         # Conectar a MongoDB
         client = AsyncIOMotorClient("mongodb://admin:admin123@localhost:27017/")
-        db = client["drtc_puno"]
+        db = client["sirret_db"]
         
         # Crear servicio
         service = HistorialVehicularService(db)

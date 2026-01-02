@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 async def clear_expedientes_collection():
     uri = "mongodb://admin:admin123@localhost:27017"
     client = AsyncIOMotorClient(uri)
-    db = client.drtc_puno_db
+    db = client.sirret_db
     collection = db.expedientes
     
     print("Conectando a MongoDB...")

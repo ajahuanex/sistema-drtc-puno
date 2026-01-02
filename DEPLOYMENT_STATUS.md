@@ -10,8 +10,8 @@
 
 ### ✅ Imágenes Docker Construidas
 
-- **Backend (FastAPI):** `sistema-drtc-puno-backend`
-- **Frontend (Angular):** `sistema-drtc-puno-frontend`
+- **Backend (FastAPI):** `sistema-sirret-backend`
+- **Frontend (Angular):** `sistema-sirret-frontend`
 - **Tiempo de construcción:** ~5.7 minutos
 
 ### 📦 Servicios Desplegados

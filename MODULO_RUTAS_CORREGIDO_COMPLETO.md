@@ -205,4 +205,4 @@ El módulo de rutas ha sido corregido completamente, eliminando todos los errore
 ---
 
 *Corrección completada el 16 de diciembre de 2024*
-*Sistema DRTC Puno - Módulo de Gestión de Rutas*
+*Sistema SIRRET - Módulo de Gestión de Rutas*

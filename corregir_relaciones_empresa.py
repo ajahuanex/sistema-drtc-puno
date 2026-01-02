@@ -10,7 +10,7 @@ def corregir_relaciones(empresa_id_str):
     
     try:
         client = MongoClient('mongodb://localhost:27017/')
-        db = client['drtc_puno']
+        db = client['sirret_db']
         
         print("=" * 70)
         print("CORRECCIÓN DE RELACIONES DE EMPRESA")

@@ -1,4 +1,4 @@
-# Sistema DRTC Puno - Frontend
+# Sistema SIRRET - Frontend
 
 Frontend Angular 20+ para el Sistema de Gestión de la Dirección Regional de Transportes y Comunicaciones Puno.
 
@@ -171,7 +171,7 @@ frontend/
 ## 🆕 Sistema Universal de Expedientes
 
 ### 🎯 Concepto Clave
-**El expediente ES el inicio de todo acto administrativo** - no solo para empresas de transporte, sino para cualquier solicitud administrativa del DRTC Puno.
+**El expediente ES el inicio de todo acto administrativo** - no solo para empresas de transporte, sino para cualquier solicitud administrativa del SIRRET.
 
 ### 🔢 Numeración Automática
 - **Formato**: `E-XXXX-YYYY` donde XXXX se rellena automáticamente con ceros
@@ -721,7 +721,7 @@ import {
 ### 🎨 Sistema de Temas
 - **Tema Claro**: Para uso diurno y oficinas bien iluminadas
 - **Tema Oscuro**: Para uso nocturno y reducción de fatiga visual
-- **Personalización**: Colores corporativos de DRTC Puno
+- **Personalización**: Colores corporativos de SIRRET
 
 ### 📱 Responsive Design
 - **Desktop**: Layout completo con sidebar y navegación expandida

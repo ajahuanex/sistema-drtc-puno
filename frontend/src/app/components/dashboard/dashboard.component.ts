@@ -89,7 +89,7 @@ interface ActividadReciente {
       <!-- Header del Dashboard -->
       <div class="dashboard-header">
         <div class="header-content">
-          <h1>Dashboard DRTC Puno</h1>
+          <h1>Dashboard SIRRET</h1>
           <p>Panel de control y monitoreo del sistema de transporte</p>
         </div>
         <div class="header-actions">

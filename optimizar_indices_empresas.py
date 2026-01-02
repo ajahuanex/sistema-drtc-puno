@@ -13,7 +13,7 @@ async def crear_indices_empresas():
     
     # Conectar a MongoDB
     client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/')
-    db = client['drtc_puno_db']
+    db = client['sirret_db']
     collection = db.empresas
     
     print("🔧 Creando índices optimizados para empresas...")
@@ -80,7 +80,7 @@ async def crear_indices_empresas():
 def crear_indices_sync():
     """Versión síncrona para crear índices"""
     client = MongoClient('mongodb://admin:admin123@localhost:27017/')
-    db = client['drtc_puno_db']
+    db = client['sirret_db']
     collection = db.empresas
     
     print("🔧 Creando índices optimizados para empresas (sync)...")

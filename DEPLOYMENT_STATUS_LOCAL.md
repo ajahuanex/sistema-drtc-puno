@@ -1,4 +1,4 @@
-# ✅ Despliegue Local Completado - Sistema DRTC Puno
+# ✅ Despliegue Local Completado - Sistema SIRRET
 
 **Fecha:** 2025-11-26  
 **Hora:** 12:31 PM
@@ -7,7 +7,7 @@
 
 ### ✅ MongoDB en Docker - ACTIVO
 
-**Contenedor:** `drtc-mongodb-local`  
+**Contenedor:** `sirret-mongodb-local`  
 **Estado:** Healthy (Saludable)  
 **Imagen:** mongo:7.0  
 **Puerto:** 27017
@@ -18,11 +18,11 @@ Host: localhost
 Puerto: 27017
 Usuario: admin
 Password: admin123
-Base de datos: drtc_db
+Base de datos: sirret_db
 URL completa: mongodb://admin:admin123@localhost:27017/
 ```
 
-**Volumen de datos:** `drtc-mongodb-data-local` (persistente)
+**Volumen de datos:** `sirret-mongodb-data-local` (persistente)
 
 ### 📋 Próximos Pasos para Completar el Despliegue
 
@@ -97,7 +97,7 @@ Este script:
 ### Ver Logs de MongoDB
 
 ```bash
-docker logs -f drtc-mongodb-local
+docker logs -f sirret-mongodb-local
 ```
 
 ### Detener MongoDB
@@ -115,7 +115,7 @@ docker-compose -f docker-compose.db-only.yml restart
 ### Acceder a la Consola de MongoDB
 
 ```bash
-docker exec -it drtc-mongodb-local mongosh -u admin -p admin123
+docker exec -it sirret-mongodb-local mongosh -u admin -p admin123
 ```
 
 ## 📁 Archivos Creados
@@ -139,10 +139,10 @@ Para verificar que MongoDB está funcionando correctamente:
 docker ps
 
 # Verificar salud
-docker exec drtc-mongodb-local mongosh --eval "db.adminCommand('ping')"
+docker exec sirret-mongodb-local mongosh --eval "db.adminCommand('ping')"
 
 # Listar bases de datos
-docker exec -it drtc-mongodb-local mongosh -u admin -p admin123 --eval "show dbs"
+docker exec -it sirret-mongodb-local mongosh -u admin -p admin123 --eval "show dbs"
 ```
 
 ## 🌐 URLs de Acceso (Una vez todo esté corriendo)
@@ -170,7 +170,7 @@ docker exec -it drtc-mongodb-local mongosh -u admin -p admin123 --eval "show dbs
 docker-compose -f docker-compose.db-only.yml restart
 
 # Ver logs para diagnóstico
-docker logs drtc-mongodb-local
+docker logs sirret-mongodb-local
 ```
 
 ### Puerto 27017 ocupado

@@ -73,7 +73,7 @@ def verificar_datos_mongodb():
     
     try:
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         # Verificar colección rutas
         if 'rutas' in db.list_collection_names():
@@ -117,7 +117,7 @@ def verificar_relaciones_datos():
     
     try:
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         # Obtener IDs válidos
         empresas = list(db.empresas.find({}, {"_id": 1, "id": 1}))
@@ -181,7 +181,7 @@ def probar_creacion_ruta_valida():
     try:
         # Obtener IDs válidos de empresas y resoluciones
         client = MongoClient('mongodb://admin:admin123@localhost:27017/', serverSelectionTimeoutMS=5000)
-        db = client['drtc_puno_db']
+        db = client['sirret_db']
         
         empresa = db.empresas.find_one({})
         resolucion = db.resoluciones.find_one({})

@@ -144,7 +144,7 @@ git log --oneline -1
 ### **Clonar y usar:**
 ```bash
 git clone <repository-url>
-cd sistema-drtc-puno
+cd sistema-sirret
 git checkout master
 git pull origin master
 ```

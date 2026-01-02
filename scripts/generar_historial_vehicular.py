@@ -12,8 +12,8 @@ from pymongo import MongoClient
 from bson import ObjectId
 
 # Configuración de la base de datos
-MONGO_URI = 'mongodb://admin:admin123@localhost:27017/drtc_puno?authSource=admin'
-DB_NAME = 'drtc_puno'
+MONGO_URI = 'mongodb://admin:admin123@localhost:27017/sirret_db?authSource=admin'
+DB_NAME = 'sirret_db'
 # Tipos de eventos del historial
 TIPOS_EVENTO = [
     "CREACION",

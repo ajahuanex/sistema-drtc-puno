@@ -103,8 +103,8 @@ curl -X POST http://localhost:8000/api/v1/empresas \
 ### Verificar en MongoDB
 
 ```bash
-docker exec -it drtc-mongodb mongosh -u admin -p password
-use drtc_puno_db
+docker exec -it sirret-mongodb mongosh -u admin -p password
+use sirret_db
 db.empresas.find().pretty()
 ```
 

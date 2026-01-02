@@ -50,7 +50,7 @@
 
 ## 🔍 Cómo Verificar en GitHub
 
-1. **Ir a**: https://github.com/tu-usuario/sistema-drtc-puno
+1. **Ir a**: https://github.com/tu-usuario/sistema-sirret
 2. **Verificar commit**: `e6a84f7` - "feat: Implementar dropdown de resoluciones padre funcional"
 3. **Archivos modificados**: 13 archivos nuevos + 1 modificado
 4. **Cambios**: +2,385 líneas

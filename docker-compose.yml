@@ -1,14 +1,14 @@
 services:
   mongodb:
     image: mongo:7.0
-    container_name: drtc-mongodb
+    container_name: sirret-mongodb
     restart: unless-stopped
     ports:
       - "${MONGODB_PORT:-27017}:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-drtc_db}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-sirret_db}
     volumes:
       - mongodb_data:/data/db
       - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
@@ -25,7 +25,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: drtc-backend
+    container_name: sirret-backend
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -54,7 +54,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: drtc-frontend
+    container_name: sirret-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-4200}:4200"
@@ -100,4 +100,4 @@ networks:
 volumes:
   mongodb_data:
     driver: local
-    name: drtc-mongodb-data
+    name: sirret-mongodb-data

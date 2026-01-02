@@ -1,6 +1,6 @@
 @echo off
 echo ======================================================================
-echo   SISTEMA DRTC PUNO - INICIO RAPIDO
+echo   SISTEMA SIRRET - INICIO RAPIDO
 echo ======================================================================
 echo.
 
@@ -15,11 +15,11 @@ if errorlevel 1 (
 
 echo.
 echo [2/3] Verificando usuario administrador...
-python -c "from pymongo import MongoClient; client = MongoClient('mongodb://admin:admin123@localhost:27017/'); db = client['drtc_puno_db']; usuario = db.usuarios.find_one({'dni': '12345678'}); print('✅ Usuario administrador existe' if usuario else '⚠️  Usuario no encontrado')"
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb://admin:admin123@localhost:27017/'); db = client['sirret_db']; usuario = db.usuarios.find_one({'dni': '12345678'}); print('✅ Usuario administrador existe' if usuario else '⚠️  Usuario no encontrado')"
 
 echo.
 echo [3/3] Verificando empresas...
-python -c "from pymongo import MongoClient; client = MongoClient('mongodb://admin:admin123@localhost:27017/'); db = client['drtc_puno_db']; count = db.empresas.count_documents({}); print(f'✅ {count} empresas en la base de datos')"
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb://admin:admin123@localhost:27017/'); db = client['sirret_db']; count = db.empresas.count_documents({}); print(f'✅ {count} empresas en la base de datos')"
 
 echo.
 echo ======================================================================

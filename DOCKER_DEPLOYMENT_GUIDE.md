@@ -191,9 +191,9 @@ docker-compose down -v
 
 ```bash
 # Entrar a un contenedor
-docker exec -it drtc-backend bash
-docker exec -it drtc-frontend sh
-docker exec -it drtc-mongodb mongosh
+docker exec -it sirret-backend bash
+docker exec -it sirret-frontend sh
+docker exec -it sirret-mongodb mongosh
 
 # Ver uso de recursos
 docker stats
@@ -209,13 +209,13 @@ docker-compose logs -f --tail=100
 
 ```bash
 # Backup de MongoDB
-docker exec drtc-mongodb mongodump --out /data/backup
+docker exec sirret-mongodb mongodump --out /data/backup
 
 # Restore de MongoDB
-docker exec drtc-mongodb mongorestore /data/backup
+docker exec sirret-mongodb mongorestore /data/backup
 
 # Conectar a MongoDB
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 ```
 
 ## 🔍 Solución de Problemas
@@ -262,8 +262,8 @@ docker network inspect drtc-network
 docker-compose ps
 
 # Probar conectividad entre contenedores
-docker exec drtc-backend ping mongodb
-docker exec drtc-frontend ping backend
+docker exec sirret-backend ping mongodb
+docker exec sirret-frontend ping backend
 ```
 
 ### MongoDB No Conecta
@@ -279,7 +279,7 @@ docker-compose logs mongodb
 cat .env | grep MONGO
 
 # Probar conexión manual
-docker exec -it drtc-mongodb mongosh -u admin -p password
+docker exec -it sirret-mongodb mongosh -u admin -p password
 ```
 
 ## 📊 Monitoreo
@@ -299,7 +299,7 @@ curl http://localhost/health
 curl http://localhost:8000/health
 
 # MongoDB health
-docker exec drtc-mongodb mongosh --eval "db.adminCommand('ping')"
+docker exec sirret-mongodb mongosh --eval "db.adminCommand('ping')"
 ```
 
 ### Logs

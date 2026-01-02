@@ -1,4 +1,4 @@
-# Sistema DRTC Puno - Listo para Uso
+# Sistema SIRRET - Listo para Uso
 
 ## ✅ Estado Actual: COMPLETAMENTE FUNCIONAL
 
@@ -161,7 +161,7 @@ Rol: administrador
 
 ## 🏆 Resumen Ejecutivo
 
-**El Sistema DRTC Puno está completamente funcional y listo para uso productivo.**
+**El Sistema SIRRET está completamente funcional y listo para uso productivo.**
 
 ### ✅ Logros Principales
 - Login funcionando correctamente
