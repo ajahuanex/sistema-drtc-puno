@@ -317,197 +317,108 @@ export class VehiculoService {
   }
 
   // ========================================
-  // MÉTODOS CON DATAMANAGER PERSISTENTE
-  // ========================================
-
-  /**
-   * Obtener todos los vehículos desde DataManager persistente
-   */
-  getVehiculosPersistentes(): Observable<Vehiculo[]> {
-    if (environment.useDataManager) {
-      console.log('🗄️ Obteniendo vehículos desde DataManager persistente');
-      return this.dataManager.getAllVehicles().pipe(
-        map(vehicles => vehicles.map(v => this.mapToVehiculo(v))),
-        catchError(error => {
-          console.error('❌ Error obteniendo vehículos persistentes:', error);
-          return of([]);
-        })
-      );
-    } else {
-      return of([]);
-    }
-  }
-
-  /**
-   * Crear vehículo en DataManager persistente
-   */
-  createVehiculoPersistente(vehiculoData: VehiculoCreate): Observable<Vehiculo> {
-    if (environment.useDataManager) {
-      console.log('🗄️ Creando vehículo en DataManager persistente:', vehiculoData);
-      return this.dataManager.addVehicle(vehiculoData).pipe(
-        map(response => {
-          if (response.success) {
-            this.dataManager.showNotification('Vehículo creado exitosamente', 'success');
-            return this.mapToVehiculo(response.data);
-          } else {
-            throw new Error(response.message);
-          }
-        }),
-        catchError(error => {
-          console.error('❌ Error creando vehículo persistente:', error);
-          this.dataManager.showNotification('Error al crear vehículo', 'error');
-          return throwError(() => error);
-        })
-      );
-    } else {
-      // Backend no disponible
-      return throwError(() => new Error('Error al crear vehículo - Backend no disponible'));
-    }
-  }
-
-  /**
-   * Obtener vehículo completo con todas sus relaciones
-   */
-  getVehiculoCompleto(vehiculoId: string): Observable<any> {
-    if (environment.useDataManager) {
-      console.log('🗄️ Obteniendo vehículo completo desde DataManager:', vehiculoId);
-      return this.dataManager.getVehicleComplete(vehiculoId).pipe(
-        map(response => response.success ? response.data : null),
-        catchError(error => {
-          console.error('❌ Error obteniendo vehículo completo:', error);
-          return of(null);
-        })
-      );
-    } else {
-      return of(null);
-    }
-  }
-
-  /**
-   * Obtener flujo completo de un vehículo (empresa → vehículo → expedientes → resoluciones)
-   */
-  getVehiculoFlujoCompleto(vehiculoId: string): Observable<any> {
-    if (environment.useDataManager) {
-      console.log('🗄️ Obteniendo flujo completo desde DataManager:', vehiculoId);
-      return this.dataManager.getVehicleFullFlow(vehiculoId).pipe(
-        map(response => response.success ? response.data : null),
-        catchError(error => {
-          console.error('❌ Error obteniendo flujo completo:', error);
-          return of(null);
-        })
-      );
-    } else {
-      return of(null);
-    }
-  }
-
-  /**
-   * Obtener vehículos por empresa desde DataManager
-   */
-  getVehiculosPorEmpresaPersistente(empresaId: string): Observable<Vehiculo[]> {
-    if (environment.useDataManager) {
-      console.log('🗄️ Obteniendo vehículos por empresa desde DataManager:', empresaId);
-      return this.dataManager.getVehiclesByCompany(empresaId).pipe(
-        map(vehicles => vehicles.map(v => this.mapToVehiculo(v))),
-        catchError(error => {
-          console.error('❌ Error obteniendo vehículos por empresa:', error);
-          return of([]);
-        })
-      );
-    } else {
-      return of([]);
-    }
-  }
-
-  /**
-   * Obtener estadísticas del DataManager
-   */
-  getEstadisticasPersistentes(): Observable<any> {
-    if (environment.useDataManager) {
-      return this.dataManager.stats$;
-    } else {
-      return of(null);
-    }
-  }
-
-  /**
-   * Resetear datos del sistema (solo para desarrollo)
-   */
-  resetearSistema(): Observable<any> {
-    if (environment.useDataManager && !environment.production) {
-      console.log('🔄 Reseteando sistema DataManager');
-      return this.dataManager.resetSystem().pipe(
-        tap(response => {
-          if (response.success) {
-            this.dataManager.showNotification('Sistema reseteado exitosamente', 'success');
-          }
-        })
-      );
-    } else {
-      return of({ success: false, message: 'Reset no disponible en producción' });
-    }
-  }
-
-  // ========================================
   // MÉTODOS DE UTILIDAD
   // ========================================
 
   /**
-   * Mapear datos del DataManager a modelo Vehiculo
+   * Cambiar estado de un vehículo con registro en historial
    */
-  private mapToVehiculo(data: any): Vehiculo {
-    return {
-      id: data.id,
-      placa: data.placa,
-      sedeRegistro: data.sedeRegistro,
-      empresaActualId: data.empresaId || data.empresaActualId,
-      resolucionId: data.resolucionId,
-      marca: data.marca,
-      modelo: data.modelo,
-      anioFabricacion: data.anioFabricacion || data.año,
-      estado: data.estado || 'ACTIVO',
-      estaActivo: data.estaActivo !== false,
-      rutasAsignadasIds: data.rutasAsignadasIds || [],
-      categoria: data.categoria || 'M3',
-      tuc: data.tuc,
-      datosTecnicos: data.datosTecnicos || {
-        motor: data.numeroMotor || data.motor || 'N/A',
-        chasis: data.numeroChasis || data.chasis || 'N/A',
-        cilindros: data.cilindros || 6,
-        ejes: data.numeroEjes || data.ejes || 2,
-        ruedas: data.ruedas || 6,
-        asientos: data.numeroAsientos || data.asientos || 45,
-        pesoNeto: data.pesoSeco || data.pesoNeto || 8500,
-        pesoBruto: data.pesoBruto || 16000,
-        tipoCombustible: data.tipoCombustible || 'DIESEL',
-        medidas: data.medidas || {
-          largo: 12000,
-          ancho: 2500,
-          alto: 3200
+  cambiarEstadoVehiculo(
+    vehiculoId: string, 
+    nuevoEstado: string, 
+    motivo: string, 
+    observaciones?: string
+  ): Observable<Vehiculo> {
+    console.log('[VEHICULO-SERVICE] 🔄 Cambiando estado de vehículo:', { vehiculoId, nuevoEstado, motivo });
+    
+    return this.getVehiculo(vehiculoId).pipe(
+      switchMap(vehiculo => {
+        if (!vehiculo) {
+          return throwError(() => new Error('Vehículo no encontrado'));
         }
-      },
-      numeroHistorialValidacion: data.numeroHistorialValidacion,
-      esHistorialActual: data.esHistorialActual,
-      vehiculoHistorialActualId: data.vehiculoHistorialActualId
-    };
+
+        const vehiculoUpdate: VehiculoUpdate = {
+          estado: nuevoEstado
+        };
+
+        // Agregar campos de baja si es necesario
+        if (nuevoEstado !== 'ACTIVO') {
+          vehiculoUpdate.fechaBaja = new Date().toISOString();
+          if (motivo) {
+            vehiculoUpdate.motivoBaja = motivo;
+          }
+          if (observaciones) {
+            vehiculoUpdate.observacionesBaja = observaciones;
+          }
+        }
+
+        return this.updateVehiculo(vehiculoId, vehiculoUpdate);
+      }),
+      catchError(error => {
+        console.error('[VEHICULO-SERVICE] ❌ Error cambiando estado:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   /**
-   * Verificar si el DataManager está disponible
+   * Obtener vehículos por empresa
    */
-  isDataManagerAvailable(): boolean {
-    return environment.useDataManager && !environment.production;
+  getVehiculosPorEmpresa(empresaId: string): Observable<Vehiculo[]> {
+    console.log('[VEHICULO-SERVICE] 🏢 Obteniendo vehículos por empresa:', empresaId);
+    
+    return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/empresa/${empresaId}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo vehículos por empresa:', error);
+        return of([]);
+      })
+    );
   }
 
   /**
-   * Obtener información del estado del DataManager
+   * Validar si una placa ya existe
    */
-  getDataManagerStatus(): Observable<any> {
-    if (environment.useDataManager) {
-      return this.dataManager.getHealthCheck();
-    } else {
-      return of({ success: false, message: 'DataManager no habilitado' });
+  validarPlacaExistente(placa: string, vehiculoIdExcluir?: string): Observable<boolean> {
+    console.log('[VEHICULO-SERVICE] 🔍 Validando placa existente:', placa);
+    
+    let url = `${this.apiUrl}/vehiculos/validar-placa/${encodeURIComponent(placa)}`;
+    if (vehiculoIdExcluir) {
+      url += `?excluir=${vehiculoIdExcluir}`;
     }
+    
+    return this.http.get<{ existe: boolean }>(url, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(response => response.existe),
+      catchError(error => {
+        console.error('[VEHICULO-SERVICE] ❌ Error validando placa:', error);
+        return of(false);
+      })
+    );
+  }
+
+  /**
+   * Obtener estadísticas de vehículos
+   */
+  getEstadisticasVehiculos(): Observable<any> {
+    console.log('[VEHICULO-SERVICE] 📊 Obteniendo estadísticas de vehículos');
+    
+    return this.http.get<any>(`${this.apiUrl}/vehiculos/estadisticas`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo estadísticas:', error);
+        return of({
+          total: 0,
+          activos: 0,
+          inactivos: 0,
+          porEstado: {},
+          porEmpresa: {}
+        });
+      })
+    );
   }
 
   // ========================================
@@ -1735,87 +1646,9 @@ export class VehiculoService {
    * @returns Observable<boolean> - true si está disponible, false si está duplicada
    */
   verificarPlacaDisponible(placa: string, vehiculoIdActual?: string): Observable<boolean> {
-    if (environment.useDataManager) {
-      // Verificar en DataManager
-      return this.getVehiculosPersistentes().pipe(
-        map(vehiculos => {
-          const placaUpper = placa.toUpperCase().trim();
-          const vehiculoExistente = vehiculos.find(v => 
-            v.placa.toUpperCase() === placaUpper && v.id !== vehiculoIdActual
-          );
-          return !vehiculoExistente; // true si no existe (disponible)
-        }),
-        catchError(() => of(true)) // En caso de error, permitir continuar
-      );
-    } else {
-      // Backend no disponible - asumir placa disponible
-      return of(true);
-    }
-  }
-
-  /**
-   * Cambiar el estado de un vehículo y registrar en el historial
-   */
-  cambiarEstadoVehiculo(
-    vehiculoId: string, 
-    nuevoEstado: string, 
-    motivo?: string, 
-    observaciones?: string
-  ): Observable<Vehiculo> {
-    return this.getVehiculo(vehiculoId).pipe(
-      switchMap(vehiculo => {
-        if (!vehiculo) {
-          return throwError(() => new Error('Vehículo no encontrado'));
-        }
-
-        const estadoAnterior = vehiculo.estado;
-        
-        // Actualizar el vehículo - versión simplificada para debugging
-        const updateData: any = {
-          estado: nuevoEstado
-        };
-
-        // Solo agregar campos de baja si realmente es necesario
-        if (nuevoEstado !== 'ACTIVO') {
-          updateData.fechaBaja = new Date().toISOString();
-          if (motivo) {
-            updateData.motivoBaja = motivo;
-          }
-          if (observaciones) {
-            updateData.observacionesBaja = observaciones;
-          }
-        }
-
-        console.log('🔄 Actualizando estado del vehículo:', {
-          vehiculoId,
-          estadoAnterior,
-          estadoNuevo: nuevoEstado
-        });
-
-        return this.http.put<Vehiculo>(`${this.apiUrl}/vehiculos/${vehiculoId}`, updateData, {
-          headers: this.getHeaders()
-        }).pipe(
-          tap(vehiculoActualizado => {
-            // Registrar en el historial vehicular general
-            this.historialService.crearRegistroHistorial({
-              vehiculoId: vehiculoId,
-              placa: vehiculo.placa,
-              tipoEvento: TipoEventoHistorial.CAMBIO_ESTADO,
-              descripcion: `Estado cambiado de ${estadoAnterior} a ${nuevoEstado}`,
-              estadoAnterior: estadoAnterior as EstadoVehiculo,
-              estadoNuevo: nuevoEstado as EstadoVehiculo,
-              observaciones: `Motivo: ${motivo}. ${observaciones || ''}`
-            }).subscribe({
-              next: () => console.log('✅ Evento de cambio de estado registrado en historial vehicular'),
-              error: (error: any) => console.error('❌ Error registrando evento en historial vehicular:', error)
-            });
-          })
-        );
-      }),
-      catchError(error => {
-        console.error('Error cambiando estado del vehículo:', error);
-        return throwError(() => error);
-      })
+    // Usar API real para validar placa
+    return this.validarPlacaExistente(placa, vehiculoIdActual).pipe(
+      map(existe => !existe) // Invertir: si existe, no está disponible
     );
   }
 
