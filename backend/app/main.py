@@ -6,6 +6,7 @@ import logging
 import time
 from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router, localidades_router
+from app.routers.configuraciones import router as configuraciones_router
 from app.routers.data_manager_router import router as data_manager_router
 from app.routers.ruta_especifica_router import router as ruta_especifica_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
@@ -78,6 +79,7 @@ async def log_requests(request, call_next):
 
 # Incluir routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(configuraciones_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)

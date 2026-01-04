@@ -27,7 +27,6 @@ def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
     """Función helper para crear respuestas completas de EmpresaResponse"""
     return EmpresaResponse(
         id=empresa.id,
-        codigoEmpresa=empresa.codigoEmpresa,
         ruc=empresa.ruc,
         razonSocial=empresa.razonSocial,
         direccionFiscal=empresa.direccionFiscal,
@@ -71,6 +70,14 @@ async def create_empresa(
             raise EmpresaAlreadyExistsException(empresa_data.ruc)
         else:
             raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/test")
+async def test_empresas():
+    """Endpoint de prueba para empresas"""
+    try:
+        return {"status": "ok", "message": "Endpoint de empresas funcionando"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @router.get("/", response_model=List[EmpresaResponse])
 async def get_empresas(
@@ -454,52 +461,6 @@ async def exportar_empresas(
     elif formato == 'csv':
         return {"message": f"Exportando {len(empresas)} empresas a CSV"} 
 
-@router.get("/siguiente-codigo", response_model=dict)
-async def obtener_siguiente_codigo_empresa(
-    empresa_service: EmpresaService = Depends(get_empresa_service)
-) -> dict:
-    """Obtener el siguiente código de empresa disponible"""
-    
-    try:
-        siguiente_codigo = await empresa_service.generar_siguiente_codigo_empresa()
-        return {
-            "siguienteCodigo": siguiente_codigo,
-            "descripcion": "Código único de empresa en formato 4 dígitos + 3 letras",
-            "formato": "XXXXPRT (P: Personas, R: Regional, T: Turismo)"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/validar-codigo/{codigo}", response_model=dict)
-async def validar_codigo_empresa(codigo: str) -> dict:
-    """Validar formato de código de empresa"""
-    from app.utils.codigo_empresa_utils import CodigoEmpresaUtils
-    
-    try:
-        es_valido = CodigoEmpresaUtils.validar_formato_codigo(codigo)
-        
-        if es_valido:
-            info_codigo = CodigoEmpresaUtils.extraer_informacion_codigo(codigo)
-            return {
-                "codigo": codigo,
-                "esValido": True,
-                "numeroSecuencial": info_codigo["numero_secuencial"],
-                "tiposEmpresa": info_codigo["tipos_empresa"],
-                "descripcionTipos": CodigoEmpresaUtils.obtener_descripcion_tipos(info_codigo["tipos_empresa"])
-            }
-        else:
-            return {
-                "codigo": codigo,
-                "esValido": False,
-                "error": "Formato inválido. Debe ser 4 dígitos + 3 letras (ej: 0123PRT)"
-            }
-    except Exception as e:
-        return {
-            "codigo": codigo,
-            "esValido": False,
-            "error": str(e)
-        }
-
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL
 # ========================================
@@ -539,7 +500,7 @@ async def validar_archivo_empresas(
         
         # Validar con el servicio
         excel_service = EmpresaExcelService()
-        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        resultado = await excel_service.validar_archivo_excel(archivo_buffer)
         
         return {
             "archivo": archivo.filename,
@@ -576,10 +537,10 @@ async def procesar_carga_masiva_empresas(
         excel_service = EmpresaExcelService()
         
         if solo_validar:
-            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            resultado = await excel_service.validar_archivo_excel(archivo_buffer)
             mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
         else:
-            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
+            resultado = await excel_service.procesar_carga_masiva(archivo_buffer)
             mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} empresas creadas"
         
         return {

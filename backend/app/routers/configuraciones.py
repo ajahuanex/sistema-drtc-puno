@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 import logging
 
-from ..database import get_database
+from ..dependencies.db import get_database
 from ..services.configuracion_service import ConfiguracionService
 from ..models.configuracion import (
     ConfiguracionResponse,
@@ -26,16 +26,29 @@ async def get_configuracion_service(db=Depends(get_database)) -> ConfiguracionSe
     """Dependency para obtener el servicio de configuraciones"""
     return ConfiguracionService(db)
 
+@router.get("/test")
+async def test_configuraciones():
+    """Endpoint de prueba para configuraciones"""
+    try:
+        return {"status": "ok", "message": "Endpoint de configuraciones funcionando"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @router.get("/", response_model=List[ConfiguracionResponse])
 async def obtener_configuraciones(
-    categoria: Optional[CategoriaConfiguracion] = Query(None, description="Filtrar por categoría"),
-    service: ConfiguracionService = Depends(get_configuracion_service)
+    categoria: Optional[CategoriaConfiguracion] = Query(None, description="Filtrar por categoría")
+    # service: ConfiguracionService = Depends(get_configuracion_service)
     # current_user=Depends(get_current_user)  # Temporalmente comentado para pruebas
 ):
     """
     Obtiene todas las configuraciones del sistema
     """
     try:
+        # Crear servicio directamente para pruebas
+        from ..dependencies.db import get_database
+        db = await get_database()
+        service = ConfiguracionService(db)
+        
         if categoria:
             result = await service.obtener_por_categoria(categoria)
             return result.configuraciones
@@ -45,7 +58,7 @@ async def obtener_configuraciones(
         logger.error(f"Error obteniendo configuraciones: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail=f"Error interno del servidor: {str(e)}"
         )
 
 @router.get("/categoria/{categoria}", response_model=ConfiguracionesPorCategoria)

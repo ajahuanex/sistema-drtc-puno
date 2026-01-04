@@ -16,6 +16,16 @@ class TipoEmpresa(str, Enum):
     REGIONAL = "R"
     TURISMO = "T"
 
+class TipoServicio(str, Enum):
+    PERSONAS = "PERSONAS"
+    TURISMO = "TURISMO"
+    TRABAJADORES = "TRABAJADORES"
+    MERCANCIAS = "MERCANCIAS"
+    ESTUDIANTES = "ESTUDIANTES"
+    TERMINAL_TERRESTRE = "TERMINAL_TERRESTRE"
+    ESTACION_DE_RUTA = "ESTACION_DE_RUTA"
+    OTROS = "OTROS"
+
 class TipoDocumento(str, Enum):
     RUC = "RUC"
     DNI = "DNI"
@@ -66,11 +76,11 @@ class DatosSunat(BaseModel):
 
 class Empresa(BaseModel):
     id: Optional[str] = None
-    codigoEmpresa: str = Field(..., description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
-    ruc: str
+    ruc: str = Field(..., description="RUC único de la empresa (11 dígitos)")
     razonSocial: RazonSocial
     direccionFiscal: str
     estado: EstadoEmpresa
+    tipoServicio: Optional[TipoServicio] = TipoServicio.PERSONAS
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
@@ -90,23 +100,23 @@ class Empresa(BaseModel):
     observaciones: Optional[str] = None
 
 class EmpresaCreate(BaseModel):
-    codigoEmpresa: Optional[str] = Field(None, description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT) - Se genera automáticamente si no se proporciona")
-    ruc: str
+    ruc: str = Field(..., description="RUC único de la empresa (11 dígitos)")
     razonSocial: RazonSocial
     direccionFiscal: str
     representanteLegal: RepresentanteLegal
+    tipoServicio: TipoServicio
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
     documentos: Optional[List[DocumentoEmpresa]] = Field(default_factory=list)
 
 class EmpresaUpdate(BaseModel):
-    codigoEmpresa: Optional[str] = Field(None, description="Código único de empresa: 4 dígitos + 3 letras (ej: 0123PRT)")
     ruc: Optional[str] = None
     razonSocial: Optional[RazonSocial] = None
     direccionFiscal: Optional[str] = None
     representanteLegal: Optional[RepresentanteLegal] = None
     estado: Optional[EstadoEmpresa] = None
+    tipoServicio: Optional[TipoServicio] = None
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
@@ -144,11 +154,11 @@ class EmpresaEstadisticas(BaseModel):
 
 class EmpresaResponse(BaseModel):
     id: str
-    codigoEmpresa: str
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: str
     estado: EstadoEmpresa
+    tipoServicio: Optional[TipoServicio] = TipoServicio.PERSONAS
     estaActivo: bool
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
@@ -196,7 +206,6 @@ class EmpresaReporte(BaseModel):
 
 class EmpresaResumen(BaseModel):
     id: str
-    codigoEmpresa: str
     ruc: str
     razonSocial: str
     estado: EstadoEmpresa
