@@ -1,6 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatStepperModule } from '@angular/material/stepper';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatRadioModule } from '@angular/material/radio';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { EmpresaService } from '../../services/empresa.service';
 
 interface ResultadoValidacion {
@@ -37,7 +49,21 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
 @Component({
   selector: 'app-carga-masiva-empresas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ReactiveFormsModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatTableModule,
+    MatStepperModule,
+    MatChipsModule,
+    MatTooltipModule,
+    MatRadioModule,
+    SmartIconComponent
+  ],
   templateUrl: './carga-masiva-empresas.component.html',
   styleUrls: ['./carga-masiva-empresas.component.scss']
 })
@@ -48,6 +74,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
   cargando = false;
   mostrarResultados = false;
   soloValidar = true;
+  isDragOver = false;
   
   // Resultados
   resultadoValidacion: ResultadoValidacion | null = null;
@@ -69,32 +96,78 @@ export class CargaMasivaEmpresasComponent implements OnInit {
     // Inicialización si es necesaria
   }
 
+  // Métodos de drag & drop
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
+    
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.handleFile(files[0]);
+    }
+  }
+
   onArchivoSeleccionado(event: any): void {
     const archivo = event.target.files[0];
     if (archivo) {
-      // Validar tipo de archivo
-      if (!archivo.name.endsWith('.xlsx') && !archivo.name.endsWith('.xls')) {
-        this.mostrarMensaje('Por favor seleccione un archivo Excel (.xlsx o .xls)', 'error');
-        // Limpiar el input
-        event.target.value = '';
-        return;
-      }
-      
-      // Validar tamaño del archivo (máximo 10MB)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (archivo.size > maxSize) {
-        this.mostrarMensaje('El archivo es demasiado grande. Máximo permitido: 10MB', 'error');
-        event.target.value = '';
-        return;
-      }
-      
-      this.archivoSeleccionado = archivo;
-      this.limpiarResultados();
-      this.mostrarMensaje(`Archivo seleccionado: ${archivo.name} (${(archivo.size / 1024).toFixed(2)} KB)`, 'info');
+      this.handleFile(archivo);
     } else {
       this.archivoSeleccionado = null;
       this.limpiarResultados();
     }
+  }
+
+  private handleFile(archivo: File): void {
+    console.log('[CARGA-MASIVA] Procesando archivo:', archivo.name, 'Tamaño:', archivo.size, 'Tipo:', archivo.type);
+    
+    // Validar extensión del archivo
+    const fileName = archivo.name.toLowerCase();
+    const validExtensions = ['.xlsx', '.xls'];
+    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!hasValidExtension) {
+      this.mostrarMensaje('Tipo de archivo no válido. Use archivos Excel (.xlsx, .xls)', 'error');
+      return;
+    }
+
+    // Validar tamaño (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (archivo.size > maxSize) {
+      this.mostrarMensaje(`El archivo es demasiado grande (${this.formatFileSize(archivo.size)}). Máximo permitido: 10MB`, 'error');
+      return;
+    }
+
+    // Validar que el archivo no esté vacío
+    if (archivo.size === 0) {
+      this.mostrarMensaje('El archivo está vacío. Seleccione un archivo válido.', 'error');
+      return;
+    }
+
+    // Archivo válido
+    this.archivoSeleccionado = archivo;
+    this.limpiarResultados();
+    this.mostrarMensaje(`Archivo "${archivo.name}" seleccionado correctamente (${this.formatFileSize(archivo.size)})`, 'success');
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   async descargarPlantilla(): Promise<void> {
@@ -113,7 +186,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
 
   async procesarArchivo(): Promise<void> {
     if (!this.archivoSeleccionado) {
-      alert('Por favor seleccione un archivo');
+      this.mostrarMensaje('Por favor seleccione un archivo', 'warning');
       return;
     }
 
@@ -121,24 +194,53 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       this.cargando = true;
       this.limpiarResultados();
 
+      console.log('[CARGA-MASIVA] Iniciando procesamiento:', {
+        archivo: this.archivoSeleccionado.name,
+        soloValidar: this.soloValidar
+      });
+
       if (this.soloValidar) {
         // Solo validar
+        console.log('[CARGA-MASIVA] Modo: Solo validar');
         const resultado = await this.empresaService.validarArchivoEmpresas(this.archivoSeleccionado);
-        this.resultadoValidacion = resultado.validacion;
+        console.log('[CARGA-MASIVA] Resultado validación:', resultado);
+        
+        if (resultado && resultado.validacion) {
+          this.resultadoValidacion = resultado.validacion;
+          this.mostrarMensaje('Validación completada', 'success');
+        } else {
+          throw new Error('Respuesta de validación inválida');
+        }
       } else {
         // Procesar y crear empresas
+        console.log('[CARGA-MASIVA] Modo: Validar y crear');
         const resultado = await this.empresaService.procesarCargaMasivaEmpresas(
           this.archivoSeleccionado, 
-          false
+          false // soloValidar = false para crear empresas
         );
-        this.resultadoProcesamiento = resultado.resultado;
+        console.log('[CARGA-MASIVA] Resultado procesamiento:', resultado);
+        
+        if (resultado && resultado.resultado) {
+          this.resultadoProcesamiento = resultado.resultado;
+          this.mostrarMensaje('Procesamiento completado', 'success');
+        } else {
+          throw new Error('Respuesta de procesamiento inválida');
+        }
       }
 
       this.mostrarResultados = true;
 
     } catch (error: any) {
-      console.error('Error al procesar archivo:', error);
-      this.mostrarMensaje(`❌ Error al procesar archivo: ${error.message || 'Error desconocido'}`, 'error');
+      console.error('[CARGA-MASIVA] Error al procesar archivo:', error);
+      
+      let mensajeError = 'Error desconocido';
+      if (error.message) {
+        mensajeError = error.message;
+      } else if (typeof error === 'string') {
+        mensajeError = error;
+      }
+      
+      this.mostrarMensaje(`❌ Error al procesar archivo: ${mensajeError}`, 'error');
     } finally {
       this.cargando = false;
     }
@@ -154,12 +256,17 @@ export class CargaMasivaEmpresasComponent implements OnInit {
     this.archivoSeleccionado = null;
     this.limpiarResultados();
     this.soloValidar = true;
+    this.isDragOver = false;
     
-    // Limpiar input file
-    const fileInput = document.getElementById('archivoInput') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    // Limpiar input file usando ViewChild o querySelector
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach((input: any) => {
+      if (input) {
+        input.value = '';
+      }
+    });
+    
+    this.mostrarMensaje('Formulario reiniciado', 'info');
   }
 
   // Getters para la vista

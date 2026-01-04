@@ -26,7 +26,7 @@ import { ResolucionService } from '../../services/resolucion.service';
 import { RutaService } from '../../services/ruta.service';
 import { ConfiguracionService } from '../../services/configuracion.service';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
-import { Empresa } from '../../models/empresa.model';
+import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { Ruta } from '../../models/ruta.model';
 import { Observable, of, forkJoin } from 'rxjs';
@@ -626,7 +626,7 @@ export interface VehiculoModalData {
           
           <button mat-raised-button 
                   color="primary" 
-                  (click)="testClick(); onSubmit()" 
+                  (click)="onSubmit()" 
                   [disabled]="!vehiculoForm.valid || isSubmitting()"
                   class="submit-button">
             <app-smart-icon [iconName]="isEditing() ? 'save' : 'add'" [size]="20"></app-smart-icon>
@@ -1441,7 +1441,7 @@ export class VehiculoModalComponent {
   private loadEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
       next: (empresas) => {
-        this.empresas.set(empresas.filter(e => e.estado === 'HABILITADA'));
+        this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA));
       },
       error: (error) => {
         console.error('Error cargando empresas:', error);
@@ -1660,15 +1660,6 @@ export class VehiculoModalComponent {
       console.log('✅ Llamando createVehiculo');
       this.createVehiculo();
     }
-  }
-
-  testClick(): void {
-    console.log('🔥 BOTÓN CLICKEADO - testClick ejecutado');
-    console.log('🔍 Estado del formulario:', {
-      valid: this.vehiculoForm?.valid,
-      isSubmitting: this.isSubmitting(),
-      isEditing: this.isEditing()
-    });
   }
 
   getFormErrors(): Array<{field: string, errors: string[]}> {

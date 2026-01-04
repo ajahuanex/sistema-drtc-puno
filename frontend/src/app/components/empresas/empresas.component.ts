@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatTableModule } from '@angular/material/table';
+import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -19,28 +19,28 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatPaginatorModule, MatPaginator, MatPaginatorIntl } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
 import { EmpresaService } from '../../services/empresa.service';
-import { RutaService } from '../../services/ruta.service';
 import { AuthService } from '../../services/auth.service';
-import { VehiculoService } from '../../services/vehiculo.service';
-import { ResolucionService } from '../../services/resolucion.service';
-import { Empresa, EmpresaFiltros, EmpresaEstadisticas } from '../../models/empresa.model';
-import { Ruta } from '../../models/ruta.model';
-import { Vehiculo } from '../../models/vehiculo.model';
-import { Resolucion } from '../../models/resolucion.model';
-import { CrearResolucionModalComponent } from './crear-resolucion-modal.component';
-import { ValidacionSunatModalComponent } from './validacion-sunat-modal.component';
-import { GestionDocumentosModalComponent } from './gestion-documentos-modal.component';
-import { HistorialAuditoriaModalComponent } from './historial-auditoria-modal.component';
-import { CrearRutaModalComponent } from './crear-ruta-modal.component';
-import { RutasPorResolucionModalComponent } from './rutas-por-resolucion-modal.component';
-import { VehiculoModalService } from '../../services/vehiculo-modal.service';
+import { Empresa, EmpresaEstadisticas } from '../../models/empresa.model';
+import { FiltrosAvanzadosModalComponent, FiltrosAvanzados } from './filtros-avanzados-modal.component';
+
+interface ColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+  sortable: boolean;
+  width?: string;
+}
 
 @Component({
   selector: 'app-empresas',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     MatTableModule,
@@ -60,180 +60,244 @@ import { VehiculoModalService } from '../../services/vehiculo-modal.service';
     MatMenuModule,
     MatBadgeModule,
     MatDividerModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatCheckboxModule,
+    MatSlideToggleModule,
     FormsModule,
     ReactiveFormsModule
   ],
   templateUrl: './empresas.component.html',
   styleUrls: ['./empresas.component.scss']
 })
-export class EmpresasComponent implements OnInit {
+export class EmpresasComponent implements OnInit, AfterViewInit {
   private empresaService = inject(EmpresaService);
-  private rutaService = inject(RutaService);
   private authService = inject(AuthService);
-  private vehiculoService = inject(VehiculoService);
-  private resolucionService = inject(ResolucionService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private fb = inject(FormBuilder);
   private dialog = inject(MatDialog);
-  private vehiculoModalService = inject(VehiculoModalService);
+  private paginatorIntl = inject(MatPaginatorIntl);
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   // Signals
   empresas = signal<Empresa[]>([]);
+  empresasOriginales = signal<Empresa[]>([]);
   isLoading = signal(false);
   estadisticas = signal<EmpresaEstadisticas | undefined>(undefined);
+  filtrosActivos = signal<FiltrosAvanzados | null>(null);
 
-  // Computed properties
-  displayedColumns = ['ruc', 'razonSocial', 'estado', 'rutas', 'vehiculos', 'conductores', 'acciones'];
-  filtrosForm: FormGroup;
+  // Data source para la tabla
+  dataSource = new MatTableDataSource<Empresa>([]);
+  
+  // Selección múltiple
+  selectedEmpresas = signal<Set<string>>(new Set());
+  isAllSelected = computed(() => {
+    const numSelected = this.selectedEmpresas().size;
+    const numRows = this.dataSource.filteredData.length;
+    return numSelected === numRows && numRows > 0;
+  });
+  
+  isIndeterminate = computed(() => {
+    const numSelected = this.selectedEmpresas().size;
+    const numRows = this.dataSource.filteredData.length;
+    return numSelected > 0 && numSelected < numRows;
+  });
+
+  // Configuración de columnas como signal
+  columnConfigs = signal<ColumnConfig[]>([
+    { key: 'select', label: 'SELECCIONAR', visible: true, sortable: false, width: '60px' },
+    { key: 'ruc', label: 'RUC', visible: true, sortable: true, width: '120px' },
+    { key: 'razonSocial', label: 'RAZÓN SOCIAL', visible: true, sortable: true, width: '250px' },
+    { key: 'estado', label: 'ESTADO', visible: true, sortable: true, width: '120px' },
+    { key: 'tipoServicio', label: 'TIPO DE SERVICIO', visible: true, sortable: true, width: '150px' },
+    { key: 'direccion', label: 'DIRECCIÓN', visible: false, sortable: true, width: '250px' },
+    { key: 'telefono', label: 'TELÉFONO', visible: false, sortable: false, width: '150px' },
+    { key: 'email', label: 'EMAIL', visible: false, sortable: false, width: '200px' },
+    { key: 'representanteLegal', label: 'REPRESENTANTE LEGAL', visible: false, sortable: true, width: '200px' },
+    { key: 'fechaRegistro', label: 'FECHA REGISTRO', visible: false, sortable: true, width: '150px' },
+    { key: 'rutas', label: 'RUTAS', visible: true, sortable: true, width: '100px' },
+    { key: 'vehiculos', label: 'VEHÍCULOS', visible: true, sortable: true, width: '100px' },
+    { key: 'conductores', label: 'CONDUCTORES', visible: true, sortable: true, width: '120px' },
+    { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '80px' }
+  ]);
+
+  // Computed para columnas visibles
+  displayedColumns = computed(() => 
+    this.columnConfigs().filter(col => col.visible).map(col => col.key)
+  );
+
+  // Formularios
+  searchForm: FormGroup;
+  columnForm: FormGroup;
+  showColumnConfig = signal(false);
 
   constructor() {
-    this.filtrosForm = this.fb.group({
-      ruc: [''],
-      razonSocial: [''],
-      estado: [''],
-      fechaDesde: [''],
-      fechaHasta: ['']
+    this.searchForm = this.fb.group({
+      searchTerm: ['']
+    });
+
+    this.columnForm = this.fb.group({});
+    this.setupColumnConfiguration();
+    this.configurarPaginadorEspanol();
+  }
+
+  private configurarPaginadorEspanol(): void {
+    this.paginatorIntl.itemsPerPageLabel = 'Elementos por página:';
+    this.paginatorIntl.nextPageLabel = 'Página siguiente';
+    this.paginatorIntl.previousPageLabel = 'Página anterior';
+    this.paginatorIntl.firstPageLabel = 'Primera página';
+    this.paginatorIntl.lastPageLabel = 'Última página';
+    this.paginatorIntl.getRangeLabel = (page: number, pageSize: number, length: number) => {
+      if (length === 0 || pageSize === 0) {
+        return `0 de ${length}`;
+      }
+      const startIndex = page * pageSize;
+      const endIndex = startIndex < length ? Math.min(startIndex + pageSize, length) : startIndex + pageSize;
+      return `${startIndex + 1} - ${endIndex} de ${length}`;
+    };
+  }
+
+  setupColumnConfiguration(): void {
+    this.columnConfigs().forEach(col => {
+      this.columnForm.addControl(col.key, this.fb.control(col.visible));
+      this.columnForm.get(col.key)?.valueChanges.subscribe(visible => {
+        // Actualizar el signal con una nueva copia del array
+        const currentConfigs = this.columnConfigs();
+        const updatedConfigs = currentConfigs.map(config => 
+          config.key === col.key ? { ...config, visible } : config
+        );
+        this.columnConfigs.set(updatedConfigs);
+      });
     });
   }
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
-      console.log('USUARIO NO AUTENTICADO, REDIRIGIENDO A LOGIN...');
       this.router.navigate(['/login']);
       return;
     }
 
-    console.log('USUARIO AUTENTICADO:', this.authService.getCurrentUser());
-    console.log('TOKEN DISPONIBLE:', !!this.authService.getToken());
-
+    this.setupReactiveSearch();
     this.loadEmpresas();
     this.loadEstadisticas();
-    
-    // DEBUGGING: Cargar datos reales para análisis
-    this.debugearDatosReales();
   }
 
-  debugearDatosReales(): void {
-    console.log('🔍 === DEBUGGING DATOS REALES ===');
-    
-    // 1. Obtener todas las empresas
-    this.empresaService.getEmpresas(0, 100).subscribe({
-      next: (empresas) => {
-        console.log('🏢 EMPRESAS REALES:', empresas.length);
-        
-        // Buscar la empresa "ventuno"
-        const empresaVentuno = empresas.find(e => 
-          e.razonSocial.principal.toLowerCase().includes('ventuno') ||
-          e.ruc.includes('21012012312')
-        );
-        
-        if (empresaVentuno) {
-          console.log('🎯 EMPRESA VENTUNO ENCONTRADA:', empresaVentuno);
-          console.log('🔍 ID de empresa ventuno:', empresaVentuno.id);
-          console.log('🔍 RUC:', empresaVentuno.ruc);
-          console.log('🔍 Razón Social:', empresaVentuno.razonSocial.principal);
-          
-          // 2. Obtener resoluciones de esta empresa
-          this.resolucionService.getResoluciones(0, 100, undefined, empresaVentuno.id).subscribe({
-            next: (resoluciones: Resolucion[]) => {
-              console.log('📋 RESOLUCIONES DE VENTUNO:', resoluciones.length);
-              resoluciones.forEach((res: Resolucion, index: number) => {
-                console.log(`📋 Resolución ${index + 1}:`, {
-                  id: res.id,
-                  numero: res.nroResolucion,
-                  vehiculosIds: res.vehiculosHabilitadosIds
-                });
-              });
-              
-              // 3. Obtener TODOS los vehículos del sistema
-              this.vehiculoService.getVehiculos().subscribe({
-                next: (todosVehiculos: Vehiculo[]) => {
-                  console.log('🚗 TODOS LOS VEHÍCULOS DEL SISTEMA:', todosVehiculos.length);
-                  
-                  // Analizar vehículos relacionados con ventuno
-                  const vehiculosVentuno = todosVehiculos.filter((v: Vehiculo) => 
-                    v.empresaActualId === empresaVentuno.id
-                  );
-                  console.log('🎯 VEHÍCULOS POR empresaActualId:', vehiculosVentuno.length);
-                  
-                  // Analizar por resoluciones
-                  const resolucionesIds = resoluciones.map((r: Resolucion) => r.id);
-                  const vehiculosPorResolucion = todosVehiculos.filter((v: Vehiculo) => 
-                    v.resolucionId && resolucionesIds.includes(v.resolucionId)
-                  );
-                  console.log('🎯 VEHÍCULOS POR resolucionId:', vehiculosPorResolucion.length);
-                  
-                  // Mostrar algunos vehículos de ejemplo
-                  console.log('📊 MUESTRA DE VEHÍCULOS (primeros 5):');
-                  todosVehiculos.slice(0, 5).forEach((v: Vehiculo, index: number) => {
-                    console.log(`🚗 Vehículo ${index + 1}:`, {
-                      id: v.id,
-                      placa: v.placa,
-                      empresaActualId: v.empresaActualId,
-                      resolucionId: v.resolucionId
-                    });
-                  });
-                  
-                  // Buscar vehículos que contengan "ventuno" en algún campo
-                  const vehiculosConVentuno = todosVehiculos.filter((v: Vehiculo) => 
-                    JSON.stringify(v).toLowerCase().includes('ventuno')
-                  );
-                  console.log('🔍 VEHÍCULOS QUE CONTIENEN "ventuno":', vehiculosConVentuno.length);
-                  
-                  if (vehiculosConVentuno.length > 0) {
-                    console.log('🎯 VEHÍCULOS CON VENTUNO:', vehiculosConVentuno);
-                  }
-                }
-              });
-            }
-          });
-        } else {
-          console.log('❌ NO SE ENCONTRÓ LA EMPRESA VENTUNO');
-          console.log('🔍 Empresas disponibles:', empresas.map(e => ({
-            id: e.id,
-            ruc: e.ruc,
-            razonSocial: e.razonSocial.principal
-          })));
+  ngAfterViewInit(): void {
+    // Configurar paginador y sort después de que la vista esté inicializada
+    this.configurarDataSource();
+  }
+
+  private configurarDataSource(): void {
+    if (this.paginator && this.sort) {
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.sort = this.sort;
+      
+      // Configurar sorting personalizado para datos anidados
+      this.dataSource.sortingDataAccessor = (data: Empresa, sortHeaderId: string) => {
+        switch (sortHeaderId) {
+          case 'ruc':
+            return data.ruc;
+          case 'razonSocial':
+            // Remover comillas y normalizar para ordenamiento alfabético
+            return data.razonSocial.principal
+              .replace(/["""'']/g, '') // Remover comillas
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, ''); // Remover acentos
+          case 'estado':
+            return data.estado;
+          case 'direccion':
+            return data.direccionFiscal || '';
+          case 'tipoServicio':
+            return data.tipoServicio || '';
+          case 'representanteLegal':
+            return data.representanteLegal ? 
+              (data.representanteLegal.nombres + ' ' + data.representanteLegal.apellidos).toLowerCase() : '';
+          case 'rutas':
+            return data.rutasAutorizadasIds?.length || 0;
+          case 'vehiculos':
+            return data.vehiculosHabilitadosIds?.length || 0;
+          case 'conductores':
+            return data.conductoresHabilitadosIds?.length || 0;
+          case 'fechaRegistro':
+            return data.fechaRegistro;
+          default:
+            return (data as any)[sortHeaderId];
         }
-      }
+      };
+      
+      // Configurar filtro personalizado
+      this.dataSource.filterPredicate = (data: Empresa, filter: string) => {
+        const searchTerm = filter.toLowerCase();
+        return data.ruc.toLowerCase().includes(searchTerm) ||
+               data.razonSocial.principal.toLowerCase().includes(searchTerm) ||
+               data.estado.toLowerCase().includes(searchTerm);
+      };
+    }
+  }
+
+  setupReactiveSearch(): void {
+    this.searchForm.get('searchTerm')?.valueChanges.pipe(
+      startWith(''),
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(searchTerm => {
+      this.applyFilter(searchTerm);
     });
   }
 
-  recargarEmpresas(): void {
-    console.log('RECARGANDO EMPRESAS MANUALMENTE...');
-    this.loadEmpresas();
-    this.loadEstadisticas();
+  applyFilter(filterValue: string): void {
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+    
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
+  toggleColumnConfig(): void {
+    this.showColumnConfig.set(!this.showColumnConfig());
+  }
+
+  resetColumns(): void {
+    const defaultVisibleColumns = ['select', 'ruc', 'razonSocial', 'estado', 'tipoServicio', 'rutas', 'vehiculos', 'conductores', 'acciones'];
+    
+    const updatedConfigs = this.columnConfigs().map(col => ({
+      ...col,
+      visible: defaultVisibleColumns.includes(col.key)
+    }));
+    
+    this.columnConfigs.set(updatedConfigs);
+    
+    // Actualizar los controles del formulario
+    updatedConfigs.forEach(col => {
+      this.columnForm.get(col.key)?.setValue(col.visible);
+    });
   }
 
   loadEmpresas(): void {
     this.isLoading.set(true);
-    console.log('INICIANDO CARGA DE EMPRESAS...');
-
-    this.empresaService.getEmpresas(0, 100).subscribe({
+    this.empresaService.getEmpresas(0, 1000).subscribe({
       next: (empresas) => {
-        console.log('EMPRESAS CARGADAS EXITOSAMENTE:', empresas);
-        console.log('🔍 ESTRUCTURA DE LA PRIMERA EMPRESA:', empresas[0]);
-        console.log('🔍 PROPIEDADES DISPONIBLES:', Object.keys(empresas[0] || {}));
+        console.log('📊 Empresas cargadas:', empresas.length);
         
-        // Analizar específicamente las propiedades relacionadas con rutas y vehículos
-        if (empresas.length > 0) {
-          const empresa = empresas[0];
-          console.log('📊 ANÁLISIS DE PROPIEDADES:');
-          console.log('- rutasAutorizadasIds:', empresa.rutasAutorizadasIds);
-          console.log('- vehiculosHabilitadosIds:', empresa.vehiculosHabilitadosIds);
-          console.log('- conductoresHabilitadosIds:', empresa.conductoresHabilitadosIds);
-          console.log('- resolucionesPrimigeniasIds:', empresa.resolucionesPrimigeniasIds);
-          
-          // Buscar otras propiedades que puedan contener rutas o vehículos
-          Object.keys(empresa).forEach(key => {
-            if (key.toLowerCase().includes('ruta') || key.toLowerCase().includes('vehiculo')) {
-              console.log(`- ${key}:`, (empresa as any)[key]);
-            }
-          });
-        }
-        
+        this.empresasOriginales.set(empresas);
         this.empresas.set(empresas);
+        this.dataSource.data = empresas;
+        
+        // Reconfigurar el paginador después de cargar datos
+        setTimeout(() => {
+          this.configurarDataSource();
+          console.log('✅ Paginador configurado:', {
+            paginator: !!this.paginator,
+            sort: !!this.sort,
+            dataLength: this.dataSource.data.length,
+            paginatorConnected: !!this.dataSource.paginator
+          });
+        }, 0);
+        
         this.isLoading.set(false);
       },
       error: (error) => {
@@ -259,33 +323,136 @@ export class EmpresasComponent implements OnInit {
     });
   }
 
-  aplicarFiltros(): void {
-    const filtros = this.filtrosForm.value;
-    console.log('APLICANDO FILTROS:', filtros);
+  recargarEmpresas(): void {
+    this.loadEmpresas();
+    this.loadEstadisticas();
+  }
 
-    this.isLoading.set(true);
-    this.empresaService.getEmpresasConFiltros(filtros).subscribe({
-      next: (empresas) => {
-        this.empresas.set(empresas);
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('ERROR APLICANDO FILTROS:', error);
-        this.isLoading.set(false);
-        this.snackBar.open('ERROR AL APLICAR FILTROS', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
+  clearSearch(): void {
+    this.searchForm.get('searchTerm')?.setValue('');
+  }
+
+  // Métodos para filtros avanzados
+  abrirFiltrosAvanzados(): void {
+    const dialogRef = this.dialog.open(FiltrosAvanzadosModalComponent, {
+      width: '600px',
+      maxHeight: '90vh',
+      data: this.filtrosActivos()
+    });
+
+    dialogRef.afterClosed().subscribe((filtros: FiltrosAvanzados) => {
+      if (filtros) {
+        this.aplicarFiltrosAvanzados(filtros);
       }
     });
   }
 
-  limpiarFiltros(): void {
-    this.filtrosForm.reset();
-    this.loadEmpresas();
+  aplicarFiltrosAvanzados(filtros: FiltrosAvanzados): void {
+    this.filtrosActivos.set(filtros);
+    
+    let empresasFiltradas = [...this.empresasOriginales()];
+
+    // Filtrar por estado
+    if (filtros.estado && filtros.estado.length > 0) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        filtros.estado!.includes(empresa.estado)
+      );
+    }
+
+    // Filtrar por cantidad de rutas
+    if (filtros.rutasMinimas !== null && filtros.rutasMinimas !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.rutasAutorizadasIds?.length || 0) >= filtros.rutasMinimas!
+      );
+    }
+    if (filtros.rutasMaximas !== null && filtros.rutasMaximas !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.rutasAutorizadasIds?.length || 0) <= filtros.rutasMaximas!
+      );
+    }
+
+    // Filtrar por cantidad de vehículos
+    if (filtros.vehiculosMinimos !== null && filtros.vehiculosMinimos !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.vehiculosHabilitadosIds?.length || 0) >= filtros.vehiculosMinimos!
+      );
+    }
+    if (filtros.vehiculosMaximos !== null && filtros.vehiculosMaximos !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.vehiculosHabilitadosIds?.length || 0) <= filtros.vehiculosMaximos!
+      );
+    }
+
+    // Filtrar por cantidad de conductores
+    if (filtros.conductoresMinimos !== null && filtros.conductoresMinimos !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.conductoresHabilitadosIds?.length || 0) >= filtros.conductoresMinimos!
+      );
+    }
+    if (filtros.conductoresMaximos !== null && filtros.conductoresMaximos !== undefined) {
+      empresasFiltradas = empresasFiltradas.filter(empresa => 
+        (empresa.conductoresHabilitadosIds?.length || 0) <= filtros.conductoresMaximos!
+      );
+    }
+
+    // Actualizar datos
+    this.empresas.set(empresasFiltradas);
+    this.dataSource.data = empresasFiltradas;
+
+    // Reconfigurar paginador
+    setTimeout(() => {
+      this.configurarDataSource();
+      if (this.paginator) {
+        this.paginator.firstPage();
+      }
+    }, 0);
+
+    this.snackBar.open(`Filtros aplicados: ${empresasFiltradas.length} empresas encontradas`, 'Cerrar', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
   }
 
+  limpiarFiltrosAvanzados(): void {
+    this.filtrosActivos.set(null);
+    this.empresas.set([...this.empresasOriginales()]);
+    this.dataSource.data = this.empresasOriginales();
+
+    // Reconfigurar paginador
+    setTimeout(() => {
+      this.configurarDataSource();
+      if (this.paginator) {
+        this.paginator.firstPage();
+      }
+    }, 0);
+
+    this.snackBar.open('Filtros limpiados', 'Cerrar', {
+      duration: 2000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
+    });
+  }
+
+  tienesFiltrosActivos(): boolean {
+    const filtros = this.filtrosActivos();
+    if (!filtros) return false;
+    
+    return !!(
+      (filtros.estado && filtros.estado.length > 0) ||
+      (filtros.tipoServicio && filtros.tipoServicio.length > 0) ||
+      filtros.rutaOrigen ||
+      filtros.rutaDestino ||
+      filtros.rutasMinimas !== null ||
+      filtros.rutasMaximas !== null ||
+      filtros.vehiculosMinimos !== null ||
+      filtros.vehiculosMaximos !== null ||
+      filtros.conductoresMinimos !== null ||
+      filtros.conductoresMaximos !== null
+    );
+  }
+
+  // Métodos básicos de navegación
   verEmpresa(id: string): void {
     this.router.navigate(['/empresas', id]);
   }
@@ -298,119 +465,152 @@ export class EmpresasComponent implements OnInit {
     this.router.navigate(['/empresas/nueva']);
   }
 
+  // Métodos requeridos por el template
   cargaMasivaEmpresas(): void {
     this.router.navigate(['/empresas/carga-masiva']);
   }
 
-  nuevoVehiculo(empresaId: string): void {
-    this.vehiculoModalService.openCreateForEmpresa(empresaId).subscribe({
-      next: (vehiculo) => {
-        console.log('✅ Vehículo creado para empresa:', vehiculo);
-        this.snackBar.open('Vehículo creado correctamente', 'Cerrar', { duration: 3000 });
-        // Recargar datos de la empresa para mostrar el nuevo vehículo
-        this.loadEmpresas();
-        this.loadEstadisticas();
-      },
-      error: (error) => {
-        console.error('❌ Error al crear vehículo:', error);
-        this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
-      }
-    });
+  crearResolucion(): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
   }
 
-  gestionarVehiculos(empresaId: string): void {
-    this.router.navigate(['/empresas', empresaId, 'vehiculos', 'batch']);
-  }
-
-  gestionarConductores(empresaId: string): void {
-    // TODO: Implementar gestión de conductores
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top'
-    });
-  }
-
-  verResoluciones(empresaId: string): void {
-    // TODO: Implementar vista de resoluciones
-    this.snackBar.open('FUNCIÓN EN DESARROLLO', 'CERRAR', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top'
-    });
-  }
-
-  eliminarEmpresa(id: string): void {
-    if (confirm('¿ESTÁ SEGURO DE QUE DESEA ELIMINAR ESTA EMPRESA? ESTA ACCIÓN NO SE PUEDE DESHACER.')) {
-      this.empresaService.deleteEmpresa(id).subscribe({
-        next: () => {
-          this.snackBar.open('EMPRESA ELIMINADA EXITOSAMENTE', 'CERRAR', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
-          this.loadEmpresas();
-          this.loadEstadisticas();
-        },
-        error: (error) => {
-          console.error('ERROR ELIMINANDO EMPRESA:', error);
-          this.snackBar.open('ERROR AL ELIMINAR LA EMPRESA', 'CERRAR', {
-            duration: 3000,
-            horizontalPosition: 'center',
-            verticalPosition: 'top'
-          });
-        }
-      });
-    }
-  }
-
-  exportarEmpresas(): void {
-    this.empresaService.exportarEmpresas('excel').subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'empresas.xlsx';
-        a.click();
-        window.URL.revokeObjectURL(url);
-
-        this.snackBar.open('ARCHIVO EXPORTADO EXITOSAMENTE', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-      },
-      error: (error) => {
-        console.error('ERROR EXPORTANDO EMPRESAS:', error);
-        this.snackBar.open('ERROR AL EXPORTAR EMPRESAS', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-      }
-    });
+  crearRutaGeneral(): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
   }
 
   dashboardEmpresas(): void {
     this.router.navigate(['/empresas/dashboard']);
   }
 
-  gestionarDocumentos(empresa: Empresa): void {
-    const dialogRef = this.dialog.open(GestionDocumentosModalComponent, {
-      width: '800px',
-      data: {
-        empresaId: empresa.id,
-        empresaRuc: empresa.ruc,
-        empresaRazonSocial: empresa.razonSocial.principal,
-        documentos: empresa.documentos
-      }
+  // Métodos para selección múltiple
+  toggleAllSelection(): void {
+    if (this.isAllSelected()) {
+      this.selectedEmpresas.set(new Set());
+    } else {
+      const allIds = new Set(this.dataSource.filteredData.map(empresa => empresa.id));
+      this.selectedEmpresas.set(allIds);
+    }
+  }
+
+  toggleEmpresaSelection(empresaId: string): void {
+    const currentSelection = new Set(this.selectedEmpresas());
+    if (currentSelection.has(empresaId)) {
+      currentSelection.delete(empresaId);
+    } else {
+      currentSelection.add(empresaId);
+    }
+    this.selectedEmpresas.set(currentSelection);
+  }
+
+  isEmpresaSelected(empresaId: string): boolean {
+    return this.selectedEmpresas().has(empresaId);
+  }
+
+  clearSelection(): void {
+    this.selectedEmpresas.set(new Set());
+  }
+
+  exportarEmpresas(): void {
+    const selectedIds = Array.from(this.selectedEmpresas());
+    const hasSelection = selectedIds.length > 0;
+    const hasFilters = this.tienesFiltrosActivos() || this.searchForm.get('searchTerm')?.value;
+    
+    // Determinar qué empresas exportar
+    let empresasAExportar: Empresa[] = [];
+    let tipoExportacion = '';
+    
+    if (hasSelection) {
+      // Exportar solo las seleccionadas
+      empresasAExportar = this.dataSource.filteredData.filter(empresa => 
+        selectedIds.includes(empresa.id)
+      );
+      tipoExportacion = `${selectedIds.length} empresas seleccionadas`;
+    } else if (hasFilters) {
+      // Exportar las filtradas
+      empresasAExportar = this.dataSource.filteredData;
+      tipoExportacion = `${this.dataSource.filteredData.length} empresas filtradas`;
+    } else {
+      // Exportar todas
+      empresasAExportar = this.dataSource.data;
+      tipoExportacion = `${this.dataSource.data.length} empresas (todas)`;
+    }
+    
+    if (empresasAExportar.length === 0) {
+      this.snackBar.open('No hay empresas para exportar', 'Cerrar', { 
+        duration: 3000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+      return;
+    }
+    
+    // Confirmar exportación
+    const mensaje = `¿Desea exportar ${tipoExportacion} a Excel?`;
+    if (confirm(mensaje)) {
+      this.realizarExportacion(empresasAExportar, tipoExportacion);
+    }
+  }
+
+  private realizarExportacion(empresas: Empresa[], tipoExportacion: string): void {
+    this.snackBar.open(`Preparando exportación de ${tipoExportacion}...`, '', { 
+      duration: 2000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('Documentos actualizados:', result);
-        this.snackBar.open('DOCUMENTOS ACTUALIZADOS EXITOSAMENTE', 'CERRAR', {
-          duration: 3000,
+    // Determinar si hay empresas seleccionadas
+    const selectedIds = Array.from(this.selectedEmpresas());
+    const empresasSeleccionadas = selectedIds.length > 0 ? selectedIds : undefined;
+    
+    // Obtener columnas visibles (excluyendo 'select' y 'acciones' que no son datos)
+    const columnasVisibles = this.displayedColumns().filter(col => 
+      col !== 'select' && col !== 'acciones'
+    );
+
+    // Llamar al servicio de exportación
+    this.empresaService.exportarEmpresas('excel', empresasSeleccionadas, columnasVisibles).subscribe({
+      next: (blob) => {
+        console.log('✅ Blob recibido:', blob);
+        
+        // Verificar que el blob sea válido
+        if (blob && blob.size > 0) {
+          const nombreArchivo = `empresas_${this.generarNombreArchivo()}.xlsx`;
+          this.descargarArchivo(blob, nombreArchivo);
+          
+          this.snackBar.open(`✅ ${tipoExportacion} exportadas exitosamente`, 'Cerrar', { 
+            duration: 4000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top'
+          });
+          
+          // Limpiar selección después de exportar
+          if (this.selectedEmpresas().size > 0) {
+            this.clearSelection();
+          }
+        } else {
+          console.error('❌ Blob vacío o inválido');
+          this.snackBar.open('❌ Error: archivo vacío recibido del servidor', 'Cerrar', { 
+            duration: 4000,
+            horizontalPosition: 'center',
+            verticalPosition: 'top'
+          });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error exportando empresas:', error);
+        
+        // Mostrar información detallada del error
+        let mensajeError = 'Error al exportar empresas';
+        if (error.status === 404) {
+          mensajeError = 'Endpoint de exportación no encontrado';
+        } else if (error.status === 500) {
+          mensajeError = 'Error interno del servidor';
+        } else if (error.status === 0) {
+          mensajeError = 'No se puede conectar con el servidor';
+        }
+        
+        this.snackBar.open(`❌ ${mensajeError}`, 'Cerrar', { 
+          duration: 4000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
@@ -418,123 +618,72 @@ export class EmpresasComponent implements OnInit {
     });
   }
 
-  verHistorialAuditoria(empresa: Empresa): void {
-    const dialogRef = this.dialog.open(HistorialAuditoriaModalComponent, {
-      width: '900px',
-      data: {
-        empresaId: empresa.id,
-        empresaRuc: empresa.ruc,
-        empresaRazonSocial: empresa.razonSocial.principal,
-        auditoria: empresa.auditoria
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('Auditoría exportada:', result);
-      }
-    });
+  private generarNombreArchivo(): string {
+    const fecha = new Date();
+    const fechaStr = fecha.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaStr = fecha.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    return `${fechaStr}_${horaStr}`;
   }
 
-  validarConSunat(empresa: Empresa): void {
-    const dialogRef = this.dialog.open(ValidacionSunatModalComponent, {
-      width: '600px',
-      data: {
-        ruc: empresa.ruc,
-        razonSocial: empresa.razonSocial.principal
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('Validación SUNAT:', result);
-        this.snackBar.open('VALIDACIÓN SUNAT COMPLETADA', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-      }
-    });
-  }
-
-  crearRuta(empresa: Empresa): void {
-    const dialogRef = this.dialog.open(CrearRutaModalComponent, {
-      width: '900px',
-      maxHeight: '90vh',
-      data: {
-        empresa: empresa // Pre-cargar la empresa seleccionada
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('RUTA CREADA:', result);
-        this.snackBar.open('RUTA CREADA EXITOSAMENTE', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-        // Aquí podrías recargar las rutas si es necesario
-      }
-    });
-  }
-
-  crearRutaGeneral(): void {
-    const dialogRef = this.dialog.open(CrearRutaModalComponent, {
-      width: '900px',
-      maxHeight: '90vh',
-      data: {} // Los datos se seleccionarán en el modal
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('RUTA CREADA:', result);
-        this.snackBar.open('RUTA CREADA EXITOSAMENTE', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-        // Aquí podrías recargar las rutas si es necesario
-      }
-    });
-  }
-
-  crearResolucion(): void {
-    const dialogRef = this.dialog.open(CrearResolucionModalComponent, {
-      width: '700px',
-      data: { empresaId: null } // SE SELECCIONARÁ LA EMPRESA EN EL MODAL
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('RESOLUCIÓN CREADA:', result);
-        this.snackBar.open('RESOLUCIÓN CREADA EXITOSAMENTE', 'CERRAR', {
-          duration: 3000,
-          horizontalPosition: 'center',
-          verticalPosition: 'top'
-        });
-        // AQUÍ PODRÍAS RECARGAR LAS RESOLUCIONES SI ES NECESARIO
-      }
-    });
+  private descargarArchivo(blob: Blob, nombreArchivo: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 
   verRutasEmpresa(empresa: Empresa): void {
-    console.log('🔍 Abriendo modal de rutas por resolución para empresa:', empresa.ruc);
-    
-    const dialogRef = this.dialog.open(RutasPorResolucionModalComponent, {
-      width: '95vw',
-      maxWidth: '1400px',
-      height: '90vh',
-      maxHeight: '900px',
-      data: { empresa },
-      disableClose: false,
-      panelClass: 'rutas-resolucion-modal'
-    });
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        console.log('Modal cerrado con resultado:', result);
-      }
-    });
+  gestionarVehiculos(empresaId: string): void {
+    this.router.navigate(['/empresas', empresaId, 'vehiculos', 'batch']);
+  }
+
+  nuevoVehiculo(empresaId: string): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  gestionarConductores(empresaId: string): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  verResoluciones(empresaId: string): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  gestionarDocumentos(empresa: Empresa): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  verHistorialAuditoria(empresa: Empresa): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  validarConSunat(empresa: Empresa): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  crearRuta(empresa: Empresa): void {
+    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+  }
+
+  eliminarEmpresa(id: string): void {
+    if (confirm('¿Está seguro de que desea eliminar esta empresa?')) {
+      this.empresaService.deleteEmpresa(id).subscribe({
+        next: () => {
+          this.snackBar.open('Empresa eliminada exitosamente', 'Cerrar', { duration: 3000 });
+          this.recargarEmpresas();
+        },
+        error: (error) => {
+          console.error('Error eliminando empresa:', error);
+          this.snackBar.open('Error al eliminar empresa', 'Cerrar', { duration: 3000 });
+        }
+      });
+    }
   }
 }

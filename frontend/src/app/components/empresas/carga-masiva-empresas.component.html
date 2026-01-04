@@ -1,264 +1,233 @@
 <div class="carga-masiva-container">
-  <!-- Header -->
-  <div class="header-section">
-    <h2>🏢 Carga Masiva de Empresas</h2>
-    <p class="subtitle">Importa múltiples empresas desde un archivo Excel</p>
-  </div>
-
-  <!-- Área de mensajes -->
-  <div *ngIf="mostrarMensajeFlag" [class]="obtenerClaseMensaje()" class="alert-dismissible fade show">
-    {{ mensaje }}
-    <button type="button" class="btn-close" (click)="ocultarMensaje()"></button>
-  </div>
-
-  <!-- Sección de Plantilla -->
-  <div class="card plantilla-section">
-    <div class="card-header">
-      <h3>📋 Plantilla Excel</h3>
-    </div>
-    <div class="card-body">
-      <p>Descarga la plantilla Excel con el formato correcto para cargar empresas:</p>
-      <button 
-        class="btn btn-outline-primary"
-        (click)="descargarPlantilla()"
-        [disabled]="cargando">
-        <span *ngIf="cargando" class="spinner-border spinner-border-sm me-2"></span>
-        📥 Descargar Plantilla
-      </button>
+  <!-- Header Compacto -->
+  <div class="header-compact">
+    <div class="header-content">
+      <i class="fas fa-building"></i>
+      <div>
+        <h2>Carga Masiva de Empresas</h2>
+        <p>Importa múltiples empresas desde Excel</p>
+      </div>
     </div>
   </div>
 
-  <!-- Sección de Carga -->
-  <div class="card upload-section">
-    <div class="card-header">
-      <h3>📤 Cargar Archivo</h3>
-    </div>
-    <div class="card-body">
+  <!-- Mensajes -->
+  <div *ngIf="mostrarMensajeFlag" class="alert-modern" [ngClass]="'alert-' + tipoMensaje">
+    <i [ngClass]="{
+      'fas fa-check-circle': tipoMensaje === 'success',
+      'fas fa-exclamation-triangle': tipoMensaje === 'warning',
+      'fas fa-times-circle': tipoMensaje === 'error',
+      'fas fa-info-circle': tipoMensaje === 'info'
+    }"></i>
+    <span [innerHTML]="mensaje"></span>
+    <button (click)="ocultarMensaje()"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Sección Principal -->
+  <div class="main-section">
+    
+    <!-- Plantilla y Upload en una sola card -->
+    <div class="upload-card">
+      <div class="card-header">
+        <h3><i class="fas fa-cloud-upload-alt"></i> Cargar Archivo</h3>
+        <button class="btn-download" (click)="descargarPlantilla()" [disabled]="cargando">
+          <i *ngIf="!cargando" class="fas fa-download"></i>
+          <span *ngIf="cargando" class="spinner"></span>
+          Plantilla
+        </button>
+      </div>
       
-      <!-- Selector de archivo -->
-      <div class="mb-3">
-        <label for="archivoInput" class="form-label">Seleccionar archivo Excel:</label>
-        <input 
-          type="file" 
-          class="form-control" 
-          id="archivoInput"
-          accept=".xlsx,.xls"
-          (change)="onArchivoSeleccionado($event)">
-        <div class="form-text">Formatos soportados: .xlsx, .xls</div>
-      </div>
-
-      <!-- Opciones de procesamiento -->
-      <div class="mb-3">
-        <label class="form-label">Modo de operación:</label>
-        <div class="form-check">
-          <input 
-            class="form-check-input" 
-            type="radio" 
-            name="modoOperacion" 
-            id="soloValidar"
-            [value]="true"
-            [checked]="soloValidar === true"
-            (change)="soloValidar = true">
-          <label class="form-check-label" for="soloValidar">
-            🔍 Solo validar (no crear empresas)
-          </label>
-        </div>
-        <div class="form-check">
-          <input 
-            class="form-check-input" 
-            type="radio" 
-            name="modoOperacion" 
-            id="procesarCompleto"
-            [value]="false"
-            [checked]="soloValidar === false"
-            (change)="soloValidar = false">
-          <label class="form-check-label" for="procesarCompleto">
-            ✅ Validar y crear empresas
-          </label>
-        </div>
-      </div>
-
-      <!-- Botones de acción -->
-      <div class="d-flex gap-2 flex-wrap">
-        <button 
-          class="btn btn-primary"
-          (click)="procesarArchivo()"
-          [disabled]="!archivoSeleccionado || cargando">
-          <span *ngIf="cargando" class="spinner-border spinner-border-sm me-2" role="status"></span>
-          <span *ngIf="cargando">{{ soloValidar ? 'Validando...' : 'Procesando...' }}</span>
-          <span *ngIf="!cargando">{{ soloValidar ? '🔍 Validar Archivo' : '🚀 Procesar Archivo' }}</span>
-        </button>
-        
-        <button 
-          class="btn btn-secondary"
-          (click)="reiniciar()"
-          [disabled]="cargando">
-          🔄 Reiniciar
-        </button>
-      </div>
-
-      <!-- Información del archivo seleccionado -->
-      <div *ngIf="archivoSeleccionado" class="mt-3 p-3 bg-light rounded border">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <i class="fas fa-file-excel text-success" style="font-size: 2rem;"></i>
-          </div>
-          <div class="flex-grow-1">
-            <div class="fw-bold">{{ archivoSeleccionado.name }}</div>
-            <div class="text-muted small">
-              Tamaño: {{ (archivoSeleccionado.size / 1024).toFixed(2) }} KB
-              <span class="ms-2">•</span>
-              Tipo: {{ archivoSeleccionado.type || 'Excel' }}
+      <div class="card-content">
+        <!-- Upload Area Compacta -->
+        <div class="upload-zone" 
+             [class.has-file]="archivoSeleccionado" 
+             [class.dragover]="isDragOver"
+             (click)="fileInput.click()"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)">
+          <input #fileInput 
+                 type="file" 
+                 accept=".xlsx,.xls" 
+                 (change)="onArchivoSeleccionado($event)" 
+                 hidden>
+          
+          <div *ngIf="!archivoSeleccionado" class="upload-empty">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <div>
+              <strong>Arrastra o selecciona tu archivo Excel</strong>
+              <small>Formatos: .xlsx, .xls (máx. 10MB)</small>
             </div>
           </div>
-          <div>
-            <span class="badge bg-success">✓ Listo</span>
+
+          <div *ngIf="archivoSeleccionado" class="upload-filled">
+            <i class="fas fa-file-excel"></i>
+            <div class="file-info">
+              <strong>{{ archivoSeleccionado.name }}</strong>
+              <small>{{ (archivoSeleccionado.size / 1024).toFixed(2) }} KB</small>
+            </div>
+            <button class="btn-remove" (click)="reiniciar(); $event.stopPropagation()">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opciones Compactas -->
+        <div class="options-row">
+          <div class="radio-group">
+            <label class="radio-option" [class.active]="soloValidar" (click)="soloValidar = true">
+              <input type="radio" name="modoOperacion" [value]="true" [checked]="soloValidar">
+              <i class="fas fa-search"></i>
+              <span>Solo Validar</span>
+            </label>
+            <label class="radio-option" [class.active]="!soloValidar" (click)="soloValidar = false">
+              <input type="radio" name="modoOperacion" [value]="false" [checked]="!soloValidar">
+              <i class="fas fa-rocket"></i>
+              <span>Validar y Crear</span>
+            </label>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="btn-secondary" (click)="reiniciar()" [disabled]="cargando">
+              <i class="fas fa-redo"></i> Limpiar
+            </button>
+            <button class="btn-primary" (click)="procesarArchivo()" 
+                    [disabled]="!archivoSeleccionado || cargando">
+              <span *ngIf="cargando" class="spinner"></span>
+              <i *ngIf="!cargando" [class]="soloValidar ? 'fas fa-search' : 'fas fa-rocket'"></i>
+              {{ cargando ? 'Procesando...' : (soloValidar ? 'Validar' : 'Procesar') }}
+            </button>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Resultados -->
-  <div *ngIf="mostrarResultados && resultado" class="card results-section">
-    <div class="card-header">
-      <h3>📊 Resultados del Procesamiento</h3>
-    </div>
-    <div class="card-body">
+    <!-- Resultados Compactos -->
+    <div *ngIf="mostrarResultados && resultado" class="results-card">
+      <div class="card-header">
+        <h3><i class="fas fa-chart-bar"></i> Resultados</h3>
+      </div>
       
-      <!-- Resumen general -->
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="stat-card text-center p-3 border rounded">
-            <div class="stat-number">{{ totalFilas }}</div>
-            <div class="stat-label">Total Filas</div>
+      <div class="card-content">
+        <!-- Stats Compactas -->
+        <div class="stats-row">
+          <div class="stat-item total">
+            <i class="fas fa-list"></i>
+            <div>
+              <strong>{{ totalFilas }}</strong>
+              <span>Total</span>
+            </div>
+          </div>
+          <div class="stat-item valid" [class.active]="validos > 0">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>{{ validos }}</strong>
+              <span>Válidos</span>
+            </div>
+          </div>
+          <div class="stat-item invalid" [class.active]="invalidos > 0">
+            <i class="fas fa-times-circle"></i>
+            <div>
+              <strong>{{ invalidos }}</strong>
+              <span>Errores</span>
+            </div>
+          </div>
+          <div class="stat-item warning" [class.active]="conAdvertencias > 0">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+              <strong>{{ conAdvertencias }}</strong>
+              <span>Advertencias</span>
+            </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card text-center p-3 border rounded bg-success text-white">
-            <div class="stat-number">{{ validos }}</div>
-            <div class="stat-label">Válidos</div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+          <div class="progress-info">
+            <span>Éxito: {{ obtenerPorcentajeValidos() }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" 
+                 [style.width.%]="obtenerPorcentajeValidos()"
+                 [ngClass]="'fill-' + obtenerClaseEstado(validos, invalidos)">
+            </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card text-center p-3 border rounded bg-danger text-white">
-            <div class="stat-number">{{ invalidos }}</div>
-            <div class="stat-label">Inválidos</div>
+
+        <!-- Empresas Creadas (Compacto) -->
+        <div *ngIf="tieneEmpresasCreadas" class="section-compact">
+          <div class="section-header" (click)="mostrarEmpresasCreadas = !mostrarEmpresasCreadas">
+            <span><i class="fas fa-plus-circle"></i> Empresas Creadas ({{ resultadoProcesamiento?.empresas_creadas?.length }})</span>
+            <i [class]="mostrarEmpresasCreadas ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </div>
+          <div *ngIf="mostrarEmpresasCreadas" class="section-content">
+            <div class="companies-list">
+              <div *ngFor="let empresa of resultadoProcesamiento?.empresas_creadas" class="company-item">
+                <div class="company-code">{{ empresa.codigo_empresa }}</div>
+                <div class="company-details">
+                  <strong>{{ empresa.razon_social }}</strong>
+                  <small>RUC: {{ empresa.ruc }}</small>
+                </div>
+                <span class="badge success">{{ empresa.estado }}</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card text-center p-3 border rounded bg-warning text-white">
-            <div class="stat-number">{{ conAdvertencias }}</div>
-            <div class="stat-label">Con Advertencias</div>
+
+        <!-- Errores (Compacto) -->
+        <div *ngIf="tieneErrores" class="section-compact error-section">
+          <div class="section-header" (click)="mostrarErrores = !mostrarErrores">
+            <span><i class="fas fa-times-circle"></i> Errores ({{ errores.length }})</span>
+            <i [class]="mostrarErrores ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </div>
+          <div *ngIf="mostrarErrores" class="section-content">
+            <div class="errors-list">
+              <div *ngFor="let error of errores" class="error-item">
+                <div class="error-header">
+                  <span class="error-location">Fila {{ error.fila }} - {{ error.codigo_empresa }}</span>
+                </div>
+                <div class="error-messages">
+                  <div *ngFor="let mensaje of error.errores" class="error-msg">
+                    <i class="fas fa-chevron-right"></i>{{ mensaje }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advertencias (Compacto) -->
+        <div *ngIf="tieneAdvertencias" class="section-compact warning-section">
+          <div class="section-header" (click)="mostrarAdvertencias = !mostrarAdvertencias">
+            <span><i class="fas fa-exclamation-triangle"></i> Advertencias ({{ advertencias.length }})</span>
+            <i [class]="mostrarAdvertencias ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+          </div>
+          <div *ngIf="mostrarAdvertencias" class="section-content">
+            <div class="warnings-list">
+              <div *ngFor="let advertencia of advertencias" class="warning-item">
+                <div class="warning-header">
+                  <span class="warning-location">Fila {{ advertencia.fila }} - {{ advertencia.codigo_empresa }}</span>
+                </div>
+                <div class="warning-messages">
+                  <div *ngFor="let mensaje of advertencia.advertencias" class="warning-msg">
+                    <i class="fas fa-chevron-right"></i>{{ mensaje }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje de Éxito -->
+        <div *ngIf="validos > 0 && invalidos === 0" class="success-banner">
+          <i class="fas fa-check-circle"></i>
+          <div>
+            <strong>¡Procesamiento Exitoso!</strong>
+            <p *ngIf="soloValidar">{{ validos }} empresas válidas listas para procesar.</p>
+            <p *ngIf="!soloValidar">{{ resultadoProcesamiento?.total_creadas || 0 }} empresas creadas exitosamente.</p>
           </div>
         </div>
       </div>
-
-      <!-- Barra de progreso -->
-      <div class="mb-4">
-        <div class="d-flex justify-content-between mb-1">
-          <span>Porcentaje de éxito</span>
-          <span>{{ obtenerPorcentajeValidos() }}%</span>
-        </div>
-        <div class="progress">
-          <div 
-            class="progress-bar"
-            [class]="'bg-' + obtenerClaseEstado(validos, invalidos)"
-            [style.width.%]="obtenerPorcentajeValidos()">
-          </div>
-        </div>
-      </div>
-
-      <!-- Empresas creadas (solo en modo procesamiento) -->
-      <div *ngIf="tieneEmpresasCreadas" class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">✅ Empresas Creadas ({{ resultadoProcesamiento?.empresas_creadas?.length || 0 }})</h5>
-          <button 
-            class="btn btn-sm btn-outline-secondary"
-            (click)="mostrarEmpresasCreadas = !mostrarEmpresasCreadas">
-            {{ mostrarEmpresasCreadas ? 'Ocultar' : 'Mostrar' }}
-          </button>
-        </div>
-        
-        <div *ngIf="mostrarEmpresasCreadas" class="table-responsive">
-          <table class="table table-sm table-striped">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>RUC</th>
-                <th>Razón Social</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let empresa of resultadoProcesamiento?.empresas_creadas">
-                <td><code>{{ empresa.codigo_empresa }}</code></td>
-                <td>{{ empresa.ruc }}</td>
-                <td>{{ empresa.razon_social }}</td>
-                <td>
-                  <span class="badge bg-success">{{ empresa.estado }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Errores -->
-      <div *ngIf="tieneErrores" class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0 text-danger">❌ Errores ({{ errores.length }})</h5>
-          <button 
-            class="btn btn-sm btn-outline-secondary"
-            (click)="mostrarErrores = !mostrarErrores">
-            {{ mostrarErrores ? 'Ocultar' : 'Mostrar' }}
-          </button>
-        </div>
-        
-        <div *ngIf="mostrarErrores" class="error-list">
-          <div *ngFor="let error of errores" class="alert alert-danger">
-            <strong>Fila {{ error.fila }} - Código: {{ error.codigo_empresa }}</strong>
-            <ul class="mb-0 mt-2">
-              <li *ngFor="let mensaje of error.errores">{{ mensaje }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Advertencias -->
-      <div *ngIf="tieneAdvertencias" class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0 text-warning">⚠️ Advertencias ({{ advertencias.length }})</h5>
-          <button 
-            class="btn btn-sm btn-outline-secondary"
-            (click)="mostrarAdvertencias = !mostrarAdvertencias">
-            {{ mostrarAdvertencias ? 'Ocultar' : 'Mostrar' }}
-          </button>
-        </div>
-        
-        <div *ngIf="mostrarAdvertencias" class="warning-list">
-          <div *ngFor="let advertencia of advertencias" class="alert alert-warning">
-            <strong>Fila {{ advertencia.fila }} - Código: {{ advertencia.codigo_empresa }}</strong>
-            <ul class="mb-0 mt-2">
-              <li *ngFor="let mensaje of advertencia.advertencias">{{ mensaje }}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mensaje de éxito -->
-      <div *ngIf="validos > 0 && invalidos === 0" class="alert alert-success">
-        <strong>🎉 ¡Procesamiento exitoso!</strong>
-        <br>
-        <span *ngIf="soloValidar">
-          Todas las {{ validos }} empresas son válidas y están listas para ser procesadas.
-        </span>
-        <span *ngIf="!soloValidar && esResultadoProcesamiento">
-          Se crearon {{ resultadoProcesamiento?.total_creadas || 0 }} empresas exitosamente.
-        </span>
-      </div>
-
     </div>
-  </div>
 
+  </div>
 </div>

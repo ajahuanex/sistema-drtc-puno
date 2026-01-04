@@ -111,18 +111,34 @@ async def get_empresas_con_filtros(
 ) -> List[EmpresaResponse]:
     """Obtener empresas con filtros avanzados"""
     
-    # Construir filtros
-    filtros = {}
-    if estado:
-        filtros['estado'] = estado
-    if ruc:
-        filtros['ruc'] = ruc
-    if razon_social:
-        filtros['razon_social'] = razon_social
+    # Crear objeto EmpresaFiltros
+    from app.models.empresa import EmpresaFiltros
+    from datetime import datetime
+    
+    # Convertir fechas si se proporcionan
+    fecha_desde_dt = None
+    fecha_hasta_dt = None
+    
     if fecha_desde:
-        filtros['fecha_desde'] = fecha_desde
+        try:
+            fecha_desde_dt = datetime.fromisoformat(fecha_desde.replace('Z', '+00:00'))
+        except:
+            pass
+    
     if fecha_hasta:
-        filtros['fecha_hasta'] = fecha_hasta
+        try:
+            fecha_hasta_dt = datetime.fromisoformat(fecha_hasta.replace('Z', '+00:00'))
+        except:
+            pass
+    
+    # Crear filtros
+    filtros = EmpresaFiltros(
+        ruc=ruc,
+        razonSocial=razon_social,
+        estado=estado,
+        fechaDesde=fecha_desde_dt,
+        fechaHasta=fecha_hasta_dt
+    )
     
     empresas = await empresa_service.get_empresas_con_filtros(filtros)
     empresas = empresas[skip:skip + limit]
@@ -440,26 +456,75 @@ async def get_rutas_empresa(
 async def exportar_empresas(
     formato: str,
     estado: Optional[str] = Query(None),
+    empresas_seleccionadas: Optional[str] = Query(None, description="IDs de empresas seleccionadas separados por coma"),
+    columnas_visibles: Optional[str] = Query(None, description="Columnas visibles separadas por coma"),
     empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
     """Exportar empresas en diferentes formatos"""
     if formato not in ['pdf', 'excel', 'csv']:
         raise HTTPException(status_code=400, detail="Formato no soportado")
     
-    # Obtener empresas según filtros (sin paginación para exportar todas)
-    if estado:
-        empresas = await empresa_service.get_empresas_por_estado(estado, 0, 10000)
-    else:
-        empresas = await empresa_service.get_empresas_activas(0, 10000)
-    
-    # Simular exportación
-    if formato == 'excel':
-        # Aquí iría la lógica real de exportación a Excel
-        return {"message": f"Exportando {len(empresas)} empresas a Excel"}
-    elif formato == 'pdf':
-        return {"message": f"Exportando {len(empresas)} empresas a PDF"}
-    elif formato == 'csv':
-        return {"message": f"Exportando {len(empresas)} empresas a CSV"} 
+    try:
+        # Si hay empresas seleccionadas, exportar solo esas
+        if empresas_seleccionadas:
+            ids_seleccionados = [id.strip() for id in empresas_seleccionadas.split(',') if id.strip()]
+            empresas = []
+            for empresa_id in ids_seleccionados:
+                empresa = await empresa_service.get_empresa_by_id(empresa_id)
+                if empresa:
+                    empresas.append(empresa)
+        else:
+            # Obtener empresas según filtros (sin paginación para exportar todas)
+            if estado:
+                empresas = await empresa_service.get_empresas_por_estado(estado, 0, 10000)
+            else:
+                empresas = await empresa_service.get_empresas_activas(0, 10000)
+        
+        # Procesar columnas visibles
+        columnas_a_exportar = None
+        if columnas_visibles:
+            columnas_a_exportar = [col.strip() for col in columnas_visibles.split(',') if col.strip()]
+        
+        # Convertir empresas a diccionarios para el servicio Excel
+        empresas_dict = []
+        for empresa in empresas:
+            if hasattr(empresa, 'model_dump'):
+                empresas_dict.append(empresa.model_dump())
+            elif hasattr(empresa, 'dict'):
+                empresas_dict.append(empresa.dict())
+            else:
+                # Si es un diccionario, usarlo directamente
+                empresas_dict.append(empresa)
+        
+        # Crear servicio Excel
+        excel_service = EmpresaExcelService()
+        
+        if formato == 'excel':
+            # Generar Excel con datos reales
+            excel_buffer = excel_service.generar_excel_empresas(empresas_dict, columnas_a_exportar)
+            
+            return StreamingResponse(
+                BytesIO(excel_buffer.read()),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=empresas_export.xlsx"}
+            )
+        elif formato == 'csv':
+            # Generar CSV
+            csv_content = excel_service.generar_csv_empresas(empresas_dict, columnas_a_exportar)
+            return StreamingResponse(
+                BytesIO(csv_content.encode('utf-8')),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=empresas_export.csv"}
+            )
+        else:
+            # PDF no implementado aún
+            return {"message": f"Exportando {len(empresas)} empresas a PDF (no implementado)"}
+            
+    except Exception as e:
+        import traceback
+        print(f"Error en exportar_empresas: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error al exportar empresas: {str(e)}") 
 
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL

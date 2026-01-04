@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrección Exportación Empresas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .fix-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .fix-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .fix-content {
+            padding: 20px;
+        }
+        
+        .fix-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .fix-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .fix-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .fix-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .problem {
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .solution {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .info {
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .error-highlight {
+            background-color: #f8d7da;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #721c24;
+        }
+        
+        .success-highlight {
+            background-color: #d4edda;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            color: #155724;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .before, .after {
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .before {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .after {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .before h4, .after h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="fix-container">
+        <div class="fix-header">
+            <h1>🔧 CORRECCIÓN EXPORTACIÓN EMPRESAS</h1>
+            <p>Solución al problema: "Excel no puede abrir el archivo porque el formato o la extensión no son válidos"</p>
+        </div>
+        
+        <div class="fix-content">
+            <div class="fix-section">
+                <h2 class="fix-title">🔍 PROBLEMA IDENTIFICADO</h2>
+                
+                <div class="fix-item problem">
+                    <span class="fix-icon">❌</span>
+                    <span><strong>Error de Excel:</strong> "El formato o la extensión no son válidos"</span>
+                </div>
+                
+                <div class="fix-item problem">
+                    <span class="fix-icon">❌</span>
+                    <span><strong>Causa raíz:</strong> El backend devolvía JSON en lugar de archivo Excel</span>
+                </div>
+                
+                <div class="fix-item problem">
+                    <span class="fix-icon">❌</span>
+                    <span><strong>Endpoint simulado:</strong> Solo retornaba mensaje de texto</span>
+                </div>
+                
+                <div class="fix-item problem">
+                    <span class="fix-icon">❌</span>
+                    <span><strong>Métodos faltantes:</strong> EmpresaExcelService no tenía métodos de exportación</span>
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">✅ SOLUCIÓN IMPLEMENTADA</h2>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Endpoint corregido:</strong> Ahora genera y devuelve archivo Excel real</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Métodos agregados:</strong> generar_excel_empresas() y generar_csv_empresas()</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>StreamingResponse:</strong> Respuesta correcta con headers apropiados</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Manejo de errores:</strong> Try-catch con mensajes descriptivos</span>
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">🔄 COMPARACIÓN ANTES/DESPUÉS</h2>
+                
+                <div class="comparison">
+                    <div class="before">
+                        <h4>❌ ANTES (Problema)</h4>
+                        <div class="code-block">
+# Endpoint simulado
+if formato == 'excel':
+    <span class="error-highlight">return {"message": f"Exportando {len(empresas)} empresas a Excel"}</span>
+                        </div>
+                        <p><strong>Resultado:</strong> JSON devuelto, Excel no puede abrir</p>
+                    </div>
+                    
+                    <div class="after">
+                        <h4>✅ DESPUÉS (Solución)</h4>
+                        <div class="code-block">
+# Endpoint real
+if formato == 'excel':
+    excel_service = EmpresaExcelService()
+    excel_buffer = excel_service.generar_excel_empresas(empresas)
+    
+    <span class="success-highlight">return StreamingResponse(
+        BytesIO(excel_buffer.read()),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=empresas_export.xlsx"}
+    )</span>
+                        </div>
+                        <p><strong>Resultado:</strong> Archivo Excel válido descargado</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">💻 CÓDIGO IMPLEMENTADO</h2>
+                
+                <h3>1. Endpoint corregido (backend/app/routers/empresas_router.py):</h3>
+                <div class="code-block">
+@router.get("/exportar/{formato}")
+async def exportar_empresas(formato: str, estado: Optional[str] = Query(None)):
+    try:
+        empresas = await empresa_service.get_empresas_activas(0, 10000)
+        
+        if formato == 'excel':
+            <span class="highlight">excel_service = EmpresaExcelService()
+            excel_buffer = excel_service.generar_excel_empresas(empresas)</span>
+            
+            return StreamingResponse(
+                BytesIO(excel_buffer.read()),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=empresas_export.xlsx"}
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al exportar: {str(e)}")
+                </div>
+                
+                <h3>2. Método de exportación Excel (backend/app/services/empresa_excel_service.py):</h3>
+                <div class="code-block">
+def generar_excel_empresas(self, empresas: List[Dict[str, Any]]) -> BytesIO:
+    buffer = BytesIO()
+    
+    # Preparar datos
+    datos_excel = []
+    for empresa in empresas:
+        datos_excel.append({
+            <span class="highlight">'RUC': empresa.get('ruc', ''),
+            'Razón Social': empresa.get('razonSocial', {}).get('principal', ''),
+            'Estado': empresa.get('estado', ''),
+            'Tipo de Servicio': empresa.get('tipoServicio', ''),
+            # ... más campos</span>
+        })
+    
+    # Crear Excel
+    df = pd.DataFrame(datos_excel)
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Empresas', index=False)
+    
+    return buffer
+                </div>
+                
+                <h3>3. Frontend con mejor manejo de errores:</h3>
+                <div class="code-block">
+this.empresaService.exportarEmpresas('excel').subscribe({
+  next: (blob) => {
+    <span class="highlight">if (blob && blob.size > 0) {
+      const nombreArchivo = `empresas_${this.generarNombreArchivo()}.xlsx`;
+      this.descargarArchivo(blob, nombreArchivo);
+    } else {
+      console.error('❌ Blob vacío o inválido');
+    }</span>
+  },
+  error: (error) => {
+    let mensajeError = 'Error al exportar empresas';
+    if (error.status === 404) mensajeError = 'Endpoint no encontrado';
+    if (error.status === 500) mensajeError = 'Error interno del servidor';
+    // Mostrar error específico
+  }
+});
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">📊 CAMPOS EXPORTADOS</h2>
+                
+                <div class="fix-item info">
+                    <span class="fix-icon">📋</span>
+                    <span><strong>Información básica:</strong> RUC, Razón Social, Estado, Tipo de Servicio</span>
+                </div>
+                
+                <div class="fix-item info">
+                    <span class="fix-icon">📞</span>
+                    <span><strong>Contacto:</strong> Dirección Fiscal, Email, Teléfono, Sitio Web</span>
+                </div>
+                
+                <div class="fix-item info">
+                    <span class="fix-icon">👤</span>
+                    <span><strong>Representante:</strong> Nombres y apellidos del representante legal</span>
+                </div>
+                
+                <div class="fix-item info">
+                    <span class="fix-icon">📈</span>
+                    <span><strong>Estadísticas:</strong> Cantidad de Resoluciones, Vehículos, Conductores, Rutas</span>
+                </div>
+                
+                <div class="fix-item info">
+                    <span class="fix-icon">📅</span>
+                    <span><strong>Adicionales:</strong> Fecha Registro, Score Riesgo, Observaciones</span>
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">🧪 VERIFICACIÓN</h2>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">1️⃣</span>
+                    <span>El endpoint /empresas/exportar/excel ahora devuelve archivo Excel válido</span>
+                </div>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">2️⃣</span>
+                    <span>El archivo se descarga con nombre único (timestamp)</span>
+                </div>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">3️⃣</span>
+                    <span>Excel puede abrir el archivo sin errores</span>
+                </div>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">4️⃣</span>
+                    <span>Los datos se muestran correctamente en columnas organizadas</span>
+                </div>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">5️⃣</span>
+                    <span>Las columnas tienen ancho ajustado automáticamente</span>
+                </div>
+                
+                <div class="fix-item">
+                    <span class="fix-icon">6️⃣</span>
+                    <span>También funciona exportación CSV como alternativa</span>
+                </div>
+            </div>
+            
+            <div class="fix-section">
+                <h2 class="fix-title">🎯 RESULTADO ESPERADO</h2>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Exportación exitosa:</strong> Archivo Excel se descarga correctamente</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Excel válido:</strong> Se abre sin errores en Microsoft Excel</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Datos completos:</strong> Todas las empresas con información detallada</span>
+                </div>
+                
+                <div class="fix-item solution">
+                    <span class="fix-icon">✅</span>
+                    <span><strong>Formato profesional:</strong> Columnas organizadas y bien formateadas</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

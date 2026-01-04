@@ -56,7 +56,7 @@ class SolicitudBajaService:
             "solicitadoPor": {
                 "usuarioId": usuario_actual.get("id", "user-demo"),
                 "nombreUsuario": usuario_actual.get("nombre", "Usuario Demo"),
-                "email": usuario_actual.get("email", "usuario@demo.com")
+                "email": usuario_actual.get("email", "usuario@transportespuno.gob.pe")
             },
             "fechaCreacion": datetime.utcnow(),
             "fechaActualizacion": datetime.utcnow()
@@ -186,7 +186,7 @@ class SolicitudBajaService:
             aprobadoPor=UsuarioInfo(
                 usuarioId=usuario_actual.get("id", "admin-demo"),
                 nombreUsuario=usuario_actual.get("nombre", "Admin Demo"),
-                email=usuario_actual.get("email", "admin@demo.com")
+                email=usuario_actual.get("email", "admin@transportespuno.gob.pe")
             )
         )
         
@@ -237,7 +237,7 @@ class SolicitudBajaService:
             revisadoPor=UsuarioInfo(
                 usuarioId=usuario_actual.get("id", "admin-demo"),
                 nombreUsuario=usuario_actual.get("nombre", "Admin Demo"),
-                email=usuario_actual.get("email", "admin@demo.com")
+                email=usuario_actual.get("email", "admin@transportespuno.gob.pe")
             )
         )
         

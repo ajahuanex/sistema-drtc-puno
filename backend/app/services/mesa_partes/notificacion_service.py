@@ -647,7 +647,7 @@ class NotificacionService:
     async def _get_usuario_email(self, usuario_id: str) -> Optional[str]:
         """Get user email"""
         # TODO: Implement proper user email lookup
-        return "user@example.com"  # Placeholder
+        return "user@transportespuno.gob.pe"  # Placeholder
     
     async def _ejecutar_condicion_alerta(self, alerta: Alerta) -> List[Dict[str, Any]]:
         """Execute alert condition SQL"""

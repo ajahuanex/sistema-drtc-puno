@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Exportación Simple</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .fix-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .fix-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .problem {
+            border-left-color: #dc3545;
+            color: #721c24;
+            background: #f8d7da;
+        }
+        
+        .solution {
+            border-left-color: #28a745;
+            color: #155724;
+            background: #d4edda;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🔧 CORRECCIONES APLICADAS</h1>
+            <p>Solución a problemas identificados en la exportación</p>
+        </div>
+        
+        <div class="test-content">
+            <h2>✅ Problema 1: Tooltip tapando checkbox</h2>
+            
+            <div class="fix-item problem">
+                <span class="fix-icon">❌</span>
+                <span><strong>Problema:</strong> El tooltip "Seleccionar empresa: [nombre]" tapaba el checkbox</span>
+            </div>
+            
+            <div class="fix-item solution">
+                <span class="fix-icon">✅</span>
+                <span><strong>Solución:</strong> Removido matTooltip de checkboxes individuales</span>
+            </div>
+            
+            <div class="code-block">
+// ANTES (problemático)
+&lt;mat-checkbox 
+    [checked]="isEmpresaSelected(empresa.id)"
+    (change)="toggleEmpresaSelection(empresa.id)"
+    <span class="highlight">[matTooltip]="'Seleccionar empresa: ' + empresa.razonSocial.principal"</span>&gt;
+&lt;/mat-checkbox&gt;
+
+// DESPUÉS (corregido)
+&lt;mat-checkbox 
+    [checked]="isEmpresaSelected(empresa.id)"
+    (change)="toggleEmpresaSelection(empresa.id)"&gt;
+&lt;/mat-checkbox&gt;
+            </div>
+            
+            <h2>✅ Problema 2: Error 500 en backend</h2>
+            
+            <div class="fix-item problem">
+                <span class="fix-icon">❌</span>
+                <span><strong>Problema:</strong> Variable excel_service no definida para CSV</span>
+            </div>
+            
+            <div class="fix-item solution">
+                <span class="fix-icon">✅</span>
+                <span><strong>Solución:</strong> Crear excel_service antes del if/elif</span>
+            </div>
+            
+            <div class="code-block">
+# ANTES (problemático)
+if formato == 'excel':
+    excel_service = EmpresaExcelService()  # Solo aquí
+    excel_buffer = excel_service.generar_excel_empresas(empresas)
+elif formato == 'csv':
+    csv_content = excel_service.generar_csv_empresas(empresas)  # ❌ No definido
+
+# DESPUÉS (corregido)
+<span class="highlight">excel_service = EmpresaExcelService()  # Antes del if</span>
+
+if formato == 'excel':
+    excel_buffer = excel_service.generar_excel_empresas(empresas_dict)
+elif formato == 'csv':
+    csv_content = excel_service.generar_csv_empresas(empresas_dict)  # ✅ Ya definido
+            </div>
+            
+            <h2>✅ Problema 3: Conversión de datos</h2>
+            
+            <div class="fix-item problem">
+                <span class="fix-icon">❌</span>
+                <span><strong>Problema:</strong> Objetos Pydantic no se convertían a diccionarios</span>
+            </div>
+            
+            <div class="fix-item solution">
+                <span class="fix-icon">✅</span>
+                <span><strong>Solución:</strong> Conversión explícita con model_dump() o dict()</span>
+            </div>
+            
+            <div class="code-block">
+# Conversión de empresas a diccionarios
+empresas_dict = []
+for empresa in empresas:
+    <span class="highlight">if hasattr(empresa, 'model_dump'):
+        empresas_dict.append(empresa.model_dump())
+    elif hasattr(empresa, 'dict'):
+        empresas_dict.append(empresa.dict())
+    else:
+        empresas_dict.append(empresa)</span>
+            </div>
+            
+            <h2>✅ Problema 4: Debug mejorado</h2>
+            
+            <div class="fix-item solution">
+                <span class="fix-icon">✅</span>
+                <span><strong>Mejora:</strong> Agregado traceback para mejor debugging</span>
+            </div>
+            
+            <div class="code-block">
+except Exception as e:
+    <span class="highlight">import traceback
+    print(f"Error en exportar_empresas: {str(e)}")
+    print(f"Traceback: {traceback.format_exc()}")</span>
+    raise HTTPException(status_code=500, detail=f"Error al exportar empresas: {str(e)}")
+            </div>
+            
+            <h2>🧪 Para probar:</h2>
+            
+            <div class="fix-item">
+                <span class="fix-icon">1️⃣</span>
+                <span>Los checkboxes ahora se pueden seleccionar sin problemas</span>
+            </div>
+            
+            <div class="fix-item">
+                <span class="fix-icon">2️⃣</span>
+                <span>La exportación debería funcionar sin error 500</span>
+            </div>
+            
+            <div class="fix-item">
+                <span class="fix-icon">3️⃣</span>
+                <span>Si hay errores, aparecerán en los logs del servidor con más detalle</span>
+            </div>
+            
+            <div class="fix-item">
+                <span class="fix-icon">4️⃣</span>
+                <span>El archivo Excel debería descargarse correctamente</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

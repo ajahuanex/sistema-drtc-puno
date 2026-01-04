@@ -52,11 +52,13 @@ interface ResultadoCarga {
     <div class="carga-masiva-container">
       <div class="header">
         <div class="header-content">
-          <h2>
-            <app-smart-icon [iconName]="'upload_file'" [size]="32"></app-smart-icon>
-            Carga Masiva de Vehículos
-          </h2>
-          <p>Importa múltiples vehículos desde un archivo Excel</p>
+          <div class="header-icon">
+            <app-smart-icon [iconName]="'cloud_upload'" [size]="40"></app-smart-icon>
+          </div>
+          <div class="header-text">
+            <h1>Carga Masiva de Vehículos</h1>
+            <p>Importa múltiples vehículos de forma rápida y eficiente</p>
+          </div>
         </div>
         <button mat-icon-button 
                 (click)="cerrarModal()" 
@@ -66,14 +68,22 @@ interface ResultadoCarga {
         </button>
       </div>
 
-      <mat-stepper [linear]="true" #stepper>
+      <mat-stepper [linear]="true" #stepper class="modern-stepper">
         <!-- Paso 1: Selección de archivo -->
         <mat-step [stepControl]="archivoForm" label="Seleccionar Archivo">
-          <form [formGroup]="archivoForm">
-            <mat-card>
-              <mat-card-content>
+          <ng-template matStepLabel>
+            <div class="step-label">
+              <app-smart-icon [iconName]="'folder_open'" [size]="20"></app-smart-icon>
+              <span>Seleccionar Archivo</span>
+            </div>
+          </ng-template>
+          
+          <div class="step-content">
+            <form [formGroup]="archivoForm">
+              <div class="upload-section">
                 <div class="upload-area" 
                      [class.dragover]="isDragOver()"
+                     [class.has-file]="archivoSeleccionado()"
                      (dragover)="onDragOver($event)"
                      (dragleave)="onDragLeave($event)"
                      (drop)="onDrop($event)"
@@ -81,35 +91,69 @@ interface ResultadoCarga {
                   
                   <input #fileInput 
                          type="file" 
-                         accept=".xlsx,.xls" 
+                         accept=".xlsx,.xls,.csv" 
                          (change)="onFileSelected($event)"
                          style="display: none;">
                   
                   @if (!archivoSeleccionado()) {
                     <div class="upload-placeholder">
-                      <app-smart-icon [iconName]="'cloud_upload'" [size]="64" class="upload-icon"></app-smart-icon>
+                      <div class="upload-icon-container">
+                        <app-smart-icon [iconName]="'cloud_upload'" [size]="80" class="upload-icon"></app-smart-icon>
+                        <div class="upload-pulse"></div>
+                      </div>
                       <h3>Arrastra tu archivo aquí</h3>
-                      <p>o haz clic para seleccionar</p>
+                      <p>o haz clic para seleccionar desde tu dispositivo</p>
+                      
                       <div class="supported-formats">
-                        <small><strong>Formatos soportados:</strong></small>
+                        <div class="format-title">
+                          <app-smart-icon [iconName]="'info'" [size]="16"></app-smart-icon>
+                          <span>Formatos soportados</span>
+                        </div>
                         <div class="format-chips">
-                          <span class="format-chip">.xlsx</span>
-                          <span class="format-chip">.xls</span>
-                          <span class="format-chip">.csv</span>
+                          <div class="format-chip excel">
+                            <app-smart-icon [iconName]="'description'" [size]="16"></app-smart-icon>
+                            <span>.xlsx</span>
+                          </div>
+                          <div class="format-chip excel">
+                            <app-smart-icon [iconName]="'description'" [size]="16"></app-smart-icon>
+                            <span>.xls</span>
+                          </div>
+                          <div class="format-chip csv">
+                            <app-smart-icon [iconName]="'table_chart'" [size]="16"></app-smart-icon>
+                            <span>.csv</span>
+                          </div>
                         </div>
                       </div>
+                      
                       <div class="file-requirements">
-                        <small>• Tamaño máximo: 10MB</small>
-                        <small>• Usar la plantilla oficial</small>
-                        <small>• Completar campos obligatorios</small>
+                        <div class="requirement-item">
+                          <app-smart-icon [iconName]="'storage'" [size]="14"></app-smart-icon>
+                          <span>Tamaño máximo: 10MB</span>
+                        </div>
+                        <div class="requirement-item">
+                          <app-smart-icon [iconName]="'assignment'" [size]="14"></app-smart-icon>
+                          <span>Usar la plantilla oficial</span>
+                        </div>
+                        <div class="requirement-item">
+                          <app-smart-icon [iconName]="'rule'" [size]="14"></app-smart-icon>
+                          <span>Completar campos obligatorios</span>
+                        </div>
                       </div>
                     </div>
                   } @else {
                     <div class="file-selected">
-                      <app-smart-icon [iconName]="'description'" [size]="48" class="file-icon"></app-smart-icon>
+                      <div class="file-icon-container">
+                        <app-smart-icon [iconName]="'description'" [size]="48" class="file-icon"></app-smart-icon>
+                        <div class="success-badge">
+                          <app-smart-icon [iconName]="'check'" [size]="16"></app-smart-icon>
+                        </div>
+                      </div>
                       <div class="file-info">
                         <h4>{{ archivoSeleccionado()?.name }}</h4>
-                        <p>{{ formatFileSize(archivoSeleccionado()?.size || 0) }}</p>
+                        <div class="file-details">
+                          <span class="file-size">{{ formatFileSize(archivoSeleccionado()?.size || 0) }}</span>
+                          <span class="file-type">{{ getFileType(archivoSeleccionado()?.name || '') }}</span>
+                        </div>
                         <div class="file-status">
                           <app-smart-icon [iconName]="'check_circle'" [size]="16"></app-smart-icon>
                           <span>Archivo listo para validar</span>
@@ -119,639 +163,1668 @@ interface ResultadoCarga {
                               (click)="removeFile($event)"
                               class="remove-file-btn"
                               matTooltip="Quitar archivo">
-                        <app-smart-icon [iconName]="'close'" [size]="24"></app-smart-icon>
+                        <app-smart-icon [iconName]="'close'" [size]="20"></app-smart-icon>
                       </button>
                     </div>
                   }
                 </div>
 
-                <div class="actions">
-                  <button mat-button 
-                          (click)="cerrarModal()"
-                          type="button"
-                          class="cancel-button">
-                    <app-smart-icon [iconName]="'close'" [size]="20"></app-smart-icon>
-                    Cancelar
-                  </button>
-                  
-                  <button mat-raised-button 
-                          color="primary" 
-                          (click)="descargarPlantilla()"
-                          type="button">
-                    <app-smart-icon [iconName]="'download'" [size]="20"></app-smart-icon>
-                    Descargar Plantilla
-                  </button>
-                  
-                  <button mat-button 
-                          (click)="mostrarAyuda()"
-                          type="button">
-                    <app-smart-icon [iconName]="'help'" [size]="20"></app-smart-icon>
-                    Ayuda
-                  </button>
-                  
-                  <button mat-raised-button 
-                          color="accent" 
-                          matStepperNext 
-                          [disabled]="!archivoSeleccionado()"
-                          (click)="validarArchivo()">
-                    <app-smart-icon [iconName]="'check_circle'" [size]="20"></app-smart-icon>
-                    Validar Archivo
-                  </button>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          </form>
-        </mat-step>   
-     <!-- Paso 2: Validación -->
-        <mat-step label="Validación">
-          <mat-card>
-            <mat-card-content>
-              @if (validando()) {
-                <div class="validacion-loading">
-                  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                  <p>Validando archivo...</p>
-                </div>
-              } @else if (validaciones().length > 0) {
-                <div class="validacion-resultados">
-                  <div class="stats">
-                    <mat-chip-set>
-                      <mat-chip [color]="validacionesValidas() > 0 ? 'primary' : 'basic'">
-                        <app-smart-icon [iconName]="'check_circle'" [size]="16"></app-smart-icon>
-                        {{ validacionesValidas() }} Válidos
-                      </mat-chip>
-                      <mat-chip [color]="validacionesInvalidas() > 0 ? 'warn' : 'basic'">
-                        <app-smart-icon [iconName]="'error'" [size]="16"></app-smart-icon>
-                        {{ validacionesInvalidas() }} Con Errores
-                      </mat-chip>
-                    </mat-chip-set>
+                <div class="action-buttons">
+                  <div class="secondary-actions">
+                    <button mat-stroked-button 
+                            (click)="descargarPlantilla()"
+                            class="download-template-btn">
+                      <app-smart-icon [iconName]="'download'" [size]="18"></app-smart-icon>
+                      Descargar Plantilla
+                    </button>
+                    
+                    <button mat-stroked-button 
+                            (click)="mostrarAyuda()"
+                            class="help-btn">
+                      <app-smart-icon [iconName]="'help_outline'" [size]="18"></app-smart-icon>
+                      Ayuda
+                    </button>
                   </div>
+                  
+                  <div class="primary-actions">
+                    <button mat-button 
+                            (click)="cerrarModal()"
+                            class="cancel-btn">
+                      Cancelar
+                    </button>
+                    
+                    <button mat-raised-button 
+                            color="primary" 
+                            matStepperNext 
+                            [disabled]="!archivoSeleccionado()"
+                            (click)="validarArchivo()"
+                            class="validate-btn">
+                      <app-smart-icon [iconName]="'verified'" [size]="18"></app-smart-icon>
+                      Validar Archivo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </mat-step>   
+        <!-- Paso 2: Validación -->
+        <mat-step label="Validación">
+          <ng-template matStepLabel>
+            <div class="step-label">
+              <app-smart-icon [iconName]="'fact_check'" [size]="20"></app-smart-icon>
+              <span>Validación</span>
+            </div>
+          </ng-template>
+          
+          <div class="step-content">
+            @if (validando()) {
+              <div class="validation-loading">
+                <div class="loading-animation">
+                  <div class="loading-spinner">
+                    <app-smart-icon [iconName]="'hourglass_empty'" [size]="48"></app-smart-icon>
+                  </div>
+                  <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+                <h3>Validando archivo...</h3>
+                <p>Verificando formato y contenido de los datos</p>
+                <mat-progress-bar mode="indeterminate" class="modern-progress"></mat-progress-bar>
+              </div>
+            } @else if (validaciones().length > 0) {
+              <div class="validation-results">
+                <div class="validation-summary">
+                  <div class="summary-cards">
+                    <div class="summary-card valid" [class.active]="validacionesValidas() > 0">
+                      <div class="card-icon">
+                        <app-smart-icon [iconName]="'check_circle'" [size]="32"></app-smart-icon>
+                      </div>
+                      <div class="card-content">
+                        <h3>{{ validacionesValidas() }}</h3>
+                        <p>Registros Válidos</p>
+                      </div>
+                    </div>
+                    
+                    <div class="summary-card invalid" [class.active]="validacionesInvalidas() > 0">
+                      <div class="card-icon">
+                        <app-smart-icon [iconName]="'error'" [size]="32"></app-smart-icon>
+                      </div>
+                      <div class="card-content">
+                        <h3>{{ validacionesInvalidas() }}</h3>
+                        <p>Con Errores</p>
+                      </div>
+                    </div>
+                    
+                    <div class="summary-card total">
+                      <div class="card-icon">
+                        <app-smart-icon [iconName]="'assessment'" [size]="32"></app-smart-icon>
+                      </div>
+                      <div class="card-content">
+                        <h3>{{ validaciones().length }}</h3>
+                        <p>Total Registros</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                  <div class="tabla-validaciones">
-                    <table mat-table [dataSource]="validaciones()" class="validacion-table">
+                <div class="validation-table-container">
+                  <div class="table-header">
+                    <h4>
+                      <app-smart-icon [iconName]="'list_alt'" [size]="20"></app-smart-icon>
+                      Detalle de Validación
+                    </h4>
+                    @if (validacionesInvalidas() > 0) {
+                      <div class="error-indicator">
+                        <app-smart-icon [iconName]="'warning'" [size]="16"></app-smart-icon>
+                        <span>{{ validacionesInvalidas() }} registros requieren corrección</span>
+                      </div>
+                    }
+                  </div>
+                  
+                  <div class="table-wrapper">
+                    <table mat-table [dataSource]="validaciones()" class="validation-table">
                       <ng-container matColumnDef="fila">
-                        <th mat-header-cell *matHeaderCellDef>Fila</th>
-                        <td mat-cell *matCellDef="let validacion">{{ validacion.fila }}</td>
+                        <th mat-header-cell *matHeaderCellDef>
+                          <app-smart-icon [iconName]="'format_list_numbered'" [size]="16"></app-smart-icon>
+                          Fila
+                        </th>
+                        <td mat-cell *matCellDef="let validacion">
+                          <span class="row-number">{{ validacion.fila }}</span>
+                        </td>
                       </ng-container>
 
                       <ng-container matColumnDef="placa">
-                        <th mat-header-cell *matHeaderCellDef>Placa</th>
-                        <td mat-cell *matCellDef="let validacion">{{ validacion.placa }}</td>
+                        <th mat-header-cell *matHeaderCellDef>
+                          <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
+                          Placa
+                        </th>
+                        <td mat-cell *matCellDef="let validacion">
+                          <span class="placa-text">{{ validacion.placa }}</span>
+                        </td>
                       </ng-container>
 
                       <ng-container matColumnDef="estado">
-                        <th mat-header-cell *matHeaderCellDef>Estado</th>
+                        <th mat-header-cell *matHeaderCellDef>
+                          <app-smart-icon [iconName]="'task_alt'" [size]="16"></app-smart-icon>
+                          Estado
+                        </th>
                         <td mat-cell *matCellDef="let validacion">
                           @if (validacion.valido) {
-                            <mat-chip color="primary">
-                              <app-smart-icon [iconName]="'check'" [size]="16"></app-smart-icon>
-                              Válido
-                            </mat-chip>
+                            <div class="status-chip valid">
+                              <app-smart-icon [iconName]="'check'" [size]="14"></app-smart-icon>
+                              <span>Válido</span>
+                            </div>
                           } @else {
-                            <mat-chip color="warn">
-                              <app-smart-icon [iconName]="'error'" [size]="16"></app-smart-icon>
-                              Error
-                            </mat-chip>
+                            <div class="status-chip invalid">
+                              <app-smart-icon [iconName]="'error'" [size]="14"></app-smart-icon>
+                              <span>Error</span>
+                            </div>
                           }
                         </td>
                       </ng-container>
 
                       <ng-container matColumnDef="errores">
-                        <th mat-header-cell *matHeaderCellDef>Errores/Advertencias</th>
+                        <th mat-header-cell *matHeaderCellDef>
+                          <app-smart-icon [iconName]="'info'" [size]="16"></app-smart-icon>
+                          Detalles
+                        </th>
                         <td mat-cell *matCellDef="let validacion">
                           @if (validacion.errores.length > 0) {
-                            <div class="errores-lista">
+                            <div class="error-details">
                               @for (error of validacion.errores; track error) {
-                                <small class="error-item">• {{ error }}</small>
+                                <div class="error-item">
+                                  <app-smart-icon [iconName]="'error_outline'" [size]="12"></app-smart-icon>
+                                  <span>{{ error }}</span>
+                                </div>
                               }
                             </div>
                           }
                           @if (validacion.advertencias.length > 0) {
-                            <div class="advertencias-lista">
+                            <div class="warning-details">
                               @for (advertencia of validacion.advertencias; track advertencia) {
-                                <small class="advertencia-item">⚠ {{ advertencia }}</small>
+                                <div class="warning-item">
+                                  <app-smart-icon [iconName]="'warning'" [size]="12"></app-smart-icon>
+                                  <span>{{ advertencia }}</span>
+                                </div>
                               }
+                            </div>
+                          }
+                          @if (validacion.valido && validacion.errores.length === 0 && validacion.advertencias.length === 0) {
+                            <div class="success-message">
+                              <app-smart-icon [iconName]="'check_circle'" [size]="12"></app-smart-icon>
+                              <span>Sin problemas</span>
                             </div>
                           }
                         </td>
                       </ng-container>
 
                       <tr mat-header-row *matHeaderRowDef="columnasValidacion"></tr>
-                      <tr mat-row *matRowDef="let row; columns: columnasValidacion;"></tr>
+                      <tr mat-row *matRowDef="let row; columns: columnasValidacion;" 
+                          [class.error-row]="!row.valido"
+                          [class.valid-row]="row.valido"></tr>
                     </table>
                   </div>
+                </div>
 
-                  <div class="actions">
-                    <button mat-button matStepperPrevious>
-                      <app-smart-icon [iconName]="'arrow_back'" [size]="20"></app-smart-icon>
+                <div class="action-buttons">
+                  <div class="secondary-actions">
+                    <button mat-stroked-button matStepperPrevious>
+                      <app-smart-icon [iconName]="'arrow_back'" [size]="18"></app-smart-icon>
                       Volver
                     </button>
                     
                     <button mat-button 
                             (click)="cerrarModal()"
-                            class="cancel-button">
-                      <app-smart-icon [iconName]="'close'" [size]="20"></app-smart-icon>
+                            class="cancel-btn">
                       Cancelar
                     </button>
-                    
+                  </div>
+                  
+                  <div class="primary-actions">
                     <button mat-raised-button 
                             color="primary" 
                             matStepperNext
                             [disabled]="validacionesValidas() === 0"
-                            (click)="procesarCarga()">
-                      <app-smart-icon [iconName]="'upload'" [size]="20"></app-smart-icon>
-                      Procesar Carga ({{ validacionesValidas() }} vehículos)
+                            (click)="procesarCarga()"
+                            class="process-btn">
+                      <app-smart-icon [iconName]="'upload'" [size]="18"></app-smart-icon>
+                      Procesar {{ validacionesValidas() }} vehículos
                     </button>
                   </div>
                 </div>
-              }
-            </mat-card-content>
-          </mat-card>
+              </div>
+            }
+          </div>
         </mat-step>
 
         <!-- Paso 3: Procesamiento -->
         <mat-step label="Procesamiento">
-          <mat-card>
-            <mat-card-content>
-              @if (procesando()) {
-                <div class="procesamiento-loading">
-                  <mat-progress-bar mode="determinate" [value]="progresoProcesamiento()"></mat-progress-bar>
-                  <p>Procesando vehículos... {{ progresoProcesamiento() }}%</p>
+          <ng-template matStepLabel>
+            <div class="step-label">
+              <app-smart-icon [iconName]="'sync'" [size]="20"></app-smart-icon>
+              <span>Procesamiento</span>
+            </div>
+          </ng-template>
+          
+          <div class="step-content">
+            @if (procesando()) {
+              <div class="processing-loading">
+                <div class="processing-animation">
+                  <div class="processing-circle">
+                    <app-smart-icon [iconName]="'sync'" [size]="64" class="rotating-icon"></app-smart-icon>
+                  </div>
+                  <div class="processing-progress">
+                    <div class="progress-ring">
+                      <svg width="120" height="120">
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="8"/>
+                        <circle cx="60" cy="60" r="54" fill="none" stroke="#1976d2" stroke-width="8"
+                                stroke-dasharray="339.292" 
+                                [attr.stroke-dashoffset]="339.292 - (339.292 * progresoProcesamiento() / 100)"
+                                class="progress-circle"/>
+                      </svg>
+                      <div class="progress-text">
+                        <span class="progress-percentage">{{ progresoProcesamiento() }}%</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              } @else if (resultadoCarga()) {
-                <div class="resultado-carga">
-                  <div class="resultado-stats">
-                    <div class="stat-card creados">
-                      <app-smart-icon [iconName]="'add_circle'" [size]="32"></app-smart-icon>
-                      <div class="stat-info">
+                <h3>Procesando vehículos...</h3>
+                <p>Creando y actualizando registros en la base de datos</p>
+                <mat-progress-bar mode="determinate" [value]="progresoProcesamiento()" class="modern-progress"></mat-progress-bar>
+              </div>
+            } @else if (resultadoCarga()) {
+              <div class="processing-results">
+                <div class="results-header">
+                  <div class="success-icon">
+                    <app-smart-icon [iconName]="'check_circle'" [size]="64"></app-smart-icon>
+                  </div>
+                  <h3>¡Carga completada exitosamente!</h3>
+                  <p>Los vehículos han sido procesados correctamente</p>
+                </div>
+
+                <div class="results-summary">
+                  <div class="summary-grid">
+                    <div class="result-card created" [class.active]="(resultadoCarga()?.vehiculos_creados?.length || 0) > 0">
+                      <div class="card-header">
+                        <div class="card-icon">
+                          <app-smart-icon [iconName]="'add_circle'" [size]="40"></app-smart-icon>
+                        </div>
+                        <div class="card-badge">Nuevos</div>
+                      </div>
+                      <div class="card-content">
                         <h3>{{ resultadoCarga()?.vehiculos_creados?.length || 0 }}</h3>
                         <p>Vehículos Creados</p>
                       </div>
                     </div>
 
-                    <div class="stat-card actualizados">
-                      <app-smart-icon [iconName]="'update'" [size]="32"></app-smart-icon>
-                      <div class="stat-info">
+                    <div class="result-card updated" [class.active]="(resultadoCarga()?.vehiculos_actualizados?.length || 0) > 0">
+                      <div class="card-header">
+                        <div class="card-icon">
+                          <app-smart-icon [iconName]="'update'" [size]="40"></app-smart-icon>
+                        </div>
+                        <div class="card-badge">Modificados</div>
+                      </div>
+                      <div class="card-content">
                         <h3>{{ resultadoCarga()?.vehiculos_actualizados?.length || 0 }}</h3>
                         <p>Vehículos Actualizados</p>
                       </div>
                     </div>
 
-                    <div class="stat-card errores">
-                      <app-smart-icon [iconName]="'error'" [size]="32"></app-smart-icon>
-                      <div class="stat-info">
+                    <div class="result-card errors" [class.active]="(resultadoCarga()?.errores || 0) > 0">
+                      <div class="card-header">
+                        <div class="card-icon">
+                          <app-smart-icon [iconName]="'error'" [size]="40"></app-smart-icon>
+                        </div>
+                        <div class="card-badge">Errores</div>
+                      </div>
+                      <div class="card-content">
                         <h3>{{ resultadoCarga()?.errores || 0 }}</h3>
-                        <p>Errores</p>
+                        <p>Con Errores</p>
                       </div>
                     </div>
 
-                    <div class="stat-card total">
-                      <app-smart-icon [iconName]="'assessment'" [size]="32"></app-smart-icon>
-                      <div class="stat-info">
+                    <div class="result-card total">
+                      <div class="card-header">
+                        <div class="card-icon">
+                          <app-smart-icon [iconName]="'assessment'" [size]="40"></app-smart-icon>
+                        </div>
+                        <div class="card-badge">Total</div>
+                      </div>
+                      <div class="card-content">
                         <h3>{{ resultadoCarga()?.total_procesados || 0 }}</h3>
-                        <p>Total Procesados</p>
+                        <p>Registros Procesados</p>
                       </div>
                     </div>
-                  </div>
-
-                  <!-- Mostrar listas de vehículos procesados -->
-                  @if (resultadoCarga()?.vehiculos_creados?.length || resultadoCarga()?.vehiculos_actualizados?.length) {
-                    <div class="vehiculos-procesados">
-                      @if (resultadoCarga()?.vehiculos_creados?.length) {
-                        <div class="vehiculos-creados">
-                          <h4>
-                            <app-smart-icon [iconName]="'add_circle'" [size]="20"></app-smart-icon>
-                            Vehículos Creados:
-                          </h4>
-                          <div class="placas-lista">
-                            @for (placa of resultadoCarga()?.vehiculos_creados; track placa) {
-                              <span class="placa-chip creado">{{ placa }}</span>
-                            }
-                          </div>
-                        </div>
-                      }
-
-                      @if (resultadoCarga()?.vehiculos_actualizados?.length) {
-                        <div class="vehiculos-actualizados">
-                          <h4>
-                            <app-smart-icon [iconName]="'update'" [size]="20"></app-smart-icon>
-                            Vehículos Actualizados:
-                          </h4>
-                          <div class="placas-lista">
-                            @for (placa of resultadoCarga()?.vehiculos_actualizados; track placa) {
-                              <span class="placa-chip actualizado">{{ placa }}</span>
-                            }
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-
-                  @if (resultadoCarga()?.errores_detalle && resultadoCarga()!.errores_detalle.length > 0) {
-                    <div class="errores-detalle">
-                      <h4>Errores Detallados:</h4>
-                      <div class="errores-lista">
-                        @for (error of resultadoCarga()?.errores_detalle; track error.fila) {
-                          <div class="error-detalle">
-                            <strong>Fila {{ error.fila }} - {{ error.placa }}:</strong>
-                            <ul>
-                              @for (err of error.errores; track err) {
-                                <li>{{ err }}</li>
-                              }
-                            </ul>
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  }
-
-                  <div class="actions">
-                    <button mat-raised-button 
-                            color="primary" 
-                            (click)="cerrarModal()">
-                      <app-smart-icon [iconName]="'check'" [size]="20"></app-smart-icon>
-                      Finalizar
-                    </button>
-                    
-                    <button mat-button 
-                            (click)="reiniciarProceso()">
-                      <app-smart-icon [iconName]="'refresh'" [size]="20"></app-smart-icon>
-                      Cargar Otro Archivo
-                    </button>
                   </div>
                 </div>
-              }
-            </mat-card-content>
-          </mat-card>
+
+                <!-- Mostrar listas de vehículos procesados -->
+                @if (resultadoCarga()?.vehiculos_creados?.length || resultadoCarga()?.vehiculos_actualizados?.length) {
+                  <div class="vehicles-processed">
+                    @if (resultadoCarga()?.vehiculos_creados?.length) {
+                      <div class="vehicles-section created">
+                        <div class="section-header">
+                          <app-smart-icon [iconName]="'add_circle'" [size]="24"></app-smart-icon>
+                          <h4>Vehículos Creados ({{ resultadoCarga()?.vehiculos_creados?.length }})</h4>
+                        </div>
+                        <div class="vehicles-grid">
+                          @for (placa of resultadoCarga()?.vehiculos_creados; track placa) {
+                            <div class="vehicle-chip created">
+                              <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
+                              <span>{{ placa }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    @if (resultadoCarga()?.vehiculos_actualizados?.length) {
+                      <div class="vehicles-section updated">
+                        <div class="section-header">
+                          <app-smart-icon [iconName]="'update'" [size]="24"></app-smart-icon>
+                          <h4>Vehículos Actualizados ({{ resultadoCarga()?.vehiculos_actualizados?.length }})</h4>
+                        </div>
+                        <div class="vehicles-grid">
+                          @for (placa of resultadoCarga()?.vehiculos_actualizados; track placa) {
+                            <div class="vehicle-chip updated">
+                              <app-smart-icon [iconName]="'directions_car'" [size]="16"></app-smart-icon>
+                              <span>{{ placa }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (resultadoCarga()?.errores_detalle && resultadoCarga()!.errores_detalle.length > 0) {
+                  <div class="error-details-section">
+                    <div class="section-header error">
+                      <app-smart-icon [iconName]="'error_outline'" [size]="24"></app-smart-icon>
+                      <h4>Errores Detallados</h4>
+                    </div>
+                    <div class="error-list">
+                      @for (error of resultadoCarga()?.errores_detalle; track error.fila) {
+                        <div class="error-item-detail">
+                          <div class="error-header">
+                            <div class="error-info">
+                              <span class="error-row">Fila {{ error.fila }}</span>
+                              <span class="error-placa">{{ error.placa }}</span>
+                            </div>
+                            <app-smart-icon [iconName]="'error'" [size]="20"></app-smart-icon>
+                          </div>
+                          <div class="error-messages">
+                            @for (err of error.errores; track err) {
+                              <div class="error-message">
+                                <app-smart-icon [iconName]="'chevron_right'" [size]="14"></app-smart-icon>
+                                <span>{{ err }}</span>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <div class="action-buttons final">
+                  <button mat-stroked-button 
+                          (click)="reiniciarProceso()"
+                          class="secondary-btn">
+                    <app-smart-icon [iconName]="'refresh'" [size]="18"></app-smart-icon>
+                    Cargar Otro Archivo
+                  </button>
+                  
+                  <button mat-raised-button 
+                          color="primary" 
+                          (click)="cerrarModal()"
+                          class="primary-btn">
+                    <app-smart-icon [iconName]="'check'" [size]="18"></app-smart-icon>
+                    Finalizar
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
         </mat-step>
       </mat-stepper>
     </div>
   `, 
  styles: [`
     .carga-masiva-container {
-      max-width: 1000px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 32px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
+    /* Header Styles */
     .header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      text-align: left;
-      margin-bottom: 32px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .header-content {
-      flex: 1;
-    }
-
-    .header h2 {
-      display: flex;
       align-items: center;
-      gap: 12px;
-      margin: 0 0 8px 0;
-      color: #1976d2;
-    }
-
-    .header p {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .close-button {
-      color: #666;
-      background: rgba(0, 0, 0, 0.04);
-      transition: all 0.2s ease;
-      margin-left: 16px;
-    }
-
-    .close-button:hover {
-      background: rgba(244, 67, 54, 0.1);
-      color: #f44336;
-      transform: scale(1.1);
-    }
-
-    .upload-area {
-      border: 2px dashed #ccc;
-      border-radius: 12px;
-      padding: 48px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-bottom: 24px;
-      background: #fafafa;
+      margin-bottom: 40px;
+      padding: 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      color: white;
+      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
       position: relative;
       overflow: hidden;
     }
 
-    .upload-area:hover {
-      border-color: #1976d2;
-      background-color: #f0f7ff;
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      pointer-events: none;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      z-index: 1;
+      position: relative;
+    }
+
+    .header-icon {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-text h1 {
+      margin: 0 0 8px 0;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header-text p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    .close-button {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+      position: relative;
+    }
+
+    .close-button:hover {
+      background: rgba(244, 67, 54, 0.2);
+      transform: scale(1.1) rotate(90deg);
+    }
+
+    /* Modern Stepper */
+    .modern-stepper {
+      background: transparent;
+    }
+
+    :host ::ng-deep .modern-stepper .mat-stepper-horizontal {
+      background: transparent;
+    }
+
+    :host ::ng-deep .modern-stepper .mat-step-header {
+      background: white;
+      border-radius: 16px;
+      margin: 0 8px;
+      padding: 16px 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+    }
+
+    :host ::ng-deep .modern-stepper .mat-step-header:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    :host ::ng-deep .modern-stepper .mat-step-header.cdk-keyboard-focused,
+    :host ::ng-deep .modern-stepper .mat-step-header.cdk-program-focused {
+      border-color: #667eea;
+    }
+
+    .step-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .step-content {
+      margin-top: 32px;
+      padding: 32px;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Upload Section */
+    .upload-section {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .upload-area {
+      border: 3px dashed #e0e7ff;
+      border-radius: 24px;
+      padding: 64px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 32px;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .upload-area:hover::before {
+      opacity: 1;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.2);
     }
 
     .upload-area.dragover {
-      border-color: #1976d2;
-      background: linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%);
-      box-shadow: 0 8px 24px rgba(25, 118, 210, 0.2);
+      border-color: #667eea;
+      background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
       transform: scale(1.02);
+      box-shadow: 0 25px 80px rgba(102, 126, 234, 0.3);
     }
 
-    .upload-placeholder {
-      color: #666;
+    .upload-area.has-file {
+      border-color: #10b981;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+
+    .upload-icon-container {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 24px;
     }
 
     .upload-icon {
-      color: #1976d2;
-      margin-bottom: 16px;
-      opacity: 0.8;
+      color: #667eea;
+      filter: drop-shadow(0 4px 12px rgba(102, 126, 234, 0.3));
+    }
+
+    .upload-pulse {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px;
+      height: 120px;
+      border: 2px solid #667eea;
+      border-radius: 50%;
+      opacity: 0.3;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.7;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.3;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.6);
+        opacity: 0;
+      }
     }
 
     .upload-placeholder h3 {
-      margin: 16px 0 8px 0;
-      color: #333;
-      font-weight: 500;
+      margin: 0 0 12px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+      letter-spacing: -0.5px;
     }
 
     .upload-placeholder p {
-      margin: 0 0 16px 0;
-      color: #666;
+      margin: 0 0 32px 0;
+      color: #64748b;
+      font-size: 16px;
+      font-weight: 500;
     }
 
     .supported-formats {
-      margin: 16px 0;
+      margin: 32px 0;
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .format-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      color: #475569;
+      font-weight: 600;
+      font-size: 14px;
     }
 
     .format-chips {
       display: flex;
       justify-content: center;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .format-chip {
-      background: #e3f2fd;
-      color: #1976d2;
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 12px;
-      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+
+    .format-chip.excel {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .format-chip.csv {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
     .file-requirements {
-      margin-top: 16px;
+      margin-top: 24px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 12px;
     }
 
-    .file-requirements small {
-      color: #666;
-      font-size: 11px;
+    .requirement-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 500;
     }
 
+    /* File Selected */
     .file-selected {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 20px;
-      background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%);
-      border: 2px solid #4caf50;
-      border-radius: 12px;
+      gap: 24px;
+      padding: 32px;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border: 3px solid #10b981;
+      border-radius: 20px;
       position: relative;
+      overflow: hidden;
+    }
+
+    .file-selected::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .file-icon-container {
+      position: relative;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
     }
 
     .file-icon {
-      color: #4caf50;
+      color: #10b981;
+    }
+
+    .success-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
     }
 
     .file-info {
       flex: 1;
+      z-index: 1;
+      position: relative;
     }
 
     .file-info h4 {
-      margin: 0 0 4px 0;
-      color: #333;
-      font-weight: 500;
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #065f46;
     }
 
-    .file-info p {
-      margin: 0 0 8px 0;
-      color: #666;
-      font-size: 14px;
+    .file-details {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .file-size, .file-type {
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #065f46;
     }
 
     .file-status {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #4caf50;
-      font-size: 12px;
-      font-weight: 500;
+      gap: 8px;
+      color: #10b981;
+      font-size: 14px;
+      font-weight: 600;
     }
 
     .remove-file-btn {
-      color: #666;
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(4px);
+      background: rgba(255, 255, 255, 0.9);
+      color: #64748b;
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      z-index: 1;
+      position: relative;
     }
 
     .remove-file-btn:hover {
-      background: rgba(244, 67, 54, 0.1);
-      color: #f44336;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      transform: scale(1.1);
     }
 
-    .actions {
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .secondary-actions, .primary-actions {
       display: flex;
       gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
       align-items: center;
     }
 
-    .cancel-button {
-      color: #666;
-      border-color: #ddd;
+    .download-template-btn, .help-btn {
+      border-color: #e2e8f0;
+      color: #475569;
+      font-weight: 600;
+      border-radius: 12px;
+      padding: 12px 24px;
+      transition: all 0.3s ease;
     }
 
-    .cancel-button:hover {
-      background-color: rgba(244, 67, 54, 0.1);
-      color: #f44336;
-      border-color: #f44336;
+    .download-template-btn:hover {
+      border-color: #3b82f6;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+      transform: translateY(-2px);
     }
 
-    .validacion-loading,
-    .procesamiento-loading {
+    .help-btn:hover {
+      border-color: #8b5cf6;
+      color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.05);
+      transform: translateY(-2px);
+    }
+
+    .cancel-btn {
+      color: #64748b;
+      font-weight: 600;
+      border-radius: 12px;
+      padding: 12px 24px;
+      transition: all 0.3s ease;
+    }
+
+    .cancel-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+
+    .validate-btn, .process-btn, .primary-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 12px 32px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .validate-btn:hover, .process-btn:hover, .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+    }
+
+    .validate-btn:disabled, .process-btn:disabled {
+      background: #e2e8f0;
+      color: #94a3b8;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* Validation Loading */
+    .validation-loading {
       text-align: center;
-      padding: 48px 24px;
+      padding: 80px 32px;
     }
 
-    .stats {
+    .loading-animation {
+      margin-bottom: 32px;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      animation: spin 2s linear infinite;
       margin-bottom: 24px;
+      color: #667eea;
     }
 
-    .validacion-table {
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: bounce 1.4s ease-in-out infinite both;
+    }
+
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: scale(0);
+      } 40% {
+        transform: scale(1);
+      }
+    }
+
+    .validation-loading h3 {
+      margin: 0 0 12px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .validation-loading p {
+      margin: 0 0 32px 0;
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    .modern-progress {
+      border-radius: 8px;
+      height: 8px;
+      background: #e2e8f0;
+    }
+
+    :host ::ng-deep .modern-progress .mat-progress-bar-fill::after {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Validation Results */
+    .validation-summary {
+      margin-bottom: 32px;
+    }
+
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .summary-card {
+      padding: 24px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      opacity: 0.6;
+    }
+
+    .summary-card.active {
+      opacity: 1;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .summary-card.valid {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    .summary-card.valid.active {
+      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.3);
+    }
+
+    .summary-card.invalid {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .summary-card.invalid.active {
+      box-shadow: 0 12px 32px rgba(239, 68, 68, 0.3);
+    }
+
+    .summary-card.total {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      color: white;
+    }
+
+    .card-content h3 {
+      margin: 0 0 4px 0;
+      font-size: 32px;
+      font-weight: 800;
+    }
+
+    .card-content p {
+      margin: 0;
+      opacity: 0.9;
+      font-weight: 600;
+    }
+
+    /* Validation Table */
+    .validation-table-container {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      margin-bottom: 32px;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 32px;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table-header h4 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .error-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ef4444;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 8px;
+    }
+
+    .table-wrapper {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .validation-table {
       width: 100%;
-      margin-bottom: 24px;
     }
 
-    .errores-lista {
+    :host ::ng-deep .validation-table .mat-header-cell {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 16px 24px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    :host ::ng-deep .validation-table .mat-cell {
+      padding: 16px 24px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    :host ::ng-deep .validation-table .mat-row {
+      transition: all 0.2s ease;
+    }
+
+    :host ::ng-deep .validation-table .mat-row:hover {
+      background: #f8fafc;
+    }
+
+    :host ::ng-deep .validation-table .mat-row.error-row {
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    :host ::ng-deep .validation-table .mat-row.valid-row {
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .row-number {
+      font-weight: 700;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .placa-text {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 16px;
+      color: #1e293b;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status-chip.valid {
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+    }
+
+    .status-chip.invalid {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+    }
+
+    .error-details, .warning-details {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
+    .error-item, .warning-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
     .error-item {
-      color: #d32f2f;
+      color: #dc2626;
     }
 
-    .advertencia-item {
-      color: #f57c00;
+    .warning-item {
+      color: #d97706;
     }
 
-    .resultado-stats {
+    .success-message {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #059669;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Processing Loading */
+    .processing-loading {
+      text-align: center;
+      padding: 80px 32px;
+    }
+
+    .processing-animation {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      margin-bottom: 40px;
+    }
+
+    .processing-circle {
+      position: relative;
+    }
+
+    .rotating-icon {
+      color: #667eea;
+      animation: rotate 2s linear infinite;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .processing-progress {
+      position: relative;
+    }
+
+    .progress-ring {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .progress-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .progress-circle {
+      transition: stroke-dashoffset 0.3s ease;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .progress-percentage {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .processing-loading h3 {
+      margin: 0 0 12px 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .processing-loading p {
+      margin: 0 0 32px 0;
+      color: #64748b;
+      font-size: 16px;
+    }
+
+    /* Processing Results */
+    .processing-results {
+      text-align: center;
+    }
+
+    .results-header {
+      margin-bottom: 48px;
+    }
+
+    .success-icon {
+      margin-bottom: 24px;
+      color: #10b981;
+      animation: successPulse 2s ease-in-out;
+    }
+
+    @keyframes successPulse {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .results-header h3 {
+      margin: 0 0 12px 0;
+      font-size: 32px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .results-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 18px;
+    }
+
+    .results-summary {
+      margin-bottom: 48px;
+    }
+
+    .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 24px;
       margin-bottom: 32px;
     }
 
-    .stat-card {
+    .result-card {
+      padding: 32px 24px;
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+      opacity: 0.6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .result-card.active {
+      opacity: 1;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    }
+
+    .result-card.active::before {
+      transform: translateX(100%);
+    }
+
+    .result-card.created {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    .result-card.updated {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+    }
+
+    .result-card.errors {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .result-card.total {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      color: white;
+    }
+
+    .card-header {
       display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 24px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .card-badge {
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 12px;
+      font-weight: 700;
+      backdrop-filter: blur(10px);
     }
 
-    .stat-card.creados {
-      background: linear-gradient(135deg, #4caf50, #66bb6a);
-      color: white;
+    .card-content h3 {
+      margin: 0 0 8px 0;
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1;
     }
 
-    .stat-card.actualizados {
-      background: linear-gradient(135deg, #2196f3, #42a5f5);
-      color: white;
-    }
-
-    .stat-card.errores {
-      background: linear-gradient(135deg, #f44336, #ef5350);
-      color: white;
-    }
-
-    .stat-card.total {
-      background: linear-gradient(135deg, #9c27b0, #ba68c8);
-      color: white;
-    }
-
-    .stat-info h3 {
-      margin: 0 0 4px 0;
-      font-size: 32px;
-      font-weight: 600;
-    }
-
-    .stat-info p {
+    .card-content p {
       margin: 0;
       opacity: 0.9;
+      font-weight: 600;
+      font-size: 16px;
     }
 
-    .errores-detalle {
-      background: #ffebee;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 24px;
+    /* Vehicles Processed */
+    .vehicles-processed {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 32px;
+      border: 1px solid #e2e8f0;
     }
 
-    .error-detalle {
-      margin-bottom: 16px;
-      padding: 12px;
-      background: white;
-      border-radius: 4px;
-      border-left: 4px solid #f44336;
+    .vehicles-section {
+      margin-bottom: 32px;
     }
 
-    .error-detalle ul {
-      margin: 8px 0 0 0;
-      padding-left: 20px;
-    }
-
-    .vehiculos-procesados {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 24px;
-    }
-
-    .vehiculos-creados,
-    .vehiculos-actualizados {
-      margin-bottom: 16px;
-    }
-
-    .vehiculos-creados:last-child,
-    .vehiculos-actualizados:last-child {
+    .vehicles-section:last-child {
       margin-bottom: 0;
     }
 
-    .vehiculos-procesados h4 {
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-header h4 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .vehicles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .vehicle-chip {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin: 0 0 12px 0;
-      color: #333;
+      padding: 12px 16px;
+      border-radius: 12px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      transition: all 0.3s ease;
+      cursor: default;
     }
 
-    .placas-lista {
+    .vehicle-chip:hover {
+      transform: translateY(-2px);
+    }
+
+    .vehicle-chip.created {
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      color: #065f46;
+      border: 2px solid #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .vehicle-chip.updated {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      color: #1e40af;
+      border: 2px solid #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Error Details */
+    .error-details-section {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 32px;
+      border: 2px solid #fecaca;
+    }
+
+    .section-header.error {
+      color: #dc2626;
+    }
+
+    .error-list {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .error-item-detail {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    }
+
+    .error-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .error-info {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .error-row {
+      padding: 4px 8px;
+      background: #fee2e2;
+      color: #991b1b;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .error-placa {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .error-messages {
+      display: flex;
+      flex-direction: column;
       gap: 8px;
     }
 
-    .placa-chip {
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 12px;
+    .error-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: #dc2626;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Final Actions */
+    .action-buttons.final {
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .secondary-btn {
+      border-color: #e2e8f0;
+      color: #475569;
       font-weight: 600;
-      font-family: 'Courier New', monospace;
+      border-radius: 12px;
+      padding: 12px 24px;
+      transition: all 0.3s ease;
     }
 
-    .placa-chip.creado {
-      background: #e8f5e8;
-      color: #2e7d32;
-      border: 1px solid #4caf50;
+    .secondary-btn:hover {
+      border-color: #64748b;
+      color: #1e293b;
+      background: rgba(100, 116, 139, 0.05);
+      transform: translateY(-2px);
     }
 
-    .placa-chip.actualizado {
-      background: #e3f2fd;
-      color: #1565c0;
-      border: 1px solid #2196f3;
-    }
-
+    /* Responsive Design */
     @media (max-width: 768px) {
       .carga-masiva-container {
         padding: 16px;
       }
 
-      .upload-area {
-        padding: 32px 16px;
-      }
-
-      .actions {
+      .header {
+        padding: 24px;
         flex-direction: column;
+        gap: 16px;
+        text-align: center;
       }
 
-      .resultado-stats {
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header-text h1 {
+        font-size: 24px;
+      }
+
+      .step-content {
+        padding: 24px 16px;
+      }
+
+      .upload-area {
+        padding: 48px 24px;
+      }
+
+      .upload-placeholder h3 {
+        font-size: 24px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .secondary-actions, .primary-actions {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .summary-cards, .summary-grid {
         grid-template-columns: 1fr;
+      }
+
+      .file-selected {
+        flex-direction: column;
+        text-align: center;
+        gap: 16px;
+      }
+
+      .vehicles-grid {
+        justify-content: center;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
       }
     }
 
-    /* Estilos globales para snackbars de ayuda */
+    @media (max-width: 480px) {
+      .format-chips {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .upload-placeholder h3 {
+        font-size: 20px;
+      }
+
+      .results-header h3 {
+        font-size: 24px;
+      }
+
+      .card-content h3 {
+        font-size: 36px;
+      }
+    }
+
+    /* Custom Scrollbar */
+    .table-wrapper::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Animation for step transitions */
+    :host ::ng-deep .mat-stepper-horizontal .mat-stepper-horizontal-line {
+      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    /* Snackbar Styles */
     :host ::ng-deep .snackbar-multiline {
       .mat-mdc-snack-bar-container {
         max-width: 600px !important;
@@ -760,30 +1833,35 @@ interface ResultadoCarga {
       
       .mdc-snackbar__surface {
         min-width: 400px !important;
+        border-radius: 12px !important;
       }
       
       .mat-mdc-snack-bar-label {
-        font-family: 'Courier New', monospace !important;
-        font-size: 12px !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 14px !important;
         line-height: 1.4 !important;
+        font-weight: 500 !important;
       }
     }
 
     :host ::ng-deep .snackbar-success {
       .mdc-snackbar__surface {
-        background-color: #4caf50 !important;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3) !important;
       }
     }
 
     :host ::ng-deep .snackbar-error {
       .mdc-snackbar__surface {
-        background-color: #f44336 !important;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3) !important;
       }
     }
 
     :host ::ng-deep .snackbar-info {
       .mdc-snackbar__surface {
-        background-color: #2196f3 !important;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+        box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3) !important;
       }
     }
   `]
@@ -924,6 +2002,20 @@ export class CargaMasivaVehiculosComponent {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  getFileType(fileName: string): string {
+    const extension = fileName.toLowerCase().split('.').pop();
+    switch (extension) {
+      case 'xlsx':
+        return 'Excel 2007+';
+      case 'xls':
+        return 'Excel 97-2003';
+      case 'csv':
+        return 'CSV';
+      default:
+        return 'Desconocido';
+    }
   }
 
   descargarPlantilla(): void {

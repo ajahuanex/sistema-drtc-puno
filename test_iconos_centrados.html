@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Iconos Centrados</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .test-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .fix {
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .button-demo {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .demo-button {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #007bff;
+            border-radius: 50%;
+            background: white;
+            color: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-button:hover {
+            background: #007bff;
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        .demo-button-small {
+            width: 28px;
+            height: 28px;
+            background: #ff9800;
+            color: white;
+            border: none;
+        }
+        
+        .demo-button-small:hover {
+            background: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎯 CORRECCIÓN DE ICONOS</h1>
+            <p>Centrado correcto de iconos en botones de la tabla de empresas</p>
+        </div>
+        
+        <div class="test-content">
+            <div class="test-section">
+                <h2 class="test-title">🔧 PROBLEMA IDENTIFICADO</h2>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Iconos descentrados:</strong> Los iconos no estaban alineados correctamente en los botones</span>
+                </div>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Causa:</strong> Uso de line-height en lugar de flexbox para centrado</span>
+                </div>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Afectaba:</strong> Botones de acciones y botón de ver rutas</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">✅ SOLUCIONES IMPLEMENTADAS</h2>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Flexbox para centrado:</strong> display: flex + align-items: center + justify-content: center</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Padding eliminado:</strong> padding: 0 para evitar desplazamientos</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Min-width agregado:</strong> Evita que los botones se compriman</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Estilos globales:</strong> Aplicados a todos los mat-icon-button</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🎨 DEMOSTRACIÓN DE BOTONES</h2>
+                
+                <p><strong>Botones de acciones (32x32px):</strong></p>
+                <div class="button-demo">
+                    <div class="demo-button">👁️</div>
+                    <div class="demo-button">✏️</div>
+                    <div class="demo-button">🚗</div>
+                    <div class="demo-button">➕</div>
+                    <div class="demo-button">👤</div>
+                    <div class="demo-button">⚖️</div>
+                    <div class="demo-button">📄</div>
+                    <div class="demo-button">🗑️</div>
+                </div>
+                
+                <p><strong>Botón de rutas (28x28px):</strong></p>
+                <div class="button-demo">
+                    <div class="demo-button-small">🛣️</div>
+                    <span style="margin-left: 10px; color: #666;">Ver rutas de la empresa</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">💻 CÓDIGO IMPLEMENTADO</h2>
+                
+                <h3>1. Botones de acciones:</h3>
+                <div class="code-block">
+.actions-content .action-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  <span class="highlight">display: flex;</span>
+  <span class="highlight">align-items: center;</span>
+  <span class="highlight">justify-content: center;</span>
+  <span class="highlight">padding: 0;</span>
+  
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+  }
+}
+                </div>
+                
+                <h3>2. Botón de rutas:</h3>
+                <div class="code-block">
+.ruta-button {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  <span class="highlight">display: flex;</span>
+  <span class="highlight">align-items: center;</span>
+  <span class="highlight">justify-content: center;</span>
+  <span class="highlight">padding: 0;</span>
+  
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+  }
+}
+                </div>
+                
+                <h3>3. Estilos globales:</h3>
+                <div class="code-block">
+.modern-table .mat-icon-button {
+  <span class="highlight">display: flex;</span>
+  <span class="highlight">align-items: center;</span>
+  <span class="highlight">justify-content: center;</span>
+  
+  mat-icon {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+                </div>
+                
+                <h3>4. Corrección específica para Material Icons:</h3>
+                <div class="code-block">
+.table-container .mat-icon {
+  <span class="highlight">vertical-align: middle;</span>
+  <span class="highlight">display: inline-flex;</span>
+  <span class="highlight">align-items: center;</span>
+  <span class="highlight">justify-content: center;</span>
+}
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🧪 VERIFICACIÓN</h2>
+                
+                <div class="test-item">
+                    <span class="test-icon">1️⃣</span>
+                    <span>Los iconos están perfectamente centrados en los botones</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">2️⃣</span>
+                    <span>Los botones mantienen su tamaño compacto (32px y 28px)</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">3️⃣</span>
+                    <span>Los efectos hover funcionan correctamente</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">4️⃣</span>
+                    <span>No hay desplazamientos o desalineaciones</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">5️⃣</span>
+                    <span>Los tooltips siguen funcionando correctamente</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

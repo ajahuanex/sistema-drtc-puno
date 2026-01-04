@@ -24,7 +24,7 @@ def get_current_user():
     return {
         "id": "user-demo-123",
         "nombre": "Usuario Demo",
-        "email": "usuario@demo.com"
+        "email": "usuario@transportespuno.gob.pe"
     }
 
 @router.post("/", response_model=SolicitudBaja)

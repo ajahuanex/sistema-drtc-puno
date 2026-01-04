@@ -41,24 +41,37 @@ class EmpresaService:
     # ---------------------------------------------------------------------
     async def create_empresa(self, empresa_data: EmpresaCreate, usuario_id: str) -> EmpresaInDB:
         """Crear nueva empresa con validación SUNAT y auditoría"""
+        return await self._create_empresa_internal(empresa_data, usuario_id, validar_sunat=True)
+    
+    async def create_empresa_carga_masiva(self, empresa_data: EmpresaCreate, usuario_id: str) -> EmpresaInDB:
+        """Crear nueva empresa SIN validaciones externas (para carga masiva)"""
+        return await self._create_empresa_internal(empresa_data, usuario_id, validar_sunat=False)
+    
+    async def _create_empresa_internal(self, empresa_data: EmpresaCreate, usuario_id: str, validar_sunat: bool = True) -> EmpresaInDB:
+        """Crear nueva empresa con validación SUNAT opcional"""
         # Verificar RUC duplicado
         if await self.get_empresa_by_ruc(empresa_data.ruc):
             raise EmpresaAlreadyExistsException(f"Ya existe una empresa con RUC {empresa_data.ruc}")
         
-        # Verificar código duplicado
-        if empresa_data.codigoEmpresa:
-            if await self.get_empresa_by_codigo(empresa_data.codigoEmpresa):
-                raise EmpresaAlreadyExistsException(f"Ya existe una empresa con código {empresa_data.codigoEmpresa}")
+        # Validar formato RUC
+        if not empresa_data.ruc.isdigit() or len(empresa_data.ruc) != 11:
+            raise ValidationErrorException("ruc", f"RUC debe tener exactamente 11 dígitos: {empresa_data.ruc}")
+        
+        # Validar SUNAT solo si se solicita
+        datos_sunat = None
+        if validar_sunat:
+            datos_sunat = await self.validar_ruc_sunat(empresa_data.ruc)
         else:
-            codigos = await self.obtener_codigos_empresas_existentes()
-            empresa_data.codigoEmpresa = CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos)
-            
-        # Validar formato código
-        if not CodigoEmpresaUtils.validar_formato_codigo(empresa_data.codigoEmpresa):
-            raise ValidationErrorException(f"Formato de código de empresa inválido: {empresa_data.codigoEmpresa}")
-            
-        # Validar SUNAT
-        datos_sunat = await self.validar_ruc_sunat(empresa_data.ruc)
+            # Datos SUNAT por defecto para carga masiva
+            datos_sunat = {
+                "valido": True,  # Asumir válido para carga masiva
+                "razonSocial": empresa_data.razonSocial.principal,
+                "estado": "ACTIVO",
+                "condicion": "HABIDO",
+                "direccion": empresa_data.direccionFiscal,
+                "fecha_actualizacion": datetime.utcnow(),
+                "error": None
+            }
         
         # Calcular score de riesgo
         score_riesgo = await self.calcular_score_riesgo(empresa_data, datos_sunat)
@@ -67,7 +80,13 @@ class EmpresaService:
         empresa_dict = empresa_data.model_dump(by_alias=False)
         empresa_dict["fechaRegistro"] = datetime.utcnow()
         empresa_dict["estaActivo"] = True
-        empresa_dict["estado"] = EstadoEmpresa.EN_TRAMITE
+        
+        # Estado por defecto según el tipo de creación
+        if validar_sunat:
+            empresa_dict["estado"] = EstadoEmpresa.EN_TRAMITE  # Creación normal
+        else:
+            empresa_dict["estado"] = EstadoEmpresa.AUTORIZADA  # Carga masiva
+            
         empresa_dict["datosSunat"] = datos_sunat
         empresa_dict["ultimaValidacionSunat"] = datetime.utcnow()
         empresa_dict["scoreRiesgo"] = score_riesgo
@@ -79,7 +98,7 @@ class EmpresaService:
             usuarioId=usuario_id,
             tipoCambio="CREACION_EMPRESA",
             campoAnterior=None,
-            campoNuevo=f"Empresa creada con código: {empresa_data.codigoEmpresa} y RUC: {empresa_data.ruc}",
+            campoNuevo=f"Empresa creada con RUC: {empresa_data.ruc}",
             observaciones="Creación inicial de empresa",
         )
         empresa_dict["auditoria"].append(auditoria.model_dump())
@@ -117,12 +136,6 @@ class EmpresaService:
             empresa = self._convert_id(empresa)
         return EmpresaInDB(**empresa) if empresa else None
 
-    async def get_empresa_by_codigo(self, codigo: str) -> Optional[EmpresaInDB]:
-        empresa = await self.collection.find_one({"codigoEmpresa": codigo})
-        if empresa:
-            empresa = self._convert_id(empresa)
-        return EmpresaInDB(**empresa) if empresa else None
-
     def _convert_id(self, doc: dict) -> dict:
         """Convierte _id de MongoDB a id string"""
         if "_id" in doc:
@@ -145,38 +158,38 @@ class EmpresaService:
         if filtros.ruc:
             query["ruc"] = {"$regex": filtros.ruc, "$options": "i"}
             
-        if filtros.razon_social:
-            query["razonSocial.principal"] = {"$regex": filtros.razon_social, "$options": "i"}
+        if filtros.razonSocial:
+            query["razonSocial.principal"] = {"$regex": filtros.razonSocial, "$options": "i"}
             
         if filtros.estado:
-            query["estado"] = filtros.estado
+            query["estado"] = filtros.estado.value if hasattr(filtros.estado, 'value') else filtros.estado
             
-        if filtros.fecha_desde or filtros.fecha_hasta:
+        if filtros.fechaDesde or filtros.fechaHasta:
             query["fechaRegistro"] = {}
-            if filtros.fecha_desde:
-                query["fechaRegistro"]["$gte"] = filtros.fecha_desde
-            if filtros.fecha_hasta:
-                query["fechaRegistro"]["$lte"] = filtros.fecha_hasta
+            if filtros.fechaDesde:
+                query["fechaRegistro"]["$gte"] = filtros.fechaDesde
+            if filtros.fechaHasta:
+                query["fechaRegistro"]["$lte"] = filtros.fechaHasta
                 
-        if filtros.score_riesgo_min is not None or filtros.score_riesgo_max is not None:
+        if filtros.scoreRiesgoMin is not None or filtros.scoreRiesgoMax is not None:
             query["scoreRiesgo"] = {}
-            if filtros.score_riesgo_min is not None:
-                query["scoreRiesgo"]["$gte"] = filtros.score_riesgo_min
-            if filtros.score_riesgo_max is not None:
-                query["scoreRiesgo"]["$lte"] = filtros.score_riesgo_max
+            if filtros.scoreRiesgoMin is not None:
+                query["scoreRiesgo"]["$gte"] = filtros.scoreRiesgoMin
+            if filtros.scoreRiesgoMax is not None:
+                query["scoreRiesgo"]["$lte"] = filtros.scoreRiesgoMax
                 
-        if filtros.tiene_documentos_vencidos:
+        if filtros.tieneDocumentosVencidos:
             query["documentos"] = {"$elemMatch": {"fechaVencimiento": {"$lt": datetime.utcnow()}, "estaActivo": True}}
             
-        if filtros.tiene_vehiculos:
+        if filtros.tieneVehiculos:
             query["vehiculosHabilitadosIds"] = {"$ne": []}
             
-        if filtros.tiene_conductores:
+        if filtros.tieneConductores:
             query["conductoresHabilitadosIds"] = {"$ne": []}
             
         cursor = self.collection.find(query)
         docs = await cursor.to_list(length=None)
-        return [EmpresaInDB(**doc) for doc in docs]
+        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
 
     async def update_empresa(self, empresa_id: str, empresa_data: EmpresaUpdate, usuario_id: str) -> Optional[EmpresaInDB]:
         empresa_actual = await self.get_empresa_by_id(empresa_id)
@@ -370,7 +383,7 @@ class EmpresaService:
             {"$group": {
                 "_id": None,
                 "total_empresas": {"$sum": 1},
-                "empresas_habilitadas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.HABILITADA]}, 1, 0]}},
+                "empresas_autorizadas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.AUTORIZADA]}, 1, 0]}},
                 "empresas_en_tramite": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.EN_TRAMITE]}, 1, 0]}},
                 "empresas_suspendidas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.SUSPENDIDA]}, 1, 0]}},
                 "empresas_canceladas": {"$sum": {"$cond": [{"$eq": ["$estado", EstadoEmpresa.CANCELADA]}, 1, 0]}},
@@ -385,7 +398,7 @@ class EmpresaService:
         if not resultado:
             return EmpresaEstadisticas(
                 totalEmpresas=0,
-                empresasHabilitadas=0,
+                empresasAutorizadas=0,
                 empresasEnTramite=0,
                 empresasSuspendidas=0,
                 empresasCanceladas=0,
@@ -399,7 +412,7 @@ class EmpresaService:
         s = resultado[0]
         return EmpresaEstadisticas(
             totalEmpresas=s["total_empresas"],
-            empresasHabilitadas=s["empresas_habilitadas"],
+            empresasAutorizadas=s["empresas_autorizadas"],
             empresasEnTramite=s["empresas_en_tramite"],
             empresasSuspendidas=s["empresas_suspendidas"],
             empresasCanceladas=s["empresas_canceladas"],
@@ -416,18 +429,6 @@ class EmpresaService:
     async def crear_notificacion_empresa(self, empresa: EmpresaInDB, tipo: str):
         # Placeholder for notification logic
         pass
-
-    # ---------------------------------------------------------------------
-    # Código empresa utilities
-    # ---------------------------------------------------------------------
-    async def obtener_codigos_empresas_existentes(self) -> List[str]:
-        cursor = self.collection.find({}, {"codigoEmpresa": 1})
-        docs = await cursor.to_list(length=None)
-        return [doc.get("codigoEmpresa") for doc in docs if doc.get("codigoEmpresa")]
-
-    async def generar_siguiente_codigo_empresa(self) -> str:
-        codigos = await self.obtener_codigos_empresas_existentes()
-        return CodigoEmpresaUtils.generar_siguiente_codigo_disponible(codigos)
 
     # ---------------------------------------------------------------------
     # Relaciones

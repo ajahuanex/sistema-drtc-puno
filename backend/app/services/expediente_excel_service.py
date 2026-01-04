@@ -245,9 +245,68 @@ class ExpedienteExcelService:
         return bool(re.match(patron, email))
     
     def _validar_formato_telefono(self, telefono: str) -> bool:
-        """Validar formato de teléfono: números, espacios, guiones y paréntesis"""
-        patron = r'^[\d\s\-\(\)\+]{7,15}$'
-        return bool(re.match(patron, telefono))
+        """Validar formato de teléfono: números, espacios, guiones y paréntesis. Acepta múltiples teléfonos separados por espacios"""
+        if not telefono:
+            return True
+        
+        # Normalizar el teléfono para validación
+        telefono_normalizado = self._normalizar_telefono(telefono)
+        
+        # Si contiene comas, validar cada número por separado
+        if ',' in telefono_normalizado:
+            numeros = [num.strip() for num in telefono_normalizado.split(',')]
+            for numero in numeros:
+                if numero:  # Solo validar números no vacíos
+                    patron = r'^[\d\s\-\(\)\+]{7,15}$'
+                    if not re.match(patron, numero):
+                        return False
+            return True
+        else:
+            # Validar como un solo número
+            patron = r'^[\d\s\-\(\)\+]{7,15}$'
+            return bool(re.match(patron, telefono_normalizado))
+    
+    def _normalizar_telefono(self, telefono: str) -> str:
+        """Normalizar teléfono: convertir espacios a comas para múltiples números"""
+        if not telefono:
+            return telefono
+        
+        # Limpiar el teléfono
+        telefono_limpio = telefono.strip()
+        
+        # Si contiene espacios que separan números completos, convertir a comas
+        # Patrón mejorado para detectar múltiples números separados por espacios
+        import re
+        
+        # Buscar patrones de números telefónicos completos separados por espacios
+        # Un número telefónico puede incluir: dígitos, guiones, paréntesis, signos +
+        # Pero debe tener al menos 7 dígitos consecutivos o separados por guiones/paréntesis
+        
+        # Estrategia más simple: dividir por espacios y verificar si cada parte parece un número
+        partes = re.split(r'\s+', telefono_limpio)
+        
+        if len(partes) > 1:
+            # Verificar si cada parte parece un número telefónico válido
+            numeros_validos = []
+            for parte in partes:
+                parte = parte.strip()
+                if parte and len(parte) >= 7:  # Mínimo 7 caracteres para ser un número
+                    # Verificar que tenga suficientes dígitos
+                    digitos = re.findall(r'\d', parte)
+                    if len(digitos) >= 6:  # Al menos 6 dígitos
+                        numeros_validos.append(parte)
+                    else:
+                        # Si no es un número válido, mantener el original
+                        return telefono_limpio
+                elif parte:
+                    # Si hay una parte muy corta, mantener el original
+                    return telefono_limpio
+            
+            # Si todas las partes son números válidos, unir con comas
+            if len(numeros_validos) > 1:
+                return ', '.join(numeros_validos)
+        
+        return telefono_limpio
     
     def _existe_empresa_con_ruc(self, ruc: str) -> bool:
         """Verificar si existe empresa con el RUC dado"""
@@ -276,6 +335,10 @@ class ExpedienteExcelService:
         solicitante_dni = str(row.get('Solicitante DNI', '')).strip()
         solicitante_email = str(row.get('Solicitante Email', '')).strip() if pd.notna(row.get('Solicitante Email')) else None
         solicitante_telefono = str(row.get('Solicitante Teléfono', '')).strip() if pd.notna(row.get('Solicitante Teléfono')) else None
+        
+        # Normalizar teléfono si existe
+        if solicitante_telefono:
+            solicitante_telefono = self._normalizar_telefono(solicitante_telefono)
         
         # Observaciones
         observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else None

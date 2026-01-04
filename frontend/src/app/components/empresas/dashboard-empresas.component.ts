@@ -743,7 +743,7 @@ export class DashboardEmpresasComponent implements OnInit {
 
   // Estados de empresa para el dashboard
   estadosEmpresa = [
-    { valor: EstadoEmpresa.HABILITADA, nombre: 'HABILITADAS', cantidad: 0, porcentaje: 0, color: 'primary' },
+    { valor: EstadoEmpresa.AUTORIZADA, nombre: 'AUTORIZADAS', cantidad: 0, porcentaje: 0, color: 'primary' },
     { valor: EstadoEmpresa.EN_TRAMITE, nombre: 'EN TRÁMITE', cantidad: 0, porcentaje: 0, color: 'accent' },
     { valor: EstadoEmpresa.SUSPENDIDA, nombre: 'SUSPENDIDAS', cantidad: 0, porcentaje: 0, color: 'warn' },
     { valor: EstadoEmpresa.CANCELADA, nombre: 'CANCELADAS', cantidad: 0, porcentaje: 0, color: 'warn' }
@@ -774,8 +774,8 @@ export class DashboardEmpresasComponent implements OnInit {
 
     const total = stats.totalEmpresas;
     
-    this.estadosEmpresa[0].cantidad = stats.empresasHabilitadas;
-    this.estadosEmpresa[0].porcentaje = (stats.empresasHabilitadas / total) * 100;
+    this.estadosEmpresa[0].cantidad = stats.empresasAutorizadas || stats.empresasHabilitadas || 0;
+    this.estadosEmpresa[0].porcentaje = ((stats.empresasAutorizadas || stats.empresasHabilitadas || 0) / total) * 100;
     
     this.estadosEmpresa[1].cantidad = stats.empresasEnTramite;
     this.estadosEmpresa[1].porcentaje = (stats.empresasEnTramite / total) * 100;
@@ -783,7 +783,7 @@ export class DashboardEmpresasComponent implements OnInit {
     this.estadosEmpresa[2].cantidad = stats.empresasSuspendidas;
     this.estadosEmpresa[2].porcentaje = (stats.empresasSuspendidas / total) * 100;
     
-    this.estadosEmpresa[3].cantidad = total - stats.empresasHabilitadas - stats.empresasEnTramite - stats.empresasSuspendidas;
+    this.estadosEmpresa[3].cantidad = total - (stats.empresasAutorizadas || stats.empresasHabilitadas || 0) - stats.empresasEnTramite - stats.empresasSuspendidas;
     this.estadosEmpresa[3].porcentaje = (this.estadosEmpresa[3].cantidad / total) * 100;
   }
 

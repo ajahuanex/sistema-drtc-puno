@@ -562,18 +562,18 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas habilitadas
-      const empresasHabilitadas = empresas.filter(emp => emp.estado === 'HABILITADA');
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === 'AUTORIZADA');
 
       const empresaSearchControl = this.expedienteForm.get('empresaSearch');
       if (empresaSearchControl) {
         this.empresasFiltradas.set(
           empresaSearchControl.valueChanges.pipe(
             startWith(''),
-            map(value => this.filtrarEmpresas(value, empresasHabilitadas))
+            map(value => this.filtrarEmpresas(value, empresasAutorizadas))
           )
         );
       } else {
-        this.empresasFiltradas.set(of(empresasHabilitadas));
+        this.empresasFiltradas.set(of(empresasAutorizadas));
       }
     });
   }

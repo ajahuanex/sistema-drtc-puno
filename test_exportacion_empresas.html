@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Exportación Empresas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .test-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .test-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .info {
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .warning {
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .feature-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .step {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .step-number {
+            background: #2196f3;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .export-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .export-type {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .export-selected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .export-filtered {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        
+        .export-all {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>📊 EXPORTACIÓN DE EMPRESAS</h1>
+            <p>Funcionalidad completa de exportación con selección múltiple y filtrado</p>
+        </div>
+        
+        <div class="test-content">
+            <div class="test-section">
+                <h2 class="test-title">🎯 FUNCIONALIDADES IMPLEMENTADAS</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <span class="feature-icon">☑️</span>
+                        <div class="feature-title">Selección Múltiple</div>
+                        <div class="feature-description">
+                            Checkbox en cada fila y selección masiva con checkbox principal
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <span class="feature-icon">🔍</span>
+                        <div class="feature-title">Exportación Filtrada</div>
+                        <div class="feature-description">
+                            Exporta solo las empresas que coinciden con los filtros aplicados
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <span class="feature-icon">📋</span>
+                        <div class="feature-title">Exportación Seleccionada</div>
+                        <div class="feature-description">
+                            Exporta únicamente las empresas marcadas con checkbox
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <span class="feature-icon">📈</span>
+                        <div class="feature-title">Datos Completos</div>
+                        <div class="feature-description">
+                            Incluye todos los campos relevantes: contacto, estadísticas, etc.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">📋 TIPOS DE EXPORTACIÓN</h2>
+                
+                <div class="export-types">
+                    <div class="export-type export-selected">
+                        <h4>🎯 EXPORTACIÓN SELECCIONADA</h4>
+                        <p>Prioridad más alta. Exporta solo las empresas marcadas con checkbox.</p>
+                        <small><strong>Activación:</strong> Seleccionar una o más empresas</small>
+                    </div>
+                    
+                    <div class="export-type export-filtered">
+                        <h4>🔍 EXPORTACIÓN FILTRADA</h4>
+                        <p>Prioridad media. Exporta empresas que coinciden con filtros activos.</p>
+                        <small><strong>Activación:</strong> Aplicar filtros de búsqueda o avanzados</small>
+                    </div>
+                    
+                    <div class="export-type export-all">
+                        <h4>📊 EXPORTACIÓN COMPLETA</h4>
+                        <p>Por defecto. Exporta todas las empresas registradas en el sistema.</p>
+                        <small><strong>Activación:</strong> Sin selección ni filtros activos</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">💻 IMPLEMENTACIÓN TÉCNICA</h2>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Selección múltiple:</strong> Signals para selectedEmpresas con Set&lt;string&gt;</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Computed properties:</strong> isAllSelected e isIndeterminate reactivos</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Columna de selección:</strong> Agregada a columnConfigs con checkbox</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Lógica de exportación:</strong> Prioriza selección > filtros > todas</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Descarga automática:</strong> Genera archivo Excel con timestamp</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">📄 CAMPOS EXPORTADOS</h2>
+                
+                <div class="code-block">
+const datosExportacion = {
+  <span class="highlight">RUC</span>: empresa.ruc,
+  <span class="highlight">'Razón Social'</span>: empresa.razonSocial.principal,
+  <span class="highlight">Estado</span>: empresa.estado,
+  <span class="highlight">'Tipo de Servicio'</span>: empresa.tipoServicio,
+  <span class="highlight">'Dirección Fiscal'</span>: empresa.direccionFiscal,
+  <span class="highlight">'Representante Legal'</span>: nombres + apellidos,
+  <span class="highlight">'Email Contacto'</span>: empresa.emailContacto,
+  <span class="highlight">'Teléfono Contacto'</span>: empresa.telefonoContacto,
+  <span class="highlight">'Sitio Web'</span>: empresa.sitioWeb,
+  <span class="highlight">'Fecha Registro'</span>: fecha formateada,
+  <span class="highlight">Resoluciones</span>: cantidad,
+  <span class="highlight">Vehículos</span>: cantidad,
+  <span class="highlight">Conductores</span>: cantidad,
+  <span class="highlight">Rutas</span>: cantidad,
+  <span class="highlight">'Score Riesgo'</span>: empresa.scoreRiesgo,
+  <span class="highlight">Observaciones</span>: empresa.observaciones
+};
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🧪 PASOS PARA PROBAR</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Exportación completa</strong> - Sin seleccionar nada, hacer clic en "EXPORTAR"
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Exportación filtrada</strong> - Aplicar filtros de búsqueda, luego "EXPORTAR"
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Selección individual</strong> - Marcar checkboxes de empresas específicas
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>Selección masiva</strong> - Usar checkbox principal para seleccionar todas
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">5</span>
+                    <strong>Exportación seleccionada</strong> - Con empresas seleccionadas, hacer clic en "EXPORTAR (N)"
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">6</span>
+                    <strong>Limpiar selección</strong> - Usar botón "LIMPIAR SELECCIÓN" cuando aparezca
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🎨 ELEMENTOS DE UI</h2>
+                
+                <div class="test-item info">
+                    <span class="test-icon">☑️</span>
+                    <span><strong>Checkbox principal:</strong> Selecciona/deselecciona todas las empresas visibles</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">☑️</span>
+                    <span><strong>Checkboxes individuales:</strong> Selección específica por empresa</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">📊</span>
+                    <span><strong>Botón EXPORTAR dinámico:</strong> Muestra cantidad seleccionada cuando aplica</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">🗑️</span>
+                    <span><strong>Botón LIMPIAR SELECCIÓN:</strong> Aparece solo cuando hay elementos seleccionados</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">💬</span>
+                    <span><strong>Confirmación de exportación:</strong> Dialog con información del tipo de exportación</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">📥</span>
+                    <span><strong>Descarga automática:</strong> Archivo Excel con nombre único (fecha_hora)</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">⚠️ CONSIDERACIONES</h2>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Orden de prioridad:</strong> Selección > Filtros > Todas las empresas</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Selección se limpia:</strong> Después de exportar exitosamente</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Validación:</strong> No permite exportar si no hay empresas disponibles</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">⚠️</span>
+                    <span><strong>Formato de fecha:</strong> Usa formato peruano (dd/MM/yyyy)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

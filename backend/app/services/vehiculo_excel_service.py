@@ -618,11 +618,11 @@ class VehiculoExcelService:
                 dni="00000000",
                 nombres="POR",
                 apellidos="COMPLETAR",
-                email="pendiente@empresa.com",
+                email="pendiente@transportespuno.gob.pe",
                 telefono="+51 000 000 000",
                 direccion="POR COMPLETAR"
             ),
-            emailContacto="pendiente@empresa.com",
+            emailContacto="pendiente@transportespuno.gob.pe",
             telefonoContacto="+51 000 000 000",
             sitioWeb="",
             estaActivo=True,
@@ -669,7 +669,7 @@ class VehiculoExcelService:
                     },
                     direccionFiscal="DIRECCIÓN PENDIENTE",
                     telefono="TELÉFONO PENDIENTE",
-                    email="email@pendiente.com"
+                    email="email@transportespuno.gob.pe"
                 )
                 nueva_empresa = await self.empresa_service.create_empresa(nueva_empresa_data)
                 print(f"✅ Nueva empresa creada: {nueva_empresa.id} - RUC: {ruc}")

@@ -29,6 +29,8 @@ import { EditarConfiguracionModalComponent } from './editar-configuracion-modal.
 import { EditarConfiguracionConDefaultModalComponent } from './editar-configuracion-con-default-modal.component';
 import { EditarEstadosVehiculosModalComponent } from './editar-estados-vehiculos-modal.component';
 import { GestionarLocalidadModalComponent } from './gestionar-localidad-modal.component';
+import { GestionarTiposRutaModalComponent } from './gestionar-tipos-ruta-modal.component';
+import { GestionarTiposServicioModalComponent } from './gestionar-tipos-servicio-modal.component';
 
 export interface TipoRuta {
   id: string;
@@ -89,6 +91,144 @@ export interface TipoRuta {
         <mat-tab label="Configuraciones del Sistema">
           <div class="tab-content">
             <div class="configuraciones-container">
+              <!-- Resoluciones -->
+              <mat-expansion-panel class="config-category-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>description</mat-icon>
+                    Resoluciones
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Configuraciones para el módulo de resoluciones
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="configuraciones-list">
+                  <div *ngFor="let config of getConfiguracionesPorCategoria(CategoriaConfiguracion.RESOLUCIONES)" 
+                       class="config-item">
+                    <div class="config-info">
+                      <div class="config-header">
+                        <h4>{{ config.nombre | titlecase }}</h4>
+                        <mat-chip [color]="config.esEditable ? 'primary' : 'warn'">
+                          {{ config.esEditable ? 'Editable' : 'Solo Lectura' }}
+                        </mat-chip>
+                      </div>
+                      <p class="config-description">{{ config.descripcion }}</p>
+                      <div class="config-value">
+                        <strong>Valor actual:</strong> 
+                        <span class="value-display">{{ config.valor }}</span>
+                      </div>
+                    </div>
+                    <div class="config-actions" *ngIf="config.esEditable">
+                      <button mat-icon-button 
+                              color="primary" 
+                              (click)="editarConfiguracion(config)"
+                              matTooltip="Editar valor">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              color="accent" 
+                              (click)="resetearConfiguracion(config.nombre)"
+                              matTooltip="Restaurar valor por defecto">
+                        <mat-icon>restore</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Expedientes -->
+              <mat-expansion-panel class="config-category-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>folder</mat-icon>
+                    Expedientes
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Configuraciones para el módulo de expedientes
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="configuraciones-list">
+                  <div *ngFor="let config of getConfiguracionesPorCategoria(CategoriaConfiguracion.EXPEDIENTES)" 
+                       class="config-item">
+                    <div class="config-info">
+                      <div class="config-header">
+                        <h4>{{ config.nombre | titlecase }}</h4>
+                        <mat-chip [color]="config.esEditable ? 'primary' : 'warn'">
+                          {{ config.esEditable ? 'Editable' : 'Solo Lectura' }}
+                        </mat-chip>
+                      </div>
+                      <p class="config-description">{{ config.descripcion }}</p>
+                      <div class="config-value">
+                        <strong>Valor actual:</strong> 
+                        <span class="value-display">{{ config.valor }}</span>
+                      </div>
+                    </div>
+                    <div class="config-actions" *ngIf="config.esEditable">
+                      <button mat-icon-button 
+                              color="primary" 
+                              (click)="editarConfiguracion(config)"
+                              matTooltip="Editar valor">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              color="accent" 
+                              (click)="resetearConfiguracion(config.nombre)"
+                              matTooltip="Restaurar valor por defecto">
+                        <mat-icon>restore</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+
+              <!-- Empresas -->
+              <mat-expansion-panel class="config-category-panel">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>
+                    <mat-icon>business</mat-icon>
+                    Empresas
+                  </mat-panel-title>
+                  <mat-panel-description>
+                    Configuraciones para el módulo de empresas
+                  </mat-panel-description>
+                </mat-expansion-panel-header>
+                
+                <div class="configuraciones-list">
+                  <div *ngFor="let config of getConfiguracionesPorCategoria(CategoriaConfiguracion.EMPRESAS)" 
+                       class="config-item">
+                    <div class="config-info">
+                      <div class="config-header">
+                        <h4>{{ config.nombre | titlecase }}</h4>
+                        <mat-chip [color]="config.esEditable ? 'primary' : 'warn'">
+                          {{ config.esEditable ? 'Editable' : 'Solo Lectura' }}
+                        </mat-chip>
+                      </div>
+                      <p class="config-description">{{ config.descripcion }}</p>
+                      <div class="config-value">
+                        <strong>Valor actual:</strong> 
+                        <span class="value-display">{{ config.valor }}</span>
+                      </div>
+                    </div>
+                    <div class="config-actions" *ngIf="config.esEditable">
+                      <button mat-icon-button 
+                              color="primary" 
+                              (click)="editarConfiguracion(config)"
+                              matTooltip="Editar valor">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button 
+                              color="accent" 
+                              (click)="resetearConfiguracion(config.nombre)"
+                              matTooltip="Restaurar valor por defecto">
+                        <mat-icon>restore</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </mat-expansion-panel>
+
               <!-- Vehículos -->
               <mat-expansion-panel class="config-category-panel">
                 <mat-expansion-panel-header>
@@ -180,6 +320,74 @@ export interface TipoRuta {
                   </div>
                 </div>
               </mat-expansion-panel>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- Tab de Tipos de Ruta y Servicio -->
+        <mat-tab label="Tipos de Ruta y Servicio">
+          <div class="tab-content">
+            <div class="tab-header">
+              <div class="header-info">
+                <h2>Gestión de Tipos</h2>
+                <p>Configurar tipos de ruta y servicio disponibles en el sistema</p>
+              </div>
+              <div class="header-actions">
+                <button mat-raised-button 
+                        color="primary" 
+                        (click)="gestionarTiposRuta()">
+                  <mat-icon>category</mat-icon>
+                  Gestionar Tipos de Ruta
+                </button>
+                <button mat-raised-button 
+                        color="accent" 
+                        (click)="gestionarTiposServicio()">
+                  <mat-icon>business</mat-icon>
+                  Gestionar Tipos de Servicio
+                </button>
+              </div>
+            </div>
+
+            <div class="tipos-info">
+              <mat-card class="info-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>category</mat-icon>
+                    Tipos de Ruta
+                  </mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <p>Los tipos de ruta definen las categorías de rutas disponibles en el sistema (Urbana, Interprovincial, etc.).</p>
+                  <div class="tipos-actuales">
+                    <h4>Tipos actuales:</h4>
+                    <div class="chips-container">
+                      @for (tipo of getTiposRutaActuales(); track tipo) {
+                        <mat-chip>{{ tipo }}</mat-chip>
+                      }
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+
+              <mat-card class="info-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>business</mat-icon>
+                    Tipos de Servicio
+                  </mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <p>Los tipos de servicio definen las modalidades de transporte disponibles (Pasajeros, Carga, Mixto, etc.).</p>
+                  <div class="tipos-actuales">
+                    <h4>Tipos actuales:</h4>
+                    <div class="chips-container">
+                      @for (tipo of getTiposServicioActuales(); track tipo) {
+                        <mat-chip color="accent">{{ tipo }}</mat-chip>
+                      }
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
             </div>
           </div>
         </mat-tab>
@@ -481,5 +689,60 @@ export class ConfiguracionComponent implements OnInit {
         this.cargarLocalidades();
       }
     });
+  }
+
+  // Métodos para gestión de tipos
+  gestionarTiposRuta(): void {
+    const dialogRef = this.dialog.open(GestionarTiposRutaModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Tipos de ruta actualizados');
+      }
+    });
+  }
+
+  gestionarTiposServicio(): void {
+    const dialogRef = this.dialog.open(GestionarTiposServicioModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Tipos de servicio actualizados');
+      }
+    });
+  }
+
+  getTiposRutaActuales(): string[] {
+    const config = this.configuracionService.getConfiguracion('TIPOS_RUTA_CONFIG');
+    if (config && config.valor) {
+      try {
+        const tipos = JSON.parse(config.valor);
+        return tipos.filter((t: any) => t.estaActivo).map((t: any) => t.nombre);
+      } catch (error) {
+        console.error('Error parseando tipos de ruta:', error);
+      }
+    }
+    return ['Urbana', 'Interurbana', 'Interprovincial', 'Interregional', 'Rural'];
+  }
+
+  getTiposServicioActuales(): string[] {
+    const config = this.configuracionService.getConfiguracion('TIPOS_SERVICIO_CONFIG');
+    if (config && config.valor) {
+      try {
+        const tipos = JSON.parse(config.valor);
+        return tipos.filter((t: any) => t.estaActivo).map((t: any) => t.nombre);
+      } catch (error) {
+        console.error('Error parseando tipos de servicio:', error);
+      }
+    }
+    return ['Transporte de Pasajeros', 'Transporte de Carga', 'Transporte Mixto'];
   }
 }

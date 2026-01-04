@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Paginador Empresas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .test-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .test-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .warning {
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .error {
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 TEST PAGINADOR EMPRESAS</h1>
+            <p>Verificación de funcionalidad del paginador en la tabla de empresas</p>
+        </div>
+        
+        <div class="test-content">
+            <div class="test-section">
+                <h2 class="test-title">✅ CAMBIOS IMPLEMENTADOS</h2>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>AfterViewInit Interface:</strong> Agregada correctamente al componente</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>ViewChild Referencias:</strong> @ViewChild(MatPaginator) y @ViewChild(MatSort) configurados</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Configuración ngAfterViewInit:</strong> Paginador y sort asignados al dataSource</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Etiquetas en Español:</strong> MatPaginatorIntl configurado con textos en español</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Estilos Mejorados:</strong> CSS personalizado para mejor apariencia del paginador</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🔧 CONFIGURACIÓN TÉCNICA</h2>
+                
+                <div class="test-item">
+                    <span class="test-icon">⚙️</span>
+                    <span><strong>Tamaños de página:</strong> [10, 25, 50, 100] elementos</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">⚙️</span>
+                    <span><strong>Tamaño por defecto:</strong> 25 elementos por página</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">⚙️</span>
+                    <span><strong>Navegación:</strong> Botones primera/última página habilitados</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">⚙️</span>
+                    <span><strong>Integración:</strong> Funciona con filtros y búsqueda</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">📝 CÓDIGO CLAVE IMPLEMENTADO</h2>
+                
+                <h3>1. Configuración del componente:</h3>
+                <div class="code-block">
+export class EmpresasComponent implements OnInit, <span class="highlight">AfterViewInit</span> {
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+  
+  ngAfterViewInit(): void {
+    if (this.paginator && this.sort) {
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.sort = this.sort;
+    }
+  }
+}
+                </div>
+                
+                <h3>2. Configuración de idioma:</h3>
+                <div class="code-block">
+private configurarPaginadorEspanol(): void {
+  this.paginatorIntl.itemsPerPageLabel = '<span class="highlight">Elementos por página:</span>';
+  this.paginatorIntl.nextPageLabel = '<span class="highlight">Página siguiente</span>';
+  this.paginatorIntl.previousPageLabel = '<span class="highlight">Página anterior</span>';
+  this.paginatorIntl.getRangeLabel = (page, pageSize, length) => {
+    return `<span class="highlight">${startIndex + 1} - ${endIndex} de ${length}</span>`;
+  };
+}
+                </div>
+                
+                <h3>3. Template HTML:</h3>
+                <div class="code-block">
+&lt;mat-paginator 
+    [pageSizeOptions]="<span class="highlight">[10, 25, 50, 100]</span>" 
+    [pageSize]="<span class="highlight">25</span>"
+    [showFirstLastButtons]="<span class="highlight">true</span>"
+    class="table-paginator"&gt;
+&lt;/mat-paginator&gt;
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🎯 FUNCIONALIDADES ESPERADAS</h2>
+                
+                <div class="test-item">
+                    <span class="test-icon">🔄</span>
+                    <span><strong>Navegación por páginas:</strong> Anterior/Siguiente/Primera/Última</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">📊</span>
+                    <span><strong>Selector de elementos:</strong> 10, 25, 50, 100 por página</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">🔍</span>
+                    <span><strong>Integración con filtros:</strong> Se resetea al aplicar filtros</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">📱</span>
+                    <span><strong>Responsive:</strong> Se adapta a diferentes tamaños de pantalla</span>
+                </div>
+                
+                <div class="test-item">
+                    <span class="test-icon">🌐</span>
+                    <span><strong>Idioma:</strong> Todas las etiquetas en español</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🚀 PASOS PARA PROBAR</h2>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">1️⃣</span>
+                    <span>Navegar a la página de empresas en la aplicación</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">2️⃣</span>
+                    <span>Verificar que aparezca el paginador en la parte inferior de la tabla</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">3️⃣</span>
+                    <span>Probar cambiar el número de elementos por página</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">4️⃣</span>
+                    <span>Navegar entre páginas usando los botones</span>
+                </div>
+                
+                <div class="test-item warning">
+                    <span class="test-icon">5️⃣</span>
+                    <span>Aplicar filtros y verificar que el paginador se resetee</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">⚠️ POSIBLES PROBLEMAS Y SOLUCIONES</h2>
+                
+                <div class="test-item error">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Paginador no aparece:</strong> Verificar que MatPaginatorModule esté importado</span>
+                </div>
+                
+                <div class="test-item error">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Botones no funcionan:</strong> Verificar que dataSource.paginator esté asignado</span>
+                </div>
+                
+                <div class="test-item error">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Textos en inglés:</strong> Verificar configuración de MatPaginatorIntl</span>
+                </div>
+                
+                <div class="test-item error">
+                    <span class="test-icon">❌</span>
+                    <span><strong>No se resetea con filtros:</strong> Verificar llamadas a paginator.firstPage()</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

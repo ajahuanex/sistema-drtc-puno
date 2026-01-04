@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     
     # Base de datos MongoDB
     MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017"
-    DATABASE_NAME: str = "sirret_db"
+    DATABASE_NAME: str = "drtc_db"
     
     # Seguridad
     SECRET_KEY: str = "tu_clave_secreta_muy_larga_y_segura_aqui_sirret_2024"
@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     SISTEMA_NOMBRE: str = "SIRRET"
     SISTEMA_NOMBRE_COMPLETO: str = "Sistema Regional de Registros de Transporte"
     ENTIDAD_NOMBRE: str = "Dirección Regional de Transportes y Comunicaciones Puno"
+    DOMINIO_INSTITUCIONAL: str = "transportespuno.gob.pe"
+    EMAIL_INSTITUCIONAL: str = "admin@transportespuno.gob.pe"
     
     # APIs Externas
     RENIEC_API_URL: str = "https://api.reniec.gob.pe"

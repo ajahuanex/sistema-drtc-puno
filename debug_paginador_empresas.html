@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Paginador Empresas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .debug-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .debug-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .debug-content {
+            padding: 20px;
+        }
+        
+        .debug-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .debug-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .debug-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .debug-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .warning {
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        
+        .error {
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .step {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .step-number {
+            background: #2196f3;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="debug-header">
+            <h1>🐛 DEBUG PAGINADOR EMPRESAS</h1>
+            <p>Diagnóstico del problema: "El paginador no está limitando las filas mostradas"</p>
+        </div>
+        
+        <div class="debug-content">
+            <div class="debug-section">
+                <h2 class="debug-title">🔍 PROBLEMA IDENTIFICADO</h2>
+                
+                <div class="debug-item error">
+                    <span class="debug-icon">❌</span>
+                    <span><strong>Síntoma:</strong> El paginador aparece pero muestra todas las filas en lugar de limitarlas</span>
+                </div>
+                
+                <div class="debug-item warning">
+                    <span class="debug-icon">⚠️</span>
+                    <span><strong>Causa probable:</strong> Problema de timing en la configuración del dataSource.paginator</span>
+                </div>
+                
+                <div class="debug-item warning">
+                    <span class="debug-icon">⚠️</span>
+                    <span><strong>Evidencia:</strong> El paginador muestra "0 de 0" pero la tabla muestra todas las filas</span>
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h2 class="debug-title">🔧 SOLUCIONES IMPLEMENTADAS</h2>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Método configurarDataSource():</strong> Centraliza la configuración del paginador</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>setTimeout en loadEmpresas():</strong> Asegura que la configuración se haga después del render</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Logs de debug:</strong> Agregados para monitorear el estado del paginador</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Botón DEBUG temporal:</strong> Para probar la configuración en tiempo real</span>
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h2 class="debug-title">📋 PASOS PARA DIAGNOSTICAR</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Abrir la consola del navegador</strong> (F12 → Console)
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Navegar a la página de empresas</strong> y observar los logs de carga
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Hacer clic en el botón "DEBUG"</strong> para ver el estado del paginador
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>Verificar en la consola</strong> que aparezcan estos valores:
+                    <div class="code-block">
+🔍 DEBUG PAGINADOR: {
+  paginator: <span class="highlight">true</span>,
+  dataSourcePaginator: <span class="highlight">true</span>,
+  totalData: <span class="highlight">[número > 0]</span>,
+  pageSize: <span class="highlight">25</span>
+}
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">5</span>
+                    <strong>Probar cambiar el tamaño de página</strong> en el selector del paginador
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h2 class="debug-title">🚨 POSIBLES PROBLEMAS ADICIONALES</h2>
+                
+                <div class="debug-item error">
+                    <span class="debug-icon">🔴</span>
+                    <span><strong>Si paginator: false</strong> → El ViewChild no está funcionando</span>
+                </div>
+                
+                <div class="debug-item error">
+                    <span class="debug-icon">🔴</span>
+                    <span><strong>Si dataSourcePaginator: false</strong> → La asignación no está funcionando</span>
+                </div>
+                
+                <div class="debug-item error">
+                    <span class="debug-icon">🔴</span>
+                    <span><strong>Si totalData: 0</strong> → No se están cargando datos</span>
+                </div>
+                
+                <div class="debug-item error">
+                    <span class="debug-icon">🔴</span>
+                    <span><strong>Si pageSize: undefined</strong> → El paginador no está inicializado</span>
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h2 class="debug-title">🛠️ CÓDIGO CLAVE IMPLEMENTADO</h2>
+                
+                <h3>1. Método centralizado de configuración:</h3>
+                <div class="code-block">
+private configurarDataSource(): void {
+  if (this.paginator && this.sort) {
+    <span class="highlight">this.dataSource.paginator = this.paginator;</span>
+    <span class="highlight">this.dataSource.sort = this.sort;</span>
+    // ... configuraciones adicionales
+  }
+}
+                </div>
+                
+                <h3>2. Configuración con timing correcto:</h3>
+                <div class="code-block">
+loadEmpresas(): void {
+  this.empresaService.getEmpresas(0, 1000).subscribe({
+    next: (empresas) => {
+      this.dataSource.data = empresas;
+      
+      <span class="highlight">setTimeout(() => {
+        this.configurarDataSource();
+      }, 0);</span>
+    }
+  });
+}
+                </div>
+                
+                <h3>3. Debug method:</h3>
+                <div class="code-block">
+debugPaginador(): void {
+  console.log('🔍 DEBUG PAGINADOR:', {
+    paginator: !!this.paginator,
+    dataSourcePaginator: !!this.dataSource.paginator,
+    totalData: this.dataSource.data.length,
+    pageSize: this.paginator?.pageSize
+  });
+}
+                </div>
+            </div>
+            
+            <div class="debug-section">
+                <h2 class="debug-title">🎯 RESULTADO ESPERADO</h2>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Tabla limitada:</strong> Solo 25 filas visibles por defecto</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Paginador funcional:</strong> Botones de navegación activos</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Contador correcto:</strong> "1 - 25 de [total]" en el paginador</span>
+                </div>
+                
+                <div class="debug-item success">
+                    <span class="debug-icon">✅</span>
+                    <span><strong>Selector funcional:</strong> Cambio de 10/25/50/100 elementos por página</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

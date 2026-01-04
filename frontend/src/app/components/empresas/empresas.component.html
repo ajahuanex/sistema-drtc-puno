@@ -28,8 +28,18 @@
         </button>
         <button mat-button color="accent" (click)="exportarEmpresas()" class="action-button">
             <mat-icon>download</mat-icon>
-            EXPORTAR
+            @if (selectedEmpresas().size > 0) {
+                EXPORTAR ({{ selectedEmpresas().size }})
+            } @else {
+                EXPORTAR
+            }
         </button>
+        @if (selectedEmpresas().size > 0) {
+        <button mat-button color="warn" (click)="clearSelection()" class="action-button">
+            <mat-icon>clear</mat-icon>
+            LIMPIAR SELECCIÓN
+        </button>
+        }
     </div>
 </div>
 
@@ -51,8 +61,8 @@
                 <mat-icon>check_circle</mat-icon>
             </div>
             <div class="stat-content">
-                <div class="stat-value">{{ estadisticas()?.empresasHabilitadas }}</div>
-                <div class="stat-label">HABILITADAS</div>
+                <div class="stat-value">{{ estadisticas()?.empresasHabilitadas || estadisticas()?.empresasAutorizadas || 0 }}</div>
+                <div class="stat-label">AUTORIZADAS</div>
             </div>
         </div>
         <div class="stat-card en-tramite">
@@ -78,65 +88,86 @@
 }
 
 <div class="content-section">
-    <!-- Filtros Avanzados -->
-    <mat-expansion-panel class="filters-panel">
-        <mat-expansion-panel-header>
-            <mat-panel-title>
+    <!-- Búsqueda Reactiva y Configuración -->
+    <div class="search-and-config-section">
+        <div class="search-container">
+            <form [formGroup]="searchForm" class="search-form">
+                <mat-form-field appearance="outline" class="search-field">
+                    <mat-label>BUSCAR EMPRESAS</mat-label>
+                    <input matInput formControlName="searchTerm" placeholder="Buscar por RUC o Razón Social...">
+                    <mat-icon matPrefix>search</mat-icon>
+                    @if (searchForm.get('searchTerm')?.value) {
+                    <button matSuffix mat-icon-button (click)="clearSearch()" matTooltip="Limpiar búsqueda">
+                        <mat-icon>clear</mat-icon>
+                    </button>
+                    }
+                </mat-form-field>
+            </form>
+        </div>
+        
+        <div class="config-container">
+            <!-- Botón de filtros avanzados -->
+            <button mat-icon-button 
+                    (click)="abrirFiltrosAvanzados()" 
+                    matTooltip="Filtros avanzados" 
+                    class="config-button"
+                    [class.active]="tienesFiltrosActivos()">
                 <mat-icon>filter_list</mat-icon>
-                FILTROS AVANZADOS
-            </mat-panel-title>
-        </mat-expansion-panel-header>
+            </button>
+            
+            <!-- Botón para limpiar filtros -->
+            @if (tienesFiltrosActivos()) {
+            <button mat-icon-button 
+                    (click)="limpiarFiltrosAvanzados()" 
+                    matTooltip="Limpiar filtros" 
+                    class="config-button clear-filters">
+                <mat-icon>filter_list_off</mat-icon>
+            </button>
+            }
+            
+            <button mat-icon-button (click)="toggleColumnConfig()" matTooltip="Configurar columnas" class="config-button">
+                <mat-icon>view_column</mat-icon>
+            </button>
+            <button mat-icon-button (click)="recargarEmpresas()" matTooltip="Recargar datos" class="config-button">
+                <mat-icon>refresh</mat-icon>
+            </button>
+        </div>
+    </div>
 
-        <form [formGroup]="filtrosForm" class="filters-form">
-            <div class="filters-grid">
-                <mat-form-field appearance="outline">
-                    <mat-label>RUC</mat-label>
-                    <input matInput formControlName="ruc" placeholder="BUSCAR POR RUC">
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>RAZÓN SOCIAL</mat-label>
-                    <input matInput formControlName="razonSocial" placeholder="BUSCAR POR RAZÓN SOCIAL">
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>ESTADO</mat-label>
-                    <mat-select formControlName="estado">
-                        <mat-option value="">TODOS LOS ESTADOS</mat-option>
-                        <mat-option value="HABILITADA">HABILITADA</mat-option>
-                        <mat-option value="EN_TRAMITE">EN TRÁMITE</mat-option>
-                        <mat-option value="SUSPENDIDA">SUSPENDIDA</mat-option>
-                        <mat-option value="CANCELADA">CANCELADA</mat-option>
-                    </mat-select>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>FECHA DESDE</mat-label>
-                    <input matInput [matDatepicker]="fechaDesdePicker" formControlName="fechaDesde">
-                    <mat-datepicker-toggle matSuffix [for]="fechaDesdePicker"></mat-datepicker-toggle>
-                    <mat-datepicker #fechaDesdePicker></mat-datepicker>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>FECHA HASTA</mat-label>
-                    <input matInput [matDatepicker]="fechaHastaPicker" formControlName="fechaHasta">
-                    <mat-datepicker-toggle matSuffix [for]="fechaHastaPicker"></mat-datepicker-toggle>
-                    <mat-datepicker #fechaHastaPicker></mat-datepicker>
-                </mat-form-field>
-            </div>
-
-            <div class="filters-actions">
-                <button mat-raised-button color="primary" (click)="aplicarFiltros()">
-                    <mat-icon>search</mat-icon>
-                    BUSCAR
-                </button>
-                <button mat-button (click)="limpiarFiltros()">
-                    <mat-icon>clear</mat-icon>
-                    LIMPIAR
-                </button>
-            </div>
-        </form>
-    </mat-expansion-panel>
+    <!-- Configuración de Columnas -->
+    @if (showColumnConfig()) {
+    <div class="column-config-section">
+        <mat-card class="column-config-card">
+            <mat-card-header>
+                <mat-card-title>
+                    <mat-icon>view_column</mat-icon>
+                    CONFIGURAR COLUMNAS
+                </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+                <form [formGroup]="columnForm" class="column-config-form">
+                    <div class="column-checkboxes">
+                        @for (column of columnConfigs(); track column.key) {
+                        <mat-checkbox [formControlName]="column.key" class="column-checkbox">
+                            {{ column.label }}
+                        </mat-checkbox>
+                        }
+                    </div>
+                    <div class="column-actions">
+                        <button mat-button (click)="resetColumns()">
+                            <mat-icon>restore</mat-icon>
+                            RESTAURAR POR DEFECTO
+                        </button>
+                        <button mat-button (click)="toggleColumnConfig()">
+                            <mat-icon>close</mat-icon>
+                            CERRAR
+                        </button>
+                    </div>
+                </form>
+            </mat-card-content>
+        </mat-card>
+    </div>
+    }
 
     <!-- Loading State -->
     @if (isLoading()) {
@@ -150,7 +181,7 @@
     }
 
     <!-- Empty State -->
-    @if (!isLoading() && empresas().length === 0) {
+    @if (!isLoading() && dataSource.data.length === 0) {
     <div class="empty-container">
         <div class="empty-content">
             <div class="empty-icon-container">
@@ -173,26 +204,51 @@
     }
 
     <!-- Data Table -->
-    @if (!isLoading() && empresas().length > 0) {
+    @if (!isLoading() && dataSource.data.length > 0) {
     <div class="table-section">
         <div class="table-header">
             <div class="table-info">
                 <h3>EMPRESAS REGISTRADAS</h3>
-                <p class="table-subtitle">SE ENCONTRARON {{empresas().length}} EMPRESAS</p>
-            </div>
-            <div class="table-actions">
-                <button mat-button color="accent" (click)="recargarEmpresas()">
-                    <mat-icon>refresh</mat-icon>
-                    RECARGAR
-                </button>
+                <p class="table-subtitle">
+                    MOSTRANDO {{ dataSource.filteredData.length }} DE {{ dataSource.data.length }} EMPRESAS
+                    @if (dataSource.filter) {
+                    <span class="filter-info"> - FILTRADO POR: "{{ dataSource.filter }}"</span>
+                    }
+                </p>
             </div>
         </div>
 
         <div class="table-container">
-            <table mat-table [dataSource]="empresas()" class="modern-table">
+            <table mat-table [dataSource]="dataSource" matSort class="modern-table">
+                
+                <!-- Select Column -->
+                @if (displayedColumns().includes('select')) {
+                <ng-container matColumnDef="select">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell select-column">
+                        <div class="header-content">
+                            <mat-checkbox 
+                                [checked]="isAllSelected()"
+                                [indeterminate]="isIndeterminate()"
+                                (change)="toggleAllSelection()"
+                                matTooltip="Seleccionar todas las empresas visibles">
+                            </mat-checkbox>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell select-column">
+                        <div class="cell-content">
+                            <mat-checkbox 
+                                [checked]="isEmpresaSelected(empresa.id)"
+                                (change)="toggleEmpresaSelection(empresa.id)">
+                            </mat-checkbox>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+                
                 <!-- RUC Column -->
+                @if (displayedColumns().includes('ruc')) {
                 <ng-container matColumnDef="ruc">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>RUC</span>
                         </div>
@@ -203,24 +259,33 @@
                         </div>
                     </td>
                 </ng-container>
+                }
 
                 <!-- Razón Social Column -->
+                @if (displayedColumns().includes('razonSocial')) {
                 <ng-container matColumnDef="razonSocial">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>RAZÓN SOCIAL</span>
                         </div>
                     </th>
                     <td mat-cell *matCellDef="let empresa" class="table-cell">
                         <div class="cell-content">
-                            <span class="cell-text">{{ empresa.razonSocial.principal }}</span>
+                            <span class="cell-text" 
+                                  [matTooltip]="empresa.razonSocial.principal" 
+                                  matTooltipClass="razon-social-tooltip"
+                                  matTooltipPosition="above">
+                                {{ empresa.razonSocial.principal }}
+                            </span>
                         </div>
                     </td>
                 </ng-container>
+                }
 
                 <!-- Estado Column -->
+                @if (displayedColumns().includes('estado')) {
                 <ng-container matColumnDef="estado">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>ESTADO</span>
                         </div>
@@ -233,10 +298,112 @@
                         </div>
                     </td>
                 </ng-container>
+                }
+
+                <!-- Tipo de Servicio Column -->
+                @if (displayedColumns().includes('tipoServicio')) {
+                <ng-container matColumnDef="tipoServicio">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
+                        <div class="header-content">
+                            <span>TIPO DE SERVICIO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ empresa.tipoServicio || 'No especificado' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+
+                <!-- Dirección Column -->
+                @if (displayedColumns().includes('direccion')) {
+                <ng-container matColumnDef="direccion">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
+                        <div class="header-content">
+                            <span>DIRECCIÓN</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ empresa.direccionFiscal || 'No especificada' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+
+                <!-- Teléfono Column -->
+                @if (displayedColumns().includes('telefono')) {
+                <ng-container matColumnDef="telefono">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>TELÉFONO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ empresa.telefonoContacto || 'No especificado' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+
+                <!-- Email Column -->
+                @if (displayedColumns().includes('email')) {
+                <ng-container matColumnDef="email">
+                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                        <div class="header-content">
+                            <span>EMAIL</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ empresa.emailContacto || 'No especificado' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+
+                <!-- Representante Legal Column -->
+                @if (displayedColumns().includes('representanteLegal')) {
+                <ng-container matColumnDef="representanteLegal">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
+                        <div class="header-content">
+                            <span>REPRESENTANTE LEGAL</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">
+                                {{ empresa.representanteLegal ? 
+                                   (empresa.representanteLegal.nombres + ' ' + empresa.representanteLegal.apellidos) : 
+                                   'No especificado' }}
+                            </span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
+
+                <!-- Fecha Registro Column -->
+                @if (displayedColumns().includes('fechaRegistro')) {
+                <ng-container matColumnDef="fechaRegistro">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
+                        <div class="header-content">
+                            <span>FECHA REGISTRO</span>
+                        </div>
+                    </th>
+                    <td mat-cell *matCellDef="let empresa" class="table-cell">
+                        <div class="cell-content">
+                            <span class="cell-text">{{ empresa.fechaRegistro | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                    </td>
+                </ng-container>
+                }
 
                 <!-- Rutas Column -->
+                @if (displayedColumns().includes('rutas')) {
                 <ng-container matColumnDef="rutas">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>RUTAS</span>
                         </div>
@@ -253,10 +420,12 @@
                         </div>
                     </td>
                 </ng-container>
+                }
 
                 <!-- Vehículos Column -->
+                @if (displayedColumns().includes('vehiculos')) {
                 <ng-container matColumnDef="vehiculos">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>VEHÍCULOS</span>
                         </div>
@@ -264,16 +433,17 @@
                     <td mat-cell *matCellDef="let empresa" class="table-cell">
                         <div class="cell-content">
                             <mat-chip-set>
-                                <mat-chip color="primary" selected>{{ empresa.vehiculosHabilitadosIds.length
-                                    }}</mat-chip>
+                                <mat-chip color="primary" selected>{{ empresa.vehiculosHabilitadosIds?.length || 0 }}</mat-chip>
                             </mat-chip-set>
                         </div>
                     </td>
                 </ng-container>
+                }
 
                 <!-- Conductores Column -->
+                @if (displayedColumns().includes('conductores')) {
                 <ng-container matColumnDef="conductores">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
+                    <th mat-header-cell *matHeaderCellDef mat-sort-header class="table-header-cell">
                         <div class="header-content">
                             <span>CONDUCTORES</span>
                         </div>
@@ -281,14 +451,15 @@
                     <td mat-cell *matCellDef="let empresa" class="table-cell">
                         <div class="cell-content">
                             <mat-chip-set>
-                                <mat-chip color="accent" selected>{{ empresa.conductoresHabilitadosIds.length
-                                    }}</mat-chip>
+                                <mat-chip color="accent" selected>{{ empresa.conductoresHabilitadosIds?.length || 0 }}</mat-chip>
                             </mat-chip-set>
                         </div>
                     </td>
                 </ng-container>
+                }
 
                 <!-- Acciones Column -->
+                @if (displayedColumns().includes('acciones')) {
                 <ng-container matColumnDef="acciones">
                     <th mat-header-cell *matHeaderCellDef class="table-header-cell">
                         <div class="header-content">
@@ -351,10 +522,20 @@
                         </div>
                     </td>
                 </ng-container>
+                }
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns" class="table-header-row"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+                <tr mat-header-row *matHeaderRowDef="displayedColumns()" class="table-header-row"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns();" class="table-row"></tr>
             </table>
+
+            <!-- Paginador -->
+            <mat-paginator 
+                [pageSizeOptions]="[10, 25, 50, 100]" 
+                [pageSize]="25"
+                showFirstLastButtons
+                [showFirstLastButtons]="true"
+                class="table-paginator">
+            </mat-paginator>
         </div>
     </div>
     }

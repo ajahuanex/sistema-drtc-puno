@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Configuración de Columnas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .test-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .test-content {
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .test-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #6f42c1;
+        }
+        
+        .test-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .success {
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        
+        .fix {
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .info {
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .column-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .column-item {
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .visible {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .hidden {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .step {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .step-number {
+            background: #2196f3;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>⚙️ CONFIGURACIÓN DE COLUMNAS</h1>
+            <p>Corrección de la reactividad en la configuración de columnas de la tabla</p>
+        </div>
+        
+        <div class="test-content">
+            <div class="test-section">
+                <h2 class="test-title">🔧 PROBLEMA IDENTIFICADO</h2>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Configuración no reactiva:</strong> Los cambios en checkboxes no se reflejaban en la tabla</span>
+                </div>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Causa:</strong> columnConfigs era un array normal, no un signal</span>
+                </div>
+                
+                <div class="test-item fix">
+                    <span class="test-icon">❌</span>
+                    <span><strong>Computed no se actualizaba:</strong> Angular no detectaba cambios en el array</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">✅ SOLUCIÓN IMPLEMENTADA</h2>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Signal para columnConfigs:</strong> Convertido a signal para reactividad</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Actualización inmutable:</strong> Se crea nuevo array en cada cambio</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Computed reactivo:</strong> displayedColumns se actualiza automáticamente</span>
+                </div>
+                
+                <div class="test-item success">
+                    <span class="test-icon">✅</span>
+                    <span><strong>Template actualizado:</strong> Usa columnConfigs() en lugar de columnConfigs</span>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">📊 COLUMNAS DISPONIBLES</h2>
+                
+                <p><strong>Columnas visibles por defecto:</strong></p>
+                <div class="column-demo">
+                    <div class="column-item visible">RUC</div>
+                    <div class="column-item visible">RAZÓN SOCIAL</div>
+                    <div class="column-item visible">ESTADO</div>
+                    <div class="column-item visible">TIPO DE SERVICIO</div>
+                    <div class="column-item visible">RUTAS</div>
+                    <div class="column-item visible">VEHÍCULOS</div>
+                    <div class="column-item visible">CONDUCTORES</div>
+                    <div class="column-item visible">ACCIONES</div>
+                </div>
+                
+                <p><strong>Columnas ocultas por defecto:</strong></p>
+                <div class="column-demo">
+                    <div class="column-item hidden">DIRECCIÓN</div>
+                    <div class="column-item hidden">TELÉFONO</div>
+                    <div class="column-item hidden">EMAIL</div>
+                    <div class="column-item hidden">REPRESENTANTE LEGAL</div>
+                    <div class="column-item hidden">FECHA REGISTRO</div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">💻 CÓDIGO IMPLEMENTADO</h2>
+                
+                <h3>1. Signal para columnConfigs:</h3>
+                <div class="code-block">
+// Antes (no reactivo)
+columnConfigs: ColumnConfig[] = [...];
+
+// Después (reactivo)
+<span class="highlight">columnConfigs = signal&lt;ColumnConfig[]&gt;([...]);</span>
+                </div>
+                
+                <h3>2. Computed actualizado:</h3>
+                <div class="code-block">
+displayedColumns = computed(() => 
+  <span class="highlight">this.columnConfigs()</span>.filter(col => col.visible).map(col => col.key)
+);
+                </div>
+                
+                <h3>3. Actualización inmutable:</h3>
+                <div class="code-block">
+this.columnForm.get(col.key)?.valueChanges.subscribe(visible => {
+  const currentConfigs = this.columnConfigs();
+  <span class="highlight">const updatedConfigs = currentConfigs.map(config => 
+    config.key === col.key ? { ...config, visible } : config
+  );</span>
+  <span class="highlight">this.columnConfigs.set(updatedConfigs);</span>
+});
+                </div>
+                
+                <h3>4. Template actualizado:</h3>
+                <div class="code-block">
+&lt;!-- Antes --&gt;
+@for (column of columnConfigs; track column.key) {
+
+&lt;!-- Después --&gt;
+@for (column of <span class="highlight">columnConfigs()</span>; track column.key) {
+                </div>
+                
+                <h3>5. Reset columns mejorado:</h3>
+                <div class="code-block">
+resetColumns(): void {
+  const defaultVisibleColumns = ['ruc', 'razonSocial', ...];
+  
+  <span class="highlight">const updatedConfigs = this.columnConfigs().map(col => ({
+    ...col,
+    visible: defaultVisibleColumns.includes(col.key)
+  }));</span>
+  
+  <span class="highlight">this.columnConfigs.set(updatedConfigs);</span>
+}
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🧪 PASOS PARA PROBAR</h2>
+                
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <strong>Abrir configuración de columnas</strong> - Hacer clic en el icono de columnas (⋮)
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <strong>Cambiar visibilidad</strong> - Marcar/desmarcar checkboxes de columnas
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <strong>Verificar cambios inmediatos</strong> - La tabla debe actualizarse al instante
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">4</span>
+                    <strong>Probar "Restaurar por defecto"</strong> - Debe volver a la configuración inicial
+                </div>
+                
+                <div class="step">
+                    <span class="step-number">5</span>
+                    <strong>Cerrar y reabrir</strong> - Verificar que los cambios persisten durante la sesión
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2 class="test-title">🎯 FUNCIONALIDADES ESPERADAS</h2>
+                
+                <div class="test-item info">
+                    <span class="test-icon">⚡</span>
+                    <span><strong>Cambios instantáneos:</strong> La tabla se actualiza inmediatamente al cambiar checkboxes</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">🔄</span>
+                    <span><strong>Restaurar por defecto:</strong> Botón funciona correctamente</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">💾</span>
+                    <span><strong>Estado persistente:</strong> Los cambios se mantienen durante la sesión</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">📱</span>
+                    <span><strong>Responsive:</strong> Configuración funciona en todos los tamaños de pantalla</span>
+                </div>
+                
+                <div class="test-item info">
+                    <span class="test-icon">🎨</span>
+                    <span><strong>UI intuitiva:</strong> Panel de configuración claro y fácil de usar</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

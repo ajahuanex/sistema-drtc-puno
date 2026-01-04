@@ -231,6 +231,136 @@ export class ConfiguracionService {
    */
   private getConfiguracionesDefault(): ConfiguracionSistema[] {
     return [
+      // Configuraciones de Resoluciones
+      {
+        id: 'default-res-1',
+        nombre: 'ANIOS_VIGENCIA_DEFAULT',
+        valor: '4',
+        descripcion: 'Años de vigencia por defecto para nuevas resoluciones',
+        categoria: CategoriaConfiguracion.RESOLUCIONES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-res-2',
+        nombre: 'MAX_ANIOS_VIGENCIA',
+        valor: '10',
+        descripcion: 'Máximo de años de vigencia permitidos',
+        categoria: CategoriaConfiguracion.RESOLUCIONES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-res-3',
+        nombre: 'MIN_ANIOS_VIGENCIA',
+        valor: '1',
+        descripcion: 'Mínimo de años de vigencia permitidos',
+        categoria: CategoriaConfiguracion.RESOLUCIONES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-res-4',
+        nombre: 'PREFIJO_RESOLUCION',
+        valor: 'R',
+        descripcion: 'Prefijo para numeración automática de resoluciones',
+        categoria: CategoriaConfiguracion.RESOLUCIONES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+
+      // Configuraciones de Expedientes
+      {
+        id: 'default-exp-1',
+        nombre: 'TIEMPO_PROCESAMIENTO_DEFAULT',
+        valor: '15',
+        descripcion: 'Tiempo estimado de procesamiento en días',
+        categoria: CategoriaConfiguracion.EXPEDIENTES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-exp-2',
+        nombre: 'MAX_EXPEDIENTES_OFICINA',
+        valor: '200',
+        descripcion: 'Máximo de expedientes por oficina',
+        categoria: CategoriaConfiguracion.EXPEDIENTES,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+
+      // Configuraciones de Empresas
+      {
+        id: 'default-emp-1',
+        nombre: 'CAPACIDAD_MAXIMA_DEFAULT',
+        valor: '100',
+        descripcion: 'Capacidad máxima por defecto para empresas',
+        categoria: CategoriaConfiguracion.EMPRESAS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-emp-2',
+        nombre: 'MAX_EMPRESAS_ACTIVAS',
+        valor: '1000',
+        descripcion: 'Máximo de empresas activas en el sistema',
+        categoria: CategoriaConfiguracion.EMPRESAS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+
+      // Configuraciones de Sistema
+      {
+        id: 'default-sys-1',
+        nombre: 'PAGINACION_DEFAULT',
+        valor: '20',
+        descripcion: 'Número de elementos por página',
+        categoria: CategoriaConfiguracion.SISTEMA,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-sys-2',
+        nombre: 'ZONA_HORARIA',
+        valor: 'America/Lima',
+        descripcion: 'Zona horaria del sistema',
+        categoria: CategoriaConfiguracion.SISTEMA,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-sys-3',
+        nombre: 'FORMATO_FECHA',
+        valor: 'DD/MM/YYYY',
+        descripcion: 'Formato de visualización de fechas',
+        categoria: CategoriaConfiguracion.SISTEMA,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+
+      // Configuraciones existentes de sedes y vehículos
       {
         id: 'default-1',
         nombre: 'SEDES_DISPONIBLES',
@@ -376,6 +506,40 @@ export class ConfiguracionService {
         valor: 'false',
         descripcion: 'Define si el motivo es obligatorio al cambiar estado',
         categoria: CategoriaConfiguracion.VEHICULOS,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+
+      // Configuraciones de tipos configurables
+      {
+        id: 'default-tipos-1',
+        nombre: 'TIPOS_RUTA_CONFIG',
+        valor: JSON.stringify([
+          { codigo: 'URBANA', nombre: 'Urbana', descripcion: 'Transporte dentro de la ciudad', estaActivo: true },
+          { codigo: 'INTERURBANA', nombre: 'Interurbana', descripcion: 'Transporte entre ciudades cercanas', estaActivo: true },
+          { codigo: 'INTERPROVINCIAL', nombre: 'Interprovincial', descripcion: 'Transporte entre provincias', estaActivo: true },
+          { codigo: 'INTERREGIONAL', nombre: 'Interregional', descripcion: 'Transporte entre regiones', estaActivo: true },
+          { codigo: 'RURAL', nombre: 'Rural', descripcion: 'Transporte en zonas rurales', estaActivo: true }
+        ]),
+        descripcion: 'Configuración de tipos de ruta disponibles',
+        categoria: CategoriaConfiguracion.SISTEMA,
+        activo: true,
+        esEditable: true,
+        fechaCreacion: new Date().toISOString(),
+        fechaActualizacion: new Date().toISOString()
+      },
+      {
+        id: 'default-tipos-2',
+        nombre: 'TIPOS_SERVICIO_CONFIG',
+        valor: JSON.stringify([
+          { codigo: 'PASAJEROS', nombre: 'Transporte de Pasajeros', descripcion: 'Servicio de transporte público de personas', estaActivo: true },
+          { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de mercancías y productos', estaActivo: true },
+          { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de pasajeros y carga', estaActivo: true }
+        ]),
+        descripcion: 'Configuración de tipos de servicio disponibles',
+        categoria: CategoriaConfiguracion.SISTEMA,
         activo: true,
         esEditable: true,
         fechaCreacion: new Date().toISOString(),

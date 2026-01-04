@@ -14,7 +14,7 @@ import { ExpedienteService } from '../../services/expediente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionCreate } from '../../models/resolucion.model';
 import { Expediente } from '../../models/expediente.model';
-import { Empresa } from '../../models/empresa.model';
+import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import { CrearExpedienteModalComponent } from './crear-expediente-modal.component';
@@ -1092,7 +1092,7 @@ export class ResolucionFormComponent {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas habilitadas
-      const empresasHabilitadas = empresas.filter(emp => emp.estado === 'HABILITADA');
+      const empresasHabilitadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
 
       const empresaSearchControl = this.resolucionForm.get('empresaSearch');
       if (empresaSearchControl) {

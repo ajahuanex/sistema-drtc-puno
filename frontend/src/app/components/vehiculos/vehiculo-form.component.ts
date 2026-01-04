@@ -22,7 +22,7 @@ import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
 import { RutaService } from '../../services/ruta.service';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
-import { Empresa } from '../../models/empresa.model';
+import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { Ruta } from '../../models/ruta.model';
 import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
@@ -566,7 +566,7 @@ export class VehiculoFormComponent implements OnInit {
   private loadEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
       next: (empresas) => {
-        this.empresas.set(empresas.filter(e => e.estado === 'HABILITADA'));
+        this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA));
         // Configurar autocompletado después de cargar empresas
         setTimeout(() => this.configurarAutocompletado(), 0);
       },

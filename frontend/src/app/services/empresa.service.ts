@@ -37,10 +37,15 @@ export class EmpresaService {
 
   // Métodos principales CRUD
   getEmpresas(skip: number = 0, limit: number = 100): Observable<Empresa[]> {
-    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa)))
+    // Temporalmente sin headers para debug
+    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`).pipe(
+      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa))),
+      catchError(error => {
+        console.error('❌ Error en getEmpresas:', error);
+        console.error('URL:', `${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`);
+        console.error('Headers que se intentaron usar:', this.getHeaders());
+        return throwError(() => error);
+      })
     );
   }
 
@@ -114,9 +119,8 @@ export class EmpresaService {
 
   // Métodos de estadísticas
   getEstadisticasEmpresas(): Observable<EmpresaEstadisticas> {
-    return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`, {
-      headers: this.getHeaders()
-    }).pipe(
+    // Temporalmente sin headers para debug
+    return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`).pipe(
       catchError(error => {
         console.error('❌ Error obteniendo estadísticas:', error);
         return throwError(() => error);
@@ -261,8 +265,25 @@ export class EmpresaService {
   }
 
   // Métodos para exportación
-  exportarEmpresas(formato: 'pdf' | 'excel' | 'csv'): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/empresas/exportar/${formato}`, {
+  exportarEmpresas(formato: 'pdf' | 'excel' | 'csv', empresasSeleccionadas?: string[], columnasVisibles?: string[]): Observable<Blob> {
+    let url = `${this.apiUrl}/empresas/exportar/${formato}`;
+    const params = new URLSearchParams();
+    
+    // Si hay empresas seleccionadas, agregarlas como parámetro
+    if (empresasSeleccionadas && empresasSeleccionadas.length > 0) {
+      params.append('empresas_seleccionadas', empresasSeleccionadas.join(','));
+    }
+    
+    // Si hay columnas visibles específicas, agregarlas como parámetro
+    if (columnasVisibles && columnasVisibles.length > 0) {
+      params.append('columnas_visibles', columnasVisibles.join(','));
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    return this.http.get(url, {
       responseType: 'blob',
       headers: this.getHeaders()
     }).pipe(

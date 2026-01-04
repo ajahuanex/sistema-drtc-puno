@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
 class EstadoEmpresa(str, Enum):
-    HABILITADA = "HABILITADA"
+    AUTORIZADA = "AUTORIZADA"
     EN_TRAMITE = "EN_TRAMITE"
     SUSPENDIDA = "SUSPENDIDA"
     CANCELADA = "CANCELADA"
@@ -142,7 +142,7 @@ class EmpresaFiltros(BaseModel):
 
 class EmpresaEstadisticas(BaseModel):
     totalEmpresas: int
-    empresasHabilitadas: int
+    empresasAutorizadas: int
     empresasEnTramite: int
     empresasSuspendidas: int
     empresasCanceladas: int

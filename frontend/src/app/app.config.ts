@@ -51,7 +51,7 @@ export const appConfig: ApplicationConfig = {
     IconService,
     
     // TokenAutoFixService - Servicio para corregir tokens corruptos automáticamente
-    TokenAutoFixService,
+    // TokenAutoFixService, // DESHABILITADO TEMPORALMENTE PARA EVITAR BUCLES
     
     // Configuración de inicialización eager
     {

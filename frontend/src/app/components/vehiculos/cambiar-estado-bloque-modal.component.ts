@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,7 +12,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { Vehiculo, EstadoVehiculo, ESTADOS_VEHICULO_LABELS } from '../../models/vehiculo.model';
+import { Vehiculo, EstadoVehiculo } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { ConfiguracionService } from '../../services/configuracion.service';
 import { forkJoin } from 'rxjs';
@@ -537,9 +537,9 @@ export class CambiarEstadoBloqueModalComponent {
   getColorTexto(colorFondo: string): string {
     // Convertir hex a RGB y calcular luminancia
     const hex = colorFondo.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
 
     // Calcular luminancia
     const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
@@ -597,7 +597,7 @@ export class CambiarEstadoBloqueModalComponent {
 
     // Crear array de observables para cambiar el estado de cada vehículo
     const cambios = this.vehiculos.map(vehiculo => {
-      const motivo = this.generarMotivoAutomatico(vehiculo.estado, nuevoEstado);
+      const motivo = this.generarMotivoAutomatico(nuevoEstado);
       const observacionesCompletas = observaciones ?
         `Cambio en bloque: ${observaciones}` :
         'Cambio de estado realizado en bloque';
@@ -656,7 +656,7 @@ export class CambiarEstadoBloqueModalComponent {
     });
   }
 
-  private generarMotivoAutomatico(estadoAnterior: string, estadoNuevo: string): string {
+  private generarMotivoAutomatico(estadoNuevo: string): string {
     if (estadoNuevo === EstadoVehiculo.ACTIVO) {
       return 'REACTIVACION';
     } else if (estadoNuevo === EstadoVehiculo.INACTIVO) {

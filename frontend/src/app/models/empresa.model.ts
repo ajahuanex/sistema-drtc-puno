@@ -26,6 +26,7 @@ export interface Empresa {
   };
   direccionFiscal: string;
   estado: EstadoEmpresa;
+  tipoServicio?: string; // Agregado para tipo de servicio
   estaActivo: boolean;
   fechaRegistro: Date;
   fechaActualizacion?: Date;
@@ -57,7 +58,7 @@ export interface Empresa {
 }
 
 export enum EstadoEmpresa {
-  HABILITADA = 'HABILITADA',
+  AUTORIZADA = 'AUTORIZADA',
   EN_TRAMITE = 'EN_TRAMITE',
   SUSPENDIDA = 'SUSPENDIDA',
   CANCELADA = 'CANCELADA',
@@ -165,7 +166,8 @@ export interface EmpresaFiltros {
 
 export interface EmpresaEstadisticas {
   totalEmpresas: number;
-  empresasHabilitadas: number;
+  empresasAutorizadas: number;
+  empresasHabilitadas?: number; // Mantener para compatibilidad
   empresasEnTramite: number;
   empresasSuspendidas: number;
   empresasCanceladas: number;

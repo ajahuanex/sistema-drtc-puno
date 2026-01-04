@@ -126,11 +126,11 @@ export class EmpresaVehiculosBatchComponent implements OnInit {
 
   private loadVehiculos(): void {
     if (this.empresaId()) {
-      this.vehiculoService.getVehiculosPorEmpresaPersistente(this.empresaId()!).subscribe({
-        next: (vehiculos) => {
+      this.vehiculoService.getVehiculosPorEmpresa(this.empresaId()!).subscribe({
+        next: (vehiculos: Vehiculo[]) => {
           this.vehiculos.set(vehiculos);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error cargando vehículos:', error);
           this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 5000 });
         }

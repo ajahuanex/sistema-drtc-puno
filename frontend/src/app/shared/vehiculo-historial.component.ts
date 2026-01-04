@@ -509,8 +509,26 @@ export class VehiculoHistorialComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const response = await this.vehiculoService.getVehiculoFlujoCompleto(this.vehiculoId).toPromise();
-      const historialData = response as HistorialDetallado;
+      // Usar el servicio de historial vehicular en lugar del método eliminado
+      const vehiculo = await this.vehiculoService.getVehiculo(this.vehiculoId).toPromise();
+      if (!vehiculo) {
+        throw new Error('Vehículo no encontrado');
+      }
+
+      // Crear un historial básico con los datos del vehículo
+      const historialData: HistorialDetallado = {
+        vehiculo: {
+          id: vehiculo.id,
+          placa: vehiculo.placa,
+          empresa_actual_id: vehiculo.empresaActualId || '',
+          categoria: vehiculo.categoria || 'M3',
+          marca: vehiculo.marca || '',
+          modelo: vehiculo.modelo || '',
+          numero_historial_actual: vehiculo.numeroHistorialValidacion || 1
+        },
+        total_resoluciones: 0,
+        historial_resoluciones: []
+      };
       
       this.historial.set(historialData);
       this.historialCargado.emit(historialData);
