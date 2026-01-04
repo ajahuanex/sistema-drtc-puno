@@ -471,7 +471,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
           rutasAsignadasIds: rutasSeleccionadas
         }).toPromise();
 
-        const rutasAnteriores = vehiculo.rutasAsignadasIds?.length || 0;
+        const rutasAnteriores = vehiculo.rutasAsignadasIds.length || 0;
         const rutasNuevas = rutasSeleccionadas.length;
         
         let mensaje = '';

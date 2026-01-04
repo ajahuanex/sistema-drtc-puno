@@ -243,7 +243,7 @@ interface TransferirEmpresaData {
         </form>
 
         <!-- Información sobre rutas -->
-        @if (data.vehiculo.rutasAsignadasIds?.length || data.vehiculo.rutasEspecificas?.length) {
+        @if (data.vehiculo.rutasAsignadasIds.length || data.vehiculo.rutasEspecificas?.length) {
           <mat-card class="rutas-info-card">
             <mat-card-content>
               <div class="rutas-info-content">
@@ -252,7 +252,7 @@ interface TransferirEmpresaData {
                   <h4>Información sobre Rutas</h4>
                   <p>Este vehículo tiene rutas asignadas que serán removidas durante la transferencia:</p>
                   <ul>
-                    @if (data.vehiculo.rutasAsignadasIds?.length) {
+                    @if (data.vehiculo.rutasAsignadasIds.length) {
                       <li>{{ data.vehiculo.rutasAsignadasIds.length }} ruta(s) general(es)</li>
                     }
                     @if (data.vehiculo.rutasEspecificas?.length) {
@@ -834,7 +834,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
           empresaId: this.data.vehiculo.empresaActualId,
           empresaNombre: this.empresaActual()?.razonSocial?.principal,
           resolucionId: this.data.vehiculo.resolucionId,
-          rutasAsignadas: this.data.vehiculo.rutasAsignadasIds?.length || 0,
+          rutasAsignadas: this.data.vehiculo.rutasAsignadasIds.length || 0,
           rutasEspecificas: this.data.vehiculo.rutasEspecificas?.length || 0
         },
         datosNuevos: {

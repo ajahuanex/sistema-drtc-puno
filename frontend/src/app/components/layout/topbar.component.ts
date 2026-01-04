@@ -47,8 +47,8 @@ import { ChangeDetectionStrategy } from '@angular/core';
 
         <!-- Logo y título de la aplicación -->
         <div class="topbar-brand">
-          <img src="assets/logo-test.svg" alt="SIGRET Logo" class="topbar-logo">
-          <h1 class="topbar-title">SIGRET</h1>
+          <img src="assets/logo-test.svg" alt="SIRRET Logo" class="topbar-logo">
+          <h1 class="topbar-title">SIRRET</h1>
         </div>
       </div>
 

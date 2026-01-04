@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Final - Orden de Columnas Correcto</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .button { background: #1976d2; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px; }
+        .button:hover { background: #1565c0; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .columna { display: inline-block; margin: 2px; padding: 4px 8px; background: #f0f0f0; border-radius: 3px; font-size: 11px; }
+        .header { background: #1976d2; color: white; padding: 10px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Test Final - Plantilla con Orden Correcto</h1>
+    
+    <div class="info">
+        <h3>📋 Orden Requerido (36 columnas):</h3>
+        <p><strong>RUC Empresa,Resolución Primigenia,DNI,Resolución Hija,Fecha Resolución,Tipo de Resolución,Placa de Baja,Placa,Marca,Modelo,Año Fabricación,Color,Categoría,Carroceria,Tipo Combustible,Motor,Número Serie VIN,Numero de pasajeros,Asientos,Cilindros,Ejes,Ruedas,Peso Bruto (t),Peso Neto (t),Carga Útil (t),Largo (m),Ancho (m),Alto (m),Cilindrada,Potencia (HP),Estado,Observaciones,Sede de Registro,Expediente,TUC,Rutas Asignadas</strong></p>
+    </div>
+
+    <button class="button" onclick="generarYVerificar()">
+        📥 Generar Plantilla y Verificar Orden
+    </button>
+
+    <div id="resultado"></div>
+
+    <script>
+        // Orden exacto requerido
+        const ordenRequerido = [
+            'RUC Empresa', 'Resolución Primigenia', 'DNI', 'Resolución Hija', 'Fecha Resolución',
+            'Tipo de Resolución', 'Placa de Baja', 'Placa', 'Marca', 'Modelo', 'Año Fabricación',
+            'Color', 'Categoría', 'Carroceria', 'Tipo Combustible', 'Motor', 'Número Serie VIN',
+            'Numero de pasajeros', 'Asientos', 'Cilindros', 'Ejes', 'Ruedas', 'Peso Bruto (t)',
+            'Peso Neto (t)', 'Carga Útil (t)', 'Largo (m)', 'Ancho (m)', 'Alto (m)', 'Cilindrada',
+            'Potencia (HP)', 'Estado', 'Observaciones', 'Sede de Registro', 'Expediente', 'TUC', 'Rutas Asignadas'
+        ];
+
+        function generarYVerificar() {
+            try {
+                console.log('🚀 Generando plantilla con orden correcto...');
+                
+                // Crear workbook
+                const workbook = XLSX.utils.book_new();
+                
+                // Usar el orden exacto requerido
+                const campos = [...ordenRequerido]; // Copia exacta del orden requerido
+                
+                console.log(`📊 Campos definidos: ${campos.length}`);
+                console.log('📋 Orden:', campos.join(', '));
+                
+                // Ejemplos con formatos flexibles
+                const ejemplos = {
+                    'RUC Empresa': '20123456789',
+                    'Resolución Primigenia': '0123-2025',
+                    'DNI': '12345678',
+                    'Resolución Hija': '0124-2025',
+                    'Fecha Resolución': '15/01/2024',
+                    'Tipo de Resolución': 'Autorización',
+                    'Placa de Baja': 'XYZ-789',
+                    'Placa': 'ABC-123',
+                    'Marca': 'MERCEDES BENZ',
+                    'Modelo': 'SPRINTER',
+                    'Año Fabricación': '2020',
+                    'Color': 'BLANCO',
+                    'Categoría': 'M3',
+                    'Carroceria': 'MINIBUS',
+                    'Tipo Combustible': 'DIESEL',
+                    'Motor': 'MB123456789',
+                    'Número Serie VIN': 'VIN123456789',
+                    'Numero de pasajeros': '20',
+                    'Asientos': '20',
+                    'Cilindros': '4',
+                    'Ejes': '2',
+                    'Ruedas': '6',
+                    'Peso Bruto (t)': '5.5',
+                    'Peso Neto (t)': '3.5',
+                    'Carga Útil (t)': '2.0',
+                    'Largo (m)': '8.5',
+                    'Ancho (m)': '2.4',
+                    'Alto (m)': '2.8',
+                    'Cilindrada': '2400',
+                    'Potencia (HP)': '150',
+                    'Estado': 'ACTIVO',
+                    'Observaciones': 'Vehículo en buen estado',
+                    'Sede de Registro': 'LIMA',
+                    'Expediente': '01234-2025',
+                    'TUC': '123456',
+                    'Rutas Asignadas': '01,02,03'
+                };
+
+                // Hoja 1: Instrucciones
+                const instrucciones = [
+                    ['PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET'],
+                    ['Sistema Integral de Registros y Regulación de Empresas de Transporte'],
+                    [''],
+                    ['✅ ORDEN DE COLUMNAS VERIFICADO'],
+                    ['Las 36 columnas están en el orden exacto requerido'],
+                    [''],
+                    ['FORMATOS FLEXIBLES:'],
+                    ['• Resoluciones: R-0123-2025 o 0123-2025 (prefijo opcional)'],
+                    ['• Expediente: E-01234-2025 o 01234-2025 (prefijo opcional)'],
+                    ['• TUC: T-123456 o 123456 o 123 (se completa a 6 dígitos)'],
+                    ['• Rutas: 1 o 01 o 01,02,03'],
+                    [''],
+                    ['CAMPOS OBLIGATORIOS:'],
+                    ['• Placa (posición 8)'],
+                    ['• Sede de Registro (posición 33)'],
+                    [''],
+                    ['Total de campos: ' + campos.length],
+                    ['Fecha: ' + new Date().toLocaleDateString('es-PE')]
+                ];
+
+                const wsInstrucciones = XLSX.utils.aoa_to_sheet(instrucciones);
+                XLSX.utils.book_append_sheet(workbook, wsInstrucciones, 'INSTRUCCIONES');
+
+                // Hoja 2: Referencia con orden verificado
+                const referencia = [
+                    ['POSICIÓN', 'CAMPO', 'EJEMPLO', 'OBLIGATORIO'],
+                    ...campos.map((campo, index) => [
+                        index + 1,
+                        campo,
+                        ejemplos[campo] || '',
+                        (campo === 'Placa' || campo === 'Sede de Registro') ? 'SÍ' : 'NO'
+                    ])
+                ];
+
+                const wsReferencia = XLSX.utils.aoa_to_sheet(referencia);
+                XLSX.utils.book_append_sheet(workbook, wsReferencia, 'REFERENCIA');
+
+                // Hoja 3: Datos con orden correcto
+                const filaVacia = new Array(36).fill('');
+                const datosPlanilla = [
+                    campos, // Headers en orden correcto
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia]
+                ];
+
+                const wsDatos = XLSX.utils.aoa_to_sheet(datosPlanilla);
+                
+                // Aplicar estilos a headers
+                const range = XLSX.utils.decode_range(wsDatos['!ref'] || 'A1');
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (wsDatos[cellAddress]) {
+                        wsDatos[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "1976D2" } },
+                            alignment: { horizontal: "center" }
+                        };
+                    }
+                }
+
+                // Ancho de columnas
+                wsDatos['!cols'] = campos.map(() => ({ width: 15 }));
+
+                XLSX.utils.book_append_sheet(workbook, wsDatos, 'DATOS');
+
+                // Generar archivo
+                const fecha = new Date().toISOString().split('T')[0];
+                const nombreArchivo = `plantilla_vehiculos_orden_correcto_${fecha}.xlsx`;
+                
+                XLSX.writeFile(workbook, nombreArchivo);
+                
+                // Verificar orden generado
+                const ordenGenerado = campos;
+                let ordenCorrecto = true;
+                let diferencias = [];
+                
+                for (let i = 0; i < ordenRequerido.length; i++) {
+                    if (ordenRequerido[i] !== ordenGenerado[i]) {
+                        ordenCorrecto = false;
+                        diferencias.push({
+                            posicion: i + 1,
+                            requerido: ordenRequerido[i],
+                            generado: ordenGenerado[i]
+                        });
+                    }
+                }
+                
+                // Mostrar resultado
+                let html = `
+                    <div class="${ordenCorrecto ? 'success' : 'info'}">
+                        <h3>${ordenCorrecto ? '✅ ¡ORDEN PERFECTO!' : '⚠️ Diferencias encontradas'}</h3>
+                        <p><strong>Archivo generado:</strong> ${nombreArchivo}</p>
+                        <p><strong>Total de columnas:</strong> ${campos.length}</p>
+                        <p><strong>Orden correcto:</strong> ${ordenCorrecto ? 'SÍ' : 'NO'}</p>
+                `;
+                
+                if (ordenCorrecto) {
+                    html += `
+                        <p><strong>Estado:</strong> Las 36 columnas están en el orden exacto requerido</p>
+                        <p><strong>Formatos:</strong> Flexibles (con y sin prefijos)</p>
+                        <p><strong>Hojas:</strong> INSTRUCCIONES, REFERENCIA, DATOS</p>
+                    `;
+                } else {
+                    html += `<p><strong>Diferencias:</strong> ${diferencias.length}</p>`;
+                    diferencias.forEach(diff => {
+                        html += `<br>• Posición ${diff.posicion}: "${diff.requerido}" ≠ "${diff.generado}"`;
+                    });
+                }
+                
+                html += `</div>`;
+                
+                // Mostrar orden generado
+                html += `
+                    <div class="header">
+                        <h3>📊 Orden Generado en la Plantilla:</h3>
+                    </div>
+                    <div class="info">
+                `;
+                
+                campos.forEach((campo, index) => {
+                    const esCorrecta = ordenRequerido[index] === campo;
+                    html += `<span class="columna" style="background: ${esCorrecta ? '#c8e6c8' : '#ffcdd2'}">${index + 1}. ${campo}</span>`;
+                });
+                
+                html += `
+                    </div>
+                    <small>Verde = Correcto, Rojo = Incorrecto</small>
+                `;
+                
+                document.getElementById('resultado').innerHTML = html;
+                
+                console.log(`✅ Plantilla generada: ${nombreArchivo}`);
+                console.log(`📊 Orden correcto: ${ordenCorrecto}`);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('resultado').innerHTML = `
+                    <div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px;">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

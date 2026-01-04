@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Plantilla Vehículos - Formatos Actualizados</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .button { background: #1976d2; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px; }
+        .button:hover { background: #1565c0; }
+        .success { background: #e8f5e8; color: #2e7d32; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .info { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .example { background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚗 Test Plantilla Vehículos - Formatos Actualizados</h1>
+    
+    <div class="info">
+        <h3>📋 Formatos Específicos Implementados (FLEXIBLES):</h3>
+        <ul>
+            <li><strong>Resolución Primigenia:</strong> R-0123-2025 o 0123-2025 (prefijo opcional)</li>
+            <li><strong>Resolución Hija:</strong> R-0124-2025 o 0124-2025 (prefijo opcional)</li>
+            <li><strong>Expediente:</strong> E-01234-2025 o 01234-2025 (prefijo opcional)</li>
+            <li><strong>TUC:</strong> T-123456 o 123456 o 123 (prefijo opcional, se completa a 6 dígitos)</li>
+            <li><strong>Rutas Asignadas:</strong> 01,02,03 (o 1 o 01)</li>
+        </ul>
+    </div>
+
+    <button class="button" onclick="generarPlantilla()">
+        📥 Generar Plantilla Excel (36 Campos)
+    </button>
+
+    <div id="resultado"></div>
+
+    <div class="info">
+        <h3>📊 Ejemplos de Registros:</h3>
+        <h4>Con prefijos:</h4>
+        <div class="example">
+20123456789,R-0123-2025,,R-0124-2025,15/01/2024,Autorización,,ABC-123,MERCEDES BENZ,SPRINTER,2020,BLANCO,M3,MINIBUS,DIESEL,MB123456789,VIN123456789,20,20,4,2,6,5.5,3.5,2.0,8.5,2.4,2.8,2400,150,ACTIVO,Vehículo en buen estado,LIMA,E-01234-2025,T-123456-2024,01,02,03
+        </div>
+        <h4>Sin prefijos (también válido):</h4>
+        <div class="example">
+20987654321,0125-2025,,0126-2025,20/01/2024,Modificación,,DEF-456,TOYOTA,HIACE,2019,AZUL,M2,MINIBUS,GASOLINA,TY987654321,VIN987654321,15,15,4,2,4,4.2,2.8,1.4,6.2,1.9,2.3,2000,120,ACTIVO,Vehículo operativo,AREQUIPA,01235-2025,123456,02,04
+        </div>
+    </div>
+
+    <script>
+        function generarPlantilla() {
+            try {
+                console.log('🚀 Iniciando generación de plantilla...');
+                
+                // Crear workbook
+                const workbook = XLSX.utils.book_new();
+                
+                // Definir los 36 campos
+                const campos = [
+                    'RUC Empresa', 'Resolución Primigenia', 'DNI', 'Resolución Hija', 'Fecha Resolución',
+                    'Tipo de Resolución', 'Placa de Baja', 'Placa', 'Marca', 'Modelo', 'Año Fabricación',
+                    'Color', 'Categoría', 'Carroceria', 'Tipo Combustible', 'Motor', 'Número Serie VIN',
+                    'Numero de pasajeros', 'Asientos', 'Cilindros', 'Ejes', 'Ruedas', 'Peso Bruto (t)',
+                    'Peso Neto (t)', 'Carga Útil (t)', 'Largo (m)', 'Ancho (m)', 'Alto (m)', 'Cilindrada',
+                    'Potencia (HP)', 'Estado', 'Observaciones', 'Sede de Registro', 'Expediente', 'TUC', 'Rutas Asignadas'
+                ];
+
+                // Hoja 1: Instrucciones
+                const instrucciones = [
+                    ['PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET'],
+                    ['Sistema Integral de Registros y Regulación de Empresas de Transporte'],
+                    [''],
+                    ['FORMATOS ESPECÍFICOS ACTUALIZADOS (FLEXIBLES):'],
+                    ['• Resolución Primigenia: R-0123-2025 o 0123-2025 (prefijo R- opcional)'],
+                    ['• Resolución Hija: R-0124-2025 o 0124-2025 (prefijo R- opcional)'],
+                    ['• Expediente: E-01234-2025 o 01234-2025 (prefijo E- opcional)'],
+                    ['• TUC: T-123456 o 123456 o 123 (prefijo T- opcional, se completa a 6 dígitos)'],
+                    ['• Rutas Asignadas: 01,02,03 (números separados por comas)'],
+                    ['• Placa: ABC-123 (formato peruano)'],
+                    ['• RUC: 11 dígitos numéricos'],
+                    ['• DNI: 8 dígitos numéricos'],
+                    ['• Fecha: DD/MM/AAAA'],
+                    [''],
+                    ['CAMPOS OBLIGATORIOS:'],
+                    ['• Placa'],
+                    ['• Sede de Registro'],
+                    [''],
+                    ['EJEMPLO COMPLETO:'],
+                    ['20123456789,R-0123-2025,,R-0124-2025,15/01/2024,Autorización,,ABC-123,MERCEDES BENZ,SPRINTER,2020,BLANCO,M3,MINIBUS,DIESEL,MB123456789,VIN123456789,20,20,4,2,6,5.5,3.5,2.0,8.5,2.4,2.8,2400,150,ACTIVO,Vehículo en buen estado,LIMA,E-01234-2025,T-123456-2024,01,02,03'],
+                    [''],
+                    ['Total de campos: 36'],
+                    ['Fecha: ' + new Date().toLocaleDateString('es-PE')]
+                ];
+
+                const wsInstrucciones = XLSX.utils.aoa_to_sheet(instrucciones);
+                XLSX.utils.book_append_sheet(workbook, wsInstrucciones, 'INSTRUCCIONES');
+
+                // Hoja 2: Referencia
+                const ejemplos = {
+                    'RUC Empresa': '20123456789',
+                    'Resolución Primigenia': '0123-2025',
+                    'DNI': '12345678',
+                    'Resolución Hija': '0124-2025',
+                    'Fecha Resolución': '15/01/2024',
+                    'Tipo de Resolución': 'Autorización',
+                    'Placa de Baja': 'XYZ-789',
+                    'Placa': 'ABC-123',
+                    'Marca': 'MERCEDES BENZ',
+                    'Modelo': 'SPRINTER',
+                    'Año Fabricación': '2020',
+                    'Color': 'BLANCO',
+                    'Categoría': 'M3',
+                    'Carroceria': 'MINIBUS',
+                    'Tipo Combustible': 'DIESEL',
+                    'Motor': 'MB123456789',
+                    'Número Serie VIN': 'VIN123456789',
+                    'Numero de pasajeros': '20',
+                    'Asientos': '20',
+                    'Cilindros': '4',
+                    'Ejes': '2',
+                    'Ruedas': '6',
+                    'Peso Bruto (t)': '5.5',
+                    'Peso Neto (t)': '3.5',
+                    'Carga Útil (t)': '2.0',
+                    'Largo (m)': '8.5',
+                    'Ancho (m)': '2.4',
+                    'Alto (m)': '2.8',
+                    'Cilindrada': '2400',
+                    'Potencia (HP)': '150',
+                    'Estado': 'ACTIVO',
+                    'Observaciones': 'Vehículo en buen estado',
+                    'Sede de Registro': 'LIMA',
+                    'Expediente': '01234-2025',
+                    'TUC': '123456',
+                    'Rutas Asignadas': '01,02,03'
+                };
+
+                const referencia = [
+                    ['CAMPO', 'EJEMPLO', 'FORMATO'],
+                    ...campos.map(campo => [
+                        campo,
+                        ejemplos[campo] || '',
+                        getFormato(campo)
+                    ])
+                ];
+
+                const wsReferencia = XLSX.utils.aoa_to_sheet(referencia);
+                XLSX.utils.book_append_sheet(workbook, wsReferencia, 'REFERENCIA');
+
+                // Hoja 3: Datos
+                const filaVacia = new Array(36).fill('');
+                const datosPlanilla = [
+                    campos,
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia]
+                ];
+
+                const wsDatos = XLSX.utils.aoa_to_sheet(datosPlanilla);
+                
+                // Aplicar estilos a headers
+                const range = XLSX.utils.decode_range(wsDatos['!ref'] || 'A1');
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (wsDatos[cellAddress]) {
+                        wsDatos[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "1976D2" } },
+                            alignment: { horizontal: "center" }
+                        };
+                    }
+                }
+
+                // Ancho de columnas
+                wsDatos['!cols'] = campos.map(() => ({ width: 15 }));
+
+                XLSX.utils.book_append_sheet(workbook, wsDatos, 'DATOS');
+
+                // Generar archivo
+                const fecha = new Date().toISOString().split('T')[0];
+                const nombreArchivo = `plantilla_vehiculos_sirret_${fecha}.xlsx`;
+                
+                XLSX.writeFile(workbook, nombreArchivo);
+                
+                // Mostrar resultado
+                document.getElementById('resultado').innerHTML = `
+                    <div class="success">
+                        ✅ <strong>¡Plantilla generada exitosamente!</strong><br>
+                        📁 Archivo: ${nombreArchivo}<br>
+                        📊 Campos: 36 (con formatos actualizados)<br>
+                        📋 Hojas: INSTRUCCIONES, REFERENCIA, DATOS<br><br>
+                        
+                        <strong>Formatos implementados (FLEXIBLES):</strong><br>
+                        • Resoluciones: R-0123-2025 o 0123-2025 (prefijo opcional)<br>
+                        • Expediente: E-01234-2025 o 01234-2025 (prefijo opcional)<br>
+                        • TUC: T-123456 o 123456 o 123 (se completa a 6 dígitos)<br>
+                        • Rutas: 01,02,03<br>
+                        • Placa: ABC-123<br>
+                        • RUC: 20123456789<br>
+                        • DNI: 12345678
+                    </div>
+                `;
+                
+                console.log('✅ Plantilla generada exitosamente');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('resultado').innerHTML = `
+                    <div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px;">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function getFormato(campo) {
+            const formatos = {
+                'RUC Empresa': '11 dígitos',
+                'Resolución Primigenia': 'R-0123-2025 o 0123-2025',
+                'DNI': '8 dígitos',
+                'Resolución Hija': 'R-0124-2025 o 0124-2025',
+                'Fecha Resolución': 'DD/MM/AAAA',
+                'Placa': 'ABC-123',
+                'Expediente': 'E-01234-2025 o 01234-2025',
+                'TUC': 'T-123456 o 123456 o 123',
+                'Rutas Asignadas': '01,02,03'
+            };
+            return formatos[campo] || 'Texto libre';
+        }
+    </script>
+</body>
+</html>

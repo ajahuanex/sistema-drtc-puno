@@ -175,7 +175,7 @@ interface SugerenciaBusqueda {
                   <mat-option value="">Todas las empresas</mat-option>
                   @for (empresa of empresas(); track empresa.id) {
                     <mat-option [value]="empresa.id">
-                      {{ empresa.ruc }} - {{ empresa.razonSocial?.principal }}
+                      {{ empresa.ruc }} - {{ empresa.razonSocial.principal }}
                     </mat-option>
                   }
                 </mat-select>

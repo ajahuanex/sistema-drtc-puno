@@ -234,7 +234,7 @@ export interface SolicitarBajaResult {
               <li>La solicitud de baja será revisada por el área correspondiente.</li>
               <li>El vehículo permanecerá activo hasta que se apruebe la baja.</li>
               <li>Una vez aprobada, la baja será irreversible.</li>
-              @if (data.vehiculo.rutasAsignadasIds?.length || data.vehiculo.rutasEspecificas?.length) {
+              @if (data.vehiculo.rutasAsignadasIds.length || data.vehiculo.rutasEspecificas?.length) {
                 <li class="advertencia-critica">
                   <strong>Atención:</strong> Este vehículo tiene rutas asignadas que serán afectadas.
                 </li>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Orden de Columnas</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .button { background: #1976d2; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px; }
+        .button:hover { background: #1565c0; }
+        .orden-correcto { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .orden-actual { background: #fff3e0; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .columna { display: inline-block; margin: 2px; padding: 4px 8px; background: #f0f0f0; border-radius: 3px; font-size: 12px; }
+        .match { background: #c8e6c8; }
+        .no-match { background: #ffcdd2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Verificar Orden de Columnas - Plantilla Vehículos</h1>
+    
+    <div class="orden-correcto">
+        <h3>📋 Orden Requerido (36 columnas):</h3>
+        <div id="ordenRequerido"></div>
+    </div>
+
+    <button class="button" onclick="verificarOrden()">
+        🔍 Verificar Orden Actual de la Plantilla
+    </button>
+
+    <div id="resultado"></div>
+
+    <script>
+        // Orden requerido según especificación
+        const ordenRequerido = [
+            'RUC Empresa', 'Resolución Primigenia', 'DNI', 'Resolución Hija', 'Fecha Resolución',
+            'Tipo de Resolución', 'Placa de Baja', 'Placa', 'Marca', 'Modelo', 'Año Fabricación',
+            'Color', 'Categoría', 'Carroceria', 'Tipo Combustible', 'Motor', 'Número Serie VIN',
+            'Numero de pasajeros', 'Asientos', 'Cilindros', 'Ejes', 'Ruedas', 'Peso Bruto (t)',
+            'Peso Neto (t)', 'Carga Útil (t)', 'Largo (m)', 'Ancho (m)', 'Alto (m)', 'Cilindrada',
+            'Potencia (HP)', 'Estado', 'Observaciones', 'Sede de Registro', 'Expediente', 'TUC', 'Rutas Asignadas'
+        ];
+
+        // Orden actual en el servicio
+        const ordenActual = [
+            'RUC Empresa', 'Resolución Primigenia', 'DNI', 'Resolución Hija', 'Fecha Resolución',
+            'Tipo de Resolución', 'Placa de Baja', 'Placa', 'Marca', 'Modelo', 'Año Fabricación',
+            'Color', 'Categoría', 'Carroceria', 'Tipo Combustible', 'Motor', 'Número Serie VIN',
+            'Numero de pasajeros', 'Asientos', 'Cilindros', 'Ejes', 'Ruedas', 'Peso Bruto (t)',
+            'Peso Neto (t)', 'Carga Útil (t)', 'Largo (m)', 'Ancho (m)', 'Alto (m)', 'Cilindrada',
+            'Potencia (HP)', 'Estado', 'Observaciones', 'Sede de Registro', 'Expediente', 'TUC', 'Rutas Asignadas'
+        ];
+
+        function mostrarOrdenRequerido() {
+            const container = document.getElementById('ordenRequerido');
+            container.innerHTML = '';
+            
+            ordenRequerido.forEach((campo, index) => {
+                const span = document.createElement('span');
+                span.className = 'columna';
+                span.textContent = `${index + 1}. ${campo}`;
+                container.appendChild(span);
+            });
+        }
+
+        function verificarOrden() {
+            console.log('🔍 Verificando orden de columnas...');
+            
+            let coincidencias = 0;
+            let diferencias = [];
+            
+            // Verificar longitud
+            if (ordenRequerido.length !== ordenActual.length) {
+                console.log(`❌ Diferencia en cantidad: Requerido ${ordenRequerido.length}, Actual ${ordenActual.length}`);
+            }
+            
+            // Verificar cada posición
+            const maxLength = Math.max(ordenRequerido.length, ordenActual.length);
+            
+            for (let i = 0; i < maxLength; i++) {
+                const requerido = ordenRequerido[i] || 'FALTANTE';
+                const actual = ordenActual[i] || 'FALTANTE';
+                
+                if (requerido === actual) {
+                    coincidencias++;
+                } else {
+                    diferencias.push({
+                        posicion: i + 1,
+                        requerido: requerido,
+                        actual: actual
+                    });
+                }
+            }
+            
+            // Mostrar resultado
+            const resultado = document.getElementById('resultado');
+            
+            if (diferencias.length === 0) {
+                resultado.innerHTML = `
+                    <div class="orden-correcto">
+                        <h3>✅ ¡ORDEN PERFECTO!</h3>
+                        <p><strong>Coincidencias:</strong> ${coincidencias}/${ordenRequerido.length}</p>
+                        <p><strong>Estado:</strong> El orden de columnas es exactamente el requerido</p>
+                        <p><strong>Total de columnas:</strong> ${ordenRequerido.length}</p>
+                    </div>
+                `;
+            } else {
+                let html = `
+                    <div class="orden-actual">
+                        <h3>⚠️ Diferencias Encontradas</h3>
+                        <p><strong>Coincidencias:</strong> ${coincidencias}/${ordenRequerido.length}</p>
+                        <p><strong>Diferencias:</strong> ${diferencias.length}</p>
+                        <h4>Detalles de las diferencias:</h4>
+                        <ul>
+                `;
+                
+                diferencias.forEach(diff => {
+                    html += `<li><strong>Posición ${diff.posicion}:</strong> Requerido "${diff.requerido}" → Actual "${diff.actual}"</li>`;
+                });
+                
+                html += `
+                        </ul>
+                    </div>
+                `;
+                
+                resultado.innerHTML = html;
+            }
+            
+            // Mostrar comparación visual
+            html += `
+                <div class="orden-actual">
+                    <h3>📊 Comparación Visual:</h3>
+                    <h4>Orden Actual:</h4>
+                    <div>
+            `;
+            
+            ordenActual.forEach((campo, index) => {
+                const esCorrecta = ordenRequerido[index] === campo;
+                html += `<span class="columna ${esCorrecta ? 'match' : 'no-match'}">${index + 1}. ${campo}</span>`;
+            });
+            
+            html += `
+                    </div>
+                    <small>Verde = Correcto, Rojo = Incorrecto</small>
+                </div>
+            `;
+            
+            resultado.innerHTML += html;
+            
+            console.log(`✅ Verificación completada: ${coincidencias}/${ordenRequerido.length} coincidencias`);
+        }
+
+        // Mostrar orden requerido al cargar
+        document.addEventListener('DOMContentLoaded', mostrarOrdenRequerido);
+    </script>
+</body>
+</html>

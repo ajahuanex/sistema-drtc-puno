@@ -14,6 +14,7 @@ export interface DatosTecnicos {
   ejes: number;
   ruedas?: number; // Opcional para compatibilidad
   asientos: number;
+  numeroPasajeros?: number; // NUEVO: Número total de pasajeros (diferente de asientos)
   pesoNeto: number;
   pesoBruto: number;
   cargaUtil?: number; // Opcional - diferencia entre peso bruto y peso neto
@@ -49,6 +50,7 @@ export interface RutaEspecifica {
 export interface Vehiculo {
   id: string;
   placa: string;
+  placaBaja?: string; // NUEVO: Placa del vehículo anterior en caso de sustitución
   sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad con datos existentes)
   empresaActualId: string;
   resolucionId: string;
@@ -81,6 +83,7 @@ export interface Vehiculo {
 
 export interface VehiculoCreate {
   placa: string;
+  placaBaja?: string; // NUEVO: Placa del vehículo anterior en caso de sustitución
   sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad)
   empresaActualId: string;
   resolucionId?: string; // Opcional
@@ -100,6 +103,7 @@ export interface VehiculoCreate {
 
 export interface VehiculoUpdate {
   placa?: string;
+  placaBaja?: string; // NUEVO: Placa del vehículo anterior en caso de sustitución
   sedeRegistro?: string;
   empresaActualId?: string;
   resolucionId?: string;

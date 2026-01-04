@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba - Plantilla Vehículos 36 Campos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1976d2;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button {
+            background: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #1565c0;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            border-left: 4px solid #1976d2;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+        .campos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .campo-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            border-left: 3px solid #1976d2;
+        }
+        .obligatorio {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Prueba Plantilla Vehículos - 36 Campos</h1>
+        
+        <div class="info">
+            <h3>📋 Información de la Plantilla</h3>
+            <p><strong>Total de campos:</strong> 36</p>
+            <p><strong>Campos obligatorios:</strong> 2 (Placa, Sede de Registro)</p>
+            <p><strong>Campos opcionales:</strong> 34</p>
+            <p><strong>Formato:</strong> Excel (.xlsx) con 3 hojas</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="button" onclick="descargarPlantilla()">
+                📥 Descargar Plantilla Excel (36 Campos)
+            </button>
+        </div>
+
+        <div id="resultado"></div>
+
+        <h3>📊 Lista de Campos Incluidos:</h3>
+        <div class="campos-grid" id="camposGrid">
+            <!-- Se llenará dinámicamente -->
+        </div>
+    </div>
+
+    <script>
+        // Definir los 36 campos según la nueva estructura
+        const columnas = [
+            { campo: 'RUC Empresa', descripcion: 'RUC de la empresa transportista (11 dígitos)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Resolución Primigenia', descripcion: 'Número de resolución primigenia', obligatorio: false, tipo: 'Texto' },
+            { campo: 'DNI', descripcion: 'DNI del propietario (8 dígitos)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Resolución Hija', descripcion: 'Número de resolución hija', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Fecha Resolución', descripcion: 'Fecha de la resolución (DD/MM/AAAA)', obligatorio: false, tipo: 'Fecha' },
+            { campo: 'Tipo de Resolución', descripcion: 'Tipo de resolución (Autorización, Modificación, etc.)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Placa de Baja', descripcion: 'Placa del vehículo dado de baja (si aplica)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Placa', descripcion: 'Placa del vehículo (Ej: ABC-123)', obligatorio: true, tipo: 'Texto' },
+            { campo: 'Marca', descripcion: 'Marca del vehículo', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Modelo', descripcion: 'Modelo del vehículo', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Año Fabricación', descripcion: 'Año de fabricación (1990-2026)', obligatorio: false, tipo: 'Número' },
+            { campo: 'Color', descripcion: 'Color del vehículo', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Categoría', descripcion: 'Categoría (M1, M2, M3, N1, N2, N3)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Carroceria', descripcion: 'Tipo de carrocería', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Tipo Combustible', descripcion: 'Tipo de combustible (Gasolina, Diesel, GLP, etc.)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Motor', descripcion: 'Número de motor', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Número Serie VIN', descripcion: 'Número de serie VIN del vehículo', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Numero de pasajeros', descripcion: 'Número total de pasajeros (1-100)', obligatorio: false, tipo: 'Número' },
+            { campo: 'Asientos', descripcion: 'Número de asientos (1-100)', obligatorio: false, tipo: 'Número' },
+            { campo: 'Cilindros', descripcion: 'Número de cilindros del motor', obligatorio: false, tipo: 'Número' },
+            { campo: 'Ejes', descripcion: 'Número de ejes del vehículo', obligatorio: false, tipo: 'Número' },
+            { campo: 'Ruedas', descripcion: 'Número de ruedas del vehículo', obligatorio: false, tipo: 'Número' },
+            { campo: 'Peso Bruto (t)', descripcion: 'Peso bruto en toneladas', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Peso Neto (t)', descripcion: 'Peso neto en toneladas', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Carga Útil (t)', descripcion: 'Carga útil en toneladas (se calcula automáticamente)', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Largo (m)', descripcion: 'Largo del vehículo en metros', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Ancho (m)', descripcion: 'Ancho del vehículo en metros', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Alto (m)', descripcion: 'Alto del vehículo en metros', obligatorio: false, tipo: 'Decimal' },
+            { campo: 'Cilindrada', descripcion: 'Cilindrada del motor en cc', obligatorio: false, tipo: 'Número' },
+            { campo: 'Potencia (HP)', descripcion: 'Potencia del motor en caballos de fuerza', obligatorio: false, tipo: 'Número' },
+            { campo: 'Estado', descripcion: 'Estado del vehículo (ACTIVO, INACTIVO, etc.)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Observaciones', descripcion: 'Observaciones adicionales del vehículo', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Sede de Registro', descripcion: 'Sede donde se registra el vehículo', obligatorio: true, tipo: 'Texto' },
+            { campo: 'Expediente', descripcion: 'Número de expediente', obligatorio: false, tipo: 'Texto' },
+            { campo: 'TUC', descripcion: 'Número de TUC (Ej: T-123456-2024)', obligatorio: false, tipo: 'Texto' },
+            { campo: 'Rutas Asignadas', descripcion: 'Rutas asignadas al vehículo (separadas por coma)', obligatorio: false, tipo: 'Texto' }
+        ];
+
+        // Ejemplos para cada campo
+        const ejemplos = {
+            'RUC Empresa': '20123456789',
+            'Resolución Primigenia': '0123-2025',
+            'DNI': '12345678',
+            'Resolución Hija': '0124-2025',
+            'Fecha Resolución': '15/01/2024',
+            'Tipo de Resolución': 'Autorización',
+            'Placa de Baja': 'XYZ-789',
+            'Placa': 'ABC-123',
+            'Marca': 'MERCEDES BENZ',
+            'Modelo': 'SPRINTER',
+            'Año Fabricación': '2020',
+            'Color': 'BLANCO',
+            'Categoría': 'M3',
+            'Carroceria': 'MINIBUS',
+            'Tipo Combustible': 'DIESEL',
+            'Motor': 'MB123456789',
+            'Número Serie VIN': 'VIN123456789',
+            'Numero de pasajeros': '20',
+            'Asientos': '20',
+            'Cilindros': '4',
+            'Ejes': '2',
+            'Ruedas': '6',
+            'Peso Bruto (t)': '5.5',
+            'Peso Neto (t)': '3.5',
+            'Carga Útil (t)': '2.0',
+            'Largo (m)': '8.5',
+            'Ancho (m)': '2.4',
+            'Alto (m)': '2.8',
+            'Cilindrada': '2400',
+            'Potencia (HP)': '150',
+            'Estado': 'ACTIVO',
+            'Observaciones': 'Vehículo en buen estado',
+            'Sede de Registro': 'LIMA',
+            'Expediente': '01234-2025',
+            'TUC': '123456',
+            'Rutas Asignadas': '01,02,03'
+        };
+
+        function descargarPlantilla() {
+            try {
+                console.log('🚀 Iniciando creación de plantilla Excel...');
+                
+                // Crear un nuevo libro de trabajo
+                const workbook = XLSX.utils.book_new();
+                
+                // Hoja 1: Instrucciones
+                const instrucciones = [
+                    ['PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET'],
+                    ['Sistema Integral de Registros y Regulación de Empresas de Transporte'],
+                    [''],
+                    ['INSTRUCCIONES DE USO:'],
+                    ['1. Complete los datos en la hoja "DATOS" usando las columnas correspondientes'],
+                    ['2. Los campos marcados como obligatorios (SÍ) deben completarse'],
+                    ['3. La placa debe ser única y seguir el formato peruano (ABC-123)'],
+                    ['4. Use punto (.) como separador decimal para números'],
+                    ['5. Consulte la hoja "REFERENCIA" para ver descripciones de campos'],
+                    ['6. La hoja "DATOS" está lista para completar (sin ejemplos que eliminar)'],
+                    [''],
+                    ['CAMPOS OBLIGATORIOS:'],
+                    ['• Placa: Placa del vehículo (formato ABC-123)'],
+                    ['• Sede de Registro: Sede donde se registra el vehículo'],
+                    [''],
+                    ['EJEMPLOS DE DATOS VÁLIDOS:'],
+                    ['Ejemplo 1 - Vehículo de transporte público:'],
+                    ['20123456789,R-0123-2025,,R-0124-2025,15/01/2024,Autorización,,ABC-123,MERCEDES BENZ,SPRINTER,2020,BLANCO,M3,MINIBUS,DIESEL,MB123456789,VIN123456789,20,20,4,2,6,5.5,3.5,2.0,8.5,2.4,2.8,2400,150,ACTIVO,Vehículo en buen estado,LIMA,E-01234-2025,T-123456-2024,01,02,03'],
+                    [''],
+                    ['Ejemplo 2 - Solo campos obligatorios:'],
+                    [',,,,,,,,DEF-456,,,,,,,,,,,,,,,,,,,,,,,,,AREQUIPA,,,'],
+                    [''],
+                    ['FORMATOS VÁLIDOS:'],
+                    ['• Placa: 3 caracteres alfanuméricos + guión + 3 números (ABC-123)'],
+                    ['• RUC: 11 dígitos numéricos'],
+                    ['• DNI: 8 dígitos numéricos'],
+                    ['• Fecha: DD/MM/AAAA (15/01/2024)'],
+                    ['• Resoluciones: R-0123-2025 (R + guión + 4 dígitos + guión + año)'],
+                    ['• Expediente: E-01234-2025 (E + guión + 5 dígitos + guión + año)'],
+                    ['• Rutas: 1 o 01 o 01,02,03 (números separados por comas)'],
+                    ['• Números de pasajeros/asientos: Entre 1 y 100'],
+                    ['• TUC: T-XXXXXX-YYYY (Ej: T-123456-2024)'],
+                    ['• Pesos: En toneladas con decimales (3.5)'],
+                    ['• Dimensiones: En metros con decimales (8.5)'],
+                    [''],
+                    ['NOTAS IMPORTANTES:'],
+                    ['• Verifique que no haya placas duplicadas'],
+                    ['• Los datos numéricos deben usar formato correcto'],
+                    ['• La hoja DATOS está lista para usar - no hay ejemplos que eliminar'],
+                    ['• Las rutas se separan por comas si hay múltiples'],
+                    ['• Consulte con el administrador si tiene dudas'],
+                    [''],
+                    ['CAMPOS NUEVOS INCLUIDOS:'],
+                    ['• RUC Empresa: Para asociar vehículos a empresas'],
+                    ['• Resoluciones: Primigenia y Hija con fechas y tipos'],
+                    ['• DNI: Del propietario del vehículo'],
+                    ['• Placa de Baja: Para reemplazos de vehículos'],
+                    ['• VIN: Número de serie del vehículo'],
+                    ['• Cilindrada y Potencia: Especificaciones técnicas'],
+                    ['• Expediente: Número de expediente administrativo'],
+                    ['• Rutas Asignadas: Rutas autorizadas para el vehículo'],
+                    [''],
+                    ['Fecha de creación: ' + new Date().toLocaleDateString('es-PE')],
+                    ['Versión del sistema: SIRRET v1.0.0'],
+                    ['Total de campos: 36 (2 obligatorios, 34 opcionales)']
+                ];
+
+                const wsInstrucciones = XLSX.utils.aoa_to_sheet(instrucciones);
+                XLSX.utils.book_append_sheet(workbook, wsInstrucciones, 'INSTRUCCIONES');
+
+                // Hoja 2: Referencia de campos
+                const referencia = [
+                    ['CAMPO', 'DESCRIPCIÓN', 'OBLIGATORIO', 'TIPO', 'EJEMPLO'],
+                    ...columnas.map(col => [
+                        col.campo,
+                        col.descripcion,
+                        col.obligatorio ? 'SÍ' : 'NO',
+                        col.tipo,
+                        ejemplos[col.campo] || ''
+                    ])
+                ];
+
+                const wsReferencia = XLSX.utils.aoa_to_sheet(referencia);
+                XLSX.utils.book_append_sheet(workbook, wsReferencia, 'REFERENCIA');
+
+                // Hoja 3: Datos (donde el usuario completará)
+                const headers = columnas.map(col => col.campo);
+                
+                // Crear filas vacías con el número correcto de columnas (36)
+                const filaVacia = new Array(36).fill('');
+                
+                const datosPlanilla = [
+                    headers,
+                    // Solo filas vacías para que el usuario complete
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia],
+                    [...filaVacia]
+                ];
+
+                const wsDatos = XLSX.utils.aoa_to_sheet(datosPlanilla);
+                
+                // Aplicar estilos a los headers
+                const range = XLSX.utils.decode_range(wsDatos['!ref'] || 'A1');
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (!wsDatos[cellAddress]) continue;
+                    wsDatos[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "1976D2" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+
+                // Establecer ancho de columnas
+                wsDatos['!cols'] = headers.map(() => ({ width: 15 }));
+
+                XLSX.utils.book_append_sheet(workbook, wsDatos, 'DATOS');
+
+                // Generar el archivo Excel
+                const excelBuffer = XLSX.write(workbook, { 
+                    bookType: 'xlsx', 
+                    type: 'array',
+                    cellStyles: true
+                });
+                
+                const blob = new Blob([excelBuffer], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+                
+                // Descargar el archivo
+                const fecha = new Date().toISOString().split('T')[0];
+                const nombreArchivo = `plantilla_vehiculos_sirret_${fecha}.xlsx`;
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = nombreArchivo;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                // Mostrar mensaje de éxito
+                document.getElementById('resultado').innerHTML = `
+                    <div class="success">
+                        ✅ <strong>Plantilla Excel generada exitosamente!</strong><br>
+                        📁 Archivo: ${nombreArchivo}<br>
+                        📊 Campos incluidos: 36<br>
+                        📋 Hojas: INSTRUCCIONES, REFERENCIA, DATOS<br>
+                        🎯 Listo para completar y usar
+                    </div>
+                `;
+                
+                console.log('✅ Plantilla Excel creada exitosamente');
+                
+            } catch (error) {
+                console.error('❌ Error creando plantilla Excel:', error);
+                document.getElementById('resultado').innerHTML = `
+                    <div style="background: #ffebee; color: #c62828; padding: 15px; border-radius: 4px; border-left: 4px solid #f44336;">
+                        ❌ <strong>Error al generar la plantilla:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Mostrar lista de campos al cargar la página
+        function mostrarCampos() {
+            const grid = document.getElementById('camposGrid');
+            grid.innerHTML = '';
+            
+            columnas.forEach((col, index) => {
+                const div = document.createElement('div');
+                div.className = `campo-item ${col.obligatorio ? 'obligatorio' : ''}`;
+                div.innerHTML = `
+                    <strong>${index + 1}. ${col.campo}</strong> ${col.obligatorio ? '(OBLIGATORIO)' : ''}<br>
+                    <small>${col.descripcion}</small><br>
+                    <small><em>Ejemplo: ${ejemplos[col.campo] || 'N/A'}</em></small>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // Cargar campos al iniciar
+        document.addEventListener('DOMContentLoaded', mostrarCampos);
+    </script>
+</body>
+</html>

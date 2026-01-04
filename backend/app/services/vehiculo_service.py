@@ -336,8 +336,19 @@ class VehiculoService:
     
     async def get_vehiculo_by_placa(self, placa: str) -> Optional[VehiculoInDB]:
         """Obtener un vehículo por placa"""
-        vehiculo = await self.collection.find_one({"placa": placa})
+        # Normalizar la placa para búsqueda (mayúsculas, sin espacios)
+        placa_normalizada = placa.strip().upper()
+        print(f"🔍 Buscando vehículo por placa: '{placa}' -> normalizada: '{placa_normalizada}'")
+        
+        # Buscar con la placa normalizada (case insensitive)
+        vehiculo = await self.collection.find_one({
+            "placa": {"$regex": f"^{placa_normalizada}$", "$options": "i"}
+        })
+        
         if vehiculo:
+            print(f"✅ Vehículo encontrado: {vehiculo.get('_id')} - {vehiculo.get('placa')}")
             vehiculo["id"] = str(vehiculo.pop("_id"))
             return VehiculoInDB(**vehiculo)
+        
+        print(f"❌ No se encontró vehículo con placa: {placa_normalizada}")
         return None

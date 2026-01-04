@@ -178,23 +178,23 @@ import { ResolucionService } from '../../services/resolucion.service';
                   <mat-card-content>
                     <div class="info-row">
                       <span class="info-label">Motor:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.motor || 'No especificado' }}</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.motor || 'No especificado' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Chasis:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.chasis || 'No especificado' }}</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.chasis || 'No especificado' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Combustible:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.tipoCombustible || 'No especificado' }}</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.tipoCombustible || 'No especificado' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Cilindrada:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.cilindrada || 'No especificada' }} cc</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.cilindrada || 'No especificada' }} cc</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Potencia:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.potencia || 'No especificada' }} HP</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.potencia || 'No especificada' }} HP</span>
                     </div>
                   </mat-card-content>
                 </mat-card>
@@ -210,19 +210,19 @@ import { ResolucionService } from '../../services/resolucion.service';
                   <mat-card-content>
                     <div class="info-row">
                       <span class="info-label">Asientos:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.asientos || 'No especificado' }}</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.asientos || 'No especificado' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Ejes:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.ejes || 'No especificado' }}</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.ejes || 'No especificado' }}</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Peso Neto:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.pesoNeto || 'No especificado' }} kg</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.pesoNeto || 'No especificado' }} kg</span>
                     </div>
                     <div class="info-row">
                       <span class="info-label">Peso Bruto:</span>
-                      <span class="info-value">{{ vehiculo().datosTecnicos?.pesoBruto || 'No especificado' }} kg</span>
+                      <span class="info-value">{{ vehiculo().datosTecnicos.pesoBruto || 'No especificado' }} kg</span>
                     </div>
                   </mat-card-content>
                 </mat-card>
@@ -236,18 +236,18 @@ import { ResolucionService } from '../../services/resolucion.service';
                     </mat-card-title>
                   </mat-card-header>
                   <mat-card-content>
-                    @if (vehiculo().datosTecnicos?.medidas) {
+                    @if (vehiculo().datosTecnicos.medidas) {
                       <div class="info-row">
                         <span class="info-label">Largo:</span>
-                        <span class="info-value">{{ vehiculo().datosTecnicos?.medidas?.largo || 'No especificado' }} m</span>
+                        <span class="info-value">{{ vehiculo().datosTecnicos.medidas.largo || 'No especificado' }} m</span>
                       </div>
                       <div class="info-row">
                         <span class="info-label">Ancho:</span>
-                        <span class="info-value">{{ vehiculo().datosTecnicos?.medidas?.ancho || 'No especificado' }} m</span>
+                        <span class="info-value">{{ vehiculo().datosTecnicos.medidas.ancho || 'No especificado' }} m</span>
                       </div>
                       <div class="info-row">
                         <span class="info-label">Alto:</span>
-                        <span class="info-value">{{ vehiculo().datosTecnicos?.medidas?.alto || 'No especificado' }} m</span>
+                        <span class="info-value">{{ vehiculo().datosTecnicos.medidas.alto || 'No especificado' }} m</span>
                       </div>
                     } @else {
                       <p class="no-data">Medidas no especificadas</p>

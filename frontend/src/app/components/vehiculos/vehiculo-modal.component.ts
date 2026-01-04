@@ -627,7 +627,7 @@ export interface VehiculoModalData {
           <button mat-raised-button 
                   color="primary" 
                   (click)="testClick(); onSubmit()" 
-                  [disabled]="!vehiculoForm?.valid || isSubmitting()"
+                  [disabled]="!vehiculoForm.valid || isSubmitting()"
                   class="submit-button">
             <app-smart-icon [iconName]="isEditing() ? 'save' : 'add'" [size]="20"></app-smart-icon>
             <span *ngIf="!isSubmitting()">{{ isEditing() ? 'Guardar Cambios' : 'Crear Vehículo' }}</span>
@@ -637,10 +637,10 @@ export interface VehiculoModalData {
           <!-- Debug info (temporal) -->
           <div style="margin-top: 10px; font-size: 12px; color: #666; background: #f5f5f5; padding: 10px; border-radius: 4px;">
             <p><strong>Debug Info:</strong></p>
-            <p>Formulario válido: {{ vehiculoForm?.valid }}</p>
+            <p>Formulario válido: {{ vehiculoForm.valid }}</p>
             <p>Enviando: {{ isSubmitting() }}</p>
             <p>Modo edición: {{ isEditing() }}</p>
-            <p>Botón habilitado: {{ vehiculoForm?.valid && !isSubmitting() }}</p>
+            <p>Botón habilitado: {{ vehiculoForm.valid && !isSubmitting() }}</p>
             
             <div style="margin-top: 10px;">
               <p><strong>Errores del formulario:</strong></p>

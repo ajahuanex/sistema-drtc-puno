@@ -254,6 +254,7 @@ class VehiculoCargaMasivaResponse(BaseModel):
     exitosos: int
     errores: int
     vehiculos_creados: List[str]  # IDs de vehículos creados
+    vehiculos_actualizados: List[str] = []  # IDs de vehículos actualizados
     errores_detalle: List[dict]  # Detalles de errores por fila
 
 class VehiculoValidacionExcel(BaseModel):

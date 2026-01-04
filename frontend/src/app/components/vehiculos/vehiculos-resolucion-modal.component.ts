@@ -123,7 +123,7 @@ export interface VehiculosResolucionModalData {
               <ng-container matColumnDef="rutas">
                 <th mat-header-cell *matHeaderCellDef class="table-header">RUTAS</th>
                 <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                  <mat-chip color="warn" selected>{{ vehiculo.rutasAsignadasIds?.length || 0 }}</mat-chip>
+                  <mat-chip color="warn" selected>{{ vehiculo.rutasAsignadasIds.length || 0 }}</mat-chip>
                 </td>
               </ng-container>
 
