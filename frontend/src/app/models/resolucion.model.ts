@@ -30,6 +30,7 @@ export interface Resolucion {
   fechaEmision: Date;
   fechaVigenciaInicio?: Date; // Opcional: solo para PADRE + (PRIMIGENIA o RENOVACION)
   fechaVigenciaFin?: Date; // Opcional: solo para PADRE + (PRIMIGENIA o RENOVACION)
+  aniosVigencia?: number; // Años de vigencia de la resolución (4 o 10)
   tipoResolucion: TipoResolucion; // Se determina automáticamente: PADRE para PRIMIGENIA/RENOVACION, HIJO para otros
   resolucionPadreId?: string;
   resolucionesHijasIds: string[];
@@ -85,6 +86,7 @@ export interface ResolucionCreate {
   fechaEmision: Date;
   fechaVigenciaInicio?: Date;
   fechaVigenciaFin?: Date;
+  aniosVigencia?: number; // Años de vigencia de la resolución (4 o 10)
   tipoResolucion: TipoResolucion;
   tipoTramite: TipoTramite;
   empresaId: string;
@@ -106,6 +108,7 @@ export interface ResolucionUpdate {
   numero?: string; // Solo el número (1234)
   fechaEmision?: Date;
   fechaVencimiento?: Date;
+  aniosVigencia?: number; // Años de vigencia de la resolución (4 o 10)
   estado?: EstadoResolucion;
   tipo?: TipoResolucionSimple;
   empresaId?: string;

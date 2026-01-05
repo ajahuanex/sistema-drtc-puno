@@ -1,0 +1,411 @@
+<div class="carga-masiva-container">
+  <!-- Header -->
+  <div class="header-section">
+    <h2>
+      <app-smart-icon name="upload" class="header-icon"></app-smart-icon>
+      Carga Masiva de Resoluciones Padres
+    </h2>
+    <p class="subtitle">
+      Cargue resoluciones con información de estado y resoluciones asociadas (renovaciones)
+    </p>
+  </div>
+
+  <!-- Mensaje de estado -->
+  <div *ngIf="mostrarMensajeFlag" [class]="obtenerClaseMensaje()" class="mensaje-estado">
+    <button type="button" class="btn-close" (click)="ocultarMensaje()">×</button>
+    {{ mensaje }}
+  </div>
+
+  <!-- Reporte de Estados Actual -->
+  <mat-card class="reporte-card" *ngIf="reporteEstados">
+    <mat-card-header>
+      <mat-card-title>
+        <app-smart-icon name="bar_chart"></app-smart-icon>
+        Estado Actual del Sistema
+        <button mat-icon-button (click)="toggleReporte()" class="toggle-btn">
+          <mat-icon>{{ mostrarReporte ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </button>
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content *ngIf="mostrarReporte">
+      <div class="reporte-grid">
+        <!-- Resumen General -->
+        <div class="reporte-item">
+          <h4>Total de Resoluciones</h4>
+          <div class="stat-value">{{ reporteEstados.total || 0 }}</div>
+        </div>
+
+        <!-- Por Estado -->
+        <div class="reporte-item">
+          <h4>Por Estado</h4>
+          <div class="chips-container">
+            <mat-chip-listbox>
+              <mat-chip-option 
+                *ngFor="let item of estadosArray" 
+                [color]="obtenerColorEstado(item.estado)"
+                selected>
+                {{ item.estado }}: {{ item.cantidad }}
+              </mat-chip-option>
+            </mat-chip-listbox>
+          </div>
+        </div>
+
+        <!-- Por Tipo -->
+        <div class="reporte-item">
+          <h4>Por Tipo</h4>
+          <div class="chips-container">
+            <mat-chip-listbox>
+              <mat-chip-option 
+                *ngFor="let item of tiposArray" 
+                [color]="obtenerColorTipo(item.tipo)"
+                selected>
+                {{ item.tipo }}: {{ item.cantidad }}
+              </mat-chip-option>
+            </mat-chip-listbox>
+          </div>
+        </div>
+
+        <!-- Resoluciones Asociadas -->
+        <div class="reporte-item">
+          <h4>Resoluciones Asociadas</h4>
+          <div class="asociadas-stats">
+            <div class="stat-row">
+              <span>Con resolución asociada:</span>
+              <mat-chip color="primary" selected>{{ reporteEstados.con_resolucion_asociada || 0 }}</mat-chip>
+            </div>
+            <div class="stat-row">
+              <span>Sin resolución asociada:</span>
+              <mat-chip color="accent" selected>{{ reporteEstados.sin_resolucion_asociada || 0 }}</mat-chip>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Sección de carga -->
+  <mat-card class="upload-card">
+    <mat-card-header>
+      <mat-card-title>
+        <app-smart-icon name="file_upload"></app-smart-icon>
+        Cargar Archivo Excel
+      </mat-card-title>
+      <mat-card-subtitle>
+        Seleccione un archivo Excel con resoluciones padres
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Botón de descarga de plantilla -->
+      <div class="plantilla-section">
+        <h3>1. Descargar Plantilla</h3>
+        <p>Descargue la plantilla oficial para resoluciones padres con ejemplos incluidos</p>
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="descargarPlantilla()"
+          [disabled]="cargando">
+          <app-smart-icon name="download"></app-smart-icon>
+          Descargar Plantilla de Resoluciones Padres
+        </button>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Área de carga de archivo -->
+      <div class="upload-section">
+        <h3>2. Cargar Archivo</h3>
+        
+        <!-- Drag & Drop Area -->
+        <div 
+          class="drop-zone"
+          [class.drag-over]="isDragOver"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)">
+          
+          <div class="drop-content">
+            <app-smart-icon name="cloud_upload" class="upload-icon"></app-smart-icon>
+            <p class="drop-text">
+              Arrastre su archivo Excel aquí o 
+              <label for="fileInput" class="file-link">seleccione un archivo</label>
+            </p>
+            <p class="drop-hint">Formatos soportados: .xlsx, .xls (máximo 10MB)</p>
+          </div>
+
+          <input 
+            type="file" 
+            id="fileInput"
+            accept=".xlsx,.xls"
+            (change)="onArchivoSeleccionado($event)"
+            style="display: none;">
+        </div>
+
+        <!-- Información del archivo seleccionado -->
+        <div *ngIf="archivoSeleccionado" class="file-info">
+          <mat-card class="selected-file-card">
+            <mat-card-content>
+              <div class="file-details">
+                <app-smart-icon name="description" class="file-icon"></app-smart-icon>
+                <div class="file-text">
+                  <strong>{{ archivoSeleccionado.name }}</strong>
+                  <span class="file-size">{{ formatFileSize(archivoSeleccionado.size) }}</span>
+                </div>
+                <button mat-icon-button (click)="reiniciar()" matTooltip="Quitar archivo">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Opciones de procesamiento -->
+      <div class="processing-section">
+        <h3>3. Opciones de Procesamiento</h3>
+        
+        <mat-radio-group [(ngModel)]="soloValidar" class="processing-options">
+          <mat-radio-button [value]="true" class="option-item">
+            <div class="option-content">
+              <strong>Solo Validar</strong>
+              <p>Verificar formato y datos sin crear resoluciones</p>
+            </div>
+          </mat-radio-button>
+          
+          <mat-radio-button [value]="false" class="option-item">
+            <div class="option-content">
+              <strong>Validar y Procesar</strong>
+              <p>Validar datos y crear/actualizar resoluciones en el sistema</p>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="action-buttons">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="procesarArchivo()"
+          [disabled]="!archivoSeleccionado || cargando"
+          class="process-btn">
+          <app-smart-icon name="play_arrow" *ngIf="!cargando"></app-smart-icon>
+          <mat-spinner diameter="20" *ngIf="cargando"></mat-spinner>
+          {{ soloValidar ? 'Validar Archivo' : 'Procesar Archivo' }}
+        </button>
+
+        <button 
+          mat-button 
+          (click)="reiniciar()"
+          [disabled]="cargando">
+          <app-smart-icon name="refresh"></app-smart-icon>
+          Reiniciar
+        </button>
+      </div>
+
+      <!-- Barra de progreso -->
+      <mat-progress-bar 
+        *ngIf="cargando" 
+        mode="indeterminate" 
+        class="progress-bar">
+      </mat-progress-bar>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Resultados -->
+  <mat-card *ngIf="mostrarResultados" class="results-card">
+    <mat-card-header>
+      <mat-card-title>
+        <app-smart-icon name="assessment"></app-smart-icon>
+        Resultados del Procesamiento
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <!-- Resumen de validación -->
+      <div *ngIf="resultadoValidacion" class="validation-summary">
+        <h3>Resumen de Validación</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Total de Filas</div>
+            <div class="summary-value">{{ resultadoValidacion.total_filas || 0 }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Estado</div>
+            <mat-chip [color]="obtenerClaseEstado(resultadoValidacion.valido || false)" selected>
+              {{ obtenerIconoEstado(resultadoValidacion.valido || false) }}
+              {{ resultadoValidacion.valido ? 'Válido' : 'Inválido' }}
+            </mat-chip>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen de procesamiento -->
+      <div *ngIf="resultadoProcesamiento" class="processing-summary">
+        <h3>Resumen de Procesamiento</h3>
+        <div class="summary-grid" *ngIf="resultadoProcesamiento.estadisticas">
+          <div class="summary-item">
+            <div class="summary-label">Total Procesadas</div>
+            <div class="summary-value">{{ resultadoProcesamiento.estadisticas.total_procesadas }}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Creadas</div>
+            <mat-chip color="primary" selected>{{ resultadoProcesamiento.estadisticas.creadas }}</mat-chip>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Actualizadas</div>
+            <mat-chip color="accent" selected>{{ resultadoProcesamiento.estadisticas.actualizadas }}</mat-chip>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Errores</div>
+            <mat-chip color="warn" selected>{{ resultadoProcesamiento.estadisticas.errores }}</mat-chip>
+          </div>
+        </div>
+      </div>
+
+      <!-- Errores -->
+      <mat-expansion-panel *ngIf="tieneErrores" class="error-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <app-smart-icon name="error" class="error-icon"></app-smart-icon>
+            Errores ({{ errores.length }})
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div class="error-list">
+          <div *ngFor="let error of errores" class="error-item">
+            <mat-icon class="error-icon">error</mat-icon>
+            <span>{{ error }}</span>
+          </div>
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Advertencias -->
+      <mat-expansion-panel *ngIf="tieneAdvertencias" class="warning-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <app-smart-icon name="warning" class="warning-icon"></app-smart-icon>
+            Advertencias ({{ advertencias.length }})
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div class="warning-list">
+          <div *ngFor="let advertencia of advertencias" class="warning-item">
+            <mat-icon class="warning-icon">warning</mat-icon>
+            <span>{{ advertencia }}</span>
+          </div>
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Resoluciones creadas -->
+      <mat-expansion-panel *ngIf="tieneResolucionesCreadas" class="success-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <app-smart-icon name="check_circle" class="success-icon"></app-smart-icon>
+            Resoluciones Creadas ({{ resultadoProcesamiento?.resoluciones_creadas?.length || 0 }})
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div class="success-list">
+          <div *ngFor="let resolucion of resultadoProcesamiento?.resoluciones_creadas" class="success-item">
+            <div class="resolucion-info">
+              <strong>{{ resolucion.numero }}</strong>
+              <span class="empresa-info">{{ resolucion.empresa }}</span>
+              <div class="badges">
+                <mat-chip [color]="obtenerColorTipo(resolucion.tipo)" selected>{{ resolucion.tipo }}</mat-chip>
+                <mat-chip [color]="obtenerColorEstado(resolucion.estado)" selected>{{ resolucion.estado }}</mat-chip>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
+
+      <!-- Resoluciones actualizadas -->
+      <mat-expansion-panel *ngIf="tieneResolucionesActualizadas" class="info-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <app-smart-icon name="update" class="info-icon"></app-smart-icon>
+            Resoluciones Actualizadas ({{ resultadoProcesamiento?.resoluciones_actualizadas?.length || 0 }})
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        
+        <div class="info-list">
+          <div *ngFor="let resolucion of resultadoProcesamiento?.resoluciones_actualizadas" class="info-item">
+            <div class="resolucion-info">
+              <strong>{{ resolucion.numero }}</strong>
+              <span class="empresa-info">{{ resolucion.empresa }}</span>
+              <div class="badges">
+                <mat-chip [color]="obtenerColorTipo(resolucion.tipo)" selected>{{ resolucion.tipo }}</mat-chip>
+                <mat-chip [color]="obtenerColorEstado(resolucion.estado)" selected>{{ resolucion.estado }}</mat-chip>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Información adicional -->
+  <mat-card class="info-card">
+    <mat-card-header>
+      <mat-card-title>
+        <app-smart-icon name="info"></app-smart-icon>
+        Información Importante
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="info-grid">
+        <div class="info-section">
+          <h4>Estados Válidos</h4>
+          <div class="chips-container">
+            <mat-chip-listbox>
+              <mat-chip-option *ngFor="let estado of estadosValidos" [color]="obtenerColorEstado(estado)" selected>
+                {{ estado }}
+              </mat-chip-option>
+            </mat-chip-listbox>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h4>Tipos Válidos</h4>
+          <div class="chips-container">
+            <mat-chip-listbox>
+              <mat-chip-option *ngFor="let tipo of tiposValidos" [color]="obtenerColorTipo(tipo)" selected>
+                {{ tipo }}
+              </mat-chip-option>
+            </mat-chip-listbox>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h4>Campos Obligatorios</h4>
+          <ul class="field-list">
+            <li>RUC_EMPRESA_ASOCIADA (11 dígitos)</li>
+            <li>RESOLUCION_NUMERO (formato XXXX-YYYY)</li>
+            <li>TIPO_RESOLUCION</li>
+            <li>FECHA_RESOLUCION (DD/MM/YYYY)</li>
+            <li>ESTADO</li>
+            <li>FECHA_INICIO_VIGENCIA (DD/MM/YYYY)</li>
+            <li>ANIOS_VIGENCIA (número entero)</li>
+            <li>FECHA_FIN_VIGENCIA (DD/MM/YYYY)</li>
+          </ul>
+        </div>
+
+        <div class="info-section">
+          <h4>Campos Opcionales</h4>
+          <ul class="field-list">
+            <li>RESOLUCION_ASOCIADA (para renovaciones)</li>
+          </ul>
+          <p class="note">
+            <strong>Nota:</strong> Para resoluciones antiguas sin resolución asociada, 
+            dejar el campo vacío.
+          </p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

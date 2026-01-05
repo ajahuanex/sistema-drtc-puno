@@ -32,6 +32,7 @@ class Resolucion(BaseModel):
     fechaEmision: datetime
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
+    aniosVigencia: Optional[int] = Field(default=4, description="Años de vigencia de la resolución (4 o 10)")
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str] = []
@@ -60,6 +61,7 @@ class ResolucionCreate(BaseModel):
     fechaEmision: datetime
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
+    aniosVigencia: Optional[int] = Field(default=4, description="Años de vigencia de la resolución (4 o 10)")
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     vehiculosHabilitadosIds: List[str] = []
@@ -74,6 +76,7 @@ class ResolucionCreate(BaseModel):
 class ResolucionUpdate(BaseModel):
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
+    aniosVigencia: Optional[int] = None
     vehiculosHabilitadosIds: Optional[List[str]] = None
     rutasAutorizadasIds: Optional[List[str]] = None
     descripcion: Optional[str] = None
@@ -106,6 +109,7 @@ class ResolucionResponse(BaseModel):
     fechaEmision: datetime
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
+    aniosVigencia: Optional[int] = 4
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str]

@@ -7,3 +7,4 @@ export { ResolucionFormComponent } from './resolucion-form.component';
 export { GestionBajasResolucionComponent } from './gestion-bajas-resolucion.component';
 export { ResolucionesMinimalComponent } from './resoluciones-minimal.component';
 export { CargaMasivaResolucionesComponent } from './carga-masiva-resoluciones.component';
+export { CargaMasivaResolucionesPadresComponent } from './carga-masiva-resoluciones-padres.component';

@@ -8,6 +8,7 @@ from app.dependencies.auth import get_current_active_user
 from app.dependencies.db import get_database
 from app.services.resolucion_service import ResolucionService
 from app.services.resolucion_excel_service import ResolucionExcelService
+from app.services.resolucion_padres_service import ResolucionPadresService
 from app.models.resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse, ResolucionFiltros
 from app.utils.exceptions import (
     ResolucionNotFoundException, 
@@ -700,3 +701,223 @@ async def get_resumen_resolucion(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener resumen: {str(e)}")
+
+# ========================================
+# ENDPOINTS PARA RESOLUCIONES PADRES
+# ========================================
+
+@router.get("/padres/plantilla")
+async def descargar_plantilla_resoluciones_padres():
+    """Descargar plantilla Excel para carga masiva de resoluciones padres"""
+    try:
+        from fastapi.responses import StreamingResponse
+        from io import BytesIO
+        import pandas as pd
+        from datetime import datetime
+        
+        # Definir las columnas para la plantilla (ESTADO al final)
+        columnas = [
+            'RUC_EMPRESA_ASOCIADA',
+            'RESOLUCION_NUMERO', 
+            'RESOLUCION_ASOCIADA',
+            'TIPO_RESOLUCION',
+            'FECHA_RESOLUCION',
+            'FECHA_INICIO_VIGENCIA',
+            'ANIOS_VIGENCIA',
+            'FECHA_FIN_VIGENCIA',
+            'ESTADO'
+        ]
+        
+        # Crear DataFrame con ejemplos (ESTADO al final, FECHA_RESOLUCION opcional)
+        ejemplos = [
+            {
+                'RUC_EMPRESA_ASOCIADA': '20123456789',
+                'RESOLUCION_NUMERO': '0001-2025',
+                'RESOLUCION_ASOCIADA': '0001-2021',
+                'TIPO_RESOLUCION': 'RENOVACION',
+                'FECHA_RESOLUCION': '01/01/2025',
+                'FECHA_INICIO_VIGENCIA': '01/01/2025',
+                'ANIOS_VIGENCIA': 4,
+                'FECHA_FIN_VIGENCIA': '31/12/2028',
+                'ESTADO': 'ACTIVA'
+            },
+            {
+                'RUC_EMPRESA_ASOCIADA': '20987654321',
+                'RESOLUCION_NUMERO': '0002-2025',
+                'RESOLUCION_ASOCIADA': '',
+                'TIPO_RESOLUCION': 'NUEVA',
+                'FECHA_RESOLUCION': '',  # Ejemplo sin fecha de resolución
+                'FECHA_INICIO_VIGENCIA': '15/01/2025',
+                'ANIOS_VIGENCIA': 4,
+                'FECHA_FIN_VIGENCIA': '14/01/2029',
+                'ESTADO': 'ACTIVA'
+            },
+            {
+                'RUC_EMPRESA_ASOCIADA': '20456789123',
+                'RESOLUCION_NUMERO': '0150-2020',
+                'RESOLUCION_ASOCIADA': '0150-2016',
+                'TIPO_RESOLUCION': 'RENOVACION',
+                'FECHA_RESOLUCION': '10/03/2020',
+                'FECHA_INICIO_VIGENCIA': '10/03/2020',
+                'ANIOS_VIGENCIA': 4,
+                'FECHA_FIN_VIGENCIA': '09/03/2024',
+                'ESTADO': 'VENCIDA'
+            }
+        ]
+        
+        df_plantilla = pd.DataFrame(ejemplos)
+        
+        # Crear archivo Excel en memoria
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            df_plantilla.to_excel(writer, sheet_name='Resoluciones_Padres', index=False)
+            
+            # Crear hoja de instrucciones
+            instrucciones = [
+                ['INSTRUCCIONES PARA PLANTILLA DE RESOLUCIONES PADRES'],
+                [''],
+                ['CAMPOS OBLIGATORIOS:'],
+                ['- RUC_EMPRESA_ASOCIADA: RUC de la empresa (11 dígitos)'],
+                ['- RESOLUCION_NUMERO: Número de la resolución (formato: XXXX-YYYY)'],
+                ['- TIPO_RESOLUCION: NUEVA, RENOVACION, MODIFICACION'],
+                ['- FECHA_INICIO_VIGENCIA: Fecha inicio vigencia (DD/MM/YYYY) - OBLIGATORIA para cálculos'],
+                ['- ANIOS_VIGENCIA: Años de vigencia (número entero)'],
+                ['- FECHA_FIN_VIGENCIA: Fecha fin vigencia (DD/MM/YYYY)'],
+                ['- ESTADO: ACTIVA, VENCIDA, RENOVADA, ANULADA'],
+                [''],
+                ['CAMPOS OPCIONALES:'],
+                ['- FECHA_RESOLUCION: Fecha de emisión (DD/MM/YYYY) - NO se usa para cálculos'],
+                ['- RESOLUCION_ASOCIADA: Número de resolución anterior (para renovaciones)'],
+                [''],
+                ['NOTAS IMPORTANTES:'],
+                ['- Las fechas deben estar en formato DD/MM/YYYY'],
+                ['- El RUC debe tener exactamente 11 dígitos'],
+                ['- Los años de vigencia son típicamente 4 años'],
+                ['- FECHA_INICIO_VIGENCIA es OBLIGATORIA y se usa para calcular FECHA_FIN_VIGENCIA'],
+                ['- FECHA_RESOLUCION es OPCIONAL y NO se usa para cálculos'],
+                ['- Para resoluciones sin fecha de emisión, dejar el campo vacío'],
+                ['- La columna ESTADO está al final para mejor organización']
+            ]
+            
+            df_instrucciones = pd.DataFrame(instrucciones)
+            df_instrucciones.to_excel(writer, sheet_name='Instrucciones', index=False, header=False)
+        
+        buffer.seek(0)
+        
+        # Generar nombre de archivo con timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"plantilla_resoluciones_padres_{timestamp}.xlsx"
+        
+        return StreamingResponse(
+            BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar plantilla: {str(e)}")
+
+@router.post("/padres/validar")
+async def validar_archivo_resoluciones_padres(
+    archivo: UploadFile = File(..., description="Archivo Excel con resoluciones padres"),
+    current_user = Depends(get_current_active_user)
+):
+    """Validar archivo Excel de resoluciones padres sin procesarlo"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        
+        # Convertir a DataFrame
+        import pandas as pd
+        from io import BytesIO
+        df = pd.read_excel(BytesIO(contenido))
+        
+        # Validar usando el servicio
+        resultado = ResolucionPadresService.validar_plantilla_padres(df)
+        
+        return {
+            "archivo": archivo.filename,
+            "validacion": resultado,
+            "mensaje": f"Validación completada: {'Válido' if resultado['valido'] else 'Inválido'}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al validar archivo: {str(e)}"
+        )
+
+@router.post("/padres/procesar")
+async def procesar_carga_masiva_resoluciones_padres(
+    archivo: UploadFile = File(..., description="Archivo Excel con resoluciones padres"),
+    solo_validar: bool = Query(False, description="Solo validar sin crear resoluciones"),
+    current_user = Depends(get_current_active_user)
+):
+    """Procesar carga masiva de resoluciones padres desde Excel"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        
+        # Convertir a DataFrame
+        import pandas as pd
+        from io import BytesIO
+        df = pd.read_excel(BytesIO(contenido))
+        
+        if solo_validar:
+            # Solo validar usando el método estático
+            resultado = ResolucionPadresService.validar_plantilla_padres(df)
+            mensaje = f"Validación completada: {'Válido' if resultado['valido'] else 'Inválido'}"
+        else:
+            # Procesar completamente con MongoDB
+            db = await get_database()
+            servicio = ResolucionPadresService(db)
+            resultado = await servicio.procesar_plantilla_padres(df, current_user.id)
+            mensaje = resultado['mensaje']
+        
+        return {
+            "archivo": archivo.filename,
+            "solo_validacion": solo_validar,
+            "resultado": resultado,
+            "mensaje": mensaje
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar archivo: {str(e)}"
+        )
+
+@router.get("/padres/reporte-estados")
+async def obtener_reporte_estados_resoluciones(
+    current_user = Depends(get_current_active_user)
+):
+    """Obtener reporte de estados de resoluciones padres"""
+    
+    try:
+        db = await get_database()
+        servicio = ResolucionPadresService(db)
+        reporte = await servicio.generar_reporte_estados()
+        
+        return reporte
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al generar reporte: {str(e)}"
+        )

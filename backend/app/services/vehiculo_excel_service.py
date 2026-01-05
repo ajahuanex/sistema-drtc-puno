@@ -70,11 +70,147 @@ class VehiculoExcelService:
             'observaciones': 'Observaciones'
         }
 
+    # ========================================
+    # FUNCIONES DE NORMALIZACIÓN FLEXIBLES
+    # ========================================
+    
+    def _normalizar_ruc(self, ruc_raw) -> str:
+        """Normalizar RUC a formato estándar de 11 dígitos"""
+        if pd.isna(ruc_raw):
+            return ''
+        
+        ruc_str = str(ruc_raw).strip()
+        
+        # Remover puntos, comas, espacios
+        ruc_clean = re.sub(r'[^\d]', '', ruc_str)
+        
+        # Si es un número flotante como "20123456789.0", remover el .0
+        if '.' in ruc_str:
+            try:
+                ruc_float = float(ruc_str)
+                ruc_clean = str(int(ruc_float))
+            except:
+                pass
+        
+        # Validar longitud
+        if len(ruc_clean) == 11 and ruc_clean.isdigit():
+            return ruc_clean
+        elif len(ruc_clean) < 11 and ruc_clean.isdigit():
+            # Rellenar con ceros a la izquierda si es necesario
+            return ruc_clean.zfill(11)
+        
+        return ruc_clean  # Devolver tal como está para validación posterior
+    
+    def _normalizar_numero_resolucion(self, numero_raw) -> str:
+        """Normalizar número de resolución a formato R-XXXX-YYYY"""
+        if pd.isna(numero_raw):
+            return ''
+        
+        numero_str = str(numero_raw).strip().upper()
+        
+        # Si ya tiene el formato correcto, devolverlo
+        if re.match(r'^R-\d{4}-\d{4}$', numero_str):
+            return numero_str
+        
+        # Intentar extraer números del formato XXXX-YYYY
+        match = re.search(r'(\d{4})-(\d{4})', numero_str)
+        if match:
+            numero, anio = match.groups()
+            return f"R-{numero}-{anio}"
+        
+        # Intentar formato solo números XXXX2025
+        match = re.search(r'^(\d{4})(\d{4})$', numero_str)
+        if match:
+            numero, anio = match.groups()
+            return f"R-{numero}-{anio}"
+        
+        # Intentar formato 0123-2025 (agregar R-)
+        match = re.search(r'^(\d{4})-(\d{4})$', numero_str)
+        if match:
+            numero, anio = match.groups()
+            return f"R-{numero}-{anio}"
+        
+        return numero_str  # Devolver tal como está para validación posterior
+    
+    def _normalizar_placa(self, placa_raw) -> str:
+        """Normalizar placa a formato estándar ABC-123"""
+        if pd.isna(placa_raw):
+            return ''
+        
+        placa_str = str(placa_raw).strip().upper()
+        
+        # Si ya tiene guión, verificar formato
+        if '-' in placa_str:
+            return placa_str
+        
+        # Intentar agregar guión automáticamente
+        # Formato ABC123 -> ABC-123
+        match = re.match(r'^([A-Z]{2,3})(\d{3,4})$', placa_str)
+        if match:
+            letras, numeros = match.groups()
+            return f"{letras}-{numeros}"
+        
+        return placa_str
+    
+    def _normalizar_fecha(self, fecha_raw) -> Optional[datetime]:
+        """Normalizar fecha a formato datetime"""
+        if pd.isna(fecha_raw):
+            return None
+        
+        fecha_str = str(fecha_raw).strip()
+        
+        # Intentar diferentes formatos de fecha
+        formatos = [
+            '%d/%m/%Y',
+            '%d-%m-%Y',
+            '%Y-%m-%d',
+            '%d/%m/%y',
+            '%d-%m-%y'
+        ]
+        
+        for formato in formatos:
+            try:
+                return datetime.strptime(fecha_str, formato)
+            except:
+                continue
+        
+        return None
+    
+    def _validar_formato_resolucion_flexible(self, numero: str) -> bool:
+        """Validar formato de resolución de manera flexible"""
+        if not numero:
+            return False
+        
+        numero_normalizado = self._normalizar_numero_resolucion(numero)
+        
+        # Verificar si el formato normalizado es válido
+        return bool(re.match(r'^R-\d{4}-\d{4}$', numero_normalizado))
+    
+    def _validar_formato_placa_flexible(self, placa: str) -> bool:
+        """Validar formato de placa de manera flexible"""
+        if not placa:
+            return False
+        
+        placa_normalizada = self._normalizar_placa(placa)
+        
+        # Verificar formato ABC-123 o AB-1234
+        return bool(re.match(r'^[A-Z]{2,3}-\d{3,4}$', placa_normalizada))
+    
+    def _validar_ruc_flexible(self, ruc: str) -> bool:
+        """Validar RUC de manera flexible"""
+        if not ruc:
+            return False
+        
+        ruc_normalizado = self._normalizar_ruc(ruc)
+        
+        # Verificar que tenga 11 dígitos
+        return len(ruc_normalizado) == 11 and ruc_normalizado.isdigit()
+
     async def procesar_excel(self, archivo_path: str) -> VehiculoCargaMasivaResponse:
         """Procesar archivo Excel y crear vehículos en lote"""
         try:
-            # Leer archivo Excel
-            df = pd.read_excel(archivo_path)
+            # Leer archivo Excel sin interpretar fechas automáticamente
+            df = pd.read_excel(archivo_path, dtype=str)
             
             # Validar estructura del archivo
             errores_estructura = self._validar_estructura_excel(df)
@@ -99,10 +235,19 @@ class VehiculoExcelService:
                     validacion = await self._validar_fila(index + 2, row)  # +2 porque Excel empieza en 1 y tiene header
                     
                     if not validacion.valido:
+                        # Formatear errores con información de columnas
+                        errores_formateados = []
+                        for error in validacion.errores:
+                            if isinstance(error, dict):
+                                errores_formateados.append(f"Columna '{error['columna']}': {error['mensaje']} (valor: '{error['valor']}')")
+                            else:
+                                errores_formateados.append(str(error))
+                        
                         errores_detalle.append({
                             'fila': validacion.fila,
                             'placa': validacion.placa,
-                            'errores': validacion.errores
+                            'errores': errores_formateados,
+                            'errores_detallados': validacion.errores  # Mantener formato estructurado para frontend
                         })
                         continue
                     
@@ -197,83 +342,159 @@ class VehiculoExcelService:
         return errores
 
     async def _validar_fila(self, fila: int, row: pd.Series) -> VehiculoValidacionExcel:
-        """Validar datos de una fila específica"""
+        """Validar datos de una fila específica con validaciones flexibles"""
         errores = []
         advertencias = []
-        placa = str(row.get('Placa', '')).strip()
         
-        # Validar placa
-        if not placa:
-            errores.append("Placa es requerida")
-        elif not self._validar_formato_placa(placa):
-            errores.append("Formato de placa inválido")
+        # Normalizar y validar placa
+        placa_raw = row.get('Placa', '')
+        placa_normalizada = self._normalizar_placa(placa_raw)
+        
+        if not placa_normalizada:
+            errores.append({
+                'columna': 'Placa',
+                'valor': placa_raw,
+                'mensaje': "Placa es requerida"
+            })
+        elif not self._validar_formato_placa_flexible(placa_raw):
+            errores.append({
+                'columna': 'Placa',
+                'valor': placa_raw,
+                'mensaje': f"Formato de placa inválido (se esperaba formato ABC-123)"
+            })
         else:
-            # Verificar si la placa ya existe
-            vehiculo_existente = await self.vehiculo_service.get_vehiculo_by_placa(placa)
+            # Verificar si la placa ya existe (usar la normalizada)
+            vehiculo_existente = await self.vehiculo_service.get_vehiculo_by_placa(placa_normalizada)
             if vehiculo_existente:
-                errores.append(f"Ya existe un vehículo con placa {placa}")
+                advertencias.append({
+                    'columna': 'Placa',
+                    'valor': placa_raw,
+                    'mensaje': f"Ya existe un vehículo con placa {placa_normalizada} - se actualizará"
+                })
         
-        # Validar empresa por RUC
-        empresa_ruc = str(row.get('RUC Empresa', '')).strip()
-        if not empresa_ruc:
-            errores.append("RUC de empresa es requerido")
-        elif not re.match(r'^\d{11}$', empresa_ruc):
-            errores.append(f"RUC debe tener 11 dígitos: {empresa_ruc}")
+        # Normalizar y validar empresa por RUC
+        empresa_ruc_raw = row.get('RUC Empresa', '')
+        empresa_ruc_normalizado = self._normalizar_ruc(empresa_ruc_raw)
+        
+        if not empresa_ruc_normalizado:
+            errores.append({
+                'columna': 'RUC Empresa',
+                'valor': empresa_ruc_raw,
+                'mensaje': "RUC de empresa es requerido"
+            })
+        elif not self._validar_ruc_flexible(empresa_ruc_raw):
+            errores.append({
+                'columna': 'RUC Empresa',
+                'valor': empresa_ruc_raw,
+                'mensaje': f"RUC inválido (se esperaba 11 dígitos, se normalizó a: '{empresa_ruc_normalizado}')"
+            })
         else:
-            empresa = self._buscar_empresa_por_ruc(empresa_ruc)
+            # Buscar empresa con RUC normalizado
+            empresa = self._buscar_empresa_por_ruc(empresa_ruc_normalizado)
             if not empresa:
                 if self.auto_crear_empresas:
-                    advertencias.append(f"Empresa con RUC {empresa_ruc} será creada automáticamente")
+                    advertencias.append({
+                        'columna': 'RUC Empresa',
+                        'valor': empresa_ruc_raw,
+                        'mensaje': f"Empresa con RUC {empresa_ruc_normalizado} será creada automáticamente"
+                    })
                 else:
-                    errores.append(f"No se encontró empresa con RUC {empresa_ruc}")
+                    errores.append({
+                        'columna': 'RUC Empresa',
+                        'valor': empresa_ruc_raw,
+                        'mensaje': f"No se encontró empresa con RUC {empresa_ruc_normalizado}"
+                    })
         
-        # Validar categoría
-        categoria = str(row.get('Categoría', '')).strip()
-        if not categoria:
-            errores.append("Categoría es requerida")
-        elif categoria not in [cat.value for cat in CategoriaVehiculo]:
-            errores.append(f"Categoría inválida: {categoria}")
+        # Validar categoría (más flexible)
+        categoria_raw = row.get('Categoría', '')
+        categoria_str = str(categoria_raw).strip().upper() if pd.notna(categoria_raw) else ''
         
-        # Validar tipo de combustible
-        tipo_combustible = str(row.get('Tipo Combustible', '')).strip()
-        if not tipo_combustible:
-            errores.append("Tipo de combustible es requerido")
-        elif tipo_combustible not in [tc.value for tc in TipoCombustible]:
-            errores.append(f"Tipo de combustible inválido: {tipo_combustible}")
-        
-        # Validar sede de registro
-        sede_registro = str(row.get('Sede de Registro', 'PUNO')).strip()
-        if sede_registro and sede_registro not in [sede.value for sede in SedeRegistro]:
-            errores.append(f"Sede de registro inválida: {sede_registro}")
-        
-        # Validar campos de sustitución
-        placa_sustituida = str(row.get('Placa Sustituida', '')).strip() if pd.notna(row.get('Placa Sustituida')) else None
-        motivo_sustitucion = str(row.get('Motivo Sustitución', '')).strip() if pd.notna(row.get('Motivo Sustitución')) else None
-        resolucion_sustitucion = str(row.get('Resolución Sustitución', '')).strip() if pd.notna(row.get('Resolución Sustitución')) else None
-        
-        # Si hay placa sustituida, validar que exista el vehículo
-        if placa_sustituida:
-            if not self._validar_formato_placa(placa_sustituida):
-                errores.append(f"Formato de placa sustituida inválido: {placa_sustituida}")
+        if not categoria_str:
+            advertencias.append({
+                'columna': 'Categoría',
+                'valor': categoria_raw,
+                'mensaje': "Categoría no especificada, se usará M1 por defecto"
+            })
+        elif categoria_str not in [cat.value for cat in CategoriaVehiculo]:
+            # Intentar mapear categorías comunes
+            mapeo_categorias = {
+                'M1': 'M1', 'M2': 'M2', 'M3': 'M3',
+                'AUTOMOVIL': 'M1', 'AUTO': 'M1',
+                'MICROBUS': 'M2', 'MICRO': 'M2',
+                'OMNIBUS': 'M3', 'BUS': 'M3'
+            }
+            categoria_mapeada = mapeo_categorias.get(categoria_str)
+            if categoria_mapeada:
+                advertencias.append({
+                    'columna': 'Categoría',
+                    'valor': categoria_raw,
+                    'mensaje': f"Categoría '{categoria_str}' mapeada a '{categoria_mapeada}'"
+                })
             else:
-                # Verificar que el vehículo sustituido exista
-                vehiculo_sustituido = await self.vehiculo_service.get_vehiculo_by_placa(placa_sustituida)
-                if not vehiculo_sustituido:
-                    advertencias.append(f"Vehículo con placa {placa_sustituida} no encontrado para sustitución")
-                
-                # Si hay sustitución, debe haber motivo
-                if not motivo_sustitucion:
-                    errores.append("Si se especifica placa sustituida, debe indicarse el motivo de sustitución")
-                elif motivo_sustitucion not in [motivo.value for motivo in MotivoSustitucion]:
-                    errores.append(f"Motivo de sustitución inválido: {motivo_sustitucion}")
-                
-                # Si hay sustitución, debe haber resolución de sustitución
-                if not resolucion_sustitucion:
-                    errores.append("Si se especifica placa sustituida, debe indicarse la resolución de sustitución")
-                elif not self._validar_formato_resolucion(resolucion_sustitucion):
-                    errores.append(f"Formato de resolución de sustitución inválido: {resolucion_sustitucion}")
+                errores.append({
+                    'columna': 'Categoría',
+                    'valor': categoria_raw,
+                    'mensaje': f"Categoría inválida (válidas: {[cat.value for cat in CategoriaVehiculo]})"
+                })
         
-        # Validar campos numéricos
+        # Validar tipo de combustible (más flexible)
+        tipo_combustible_raw = row.get('Tipo Combustible', '')
+        tipo_combustible_str = str(tipo_combustible_raw).strip().upper() if pd.notna(tipo_combustible_raw) else ''
+        
+        if not tipo_combustible_str:
+            advertencias.append({
+                'columna': 'Tipo Combustible',
+                'valor': tipo_combustible_raw,
+                'mensaje': "Tipo de combustible no especificado, se usará GASOLINA por defecto"
+            })
+        elif tipo_combustible_str not in [tc.value for tc in TipoCombustible]:
+            # Intentar mapear tipos comunes
+            mapeo_combustibles = {
+                'GASOLINA': 'GASOLINA', 'GAS': 'GASOLINA',
+                'DIESEL': 'DIESEL', 'PETROLEO': 'DIESEL',
+                'GLP': 'GLP', 'GAS_LICUADO': 'GLP',
+                'GNV': 'GNV', 'GAS_NATURAL': 'GNV',
+                'ELECTRICO': 'ELECTRICO', 'ELECTRIC': 'ELECTRICO'
+            }
+            combustible_mapeado = mapeo_combustibles.get(tipo_combustible_str)
+            if combustible_mapeado:
+                advertencias.append({
+                    'columna': 'Tipo Combustible',
+                    'valor': tipo_combustible_raw,
+                    'mensaje': f"Tipo de combustible '{tipo_combustible_str}' mapeado a '{combustible_mapeado}'"
+                })
+            else:
+                errores.append({
+                    'columna': 'Tipo Combustible',
+                    'valor': tipo_combustible_raw,
+                    'mensaje': f"Tipo de combustible inválido (válidos: {[tc.value for tc in TipoCombustible]})"
+                })
+        
+        # Validar sede de registro (más flexible)
+        sede_registro_raw = row.get('Sede de Registro', 'PUNO')
+        sede_registro_str = str(sede_registro_raw).strip().upper() if pd.notna(sede_registro_raw) else 'PUNO'
+        
+        if sede_registro_str and sede_registro_str not in [sede.value for sede in SedeRegistro]:
+            # Intentar mapear sedes comunes
+            mapeo_sedes = {
+                'PUNO': 'PUNO', 'JULIACA': 'JULIACA',
+                'AZANGARO': 'AZANGARO', 'YUNGUYO': 'YUNGUYO'
+            }
+            sede_mapeada = mapeo_sedes.get(sede_registro_str)
+            if sede_mapeada:
+                advertencias.append({
+                    'columna': 'Sede de Registro',
+                    'valor': sede_registro_raw,
+                    'mensaje': f"Sede '{sede_registro_str}' mapeada a '{sede_mapeada}'"
+                })
+            else:
+                advertencias.append({
+                    'columna': 'Sede de Registro',
+                    'valor': sede_registro_raw,
+                    'mensaje': f"Sede de registro '{sede_registro_str}' no reconocida, se usará PUNO por defecto"
+                })
+        
+        # Validar campos numéricos con más flexibilidad
         campos_numericos = {
             'Año Fabricación': (1900, 2030),
             'Ejes': (1, 10),
@@ -287,53 +508,114 @@ class VehiculoExcelService:
         }
         
         for campo, (min_val, max_val) in campos_numericos.items():
-            valor = row.get(campo)
-            if pd.isna(valor):
-                errores.append(f"{campo} es requerido")
+            valor_raw = row.get(campo)
+            if pd.isna(valor_raw) or str(valor_raw).strip() == '':
+                # Solo algunos campos son realmente obligatorios
+                if campo in ['Año Fabricación', 'Ejes', 'Asientos']:
+                    errores.append({
+                        'columna': campo,
+                        'valor': valor_raw,
+                        'mensaje': f"{campo} es requerido"
+                    })
+                else:
+                    advertencias.append({
+                        'columna': campo,
+                        'valor': valor_raw,
+                        'mensaje': f"{campo} no especificado, se usará valor por defecto"
+                    })
             else:
                 try:
-                    valor_num = float(valor)
+                    # Limpiar el valor (remover comas, espacios, etc.)
+                    valor_str = str(valor_raw).replace(',', '').replace(' ', '').strip()
+                    valor_num = float(valor_str)
+                    
                     if valor_num < min_val or valor_num > max_val:
-                        errores.append(f"{campo} debe estar entre {min_val} y {max_val}")
+                        errores.append({
+                            'columna': campo,
+                            'valor': valor_raw,
+                            'mensaje': f"{campo} debe estar entre {min_val} y {max_val}"
+                        })
                 except (ValueError, TypeError):
-                    errores.append(f"{campo} debe ser un número válido")
+                    errores.append({
+                        'columna': campo,
+                        'valor': valor_raw,
+                        'mensaje': f"{campo} debe ser un número válido"
+                    })
         
-        # Validar resoluciones si se proporcionan
+        # Validar resoluciones con normalización flexible
         if pd.notna(row.get('Resolución Primigenia')):
-            resolucion_primigenia = str(row.get('Resolución Primigenia')).strip()
+            resolucion_primigenia_raw = str(row.get('Resolución Primigenia')).strip()
+            resolucion_primigenia_normalizada = self._normalizar_numero_resolucion(resolucion_primigenia_raw)
             
-            # Validar formato R-1234-2025
-            if not self._validar_formato_resolucion(resolucion_primigenia):
-                errores.append(f"Formato de resolución primigenia inválido: {resolucion_primigenia} (debe ser R-1234-2025)")
+            if not self._validar_formato_resolucion_flexible(resolucion_primigenia_raw):
+                errores.append({
+                    'columna': 'Resolución Primigenia',
+                    'valor': resolucion_primigenia_raw,
+                    'mensaje': f"Formato de resolución primigenia inválido (se normalizó a: '{resolucion_primigenia_normalizada}')"
+                })
             else:
-                resolucion = self._buscar_resolucion_por_numero(resolucion_primigenia)
+                if resolucion_primigenia_raw != resolucion_primigenia_normalizada:
+                    advertencias.append({
+                        'columna': 'Resolución Primigenia',
+                        'valor': resolucion_primigenia_raw,
+                        'mensaje': f"Resolución primigenia normalizada a '{resolucion_primigenia_normalizada}'"
+                    })
+                
+                resolucion = self._buscar_resolucion_por_numero(resolucion_primigenia_normalizada)
                 if not resolucion:
                     if self.auto_crear_resoluciones:
-                        advertencias.append(f"Resolución primigenia {resolucion_primigenia} será creada automáticamente")
+                        advertencias.append({
+                            'columna': 'Resolución Primigenia',
+                            'valor': resolucion_primigenia_raw,
+                            'mensaje': f"Resolución primigenia {resolucion_primigenia_normalizada} será creada automáticamente"
+                        })
                     else:
-                        errores.append(f"No se encontró resolución primigenia: {resolucion_primigenia}")
-                elif resolucion.tipoResolucion != 'PADRE':
-                    advertencias.append(f"La resolución {resolucion_primigenia} no es una resolución primigenia (PADRE)")
+                        advertencias.append({
+                            'columna': 'Resolución Primigenia',
+                            'valor': resolucion_primigenia_raw,
+                            'mensaje': f"No se encontró resolución primigenia: {resolucion_primigenia_normalizada}"
+                        })
         
         if pd.notna(row.get('Resolución Hija')):
-            resolucion_hija = str(row.get('Resolución Hija')).strip()
+            resolucion_hija_raw = str(row.get('Resolución Hija')).strip()
+            resolucion_hija_normalizada = self._normalizar_numero_resolucion(resolucion_hija_raw)
             
-            # Validar formato R-1234-2025
-            if not self._validar_formato_resolucion(resolucion_hija):
-                errores.append(f"Formato de resolución hija inválido: {resolucion_hija} (debe ser R-1234-2025)")
+            if not self._validar_formato_resolucion_flexible(resolucion_hija_raw):
+                errores.append({
+                    'columna': 'Resolución Hija',
+                    'valor': resolucion_hija_raw,
+                    'mensaje': f"Formato de resolución hija inválido (se normalizó a: '{resolucion_hija_normalizada}')"
+                })
             else:
-                resolucion = self._buscar_resolucion_por_numero(resolucion_hija)
+                if resolucion_hija_raw != resolucion_hija_normalizada:
+                    advertencias.append({
+                        'columna': 'Resolución Hija',
+                        'valor': resolucion_hija_raw,
+                        'mensaje': f"Resolución hija normalizada a '{resolucion_hija_normalizada}'"
+                    })
+                
+                resolucion = self._buscar_resolucion_por_numero(resolucion_hija_normalizada)
                 if not resolucion:
                     if self.auto_crear_resoluciones:
-                        advertencias.append(f"Resolución hija {resolucion_hija} será creada automáticamente")
+                        advertencias.append({
+                            'columna': 'Resolución Hija',
+                            'valor': resolucion_hija_raw,
+                            'mensaje': f"Resolución hija {resolucion_hija_normalizada} será creada automáticamente"
+                        })
                     else:
-                        errores.append(f"No se encontró resolución hija: {resolucion_hija}")
-                elif resolucion.tipoResolucion != 'HIJA':
-                    advertencias.append(f"La resolución {resolucion_hija} no es una resolución hija")
+                        advertencias.append({
+                            'columna': 'Resolución Hija',
+                            'valor': resolucion_hija_raw,
+                            'mensaje': f"No se encontró resolución hija: {resolucion_hija_normalizada}"
+                        })
             
             # Validar que si hay resolución hija, debe haber primigenia
             if not pd.notna(row.get('Resolución Primigenia')):
-                errores.append("Si se especifica una resolución hija, debe especificarse también la resolución primigenia")
+                errores.append({
+                    'columna': 'Resolución Hija',
+                    'valor': resolucion_hija_raw,
+                    'mensaje': "Si se especifica una resolución hija, debe especificarse también la resolución primigenia"
+                })
         
         # Validar rutas si se proporcionan
         if pd.notna(row.get('Rutas Asignadas')):
@@ -341,40 +623,46 @@ class VehiculoExcelService:
             rutas_codigos = [r.strip() for r in rutas_str.split(',') if r.strip()]
             for codigo_ruta in rutas_codigos:
                 if not self._buscar_ruta_por_codigo(codigo_ruta):
-                    advertencias.append(f"No se encontró ruta con código: {codigo_ruta}")
+                    advertencias.append({
+                        'columna': 'Rutas Asignadas',
+                        'valor': rutas_str,
+                        'mensaje': f"No se encontró ruta con código: {codigo_ruta}"
+                    })
         
         return VehiculoValidacionExcel(
             fila=fila,
-            placa=placa,
+            placa=placa_normalizada,  # Usar la placa normalizada
             valido=len(errores) == 0,
             errores=errores,
             advertencias=advertencias
         )
 
     async def _convertir_fila_a_vehiculo_create(self, row: pd.Series) -> VehiculoCreate:
-        """Convertir fila de Excel a modelo VehiculoCreate"""
+        """Convertir fila de Excel a modelo VehiculoCreate usando datos normalizados"""
         
-        # Validar campos requeridos
-        placa = str(row.get('Placa', '')).strip().upper()
-        if not placa or placa == 'NAN':
+        # Normalizar y validar campos requeridos
+        placa_raw = row.get('Placa', '')
+        placa = self._normalizar_placa(placa_raw).upper()
+        if not placa:
             raise ValueError("Placa es requerida")
             
         marca = str(row.get('Marca', '')).strip()
-        if not marca or marca == 'nan':
+        if not marca or marca.lower() == 'nan':
             marca = "MARCA_PENDIENTE"  # Valor por defecto
             
         modelo = str(row.get('Modelo', '')).strip()
-        if not modelo or modelo == 'nan':
+        if not modelo or modelo.lower() == 'nan':
             modelo = "MODELO_PENDIENTE"  # Valor por defecto
         
         print(f"📋 Datos básicos validados - Placa: {placa}, Marca: {marca}, Modelo: {modelo}")
         
-        # USAR EMPRESA EXISTENTE en lugar de crear automáticamente
+        # Normalizar y buscar empresa por RUC
         empresa_id = None
-        empresa_ruc = str(row.get('RUC Empresa', '')).strip()
+        empresa_ruc_raw = row.get('RUC Empresa', '')
+        empresa_ruc = self._normalizar_ruc(empresa_ruc_raw)
         
-        if empresa_ruc and empresa_ruc != 'nan':
-            # Intentar encontrar empresa existente
+        if empresa_ruc and len(empresa_ruc) == 11:
+            # Intentar encontrar empresa existente con RUC normalizado
             try:
                 empresas = await self.empresa_service.get_empresas()
                 for empresa in empresas:
@@ -397,25 +685,84 @@ class VehiculoExcelService:
             except Exception as e:
                 raise ValueError(f"Error obteniendo empresas: {e}")
         
-        # Validar categoría
-        categoria_str = str(row.get('Categoría', 'M1')).strip().upper()
-        if categoria_str == 'NAN' or categoria_str not in [cat.value for cat in CategoriaVehiculo]:
-            categoria_str = 'M1'  # Valor por defecto
+        # Normalizar categoría
+        categoria_raw = row.get('Categoría', 'M1')
+        categoria_str = str(categoria_raw).strip().upper()
         
-        # Crear datos técnicos básicos y seguros
+        # Mapear categorías comunes
+        mapeo_categorias = {
+            'M1': 'M1', 'M2': 'M2', 'M3': 'M3',
+            'AUTOMOVIL': 'M1', 'AUTO': 'M1',
+            'MICROBUS': 'M2', 'MICRO': 'M2',
+            'OMNIBUS': 'M3', 'BUS': 'M3'
+        }
+        
+        categoria_str = mapeo_categorias.get(categoria_str, 'M1')
+        
+        # Normalizar tipo de combustible
+        tipo_combustible_raw = row.get('Tipo Combustible', 'GASOLINA')
+        tipo_combustible_str = str(tipo_combustible_raw).strip().upper()
+        
+        # Mapear tipos de combustible comunes
+        mapeo_combustibles = {
+            'GASOLINA': TipoCombustible.GASOLINA,
+            'GAS': TipoCombustible.GASOLINA,
+            'DIESEL': TipoCombustible.DIESEL,
+            'PETROLEO': TipoCombustible.DIESEL,
+            'GLP': TipoCombustible.GLP,
+            'GAS_LICUADO': TipoCombustible.GLP,
+            'GNV': TipoCombustible.GNV,
+            'GAS_NATURAL': TipoCombustible.GNV,
+            'ELECTRICO': TipoCombustible.ELECTRICO,
+            'ELECTRIC': TipoCombustible.ELECTRICO
+        }
+        
+        tipo_combustible = mapeo_combustibles.get(tipo_combustible_str, TipoCombustible.GASOLINA)
+        
+        # Normalizar sede de registro
+        sede_raw = row.get('Sede de Registro', 'PUNO')
+        sede_str = str(sede_raw).strip().upper()
+        
+        mapeo_sedes = {
+            'PUNO': SedeRegistro.PUNO,
+            'JULIACA': SedeRegistro.JULIACA,
+            'AZANGARO': SedeRegistro.AZANGARO,
+            'YUNGUYO': SedeRegistro.YUNGUYO
+        }
+        
+        sede_registro = mapeo_sedes.get(sede_str, SedeRegistro.PUNO)
+        
+        # Crear datos técnicos con valores normalizados
         try:
+            # Normalizar valores numéricos
+            def normalizar_numero(valor, default):
+                if pd.isna(valor) or str(valor).strip() == '':
+                    return default
+                try:
+                    return float(str(valor).replace(',', '').strip())
+                except:
+                    return default
+            
+            ejes = int(normalizar_numero(row.get('Ejes'), 2))
+            asientos = int(normalizar_numero(row.get('Asientos'), 5))
+            peso_neto = normalizar_numero(row.get('Peso Neto (kg)'), 1200.0)
+            peso_bruto = normalizar_numero(row.get('Peso Bruto (kg)'), 1500.0)
+            largo = normalizar_numero(row.get('Largo (m)'), 4.5)
+            ancho = normalizar_numero(row.get('Ancho (m)'), 1.8)
+            alto = normalizar_numero(row.get('Alto (m)'), 1.5)
+            
             datos_tecnicos = DatosTecnicos(
                 motor=str(row.get('Motor', 'MOTOR_PENDIENTE')).strip() or 'MOTOR_PENDIENTE',
                 chasis=str(row.get('Chasis', f'CHASIS_{placa}')).strip() or f'CHASIS_{placa}',
-                ejes=2,  # Valor por defecto seguro
-                asientos=int(float(str(row.get('Asientos', 5)))) if pd.notna(row.get('Asientos')) else 5,
-                pesoNeto=1200.0,  # Valor por defecto
-                pesoBruto=1500.0,  # Valor por defecto
-                tipoCombustible=TipoCombustible.GASOLINA,  # Valor por defecto seguro
+                ejes=ejes,
+                asientos=asientos,
+                pesoNeto=peso_neto,
+                pesoBruto=peso_bruto,
+                tipoCombustible=tipo_combustible,
                 medidas={
-                    'largo': 4.5,
-                    'ancho': 1.8,
-                    'alto': 1.5
+                    'largo': largo,
+                    'ancho': ancho,
+                    'alto': alto
                 }
             )
         except Exception as e:
@@ -423,14 +770,18 @@ class VehiculoExcelService:
         
         print(f"📋 Datos técnicos creados exitosamente")
         
+        # Normalizar año de fabricación
+        anio_raw = row.get('Año Fabricación', 2020)
+        anio_fabricacion = int(normalizar_numero(anio_raw, 2020))
+        
         return VehiculoCreate(
             placa=placa,
             empresaActualId=empresa_id,
             categoria=CategoriaVehiculo(categoria_str),
             marca=marca,
             modelo=modelo,
-            anioFabricacion=int(float(str(row.get('Año Fabricación', 2020)))),
-            sedeRegistro=SedeRegistro.PUNO,  # Valor por defecto
+            anioFabricacion=anio_fabricacion,
+            sedeRegistro=sede_registro,
             datosTecnicos=datos_tecnicos
         )
 
@@ -555,36 +906,12 @@ class VehiculoExcelService:
         return VehiculoUpdate(**update_data)
 
     def _validar_formato_placa(self, placa: str) -> bool:
-        """Validar formato de placa peruana"""
-        # Formato: ABC-123 o AB-1234
-        patron = r'^[A-Z]{2,3}-\d{3,4}$'
-        return bool(re.match(patron, placa.upper()))
-
-    def _buscar_empresa_por_ruc(self, ruc: str):
-        """Buscar empresa por RUC"""
-        for empresa in self.empresas.values():
-            if empresa.ruc == ruc:
-                return empresa
-        return None
-
-    def _buscar_resolucion_por_numero(self, numero: str):
-        """Buscar resolución por número"""
-        for resolucion in self.resoluciones.values():
-            if resolucion.nroResolucion == numero:
-                return resolucion
-        return None
-
-    def _buscar_ruta_por_codigo(self, codigo: str):
-        """Buscar ruta por código"""
-        for ruta in self.rutas.values():
-            if ruta.codigoRuta == codigo:
-                return ruta
-        return None
+        """Validar formato de placa peruana (usa la versión flexible)"""
+        return self._validar_formato_placa_flexible(placa)
 
     def _validar_formato_resolucion(self, numero: str) -> bool:
-        """Validar formato de resolución R-1234-2025"""
-        patron = r'^R-\d{4}-\d{4}$'
-        return bool(re.match(patron, numero.upper()))
+        """Validar formato de resolución (usa la versión flexible)"""
+        return self._validar_formato_resolucion_flexible(numero)
 
     def _crear_empresa_automatica(self, ruc: str, nombre_sugerido: str = None):
         """Crear empresa automáticamente si no existe"""

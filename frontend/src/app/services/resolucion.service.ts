@@ -797,4 +797,91 @@ export class ResolucionService {
       })
     );
   }
+
+  // ========================================
+  // MÉTODOS DE CARGA MASIVA RESOLUCIONES PADRES
+  // ========================================
+
+  /**
+   * Descargar plantilla Excel para carga masiva de resoluciones padres
+   */
+  descargarPlantillaResolucionesPadres(): Observable<Blob> {
+    const url = `${this.apiUrl}/resoluciones/padres/plantilla`;
+
+    return this.http.get(url, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    }).pipe(
+      catchError(error => {
+        console.error('Error descargando plantilla de resoluciones padres:', error);
+        return throwError(() => new Error('Error al descargar la plantilla de resoluciones padres'));
+      })
+    );
+  }
+
+  /**
+   * Validar archivo Excel de resoluciones padres sin procesarlo
+   */
+  validarArchivoResolucionesPadres(archivo: File): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/padres/validar`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    // Headers sin Content-Type para FormData
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    return this.http.post(url, formData, { headers }).pipe(
+      catchError(error => {
+        console.error('Error validando archivo de resoluciones padres:', error);
+        return throwError(() => new Error('Error al validar el archivo de resoluciones padres'));
+      })
+    );
+  }
+
+  /**
+   * Procesar carga masiva de resoluciones padres desde Excel
+   */
+  procesarCargaMasivaResolucionesPadres(archivo: File, soloValidar: boolean = false): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/padres/procesar`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    // Agregar parámetro de solo validar
+    const params = new URLSearchParams();
+    if (soloValidar) {
+      params.append('solo_validar', 'true');
+    }
+
+    // Headers sin Content-Type para FormData
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    const finalUrl = params.toString() ? `${url}?${params.toString()}` : url;
+
+    return this.http.post(finalUrl, formData, { headers }).pipe(
+      catchError(error => {
+        console.error('Error procesando carga masiva de resoluciones padres:', error);
+        return throwError(() => new Error('Error al procesar el archivo de resoluciones padres'));
+      })
+    );
+  }
+
+  /**
+   * Obtener reporte de estados de resoluciones padres
+   */
+  obtenerReporteEstadosResolucionesPadres(): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/padres/reporte-estados`;
+
+    return this.http.get(url, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo reporte de estados de resoluciones padres:', error);
+        return throwError(() => new Error('Error al obtener el reporte de estados'));
+      })
+    );
+  }
 } 

@@ -79,6 +79,11 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
             <app-smart-icon iconName="upload_file" [size]="20"></app-smart-icon>
             Carga Masiva
           </button>
+
+          <button mat-raised-button color="warn" (click)="cargaMasivaResolucionesPadres()" class="bulk-upload-padres-btn">
+            <app-smart-icon iconName="upload" [size]="20"></app-smart-icon>
+            Carga Padres
+          </button>
           
           <button mat-raised-button color="primary" (click)="nuevaResolucion()" class="new-resolution-btn">
             <app-smart-icon iconName="add_circle" [size]="20"></app-smart-icon>
@@ -741,6 +746,10 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
 
   cargaMasivaResoluciones(): void {
     this.router.navigate(['/resoluciones/carga-masiva']);
+  }
+
+  cargaMasivaResolucionesPadres(): void {
+    this.router.navigate(['/resoluciones/carga-masiva-padres']);
   }
 
   verResolucion(id: string): void {
