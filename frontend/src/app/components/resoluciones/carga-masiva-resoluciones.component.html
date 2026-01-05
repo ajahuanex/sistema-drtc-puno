@@ -1,0 +1,279 @@
+<div class="carga-masiva-container">
+  <!-- Header Compacto -->
+  <div class="header-compact">
+    <div class="header-content">
+      <app-smart-icon iconName="description" [size]="32"></app-smart-icon>
+      <div>
+        <h2>Carga Masiva de Resoluciones</h2>
+        <p>Importa múltiples resoluciones desde Excel</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div *ngIf="mostrarMensajeFlag" class="alert-modern" [ngClass]="'alert-' + tipoMensaje">
+    <app-smart-icon 
+      [iconName]="tipoMensaje === 'success' ? 'check_circle' : 
+                  tipoMensaje === 'warning' ? 'warning' : 
+                  tipoMensaje === 'error' ? 'error' : 'info'" 
+      [size]="20">
+    </app-smart-icon>
+    <span [innerHTML]="mensaje"></span>
+    <button (click)="ocultarMensaje()">
+      <app-smart-icon iconName="close" [size]="16"></app-smart-icon>
+    </button>
+  </div>
+
+  <!-- Sección Principal -->
+  <div class="main-section">
+    
+    <!-- Plantilla y Upload en una sola card -->
+    <div class="upload-card">
+      <div class="card-header">
+        <h3>
+          <app-smart-icon iconName="cloud_upload" [size]="20"></app-smart-icon>
+          Cargar Archivo
+        </h3>
+        <button class="btn-download" (click)="descargarPlantilla()" [disabled]="cargando">
+          <app-smart-icon 
+            [iconName]="cargando ? 'hourglass_empty' : 'download'" 
+            [size]="16">
+          </app-smart-icon>
+          <span *ngIf="cargando" class="spinner"></span>
+          Plantilla
+        </button>
+      </div>
+      
+      <div class="card-content">
+        <!-- Upload Area Compacta -->
+        <div class="upload-zone" 
+             [class.has-file]="archivoSeleccionado" 
+             [class.dragover]="isDragOver"
+             (click)="fileInput.click()"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)">
+          <input #fileInput 
+                 type="file" 
+                 accept=".xlsx,.xls" 
+                 (change)="onArchivoSeleccionado($event)" 
+                 hidden>
+          
+          <div *ngIf="!archivoSeleccionado" class="upload-empty">
+            <app-smart-icon iconName="cloud_upload" [size]="48"></app-smart-icon>
+            <div>
+              <strong>Arrastra o selecciona tu archivo Excel</strong>
+              <small>Formatos: .xlsx, .xls (máx. 10MB)</small>
+            </div>
+          </div>
+
+          <div *ngIf="archivoSeleccionado" class="upload-filled">
+            <app-smart-icon iconName="description" [size]="32"></app-smart-icon>
+            <div class="file-info">
+              <strong>{{ archivoSeleccionado.name }}</strong>
+              <small>{{ formatFileSize(archivoSeleccionado.size) }}</small>
+            </div>
+            <button class="btn-remove" (click)="reiniciar(); $event.stopPropagation()">
+              <app-smart-icon iconName="close" [size]="16"></app-smart-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opciones Compactas -->
+        <div class="options-row">
+          <div class="radio-group">
+            <label class="radio-option" [class.active]="soloValidar" (click)="soloValidar = true">
+              <input type="radio" name="modoOperacion" [value]="true" [checked]="soloValidar">
+              <app-smart-icon iconName="search" [size]="16"></app-smart-icon>
+              <span>Solo Validar</span>
+            </label>
+            <label class="radio-option" [class.active]="!soloValidar" (click)="soloValidar = false">
+              <input type="radio" name="modoOperacion" [value]="false" [checked]="!soloValidar">
+              <app-smart-icon iconName="rocket_launch" [size]="16"></app-smart-icon>
+              <span>Validar y Crear</span>
+            </label>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="btn-secondary" (click)="reiniciar()" [disabled]="cargando">
+              <app-smart-icon iconName="refresh" [size]="16"></app-smart-icon>
+              Limpiar
+            </button>
+            <button class="btn-primary" (click)="procesarArchivo()" 
+                    [disabled]="!archivoSeleccionado || cargando">
+              <span *ngIf="cargando" class="spinner"></span>
+              <app-smart-icon 
+                *ngIf="!cargando" 
+                [iconName]="soloValidar ? 'search' : 'rocket_launch'" 
+                [size]="16">
+              </app-smart-icon>
+              {{ cargando ? 'Procesando...' : (soloValidar ? 'Validar' : 'Procesar') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultados Compactos -->
+    <div *ngIf="mostrarResultados && resultado" class="results-card">
+      <div class="card-header">
+        <h3>
+          <app-smart-icon iconName="bar_chart" [size]="20"></app-smart-icon>
+          Resultados
+        </h3>
+      </div>
+      
+      <div class="card-content">
+        <!-- Stats Compactas -->
+        <div class="stats-row">
+          <div class="stat-item total">
+            <app-smart-icon iconName="list" [size]="20"></app-smart-icon>
+            <div>
+              <strong>{{ totalFilas }}</strong>
+              <span>Total</span>
+            </div>
+          </div>
+          <div class="stat-item valid" [class.active]="validos > 0">
+            <app-smart-icon iconName="check_circle" [size]="20"></app-smart-icon>
+            <div>
+              <strong>{{ validos }}</strong>
+              <span>Válidos</span>
+            </div>
+          </div>
+          <div class="stat-item invalid" [class.active]="invalidos > 0">
+            <app-smart-icon iconName="cancel" [size]="20"></app-smart-icon>
+            <div>
+              <strong>{{ invalidos }}</strong>
+              <span>Errores</span>
+            </div>
+          </div>
+          <div class="stat-item warning" [class.active]="conAdvertencias > 0">
+            <app-smart-icon iconName="warning" [size]="20"></app-smart-icon>
+            <div>
+              <strong>{{ conAdvertencias }}</strong>
+              <span>Advertencias</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+          <div class="progress-info">
+            <span>Éxito: {{ obtenerPorcentajeValidos() }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" 
+                 [style.width.%]="obtenerPorcentajeValidos()"
+                 [ngClass]="'fill-' + obtenerClaseEstado(validos, invalidos)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Resoluciones Creadas (Compacto) -->
+        <div *ngIf="tieneResolucionesCreadas" class="section-compact">
+          <div class="section-header" (click)="mostrarResolucionesCreadas = !mostrarResolucionesCreadas">
+            <span>
+              <app-smart-icon iconName="add_circle" [size]="16"></app-smart-icon>
+              Resoluciones Procesadas ({{ resultadoProcesamiento?.resoluciones_creadas?.length }})
+              <small *ngIf="resultadoProcesamiento?.total_creadas || resultadoProcesamiento?.total_actualizadas">
+                - {{ resultadoProcesamiento?.total_creadas || 0 }} nuevas, {{ resultadoProcesamiento?.total_actualizadas || 0 }} actualizadas
+              </small>
+            </span>
+            <app-smart-icon 
+              [iconName]="mostrarResolucionesCreadas ? 'expand_less' : 'expand_more'" 
+              [size]="16">
+            </app-smart-icon>
+          </div>
+          <div *ngIf="mostrarResolucionesCreadas" class="section-content">
+            <div class="resoluciones-list">
+              <div *ngFor="let resolucion of resultadoProcesamiento?.resoluciones_creadas" class="resolucion-item">
+                <div class="resolucion-number">{{ resolucion.numero_resolucion }}</div>
+                <div class="resolucion-details">
+                  <strong>{{ resolucion.empresa_razon_social }}</strong>
+                  <small>RUC: {{ resolucion.empresa_ruc }} | Tipo: {{ resolucion.tipo_resolucion }}</small>
+                </div>
+                <span class="badge" [ngClass]="resolucion.accion === 'ACTUALIZADA' ? 'updated' : 'success'">
+                  {{ resolucion.accion || resolucion.estado }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Errores (Compacto) -->
+        <div *ngIf="tieneErrores" class="section-compact error-section">
+          <div class="section-header" (click)="mostrarErrores = !mostrarErrores">
+            <span>
+              <app-smart-icon iconName="cancel" [size]="16"></app-smart-icon>
+              Errores ({{ errores.length }})
+            </span>
+            <app-smart-icon 
+              [iconName]="mostrarErrores ? 'expand_less' : 'expand_more'" 
+              [size]="16">
+            </app-smart-icon>
+          </div>
+          <div *ngIf="mostrarErrores" class="section-content">
+            <div class="errors-list">
+              <div *ngFor="let error of errores" class="error-item">
+                <div class="error-header">
+                  <span class="error-location">Fila {{ error.fila }} - {{ error.numero_resolucion }}</span>
+                </div>
+                <div class="error-messages">
+                  <div *ngFor="let mensaje of error.errores" class="error-msg">
+                    <app-smart-icon iconName="chevron_right" [size]="12"></app-smart-icon>
+                    {{ mensaje }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advertencias (Compacto) -->
+        <div *ngIf="tieneAdvertencias" class="section-compact warning-section">
+          <div class="section-header" (click)="mostrarAdvertencias = !mostrarAdvertencias">
+            <span>
+              <app-smart-icon iconName="warning" [size]="16"></app-smart-icon>
+              Advertencias ({{ advertencias.length }})
+            </span>
+            <app-smart-icon 
+              [iconName]="mostrarAdvertencias ? 'expand_less' : 'expand_more'" 
+              [size]="16">
+            </app-smart-icon>
+          </div>
+          <div *ngIf="mostrarAdvertencias" class="section-content">
+            <div class="warnings-list">
+              <div *ngFor="let advertencia of advertencias" class="warning-item">
+                <div class="warning-header">
+                  <span class="warning-location">Fila {{ advertencia.fila }} - {{ advertencia.numero_resolucion }}</span>
+                </div>
+                <div class="warning-messages">
+                  <div *ngFor="let mensaje of advertencia.advertencias" class="warning-msg">
+                    <app-smart-icon iconName="chevron_right" [size]="12"></app-smart-icon>
+                    {{ mensaje }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensaje de Éxito -->
+        <div *ngIf="validos > 0 && invalidos === 0" class="success-banner">
+          <app-smart-icon iconName="check_circle" [size]="24"></app-smart-icon>
+          <div>
+            <strong>¡Procesamiento Exitoso!</strong>
+            <p *ngIf="soloValidar">{{ validos }} resoluciones válidas listas para procesar.</p>
+            <p *ngIf="!soloValidar">
+              {{ resultadoProcesamiento?.total_procesadas || 0 }} resoluciones procesadas exitosamente
+              <span *ngIf="resultadoProcesamiento?.total_creadas || resultadoProcesamiento?.total_actualizadas">
+                ({{ resultadoProcesamiento?.total_creadas || 0 }} nuevas, {{ resultadoProcesamiento?.total_actualizadas || 0 }} actualizadas)
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-01-04T17:27:10.839693",
+  "resumen": {
+    "total": 10,
+    "exitosos": 5,
+    "fallidos": 5,
+    "porcentaje_exito": 50.0
+  },
+  "resultados": [
+    {
+      "test": "Backend disponible",
+      "exitoso": true,
+      "mensaje": "API responde correctamente",
+      "timestamp": "2026-01-04T17:27:02.623765"
+    },
+    {
+      "test": "Listar resoluciones",
+      "exitoso": true,
+      "mensaje": "Se obtuvieron 0 resoluciones",
+      "timestamp": "2026-01-04T17:27:04.680344"
+    },
+    {
+      "test": "Filtros avanzados",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para filtrar",
+      "timestamp": "2026-01-04T17:27:04.680510"
+    },
+    {
+      "test": "Estadísticas",
+      "exitoso": true,
+      "mensaje": "Total: 0, Vigentes: 0",
+      "timestamp": "2026-01-04T17:27:06.736873"
+    },
+    {
+      "test": "Validación número",
+      "exitoso": true,
+      "mensaje": "Número 9999: disponible",
+      "timestamp": "2026-01-04T17:27:08.803215"
+    },
+    {
+      "test": "Siguiente número",
+      "exitoso": true,
+      "mensaje": "Siguiente número para 2026: 0001",
+      "timestamp": "2026-01-04T17:27:10.838256"
+    },
+    {
+      "test": "Relaciones resoluciones",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para analizar",
+      "timestamp": "2026-01-04T17:27:10.838441"
+    },
+    {
+      "test": "Formato números",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838528"
+    },
+    {
+      "test": "Campos requeridos",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838608"
+    },
+    {
+      "test": "Consistencia fechas",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838711"
+    }
+  ],
+  "errores": [
+    {
+      "test": "Filtros avanzados",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para filtrar",
+      "timestamp": "2026-01-04T17:27:04.680510"
+    },
+    {
+      "test": "Relaciones resoluciones",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para analizar",
+      "timestamp": "2026-01-04T17:27:10.838441"
+    },
+    {
+      "test": "Formato números",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838528"
+    },
+    {
+      "test": "Campos requeridos",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838608"
+    },
+    {
+      "test": "Consistencia fechas",
+      "exitoso": false,
+      "mensaje": "No hay resoluciones para verificar",
+      "timestamp": "2026-01-04T17:27:10.838711"
+    }
+  ]
+}

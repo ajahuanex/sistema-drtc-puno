@@ -1,32 +1,25 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
-import { 
-  ResolucionFiltros,
-  TIPOS_TRAMITE_OPCIONES,
-  ESTADOS_RESOLUCION_OPCIONES 
-} from '../models/resolucion-table.model';
+import { ResolucionFiltros, TIPOS_TRAMITE_OPCIONES, ESTADOS_RESOLUCION_OPCIONES } from '../models/resolucion-table.model';
 import { EmpresaSelectorComponent } from './empresa-selector.component';
 import { DateRangePickerComponent, RangoFechas } from './date-range-picker.component';
 import { SmartIconComponent } from './smart-icon.component';
 
-export interface FiltrosMobileData {
+interface FiltrosMobileData {
   filtros: ResolucionFiltros;
   empresas: any[];
 }
 
-/**
- * Modal de filtros para dispositivos móviles
- * Proporciona una interfaz optimizada para pantallas pequeñas
- */
 @Component({
   selector: 'app-filtros-mobile-modal',
   standalone: true,
@@ -34,88 +27,106 @@ export interface FiltrosMobileData {
     CommonModule,
     ReactiveFormsModule,
     MatDialogModule,
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
-    MatToolbarModule,
+    MatSlideToggleModule,
     MatDividerModule,
     EmpresaSelectorComponent,
     DateRangePickerComponent,
     SmartIconComponent
   ],
   template: `
-    <div class="mobile-modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <!-- Header con toolbar -->
-      <mat-toolbar color="primary" class="modal-toolbar">
-        <button mat-icon-button 
-                (click)="cerrar()"
-                aria-label="Cerrar filtros">
-          <app-smart-icon iconName="close" [size]="24" [attr.aria-hidden]="true"></app-smart-icon>
+    <div class="mobile-filtros-modal">
+      <!-- Header -->
+      <mat-toolbar class="modal-toolbar">
+        <button mat-icon-button (click)="cerrar()" aria-label="Cerrar filtros">
+          <app-smart-icon iconName="close" [size]="24"></app-smart-icon>
         </button>
-        <span class="toolbar-title" id="modal-title">Filtros de Búsqueda</span>
-        <button mat-icon-button 
-                (click)="limpiarTodo()"
-                aria-label="Limpiar todos los filtros">
-          <app-smart-icon iconName="clear_all" [size]="24" [attr.aria-hidden]="true"></app-smart-icon>
+        
+        <span class="toolbar-title">
+          <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
+          Filtros Avanzados
+        </span>
+        
+        <button mat-button (click)="limpiarTodo()" class="limpiar-btn">
+          <app-smart-icon iconName="clear_all" [size]="18"></app-smart-icon>
+          Limpiar
         </button>
       </mat-toolbar>
 
-      <!-- Contenido del modal -->
+      <!-- Contenido de filtros -->
       <div class="modal-content">
         <form [formGroup]="filtrosForm" class="filtros-form-mobile">
           
-          <!-- Filtro por número -->
-          <div class="filtro-section">
-            <div class="section-label">Número de Resolución</div>
+          <!-- Sección: Búsqueda básica -->
+          <div class="filtro-seccion">
+            <h3 class="seccion-titulo">
+              <app-smart-icon iconName="search" [size]="18"></app-smart-icon>
+              Búsqueda Básica
+            </h3>
+            
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Buscar por número</mat-label>
+              <mat-label>Número de Resolución</mat-label>
               <input matInput 
                      formControlName="numeroResolucion"
                      placeholder="Ej: R-001-2025"
                      autocomplete="off">
               <app-smart-icon iconName="search" [size]="20" matSuffix></app-smart-icon>
+              <mat-hint>Buscar por número completo o parcial</mat-hint>
             </mat-form-field>
+
+            <div class="empresa-selector-mobile">
+              <app-empresa-selector
+                label="Empresa"
+                placeholder="Buscar empresa por RUC o razón social"
+                hint="Filtrar resoluciones por empresa"
+                [empresaId]="filtrosForm.get('empresaId')?.value"
+                (empresaIdChange)="onEmpresaChange($event)"
+                (empresaSeleccionada)="onEmpresaSeleccionada($event)">
+              </app-empresa-selector>
+            </div>
           </div>
 
           <mat-divider></mat-divider>
 
-          <!-- Filtro por empresa -->
-          <div class="filtro-section">
-            <div class="section-label">Empresa</div>
-            <app-empresa-selector
-              label="Seleccionar empresa"
-              placeholder="Buscar por RUC o razón social"
-              [empresaId]="filtrosForm.get('empresaId')?.value"
-              (empresaIdChange)="onEmpresaChange($event)">
-            </app-empresa-selector>
-          </div>
-
-          <mat-divider></mat-divider>
-
-          <!-- Filtro por tipo de trámite -->
-          <div class="filtro-section">
-            <div class="section-label">Tipo de Trámite</div>
+          <!-- Sección: Clasificación -->
+          <div class="filtro-seccion">
+            <h3 class="seccion-titulo">
+              <app-smart-icon iconName="category" [size]="18"></app-smart-icon>
+              Clasificación
+            </h3>
+            
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Seleccionar tipos</mat-label>
+              <mat-label>Tipos de Trámite</mat-label>
               <mat-select formControlName="tiposTramite" multiple>
+                <mat-select-trigger>
+                  @if (filtrosForm.get('tiposTramite')?.value?.length) {
+                    {{ filtrosForm.get('tiposTramite')?.value?.length }} seleccionado(s)
+                  } @else {
+                    Seleccionar tipos
+                  }
+                </mat-select-trigger>
                 @for (tipo of tiposTramiteOpciones; track tipo) {
                   <mat-option [value]="tipo">{{ tipo }}</mat-option>
                 }
               </mat-select>
               <app-smart-icon iconName="category" [size]="20" matSuffix></app-smart-icon>
             </mat-form-field>
-          </div>
 
-          <mat-divider></mat-divider>
-
-          <!-- Filtro por estado -->
-          <div class="filtro-section">
-            <div class="section-label">Estado</div>
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Seleccionar estados</mat-label>
+              <mat-label>Estados</mat-label>
               <mat-select formControlName="estados" multiple>
+                <mat-select-trigger>
+                  @if (filtrosForm.get('estados')?.value?.length) {
+                    {{ filtrosForm.get('estados')?.value?.length }} seleccionado(s)
+                  } @else {
+                    Seleccionar estados
+                  }
+                </mat-select-trigger>
                 @for (estado of estadosOpciones; track estado) {
                   <mat-option [value]="estado">{{ estado }}</mat-option>
                 }
@@ -126,72 +137,158 @@ export interface FiltrosMobileData {
 
           <mat-divider></mat-divider>
 
-          <!-- Filtro por rango de fechas -->
-          <div class="filtro-section">
-            <div class="section-label">Rango de Fechas</div>
-            <app-date-range-picker
-              label="Fecha de emisión"
-              hint="Seleccione el período"
-              [formControl]="rangoFechasControl">
-            </app-date-range-picker>
+          <!-- Sección: Fechas -->
+          <div class="filtro-seccion">
+            <h3 class="seccion-titulo">
+              <app-smart-icon iconName="date_range" [size]="18"></app-smart-icon>
+              Rango de Fechas
+            </h3>
+            
+            <div class="fecha-selector-mobile">
+              <app-date-range-picker
+                label="Fechas de Emisión"
+                hint="Seleccione el período de emisión"
+                [formControl]="rangoFechasControl"
+                (rangoChange)="onRangoFechasChange($event)">
+              </app-date-range-picker>
+            </div>
           </div>
 
           <mat-divider></mat-divider>
 
-          <!-- Filtro por estado activo -->
-          <div class="filtro-section">
-            <div class="section-label">Estado Activo</div>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Filtrar por activación</mat-label>
-              <mat-select formControlName="activo">
-                <mat-option [value]="null">Todos</mat-option>
-                <mat-option [value]="true">Solo Activos</mat-option>
-                <mat-option [value]="false">Solo Inactivos</mat-option>
-              </mat-select>
-              <app-smart-icon iconName="toggle_on" [size]="20" matSuffix></app-smart-icon>
-            </mat-form-field>
+          <!-- Sección: Estado -->
+          <div class="filtro-seccion">
+            <h3 class="seccion-titulo">
+              <app-smart-icon iconName="toggle_on" [size]="18"></app-smart-icon>
+              Estado de Activación
+            </h3>
+            
+            <div class="toggle-group">
+              <mat-slide-toggle 
+                formControlName="soloActivos"
+                color="primary"
+                class="toggle-option">
+                Solo mostrar resoluciones activas
+              </mat-slide-toggle>
+              
+              <mat-slide-toggle 
+                formControlName="soloVigentes"
+                color="primary"
+                class="toggle-option">
+                Solo mostrar resoluciones vigentes
+              </mat-slide-toggle>
+            </div>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Sección: Filtros rápidos -->
+          <div class="filtro-seccion">
+            <h3 class="seccion-titulo">
+              <app-smart-icon iconName="flash_on" [size]="18"></app-smart-icon>
+              Filtros Rápidos
+            </h3>
+            
+            <div class="filtros-rapidos">
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="aplicarFiltroRapido('recientes')"
+                      class="filtro-rapido-btn">
+                <app-smart-icon iconName="schedule" [size]="18"></app-smart-icon>
+                Últimos 30 días
+              </button>
+              
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="aplicarFiltroRapido('proximos-vencer')"
+                      class="filtro-rapido-btn">
+                <app-smart-icon iconName="warning" [size]="18"></app-smart-icon>
+                Próximos a vencer
+              </button>
+              
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="aplicarFiltroRapido('vigentes')"
+                      class="filtro-rapido-btn">
+                <app-smart-icon iconName="check_circle" [size]="18"></app-smart-icon>
+                Solo vigentes
+              </button>
+              
+              <button mat-stroked-button 
+                      type="button"
+                      (click)="aplicarFiltroRapido('activos')"
+                      class="filtro-rapido-btn">
+                <app-smart-icon iconName="toggle_on" [size]="18"></app-smart-icon>
+                Solo activos
+              </button>
+            </div>
           </div>
         </form>
       </div>
 
-      <!-- Footer con botones de acción -->
-      <div class="modal-footer" role="group" aria-label="Acciones de filtros">
-        <button mat-stroked-button 
-                (click)="limpiarTodo()"
-                class="footer-button"
-                aria-label="Limpiar todos los filtros">
-          <app-smart-icon iconName="clear_all" [size]="18" [attr.aria-hidden]="true"></app-smart-icon>
-          Limpiar
-        </button>
+      <!-- Footer con acciones -->
+      <div class="modal-footer">
+        <div class="footer-actions">
+          <button mat-button 
+                  (click)="cerrar()"
+                  class="cancelar-btn">
+            Cancelar
+          </button>
+          
+          <button mat-raised-button 
+                  color="primary"
+                  (click)="aplicarFiltros()"
+                  class="aplicar-btn">
+            <app-smart-icon iconName="search" [size]="18"></app-smart-icon>
+            Aplicar Filtros
+          </button>
+        </div>
         
-        <button mat-raised-button 
-                color="primary"
-                (click)="aplicar()"
-                class="footer-button"
-                aria-label="Aplicar filtros y cerrar">
-          <app-smart-icon iconName="check" [size]="18" [attr.aria-hidden]="true"></app-smart-icon>
-          Aplicar Filtros
-        </button>
+        <!-- Contador de filtros -->
+        @if (contadorFiltros() > 0) {
+          <div class="contador-filtros">
+            <app-smart-icon iconName="local_offer" [size]="16"></app-smart-icon>
+            <span>{{ contadorFiltros() }} filtro(s) aplicado(s)</span>
+          </div>
+        }
       </div>
     </div>
   `,
   styles: [`
-    .mobile-modal-container {
+    .mobile-filtros-modal {
       display: flex;
       flex-direction: column;
-      height: 100%;
-      max-height: 90vh;
+      height: 100vh;
+      background: white;
     }
 
     .modal-toolbar {
-      flex-shrink: 0;
+      background: #1976d2;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      min-height: 56px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     .toolbar-title {
-      flex: 1;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 18px;
       font-weight: 500;
+      flex: 1;
+      text-align: center;
+    }
+
+    .limpiar-btn {
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
     }
 
     .modal-content {
@@ -205,54 +302,158 @@ export interface FiltrosMobileData {
       flex-direction: column;
     }
 
-    .filtro-section {
-      padding: 16px;
+    .filtro-seccion {
+      padding: 20px;
     }
 
-    .section-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: rgba(0, 0, 0, 0.6);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
+    .seccion-titulo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #2c3e50;
     }
 
     .full-width {
       width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .empresa-selector-mobile,
+    .fecha-selector-mobile {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toggle-option {
+      width: 100%;
+    }
+
+    .filtros-rapidos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .filtro-rapido-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 8px;
+      text-align: center;
+      height: auto;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .filtro-rapido-btn:hover {
+      background: #f5f5f5;
     }
 
     .modal-footer {
-      flex-shrink: 0;
-      display: flex;
-      gap: 12px;
-      padding: 16px;
+      background: white;
       border-top: 1px solid #e0e0e0;
-      background-color: #fafafa;
+      padding: 16px 20px;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .footer-button {
+    .footer-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .cancelar-btn {
       flex: 1;
+      padding: 12px;
+      font-size: 16px;
+    }
+
+    .aplicar-btn {
+      flex: 2;
+      padding: 12px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      height: 48px;
+    }
+
+    .contador-filtros {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #666;
       font-size: 14px;
+      padding: 8px;
+      background: #f5f5f5;
+      border-radius: 8px;
     }
 
-    /* Scrollbar personalizado */
-    .modal-content::-webkit-scrollbar {
-      width: 4px;
+    /* Estilos para mat-divider */
+    mat-divider {
+      margin: 0;
+      border-color: #e0e0e0;
     }
 
-    .modal-content::-webkit-scrollbar-track {
-      background: #f1f1f1;
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .filtro-seccion {
+        padding: 16px;
+      }
+      
+      .seccion-titulo {
+        font-size: 15px;
+      }
+      
+      .filtros-rapidos {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      
+      .filtro-rapido-btn {
+        padding: 12px 6px;
+        font-size: 11px;
+      }
+      
+      .modal-footer {
+        padding: 12px 16px;
+      }
     }
 
-    .modal-content::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 2px;
+    /* Estilos para elementos de Angular Material en móvil */
+    :host ::ng-deep {
+      .mat-mdc-form-field {
+        width: 100%;
+      }
+      
+      .mat-mdc-select-panel {
+        max-height: 300px;
+      }
+      
+      .mat-mdc-slide-toggle {
+        width: 100%;
+      }
+      
+      .mat-mdc-slide-toggle .mdc-form-field {
+        width: 100%;
+      }
+      
+      .mat-mdc-slide-toggle .mdc-form-field > label {
+        width: 100%;
+        font-size: 14px;
+      }
     }
   `]
 })
@@ -260,8 +461,12 @@ export class FiltrosMobileModalComponent implements OnInit {
   filtrosForm: FormGroup;
   rangoFechasControl: any;
   
+  // Opciones para selects
   tiposTramiteOpciones = TIPOS_TRAMITE_OPCIONES;
   estadosOpciones = ESTADOS_RESOLUCION_OPCIONES;
+  
+  // Señal para contador de filtros
+  contadorFiltros = signal(0);
 
   constructor(
     private fb: FormBuilder,
@@ -274,25 +479,39 @@ export class FiltrosMobileModalComponent implements OnInit {
       empresaId: [''],
       tiposTramite: [[]],
       estados: [[]],
-      activo: [null]
+      soloActivos: [false],
+      soloVigentes: [false]
     });
   }
 
   ngOnInit(): void {
-    this.cargarFiltros();
+    // Cargar filtros iniciales
+    this.cargarFiltros(this.data.filtros);
+    
+    // Suscribirse a cambios para actualizar contador
+    this.filtrosForm.valueChanges.subscribe(() => {
+      this.actualizarContador();
+    });
+    
+    this.rangoFechasControl.valueChanges.subscribe(() => {
+      this.actualizarContador();
+    });
+    
+    // Actualizar contador inicial
+    this.actualizarContador();
   }
 
-  private cargarFiltros(): void {
-    const filtros = this.data.filtros;
-    
+  private cargarFiltros(filtros: ResolucionFiltros): void {
     this.filtrosForm.patchValue({
       numeroResolucion: filtros.numeroResolucion || '',
       empresaId: filtros.empresaId || '',
       tiposTramite: filtros.tiposTramite || [],
       estados: filtros.estados || [],
-      activo: filtros.activo ?? null
+      soloActivos: filtros.activo || false,
+      soloVigentes: filtros.estados?.includes('VIGENTE') || false
     });
 
+    // Cargar rango de fechas
     if (filtros.fechaInicio || filtros.fechaFin) {
       this.rangoFechasControl.setValue({
         inicio: filtros.fechaInicio || null,
@@ -301,22 +520,23 @@ export class FiltrosMobileModalComponent implements OnInit {
     }
   }
 
-  onEmpresaChange(empresaId: string): void {
-    this.filtrosForm.patchValue({ empresaId });
+  private actualizarContador(): void {
+    let contador = 0;
+    const formValue = this.filtrosForm.value;
+    const rangoFechas = this.rangoFechasControl.value;
+
+    if (formValue.numeroResolucion?.trim()) contador++;
+    if (formValue.empresaId) contador++;
+    if (formValue.tiposTramite?.length > 0) contador++;
+    if (formValue.estados?.length > 0) contador++;
+    if (formValue.soloActivos) contador++;
+    if (formValue.soloVigentes) contador++;
+    if (rangoFechas?.inicio || rangoFechas?.fin) contador++;
+
+    this.contadorFiltros.set(contador);
   }
 
-  limpiarTodo(): void {
-    this.filtrosForm.reset({
-      numeroResolucion: '',
-      empresaId: '',
-      tiposTramite: [],
-      estados: [],
-      activo: null
-    });
-    this.rangoFechasControl.reset();
-  }
-
-  aplicar(): void {
+  private obtenerFiltrosActuales(): ResolucionFiltros {
     const formValue = this.filtrosForm.value;
     const rangoFechas = this.rangoFechasControl.value;
     
@@ -334,12 +554,17 @@ export class FiltrosMobileModalComponent implements OnInit {
       filtros.tiposTramite = formValue.tiposTramite;
     }
     
-    if (formValue.estados?.length > 0) {
-      filtros.estados = formValue.estados;
+    // Combinar estados seleccionados con toggles
+    const estados = [...(formValue.estados || [])];
+    if (formValue.soloVigentes && !estados.includes('VIGENTE')) {
+      estados.push('VIGENTE');
+    }
+    if (estados.length > 0) {
+      filtros.estados = estados;
     }
     
-    if (formValue.activo !== null) {
-      filtros.activo = formValue.activo;
+    if (formValue.soloActivos) {
+      filtros.activo = true;
     }
     
     if (rangoFechas?.inicio) {
@@ -350,6 +575,73 @@ export class FiltrosMobileModalComponent implements OnInit {
       filtros.fechaFin = rangoFechas.fin;
     }
     
+    return filtros;
+  }
+
+  // ========================================
+  // EVENT HANDLERS
+  // ========================================
+
+  onEmpresaChange(empresaId: string): void {
+    this.filtrosForm.patchValue({ empresaId });
+  }
+
+  onEmpresaSeleccionada(empresa: any): void {
+    // El cambio se maneja automáticamente por el formulario
+  }
+
+  onRangoFechasChange(rango: RangoFechas): void {
+    // El cambio se maneja automáticamente por el control
+  }
+
+  aplicarFiltroRapido(tipo: string): void {
+    const hoy = new Date();
+    
+    switch (tipo) {
+      case 'recientes':
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hoy.getDate() - 30);
+        this.rangoFechasControl.setValue({
+          inicio: hace30Dias,
+          fin: hoy
+        });
+        break;
+      
+      case 'proximos-vencer':
+        const en30Dias = new Date();
+        en30Dias.setDate(hoy.getDate() + 30);
+        this.filtrosForm.patchValue({ soloVigentes: true });
+        this.rangoFechasControl.setValue({
+          inicio: hoy,
+          fin: en30Dias
+        });
+        break;
+      
+      case 'vigentes':
+        this.filtrosForm.patchValue({ soloVigentes: true });
+        break;
+      
+      case 'activos':
+        this.filtrosForm.patchValue({ soloActivos: true });
+        break;
+    }
+  }
+
+  limpiarTodo(): void {
+    this.filtrosForm.reset({
+      numeroResolucion: '',
+      empresaId: '',
+      tiposTramite: [],
+      estados: [],
+      soloActivos: false,
+      soloVigentes: false
+    });
+    
+    this.rangoFechasControl.reset();
+  }
+
+  aplicarFiltros(): void {
+    const filtros = this.obtenerFiltrosActuales();
     this.dialogRef.close(filtros);
   }
 

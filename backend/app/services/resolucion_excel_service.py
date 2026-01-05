@@ -12,43 +12,33 @@ from app.models.resolucion import (
     TipoTramite, 
     EstadoResolucion
 )
-# from app.services.mock_data import get_mock_resoluciones, get_mock_empresas  # COMENTADO: mock eliminado
+from app.dependencies.db import get_database
 
 class ResolucionExcelService:
     def __init__(self):
-        pass
+        self.db = None
+        
+    async def _get_database(self):
+        """Obtener conexión a la base de datos"""
+        if not self.db:
+            self.db = await get_database()
+        return self.db
         
     def generar_plantilla_excel(self) -> BytesIO:
         """Generar plantilla Excel para carga masiva de resoluciones"""
         
-        # Definir columnas de la plantilla
-        columnas = {
-            # Datos básicos de la resolución
-            'numero_resolucion': 'Número Resolución',
-            'empresa_ruc': 'RUC Empresa',
-            'fecha_emision': 'Fecha Emisión',
-            'fecha_vigencia_inicio': 'Fecha Vigencia Inicio',
-            'fecha_vigencia_fin': 'Fecha Vigencia Fin',
-            'tipo_resolucion': 'Tipo Resolución',
-            'tipo_tramite': 'Tipo Trámite',
-            'descripcion': 'Descripción',
-            'expediente_id': 'ID Expediente',
-            'usuario_emision': 'Usuario Emisión',
-            'estado': 'Estado',
-            'observaciones': 'Observaciones'
-        }
-        
-        # Crear DataFrame con datos de ejemplo
+        # Crear DataFrame con datos de ejemplo actualizados
         datos_ejemplo = {
-            'Número Resolución': ['R-1005-2024', 'R-1006-2024'],
+            'Resolución Padre': ['', 'R-1005-2024'],  # Nueva columna al inicio
+            'Número Resolución': ['1005-2024', '1006-2024'],  # Sin R- en plantilla
             'RUC Empresa': ['20123456789', '20234567890'],
-            'Fecha Emisión': ['2024-01-15', '2024-01-20'],
-            'Fecha Vigencia Inicio': ['2024-01-15', '2024-01-20'],
-            'Fecha Vigencia Fin': ['2029-01-15', '2029-01-20'],
-            'Tipo Resolución': ['PADRE', 'PADRE'],
+            'Fecha Emisión': ['15/01/2024', '20/01/2024'],  # Formato español dd/mm/yyyy
+            'Fecha Vigencia Inicio': ['15/01/2024', ''],  # Solo para resoluciones padre
+            'Fecha Vigencia Fin': ['15/01/2029', ''],  # Solo para resoluciones padre
+            'Tipo Resolución': ['PADRE', 'HIJO'],
             'Tipo Trámite': ['PRIMIGENIA', 'RENOVACION'],
             'Descripción': ['Autorización para operar rutas interprovinciales', 'Renovación de autorización de transporte'],
-            'ID Expediente': ['EXP005', 'EXP006'],
+            'ID Expediente': ['123-2024', '456-2024-E'],  # Formatos flexibles, opcional
             'Usuario Emisión': ['USR001', 'USR001'],
             'Estado': ['VIGENTE', 'VIGENTE'],
             'Observaciones': ['Resolución emitida según normativa vigente', 'Renovación por 5 años adicionales']
@@ -77,11 +67,21 @@ class ResolucionExcelService:
                         pass
                 adjusted_width = min(max_length + 2, 50)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
+                
+            # Agregar comentarios explicativos usando openpyxl
+            from openpyxl.comments import Comment
+            
+            worksheet['A1'].comment = Comment("Número de resolución padre (solo para resoluciones hijas). Dejar vacío para resoluciones padre.", "Sistema")
+            worksheet['B1'].comment = Comment("Número sin prefijo R-. Ejemplo: 1005-2024 (el sistema agregará R-)", "Sistema")
+            worksheet['D1'].comment = Comment("Formato: dd/mm/yyyy. Ejemplo: 15/01/2024", "Sistema")
+            worksheet['E1'].comment = Comment("Solo para resoluciones PADRE. Dejar vacío para resoluciones HIJO.", "Sistema")
+            worksheet['F1'].comment = Comment("Solo para resoluciones PADRE. Dejar vacío para resoluciones HIJO.", "Sistema")
+            worksheet['J1'].comment = Comment("OPCIONAL. Formatos aceptados: 123-2024, E-123-2024, 123-2024-E (se convertirá a E-0123-2024)", "Sistema")
         
         buffer.seek(0)
         return buffer
     
-    def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
+    async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Validar archivo Excel de resoluciones"""
         try:
             df = pd.read_excel(archivo_excel)
@@ -102,7 +102,7 @@ class ResolucionExcelService:
                 advertencias_fila = []
                 
                 # Validar fila
-                errores_fila, advertencias_fila = self._validar_fila_resolucion(row, fila_num)
+                errores_fila, advertencias_fila = await self._validar_fila_resolucion(row, fila_num)
                 
                 if errores_fila:
                     resultados['invalidos'] += 1
@@ -151,21 +151,70 @@ class ResolucionExcelService:
                 'resoluciones_validas': []
             }
     
-    def _validar_fila_resolucion(self, row: pd.Series, fila_num: int) -> Tuple[List[str], List[str]]:
+    async def _validar_fila_resolucion(self, row: pd.Series, fila_num: int) -> Tuple[List[str], List[str]]:
         """Validar una fila de resolución"""
         errores = []
         advertencias = []
+        
+        # Validar resolución padre (opcional)
+        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if pd.notna(row.get('Resolución Padre')) else ''
+        if resolucion_padre:
+            # Normalizar formato de resolución padre
+            resolucion_padre_normalizada = self._normalizar_numero_resolucion(resolucion_padre)
+            if not self._validar_formato_resolucion_normalizada(resolucion_padre_normalizada):
+                errores.append(f"Formato de resolución padre inválido: {resolucion_padre}")
+            else:
+                # Verificar que la resolución padre existe
+                if not await self._existe_resolucion(resolucion_padre_normalizada):
+                    errores.append(f"La resolución padre {resolucion_padre_normalizada} no existe")
         
         # Validar número de resolución (requerido)
         numero_resolucion = str(row.get('Número Resolución', '')).strip() if pd.notna(row.get('Número Resolución')) else ''
         if not numero_resolucion:
             errores.append("Número de resolución es requerido")
-        elif not self._validar_formato_resolucion(numero_resolucion):
-            errores.append(f"Formato de número de resolución inválido: {numero_resolucion} (debe ser R-XXXX-YYYY)")
         else:
-            # Verificar si ya existe
-            if self._existe_resolucion(numero_resolucion):
-                errores.append(f"Ya existe una resolución con número: {numero_resolucion}")
+            # Normalizar formato (agregar R- si no lo tiene)
+            numero_normalizado = self._normalizar_numero_resolucion(numero_resolucion)
+            if not self._validar_formato_resolucion_normalizada(numero_normalizado):
+                errores.append(f"Formato de número de resolución inválido: {numero_resolucion} (debe ser XXXX-YYYY)")
+            else:
+                # Solo advertir si ya existe, no marcar como error (se puede actualizar)
+                if await self._existe_resolucion(numero_normalizado):
+                    advertencias.append(f"La resolución {numero_normalizado} ya existe y será actualizada")
+        
+        # Validar tipo de resolución y lógica de resolución padre
+        tipo_resolucion = str(row.get('Tipo Resolución', '')).strip().upper() if pd.notna(row.get('Tipo Resolución')) else ''
+        if tipo_resolucion:
+            if tipo_resolucion not in [e.value for e in TipoResolucion]:
+                errores.append(f"Tipo de resolución inválido: {tipo_resolucion}. Valores válidos: {', '.join([e.value for e in TipoResolucion])}")
+            else:
+                # Validar lógica de resolución padre/hijo
+                if tipo_resolucion == 'HIJO' and not resolucion_padre:
+                    errores.append("Las resoluciones HIJO deben tener una resolución padre")
+                elif tipo_resolucion == 'PADRE' and resolucion_padre:
+                    advertencias.append("Las resoluciones PADRE no deberían tener resolución padre")
+        
+        # Validar fechas de vigencia según tipo de resolución
+        fecha_vigencia_inicio = str(row.get('Fecha Vigencia Inicio', '')).strip() if pd.notna(row.get('Fecha Vigencia Inicio')) else ''
+        fecha_vigencia_fin = str(row.get('Fecha Vigencia Fin', '')).strip() if pd.notna(row.get('Fecha Vigencia Fin')) else ''
+        
+        if tipo_resolucion == 'PADRE':
+            # Las resoluciones padre deben tener fechas de vigencia
+            if not fecha_vigencia_inicio:
+                errores.append("Las resoluciones PADRE deben tener fecha de vigencia inicio")
+            elif not self._validar_formato_fecha_espanol(fecha_vigencia_inicio):
+                errores.append(f"Formato de fecha de vigencia inicio inválido: {fecha_vigencia_inicio} (debe ser dd/mm/yyyy)")
+                
+            if not fecha_vigencia_fin:
+                errores.append("Las resoluciones PADRE deben tener fecha de vigencia fin")
+            elif not self._validar_formato_fecha_espanol(fecha_vigencia_fin):
+                errores.append(f"Formato de fecha de vigencia fin inválido: {fecha_vigencia_fin} (debe ser dd/mm/yyyy)")
+        elif tipo_resolucion == 'HIJO':
+            # Las resoluciones hijo no deben tener fechas de vigencia
+            if fecha_vigencia_inicio:
+                advertencias.append("Las resoluciones HIJO no necesitan fecha de vigencia inicio (se hereda del padre)")
+            if fecha_vigencia_fin:
+                advertencias.append("Las resoluciones HIJO no necesitan fecha de vigencia fin (se hereda del padre)")
         
         # Validar RUC empresa (requerido)
         ruc_empresa = str(row.get('RUC Empresa', '')).strip() if pd.notna(row.get('RUC Empresa')) else ''
@@ -175,20 +224,15 @@ class ResolucionExcelService:
             errores.append(f"RUC debe tener 11 dígitos: {ruc_empresa}")
         else:
             # Verificar si la empresa existe
-            if not self._existe_empresa_con_ruc(ruc_empresa):
-                advertencias.append(f"No se encontró empresa con RUC: {ruc_empresa}")
+            if not await self._existe_empresa_con_ruc(ruc_empresa):
+                errores.append(f"No se encontró empresa con RUC: {ruc_empresa}")
         
-        # Validar fechas
+        # Validar fecha de emisión (requerida para todas las resoluciones)
         fecha_emision = str(row.get('Fecha Emisión', '')).strip() if pd.notna(row.get('Fecha Emisión')) else ''
         if not fecha_emision:
             errores.append("Fecha de emisión es requerida")
-        elif not self._validar_formato_fecha(fecha_emision):
-            errores.append(f"Formato de fecha de emisión inválido: {fecha_emision} (debe ser YYYY-MM-DD)")
-        
-        # Validar tipo de resolución
-        tipo_resolucion = str(row.get('Tipo Resolución', '')).strip().upper() if pd.notna(row.get('Tipo Resolución')) else ''
-        if tipo_resolucion and tipo_resolucion not in [e.value for e in TipoResolucion]:
-            errores.append(f"Tipo de resolución inválido: {tipo_resolucion}. Valores válidos: {', '.join([e.value for e in TipoResolucion])}")
+        elif not self._validar_formato_fecha_espanol(fecha_emision):
+            errores.append(f"Formato de fecha de emisión inválido: {fecha_emision} (debe ser dd/mm/yyyy)")
         
         # Validar tipo de trámite
         tipo_tramite = str(row.get('Tipo Trámite', '')).strip().upper() if pd.notna(row.get('Tipo Trámite')) else ''
@@ -207,17 +251,72 @@ class ResolucionExcelService:
         elif len(descripcion) < 10:
             errores.append("Descripción debe tener al menos 10 caracteres")
         
-        # Validar ID expediente (requerido)
+        # Validar ID expediente (OPCIONAL)
         expediente_id = str(row.get('ID Expediente', '')).strip() if pd.notna(row.get('ID Expediente')) else ''
-        if not expediente_id:
-            errores.append("ID de expediente es requerido")
+        if expediente_id:
+            # Normalizar formato de expediente
+            expediente_normalizado = self._normalizar_numero_expediente(expediente_id)
+            if not self._validar_formato_expediente_normalizado(expediente_normalizado):
+                errores.append(f"Formato de expediente inválido: {expediente_id}")
         
         return errores, advertencias
     
-    def _validar_formato_resolucion(self, numero: str) -> bool:
-        """Validar formato de resolución R-1234-2025"""
+    def _normalizar_numero_resolucion(self, numero: str) -> str:
+        """Normalizar número de resolución agregando R- si no lo tiene"""
+        numero = numero.strip().upper()
+        if not numero.startswith('R-'):
+            numero = f"R-{numero}"
+        return numero
+    
+    def _normalizar_numero_expediente(self, expediente: str) -> str:
+        """Normalizar número de expediente a formato E-XXXX-YYYY"""
+        expediente = expediente.strip().upper()
+        
+        # Remover prefijos y sufijos existentes
+        expediente = expediente.replace('E-', '').replace('-E', '')
+        
+        # Extraer números y año
+        partes = expediente.split('-')
+        if len(partes) >= 2:
+            numero = partes[0].zfill(4)  # Rellenar con ceros a la izquierda
+            año = partes[1]
+            return f"E-{numero}-{año}"
+        else:
+            # Si no tiene el formato esperado, intentar extraer números
+            import re
+            numeros = re.findall(r'\d+', expediente)
+            if len(numeros) >= 2:
+                numero = numeros[0].zfill(4)
+                año = numeros[1]
+                return f"E-{numero}-{año}"
+        
+        return expediente  # Retornar original si no se puede normalizar
+    
+    def _validar_formato_resolucion_normalizada(self, numero: str) -> bool:
+        """Validar formato de resolución normalizada R-XXXX-YYYY"""
         patron = r'^R-\d{4}-\d{4}$'
         return bool(re.match(patron, numero.upper()))
+    
+    def _validar_formato_expediente_normalizado(self, expediente: str) -> bool:
+        """Validar formato de expediente normalizado E-XXXX-YYYY"""
+        patron = r'^E-\d{4}-\d{4}$'
+        return bool(re.match(patron, expediente.upper()))
+    
+    def _validar_formato_fecha_espanol(self, fecha: str) -> bool:
+        """Validar formato de fecha español dd/mm/yyyy"""
+        try:
+            datetime.strptime(fecha, '%d/%m/%Y')
+            return True
+        except ValueError:
+            return False
+    
+    def _convertir_fecha_espanol_a_iso(self, fecha_espanol: str) -> str:
+        """Convertir fecha de formato español dd/mm/yyyy a ISO yyyy-mm-dd"""
+        try:
+            fecha_obj = datetime.strptime(fecha_espanol, '%d/%m/%Y')
+            return fecha_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            return fecha_espanol  # Retornar original si no se puede convertir
     
     def _validar_formato_ruc(self, ruc: str) -> bool:
         """Validar formato de RUC: 11 dígitos"""
@@ -231,40 +330,90 @@ class ResolucionExcelService:
         except ValueError:
             return False
     
-    def _existe_resolucion(self, numero: str) -> bool:
-        """Verificar si existe resolución con el número dado"""
-        resoluciones_mock = get_mock_resoluciones()
-        return any(res.nroResolucion.upper() == numero.upper() for res in resoluciones_mock)
+    async def _existe_resolucion(self, numero: str) -> bool:
+        """Verificar si existe resolución con el número dado en la base de datos"""
+        try:
+            db = await self._get_database()
+            resoluciones_collection = db["resoluciones"]
+            
+            # Buscar resolución por número
+            resolucion = await resoluciones_collection.find_one({
+                "nroResolucion": numero.upper(),
+                "estaActivo": True
+            })
+            
+            return resolucion is not None
+            
+        except Exception as e:
+            print(f"Error verificando existencia de resolución {numero}: {e}")
+            return False
     
-    def _existe_empresa_con_ruc(self, ruc: str) -> bool:
-        """Verificar si existe empresa con el RUC dado"""
-        empresas_mock = get_mock_empresas()
-        return any(emp.ruc == ruc for emp in empresas_mock)
+    async def _existe_empresa_con_ruc(self, ruc: str) -> bool:
+        """Verificar si existe empresa con el RUC dado en la base de datos"""
+        try:
+            db = await self._get_database()
+            empresas_collection = db["empresas"]
+            
+            # Buscar empresa por RUC
+            empresa = await empresas_collection.find_one({
+                "ruc": ruc,
+                "estaActivo": True
+            })
+            
+            return empresa is not None
+            
+        except Exception as e:
+            print(f"Error verificando existencia de empresa con RUC {ruc}: {e}")
+            return False
     
     def _convertir_fila_a_resolucion(self, row: pd.Series) -> Dict[str, Any]:
         """Convertir fila de Excel a datos de resolución"""
         
+        # Resolución padre (opcional)
+        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if pd.notna(row.get('Resolución Padre')) else None
+        if resolucion_padre:
+            resolucion_padre = self._normalizar_numero_resolucion(resolucion_padre)
+        
         # Datos básicos
-        numero_resolucion = str(row.get('Número Resolución', '')).strip().upper()
+        numero_resolucion = str(row.get('Número Resolución', '')).strip()
+        numero_resolucion = self._normalizar_numero_resolucion(numero_resolucion)
         ruc_empresa = str(row.get('RUC Empresa', '')).strip()
         
-        # Fechas
+        # Fechas - convertir de formato español a ISO
         fecha_emision = str(row.get('Fecha Emisión', '')).strip()
-        fecha_vigencia_inicio = str(row.get('Fecha Vigencia Inicio', '')).strip() if pd.notna(row.get('Fecha Vigencia Inicio')) else None
-        fecha_vigencia_fin = str(row.get('Fecha Vigencia Fin', '')).strip() if pd.notna(row.get('Fecha Vigencia Fin')) else None
+        if fecha_emision:
+            fecha_emision = self._convertir_fecha_espanol_a_iso(fecha_emision)
         
-        # Tipos y estado
+        # Fechas de vigencia (solo para resoluciones padre)
         tipo_resolucion = str(row.get('Tipo Resolución', 'PADRE')).strip().upper()
-        tipo_tramite = str(row.get('Tipo Trámite', 'PRIMIGENIA')).strip().upper()
-        estado = str(row.get('Estado', 'VIGENTE')).strip().upper()
+        fecha_vigencia_inicio = None
+        fecha_vigencia_fin = None
+        
+        if tipo_resolucion == 'PADRE':
+            fecha_vigencia_inicio_str = str(row.get('Fecha Vigencia Inicio', '')).strip() if pd.notna(row.get('Fecha Vigencia Inicio')) else ''
+            fecha_vigencia_fin_str = str(row.get('Fecha Vigencia Fin', '')).strip() if pd.notna(row.get('Fecha Vigencia Fin')) else ''
+            
+            if fecha_vigencia_inicio_str:
+                fecha_vigencia_inicio = self._convertir_fecha_espanol_a_iso(fecha_vigencia_inicio_str)
+            if fecha_vigencia_fin_str:
+                fecha_vigencia_fin = self._convertir_fecha_espanol_a_iso(fecha_vigencia_fin_str)
         
         # Otros campos
+        tipo_tramite = str(row.get('Tipo Trámite', 'PRIMIGENIA')).strip().upper()
+        estado = str(row.get('Estado', 'VIGENTE')).strip().upper()
         descripcion = str(row.get('Descripción', '')).strip()
-        expediente_id = str(row.get('ID Expediente', '')).strip()
         usuario_emision = str(row.get('Usuario Emisión', 'USR001')).strip()
         observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else None
         
+        # Expediente (opcional) - normalizar si existe
+        expediente_id = str(row.get('ID Expediente', '')).strip() if pd.notna(row.get('ID Expediente')) else ''
+        if expediente_id:
+            expediente_id = self._normalizar_numero_expediente(expediente_id)
+        else:
+            expediente_id = None
+        
         return {
+            'resolucionPadreId': resolucion_padre,
             'nroResolucion': numero_resolucion,
             'empresaRuc': ruc_empresa,
             'fechaEmision': fecha_emision,
@@ -279,30 +428,50 @@ class ResolucionExcelService:
             'observaciones': observaciones
         }
     
-    def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
+    async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Procesar carga masiva de resoluciones desde Excel"""
         
         # Primero validar el archivo
-        resultado_validacion = self.validar_archivo_excel(archivo_excel)
+        resultado_validacion = await self.validar_archivo_excel(archivo_excel)
         
         if 'error' in resultado_validacion:
             return resultado_validacion
         
         # Si hay resoluciones válidas, procesarlas
         resoluciones_creadas = []
+        resoluciones_actualizadas = []
         errores_creacion = []
         
         for resolucion_data in resultado_validacion['resoluciones_validas']:
             try:
-                # Aquí iría la lógica para crear la resolución en la base de datos
-                # Por ahora simulamos la creación
-                resolucion_creada = {
-                    'numero_resolucion': resolucion_data['nroResolucion'],
-                    'empresa_ruc': resolucion_data['empresaRuc'],
-                    'tipo_tramite': resolucion_data['tipoTramite'],
-                    'estado': 'CREADA'
-                }
-                resoluciones_creadas.append(resolucion_creada)
+                # Verificar si la resolución ya existe
+                existe = await self._existe_resolucion(resolucion_data['nroResolucion'])
+                
+                # Obtener datos de la empresa
+                empresa_info = await self._obtener_info_empresa(resolucion_data['empresaRuc'])
+                
+                if existe:
+                    # Actualizar resolución existente
+                    resolucion_actualizada = {
+                        'numero_resolucion': resolucion_data['nroResolucion'],
+                        'empresa_ruc': resolucion_data['empresaRuc'],
+                        'empresa_razon_social': empresa_info.get('razon_social', f"Empresa con RUC {resolucion_data['empresaRuc']}"),
+                        'tipo_resolucion': resolucion_data['tipoResolucion'],
+                        'estado': 'ACTUALIZADA',
+                        'accion': 'ACTUALIZADA'
+                    }
+                    resoluciones_actualizadas.append(resolucion_actualizada)
+                else:
+                    # Crear nueva resolución
+                    resolucion_creada = {
+                        'numero_resolucion': resolucion_data['nroResolucion'],
+                        'empresa_ruc': resolucion_data['empresaRuc'],
+                        'empresa_razon_social': empresa_info.get('razon_social', f"Empresa con RUC {resolucion_data['empresaRuc']}"),
+                        'tipo_resolucion': resolucion_data['tipoResolucion'],
+                        'estado': 'CREADA',
+                        'accion': 'CREADA'
+                    }
+                    resoluciones_creadas.append(resolucion_creada)
                 
             except Exception as e:
                 errores_creacion.append({
@@ -310,9 +479,48 @@ class ResolucionExcelService:
                     'error': str(e)
                 })
         
+        # Combinar resoluciones creadas y actualizadas para el resultado
+        todas_resoluciones = resoluciones_creadas + resoluciones_actualizadas
+        
         return {
             **resultado_validacion,
-            'resoluciones_creadas': resoluciones_creadas,
+            'resoluciones_creadas': todas_resoluciones,  # Incluye creadas y actualizadas
+            'resoluciones_nuevas': resoluciones_creadas,
+            'resoluciones_actualizadas': resoluciones_actualizadas,
             'errores_creacion': errores_creacion,
-            'total_creadas': len(resoluciones_creadas)
+            'total_creadas': len(resoluciones_creadas),
+            'total_actualizadas': len(resoluciones_actualizadas),
+            'total_procesadas': len(todas_resoluciones)
         }
+    
+    async def _obtener_info_empresa(self, ruc: str) -> Dict[str, Any]:
+        """Obtener información de la empresa por RUC"""
+        try:
+            db = await self._get_database()
+            empresas_collection = db["empresas"]
+            
+            empresa = await empresas_collection.find_one({
+                "ruc": ruc,
+                "estaActivo": True
+            })
+            
+            if empresa:
+                return {
+                    'id': str(empresa.get('_id')),
+                    'razon_social': empresa.get('razonSocial', {}).get('principal', f'Empresa {ruc}'),
+                    'ruc': empresa.get('ruc')
+                }
+            else:
+                return {
+                    'id': None,
+                    'razon_social': f'Empresa con RUC {ruc}',
+                    'ruc': ruc
+                }
+                
+        except Exception as e:
+            print(f"Error obteniendo info de empresa {ruc}: {e}")
+            return {
+                'id': None,
+                'razon_social': f'Empresa con RUC {ruc}',
+                'ruc': ruc
+            }

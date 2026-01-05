@@ -535,7 +535,7 @@ async def validar_archivo_resoluciones(
         
         # Validar con el servicio
         excel_service = ResolucionExcelService()
-        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        resultado = await excel_service.validar_archivo_excel(archivo_buffer)
         
         return {
             "archivo": archivo.filename,
@@ -572,11 +572,11 @@ async def procesar_carga_masiva_resoluciones(
         excel_service = ResolucionExcelService()
         
         if solo_validar:
-            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            resultado = await excel_service.validar_archivo_excel(archivo_buffer)
             mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
         else:
-            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
-            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} resoluciones creadas"
+            resultado = await excel_service.procesar_carga_masiva(archivo_buffer)
+            mensaje = f"Procesamiento completado: {resultado.get('total_procesadas', 0)} resoluciones procesadas"
         
         return {
             "archivo": archivo.filename,

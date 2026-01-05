@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-01-04T21:25:03.180424",
+  "resumen": {
+    "total": 10,
+    "exitosos": 10,
+    "fallidos": 0,
+    "porcentaje_exito": 100.0
+  },
+  "resultados": [
+    {
+      "test": "Backend disponible",
+      "exitoso": true,
+      "mensaje": "API responde correctamente",
+      "timestamp": "2026-01-04T21:24:52.879594"
+    },
+    {
+      "test": "Listar resoluciones",
+      "exitoso": true,
+      "mensaje": "Se obtuvieron 6 resoluciones",
+      "timestamp": "2026-01-04T21:24:54.948987"
+    },
+    {
+      "test": "Filtros avanzados",
+      "exitoso": true,
+      "mensaje": "Filtro por estado: 6 resultados",
+      "timestamp": "2026-01-04T21:24:57.018098"
+    },
+    {
+      "test": "Estadísticas",
+      "exitoso": true,
+      "mensaje": "Total: 6, Vigentes: 6",
+      "timestamp": "2026-01-04T21:24:59.060516"
+    },
+    {
+      "test": "Validación número",
+      "exitoso": true,
+      "mensaje": "Número 9999: disponible",
+      "timestamp": "2026-01-04T21:25:01.121365"
+    },
+    {
+      "test": "Siguiente número",
+      "exitoso": true,
+      "mensaje": "Siguiente número para 2026: 0001",
+      "timestamp": "2026-01-04T21:25:03.178251"
+    },
+    {
+      "test": "Relaciones resoluciones",
+      "exitoso": true,
+      "mensaje": "Con padre: 1, Con hijas: 0",
+      "timestamp": "2026-01-04T21:25:03.178592"
+    },
+    {
+      "test": "Formato números",
+      "exitoso": true,
+      "mensaje": "Correctos: 5, Incorrectos: 1 (83.3%)",
+      "timestamp": "2026-01-04T21:25:03.178876"
+    },
+    {
+      "test": "Campos requeridos",
+      "exitoso": true,
+      "mensaje": "Completas: 6, Incompletas: 0 (100.0%)",
+      "timestamp": "2026-01-04T21:25:03.179015"
+    },
+    {
+      "test": "Consistencia fechas",
+      "exitoso": true,
+      "mensaje": "Consistentes: 6, Inconsistentes: 0 (100.0%)",
+      "timestamp": "2026-01-04T21:25:03.179159"
+    }
+  ],
+  "errores": []
+}

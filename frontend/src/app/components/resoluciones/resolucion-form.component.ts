@@ -17,7 +17,6 @@ import { Expediente } from '../../models/expediente.model';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
-import { CrearExpedienteModalComponent } from './crear-expediente-modal.component';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -1207,30 +1206,12 @@ export class ResolucionFormComponent {
 
 
   openCrearExpedienteModal(): void {
-    const dialogRef = this.dialog.open(CrearExpedienteModalComponent, {
-      width: '90vw',
-      maxWidth: '1200px',
-      height: '90vh',
-      maxHeight: '800px',
-      disableClose: true,
-      data: {
-        // No se necesita número predefinido, el modal creará uno nuevo
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // El expediente fue creado exitosamente
-        this.expediente.set(result);
-        this.expedienteNoEncontrado.set(false);
-
-        // Actualizar el formulario con los datos del expediente
-        this.resolucionForm.patchValue({
-          empresaId: result.empresaId || ''
-        });
-
-        this.snackBar.open('Expediente creado y seleccionado', 'Cerrar', { duration: 3000 });
-      }
+    // TODO: Implementar modal de creación de expediente
+    // Por ahora, mostrar mensaje informativo
+    this.snackBar.open('Funcionalidad de crear expediente en desarrollo', 'Cerrar', {
+      duration: 3000,
+      horizontalPosition: 'end',
+      verticalPosition: 'top'
     });
   }
 
