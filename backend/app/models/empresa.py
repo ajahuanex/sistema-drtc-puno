@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 # from bson import ObjectId
 from enum import Enum
+import uuid
 
 class EstadoEmpresa(str, Enum):
     AUTORIZADA = "AUTORIZADA"
@@ -65,6 +66,203 @@ class AuditoriaEmpresa(BaseModel):
     campoNuevo: Optional[str] = None
     observaciones: Optional[str] = None
 
+class TipoEventoEmpresa(str, Enum):
+    """Tipos de eventos que se registran en el historial de la empresa"""
+    # Cambios de datos básicos
+    CAMBIO_REPRESENTANTE_LEGAL = "CAMBIO_REPRESENTANTE_LEGAL"
+    ACTUALIZACION_DATOS_REPRESENTANTE = "ACTUALIZACION_DATOS_REPRESENTANTE"
+    CAMBIO_RAZON_SOCIAL = "CAMBIO_RAZON_SOCIAL"
+    CAMBIO_ESTADO = "CAMBIO_ESTADO"
+    
+    # Operaciones vehiculares
+    RENOVACION = "RENOVACION"
+    INCREMENTO = "INCREMENTO"
+    SUSTITUCION = "SUSTITUCION"
+    DUPLICADO = "DUPLICADO"
+    BAJA_VEHICULAR = "BAJA_VEHICULAR"
+    
+    # Operaciones de rutas
+    CAMBIO_RUTAS = "CAMBIO_RUTAS"
+    CANCELACION_RUTAS = "CANCELACION_RUTAS"
+    AUTORIZACION_RUTAS = "AUTORIZACION_RUTAS"
+    
+    # Otros eventos
+    CREACION_EMPRESA = "CREACION_EMPRESA"
+    ACTUALIZACION_DATOS_GENERALES = "ACTUALIZACION_DATOS_GENERALES"
+
+class EventoHistorialEmpresa(BaseModel):
+    """Modelo unificado para todos los eventos del historial de empresa"""
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    fechaEvento: datetime = Field(default_factory=datetime.utcnow)
+    usuarioId: str
+    tipoEvento: TipoEventoEmpresa
+    titulo: str = Field(..., description="Título descriptivo del evento")
+    descripcion: str = Field(..., description="Descripción detallada del evento")
+    
+    # Datos del cambio
+    datosAnterior: Optional[Dict[str, Any]] = Field(None, description="Datos antes del cambio")
+    datosNuevo: Optional[Dict[str, Any]] = Field(None, description="Datos después del cambio")
+    
+    # Documentación (simplificada para documentos digitales)
+    requiereDocumento: bool = Field(default=False, description="Si este tipo de evento requiere documento sustentatorio")
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = Field(None, description="Tipo de documento sustentatorio")
+    numeroDocumentoSustentatorio: Optional[str] = Field(None, description="Número del documento sustentatorio")
+    esDocumentoFisico: bool = Field(default=False, description="Si el documento es físico (requiere escaneo)")
+    urlDocumentoSustentatorio: Optional[str] = Field(None, description="URL del documento (solo si es físico o se requiere adjuntar)")
+    fechaDocumento: Optional[datetime] = Field(None, description="Fecha del documento sustentatorio")
+    entidadEmisora: Optional[str] = Field(None, description="Entidad que emitió el documento")
+    
+    # Información adicional
+    motivo: Optional[str] = Field(None, description="Motivo del cambio")
+    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
+    
+    # Referencias relacionadas
+    vehiculoId: Optional[str] = Field(None, description="ID del vehículo relacionado (para eventos vehiculares)")
+    rutaId: Optional[str] = Field(None, description="ID de la ruta relacionada (para eventos de rutas)")
+    resolucionId: Optional[str] = Field(None, description="ID de la resolución relacionada")
+    
+    # Metadatos
+    ipUsuario: Optional[str] = Field(None, description="IP del usuario que realizó el cambio")
+    userAgent: Optional[str] = Field(None, description="User agent del navegador")
+
+class HistorialEmpresa(BaseModel):
+    """Historial completo unificado de una empresa"""
+    empresaId: str
+    eventos: List[EventoHistorialEmpresa] = Field(default_factory=list)
+    fechaCreacion: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+    totalEventos: int = Field(default=0)
+
+# Configuración de eventos que requieren documento sustentatorio
+EVENTOS_REQUIEREN_DOCUMENTO = {
+    TipoEventoEmpresa.CAMBIO_REPRESENTANTE_LEGAL: True,
+    TipoEventoEmpresa.CAMBIO_RAZON_SOCIAL: True,
+    TipoEventoEmpresa.CAMBIO_ESTADO: True,  # Opcional según el estado
+    TipoEventoEmpresa.RENOVACION: True,
+    TipoEventoEmpresa.INCREMENTO: True,
+    TipoEventoEmpresa.SUSTITUCION: True,
+    TipoEventoEmpresa.DUPLICADO: True,
+    TipoEventoEmpresa.BAJA_VEHICULAR: True,
+    TipoEventoEmpresa.CANCELACION_RUTAS: True,
+    TipoEventoEmpresa.AUTORIZACION_RUTAS: True,
+    # Los siguientes NO requieren documento
+    TipoEventoEmpresa.ACTUALIZACION_DATOS_REPRESENTANTE: False,
+    TipoEventoEmpresa.CAMBIO_RUTAS: False,
+    TipoEventoEmpresa.CREACION_EMPRESA: False,
+    TipoEventoEmpresa.ACTUALIZACION_DATOS_GENERALES: False,
+}
+
+class TipoCambioRepresentante(str, Enum):
+    CAMBIO_REPRESENTANTE = "CAMBIO_REPRESENTANTE"  # Requiere documento sustentatorio
+    ACTUALIZACION_DATOS = "ACTUALIZACION_DATOS"   # No requiere documento sustentatorio
+
+class CambioRepresentanteLegal(BaseModel):
+    """Modelo para registrar cambios de representante legal"""
+    fechaCambio: datetime = Field(default_factory=datetime.utcnow)
+    usuarioId: str
+    tipoCambio: TipoCambioRepresentante
+    representanteAnterior: RepresentanteLegal
+    representanteNuevo: RepresentanteLegal
+    motivo: str = Field(..., description="Motivo del cambio")
+    # Campos obligatorios solo para CAMBIO_REPRESENTANTE
+    documentoSustentatorio: Optional[str] = Field(None, description="Número o referencia del documento (obligatorio para cambio de representante)")
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = Field(None, description="Tipo de documento sustentatorio")
+    urlDocumentoSustentatorio: Optional[str] = Field(None, description="URL del documento sustentatorio")
+    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
+
+class EmpresaCambioRepresentante(BaseModel):
+    """Modelo para solicitar cambio de representante legal"""
+    tipoCambio: TipoCambioRepresentante
+    representanteNuevo: RepresentanteLegal
+    motivo: str = Field(..., min_length=10, max_length=500, description="Motivo del cambio (10-500 caracteres)")
+    # Documentación simplificada para documentos digitales
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = Field(None, description="Tipo de documento sustentatorio")
+    numeroDocumentoSustentatorio: Optional[str] = Field(None, max_length=100, description="Número del documento sustentatorio")
+    esDocumentoFisico: bool = Field(default=False, description="Si el documento es físico (requiere escaneo)")
+    urlDocumentoSustentatorio: Optional[str] = Field(None, description="URL del documento (solo si es físico)")
+    fechaDocumento: Optional[datetime] = Field(None, description="Fecha del documento")
+    entidadEmisora: Optional[str] = Field(None, max_length=200, description="Entidad emisora del documento")
+    observaciones: Optional[str] = Field(None, max_length=1000, description="Observaciones adicionales")
+
+    def validate_documento_sustentatorio(self):
+        """Validar que el documento sustentatorio sea obligatorio para cambio de representante"""
+        if self.tipoCambio == TipoCambioRepresentante.CAMBIO_REPRESENTANTE:
+            if not self.numeroDocumentoSustentatorio:
+                raise ValueError("El número de documento sustentatorio es obligatorio para cambio de representante legal")
+            if not self.tipoDocumentoSustentatorio:
+                raise ValueError("El tipo de documento sustentatorio es obligatorio para cambio de representante legal")
+
+class CambioEstadoEmpresa(BaseModel):
+    """Modelo para registrar cambios de estado con motivo y documento"""
+    fechaCambio: datetime = Field(default_factory=datetime.utcnow)
+    usuarioId: str
+    estadoAnterior: EstadoEmpresa
+    estadoNuevo: EstadoEmpresa
+    motivo: str = Field(..., description="Motivo del cambio de estado")
+    # Documentación simplificada para documentos digitales
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = Field(None, description="Tipo de documento sustentatorio")
+    numeroDocumentoSustentatorio: Optional[str] = Field(None, description="Número del documento sustentatorio")
+    esDocumentoFisico: bool = Field(default=False, description="Si el documento es físico (requiere escaneo)")
+    urlDocumentoSustentatorio: Optional[str] = Field(None, description="URL del documento (solo si es físico)")
+    fechaDocumento: Optional[datetime] = Field(None, description="Fecha del documento")
+    entidadEmisora: Optional[str] = Field(None, description="Entidad emisora del documento")
+    observaciones: Optional[str] = Field(None, description="Observaciones adicionales del cambio")
+
+class HistorialEstadoEmpresa(BaseModel):
+    """Historial completo de cambios de estado de una empresa"""
+    empresaId: str
+    cambios: List[CambioEstadoEmpresa] = Field(default_factory=list)
+    fechaCreacion: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+
+class EmpresaCambioRazonSocial(BaseModel):
+    """Modelo para cambio de razón social"""
+    razonSocialNueva: RazonSocial
+    motivo: str = Field(..., min_length=10, max_length=500)
+    documentoSustentatorio: str = Field(..., description="Documento sustentatorio obligatorio")
+    tipoDocumentoSustentatorio: TipoDocumento
+    urlDocumentoSustentatorio: Optional[str] = None
+    observaciones: Optional[str] = None
+
+class EmpresaOperacionVehicular(BaseModel):
+    """Modelo para operaciones vehiculares (renovación, incremento, sustitución, etc.)"""
+    tipoOperacion: TipoEventoEmpresa
+    vehiculoId: Optional[str] = None  # Para sustituciones, bajas
+    vehiculosIds: Optional[List[str]] = None  # Para incrementos, renovaciones masivas
+    motivo: str = Field(..., min_length=10, max_length=500)
+    documentoSustentatorio: str = Field(..., description="Documento sustentatorio obligatorio")
+    tipoDocumentoSustentatorio: TipoDocumento
+    urlDocumentoSustentatorio: Optional[str] = None
+    observaciones: Optional[str] = None
+    # Datos específicos según el tipo de operación
+    datosAdicionales: Optional[Dict[str, Any]] = None
+
+class EmpresaOperacionRutas(BaseModel):
+    """Modelo para operaciones de rutas"""
+    tipoOperacion: TipoEventoEmpresa
+    rutaId: Optional[str] = None  # Para operaciones específicas
+    rutasIds: Optional[List[str]] = None  # Para operaciones masivas
+    motivo: str = Field(..., min_length=10, max_length=500)
+    # Documento sustentatorio opcional según el tipo
+    documentoSustentatorio: Optional[str] = None
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = None
+    urlDocumentoSustentatorio: Optional[str] = None
+    observaciones: Optional[str] = None
+    datosAdicionales: Optional[Dict[str, Any]] = None
+
+class EmpresaCambioEstado(BaseModel):
+    """Modelo para solicitar cambio de estado de empresa"""
+    estadoNuevo: EstadoEmpresa
+    motivo: str = Field(..., min_length=10, max_length=500, description="Motivo del cambio de estado (10-500 caracteres)")
+    # Documentación simplificada para documentos digitales
+    tipoDocumentoSustentatorio: Optional[TipoDocumento] = Field(None, description="Tipo de documento sustentatorio")
+    numeroDocumentoSustentatorio: Optional[str] = Field(None, max_length=100, description="Número del documento sustentatorio")
+    esDocumentoFisico: bool = Field(default=False, description="Si el documento es físico (requiere escaneo)")
+    urlDocumentoSustentatorio: Optional[str] = Field(None, description="URL del documento (solo si es físico)")
+    fechaDocumento: Optional[datetime] = Field(None, description="Fecha del documento")
+    entidadEmisora: Optional[str] = Field(None, max_length=200, description="Entidad emisora del documento")
+    observaciones: Optional[str] = Field(None, max_length=1000, description="Observaciones adicionales")
+
 class DatosSunat(BaseModel):
     valido: bool
     razonSocial: Optional[str] = None
@@ -80,7 +278,7 @@ class Empresa(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: str
     estado: EstadoEmpresa
-    tipoServicio: Optional[TipoServicio] = TipoServicio.PERSONAS
+    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PERSONAS], description="Tipos de servicio que ofrece la empresa")
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
@@ -90,6 +288,10 @@ class Empresa(BaseModel):
     sitioWeb: Optional[str] = None
     documentos: List[DocumentoEmpresa] = Field(default_factory=list)
     auditoria: List[AuditoriaEmpresa] = Field(default_factory=list)
+    historialEventos: List[EventoHistorialEmpresa] = Field(default_factory=list, description="Historial unificado de todos los eventos de la empresa")
+    # Campos de historial específico (mantener para compatibilidad)
+    historialEstados: List[CambioEstadoEmpresa] = Field(default_factory=list, description="Historial de cambios de estado")
+    historialRepresentantes: List[CambioRepresentanteLegal] = Field(default_factory=list, description="Historial de cambios de representante legal")
     resolucionesPrimigeniasIds: List[str] = Field(default_factory=list)
     vehiculosHabilitadosIds: List[str] = Field(default_factory=list)
     conductoresHabilitadosIds: List[str] = Field(default_factory=list)
@@ -104,7 +306,7 @@ class EmpresaCreate(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: str
     representanteLegal: RepresentanteLegal
-    tipoServicio: TipoServicio
+    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PERSONAS], description="Tipos de servicio que ofrece la empresa")
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
@@ -116,7 +318,7 @@ class EmpresaUpdate(BaseModel):
     direccionFiscal: Optional[str] = None
     representanteLegal: Optional[RepresentanteLegal] = None
     estado: Optional[EstadoEmpresa] = None
-    tipoServicio: Optional[TipoServicio] = None
+    tiposServicio: Optional[List[TipoServicio]] = None
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
@@ -158,7 +360,7 @@ class EmpresaResponse(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: str
     estado: EstadoEmpresa
-    tipoServicio: Optional[TipoServicio] = TipoServicio.PERSONAS
+    tiposServicio: List[TipoServicio]
     estaActivo: bool
     fechaRegistro: datetime
     fechaActualizacion: Optional[datetime] = None
@@ -168,6 +370,9 @@ class EmpresaResponse(BaseModel):
     sitioWeb: Optional[str] = None
     documentos: List[DocumentoEmpresa]
     auditoria: List[AuditoriaEmpresa]
+    historialEventos: List[EventoHistorialEmpresa]
+    historialEstados: List[CambioEstadoEmpresa]
+    historialRepresentantes: List[CambioRepresentanteLegal]
     resolucionesPrimigeniasIds: List[str]
     vehiculosHabilitadosIds: List[str]
     conductoresHabilitadosIds: List[str]

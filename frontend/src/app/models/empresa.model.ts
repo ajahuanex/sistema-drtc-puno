@@ -15,6 +15,172 @@ export enum TipoEmpresa {
   TURISMO = 'T'
 }
 
+export enum TipoServicio {
+  PERSONAS = 'PERSONAS',
+  TURISMO = 'TURISMO',
+  TRABAJADORES = 'TRABAJADORES',
+  MERCANCIAS = 'MERCANCIAS',
+  ESTUDIANTES = 'ESTUDIANTES',
+  TERMINAL_TERRESTRE = 'TERMINAL_TERRESTRE',
+  ESTACION_DE_RUTA = 'ESTACION_DE_RUTA',
+  OTROS = 'OTROS'
+}
+
+export enum TipoEventoEmpresa {
+  // Cambios de datos básicos
+  CAMBIO_REPRESENTANTE_LEGAL = 'CAMBIO_REPRESENTANTE_LEGAL',
+  ACTUALIZACION_DATOS_REPRESENTANTE = 'ACTUALIZACION_DATOS_REPRESENTANTE',
+  CAMBIO_RAZON_SOCIAL = 'CAMBIO_RAZON_SOCIAL',
+  CAMBIO_ESTADO = 'CAMBIO_ESTADO',
+  
+  // Operaciones vehiculares
+  RENOVACION = 'RENOVACION',
+  INCREMENTO = 'INCREMENTO',
+  SUSTITUCION = 'SUSTITUCION',
+  DUPLICADO = 'DUPLICADO',
+  BAJA_VEHICULAR = 'BAJA_VEHICULAR',
+  
+  // Operaciones de rutas
+  CAMBIO_RUTAS = 'CAMBIO_RUTAS',
+  CANCELACION_RUTAS = 'CANCELACION_RUTAS',
+  AUTORIZACION_RUTAS = 'AUTORIZACION_RUTAS',
+  
+  // Otros eventos
+  CREACION_EMPRESA = 'CREACION_EMPRESA',
+  ACTUALIZACION_DATOS_GENERALES = 'ACTUALIZACION_DATOS_GENERALES'
+}
+
+export interface EventoHistorialEmpresa {
+  id?: string;
+  fechaEvento: Date;
+  usuarioId: string;
+  tipoEvento: TipoEventoEmpresa;
+  titulo: string;
+  descripcion: string;
+  datosAnterior?: any;
+  datosNuevo?: any;
+  requiereDocumento: boolean;
+  // Documentación simplificada para documentos digitales
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  motivo?: string;
+  observaciones?: string;
+  vehiculoId?: string;
+  rutaId?: string;
+  resolucionId?: string;
+  ipUsuario?: string;
+  userAgent?: string;
+}
+
+export interface HistorialEmpresa {
+  empresaId: string;
+  eventos: EventoHistorialEmpresa[];
+  fechaCreacion: Date;
+  fechaActualizacion?: Date;
+  totalEventos: number;
+}
+
+export interface EmpresaOperacionVehicular {
+  tipoOperacion: TipoEventoEmpresa;
+  vehiculoId?: string;
+  vehiculosIds?: string[];
+  motivo: string;
+  // Documentación simplificada
+  tipoDocumentoSustentatorio: TipoDocumento;
+  numeroDocumentoSustentatorio: string;
+  esDocumentoFisico?: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+  datosAdicionales?: any;
+}
+
+export interface EmpresaOperacionRutas {
+  tipoOperacion: TipoEventoEmpresa;
+  rutaId?: string;
+  rutasIds?: string[];
+  motivo: string;
+  // Documentación simplificada (opcional para algunos tipos)
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico?: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+  datosAdicionales?: any;
+}
+
+export enum TipoCambioRepresentante {
+  CAMBIO_REPRESENTANTE = 'CAMBIO_REPRESENTANTE',
+  ACTUALIZACION_DATOS = 'ACTUALIZACION_DATOS'
+}
+
+export interface CambioRepresentanteLegal {
+  fechaCambio: Date;
+  usuarioId: string;
+  tipoCambio: TipoCambioRepresentante;
+  representanteAnterior: RepresentanteLegal;
+  representanteNuevo: RepresentanteLegal;
+  motivo: string;
+  // Documentación simplificada
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+}
+
+export interface EmpresaCambioRepresentante {
+  tipoCambio: TipoCambioRepresentante;
+  representanteNuevo: RepresentanteLegal;
+  motivo: string;
+  // Documentación simplificada
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico?: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+}
+
+export interface CambioEstadoEmpresa {
+  fechaCambio: Date;
+  usuarioId: string;
+  estadoAnterior: EstadoEmpresa;
+  estadoNuevo: EstadoEmpresa;
+  motivo: string;
+  // Documentación simplificada
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+}
+
+export interface EmpresaCambioEstado {
+  estadoNuevo: EstadoEmpresa;
+  motivo: string;
+  // Documentación simplificada
+  tipoDocumentoSustentatorio?: TipoDocumento;
+  numeroDocumentoSustentatorio?: string;
+  esDocumentoFisico?: boolean;
+  urlDocumentoSustentatorio?: string;
+  fechaDocumento?: Date;
+  entidadEmisora?: string;
+  observaciones?: string;
+}
+
 export interface Empresa {
   id: string;
   codigoEmpresa: string;
@@ -26,7 +192,7 @@ export interface Empresa {
   };
   direccionFiscal: string;
   estado: EstadoEmpresa;
-  tipoServicio?: string; // Agregado para tipo de servicio
+  tiposServicio: TipoServicio[]; // ARRAY: Una empresa puede tener múltiples tipos de servicio
   estaActivo: boolean;
   fechaRegistro: Date;
   fechaActualizacion?: Date;
@@ -47,6 +213,9 @@ export interface Empresa {
   email?: string;
   documentos: DocumentoEmpresa[];
   auditoria: AuditoriaEmpresa[];
+  historialEventos: EventoHistorialEmpresa[];
+  historialEstados: CambioEstadoEmpresa[];
+  historialRepresentantes: CambioRepresentanteLegal[];
   resolucionesPrimigeniasIds: string[];
   vehiculosHabilitadosIds: string[];
   conductoresHabilitadosIds: string[];
@@ -121,6 +290,7 @@ export interface EmpresaCreate {
     telefono?: string;
     direccion?: string;
   };
+  tiposServicio: TipoServicio[]; // ARRAY: Una empresa puede ofrecer múltiples servicios
   emailContacto?: string;
   telefonoContacto?: string;
   sitioWeb?: string;
@@ -144,6 +314,7 @@ export interface EmpresaUpdate {
     direccion?: string;
   };
   estado?: EstadoEmpresa;
+  tiposServicio?: TipoServicio[]; // ARRAY: Actualizar múltiples tipos de servicio
   emailContacto?: string;
   telefonoContacto?: string;
   sitioWeb?: string;
@@ -188,6 +359,7 @@ export interface EmpresaResponse {
   };
   direccionFiscal: string;
   estado: EstadoEmpresa;
+  tiposServicio: TipoServicio[]; // ARRAY: Múltiples tipos de servicio
   estaActivo: boolean;
   fechaRegistro: Date;
   fechaActualizacion?: Date;
@@ -204,6 +376,9 @@ export interface EmpresaResponse {
   sitioWeb?: string;
   documentos: DocumentoEmpresa[];
   auditoria: AuditoriaEmpresa[];
+  historialEventos: EventoHistorialEmpresa[];
+  historialEstados: CambioEstadoEmpresa[];
+  historialRepresentantes: CambioRepresentanteLegal[];
   resolucionesPrimigeniasIds: string[];
   vehiculosHabilitadosIds: string[];
   conductoresHabilitadosIds: string[];

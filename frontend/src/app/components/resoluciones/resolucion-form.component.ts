@@ -1090,15 +1090,15 @@ export class ResolucionFormComponent {
 
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
-      // Filtrar solo empresas habilitadas
-      const empresasHabilitadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
+      // Filtrar solo empresas autorizadas
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
 
       const empresaSearchControl = this.resolucionForm.get('empresaSearch');
       if (empresaSearchControl) {
         this.empresasFiltradas.set(
           empresaSearchControl.valueChanges.pipe(
             startWith(''),
-            map(value => this.filtrarEmpresas(value, empresasHabilitadas))
+            map(value => this.filtrarEmpresas(value, empresasAutorizadas))
           )
         );
       }

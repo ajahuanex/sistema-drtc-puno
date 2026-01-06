@@ -1,3 +1,5 @@
+import { TipoServicio } from './empresa.model';
+
 export enum EstadoVehiculo {
   ACTIVO = 'ACTIVO',
   INACTIVO = 'INACTIVO',
@@ -54,6 +56,7 @@ export interface Vehiculo {
   sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad con datos existentes)
   empresaActualId: string;
   resolucionId: string;
+  tipoServicio: string; // NUEVO: UN solo tipo de servicio por vehículo (debe coincidir con uno de los tipos de la empresa)
   rutasAsignadasIds: string[]; // Rutas generales (de resoluciones padre)
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas del vehículo
   categoria: string;
@@ -87,6 +90,7 @@ export interface VehiculoCreate {
   sedeRegistro?: string; // Nuevo campo (opcional para compatibilidad)
   empresaActualId: string;
   resolucionId?: string; // Opcional
+  tipoServicio: string; // OBLIGATORIO: UN solo tipo de servicio por vehículo
   rutasAsignadasIds?: string[]; // Opcional - Rutas generales
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas
   categoria: string;
@@ -107,6 +111,7 @@ export interface VehiculoUpdate {
   sedeRegistro?: string;
   empresaActualId?: string;
   resolucionId?: string;
+  tipoServicio?: string; // OPCIONAL: Cambiar tipo de servicio del vehículo
   rutasAsignadasIds?: string[]; // Rutas generales
   rutasEspecificas?: RutaEspecifica[]; // NUEVO: Rutas específicas
   categoria?: string;

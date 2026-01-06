@@ -1113,7 +1113,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
       text-transform: uppercase;
     }
 
-    .estado-habilitada {
+    .estado-autorizada {
       background-color: #d4edda;
       color: #155724;
     }
@@ -1261,7 +1261,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
       font-weight: 500;
     }
 
-    .estado-chip-habilitada {
+    .estado-chip-autorizada {
       background-color: #d4edda;
       color: #155724;
     }
@@ -2669,7 +2669,7 @@ export class EmpresaDetailComponent implements OnInit {
     if (!estado) return 'Desconocido';
     
     const estados: { [key: string]: string } = {
-      'HABILITADA': 'Habilitada',
+      'AUTORIZADA': 'Autorizada',
       'EN_TRAMITE': 'En Trámite',
       'SUSPENDIDA': 'Suspendida',
       'CANCELADA': 'Cancelada'

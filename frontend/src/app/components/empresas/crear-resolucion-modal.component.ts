@@ -660,7 +660,7 @@ import { CrearExpedienteModalComponent } from '../expedientes/crear-expediente-m
       text-transform: uppercase;
     }
 
-    .estado-habilitada {
+    .estado-autorizada {
       background-color: #d4edda;
       color: #155724;
     }

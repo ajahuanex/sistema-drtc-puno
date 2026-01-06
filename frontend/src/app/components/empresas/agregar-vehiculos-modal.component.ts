@@ -501,6 +501,7 @@ export class AgregarVehiculosModalComponent {
         anioFabricacion: vehiculo.anioFabricacion,
         empresaActualId: this.empresaId,
         resolucionId: this.resolucion.id,
+        tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
         rutasAsignadasIds: vehiculo.rutasAsignadasIds || [],
         tuc: vehiculo.numeroTuc ? { 
           nroTuc: vehiculo.numeroTuc, 

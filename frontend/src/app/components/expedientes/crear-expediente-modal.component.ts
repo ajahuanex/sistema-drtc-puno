@@ -408,7 +408,7 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
       text-transform: uppercase;
     }
 
-    .estado-habilitada {
+    .estado-autorizada {
       background-color: #d4edda;
       color: #155724;
     }

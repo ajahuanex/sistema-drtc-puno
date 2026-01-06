@@ -346,6 +346,10 @@ class ResolucionPadresService:
                 numero_resolucion = self._normalizar_numero_resolucion(
                     numero_resolucion_original, fecha_para_normalizacion
                 )
+                # Log de normalización
+                if numero_resolucion != numero_resolucion_original:
+                    logger.info(f"Fila {fila}: Número normalizado '{numero_resolucion_original}' → '{numero_resolucion}'")
+                
                 # Mapear valores del frontend a valores del backend
                 mapeo_tipos = {
                     'NUEVA': 'AUTORIZACION_NUEVA',
@@ -361,24 +365,6 @@ class ResolucionPadresService:
                 
                 tipo_resolucion_backend = mapeo_tipos.get(tipo_resolucion_frontend, tipo_resolucion_frontend)
                 estado_backend = mapeo_estados.get(estado_frontend, estado_frontend)
-                        row['FECHA_FIN_VIGENCIA'], fila, 'FECHA_FIN_VIGENCIA'
-                    )
-                except ValueError as e:
-                    errores_procesamiento.append(f"Fila {fila}: Error en fechas - {str(e)}")
-                    continue
-                
-                # Normalizar el número de resolución
-                fecha_para_normalizacion = fecha_resolucion if fecha_resolucion else fecha_inicio
-                numero_resolucion = self._normalizar_numero_resolucion(
-                    numero_resolucion_original, 
-                    fecha_para_normalizacion
-                )
-                
-                # Log de normalización
-                if numero_resolucion != numero_resolucion_original:
-                    logger.info(f"Fila {fila}: Número normalizado '{numero_resolucion_original}' → '{numero_resolucion}'")
-                    errores_procesamiento.append(f"Fila {fila}: Error en fechas - {str(e)}")
-                    continue
                 
                 anios_vigencia = int(row['ANIOS_VIGENCIA'])
                 

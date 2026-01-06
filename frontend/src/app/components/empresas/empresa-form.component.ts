@@ -18,7 +18,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDividerModule } from '@angular/material/divider';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
-import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../models/empresa.model';
+import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa, TipoServicio } from '../../models/empresa.model';
 
 @Component({
   selector: 'app-empresa-form',
@@ -138,12 +138,30 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, EstadoEmpresa } from '../../mode
                           <mat-label>ESTADO</mat-label>
                           <mat-select formControlName="estado" required>
                             <mat-option value="EN_TRAMITE">EN TRÁMITE</mat-option>
-                            <mat-option value="HABILITADA">HABILITADA</mat-option>
+                            <mat-option value="AUTORIZADA">AUTORIZADA</mat-option>
                             <mat-option value="SUSPENDIDA">SUSPENDIDA</mat-option>
                             <mat-option value="CANCELADA">CANCELADA</mat-option>
                           </mat-select>
                           <mat-error *ngIf="empresaForm.get('estado')?.hasError('required')">
                             EL ESTADO ES OBLIGATORIO
+                          </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="form-field">
+                          <mat-label>TIPOS DE SERVICIO</mat-label>
+                          <mat-select formControlName="tiposServicio" multiple required>
+                            <mat-option value="PERSONAS">TRANSPORTE DE PERSONAS</mat-option>
+                            <mat-option value="TURISMO">TURISMO</mat-option>
+                            <mat-option value="TRABAJADORES">TRABAJADORES</mat-option>
+                            <mat-option value="MERCANCIAS">MERCANCÍAS</mat-option>
+                            <mat-option value="ESTUDIANTES">ESTUDIANTES</mat-option>
+                            <mat-option value="TERMINAL_TERRESTRE">TERMINAL TERRESTRE</mat-option>
+                            <mat-option value="ESTACION_DE_RUTA">ESTACIÓN DE RUTA</mat-option>
+                            <mat-option value="OTROS">OTROS</mat-option>
+                          </mat-select>
+                          <mat-hint>Seleccione uno o más tipos de servicio que ofrece la empresa</mat-hint>
+                          <mat-error *ngIf="empresaForm.get('tiposServicio')?.hasError('required')">
+                            DEBE SELECCIONAR AL MENOS UN TIPO DE SERVICIO
                           </mat-error>
                         </mat-form-field>
                       </div>
@@ -676,6 +694,7 @@ export class EmpresaFormComponent implements OnInit {
       razonSocialPrincipal: ['', [Validators.required, Validators.maxLength(200)]],
       direccionFiscal: ['', [Validators.required, Validators.maxLength(500)]],
       estado: ['EN_TRAMITE', [Validators.required]],
+      tiposServicio: [['PERSONAS'], [Validators.required]], // ARRAY: Múltiples tipos de servicio
       representanteDni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       representanteNombres: ['', [Validators.required, Validators.maxLength(100)]],
       representanteApellidos: ['', [Validators.required, Validators.maxLength(100)]],
@@ -707,6 +726,7 @@ export class EmpresaFormComponent implements OnInit {
           razonSocialPrincipal: empresa.razonSocial.principal,
           direccionFiscal: empresa.direccionFiscal,
           estado: empresa.estado,
+          tiposServicio: empresa.tiposServicio || ['PERSONAS'], // ARRAY: Múltiples tipos de servicio
           representanteDni: empresa.representanteLegal.dni,
           representanteNombres: empresa.representanteLegal.nombres,
           representanteApellidos: empresa.representanteLegal.apellidos,
@@ -745,7 +765,7 @@ export class EmpresaFormComponent implements OnInit {
   }
 
   isBasicInfoValid(): boolean {
-    const basicControls = ['ruc', 'razonSocialPrincipal', 'direccionFiscal', 'estado'];
+    const basicControls = ['ruc', 'razonSocialPrincipal', 'direccionFiscal', 'estado', 'tiposServicio'];
     return basicControls.every(control => this.empresaForm.get(control)?.valid);
   }
 
@@ -760,7 +780,7 @@ export class EmpresaFormComponent implements OnInit {
 
   getEstadoDisplayName(estado: string): string {
     const estados: { [key: string]: string } = {
-      'HABILITADA': 'HABILITADA',
+      'AUTORIZADA': 'AUTORIZADA',
       'EN_TRAMITE': 'EN TRÁMITE',
       'SUSPENDIDA': 'SUSPENDIDA',
       'CANCELADA': 'CANCELADA'
@@ -781,7 +801,7 @@ export class EmpresaFormComponent implements OnInit {
           minimo: formData.razonSocialPrincipal
         },
         direccionFiscal: formData.direccionFiscal,
-        estado: formData.estado,
+        tiposServicio: formData.tiposServicio, // ARRAY: Múltiples tipos de servicio
         representanteLegal: {
           dni: formData.representanteDni,
           nombres: formData.representanteNombres,

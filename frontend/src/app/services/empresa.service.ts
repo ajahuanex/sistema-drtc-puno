@@ -10,7 +10,16 @@ import {
   EmpresaFiltros,
   EmpresaEstadisticas,
   EstadoEmpresa,
-  TipoDocumento
+  TipoDocumento,
+  EmpresaCambioEstado,
+  CambioEstadoEmpresa,
+  EmpresaCambioRepresentante,
+  CambioRepresentanteLegal,
+  RepresentanteLegal,
+  EventoHistorialEmpresa,
+  TipoEventoEmpresa,
+  EmpresaOperacionVehicular,
+  EmpresaOperacionRutas
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -323,8 +332,10 @@ export class EmpresaService {
       },
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
+      tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || ['PERSONAS'], // AGREGADO
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : (empresa.esta_activo !== undefined ? empresa.esta_activo : true),
       fechaRegistro: empresa.fechaRegistro || empresa.fecha_registro || new Date(),
+      fechaActualizacion: empresa.fechaActualizacion || empresa.fecha_actualizacion || undefined,
       representanteLegal: empresa.representanteLegal || empresa.representante_legal || {
         dni: '',
         nombres: '',
@@ -338,6 +349,9 @@ export class EmpresaService {
       sitioWeb: empresa.sitioWeb || empresa.sitio_web || '',
       documentos: empresa.documentos || [],
       auditoria: empresa.auditoria || [],
+      historialEventos: empresa.historialEventos || empresa.historial_eventos || [], // AGREGADO
+      historialEstados: empresa.historialEstados || empresa.historial_estados || [], // AGREGADO
+      historialRepresentantes: empresa.historialRepresentantes || empresa.historial_representantes || [], // AGREGADO
       resolucionesPrimigeniasIds: empresa.resolucionesPrimigeniasIds || empresa.resoluciones_primigenias_ids || [],
       vehiculosHabilitadosIds: empresa.vehiculosHabilitadosIds || empresa.vehiculos_habilitados_ids || [],
       conductoresHabilitadosIds: empresa.conductoresHabilitadosIds || empresa.conductores_habilitados_ids || [],
@@ -527,6 +541,103 @@ export class EmpresaService {
       xhr.setRequestHeader('Authorization', `Bearer ${this.authService.getToken()}`);
       xhr.send(formData);
     });
+  }
+
+  // ========================================
+  // MÉTODOS DE CAMBIO DE ESTADO
+  // ========================================
+
+  cambiarEstadoEmpresa(empresaId: string, cambioEstado: EmpresaCambioEstado): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${empresaId}/cambiar-estado`, cambioEstado, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => {
+        console.error('❌ Error cambiando estado de empresa:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getHistorialEstadosEmpresa(empresaId: string): Observable<{empresaId: string, estadoActual: EstadoEmpresa, historialEstados: CambioEstadoEmpresa[]}> {
+    return this.http.get<{empresaId: string, estadoActual: EstadoEmpresa, historialEstados: CambioEstadoEmpresa[]}>(`${this.apiUrl}/empresas/${empresaId}/historial-estados`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error obteniendo historial de estados:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ========================================
+  // MÉTODOS DE CAMBIO DE REPRESENTANTE LEGAL
+  // ========================================
+
+  cambiarRepresentanteLegal(empresaId: string, cambioRepresentante: EmpresaCambioRepresentante): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${empresaId}/cambiar-representante`, cambioRepresentante, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => {
+        console.error('❌ Error cambiando representante legal:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getHistorialRepresentantesEmpresa(empresaId: string): Observable<{empresaId: string, representanteActual: RepresentanteLegal, historialRepresentantes: CambioRepresentanteLegal[]}> {
+    return this.http.get<{empresaId: string, representanteActual: RepresentanteLegal, historialRepresentantes: CambioRepresentanteLegal[]}>(`${this.apiUrl}/empresas/${empresaId}/historial-representantes`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error obteniendo historial de representantes:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // ========================================
+  // MÉTODOS DE HISTORIAL UNIFICADO
+  // ========================================
+
+  getHistorialCompletoEmpresa(empresaId: string, tipoEvento?: TipoEventoEmpresa, limit: number = 100): Observable<{empresaId: string, eventos: EventoHistorialEmpresa[], estadisticas: any}> {
+    let params = new HttpParams().set('limit', limit.toString());
+    if (tipoEvento) {
+      params = params.set('tipo_evento', tipoEvento);
+    }
+
+    return this.http.get<{empresaId: string, eventos: EventoHistorialEmpresa[], estadisticas: any}>(`${this.apiUrl}/empresas/${empresaId}/historial-completo`, {
+      headers: this.getHeaders(),
+      params
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error obteniendo historial completo:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  registrarOperacionVehicular(empresaId: string, operacion: EmpresaOperacionVehicular): Observable<{success: boolean, message: string}> {
+    return this.http.post<{success: boolean, message: string}>(`${this.apiUrl}/empresas/${empresaId}/operacion-vehicular`, operacion, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error registrando operación vehicular:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  registrarOperacionRutas(empresaId: string, operacion: EmpresaOperacionRutas): Observable<{success: boolean, message: string}> {
+    return this.http.post<{success: boolean, message: string}>(`${this.apiUrl}/empresas/${empresaId}/operacion-rutas`, operacion, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('❌ Error registrando operación de rutas:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
 } 

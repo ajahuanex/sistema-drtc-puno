@@ -1746,6 +1746,7 @@ export class VehiculoModalComponent {
     const vehiculoData: VehiculoCreate = {
       placa: formValue.placa!,
       empresaActualId: formValue.empresaActualId || '', // Campo requerido
+      tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
       marca: formValue.marca || '',
       modelo: formValue.modelo || '',
       anioFabricacion: formValue.anioFabricacion || new Date().getFullYear(),

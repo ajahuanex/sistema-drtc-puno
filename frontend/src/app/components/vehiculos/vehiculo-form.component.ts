@@ -702,6 +702,7 @@ export class VehiculoFormComponent implements OnInit {
           anioFabricacion: formValue.anioFabricacion,
           empresaActualId: this.empresaId(),
           resolucionId: this.resolucionId(),
+          tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
           rutasAsignadasIds: formValue.rutasAsignadasIds || [],
           tuc: formValue.numeroTuc ? {
             nroTuc: formValue.numeroTuc,
@@ -779,6 +780,7 @@ export class VehiculoFormComponent implements OnInit {
             anioFabricacion: formValue.anioFabricacion,
             empresaActualId: formValue.empresaActualId,
             resolucionId: formValue.resolucionId,
+            tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
             rutasAsignadasIds: formValue.rutasAsignadasIds || [],
             tuc: formValue.numeroTuc ? {
               nroTuc: formValue.numeroTuc,

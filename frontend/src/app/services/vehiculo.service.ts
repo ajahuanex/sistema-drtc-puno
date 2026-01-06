@@ -1093,6 +1093,7 @@ export class VehiculoService {
       color: (fila[6] || '').toString().trim() || undefined,
       numeroSerie: (fila[9] || '').toString().trim() || undefined,
       sedeRegistro: (fila[22] || '').toString().trim(),
+      tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del Excel
       empresaActualId: (fila[23] || '').toString().trim() || undefined,
       datosTecnicos: {
         motor: (fila[10] || '').toString().trim() || undefined,

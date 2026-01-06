@@ -73,15 +73,15 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
             </div>
           </div>
 
-          <div class="metric-card habilitadas">
+          <div class="metric-card autorizadas">
             <div class="metric-icon">
-              <app-smart-icon [iconName]="'check_circle'" [size]="48" [tooltipText]="'Empresas habilitadas'"></app-smart-icon>
+              <app-smart-icon [iconName]="'check_circle'" [size]="48" [tooltipText]="'Empresas autorizadas'"></app-smart-icon>
             </div>
             <div class="metric-content">
-              <div class="metric-value">{{ estadisticas()?.empresasHabilitadas ?? 0 }}</div>
-              <div class="metric-label">HABILITADAS</div>
+              <div class="metric-value">{{ estadisticas()?.empresasAutorizadas ?? 0 }}</div>
+              <div class="metric-label">AUTORIZADAS</div>
               <div class="metric-percentage">
-                {{ ((estadisticas()?.empresasHabilitadas ?? 0) / (estadisticas()?.totalEmpresas ?? 1) * 100) | number:'1.0-1' }}%
+                {{ ((estadisticas()?.empresasAutorizadas ?? 0) / (estadisticas()?.totalEmpresas ?? 1) * 100) | number:'1.0-1' }}%
               </div>
             </div>
           </div>
@@ -380,7 +380,7 @@ import { Empresa, EmpresaEstadisticas, EstadoEmpresa } from '../../models/empres
       color: white;
     }
 
-    .metric-card.habilitadas {
+    .metric-card.autorizadas {
       background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: white;
     }
@@ -774,8 +774,8 @@ export class DashboardEmpresasComponent implements OnInit {
 
     const total = stats.totalEmpresas;
     
-    this.estadosEmpresa[0].cantidad = stats.empresasAutorizadas || stats.empresasHabilitadas || 0;
-    this.estadosEmpresa[0].porcentaje = ((stats.empresasAutorizadas || stats.empresasHabilitadas || 0) / total) * 100;
+    this.estadosEmpresa[0].cantidad = stats.empresasAutorizadas || 0;
+    this.estadosEmpresa[0].porcentaje = ((stats.empresasAutorizadas || 0) / total) * 100;
     
     this.estadosEmpresa[1].cantidad = stats.empresasEnTramite;
     this.estadosEmpresa[1].porcentaje = (stats.empresasEnTramite / total) * 100;
@@ -783,7 +783,7 @@ export class DashboardEmpresasComponent implements OnInit {
     this.estadosEmpresa[2].cantidad = stats.empresasSuspendidas;
     this.estadosEmpresa[2].porcentaje = (stats.empresasSuspendidas / total) * 100;
     
-    this.estadosEmpresa[3].cantidad = total - (stats.empresasAutorizadas || stats.empresasHabilitadas || 0) - stats.empresasEnTramite - stats.empresasSuspendidas;
+    this.estadosEmpresa[3].cantidad = total - (stats.empresasAutorizadas || 0) - stats.empresasEnTramite - stats.empresasSuspendidas;
     this.estadosEmpresa[3].porcentaje = (this.estadosEmpresa[3].cantidad / total) * 100;
   }
 
@@ -792,7 +792,7 @@ export class DashboardEmpresasComponent implements OnInit {
     { id: 1, tipo: 'CREACION', titulo: 'Nueva empresa registrada', descripcion: 'TRANSPORTES PUNO S.A.C.', tiempo: 'Hace 2 horas' },
     { id: 2, tipo: 'ACTUALIZACION', titulo: 'Empresa actualizada', descripcion: 'Se modificó información de contacto', tiempo: 'Hace 4 horas' },
     { id: 3, tipo: 'VEHICULO', titulo: 'Vehículo agregado', descripcion: 'Se agregó nuevo vehículo a empresa', tiempo: 'Hace 6 horas' },
-    { id: 4, tipo: 'ESTADO', titulo: 'Estado cambiado', descripcion: 'Empresa habilitada exitosamente', tiempo: 'Hace 8 horas' }
+    { id: 4, tipo: 'ESTADO', titulo: 'Estado cambiado', descripcion: 'Empresa autorizada exitosamente', tiempo: 'Hace 8 horas' }
   ]);
 
   nivelesRiesgo = signal([

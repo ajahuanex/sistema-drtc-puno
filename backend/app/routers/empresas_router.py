@@ -9,7 +9,7 @@ from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
 from app.repositories.empresa_repository import EmpresaRepository
-from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas
+from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas, EmpresaCambioEstado, CambioEstadoEmpresa, EmpresaCambioRepresentante, CambioRepresentanteLegal
 from app.utils.exceptions import (
     EmpresaNotFoundException, 
     EmpresaAlreadyExistsException,
@@ -31,6 +31,7 @@ def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
         razonSocial=empresa.razonSocial,
         direccionFiscal=empresa.direccionFiscal,
         estado=empresa.estado,
+        tiposServicio=empresa.tiposServicio,
         estaActivo=empresa.estaActivo,
         fechaRegistro=empresa.fechaRegistro,
         fechaActualizacion=empresa.fechaActualizacion,
@@ -40,6 +41,9 @@ def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
         sitioWeb=empresa.sitioWeb,
         documentos=empresa.documentos,
         auditoria=empresa.auditoria,
+        historialEventos=empresa.historialEventos,
+        historialEstados=empresa.historialEstados,
+        historialRepresentantes=empresa.historialRepresentantes,
         resolucionesPrimigeniasIds=empresa.resolucionesPrimigeniasIds,
         vehiculosHabilitadosIds=empresa.vehiculosHabilitadosIds,
         conductoresHabilitadosIds=empresa.conductoresHabilitadosIds,
@@ -71,13 +75,199 @@ async def create_empresa(
         else:
             raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/test")
-async def test_empresas():
-    """Endpoint de prueba para empresas"""
+@router.put("/{empresa_id}/cambiar-representante", response_model=EmpresaResponse)
+async def cambiar_representante_legal(
+    empresa_id: str,
+    cambio_representante: EmpresaCambioRepresentante,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+) -> EmpresaResponse:
+    """Cambiar representante legal con validación de documento sustentatorio según tipo de cambio"""
     try:
-        return {"status": "ok", "message": "Endpoint de empresas funcionando"}
+        # Validar documento sustentatorio según tipo de cambio
+        cambio_representante.validate_documento_sustentatorio()
+        
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"  # Usuario de prueba por ahora
+        
+        empresa = await empresa_service.cambiar_representante_legal(
+            empresa_id,
+            cambio_representante.tipoCambio,
+            cambio_representante.representanteNuevo,
+            cambio_representante.motivo,
+            usuario_id,
+            cambio_representante.documentoSustentatorio,
+            cambio_representante.tipoDocumentoSustentatorio,
+            cambio_representante.urlDocumentoSustentatorio,
+            cambio_representante.observaciones
+        )
+        return create_empresa_response(empresa)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{empresa_id}/historial-representantes")
+async def get_historial_representantes_empresa(
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Obtener historial de cambios de representante legal de una empresa"""
+    try:
+        empresa = await empresa_service.get_empresa_by_id(empresa_id)
+        if not empresa:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+        
+        return {
+            "empresaId": empresa_id,
+            "representanteActual": empresa.representanteLegal,
+            "historialRepresentantes": empresa.historialRepresentantes
+        }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{empresa_id}/cambiar-estado", response_model=EmpresaResponse)
+async def cambiar_estado_empresa(
+    empresa_id: str,
+    cambio_estado: EmpresaCambioEstado,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+) -> EmpresaResponse:
+    """Cambiar estado de empresa con motivo y documento sustentatorio"""
+    try:
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"  # Usuario de prueba por ahora
+        
+        empresa = await empresa_service.cambiar_estado_empresa(
+            empresa_id, 
+            cambio_estado.estadoNuevo,
+            cambio_estado.motivo,
+            usuario_id,
+            cambio_estado.documentoSustentatorio,
+            cambio_estado.tipoDocumentoSustentatorio,
+            cambio_estado.urlDocumentoSustentatorio,
+            cambio_estado.observaciones
+        )
+        return create_empresa_response(empresa)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{empresa_id}/historial-completo")
+async def get_historial_completo_empresa(
+    empresa_id: str,
+    tipo_evento: Optional[str] = Query(None, description="Filtrar por tipo de evento"),
+    limit: int = Query(100, ge=1, le=500, description="Límite de eventos"),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Obtener historial completo unificado de una empresa"""
+    try:
+        from app.models.empresa import TipoEventoEmpresa
+        
+        tipo_evento_enum = None
+        if tipo_evento:
+            try:
+                tipo_evento_enum = TipoEventoEmpresa(tipo_evento)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Tipo de evento inválido: {tipo_evento}")
+        
+        eventos = await empresa_service.historial_service.obtener_historial_empresa(
+            empresa_id=empresa_id,
+            tipo_evento=tipo_evento_enum,
+            limit=limit
+        )
+        
+        estadisticas = await empresa_service.historial_service.obtener_estadisticas_historial(empresa_id)
+        
+        return {
+            "empresaId": empresa_id,
+            "eventos": [evento.dict() for evento in eventos],
+            "estadisticas": estadisticas
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{empresa_id}/operacion-vehicular")
+async def registrar_operacion_vehicular(
+    empresa_id: str,
+    operacion: dict,  # Usar dict genérico por ahora
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Registrar operación vehicular (renovación, incremento, sustitución, etc.)"""
+    try:
+        from app.models.empresa import TipoEventoEmpresa, TipoDocumento
+        
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"
+        
+        tipo_operacion = TipoEventoEmpresa(operacion["tipoOperacion"])
+        tipo_documento = TipoDocumento(operacion["tipoDocumentoSustentatorio"])
+        
+        resultado = await empresa_service.historial_service.registrar_operacion_vehicular(
+            empresa_id=empresa_id,
+            usuario_id=usuario_id,
+            tipo_operacion=tipo_operacion,
+            vehiculo_id=operacion.get("vehiculoId"),
+            vehiculos_ids=operacion.get("vehiculosIds"),
+            motivo=operacion["motivo"],
+            documento_sustentatorio=operacion["documentoSustentatorio"],
+            tipo_documento=tipo_documento,
+            url_documento=operacion.get("urlDocumentoSustentatorio"),
+            observaciones=operacion.get("observaciones"),
+            datos_adicionales=operacion.get("datosAdicionales")
+        )
+        
+        return {"success": resultado, "message": "Operación vehicular registrada exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{empresa_id}/operacion-rutas")
+async def registrar_operacion_rutas(
+    empresa_id: str,
+    operacion: dict,  # Usar dict genérico por ahora
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Registrar operación de rutas"""
+    try:
+        from app.models.empresa import TipoEventoEmpresa, TipoDocumento
+        
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"
+        
+        tipo_operacion = TipoEventoEmpresa(operacion["tipoOperacion"])
+        tipo_documento = TipoDocumento(operacion["tipoDocumentoSustentatorio"]) if operacion.get("tipoDocumentoSustentatorio") else None
+        
+        resultado = await empresa_service.historial_service.registrar_operacion_rutas(
+            empresa_id=empresa_id,
+            usuario_id=usuario_id,
+            tipo_operacion=tipo_operacion,
+            ruta_id=operacion.get("rutaId"),
+            rutas_ids=operacion.get("rutasIds"),
+            motivo=operacion["motivo"],
+            documento_sustentatorio=operacion.get("documentoSustentatorio"),
+            tipo_documento=tipo_documento,
+            url_documento=operacion.get("urlDocumentoSustentatorio"),
+            observaciones=operacion.get("observaciones"),
+            datos_adicionales=operacion.get("datosAdicionales")
+        )
+        
+        return {"success": resultado, "message": "Operación de rutas registrada exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/{empresa_id}/historial-estados")
+async def get_historial_estados_empresa(
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Obtener historial de cambios de estado de una empresa"""
+    try:
+        empresa = await empresa_service.get_empresa_by_id(empresa_id)
+        if not empresa:
+            raise HTTPException(status_code=404, detail="Empresa no encontrada")
+        
+        return {
+            "empresaId": empresa_id,
+            "estadoActual": empresa.estado,
+            "historialEstados": empresa.historialEstados
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[EmpresaResponse])
 async def get_empresas(

@@ -212,7 +212,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
           case 'direccion':
             return data.direccionFiscal || '';
           case 'tipoServicio':
-            return data.tipoServicio || '';
+            return data.tiposServicio ? data.tiposServicio.join(', ') : '';
           case 'representanteLegal':
             return data.representanteLegal ? 
               (data.representanteLegal.nombres + ' ' + data.representanteLegal.apellidos).toLowerCase() : '';

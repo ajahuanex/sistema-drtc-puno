@@ -14,7 +14,15 @@ from app.models.empresa import (
     EstadoEmpresa,
     AuditoriaEmpresa,
     DocumentoEmpresa,
+    CambioEstadoEmpresa,
+    TipoDocumento,
+    CambioRepresentanteLegal,
+    TipoCambioRepresentante,
+    RepresentanteLegal,
+    EventoHistorialEmpresa,
+    TipoEventoEmpresa,
 )
+from app.services.historial_empresa_service import HistorialEmpresaService
 from app.utils.exceptions import (
     EmpresaNotFoundException,
     EmpresaAlreadyExistsException,
@@ -29,6 +37,7 @@ class EmpresaService:
         self.db = db
         self.collection = db.empresas
         self.auditoria_collection = db.empresas_auditoria
+        self.historial_service = HistorialEmpresaService(db)
 
     # ---------------------------------------------------------------------
     # Helper methods
@@ -540,3 +549,173 @@ class EmpresaService:
                 "error": f"Error al validar con SUNAT: {str(e)}",
                 "fecha_actualizacion": datetime.utcnow()
             }
+
+    # ---------------------------------------------------------------------
+    # Cambio de estado con motivo y documento
+    # ---------------------------------------------------------------------
+    async def cambiar_estado_empresa(
+        self, 
+        empresa_id: str, 
+        nuevo_estado: EstadoEmpresa,
+        motivo: str,
+        usuario_id: str,
+        documento_sustentatorio: Optional[str] = None,
+        tipo_documento_sustentatorio: Optional[TipoDocumento] = None,
+        url_documento_sustentatorio: Optional[str] = None,
+        observaciones: Optional[str] = None
+    ) -> Optional[EmpresaInDB]:
+        """Cambiar estado de empresa con motivo y documento sustentatorio"""
+        
+        # Obtener empresa actual
+        empresa_actual = await self.get_empresa_by_id(empresa_id)
+        if not empresa_actual:
+            raise ValueError(f"Empresa con ID {empresa_id} no encontrada")
+        
+        # Verificar si el estado es diferente
+        if empresa_actual.estado == nuevo_estado:
+            raise ValueError(f"La empresa ya se encuentra en estado {nuevo_estado}")
+        
+        # Crear registro de cambio de estado
+        cambio_estado = CambioEstadoEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            estadoAnterior=empresa_actual.estado,
+            estadoNuevo=nuevo_estado,
+            motivo=motivo,
+            documentoSustentatorio=documento_sustentatorio,
+            tipoDocumentoSustentatorio=tipo_documento_sustentatorio,
+            urlDocumentoSustentatorio=url_documento_sustentatorio,
+            observaciones=observaciones
+        )
+        
+        # Crear auditoría general
+        auditoria = AuditoriaEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio="CAMBIO_ESTADO",
+            campoAnterior=empresa_actual.estado.value,
+            campoNuevo=nuevo_estado.value,
+            observaciones=f"Motivo: {motivo}"
+        )
+        
+        # Preparar actualización
+        update_data = {
+            "estado": nuevo_estado.value,
+            "fechaActualizacion": datetime.utcnow(),
+            "$push": {
+                "historialEstados": cambio_estado.dict(),
+                "auditoria": auditoria.dict()
+            }
+        }
+        
+        # Actualizar en base de datos
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+            filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        
+        result = await self.collection.update_one(filter_query, update_data)
+        
+        if result.modified_count > 0:
+            # Registrar en historial unificado
+            await self.historial_service.registrar_cambio_estado(
+                empresa_id=empresa_id,
+                usuario_id=usuario_id,
+                estado_anterior=empresa_actual.estado.value,
+                estado_nuevo=nuevo_estado.value,
+                motivo=motivo,
+                documento_sustentatorio=documento_sustentatorio,
+                tipo_documento=tipo_documento_sustentatorio,
+                url_documento=url_documento_sustentatorio,
+                observaciones=observaciones
+            )
+            
+            # Retornar empresa actualizada
+            return await self.get_empresa_by_id(empresa_id)
+        
+        return None
+
+    # ---------------------------------------------------------------------
+    # Cambio de representante legal con validación de documento
+    # ---------------------------------------------------------------------
+    async def cambiar_representante_legal(
+        self,
+        empresa_id: str,
+        tipo_cambio: TipoCambioRepresentante,
+        representante_nuevo: RepresentanteLegal,
+        motivo: str,
+        usuario_id: str,
+        documento_sustentatorio: Optional[str] = None,
+        tipo_documento_sustentatorio: Optional[TipoDocumento] = None,
+        url_documento_sustentatorio: Optional[str] = None,
+        observaciones: Optional[str] = None
+    ) -> Optional[EmpresaInDB]:
+        """Cambiar representante legal con validación de documento según tipo de cambio"""
+        
+        # Obtener empresa actual
+        empresa_actual = await self.get_empresa_by_id(empresa_id)
+        if not empresa_actual:
+            raise ValueError(f"Empresa con ID {empresa_id} no encontrada")
+        
+        # Verificar si el representante es diferente (para cambio de representante)
+        if tipo_cambio == TipoCambioRepresentante.CAMBIO_REPRESENTANTE:
+            if empresa_actual.representanteLegal.dni == representante_nuevo.dni:
+                raise ValueError("Para cambio de representante, el DNI debe ser diferente al actual")
+            
+            # Validar documento sustentatorio obligatorio
+            if not documento_sustentatorio:
+                raise ValueError("El documento sustentatorio es obligatorio para cambio de representante legal")
+            if not tipo_documento_sustentatorio:
+                raise ValueError("El tipo de documento sustentatorio es obligatorio para cambio de representante legal")
+        
+        # Para actualización de datos, verificar que sea el mismo DNI
+        if tipo_cambio == TipoCambioRepresentante.ACTUALIZACION_DATOS:
+            if empresa_actual.representanteLegal.dni != representante_nuevo.dni:
+                raise ValueError("Para actualización de datos, el DNI debe ser el mismo. Use 'cambio de representante' si el DNI es diferente")
+        
+        # Crear registro de cambio de representante
+        cambio_representante = CambioRepresentanteLegal(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio=tipo_cambio,
+            representanteAnterior=empresa_actual.representanteLegal,
+            representanteNuevo=representante_nuevo,
+            motivo=motivo,
+            documentoSustentatorio=documento_sustentatorio,
+            tipoDocumentoSustentatorio=tipo_documento_sustentatorio,
+            urlDocumentoSustentatorio=url_documento_sustentatorio,
+            observaciones=observaciones
+        )
+        
+        # Crear auditoría general
+        tipo_cambio_texto = "CAMBIO_REPRESENTANTE_LEGAL" if tipo_cambio == TipoCambioRepresentante.CAMBIO_REPRESENTANTE else "ACTUALIZACION_DATOS_REPRESENTANTE"
+        auditoria = AuditoriaEmpresa(
+            fechaCambio=datetime.utcnow(),
+            usuarioId=usuario_id,
+            tipoCambio=tipo_cambio_texto,
+            campoAnterior=f"DNI: {empresa_actual.representanteLegal.dni}, Nombres: {empresa_actual.representanteLegal.nombres} {empresa_actual.representanteLegal.apellidos}",
+            campoNuevo=f"DNI: {representante_nuevo.dni}, Nombres: {representante_nuevo.nombres} {representante_nuevo.apellidos}",
+            observaciones=f"Tipo: {tipo_cambio.value}, Motivo: {motivo}"
+        )
+        
+        # Preparar actualización
+        update_data = {
+            "representanteLegal": representante_nuevo.dict(),
+            "fechaActualizacion": datetime.utcnow(),
+            "$push": {
+                "historialRepresentantes": cambio_representante.dict(),
+                "auditoria": auditoria.dict()
+            }
+        }
+        
+        # Actualizar en base de datos
+        filter_query = {"id": empresa_id}
+        if ObjectId.is_valid(empresa_id):
+            filter_query = {"$or": [{"id": empresa_id}, {"_id": ObjectId(empresa_id)}]}
+        
+        result = await self.collection.update_one(filter_query, update_data)
+        
+        if result.modified_count > 0:
+            # Retornar empresa actualizada
+            return await self.get_empresa_by_id(empresa_id)
+        
+        return None
