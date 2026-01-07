@@ -835,10 +835,13 @@ async def validar_archivo_resoluciones_padres(
         # Leer archivo
         contenido = await archivo.read()
         
-        # Convertir a DataFrame
+        # Convertir a DataFrame manteniendo las fechas como texto
         import pandas as pd
         from io import BytesIO
-        df = pd.read_excel(BytesIO(contenido))
+        # Leer Excel manteniendo las fechas como texto para evitar conversión automática
+        df = pd.read_excel(BytesIO(contenido), dtype=str, keep_default_na=False)
+        # Reemplazar valores vacíos con cadenas vacías
+        df = df.fillna('')
         
         # Validar usando el servicio
         resultado = ResolucionPadresService.validar_plantilla_padres(df)
@@ -874,10 +877,13 @@ async def procesar_carga_masiva_resoluciones_padres(
         # Leer archivo
         contenido = await archivo.read()
         
-        # Convertir a DataFrame
+        # Convertir a DataFrame manteniendo las fechas como texto
         import pandas as pd
         from io import BytesIO
-        df = pd.read_excel(BytesIO(contenido))
+        # Leer Excel manteniendo las fechas como texto para evitar conversión automática
+        df = pd.read_excel(BytesIO(contenido), dtype=str, keep_default_na=False)
+        # Reemplazar valores vacíos con cadenas vacías
+        df = df.fillna('')
         
         if solo_validar:
             # Solo validar usando el método estático
@@ -920,4 +926,126 @@ async def obtener_reporte_estados_resoluciones(
         raise HTTPException(
             status_code=500, 
             detail=f"Error al generar reporte: {str(e)}"
+        )
+
+# ========================================
+# ENDPOINTS DE RESTORE/RECUPERACIÓN
+# ========================================
+
+@router.get("/eliminadas")
+async def get_resoluciones_eliminadas(
+    limit: int = Query(50, ge=1, le=100, description="Número máximo de resoluciones eliminadas a mostrar"),
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Obtener resoluciones eliminadas recientemente (últimos 30 días)"""
+    try:
+        resoluciones_eliminadas = await resolucion_service.get_resoluciones_eliminadas(limit)
+        
+        # Convertir a formato de respuesta
+        return [
+            {
+                "id": r.id,
+                "nroResolucion": r.nroResolucion,
+                "empresaId": r.empresaId,
+                "fechaEmision": r.fechaEmision,
+                "fechaVigenciaInicio": r.fechaVigenciaInicio,
+                "fechaVigenciaFin": r.fechaVigenciaFin,
+                "tipoResolucion": r.tipoResolucion,
+                "tipoTramite": r.tipoTramite,
+                "descripcion": r.descripcion,
+                "estado": r.estado,
+                "fechaEliminacion": getattr(r, 'fechaEliminacion', None),
+                "fechaRegistro": r.fechaRegistro,
+                "estaActivo": r.estaActivo
+            }
+            for r in resoluciones_eliminadas
+        ]
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al obtener resoluciones eliminadas: {str(e)}"
+        )
+
+@router.post("/{resolucion_id}/restore")
+async def restore_resolucion(
+    resolucion_id: str,
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Restaurar una resolución eliminada"""
+    try:
+        success = await resolucion_service.restore_resolucion(resolucion_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=404, 
+                detail="Resolución no encontrada o ya está activa"
+            )
+        
+        # Obtener la resolución restaurada
+        resolucion_restaurada = await resolucion_service.get_resolucion_by_id(resolucion_id)
+        
+        return {
+            "message": "Resolución restaurada exitosamente",
+            "resolucion": {
+                "id": resolucion_restaurada.id,
+                "nroResolucion": resolucion_restaurada.nroResolucion,
+                "empresaId": resolucion_restaurada.empresaId,
+                "estado": resolucion_restaurada.estado,
+                "fechaRestauracion": datetime.utcnow().isoformat()
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al restaurar resolución: {str(e)}"
+        )
+
+@router.post("/restore-multiple")
+async def restore_resoluciones_multiples(
+    resoluciones_ids: List[str],
+    resolucion_service: ResolucionService = Depends(get_resolucion_service)
+):
+    """Restaurar múltiples resoluciones eliminadas"""
+    try:
+        resultados = []
+        errores = []
+        
+        for resolucion_id in resoluciones_ids:
+            try:
+                success = await resolucion_service.restore_resolucion(resolucion_id)
+                if success:
+                    resolucion = await resolucion_service.get_resolucion_by_id(resolucion_id)
+                    resultados.append({
+                        "id": resolucion.id,
+                        "nroResolucion": resolucion.nroResolucion,
+                        "restaurada": True
+                    })
+                else:
+                    errores.append({
+                        "id": resolucion_id,
+                        "error": "No se pudo restaurar (no encontrada o ya activa)"
+                    })
+            except Exception as e:
+                errores.append({
+                    "id": resolucion_id,
+                    "error": str(e)
+                })
+        
+        return {
+            "message": f"Proceso completado: {len(resultados)} restauradas, {len(errores)} errores",
+            "restauradas": resultados,
+            "errores": errores,
+            "total_procesadas": len(resoluciones_ids),
+            "total_exitosas": len(resultados),
+            "total_errores": len(errores)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error en restauración múltiple: {str(e)}"
         )

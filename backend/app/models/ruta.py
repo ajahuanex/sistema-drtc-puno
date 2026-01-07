@@ -10,6 +10,7 @@ class EstadoRuta(str, Enum):
     EN_MANTENIMIENTO = "EN_MANTENIMIENTO"
     SUSPENDIDA = "SUSPENDIDA"
     DADA_DE_BAJA = "DADA_DE_BAJA"
+    CANCELADA = "CANCELADA"
 
 class TipoRuta(str, Enum):
     URBANA = "URBANA"

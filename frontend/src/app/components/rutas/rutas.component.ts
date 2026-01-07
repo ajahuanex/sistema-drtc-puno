@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,6 +34,7 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -61,6 +62,12 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   (click)="nuevaRuta()">
             <mat-icon>add</mat-icon>
             Nueva Ruta
+          </button>
+          <button mat-stroked-button 
+                  color="accent" 
+                  routerLink="/rutas/carga-masiva">
+            <mat-icon>upload</mat-icon>
+            Carga Masiva
           </button>
           <button mat-stroked-button 
                   color="accent" 

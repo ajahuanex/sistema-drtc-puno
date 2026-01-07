@@ -1160,3 +1160,161 @@ async def procesar_carga_masiva_rutas(
             detail=f"Error al procesar archivo: {str(e)}"
         )
 
+# ========================================
+# ENDPOINTS CARGA MASIVA COMPLETOS
+# ========================================
+
+@router.get("/carga-masiva/plantilla")
+async def descargar_plantilla_rutas():
+    """Descargar plantilla Excel para carga masiva de rutas"""
+    try:
+        excel_service = RutaExcelService()
+        buffer = excel_service.generar_plantilla_excel()
+        
+        return StreamingResponse(
+            BytesIO(buffer.read()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=plantilla_rutas.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar plantilla: {str(e)}"
+        )
+
+@router.post("/carga-masiva/validar-completo")
+async def validar_archivo_rutas_completo(
+    archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
+    db = Depends(get_database)
+):
+    """Validar archivo Excel de rutas con validaciones completas de BD"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Validar con el servicio (con conexión a BD)
+        excel_service = RutaExcelService(db)
+        resultado = await excel_service.validar_archivo_excel(archivo_buffer)
+        
+        return {
+            "archivo": archivo.filename,
+            "validacion": resultado,
+            "mensaje": f"Archivo validado: {resultado['validos']} válidos, {resultado['invalidos']} inválidos",
+            "resumen": {
+                "total_filas": resultado['total_filas'],
+                "validos": resultado['validos'],
+                "invalidos": resultado['invalidos'],
+                "con_advertencias": resultado['con_advertencias']
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al validar archivo: {str(e)}"
+        )
+
+@router.post("/carga-masiva/procesar-completo")
+async def procesar_carga_masiva_rutas_completo(
+    archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
+    solo_validar: bool = Query(False, description="Solo validar sin crear rutas"),
+    db = Depends(get_database)
+):
+    """Procesar carga masiva de rutas desde Excel con validaciones completas"""
+    
+    # Validar tipo de archivo
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=400, 
+            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    try:
+        # Leer archivo
+        contenido = await archivo.read()
+        archivo_buffer = BytesIO(contenido)
+        
+        # Procesar con el servicio (con conexión a BD)
+        excel_service = RutaExcelService(db)
+        ruta_service = RutaService(db)
+        
+        if solo_validar:
+            resultado = await excel_service.validar_archivo_excel(archivo_buffer)
+            mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
+        else:
+            resultado = await excel_service.procesar_carga_masiva(archivo_buffer, ruta_service)
+            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} rutas creadas"
+        
+        return {
+            "archivo": archivo.filename,
+            "solo_validacion": solo_validar,
+            "resultado": resultado,
+            "mensaje": mensaje,
+            "resumen": {
+                "total_filas": resultado.get('total_filas', 0),
+                "validos": resultado.get('validos', 0),
+                "invalidos": resultado.get('invalidos', 0),
+                "creadas": resultado.get('total_creadas', 0),
+                "errores_creacion": len(resultado.get('errores_creacion', []))
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al procesar archivo: {str(e)}"
+        )
+
+@router.get("/carga-masiva/ayuda")
+async def obtener_ayuda_carga_masiva():
+    """Obtener información de ayuda para la carga masiva de rutas"""
+    return {
+        "titulo": "Carga Masiva de Rutas",
+        "descripcion": "Sistema para cargar múltiples rutas desde un archivo Excel",
+        "pasos": [
+            "1. Descargar la plantilla Excel",
+            "2. Completar los datos en la hoja 'DATOS'",
+            "3. Validar el archivo antes de procesarlo",
+            "4. Procesar la carga masiva"
+        ],
+        "campos_obligatorios": [
+            "Código Ruta: 2-3 dígitos únicos dentro de la resolución",
+            "Nombre: Descripción de la ruta (mínimo 5 caracteres)",
+            "Empresa ID: ID de la empresa propietaria (debe existir)",
+            "Resolución ID: ID de resolución PADRE y VIGENTE (debe existir)",
+            "Origen ID: ID del lugar de origen",
+            "Destino ID: ID del lugar de destino",
+            "Frecuencias: Descripción de las frecuencias"
+        ],
+        "campos_opcionales": [
+            "Tipo Ruta: URBANA, INTERURBANA, INTERPROVINCIAL, INTERREGIONAL",
+            "Tipo Servicio: PASAJEROS, CARGA, MIXTO",
+            "Estado: ACTIVA, INACTIVA, EN_MANTENIMIENTO, SUSPENDIDA",
+            "Distancia (km): Distancia en kilómetros",
+            "Tiempo Estimado: Formato HH:MM",
+            "Tarifa Base: Precio base en soles",
+            "Capacidad Máxima: Número de pasajeros/toneladas",
+            "Observaciones: Comentarios adicionales"
+        ],
+        "validaciones": [
+            "El código de ruta debe ser único dentro de la resolución",
+            "La empresa debe existir en el sistema",
+            "La resolución debe ser PADRE, VIGENTE y pertenecer a la empresa",
+            "El origen y destino no pueden ser iguales",
+            "Los valores numéricos deben ser positivos"
+        ],
+        "endpoints": {
+            "plantilla": "/rutas/carga-masiva/plantilla",
+            "validar": "/rutas/carga-masiva/validar-completo",
+            "procesar": "/rutas/carga-masiva/procesar-completo"
+        }
+    }

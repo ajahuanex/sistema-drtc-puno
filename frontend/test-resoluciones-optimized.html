@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Tabla de Resoluciones Optimizada</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            padding: 16px 24px;
+            background-color: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #1976d2;
+            margin: 0;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+        
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            vertical-align: middle;
+        }
+        
+        th {
+            background-color: #f5f5f5;
+            font-weight: 500;
+            color: #424242;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Anchos optimizados de columnas */
+        .selection-col { width: 48px; max-width: 48px; padding: 0 6px; text-align: center; }
+        .numero-col { width: 115px; max-width: 120px; padding: 8px 4px; }
+        .empresa-col { width: 250px; }
+        .tipo-col { width: 150px; }
+        .fecha-col { width: 140px; }
+        .anios-col { width: 100px; text-align: center; }
+        .estado-col { width: 120px; text-align: center; }
+        .rutas-col { width: 180px; text-align: center; }
+        .vehiculos-col { width: 180px; text-align: center; }
+        .acciones-col { width: 120px; text-align: center; }
+        
+        .numero-resolucion {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .numero-principal {
+            font-weight: 500;
+            color: #1976d2;
+            font-size: 12px;
+            line-height: 1.1;
+        }
+        
+        .tipo-badge {
+            font-size: 8px;
+            padding: 1px 3px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            width: fit-content;
+            line-height: 1;
+        }
+        
+        .empresa-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .empresa-nombre {
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.8);
+            line-height: 1.2;
+            font-size: 13px;
+        }
+        
+        .empresa-ruc {
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.5);
+            font-family: monospace;
+        }
+        
+        .fecha-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .fecha-principal {
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.8);
+            font-size: 13px;
+        }
+        
+        .anios-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .anios-numero {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1976d2;
+        }
+        
+        .anios-label {
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.5);
+            text-transform: lowercase;
+        }
+        
+        .chip {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .chip.renovacion {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .chip.vigente {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .count-info {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .count-text {
+            font-weight: 600;
+            color: #1976d2;
+        }
+        
+        .count-label {
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        
+        .btn-view {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .btn-edit {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .optimized-note {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            padding: 12px;
+            margin: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h3 class="title">📋 Resoluciones - Tabla Optimizada</h3>
+            <div>
+                <span style="color: #666; font-size: 14px;">Vista previa de optimizaciones</span>
+            </div>
+        </div>
+        
+        <div class="optimized-note">
+            <strong>✅ Optimizaciones aplicadas:</strong>
+            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                <li><strong>Columna de selección:</strong> Reducida de 143px a 48px (ahorro de ~95px)</li>
+                <li><strong>Encabezado optimizado:</strong> "N° Resolución" en lugar de "Número de Resolución" (evita corte de texto)</li>
+                <li><strong>Ancho reducido:</strong> De 180px a 115px (ahorro de ~65px)</li>
+                <li><strong>Columna eliminada:</strong> "Activo" removida completamente (ahorro de ~80px)</li>
+                <li><strong>Nueva columna:</strong> Años de Vigencia (100px) - información clave que faltaba</li>
+                <li><strong>Checkbox equilibrado:</strong> Scale 0.9 y padding moderado</li>
+                <li><strong>Tipografía optimizada:</strong> Texto más pequeño y espaciado mínimo</li>
+                <li><strong>Total ahorrado:</strong> ~240px de espacio horizontal</li>
+            </ul>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="selection-col">☑</th>
+                        <th class="numero-col">N° Resolución</th>
+                        <th class="empresa-col">Empresa</th>
+                        <th class="tipo-col">Tipo de Trámite</th>
+                        <th class="fecha-col">Fecha Emisión</th>
+                        <th class="fecha-col">Vigencia Inicio</th>
+                        <th class="fecha-col">Vigencia Fin</th>
+                        <th class="anios-col">Años Vigencia</th>
+                        <th class="estado-col">Estado</th>
+                        <th class="rutas-col">Rutas Autorizadas</th>
+                        <th class="vehiculos-col">Vehículos Habilitados</th>
+                        <th class="acciones-col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="selection-col">☑</td>
+                        <td class="numero-col">
+                            <div class="numero-resolucion">
+                                <span class="numero-principal">R-0994-2025</span>
+                                <span class="tipo-badge">PADRE</span>
+                            </div>
+                        </td>
+                        <td class="empresa-col">
+                            <div class="empresa-info">
+                                <div class="empresa-nombre">EMPRESA DE TRANSPORTES "PALMERAS TOURS" S.C.R.L.</div>
+                                <div class="empresa-ruc">RUC: 20123456789</div>
+                            </div>
+                        </td>
+                        <td class="tipo-col">
+                            <span class="chip renovacion">RENOVACION</span>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">04/12/2025</div>
+                            </div>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">09/11/2025</div>
+                            </div>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">09/11/2029</div>
+                            </div>
+                        </td>
+                        <td class="anios-col">
+                            <div class="anios-info">
+                                <div class="anios-numero">4</div>
+                                <div class="anios-label">años</div>
+                            </div>
+                        </td>
+                        <td class="estado-col">
+                            <span class="chip vigente">VIGENTE</span>
+                        </td>
+                        <td class="rutas-col">
+                            <div class="count-info">
+                                <span class="count-text">3</span>
+                                <span class="count-label">rutas</span>
+                            </div>
+                        </td>
+                        <td class="vehiculos-col">
+                            <div class="count-info">
+                                <span class="count-text">5</span>
+                                <span class="count-label">vehículos</span>
+                            </div>
+                        </td>
+                        <td class="acciones-col">
+                            <div class="actions">
+                                <button class="btn btn-view">Ver</button>
+                                <button class="btn btn-edit">Editar</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="selection-col">☑</td>
+                        <td class="numero-col">
+                            <div class="numero-resolucion">
+                                <span class="numero-principal">R-0956-2025</span>
+                                <span class="tipo-badge">PADRE</span>
+                            </div>
+                        </td>
+                        <td class="empresa-col">
+                            <div class="empresa-info">
+                                <div class="empresa-nombre">EMPRESA DE TRANSPORTES Y TURISMO DOS DE MAYO "HUANCANE" S.C.R.L.</div>
+                                <div class="empresa-ruc">RUC: 20987654321</div>
+                            </div>
+                        </td>
+                        <td class="tipo-col">
+                            <span class="chip renovacion">RENOVACION</span>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">09/11/2025</div>
+                            </div>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">09/11/2025</div>
+                            </div>
+                        </td>
+                        <td class="fecha-col">
+                            <div class="fecha-info">
+                                <div class="fecha-principal">09/11/2035</div>
+                            </div>
+                        </td>
+                        <td class="anios-col">
+                            <div class="anios-info">
+                                <div class="anios-numero">10</div>
+                                <div class="anios-label">años</div>
+                            </div>
+                        </td>
+                        <td class="estado-col">
+                            <span class="chip vigente">VIGENTE</span>
+                        </td>
+                        <td class="rutas-col">
+                            <div class="count-info">
+                                <span class="count-text">2</span>
+                                <span class="count-label">rutas</span>
+                            </div>
+                        </td>
+                        <td class="vehiculos-col">
+                            <div class="count-info">
+                                <span class="count-text">8</span>
+                                <span class="count-label">vehículos</span>
+                            </div>
+                        </td>
+                        <td class="acciones-col">
+                            <div class="actions">
+                                <button class="btn btn-view">Ver</button>
+                                <button class="btn btn-edit">Editar</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

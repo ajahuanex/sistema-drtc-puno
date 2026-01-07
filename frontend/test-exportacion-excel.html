@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Exportación Excel de Resoluciones</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+            color: white;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .features-section {
+            padding: 20px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2e7d32;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .feature-list li {
+            padding: 4px 0;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feature-list li::before {
+            content: "✅";
+            font-size: 12px;
+        }
+        
+        .demo-section {
+            background: #e8f5e8;
+            padding: 20px;
+            border-left: 4px solid #4caf50;
+            margin: 20px;
+            border-radius: 4px;
+        }
+        
+        .demo-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2e7d32;
+            margin: 0 0 12px 0;
+        }
+        
+        .demo-steps {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .demo-steps li {
+            padding: 8px 0;
+            color: #2e7d32;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .step-number {
+            background: #4caf50;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .technical-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .technical-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
+            margin: 0 0 12px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        
+        .highlight {
+            background: #ffd54f;
+            padding: 2px 4px;
+            border-radius: 2px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">📊 Exportación Excel Mejorada</h1>
+            <p class="subtitle">Sistema inteligente de exportación con filas seleccionadas y columnas visibles</p>
+        </div>
+        
+        <div class="features-section">
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3 class="feature-title">
+                        <span>🎯</span>
+                        Exportación Selectiva
+                    </h3>
+                    <p class="feature-description">
+                        Exporta solo las filas que selecciones con checkboxes, no todas las resoluciones.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Selecciona filas individuales</li>
+                        <li>Selecciona todas con checkbox maestro</li>
+                        <li>Exporta solo lo seleccionado</li>
+                        <li>Contador de filas seleccionadas</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3 class="feature-title">
+                        <span>📋</span>
+                        Columnas Visibles
+                    </h3>
+                    <p class="feature-description">
+                        Exporta solo las columnas que están visibles en la tabla, respetando tu configuración.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Respeta configuración de columnas</li>
+                        <li>Excluye columnas de acciones</li>
+                        <li>Mantiene orden de columnas</li>
+                        <li>Headers personalizados</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3 class="feature-title">
+                        <span>📈</span>
+                        Excel Nativo
+                    </h3>
+                    <p class="feature-description">
+                        Genera archivos Excel (.xlsx) reales, no CSV. Con formato y anchos de columna optimizados.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Formato .xlsx nativo</li>
+                        <li>Anchos de columna automáticos</li>
+                        <li>Headers formateados</li>
+                        <li>Fechas en formato peruano</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h3 class="feature-title">
+                        <span>⚡</span>
+                        Procesamiento Local
+                    </h3>
+                    <p class="feature-description">
+                        Genera el Excel en el navegador, sin depender del backend. Rápido y confiable.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Procesamiento en frontend</li>
+                        <li>No requiere backend</li>
+                        <li>Descarga inmediata</li>
+                        <li>Manejo de errores robusto</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h3 class="demo-title">🚀 Cómo usar la nueva exportación</h3>
+            <ol class="demo-steps">
+                <li>
+                    <span class="step-number">1</span>
+                    <div>
+                        <strong>Selecciona filas:</strong> Usa los checkboxes para seleccionar las resoluciones que quieres exportar. Puedes seleccionar todas con el checkbox del header.
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">2</span>
+                    <div>
+                        <strong>Configura columnas:</strong> Usa el selector de columnas para mostrar/ocultar las columnas que quieres en el Excel.
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">3</span>
+                    <div>
+                        <strong>Exporta:</strong> Haz clic en "Exportar" en la sección de acciones en lote (aparece cuando hay filas seleccionadas).
+                    </div>
+                </li>
+                <li>
+                    <span class="step-number">4</span>
+                    <div>
+                        <strong>Descarga:</strong> El archivo Excel se descarga automáticamente con nombre <span class="highlight">resoluciones_YYYY-MM-DD.xlsx</span>
+                    </div>
+                </li>
+            </ol>
+        </div>
+        
+        <div class="technical-section">
+            <h3 class="technical-title">🔧 Detalles Técnicos</h3>
+            
+            <h4>Columnas Exportadas:</h4>
+            <div class="code-block">
+N° Resolución    → r.nroResolucion
+Empresa          → r.empresa?.razonSocial?.principal
+Tipo de Trámite  → r.tipoTramite  
+Fecha Emisión    → r.fechaEmision (formato dd/MM/yyyy)
+Vigencia Inicio  → r.fechaVigenciaInicio (formato dd/MM/yyyy)
+Vigencia Fin     → r.fechaVigenciaFin (formato dd/MM/yyyy)
+Años Vigencia    → r.aniosVigencia + " años"
+Estado           → r.estado
+Rutas Autorizadas → r.cantidadRutas + " rutas"
+Vehículos Habilitados → r.cantidadVehiculos + " vehículos"
+            </div>
+            
+            <h4>Librerías Utilizadas:</h4>
+            <div class="code-block">
+import('xlsx') → Generación de archivos Excel
+XLSX.utils.aoa_to_sheet() → Conversión de array a worksheet
+XLSX.utils.book_new() → Creación de workbook
+XLSX.write() → Generación del archivo binario
+            </div>
+            
+            <h4>Flujo de Exportación:</h4>
+            <div class="code-block">
+1. Usuario selecciona filas → seleccion.selected[]
+2. Usuario hace clic en exportar → exportarResolucionesSeleccionadas()
+3. Se obtienen columnas visibles → configuracionTabla().columnasVisibles
+4. Se llama al servicio → exportarResolucionesSeleccionadas(filas, columnas)
+5. Se genera Excel → generarExcel() con xlsx
+6. Se descarga archivo → blob + URL.createObjectURL()
+            </div>
+        </div>
+    </div>
+</body>
+</html>

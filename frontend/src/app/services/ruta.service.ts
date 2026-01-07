@@ -324,6 +324,87 @@ export class RutaService {
   /**
    * Descargar plantilla Excel para carga masiva de rutas
    */
+  async descargarPlantillaCargaMasiva(): Promise<Blob> {
+    const url = `${this.apiUrl}/rutas/carga-masiva/plantilla`;
+    
+    try {
+      const blob = await this.http.get(url, { 
+        headers: this.getHeaders(),
+        responseType: 'blob'
+      }).toPromise();
+      
+      if (!blob) throw new Error('No se pudo descargar la plantilla');
+      return blob;
+    } catch (error) {
+      console.error('Error descargando plantilla de rutas:', error);
+      throw new Error('Error al descargar la plantilla');
+    }
+  }
+
+  /**
+   * Obtener información de ayuda para carga masiva
+   */
+  async obtenerAyudaCargaMasiva(): Promise<any> {
+    const url = `${this.apiUrl}/rutas/carga-masiva/ayuda`;
+    
+    try {
+      return await this.http.get(url, { headers: this.getHeaders() }).toPromise();
+    } catch (error) {
+      console.error('Error obteniendo ayuda de carga masiva:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Validar archivo Excel de rutas con validaciones completas
+   */
+  async validarCargaMasiva(archivo: File): Promise<any> {
+    const url = `${this.apiUrl}/rutas/carga-masiva/validar-completo`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    try {
+      return await this.http.post(url, formData, { headers }).toPromise();
+    } catch (error) {
+      console.error('Error validando archivo de rutas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Procesar carga masiva de rutas desde Excel con validaciones completas
+   */
+  async procesarCargaMasiva(archivo: File, soloValidar: boolean = false): Promise<any> {
+    const url = `${this.apiUrl}/rutas/carga-masiva/procesar-completo`;
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    
+    const params = new URLSearchParams();
+    if (soloValidar) {
+      params.append('solo_validar', 'true');
+    }
+
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    const finalUrl = params.toString() ? `${url}?${params.toString()}` : url;
+
+    try {
+      return await this.http.post(finalUrl, formData, { headers }).toPromise();
+    } catch (error) {
+      console.error('Error procesando carga masiva de rutas:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Descargar plantilla Excel para carga masiva de rutas (método legacy)
+   */
   descargarPlantillaExcel(): Observable<Blob> {
     const url = `${this.apiUrl}/rutas/carga-masiva/plantilla`;
     
@@ -339,7 +420,7 @@ export class RutaService {
   }
 
   /**
-   * Validar archivo Excel de rutas sin procesarlo
+   * Validar archivo Excel de rutas sin procesarlo (método legacy)
    */
   validarArchivoExcel(archivo: File): Observable<any> {
     const url = `${this.apiUrl}/rutas/carga-masiva/validar`;
@@ -358,34 +439,4 @@ export class RutaService {
       })
     );
   }
-
-  /**
-   * Procesar carga masiva de rutas desde Excel
-   */
-  procesarCargaMasiva(archivo: File, soloValidar: boolean = false): Observable<any> {
-    const url = `${this.apiUrl}/rutas/carga-masiva/procesar`;
-    const formData = new FormData();
-    formData.append('archivo', archivo);
-    
-    // Agregar parámetro de solo validar
-    const params = new URLSearchParams();
-    if (soloValidar) {
-      params.append('solo_validar', 'true');
-    }
-
-    // Headers sin Content-Type para FormData
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-
-    const finalUrl = params.toString() ? `${url}?${params.toString()}` : url;
-
-    return this.http.post(finalUrl, formData, { headers }).pipe(
-      catchError(error => {
-        console.error('Error procesando carga masiva de rutas:', error);
-        return throwError(() => new Error('Error al procesar el archivo'));
-      })
-    );
-  }
-} 
-
+}

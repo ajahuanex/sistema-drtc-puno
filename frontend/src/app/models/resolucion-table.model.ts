@@ -9,6 +9,7 @@ import { Resolucion } from './resolucion.model';
  */
 export interface ResolucionFiltros {
   numeroResolucion?: string;
+  busquedaGeneral?: string; // Búsqueda inteligente por número, razón social o RUC
   empresaId?: string;
   tiposTramite?: string[];
   estados?: string[];
@@ -127,6 +128,9 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'empresa',
     'tipoTramite',
     'fechaEmision',
+    'fechaVigenciaInicio',
+    'fechaVigenciaFin',
+    'aniosVigencia',
     'estado',
     'rutasAutorizadas',
     'vehiculosHabilitados',
@@ -139,10 +143,10 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'fechaEmision',
     'fechaVigenciaInicio',
     'fechaVigenciaFin',
+    'aniosVigencia',
     'estado',
     'rutasAutorizadas',
     'vehiculosHabilitados',
-    'estaActivo',
     'acciones'
   ],
   ordenamiento: [
@@ -165,10 +169,10 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
 export const COLUMNAS_DEFINICIONES: ColumnaDefinicion[] = [
   {
     key: 'nroResolucion',
-    label: 'Número de Resolución',
+    label: 'N° Resolución',
     sortable: true,
     required: true,
-    width: '180px',
+    width: '115px',
     align: 'left',
     tipo: 'text'
   },
@@ -218,6 +222,15 @@ export const COLUMNAS_DEFINICIONES: ColumnaDefinicion[] = [
     tipo: 'date'
   },
   {
+    key: 'aniosVigencia',
+    label: 'Años Vigencia',
+    sortable: true,
+    required: false,
+    width: '100px',
+    align: 'center',
+    tipo: 'text'
+  },
+  {
     key: 'estado',
     label: 'Estado',
     sortable: true,
@@ -241,15 +254,6 @@ export const COLUMNAS_DEFINICIONES: ColumnaDefinicion[] = [
     sortable: false,
     required: false,
     width: '180px',
-    align: 'center',
-    tipo: 'badge'
-  },
-  {
-    key: 'estaActivo',
-    label: 'Activo',
-    sortable: true,
-    required: false,
-    width: '80px',
     align: 'center',
     tipo: 'badge'
   },

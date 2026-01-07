@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject, takeUntil, combineLatest, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, takeUntil, combineLatest, debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
 import { ResolucionService } from '../../services/resolucion.service';
 import { ResolucionesTableService } from '../../services/resoluciones-table.service';
 import { 
@@ -70,6 +70,11 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         </div>
         
         <div class="header-actions">
+          <button mat-stroked-button (click)="verResolucionesEliminadas()" class="deleted-btn">
+            <app-smart-icon iconName="restore_from_trash" [size]="20"></app-smart-icon>
+            Eliminadas
+          </button>
+          
           <button mat-stroked-button (click)="exportarResoluciones()" class="export-btn">
             <app-smart-icon iconName="file_download" [size]="20"></app-smart-icon>
             Exportar
@@ -256,6 +261,18 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     .export-btn:hover {
       background-color: rgba(255, 255, 255, 0.2);
       transform: translateY(-2px);
+    }
+
+    .deleted-btn {
+      background-color: rgba(255, 152, 0, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 152, 0, 0.3);
+    }
+
+    .deleted-btn:hover {
+      background-color: rgba(255, 152, 0, 0.2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
     }
 
     .bulk-upload-btn {
@@ -525,6 +542,9 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   // ========================================
 
   private inicializarComponente(): void {
+    // Limpiar filtros al inicio
+    this.tableService.limpiarFiltros();
+    
     // Cargar configuración inicial de la tabla
     const configInicial = this.tableService.getConfiguracion();
     this.configuracionTabla.set(configInicial);
@@ -635,6 +655,8 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
 
   private aplicarFiltrosYCargarDatos(): void {
     const filtros = this.filtrosActuales();
+    console.log('🔄 Aplicando filtros:', filtros);
+    console.log('🔄 Tiene filtros activos:', this.tieneFiltrosActivos());
     
     if (this.tieneFiltrosActivos()) {
       // Mostrar loading durante filtrado
@@ -643,7 +665,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
       // Aplicar filtros
       this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
         next: (resolucionesFiltradas) => {
-          console.log('🔍 Resoluciones filtradas:', resolucionesFiltradas.length);
+          console.log('🔍 Resoluciones filtradas recibidas:', resolucionesFiltradas.length);
           this.resolucionesFiltradas.set(resolucionesFiltradas);
           this.tableService.totalResultados.set(resolucionesFiltradas.length);
           this.isLoading.set(false);
@@ -662,6 +684,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
       });
     } else {
       // Sin filtros, mostrar todas
+      console.log('📋 Sin filtros activos, mostrando todas las resoluciones:', this.resoluciones().length);
       this.resolucionesFiltradas.set(this.resoluciones());
       this.tableService.totalResultados.set(this.resoluciones().length);
     }
@@ -686,13 +709,15 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   // ========================================
 
   onFiltrosChange(filtros: ResolucionFiltros): void {
-    console.log('🔍 Filtros cambiados:', filtros);
+    console.log('🔍 Filtros cambiados en componente principal:', filtros);
     this.tableService.actualizarFiltros(filtros);
   }
 
   onLimpiarFiltros(): void {
-    console.log('🧹 Limpiando filtros');
+    console.log('🧹 Limpiando todos los filtros');
     this.tableService.limpiarFiltros();
+    // Forzar actualización
+    this.filtrosActuales.set({});
   }
 
   // ========================================
@@ -721,8 +746,15 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         break;
         
       case 'eliminar':
-        if (accion.resolucion) {
+        if (accion.resoluciones && accion.resoluciones.length > 1) {
+          // Eliminación en lote
+          this.eliminarResolucionesEnLote(accion.resoluciones);
+        } else if (accion.resolucion) {
+          // Eliminación individual
           this.eliminarResolucion(accion.resolucion.id);
+        } else if (accion.resoluciones && accion.resoluciones.length === 1) {
+          // Eliminación individual desde selección
+          this.eliminarResolucion(accion.resoluciones[0].id);
         }
         break;
         
@@ -752,6 +784,11 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     this.router.navigate(['/resoluciones/carga-masiva-padres']);
   }
 
+  verResolucionesEliminadas(): void {
+    // Crear un diálogo simple para mostrar resoluciones eliminadas
+    this.mostrarDialogoResolucionesEliminadas();
+  }
+
   verResolucion(id: string): void {
     this.router.navigate(['/resoluciones', id]);
   }
@@ -775,29 +812,195 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     }
   }
 
+  eliminarResolucionesEnLote(resoluciones: ResolucionConEmpresa[]): void {
+    if (resoluciones.length === 0) {
+      this.mostrarNotificacion('No hay resoluciones seleccionadas para eliminar', 'error');
+      return;
+    }
+
+    const mensaje = `Se eliminarán ${resoluciones.length} resoluciones:\n\n${resoluciones.map(r => `• ${r.nroResolucion} - ${r.empresa?.razonSocial?.principal || 'Sin empresa'}`).join('\n')}\n\n⚠️ Esta acción se puede deshacer en los próximos 30 días.`;
+    
+    if (confirm(mensaje)) {
+      // Mostrar progreso
+      this.mostrarNotificacion(`Eliminando ${resoluciones.length} resoluciones...`, 'info');
+      
+      // Crear array de observables para eliminar todas las resoluciones
+      const eliminaciones = resoluciones.map(resolucion => 
+        this.resolucionService.deleteResolucion(resolucion.id)
+      );
+
+      // Usar forkJoin para ejecutar todas las eliminaciones en paralelo
+      forkJoin(eliminaciones).subscribe({
+        next: (resultados) => {
+          const exitosas = resultados.length;
+          
+          // Mostrar notificación con opción de deshacer
+          this.mostrarNotificacionConDeshacer(
+            `✓ ${exitosas} resoluciones eliminadas exitosamente`,
+            'success',
+            resoluciones.map(r => r.id)
+          );
+          
+          this.cargarResoluciones();
+        },
+        error: (error) => {
+          console.error('Error eliminando resoluciones en lote:', error);
+          this.mostrarNotificacion('Error al eliminar algunas resoluciones. Por favor, verifica e intenta nuevamente.', 'error');
+          // Recargar para mostrar el estado actual
+          this.cargarResoluciones();
+        }
+      });
+    }
+  }
+
+  /**
+   * Mostrar notificación con opción de deshacer eliminación
+   */
+  private mostrarNotificacionConDeshacer(mensaje: string, tipo: 'success' | 'error' | 'info', resolucionesIds: string[]): void {
+    const config: any = {
+      duration: 10000, // 10 segundos para dar tiempo a deshacer
+      horizontalPosition: 'end',
+      verticalPosition: 'top',
+      panelClass: ['snackbar-success']
+    };
+
+    const snackBarRef = this.snackBar.open(mensaje, 'DESHACER', config);
+    
+    // Manejar clic en "DESHACER"
+    snackBarRef.onAction().subscribe(() => {
+      this.deshacerEliminacion(resolucionesIds);
+    });
+  }
+
+  /**
+   * Deshacer eliminación de resoluciones
+   */
+  private deshacerEliminacion(resolucionesIds: string[]): void {
+    this.mostrarNotificacion('Restaurando resoluciones...', 'info');
+    
+    this.resolucionService.restoreResolucionesMultiples(resolucionesIds).subscribe({
+      next: (resultado) => {
+        const restauradas = resultado.total_exitosas || 0;
+        this.mostrarNotificacion(`✓ ${restauradas} resoluciones restauradas exitosamente`, 'success');
+        this.cargarResoluciones();
+      },
+      error: (error) => {
+        console.error('Error restaurando resoluciones:', error);
+        this.mostrarNotificacion('Error al restaurar las resoluciones. Puedes intentar desde el menú de resoluciones eliminadas.', 'error');
+      }
+    });
+  }
+
+  /**
+   * Mostrar diálogo con resoluciones eliminadas
+   */
+  private mostrarDialogoResolucionesEliminadas(): void {
+    this.resolucionService.getResolucionesEliminadas().subscribe({
+      next: (resolucionesEliminadas) => {
+        if (resolucionesEliminadas.length === 0) {
+          this.mostrarNotificacion('No hay resoluciones eliminadas recientemente', 'info');
+          return;
+        }
+
+        // Crear mensaje con lista de resoluciones eliminadas
+        const mensaje = `Resoluciones eliminadas (últimos 30 días):\n\n${resolucionesEliminadas.map((r, index) => {
+          const fechaEliminacion = r.fechaEliminacion ? new Date(r.fechaEliminacion).toLocaleDateString('es-PE') : 'Fecha desconocida';
+          return `${index + 1}. ${r.nroResolucion} - Eliminada: ${fechaEliminacion}`;
+        }).join('\n')}\n\n¿Deseas restaurar alguna de estas resoluciones?`;
+
+        if (confirm(mensaje)) {
+          // Mostrar opciones de restauración
+          this.mostrarOpcionesRestauracion(resolucionesEliminadas);
+        }
+      },
+      error: (error) => {
+        console.error('Error obteniendo resoluciones eliminadas:', error);
+        this.mostrarNotificacion('Error al obtener resoluciones eliminadas', 'error');
+      }
+    });
+  }
+
+  /**
+   * Mostrar opciones de restauración
+   */
+  private mostrarOpcionesRestauracion(resolucionesEliminadas: any[]): void {
+    // Crear lista de opciones
+    const opciones = resolucionesEliminadas.map((r, index) => 
+      `${index + 1}. ${r.nroResolucion}`
+    ).join('\n');
+
+    const seleccion = prompt(`Selecciona las resoluciones a restaurar (números separados por comas):\n\n${opciones}\n\nEjemplo: 1,3,5 para restaurar las resoluciones 1, 3 y 5:`);
+
+    if (seleccion) {
+      try {
+        const indices = seleccion.split(',').map(s => parseInt(s.trim()) - 1);
+        const resolucionesARestaurar = indices
+          .filter(i => i >= 0 && i < resolucionesEliminadas.length)
+          .map(i => resolucionesEliminadas[i].id);
+
+        if (resolucionesARestaurar.length > 0) {
+          this.restaurarResoluciones(resolucionesARestaurar);
+        } else {
+          this.mostrarNotificacion('Selección inválida', 'error');
+        }
+      } catch (error) {
+        this.mostrarNotificacion('Formato de selección inválido', 'error');
+      }
+    }
+  }
+
+  /**
+   * Restaurar resoluciones seleccionadas
+   */
+  private restaurarResoluciones(resolucionesIds: string[]): void {
+    this.mostrarNotificacion(`Restaurando ${resolucionesIds.length} resoluciones...`, 'info');
+    
+    this.resolucionService.restoreResolucionesMultiples(resolucionesIds).subscribe({
+      next: (resultado) => {
+        const restauradas = resultado.total_exitosas || 0;
+        const errores = resultado.total_errores || 0;
+        
+        if (errores > 0) {
+          this.mostrarNotificacion(`✓ ${restauradas} restauradas, ${errores} errores`, 'info');
+        } else {
+          this.mostrarNotificacion(`✓ ${restauradas} resoluciones restauradas exitosamente`, 'success');
+        }
+        
+        this.cargarResoluciones();
+      },
+      error: (error) => {
+        console.error('Error restaurando resoluciones:', error);
+        this.mostrarNotificacion('Error al restaurar las resoluciones', 'error');
+      }
+    });
+  }
+
   // ========================================
   // EXPORTACIÓN
   // ========================================
 
   exportarResoluciones(resoluciones?: ResolucionConEmpresa[]): void {
-    const filtros = resoluciones ? {} : this.filtrosActuales();
+    // Determinar qué resoluciones exportar
+    const resolucionesAExportar = resoluciones || this.resolucionesFiltradas();
+    const columnasVisibles = this.configuracionTabla().columnasVisibles;
+    
     const mensaje = resoluciones 
       ? `Exportando ${resoluciones.length} resoluciones seleccionadas...`
-      : 'Exportando todas las resoluciones...';
+      : `Exportando ${resolucionesAExportar.length} resoluciones...`;
     
     this.mostrarNotificacion(mensaje, 'info');
     
-    this.resolucionService.exportarResoluciones(filtros, 'excel').subscribe({
+    this.resolucionService.exportarResolucionesSeleccionadas(resolucionesAExportar, columnasVisibles).subscribe({
       next: (blob) => {
-        // Crear y descargar archivo
+        // Crear y descargar archivo Excel
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `resoluciones_${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `resoluciones_${new Date().toISOString().split('T')[0]}.xlsx`;
         link.click();
         window.URL.revokeObjectURL(url);
         
-        this.mostrarNotificacion('✓ Exportación completada exitosamente', 'success');
+        this.mostrarNotificacion('✓ Exportación Excel completada exitosamente', 'success');
       },
       error: (error) => {
         console.error('Error al exportar:', error);
