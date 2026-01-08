@@ -15,7 +15,7 @@ import { LocalidadService } from '../../services/localidad.service';
 
 export interface GestionarLocalidadModalData {
   localidad?: Localidad;
-  modo: 'crear' | 'editar';
+  esEdicion: boolean;
 }
 
 @Component({
@@ -35,8 +35,8 @@ export interface GestionarLocalidadModalData {
   template: `
     <div class="modal-header">
       <h2 mat-dialog-title>
-        <mat-icon>{{ data.modo === 'crear' ? 'add_location' : 'edit_location' }}</mat-icon>
-        {{ data.modo === 'crear' ? 'Agregar Localidad' : 'Editar Localidad' }}
+        <mat-icon>{{ data.esEdicion ? 'edit_location' : 'add_location' }}</mat-icon>
+        {{ data.esEdicion ? 'Editar Localidad' : 'Agregar Localidad' }}
       </h2>
       <button mat-icon-button mat-dialog-close>
         <mat-icon>close</mat-icon>
@@ -186,9 +186,9 @@ export interface GestionarLocalidadModalData {
         @if (guardando()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {
-          <mat-icon>{{ data.modo === 'crear' ? 'add' : 'save' }}</mat-icon>
+          <mat-icon>{{ data.esEdicion ? 'save' : 'add' }}</mat-icon>
         }
-        {{ data.modo === 'crear' ? 'Crear Localidad' : 'Guardar Cambios' }}
+        {{ data.esEdicion ? 'Guardar Cambios' : 'Crear Localidad' }}
       </button>
     </mat-dialog-actions>
   `,
@@ -287,7 +287,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.data.modo === 'editar' && this.data.localidad) {
+    if (this.data.esEdicion && this.data.localidad) {
       this.cargarDatosLocalidad();
     }
 
@@ -374,7 +374,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
       return;
     }
 
-    const idExcluir = this.data.modo === 'editar' ? this.data.localidad?.id : undefined;
+    const idExcluir = this.data.esEdicion ? this.data.localidad?.id : undefined;
     
     console.log('🔍 Validando código único:', codigoUpper);
     
@@ -443,11 +443,11 @@ export class GestionarLocalidadModalComponent implements OnInit {
     };
 
     console.log('📤 Datos preparados para enviar:', localidadData);
-    console.log('📤 Modo:', this.data.modo);
+    console.log('📤 Es edición:', this.data.esEdicion);
 
     try {
       let localidad: any;
-      if (this.data.modo === 'crear') {
+      if (!this.data.esEdicion) {
         localidad = await this.localidadService.crearLocalidad(localidadData as LocalidadCreate);
       } else {
         localidad = await this.localidadService.actualizarLocalidad(this.data.localidad!.id, localidadData as LocalidadUpdate);
@@ -455,7 +455,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
 
       console.log('✅ LOCALIDAD GUARDADA EXITOSAMENTE:', localidad);
       this.guardando.set(false);
-      const mensaje = this.data.modo === 'crear' 
+      const mensaje = !this.data.esEdicion 
         ? 'Localidad creada exitosamente' 
         : 'Localidad actualizada exitosamente';
       
