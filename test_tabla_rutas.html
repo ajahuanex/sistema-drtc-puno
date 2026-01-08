@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tabla Rutas - Visualización</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            max-width: 100%;
+            width: 100%;
+            position: relative;
+            background-color: white;
+        }
+        
+        .rutas-table {
+            width: 100%;
+            min-width: 1200px;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        
+        .rutas-table th,
+        .rutas-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: left;
+            font-size: 13px;
+        }
+        
+        .rutas-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Anchos específicos de columnas */
+        .rutas-table th:nth-child(1),
+        .rutas-table td:nth-child(1) { width: 50px; min-width: 50px; } /* Selección */
+        .rutas-table th:nth-child(2),
+        .rutas-table td:nth-child(2) { width: 80px; min-width: 80px; } /* Código */
+        .rutas-table th:nth-child(3),
+        .rutas-table td:nth-child(3) { width: 180px; min-width: 150px; } /* Empresa */
+        .rutas-table th:nth-child(4),
+        .rutas-table td:nth-child(4) { width: 100px; min-width: 90px; } /* Resolución */
+        .rutas-table th:nth-child(5),
+        .rutas-table td:nth-child(5) { width: 100px; min-width: 80px; } /* Origen */
+        .rutas-table th:nth-child(6),
+        .rutas-table td:nth-child(6) { width: 100px; min-width: 80px; } /* Destino */
+        .rutas-table th:nth-child(7),
+        .rutas-table td:nth-child(7) { width: 150px; min-width: 120px; } /* Itinerario */
+        .rutas-table th:nth-child(8),
+        .rutas-table td:nth-child(8) { width: 120px; min-width: 100px; } /* Frecuencias */
+        .rutas-table th:nth-child(9),
+        .rutas-table td:nth-child(9) { width: 70px; min-width: 60px; } /* Estado */
+        .rutas-table th:nth-child(10),
+        .rutas-table td:nth-child(10) { width: 140px; min-width: 120px; } /* Acciones */
+        
+        /* Columna de acciones sticky */
+        .rutas-table th:last-child,
+        .rutas-table td:last-child {
+            position: sticky;
+            right: 0;
+            background-color: white;
+            border-left: 2px solid #e0e0e0;
+            z-index: 2;
+            box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .rutas-table th:last-child {
+            background-color: #f5f5f5;
+        }
+        
+        .checkbox {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .action-button {
+            background: none;
+            border: none;
+            padding: 4px;
+            margin: 0 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        .action-button:hover {
+            transform: scale(1.1);
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .action-button.view { color: #ff9800; }
+        .action-button.edit { color: #1976d2; }
+        .action-button.copy { color: #ff9800; }
+        .action-button.delete { color: #d32f2f; }
+        
+        .codigo-ruta {
+            font-weight: 600;
+            color: #1976d2;
+            background-color: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .estado-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .itinerario-text {
+            font-size: 12px;
+            color: #666;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .info-panel {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+        
+        .info-panel p {
+            margin: 5px 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h3>🧪 Test de Visualización - Tabla de Rutas</h3>
+        <p><strong>Propósito:</strong> Verificar que la tabla se vea correctamente con todas las columnas</p>
+        <p><strong>Columnas visibles por defecto:</strong> Selección, Código, Empresa, Resolución, Origen, Destino, Itinerario, Frecuencias, Estado, Acciones</p>
+        <p><strong>Característica especial:</strong> La columna de Acciones es "sticky" (siempre visible al hacer scroll horizontal)</p>
+    </div>
+
+    <div class="table-container">
+        <table class="rutas-table">
+            <thead>
+                <tr>
+                    <th>☑️</th>
+                    <th>Código</th>
+                    <th>Empresa</th>
+                    <th>Resolución</th>
+                    <th>Origen</th>
+                    <th>Destino</th>
+                    <th>Itinerario</th>
+                    <th>Frecuencias</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="checkbox" class="checkbox"></td>
+                    <td><span class="codigo-ruta">R001</span></td>
+                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
+                    <td>R-001-2025</td>
+                    <td>PUNO</td>
+                    <td>JULIACA</td>
+                    <td><span class="itinerario-text">SIN ITINERARIO</span></td>
+                    <td>Cada 30 minutos</td>
+                    <td><span class="estado-badge">ACTIVA</span></td>
+                    <td>
+                        <button class="action-button view" title="Ver detalles">👁️</button>
+                        <button class="action-button edit" title="Editar">✏️</button>
+                        <button class="action-button copy" title="Duplicar">📋</button>
+                        <button class="action-button delete" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="checkbox"></td>
+                    <td><span class="codigo-ruta">R002</span></td>
+                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
+                    <td>R-001-2025</td>
+                    <td>JULIACA</td>
+                    <td>AREQUIPA</td>
+                    <td><span class="itinerario-text">JULIACA - LAMPA - AREQUIPA</span></td>
+                    <td>Cada 2 horas</td>
+                    <td><span class="estado-badge">ACTIVA</span></td>
+                    <td>
+                        <button class="action-button view" title="Ver detalles">👁️</button>
+                        <button class="action-button edit" title="Editar">✏️</button>
+                        <button class="action-button copy" title="Duplicar">📋</button>
+                        <button class="action-button delete" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="checkbox"></td>
+                    <td><span class="codigo-ruta">R003</span></td>
+                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
+                    <td>R-001-2025</td>
+                    <td>PUNO</td>
+                    <td>CUSCO</td>
+                    <td><span class="itinerario-text">SIN ITINERARIO</span></td>
+                    <td>Diario a las 6:00 AM</td>
+                    <td><span class="estado-badge">ACTIVA</span></td>
+                    <td>
+                        <button class="action-button view" title="Ver detalles">👁️</button>
+                        <button class="action-button edit" title="Editar">✏️</button>
+                        <button class="action-button copy" title="Duplicar">📋</button>
+                        <button class="action-button delete" title="Eliminar">🗑️</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="info-panel" style="margin-top: 20px;">
+        <h3>📋 Instrucciones de Prueba:</h3>
+        <p>1. <strong>Scroll Horizontal:</strong> Arrastra horizontalmente en la tabla para ver todas las columnas</p>
+        <p>2. <strong>Columna Sticky:</strong> La columna "Acciones" debe permanecer visible siempre</p>
+        <p>3. <strong>Botones:</strong> Los 4 botones de acción deben ser visibles y funcionales</p>
+        <p>4. <strong>Responsive:</strong> Redimensiona la ventana para probar en diferentes tamaños</p>
+        <p>5. <strong>Hover:</strong> Los botones deben tener efecto hover con escala y color</p>
+    </div>
+
+    <script>
+        // Simular funcionalidad de botones
+        document.querySelectorAll('.action-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const action = this.className.split(' ')[1];
+                const row = this.closest('tr');
+                const codigo = row.querySelector('.codigo-ruta').textContent;
+                
+                switch(action) {
+                    case 'view':
+                        alert(`👁️ Ver detalles de ruta: ${codigo}`);
+                        break;
+                    case 'edit':
+                        alert(`✏️ Editar ruta: ${codigo}`);
+                        break;
+                    case 'copy':
+                        alert(`📋 Duplicar ruta: ${codigo}`);
+                        break;
+                    case 'delete':
+                        if(confirm(`🗑️ ¿Eliminar ruta ${codigo}?`)) {
+                            alert(`Ruta ${codigo} eliminada`);
+                        }
+                        break;
+                }
+            });
+        });
+        
+        // Simular selección de checkboxes
+        document.querySelectorAll('.checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const row = this.closest('tr');
+                if (this.checked) {
+                    row.style.backgroundColor = '#e3f2fd';
+                    row.style.borderLeft = '3px solid #1976d2';
+                } else {
+                    row.style.backgroundColor = '';
+                    row.style.borderLeft = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

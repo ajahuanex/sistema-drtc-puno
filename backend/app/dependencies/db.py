@@ -17,30 +17,34 @@ db = Database()
 
 async def get_database():
     """Obtiene la instancia de la base de datos"""
-    return db.client[settings.DATABASE_NAME]
+    return db.client["drtc_db"]
 
 def get_sync_database():
     """Obtiene la instancia síncrona de la base de datos"""
-    return db.sync_client[settings.DATABASE_NAME]
+    return db.sync_client["drtc_db"]
 
 async def connect_to_mongo():
     """Conecta a MongoDB"""
     try:
-        logger.info(f"Conectando a MongoDB: {settings.MONGODB_URL}")
-        logger.info(f"Base de datos: {settings.DATABASE_NAME}")
+        # Usar la URL correcta directamente
+        mongodb_url = "mongodb://admin:admin123@localhost:27017/"
+        database_name = "drtc_db"
+        
+        logger.info(f"Conectando a MongoDB: {mongodb_url}")
+        logger.info(f"Base de datos: {database_name}")
         
         # Cliente asíncrono
-        db.client = AsyncIOMotorClient(settings.MONGODB_URL)
+        db.client = AsyncIOMotorClient(mongodb_url)
         
         # Cliente síncrono para operaciones que lo requieran
-        db.sync_client = MongoClient(settings.MONGODB_URL)
+        db.sync_client = MongoClient(mongodb_url)
         
         # Verificar conexión
         await db.client.admin.command('ping')
         db.sync_client.admin.command('ping')
         
         logger.info("✅ Conectado a MongoDB exitosamente")
-        logger.info(f"✅ Base de datos activa: {settings.DATABASE_NAME}")
+        logger.info(f"✅ Base de datos activa: {database_name}")
         
     except Exception as e:
         logger.error(f"❌ Error conectando a MongoDB: {e}")

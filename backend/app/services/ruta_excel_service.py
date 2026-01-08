@@ -277,8 +277,9 @@ class RutaExcelService:
         # Validar itinerario (opcional) - La normalización se hace en _convertir_fila_a_ruta
         itinerario = str(row.get('Itinerario', '')).strip() if pd.notna(row.get('Itinerario')) else ''
         # Solo validar longitud si no está vacío (vacío se convierte en "SIN ITINERARIO" después)
+        # PERMITIR itinerarios vacíos - se convertirán automáticamente a "SIN ITINERARIO"
         if itinerario and len(itinerario) < 5:
-            errores.append("Itinerario debe tener al menos 5 caracteres")
+            errores.append("Itinerario debe tener al menos 5 caracteres (o déjalo vacío para 'SIN ITINERARIO')")
         
         # Validar frecuencia (requerido)
         frecuencia = str(row.get('Frecuencia', '')).strip() if pd.notna(row.get('Frecuencia')) else ''
@@ -318,47 +319,11 @@ class RutaExcelService:
         # Si no coincide con ningún patrón, devolver tal como está
         return resolucion
     
-    async def _validar_resolucion_flexible(self, resolucion_original: str, ruc: str) -> Tuple[bool, str]:
-        """Validar resolución con múltiples formatos posibles"""
+    async def _buscar_resolucion(self, resolucion_normalizada: str):
+        """Método auxiliar para buscar resolución por número normalizado"""
         if self.db is None:
-            return True, "OK"
-        
-        try:
-            # Intentar con el formato original primero
-            resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_original})
-            
-            # Si no se encuentra, intentar con formato normalizado
-            if not resolucion:
-                resolucion_normalizada = self._normalizar_resolucion(resolucion_original)
-                resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
-            
-            if not resolucion:
-                return False, f"Resolución {resolucion_original} no existe (probado también como {self._normalizar_resolucion(resolucion_original)})"
-            
-            # Obtener empresa por RUC para validar la relación
-            empresa = await self.empresas_collection.find_one({"ruc": ruc})
-            if not empresa:
-                return False, f"Empresa con RUC {ruc} no encontrada"
-            
-            # Validar que la resolución pertenezca a la empresa
-            empresa_obj_id = str(empresa.get("_id", ""))
-            resolucion_empresa_id = resolucion.get("empresaId", "")
-            
-            if resolucion_empresa_id != empresa_obj_id and resolucion_empresa_id != empresa.get("id", ""):
-                return False, f"La resolución {resolucion_original} no pertenece a la empresa {ruc}"
-            
-            # Validar estado VIGENTE
-            if resolucion.get("estado") != "VIGENTE":
-                return False, f"La resolución debe estar VIGENTE. Estado actual: {resolucion.get('estado')}"
-            
-            # Validar tipo PADRE
-            if resolucion.get("tipoResolucion") != "PADRE":
-                return False, "Solo se pueden asociar rutas a resoluciones PADRE (primigenias)"
-            
-            return True, "OK"
-            
-        except Exception as e:
-            return False, f"Error al validar resolución: {str(e)}"
+            return None
+        return await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
     
     def _normalizar_codigo_ruta(self, codigo: str) -> str:
         """Normalizar código de ruta a formato de 2 dígitos mínimo"""
@@ -386,29 +351,6 @@ class RutaExcelService:
         except ValueError:
             return False
     
-    async def _existe_empresa(self, empresa_id: str) -> bool:
-        """Verificar si existe la empresa por RUC"""
-        if self.db is None:
-            return True  # Sin DB, asumir que existe
-        
-        try:
-            # Buscar por RUC (que es lo que se usa como empresa_id en los datos reales)
-            empresa = await self.empresas_collection.find_one({"ruc": empresa_id})
-            if empresa:
-                return True
-            
-            # También buscar por ObjectId si es válido
-            if ObjectId.is_valid(empresa_id):
-                empresa = await self.empresas_collection.find_one({"_id": ObjectId(empresa_id)})
-                if empresa:
-                    return True
-            
-            # Buscar por campo id
-            empresa = await self.empresas_collection.find_one({"id": empresa_id})
-            return empresa is not None
-        except:
-            return False
-    
     async def _validar_resolucion_y_ruc(self, resolucion_normalizada: str, ruc: str) -> Tuple[bool, str]:
         """Validar resolución y que el RUC coincida con la empresa de esa resolución"""
         if self.db is None:
@@ -416,7 +358,7 @@ class RutaExcelService:
         
         try:
             # 1. Buscar resolución por número normalizado
-            resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
+            resolucion = await self._buscar_resolucion(resolucion_normalizada)
             
             if not resolucion:
                 return False, f"Resolución {resolucion_normalizada} no existe"
@@ -452,43 +394,6 @@ class RutaExcelService:
         except Exception as e:
             return False, f"Error al validar resolución y RUC: {str(e)}"
     
-    async def _validar_resolucion(self, resolucion_normalizada: str, ruc: str) -> Tuple[bool, str]:
-        """Validar que la resolución sea PADRE, VIGENTE y pertenezca a la empresa"""
-        if self.db is None:
-            return True, "OK"  # Sin DB, asumir que es válida
-        
-        try:
-            # Buscar por número de resolución normalizado
-            resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
-            
-            if not resolucion:
-                return False, f"Resolución {resolucion_normalizada} no existe"
-            
-            # Obtener empresa por RUC para validar la relación
-            empresa = await self.empresas_collection.find_one({"ruc": ruc})
-            if not empresa:
-                return False, f"Empresa con RUC {ruc} no encontrada"
-            
-            # Validar que la resolución pertenezca a la empresa
-            empresa_obj_id = str(empresa.get("_id", ""))
-            resolucion_empresa_id = resolucion.get("empresaId", "")
-            
-            if resolucion_empresa_id != empresa_obj_id and resolucion_empresa_id != empresa.get("id", ""):
-                return False, f"La resolución {resolucion_normalizada} no pertenece a la empresa {ruc}"
-            
-            # Validar estado VIGENTE
-            if resolucion.get("estado") != "VIGENTE":
-                return False, f"La resolución debe estar VIGENTE. Estado actual: {resolucion.get('estado')}"
-            
-            # Validar tipo PADRE
-            if resolucion.get("tipoResolucion") != "PADRE":
-                return False, "Solo se pueden asociar rutas a resoluciones PADRE (primigenias)"
-            
-            return True, "OK"
-            
-        except Exception as e:
-            return False, f"Error al validar resolución: {str(e)}"
-    
     async def _obtener_id_ruta_existente(self, codigo_ruta: str, resolucion_normalizada: str) -> str:
         """Obtener el ID de una ruta existente"""
         if self.db is None:
@@ -496,7 +401,7 @@ class RutaExcelService:
         
         try:
             # Buscar resolución por número normalizado
-            resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
+            resolucion = await self._buscar_resolucion(resolucion_normalizada)
             if not resolucion:
                 return None
             
@@ -522,7 +427,7 @@ class RutaExcelService:
         
         try:
             # Buscar resolución por número normalizado
-            resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
+            resolucion = await self._buscar_resolucion(resolucion_normalizada)
             if not resolucion:
                 return False
             
@@ -558,14 +463,14 @@ class RutaExcelService:
         resolucion_normalizada = self._normalizar_resolucion(resolucion)
         codigo_normalizado = self._normalizar_codigo_ruta(codigo_ruta)
         
-        # Manejar itinerario vacío
-        if not itinerario:
+        # Manejar itinerario vacío - convertir a "SIN ITINERARIO"
+        if not itinerario or itinerario.strip() == '':
             itinerario = "SIN ITINERARIO"
         
         # Verificar si la resolución existe para determinar el estado
         resolucion_existe = True
         if self.db is not None:
-            resolucion_doc = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
+            resolucion_doc = await self._buscar_resolucion(resolucion_normalizada)
             resolucion_existe = resolucion_doc is not None
         
         # Si la resolución no existe, forzar estado DADA_DE_BAJA
@@ -624,7 +529,7 @@ class RutaExcelService:
                 
                 # Convertir resolución normalizada a resolución ID
                 resolucion_normalizada = ruta_data.get('resolucionNormalizada')
-                resolucion = await self.resoluciones_collection.find_one({"nroResolucion": resolucion_normalizada})
+                resolucion = await self._buscar_resolucion(resolucion_normalizada)
                 if not resolucion:
                     raise Exception(f"Resolución {resolucion_normalizada} no encontrada")
                 
@@ -664,7 +569,6 @@ class RutaExcelService:
                     })
                 else:
                     # CREAR nueva ruta
-                    from app.models.ruta import RutaCreate
                     ruta_create = RutaCreate(**ruta_data_dict)
                     
                     ruta_creada = await ruta_service.create_ruta(ruta_create)

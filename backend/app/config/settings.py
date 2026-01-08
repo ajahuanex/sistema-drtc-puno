@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Base de datos MongoDB
-    MONGODB_URL: str = "mongodb://admin:admin123@localhost:27017"
-    DATABASE_NAME: str = "drtc_db"
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://admin:admin123@localhost:27017/")
+    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "drtc_db")
     
     # Seguridad
     SECRET_KEY: str = "tu_clave_secreta_muy_larga_y_segura_aqui_sirret_2024"

@@ -17,10 +17,11 @@ class LocalidadService:
 
     async def create_localidad(self, localidad_data: LocalidadCreate) -> Localidad:
         """Crear una nueva localidad"""
-        # Verificar que el código sea único
-        existing = await self.collection.find_one({"codigo": localidad_data.codigo})
-        if existing:
-            raise ValueError(f"Ya existe una localidad con el código {localidad_data.codigo}")
+        # Verificar que el UBIGEO sea único si se proporciona
+        if localidad_data.ubigeo:
+            existing = await self.collection.find_one({"ubigeo": localidad_data.ubigeo})
+            if existing:
+                raise ValueError(f"Ya existe una localidad con el UBIGEO {localidad_data.ubigeo}")
 
         # Crear documento
         localidad_dict = localidad_data.model_dump()
@@ -121,9 +122,18 @@ class LocalidadService:
             if not existing:
                 return None
 
-            # Verificar código único si se está actualizando
+            # Verificar UBIGEO único si se está actualizando y se proporciona
             update_data = localidad_data.model_dump(exclude_unset=True)
-            if "codigo" in update_data:
+            if "ubigeo" in update_data and update_data["ubigeo"]:
+                ubigeo_exists = await self.collection.find_one({
+                    "ubigeo": update_data["ubigeo"],
+                    "_id": {"$ne": ObjectId(localidad_id)}
+                })
+                if ubigeo_exists:
+                    raise ValueError(f"Ya existe una localidad con el UBIGEO {update_data['ubigeo']}")
+
+            # Verificar código único si se está actualizando (compatibilidad)
+            if "codigo" in update_data and update_data["codigo"]:
                 codigo_exists = await self.collection.find_one({
                     "codigo": update_data["codigo"],
                     "_id": {"$ne": ObjectId(localidad_id)}
@@ -179,6 +189,18 @@ class LocalidadService:
     async def validar_codigo_unico(self, codigo: str, id_excluir: Optional[str] = None) -> bool:
         """Validar que un código sea único"""
         query = {"codigo": codigo}
+        if id_excluir:
+            try:
+                query["_id"] = {"$ne": ObjectId(id_excluir)}
+            except:
+                pass
+
+        existing = await self.collection.find_one(query)
+        return existing is None
+
+    async def validar_ubigeo_unico(self, ubigeo: str, id_excluir: Optional[str] = None) -> bool:
+        """Validar que un UBIGEO sea único"""
+        query = {"ubigeo": ubigeo}
         if id_excluir:
             try:
                 query["_id"] = {"$ne": ObjectId(id_excluir)}
@@ -293,52 +315,72 @@ class LocalidadService:
         # Localidades por defecto para Puno
         localidades_default = [
             {
+                "ubigeo": "210101",
+                "ubigeo_identificador_mcp": "210101-MCP-001",
+                "departamento": "PUNO",
+                "provincia": "PUNO",
+                "distrito": "PUNO",
+                "municipalidad_centro_poblado": "Municipalidad Provincial de Puno",
+                "nivel_territorial": "DISTRITO",
                 "nombre": "Puno",
                 "codigo": "PUN001",
                 "tipo": "CIUDAD",
-                "departamento": "Puno",
-                "provincia": "Puno",
-                "distrito": "Puno",
                 "descripcion": "Capital del departamento de Puno",
                 "coordenadas": {"latitud": -15.8402, "longitud": -70.0219}
             },
             {
+                "ubigeo": "211301",
+                "ubigeo_identificador_mcp": "211301-MCP-001",
+                "departamento": "PUNO",
+                "provincia": "SAN ROMAN",
+                "distrito": "JULIACA",
+                "municipalidad_centro_poblado": "Municipalidad Provincial de San Román",
+                "nivel_territorial": "DISTRITO",
                 "nombre": "Juliaca",
                 "codigo": "JUL001", 
                 "tipo": "CIUDAD",
-                "departamento": "Puno",
-                "provincia": "San Román",
-                "distrito": "Juliaca",
                 "descripcion": "Ciudad comercial importante de Puno",
                 "coordenadas": {"latitud": -15.5000, "longitud": -70.1333}
             },
             {
+                "ubigeo": "150101",
+                "ubigeo_identificador_mcp": "150101-MCP-001",
+                "departamento": "LIMA",
+                "provincia": "LIMA",
+                "distrito": "LIMA",
+                "municipalidad_centro_poblado": "Municipalidad Metropolitana de Lima",
+                "nivel_territorial": "DISTRITO",
                 "nombre": "Lima",
                 "codigo": "LIM001",
                 "tipo": "CIUDAD", 
-                "departamento": "Lima",
-                "provincia": "Lima",
-                "distrito": "Lima",
                 "descripcion": "Capital del Perú",
                 "coordenadas": {"latitud": -12.0464, "longitud": -77.0428}
             },
             {
+                "ubigeo": "040101",
+                "ubigeo_identificador_mcp": "040101-MCP-001",
+                "departamento": "AREQUIPA",
+                "provincia": "AREQUIPA",
+                "distrito": "AREQUIPA",
+                "municipalidad_centro_poblado": "Municipalidad Provincial de Arequipa",
+                "nivel_territorial": "DISTRITO",
                 "nombre": "Arequipa",
                 "codigo": "ARE001",
                 "tipo": "CIUDAD",
-                "departamento": "Arequipa", 
-                "provincia": "Arequipa",
-                "distrito": "Arequipa",
                 "descripcion": "Ciudad Blanca del sur del Perú",
                 "coordenadas": {"latitud": -16.4090, "longitud": -71.5375}
             },
             {
+                "ubigeo": "080101",
+                "ubigeo_identificador_mcp": "080101-MCP-001",
+                "departamento": "CUSCO",
+                "provincia": "CUSCO",
+                "distrito": "CUSCO",
+                "municipalidad_centro_poblado": "Municipalidad Provincial del Cusco",
+                "nivel_territorial": "DISTRITO",
                 "nombre": "Cusco",
                 "codigo": "CUS001",
                 "tipo": "CIUDAD",
-                "departamento": "Cusco",
-                "provincia": "Cusco", 
-                "distrito": "Cusco",
                 "descripcion": "Capital histórica del Perú",
                 "coordenadas": {"latitud": -13.5319, "longitud": -71.9675}
             }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -14,6 +14,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { environment } from '../../../environments/environment';
@@ -26,8 +29,11 @@ import { Resolucion } from '../../models/resolucion.model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, startWith, catchError } from 'rxjs/operators';
 import { CrearRutaMejoradoComponent } from './crear-ruta-mejorado.component';
+import { DetalleRutaModalComponent } from './detalle-ruta-modal.component';
 import { RutaUpdate } from '../../models/ruta.model';
 import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.component';
+import { ConfirmarEliminacionBloqueModalComponent } from './confirmar-eliminacion-bloque-modal.component';
+import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-bloque-modal.component';
 
 @Component({
   selector: 'app-rutas',
@@ -46,6 +52,9 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
     MatAutocompleteModule,
     MatDividerModule,
     MatChipsModule,
+    MatCheckboxModule,
+    MatMenuModule,
+    MatTooltipModule,
     ReactiveFormsModule,
     MatDialogModule,
   ],
@@ -471,10 +480,22 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                             <th mat-header-cell *matHeaderCellDef>Acciones</th>
                             <td mat-cell *matCellDef="let ruta">
                               <button mat-icon-button 
+                                      color="accent" 
+                                      (click)="verDetalleRuta(ruta)"
+                                      matTooltip="Ver detalles">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button 
                                       color="primary" 
                                       (click)="editarRuta(ruta)"
                                       matTooltip="Editar ruta">
                                 <mat-icon>edit</mat-icon>
+                              </button>
+                              <button mat-icon-button 
+                                      color="accent" 
+                                      (click)="duplicarRuta(ruta)"
+                                      matTooltip="Duplicar ruta">
+                                <mat-icon>content_copy</mat-icon>
                               </button>
                               <button mat-icon-button 
                                       color="warn" 
@@ -485,8 +506,10 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                             </td>
                           </ng-container>
 
-                          <tr mat-header-row *matHeaderRowDef="['codigoRuta', 'origen', 'destino', 'frecuencias', 'estado', 'acciones']"></tr>
-                          <tr mat-row *matRowDef="let row; columns: ['codigoRuta', 'origen', 'destino', 'frecuencias', 'estado', 'acciones'];"></tr>
+                          <tr mat-header-row *matHeaderRowDef="visibleColumns()"></tr>
+                          <tr mat-row 
+                              *matRowDef="let row; columns: visibleColumns();"
+                              [class.selected-row]="isRutaSeleccionada(row.id)"></tr>
                         </table>
                       </div>
                     </mat-card-content>
@@ -495,8 +518,94 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
               </div>
             } @else {
               <!-- Vista de tabla normal (para todas las rutas o resolución específica) -->
+              
+              <!-- Acciones de tabla y configuración -->
+              <div class="table-actions">
+                <!-- Acciones en bloque -->
+                @if (getRutasSeleccionadasCount() > 0) {
+                  <div class="bulk-actions">
+                    <span class="selection-info">{{ getRutasSeleccionadasCount() }} seleccionada(s)</span>
+                    <button mat-raised-button color="warn" (click)="eliminarRutasEnBloque()">
+                      <mat-icon>delete</mat-icon>
+                      ELIMINAR ({{ getRutasSeleccionadasCount() }})
+                    </button>
+                    <button mat-raised-button color="primary" (click)="cambiarEstadoRutasEnBloque()">
+                      <mat-icon>swap_horiz</mat-icon>
+                      CAMBIAR ESTADO ({{ getRutasSeleccionadasCount() }})
+                    </button>
+                    <button mat-stroked-button color="accent" (click)="exportarRutasSeleccionadas('excel')">
+                      <mat-icon>file_download</mat-icon>
+                      EXPORTAR EXCEL
+                    </button>
+                    <button mat-button (click)="limpiarSeleccionRutas()">
+                      <mat-icon>clear</mat-icon>
+                      LIMPIAR
+                    </button>
+                  </div>
+                } @else {
+                  <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
+                    <mat-icon>view_column</mat-icon>
+                    COLUMNAS ({{ getVisibleColumnsCount() }})
+                  </button>
+                  <button mat-button color="accent" (click)="recargarRutas()">
+                    <mat-icon>refresh</mat-icon>
+                    RECARGAR
+                  </button>
+                }
+                
+                <!-- Menú de configuración de columnas -->
+                <mat-menu #columnMenu="matMenu" class="columnas-menu rutas-columnas-menu">
+                  <div class="columnas-menu-header" (click)="$event.stopPropagation()">
+                    <h4>Mostrar columnas</h4>
+                  </div>
+                  <mat-divider></mat-divider>
+                  
+                  <div class="column-menu-content">
+                    @for (column of availableColumns(); track column.key) {
+                      <button mat-menu-item class="columna-checkbox" 
+                              [class.disabled-column]="column.required"
+                              (click)="$event.stopPropagation()">
+                        <mat-checkbox 
+                          [checked]="column.visible"
+                          [disabled]="column.required"
+                          (change)="toggleColumn(column.key)"
+                          (click)="$event.stopPropagation()">
+                          {{ column.label }}
+                        </mat-checkbox>
+                      </button>
+                    }
+                  </div>
+                  
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="resetearColumnas()">
+                    <mat-icon>refresh</mat-icon>
+                    Restablecer columnas
+                  </button>
+                </mat-menu>
+              </div>
+
               <div class="table-container">
                 <table mat-table [dataSource]="rutas()" class="rutas-table">
+                
+                <!-- Columna de Selección -->
+                <ng-container matColumnDef="select">
+                  <th mat-header-cell *matHeaderCellDef class="table-header-cell select-column">
+                    <mat-checkbox 
+                      [checked]="seleccionarTodasLasRutas()"
+                      [indeterminate]="getRutasSeleccionadasCount() > 0 && !seleccionarTodasLasRutas()"
+                      (change)="toggleSeleccionarTodasLasRutas()"
+                      color="primary">
+                    </mat-checkbox>
+                  </th>
+                  <td mat-cell *matCellDef="let ruta" class="table-cell select-column">
+                    <mat-checkbox 
+                      [checked]="isRutaSeleccionada(ruta.id)"
+                      (change)="toggleRutaSeleccion(ruta.id)"
+                      color="primary">
+                    </mat-checkbox>
+                  </td>
+                </ng-container>
+                
                 <!-- Código de Ruta -->
                 <ng-container matColumnDef="codigoRuta">
                   <th mat-header-cell *matHeaderCellDef>Código</th>
@@ -536,6 +645,77 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   <td mat-cell *matCellDef="let ruta">{{ ruta.destino || ruta.destinoId }}</td>
                 </ng-container>
 
+                <!-- Itinerario -->
+                <ng-container matColumnDef="itinerario">
+                  <th mat-header-cell *matHeaderCellDef>Itinerario</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="itinerario-text" [matTooltip]="ruta.descripcion || ruta.itinerario">
+                      {{ (ruta.descripcion || ruta.itinerario || 'SIN ITINERARIO') | slice:0:30 }}
+                      {{ (ruta.descripcion || ruta.itinerario || '').length > 30 ? '...' : '' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Distancia -->
+                <ng-container matColumnDef="distancia">
+                  <th mat-header-cell *matHeaderCellDef>Distancia</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="distancia-value">
+                      {{ ruta.distancia ? (ruta.distancia + ' km') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tiempo Estimado -->
+                <ng-container matColumnDef="tiempoEstimado">
+                  <th mat-header-cell *matHeaderCellDef>Tiempo Est.</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="tiempo-value">
+                      {{ ruta.tiempoEstimado || '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tipo de Ruta -->
+                <ng-container matColumnDef="tipoRuta">
+                  <th mat-header-cell *matHeaderCellDef>Tipo Ruta</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <mat-chip class="tipo-ruta-chip" [class]="'tipo-' + (ruta.tipoRuta || '').toLowerCase()">
+                      {{ ruta.tipoRuta || '-' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Tipo de Servicio -->
+                <ng-container matColumnDef="tipoServicio">
+                  <th mat-header-cell *matHeaderCellDef>Tipo Servicio</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <mat-chip class="tipo-servicio-chip" [class]="'servicio-' + (ruta.tipoServicio || '').toLowerCase()">
+                      {{ ruta.tipoServicio || '-' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Capacidad Máxima -->
+                <ng-container matColumnDef="capacidadMaxima">
+                  <th mat-header-cell *matHeaderCellDef>Capacidad</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="capacidad-value">
+                      {{ ruta.capacidadMaxima ? (ruta.capacidadMaxima + ' pax') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tarifa Base -->
+                <ng-container matColumnDef="tarifaBase">
+                  <th mat-header-cell *matHeaderCellDef>Tarifa</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="tarifa-value">
+                      {{ ruta.tarifaBase ? ('S/ ' + ruta.tarifaBase.toFixed(2)) : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
                 <!-- Frecuencias -->
                 <ng-container matColumnDef="frecuencias">
                   <th mat-header-cell *matHeaderCellDef>Frecuencias</th>
@@ -552,15 +732,37 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   </td>
                 </ng-container>
 
+                <!-- Fecha de Registro -->
+                <ng-container matColumnDef="fechaRegistro">
+                  <th mat-header-cell *matHeaderCellDef>Fecha Registro</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="fecha-value">
+                      {{ ruta.fechaRegistro ? (ruta.fechaRegistro | date:'dd/MM/yyyy') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
                 <!-- Acciones -->
                 <ng-container matColumnDef="acciones">
                   <th mat-header-cell *matHeaderCellDef>Acciones</th>
                   <td mat-cell *matCellDef="let ruta">
                     <button mat-icon-button 
+                            color="accent" 
+                            (click)="verDetalleRuta(ruta)"
+                            matTooltip="Ver detalles">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button 
                             color="primary" 
                             (click)="editarRuta(ruta)"
                             matTooltip="Editar ruta">
                       <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            color="accent" 
+                            (click)="duplicarRuta(ruta)"
+                            matTooltip="Duplicar ruta">
+                      <mat-icon>content_copy</mat-icon>
                     </button>
                     <button mat-icon-button 
                             color="warn" 
@@ -571,8 +773,10 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   </td>
                 </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                <tr mat-header-row *matHeaderRowDef="visibleColumns()"></tr>
+                <tr mat-row 
+                    *matRowDef="let row; columns: visibleColumns();"
+                    [class.selected-row]="isRutaSeleccionada(row.id)"></tr>
               </table>
               </div>
             }
@@ -624,6 +828,30 @@ export class RutasComponent implements OnInit {
   resolucionesEmpresa = signal<Resolucion[]>([]);
   totalRutas = signal<number>(0);
   
+  // Signals para selección múltiple
+  rutasSeleccionadasIds = signal<Set<string>>(new Set());
+  
+  // Signals para configuración de columnas
+  availableColumns = signal([
+    { key: 'select', label: 'Selección', visible: true, required: true },
+    { key: 'codigoRuta', label: 'Código', visible: true, required: true },
+    { key: 'empresa', label: 'Empresa', visible: true, required: false },
+    { key: 'resolucion', label: 'Resolución', visible: true, required: false },
+    { key: 'origen', label: 'Origen', visible: true, required: false },
+    { key: 'destino', label: 'Destino', visible: true, required: false },
+    { key: 'itinerario', label: 'Itinerario', visible: true, required: false }, // Visible por defecto
+    { key: 'distancia', label: 'Distancia', visible: false, required: false },
+    { key: 'tiempoEstimado', label: 'Tiempo Est.', visible: false, required: false },
+    { key: 'tipoRuta', label: 'Tipo Ruta', visible: false, required: false },
+    { key: 'tipoServicio', label: 'Tipo Servicio', visible: false, required: false },
+    { key: 'capacidadMaxima', label: 'Capacidad', visible: false, required: false },
+    { key: 'tarifaBase', label: 'Tarifa', visible: false, required: false },
+    { key: 'frecuencias', label: 'Frecuencias', visible: true, required: false },
+    { key: 'estado', label: 'Estado', visible: true, required: false },
+    { key: 'fechaRegistro', label: 'Fecha Registro', visible: false, required: false },
+    { key: 'acciones', label: 'Acciones', visible: true, required: true }
+  ]);
+  
   // Signals para filtros avanzados
   mostrarFiltrosAvanzados = signal(false);
   origenSeleccionado = signal('');
@@ -652,7 +880,14 @@ export class RutasComponent implements OnInit {
   });
 
   // Columnas simplificadas
-  displayedColumns = ['codigoRuta', 'empresa', 'resolucion', 'origen', 'destino', 'frecuencias', 'estado', 'acciones'];
+  displayedColumns = ['select', 'codigoRuta', 'empresa', 'resolucion', 'origen', 'destino', 'itinerario', 'distancia', 'tiempoEstimado', 'tipoRuta', 'tipoServicio', 'capacidadMaxima', 'tarifaBase', 'frecuencias', 'estado', 'fechaRegistro', 'acciones'];
+
+  // Computed para columnas visibles
+  visibleColumns = computed(() => {
+    return this.availableColumns()
+      .filter(col => col.visible)
+      .map(col => col.key);
+  });
 
   ngOnInit(): void {
     console.log('🚀 COMPONENTE RUTAS INICIALIZADO');
@@ -1610,6 +1845,55 @@ export class RutasComponent implements OnInit {
     this.snackBar.open('Función de edición en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
+  verDetalleRuta(ruta: Ruta): void {
+    console.log('👁️ VIENDO DETALLES DE RUTA:', ruta);
+    
+    // Abrir modal de detalles de ruta
+    const dialogRef = this.dialog.open(DetalleRutaModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: { ruta: ruta }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Modal de detalles cerrado:', result);
+      }
+    });
+  }
+
+  duplicarRuta(ruta: Ruta): void {
+    console.log('📋 DUPLICANDO RUTA:', ruta);
+    
+    // Crear una copia de la ruta con un nuevo código
+    const rutaDuplicada = {
+      ...ruta,
+      codigoRuta: `${ruta.codigoRuta}-COPIA`,
+      nombre: `${ruta.nombre} (Copia)`,
+      id: undefined // Remover ID para que se genere uno nuevo
+    };
+
+    // Abrir modal de creación con datos pre-llenados
+    const dialogRef = this.dialog.open(CrearRutaMejoradoComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: { 
+        rutaBase: rutaDuplicada,
+        modo: 'duplicar'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('✅ RUTA DUPLICADA:', result);
+        this.recargarRutas();
+        this.snackBar.open('Ruta duplicada exitosamente', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
   eliminarRuta(ruta: Ruta): void {
     if (confirm('¿Estás seguro de que deseas eliminar esta ruta? Esta acción no se puede deshacer.')) {
       console.log('🗑️ ELIMINANDO RUTA:', ruta);
@@ -2180,5 +2464,185 @@ export class RutasComponent implements OnInit {
       console.error('❌ Error en exportarResultados:', error);
       this.snackBar.open('Error de conexión al exportar', 'Cerrar', { duration: 3000 });
     }
+  }
+
+  // ========================================
+  // MÉTODOS PARA SELECCIÓN MÚLTIPLE
+  // ========================================
+
+  toggleRutaSeleccion(rutaId: string): void {
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    if (seleccionadas.has(rutaId)) {
+      seleccionadas.delete(rutaId);
+    } else {
+      seleccionadas.add(rutaId);
+    }
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  isRutaSeleccionada(rutaId: string): boolean {
+    return this.rutasSeleccionadasIds().has(rutaId);
+  }
+
+  seleccionarTodasLasRutas(): boolean {
+    const rutasVisibles = this.rutas();
+    return rutasVisibles.length > 0 && 
+           rutasVisibles.every(ruta => this.rutasSeleccionadasIds().has(ruta.id));
+  }
+
+  toggleSeleccionarTodasLasRutas(): void {
+    const rutasVisibles = this.rutas();
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    
+    if (this.seleccionarTodasLasRutas()) {
+      // Deseleccionar todas las visibles
+      rutasVisibles.forEach(ruta => seleccionadas.delete(ruta.id));
+    } else {
+      // Seleccionar todas las visibles
+      rutasVisibles.forEach(ruta => seleccionadas.add(ruta.id));
+    }
+    
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  getRutasSeleccionadasCount(): number {
+    return this.rutasSeleccionadasIds().size;
+  }
+
+  limpiarSeleccionRutas(): void {
+    this.rutasSeleccionadasIds.set(new Set());
+  }
+
+  toggleSeleccionGrupo(rutas: Ruta[]): void {
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    const todasSeleccionadas = rutas.every(ruta => seleccionadas.has(ruta.id));
+    
+    if (todasSeleccionadas) {
+      // Deseleccionar todas las rutas del grupo
+      rutas.forEach(ruta => seleccionadas.delete(ruta.id));
+    } else {
+      // Seleccionar todas las rutas del grupo
+      rutas.forEach(ruta => seleccionadas.add(ruta.id));
+    }
+    
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  // ========================================
+  // MÉTODOS PARA ACCIONES EN BLOQUE
+  // ========================================
+
+  eliminarRutasEnBloque(): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmarEliminacionBloqueModalComponent, {
+      width: '500px',
+      data: {
+        tipo: 'rutas',
+        cantidad: rutasSeleccionadas.length,
+        elementos: rutasSeleccionadas.map(r => `${r.codigoRuta} - ${r.origen} → ${r.destino}`)
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.ejecutarEliminacionEnBloque(rutasSeleccionadas);
+      }
+    });
+  }
+
+  private ejecutarEliminacionEnBloque(rutas: Ruta[]): void {
+    const eliminaciones = rutas.map(ruta => 
+      this.rutaService.deleteRuta(ruta.id)
+    );
+
+    forkJoin(eliminaciones).subscribe({
+      next: () => {
+        this.snackBar.open(`${rutas.length} ruta(s) eliminada(s) exitosamente`, 'Cerrar', { duration: 3000 });
+        this.limpiarSeleccionRutas();
+        this.recargarRutas();
+      },
+      error: (error) => {
+        console.error('Error al eliminar rutas en bloque:', error);
+        this.snackBar.open('Error al eliminar algunas rutas', 'Cerrar', { duration: 3000 });
+        this.recargarRutas();
+      }
+    });
+  }
+
+  cambiarEstadoRutasEnBloque(): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(CambiarEstadoRutasBloqueModalComponent, {
+      width: '600px',
+      data: {
+        rutas: rutasSeleccionadas
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.limpiarSeleccionRutas();
+        this.recargarRutas();
+      }
+    });
+  }
+
+  // ========================================
+  // MÉTODOS PARA CONFIGURACIÓN DE COLUMNAS
+  // ========================================
+
+  toggleColumn(columnKey: string): void {
+    const columns = this.availableColumns();
+    const updatedColumns = columns.map(col => 
+      col.key === columnKey ? { ...col, visible: !col.visible } : col
+    );
+    this.availableColumns.set(updatedColumns);
+  }
+
+  getVisibleColumnsCount(): number {
+    return this.availableColumns().filter(col => col.visible).length;
+  }
+
+  resetearColumnas(): void {
+    const columns = this.availableColumns().map(col => ({
+      ...col,
+      visible: true
+    }));
+    this.availableColumns.set(columns);
+    this.snackBar.open('Configuración de columnas restablecida', 'Cerrar', { duration: 2000 });
+  }
+
+  // ========================================
+  // MÉTODOS AUXILIARES
+  // ========================================
+
+  exportarRutasSeleccionadas(formato: 'excel' | 'csv' | 'pdf'): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Implementar exportación según el formato
+    console.log(`Exportando ${rutasSeleccionadas.length} rutas en formato ${formato}`);
+    this.snackBar.open(`Exportando ${rutasSeleccionadas.length} ruta(s) en formato ${formato.toUpperCase()}`, 'Cerrar', { duration: 3000 });
   }
 }

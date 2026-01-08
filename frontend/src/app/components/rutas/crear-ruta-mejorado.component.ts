@@ -792,11 +792,11 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   private inicializarAutocompleteLocalidades() {
     // Cargar localidades activas
     const sub = this.localidadService.getLocalidadesActivas().subscribe({
-      next: (localidades) => {
+      next: (localidades: any[]) => {
         this.localidades = localidades;
         this.configurarAutocomplete();
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando localidades:', error);
         this.snackBar.open('Error cargando localidades', 'Cerrar', { duration: 3000 });
       }
@@ -823,18 +823,18 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
       return this.localidades;
     }
 
-    const filterValue = typeof value === 'string' ? value.toLowerCase() : value.nombre.toLowerCase();
+    const filterValue = typeof value === 'string' ? value.toLowerCase() : (value.nombre || '').toLowerCase();
     
     return this.localidades.filter(localidad =>
-      localidad.nombre.toLowerCase().includes(filterValue) ||
-      localidad.codigo.toLowerCase().includes(filterValue) ||
+      (localidad.nombre || '').toLowerCase().includes(filterValue) ||
+      (localidad.codigo || '').toLowerCase().includes(filterValue) ||
       localidad.departamento.toLowerCase().includes(filterValue) ||
       localidad.provincia.toLowerCase().includes(filterValue)
     );
   }
 
   displayLocalidad(localidad: Localidad): string {
-    return localidad ? localidad.nombre : '';
+    return localidad ? (localidad.nombre || localidad.distrito || '') : '';
   }
 
   onModoChange() {

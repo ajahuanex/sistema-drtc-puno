@@ -618,9 +618,11 @@ export class ConfiguracionComponent implements OnInit {
           departamento: 'Puno',
           provincia: 'Puno',
           distrito: 'Puno',
-          estaActiva: true,
-          fechaCreacion: new Date(),
-          fechaActualizacion: new Date()
+          municipalidad_centro_poblado: 'Municipalidad Provincial de Puno',
+          nivel_territorial: 'DISTRITO' as any,
+          esta_activa: true,
+          fecha_creacion: new Date().toISOString(),
+          fecha_actualizacion: new Date().toISOString()
         },
         {
           id: '2',
@@ -630,9 +632,11 @@ export class ConfiguracionComponent implements OnInit {
           departamento: 'Puno',
           provincia: 'San Román',
           distrito: 'Juliaca',
-          estaActiva: true,
-          fechaCreacion: new Date(),
-          fechaActualizacion: new Date()
+          municipalidad_centro_poblado: 'Municipalidad Provincial de San Román',
+          nivel_territorial: 'DISTRITO' as any,
+          esta_activa: true,
+          fecha_creacion: new Date().toISOString(),
+          fecha_actualizacion: new Date().toISOString()
         }
       ];
       
@@ -648,8 +652,8 @@ export class ConfiguracionComponent implements OnInit {
     
     if (filtroNombre) {
       localidadesFiltradas = localidadesFiltradas.filter(localidad =>
-        localidad.nombre.toLowerCase().includes(filtroNombre) ||
-        localidad.codigo.toLowerCase().includes(filtroNombre) ||
+        (localidad.nombre?.toLowerCase().includes(filtroNombre) || false) ||
+        (localidad.codigo?.toLowerCase().includes(filtroNombre) || false) ||
         localidad.departamento.toLowerCase().includes(filtroNombre)
       );
     }

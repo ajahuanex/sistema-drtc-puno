@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, of, catchError, throwError } from 'rxjs';
+import { Observable, of, catchError, throwError, from } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { Ruta, RutaCreate, RutaUpdate, ValidacionRuta, RespuestaValidacionRuta, EstadoRuta, TipoRuta } from '../models/ruta.model';
@@ -181,11 +181,11 @@ export class RutaService {
 
   // Método para calcular distancia y tiempo estimado automáticamente
   calcularDistanciaYTiempo(origenId: string, destinoId: string): Observable<{distancia: number, tiempoEstimado: number}> {
-    return this.localidadService.calcularDistancia(origenId, destinoId).pipe(
-      map((distancia: number) => {
+    return from(this.localidadService.calcularDistancia(origenId, destinoId)).pipe(
+      map((response: {distancia: number, unidad: string}) => {
         // Calcular tiempo estimado basado en distancia (promedio 60 km/h)
-        const tiempoEstimado = Math.ceil(distancia / 60);
-        return { distancia, tiempoEstimado };
+        const tiempoEstimado = Math.ceil(response.distancia / 60);
+        return { distancia: response.distancia, tiempoEstimado };
       })
     );
   }

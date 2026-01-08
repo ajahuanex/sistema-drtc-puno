@@ -378,19 +378,23 @@ export class GestionarLocalidadModalComponent implements OnInit {
     
     console.log('🔍 Validando código único:', codigoUpper);
     
-    this.localidadService.validarCodigoUnico(codigoUpper, idExcluir).subscribe({
-      next: (esUnico) => {
-        console.log('✅ Resultado validación:', esUnico);
-        this.codigoExiste.set(!esUnico);
-      },
-      error: (error) => {
-        console.error('❌ Error validando código:', error);
-        this.codigoExiste.set(false);
-      }
-    });
+    // For now, we'll use a simple validation since the service method doesn't exist yet
+    this.codigoExiste.set(false);
+    
+    // TODO: Implement proper validation when backend is ready
+    // this.localidadService.validarCodigoUnico(codigoUpper, idExcluir).subscribe({
+    //   next: (esUnico: boolean) => {
+    //     console.log('✅ Resultado validación:', esUnico);
+    //     this.codigoExiste.set(!esUnico);
+    //   },
+    //   error: (error: any) => {
+    //     console.error('❌ Error validando código:', error);
+    //     this.codigoExiste.set(false);
+    //   }
+    // });
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     console.log('🔍 INICIANDO GUARDADO DE LOCALIDAD');
     console.log('📋 Formulario válido:', this.localidadForm.valid);
     console.log('📋 Código existe:', this.codigoExiste());
@@ -441,27 +445,27 @@ export class GestionarLocalidadModalComponent implements OnInit {
     console.log('📤 Datos preparados para enviar:', localidadData);
     console.log('📤 Modo:', this.data.modo);
 
-    const operacion = this.data.modo === 'crear' 
-      ? this.localidadService.createLocalidad(localidadData as LocalidadCreate)
-      : this.localidadService.updateLocalidad(this.data.localidad!.id, localidadData as LocalidadUpdate);
-
-    operacion.subscribe({
-      next: (localidad) => {
-        console.log('✅ LOCALIDAD GUARDADA EXITOSAMENTE:', localidad);
-        this.guardando.set(false);
-        const mensaje = this.data.modo === 'crear' 
-          ? 'Localidad creada exitosamente' 
-          : 'Localidad actualizada exitosamente';
-        
-        this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
-        this.dialogRef.close(localidad);
-      },
-      error: (error) => {
-        console.error('❌ ERROR GUARDANDO LOCALIDAD:', error);
-        this.guardando.set(false);
-        const mensajeError = error?.message || 'Error desconocido al guardar la localidad';
-        this.snackBar.open(`Error: ${mensajeError}`, 'Cerrar', { duration: 5000 });
+    try {
+      let localidad: any;
+      if (this.data.modo === 'crear') {
+        localidad = await this.localidadService.crearLocalidad(localidadData as LocalidadCreate);
+      } else {
+        localidad = await this.localidadService.actualizarLocalidad(this.data.localidad!.id, localidadData as LocalidadUpdate);
       }
-    });
+
+      console.log('✅ LOCALIDAD GUARDADA EXITOSAMENTE:', localidad);
+      this.guardando.set(false);
+      const mensaje = this.data.modo === 'crear' 
+        ? 'Localidad creada exitosamente' 
+        : 'Localidad actualizada exitosamente';
+      
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
+      this.dialogRef.close(localidad);
+    } catch (error: any) {
+      console.error('❌ ERROR GUARDANDO LOCALIDAD:', error);
+      this.guardando.set(false);
+      const mensajeError = error?.message || 'Error desconocido al guardar la localidad';
+      this.snackBar.open(`Error: ${mensajeError}`, 'Cerrar', { duration: 5000 });
+    }
   }
 }
