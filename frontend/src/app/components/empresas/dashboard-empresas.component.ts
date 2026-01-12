@@ -787,38 +787,16 @@ export class DashboardEmpresasComponent implements OnInit {
     this.estadosEmpresa[3].porcentaje = (this.estadosEmpresa[3].cantidad / total) * 100;
   }
 
-  // Datos simulados para el dashboard
-  actividadesRecientes = signal([
-    { id: 1, tipo: 'CREACION', titulo: 'Nueva empresa registrada', descripcion: 'TRANSPORTES PUNO S.A.C.', tiempo: 'Hace 2 horas' },
-    { id: 2, tipo: 'ACTUALIZACION', titulo: 'Empresa actualizada', descripcion: 'Se modificó información de contacto', tiempo: 'Hace 4 horas' },
-    { id: 3, tipo: 'VEHICULO', titulo: 'Vehículo agregado', descripcion: 'Se agregó nuevo vehículo a empresa', tiempo: 'Hace 6 horas' },
-    { id: 4, tipo: 'ESTADO', titulo: 'Estado cambiado', descripcion: 'Empresa autorizada exitosamente', tiempo: 'Hace 8 horas' }
-  ]);
+  // Datos que se cargarán desde servicios reales
+  actividadesRecientes = signal<any[]>([]);
 
-  nivelesRiesgo = signal([
-    { nivel: 'BAJO', nombre: 'RIESGO BAJO', cantidad: 45, porcentaje: 60, color: 'primary' },
-    { nivel: 'MEDIO', nombre: 'RIESGO MEDIO', cantidad: 20, porcentaje: 27, color: 'accent' },
-    { nivel: 'ALTO', nombre: 'RIESGO ALTO', cantidad: 10, porcentaje: 13, color: 'warn' }
-  ]);
+  nivelesRiesgo = signal<any[]>([]);
 
-  empresasAltoRiesgo = signal([
-    { id: '1', razonSocial: { principal: 'EMPRESA A' }, ruc: '20123456789', scoreRiesgo: 85 },
-    { id: '2', razonSocial: { principal: 'EMPRESA B' }, ruc: '20234567890', scoreRiesgo: 78 },
-    { id: '3', razonSocial: { principal: 'EMPRESA C' }, ruc: '20345678901', scoreRiesgo: 92 }
-  ]);
+  empresasAltoRiesgo = signal<any[]>([]);
 
-  documentosPorVencer = signal([
-    { id: 1, tipo: 'RUC', empresa: 'EMPRESA A', diasRestantes: 5 },
-    { id: 2, tipo: 'LICENCIA', empresa: 'EMPRESA B', diasRestantes: 12 },
-    { id: 3, tipo: 'CERTIFICADO', empresa: 'EMPRESA C', diasRestantes: 30 }
-  ]);
+  documentosPorVencer = signal<any[]>([]);
 
-  tiposDocumentos = signal([
-    { tipo: 'RUC', nombre: 'RUC', cantidad: 75, porcentaje: 100 },
-    { tipo: 'LICENCIA', nombre: 'LICENCIAS', cantidad: 68, porcentaje: 91 },
-    { tipo: 'CERTIFICADO', nombre: 'CERTIFICADOS', cantidad: 45, porcentaje: 60 },
-    { tipo: 'RESOLUCION', nombre: 'RESOLUCIONES', cantidad: 32, porcentaje: 43 }
-  ]);
+  tiposDocumentos = signal<any[]>([]);
 
   getIconoActividad(tipo: string): string {
     const iconos = {

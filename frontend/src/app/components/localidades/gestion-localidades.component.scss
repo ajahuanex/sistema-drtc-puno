@@ -1,0 +1,562 @@
+.gestion-localidades-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 500;
+    color: #1976d2;
+  }
+  
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+// ========================================
+// FILTROS Y BÚSQUEDA
+// ========================================
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// ========================================
+// TABLA DE LOCALIDADES
+// ========================================
+
+.table-container {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  
+  .localidades-table {
+    width: 100%;
+    
+    .mat-mdc-header-cell {
+      font-weight: 600;
+      color: #333;
+      background-color: #f5f5f5;
+    }
+    
+    .mat-mdc-cell {
+      padding: 12px 8px;
+    }
+  }
+}
+
+.municipalidad-info {
+  .nombre {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 2px;
+  }
+  
+  .ubigeo {
+    font-size: 11px;
+    color: #666;
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+}
+
+.ubicacion-info {
+  .departamento {
+    font-weight: 500;
+    font-size: 13px;
+    color: #1976d2;
+  }
+  
+  .provincia {
+    font-size: 12px;
+    color: #666;
+    margin: 2px 0;
+  }
+  
+  .distrito {
+    font-size: 11px;
+    color: #999;
+  }
+}
+
+// Chips para niveles y estados
+.mat-mdc-chip {
+  font-size: 11px !important;
+  height: 24px !important;
+  
+  &.nivel-centro_poblado {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  &.nivel-distrito {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+  }
+  
+  &.nivel-provincia {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+  }
+  
+  &.nivel-departamento {
+    background-color: #fff3e0;
+    color: #f57c00;
+  }
+  
+  &.estado-activo {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+  }
+  
+  &.estado-inactivo {
+    background-color: #ffebee;
+    color: #d32f2f;
+  }
+}
+
+// ========================================
+// EXTRACCIÓN DE RUTAS
+// ========================================
+
+.acciones-extraccion {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.estadisticas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+  
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: #1976d2;
+  }
+  
+  .stat-info {
+    .stat-number {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.localidades-encontradas {
+  margin-top: 20px;
+  
+  h4 {
+    margin: 0 0 12px 0;
+    color: #333;
+    font-size: 16px;
+  }
+  
+  .localidades-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    mat-chip {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      position: relative;
+      
+      .frecuencia-badge {
+        background-color: #1976d2;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+    }
+  }
+}
+
+.resultado-creacion {
+  margin-top: 20px;
+  border-left: 4px solid #4caf50;
+}
+
+.resultado-stats {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    &.success {
+      color: #2e7d32;
+      
+      mat-icon {
+        color: #4caf50;
+      }
+    }
+    
+    &.error {
+      color: #d32f2f;
+      
+      mat-icon {
+        color: #f44336;
+      }
+    }
+  }
+}
+
+// ========================================
+// IMPORTACIÓN EXCEL
+// ========================================
+
+.importacion-section {
+  margin-bottom: 20px;
+}
+
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #fafafa;
+  
+  &:hover, &.dragover {
+    border-color: #1976d2;
+    background-color: #f0f8ff;
+  }
+  
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #1976d2;
+    margin-bottom: 16px;
+  }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 18px;
+  }
+  
+  p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+    
+    &.file-info {
+      font-size: 12px;
+      color: #999;
+    }
+  }
+}
+
+.importacion-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.archivo-info {
+  margin: 16px 0;
+  
+  .archivo-detalles {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    mat-icon {
+      color: #1976d2;
+    }
+    
+    .archivo-nombre {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .archivo-size {
+      font-size: 12px;
+      color: #666;
+    }
+  }
+}
+
+.preview-table {
+  margin: 20px 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  table {
+    width: 100%;
+    
+    .mat-mdc-header-cell {
+      background-color: #f5f5f5;
+      font-weight: 600;
+    }
+    
+    .mat-mdc-cell {
+      font-size: 12px;
+    }
+  }
+  
+  .preview-note {
+    padding: 8px 16px;
+    background-color: #f0f0f0;
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+  }
+}
+
+.importacion-final-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+.resultado-importacion {
+  margin-top: 20px;
+  border-left: 4px solid #4caf50;
+  
+  .errores-list {
+    max-height: 200px;
+    overflow-y: auto;
+    
+    .error-item {
+      padding: 8px 12px;
+      background-color: #ffebee;
+      border-left: 3px solid #f44336;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: #d32f2f;
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE
+// ========================================
+
+@media (max-width: 768px) {
+  .gestion-localidades-container {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .estadisticas-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .acciones-extraccion {
+    flex-direction: column;
+  }
+  
+  .resultado-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .localidades-chips {
+    mat-chip {
+      font-size: 10px !important;
+      
+      .frecuencia-badge {
+        width: 16px;
+        height: 16px;
+        font-size: 9px;
+      }
+    }
+  }
+}
+
+// ========================================
+// ANIMACIONES
+// ========================================
+
+.upload-area {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+}
+
+.localidades-chips mat-chip {
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// ========================================
+// MEJORAS VISUALES
+// ========================================
+
+.mat-mdc-tab-group {
+  .mat-mdc-tab-header {
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .mat-mdc-tab-body-wrapper {
+    padding-top: 0;
+  }
+}
+
+.mat-expansion-panel {
+  margin: 16px 0;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  
+  .mat-expansion-panel-header {
+    font-weight: 500;
+  }
+}
+
+.mat-mdc-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  .mat-mdc-card-header {
+    padding-bottom: 8px;
+  }
+}
+
+// Scrollbar personalizado
+.table-container::-webkit-scrollbar,
+.errores-list::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track,
+.errores-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb,
+.errores-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover,
+.errores-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

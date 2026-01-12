@@ -171,6 +171,11 @@ interface ActividadReciente {
               <div class="loading-container">
                 <mat-spinner diameter="40"></mat-spinner>
               </div>
+            } @else if (actividadReciente().length === 0) {
+              <div class="no-data">
+                <app-smart-icon [iconName]="'history'" [size]="48" [tooltipText]="'Sin actividad reciente'"></app-smart-icon>
+                <p>No hay actividad reciente disponible</p>
+              </div>
             } @else {
               <div class="actividad-lista">
                 @for (actividad of actividadReciente(); track actividad.id) {
@@ -816,33 +821,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }));
   });
 
-  actividadReciente = computed(() => {
-    // Simular actividad reciente basada en los datos
-    const actividades: ActividadReciente[] = [];
-    
-    this.empresas().slice(0, 3).forEach(empresa => {
-      actividades.push({
-        id: `emp_${empresa.id}`,
-        tipo: 'EMPRESA',
-        descripcion: `Empresa ${empresa.razonSocial} registrada`,
-        fecha: new Date(),
-        usuario: 'Sistema',
-        estado: 'COMPLETADO'
-      });
-    });
-
-    this.vehiculos().slice(0, 2).forEach(vehiculo => {
-      actividades.push({
-        id: `veh_${vehiculo.id}`,
-        tipo: 'VEHICULO',
-        descripcion: `Vehículo ${vehiculo.placa} agregado`,
-        fecha: new Date(),
-        usuario: 'Admin',
-        estado: 'PENDIENTE'
-      });
-    });
-
-    return actividades.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()).slice(0, 5);
+  actividadReciente = computed((): ActividadReciente[] => {
+    // Retornar array vacío hasta implementar servicio de auditoria real
+    return [];
   });
 
   notificacionesImportantes = computed(() => {
@@ -882,49 +863,102 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private cargarEmpresas(): void {
+    console.log('🔄 Cargando empresas...');
     this.empresaService.getEmpresas().subscribe({
-      next: (empresas) => this.empresas.set(empresas),
-      error: (error) => console.error('Error cargando empresas:', error)
+      next: (empresas) => {
+        console.log('✅ Empresas cargadas:', empresas.length);
+        console.log('📊 Datos de empresas:', empresas);
+        this.empresas.set(empresas);
+      },
+      error: (error) => {
+        console.error('❌ Error cargando empresas:', error);
+        console.error('❌ Status del error:', error.status);
+        console.error('❌ URL del API:', `${this.empresaService['apiUrl']}/empresas`);
+        this.snackBar.open('Error cargando empresas: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+      }
     });
   }
 
   private cargarVehiculos(): void {
+    console.log('🔄 Cargando vehículos...');
     this.vehiculoService.getVehiculos().subscribe({
-      next: (vehiculos) => this.vehiculos.set(vehiculos),
-      error: (error) => console.error('Error cargando vehículos:', error)
+      next: (vehiculos) => {
+        console.log('✅ Vehículos cargados:', vehiculos.length);
+        console.log('📊 Datos de vehículos:', vehiculos);
+        this.vehiculos.set(vehiculos);
+      },
+      error: (error) => {
+        console.error('❌ Error cargando vehículos:', error);
+        console.error('❌ Status del error:', error.status);
+        this.snackBar.open('Error cargando vehículos: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+      }
     });
   }
 
   private cargarConductores(): void {
-    this.conductorService.getConductores().subscribe({
-      next: (conductores) => this.conductores.set(conductores),
-      error: (error) => console.error('Error cargando conductores:', error)
-    });
+    console.log('🔄 Cargando conductores...');
+    // NOTA: El módulo de conductores será un sistema separado en el futuro
+    // Por ahora, establecemos un array vacío para evitar errores
+    console.log('ℹ️ Módulo de conductores: Sistema separado (futuro)');
+    this.conductores.set([]);
+    
+    // TODO: Implementar integración con sistema externo de conductores
+    // this.conductorService.getConductores().subscribe({
+    //   next: (conductores) => {
+    //     console.log('✅ Conductores cargados:', conductores.length);
+    //     this.conductores.set(conductores);
+    //   },
+    //   error: (error) => {
+    //     console.error('❌ Error cargando conductores:', error);
+    //     this.snackBar.open('Error cargando conductores', 'Cerrar', { duration: 3000 });
+    //   }
+    // });
   }
 
   private cargarRutas(): void {
+    console.log('🔄 Cargando rutas...');
     this.rutaService.getRutas().subscribe({
-      next: (rutas) => this.rutas.set(rutas),
-      error: (error) => console.error('Error cargando rutas:', error)
+      next: (rutas) => {
+        console.log('✅ Rutas cargadas:', rutas.length);
+        this.rutas.set(rutas);
+      },
+      error: (error) => {
+        console.error('❌ Error cargando rutas:', error);
+        this.snackBar.open('Error cargando rutas', 'Cerrar', { duration: 3000 });
+      }
     });
   }
 
   private cargarResoluciones(): void {
+    console.log('🔄 Cargando resoluciones...');
     this.resolucionService.getResoluciones().subscribe({
-      next: (resoluciones) => this.resoluciones.set(resoluciones),
-      error: (error) => console.error('Error cargando resoluciones:', error)
+      next: (resoluciones) => {
+        console.log('✅ Resoluciones cargadas:', resoluciones.length);
+        console.log('📊 Datos de resoluciones:', resoluciones);
+        console.log('🔍 URL utilizada:', `${this.resolucionService['apiUrl']}/resoluciones?limit=1000`);
+        this.resoluciones.set(resoluciones);
+      },
+      error: (error) => {
+        console.error('❌ Error cargando resoluciones:', error);
+        console.error('❌ Status del error:', error.status);
+        console.error('❌ URL del API:', `${this.resolucionService['apiUrl']}/resoluciones`);
+        this.snackBar.open('Error cargando resoluciones: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+      }
     });
   }
 
   private cargarExpedientes(): void {
+    console.log('🔄 Cargando expedientes...');
     this.loadingExpedientes.set(true);
     this.expedienteService.getExpedientes().subscribe({
       next: (expedientes) => {
+        console.log('✅ Expedientes cargados:', expedientes.length);
         this.expedientes.set(expedientes);
         this.loadingExpedientes.set(false);
       },
       error: (error) => {
-        console.error('Error cargando expedientes:', error);
+        console.error('❌ Error cargando expedientes:', error);
+        this.snackBar.open('Error cargando expedientes', 'Cerrar', { duration: 3000 });
         this.loadingExpedientes.set(false);
       }
     });
@@ -989,8 +1023,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private calcularCambio(datos: any[]): number {
-    // Simular cambio (en un sistema real vendría de la base de datos)
-    return Math.floor(Math.random() * 10) - 5;
+    // Retornar 0 hasta implementar cálculo real con datos históricos
+    return 0;
   }
 
   private calcularCambioPorcentual(datos: any[]): number {

@@ -228,6 +228,30 @@ export class ReporteService {
   }
 
   /**
+   * Obtener documentos urgentes
+   * Requirements: 8.3
+   */
+  obtenerDocumentosUrgentes(
+    areaId?: string,
+    page?: number,
+    pageSize?: number
+  ): Observable<any[]> {
+    let params = new HttpParams();
+
+    if (areaId) {
+      params = params.set('area_id', areaId);
+    }
+    if (page !== undefined) {
+      params = params.set('page', page.toString());
+    }
+    if (pageSize !== undefined) {
+      params = params.set('page_size', pageSize.toString());
+    }
+
+    return this.http.get<any[]>(`${this.apiUrl}/documentos-urgentes`, { params });
+  }
+
+  /**
    * Obtener tiempos promedio de atención por área
    * Requirements: 6.5
    */

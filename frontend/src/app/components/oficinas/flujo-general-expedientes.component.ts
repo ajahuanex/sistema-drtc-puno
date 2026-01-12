@@ -796,18 +796,48 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
   totalMovimientos = computed(() => 
     this.flujosExpedientes().reduce((total, flujo) => total + flujo.movimientos.length, 0)
   );
-  tiempoPromedio = computed(() => 5); // Simulado
+  tiempoPromedio = computed(() => {
+    const flujos = this.flujosExpedientes();
+    if (flujos.length === 0) return 0;
+    
+    const tiempoTotal = flujos.reduce((total, flujo) => {
+      const tiempoFlujo = flujo.movimientos.reduce((sum, mov) => {
+        if (mov.fechaMovimiento) {
+          const fechaMovimiento = new Date(mov.fechaMovimiento);
+          const fechaCreacion = new Date(flujo.fechaCreacion);
+          return sum + (fechaMovimiento.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60 * 24); // días
+        }
+        return sum;
+      }, 0);
+      return total + tiempoFlujo;
+    }, 0);
+    
+    return Math.round(tiempoTotal / flujos.length);
+  });
 
-  distribucionEstados = computed(() => [
-    { estado: 'PENDIENTE', cantidad: 1, porcentaje: 50 },
-    { estado: 'EN_PROCESO', cantidad: 1, porcentaje: 50 }
-  ]);
+  distribucionEstados = computed(() => {
+    const flujos = this.flujosExpedientes();
+    const estados = flujos.reduce((acc, flujo) => {
+      acc[flujo.estado] = (acc[flujo.estado] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const total = flujos.length || 1;
+    return Object.entries(estados).map(([estado, cantidad]) => ({
+      estado,
+      cantidad,
+      porcentaje: Math.round((cantidad / total) * 100)
+    }));
+  });
 
-  tiempoPorOficina = computed(() => [
-    { id: 'OF001', nombre: 'Oficina de Recepción', tiempoPromedio: 2 },
-    { id: 'OF002', nombre: 'Oficina de Análisis', tiempoPromedio: 5 },
-    { id: 'OF003', nombre: 'Oficina de Verificación', tiempoPromedio: 3 }
-  ]);
+  tiempoPorOficina = computed(() => {
+    const oficinas = this.oficinas();
+    return oficinas.map(oficina => ({
+      id: oficina.id,
+      nombre: oficina.nombre,
+      tiempoPromedio: this.getTiempoPromedioOficina(oficina.id)
+    }));
+  });
 
   // Métodos
   actualizarFlujo(): void {
@@ -842,8 +872,23 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
   }
 
   getTiempoPromedioOficina(oficinaId: string): number {
-    // Simulado
-    return Math.floor(Math.random() * 10) + 1;
+    const flujos = this.flujosExpedientes().filter(f => f.oficinaActual === oficinaId);
+    if (flujos.length === 0) return 0;
+    
+    const tiempoTotal = flujos.reduce((total, flujo) => {
+      const movimientosOficina = flujo.movimientos.filter(mov => mov.oficinaDestinoId === oficinaId);
+      const tiempoOficina = movimientosOficina.reduce((sum, mov) => {
+        if (mov.fechaMovimiento) {
+          const fechaMovimiento = new Date(mov.fechaMovimiento);
+          const fechaCreacion = new Date(flujo.fechaCreacion);
+          return sum + (fechaMovimiento.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60 * 24); // días
+        }
+        return sum;
+      }, 0);
+      return total + tiempoOficina;
+    }, 0);
+    
+    return Math.round(tiempoTotal / flujos.length);
   }
 
   getTiempoPorcentaje(tiempo: number): number {

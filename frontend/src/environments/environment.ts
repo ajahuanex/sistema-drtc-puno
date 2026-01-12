@@ -7,5 +7,9 @@ export const environment = {
   systemFullName: 'Sistema Regional de Registros de Transporte',
   entityName: 'Dirección Regional de Transportes y Comunicaciones Puno',
   version: '1.0.0',
-  useDataManager: false
+  useDataManager: false,
+  
+  // Configuración para sistema externo de conductores (futuro)
+  conductoresExternoUrl: '', // Se configurará cuando esté disponible el sistema externo
+  conductoresExternoEnabled: false
 };

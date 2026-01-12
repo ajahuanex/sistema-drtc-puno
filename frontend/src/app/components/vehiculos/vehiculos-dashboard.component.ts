@@ -863,10 +863,8 @@ export class VehiculosDashboardComponent implements OnInit {
   }
 
   calcularCrecimiento(tipo: string): string {
-    // Simulado - en una implementación real, compararías con datos históricos
-    const crecimiento = Math.floor(Math.random() * 20) - 10; // -10% a +10%
-    const signo = crecimiento >= 0 ? '+' : '';
-    return `${signo}${crecimiento}% vs mes anterior`;
+    // Retornar mensaje sin datos simulados hasta implementar históricos reales
+    return 'Datos históricos no disponibles';
   }
 
   getCategorias(): Array<{nombre: string, cantidad: number, porcentaje: number}> {

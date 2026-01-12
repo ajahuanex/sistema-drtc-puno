@@ -1,55 +1,59 @@
+version: '3.8'
+
 services:
+  # Base de datos MongoDB
   mongodb:
     image: mongo:7.0
     container_name: sirret-mongodb
     restart: unless-stopped
-    ports:
-      - "${MONGODB_PORT:-27017}:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-sirret_db}
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: drtc_db
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
-      - drtc-network
+      - sirret-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: sirret-backend
-    restart: unless-stopped
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    environment:
-      - MONGODB_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-password}@mongodb:27017/
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
-      - ENVIRONMENT=${ENVIRONMENT:-development}
-      - DEBUG=${DEBUG:-true}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:80}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/venv
-    networks:
-      - drtc-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sirret-backend
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=mongodb://admin:admin123@mongodb:27017/
+      - DATABASE_NAME=drtc_db
+      - SECRET_KEY=sirret-production-secret-key-2025-very-secure
+      - DEBUG=false
+      - PYTHONPATH=/app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - sirret-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Angular (opcional, para desarrollo)
   frontend:
     build:
       context: ./frontend
@@ -57,47 +61,18 @@ services:
     container_name: sirret-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-4200}:4200"
-    environment:
-      - API_URL=${API_URL:-http://localhost:8000}
-      - PRODUCTION=${PRODUCTION:-false}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "4200:80"
     depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - drtc-network
-
-  # Nginx como reverse proxy (RECOMENDADO para producción)
-  nginx:
-    image: nginx:alpine
-    container_name: drtc-nginx
-    restart: unless-stopped
-    ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
       - backend
     networks:
-      - drtc-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-networks:
-  drtc-network:
-    driver: bridge
-    name: drtc-network
+      - sirret-network
+    environment:
+      - API_URL=http://backend:8000/api/v1
 
 volumes:
   mongodb_data:
     driver: local
-    name: sirret-mongodb-data
+
+networks:
+  sirret-network:
+    driver: bridge

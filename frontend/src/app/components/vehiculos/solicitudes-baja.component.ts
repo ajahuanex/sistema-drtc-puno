@@ -516,7 +516,7 @@ export class SolicitudesBajaComponent implements OnInit {
           );
           this.cargarSolicitudes();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error aprobando solicitud:', error);
           this.snackBar.open('Error al aprobar la solicitud', 'Cerrar', { 
             duration: 3000, 
@@ -542,7 +542,7 @@ export class SolicitudesBajaComponent implements OnInit {
           );
           this.cargarSolicitudes();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error rechazando solicitud:', error);
           this.snackBar.open('Error al rechazar la solicitud', 'Cerrar', { 
             duration: 3000, 
@@ -568,7 +568,7 @@ export class SolicitudesBajaComponent implements OnInit {
           );
           this.cargarSolicitudes();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error cancelando solicitud:', error);
           this.snackBar.open('Error al cancelar la solicitud', 'Cerrar', { 
             duration: 3000, 

@@ -206,10 +206,9 @@ export class CrearRutaModalComponent implements OnInit {
       itinerarioIds: []
     };
 
-    // Si hay itinerario, guardarlo en observaciones
+    // Si hay itinerario, guardarlo en descripcion
     if (formValue.itinerario) {
-      nuevaRuta.observaciones = formValue.itinerario + 
-        (formValue.observaciones ? '\n\n' + formValue.observaciones : '');
+      nuevaRuta.descripcion = formValue.itinerario;
     }
 
     console.log('💾 Creando ruta:', nuevaRuta);

@@ -84,19 +84,27 @@ export class ResolucionService {
     });
   }
 
-  getResoluciones(skip: number = 0, limit: number = 100, estado?: string, empresaId?: string, tipo?: string): Observable<Resolucion[]> {
+  getResoluciones(skip: number = 0, limit: number = 1000, estado?: string, empresaId?: string, tipo?: string): Observable<Resolucion[]> {
+    // Aumentar el límite para obtener todas las resoluciones
     const url = `${this.apiUrl}/resoluciones`;
     const params = new URLSearchParams();
     if (skip > 0) params.append('skip', skip.toString());
-    if (limit !== 100) params.append('limit', limit.toString());
+    params.append('limit', limit.toString()); // Siempre agregar el límite
     if (estado) params.append('estado', estado);
     if (empresaId) params.append('empresa_id', empresaId);
     if (tipo) params.append('tipo_tramite', tipo);
 
-    return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
+    const finalUrl = `${url}?${params.toString()}`;
+    console.log('🔍 [RESOLUCION-SERVICE] URL construida:', finalUrl);
+    console.log('🔍 [RESOLUCION-SERVICE] Parámetros:', { skip, limit, estado, empresaId, tipo });
+
+    return this.http.get<Resolucion[]>(finalUrl, { headers: this.getHeaders() })
       .pipe(
+        tap(resoluciones => {
+          console.log('✅ [RESOLUCION-SERVICE] Resoluciones obtenidas:', resoluciones.length);
+        }),
         catchError(error => {
-          console.error('Error fetching resoluciones:', error);
+          console.error('❌ [RESOLUCION-SERVICE] Error fetching resoluciones:', error);
           
           // Si es error de autenticación y no hay token, devolver array vacío
           if ((error.status === 401 || error.status === 403) && !this.authService.getToken()) {

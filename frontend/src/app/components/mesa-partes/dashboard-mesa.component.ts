@@ -1449,29 +1449,8 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
    * Requirements: 8.3
    */
   private obtenerDocumentosUrgentes() {
-    // Mock data - en producción vendría del servicio
-    return of([
-      {
-        id: '1',
-        numeroExpediente: 'EXP-2025-0001',
-        asunto: 'Solicitud urgente de información',
-        remitente: 'Juan Pérez',
-        fechaLimite: new Date(),
-        diasVencimiento: 1,
-        prioridad: 'URGENTE' as const,
-        estado: 'EN_PROCESO'
-      },
-      {
-        id: '2',
-        numeroExpediente: 'EXP-2025-0002',
-        asunto: 'Reclamo urgente por servicio',
-        remitente: 'María García',
-        fechaLimite: new Date(),
-        diasVencimiento: 0,
-        prioridad: 'URGENTE' as const,
-        estado: 'REGISTRADO'
-      }
-    ]);
+    // Obtener documentos urgentes reales del servicio
+    return this.reporteService.obtenerDocumentosUrgentes();
   }
 
   /**

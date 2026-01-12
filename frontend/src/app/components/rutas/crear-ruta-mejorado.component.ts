@@ -247,7 +247,7 @@ import { ResolucionService } from '../../services/resolucion.service';
                         <ng-container matColumnDef="itinerario">
                           <th mat-header-cell *matHeaderCellDef>Itinerario</th>
                           <td mat-cell *matCellDef="let ruta">
-                            <span class="itinerario-text">{{ ruta.itinerario || ruta.descripcion || '-' }}</span>
+                            <span class="itinerario-text">{{ ruta.descripcion || '-' }}</span>
                           </td>
                         </ng-container>
 

@@ -18,6 +18,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { RutaService } from '../../services/ruta.service';
@@ -55,6 +56,7 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
     MatCheckboxModule,
     MatMenuModule,
     MatTooltipModule,
+    MatPaginatorModule,
     ReactiveFormsModule,
     MatDialogModule,
   ],
@@ -405,7 +407,7 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
           <div class="section-header">
             <h3>{{ filtroActivo().descripcion }}</h3>
             <p class="section-subtitle">
-              Mostrando {{ rutas().length }} ruta(s)
+              Mostrando {{ rutasPaginadasComputed().length }} de {{ totalRutasFiltradas() }} ruta(s)
               @if (filtroActivo().tipo === 'resolucion') {
                 de la resolución seleccionada - Vista CRUD
               } @else if (filtroActivo().tipo === 'empresa') {
@@ -585,7 +587,7 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
               </div>
 
               <div class="table-container">
-                <table mat-table [dataSource]="rutas()" class="rutas-table">
+                <table mat-table [dataSource]="rutasPaginadasComputed()" class="rutas-table">
                 
                 <!-- Columna de Selección -->
                 <ng-container matColumnDef="select">
@@ -620,7 +622,7 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
                   <td mat-cell *matCellDef="let ruta">
                     <div class="empresa-info">
                       <div class="empresa-nombre">{{ obtenerNombreEmpresa(ruta) }}</div>
-                      <div class="empresa-ruc">{{ obtenerRucEmpresa(ruta) }}</div>
+                      <div class="empresa-ruc">RUC: {{ obtenerRucEmpresa(ruta) }}</div>
                     </div>
                   </td>
                 </ng-container>
@@ -629,7 +631,12 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
                 <ng-container matColumnDef="resolucion">
                   <th mat-header-cell *matHeaderCellDef>Resolución</th>
                   <td mat-cell *matCellDef="let ruta">
-                    <span class="resolucion-numero">{{ obtenerNumeroResolucion(ruta) }}</span>
+                    <div class="resolucion-info">
+                      <div class="resolucion-numero">{{ obtenerInfoCompletaResolucion(ruta).numero }}</div>
+                      @if (obtenerInfoCompletaResolucion(ruta).tipo) {
+                        <div class="resolucion-tipo">{{ obtenerInfoCompletaResolucion(ruta).tipo }}</div>
+                      }
+                    </div>
                   </td>
                 </ng-container>
 
@@ -649,9 +656,9 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
                 <ng-container matColumnDef="itinerario">
                   <th mat-header-cell *matHeaderCellDef>Itinerario</th>
                   <td mat-cell *matCellDef="let ruta">
-                    <span class="itinerario-text" [matTooltip]="ruta.descripcion || ruta.itinerario">
-                      {{ (ruta.descripcion || ruta.itinerario || 'SIN ITINERARIO') | slice:0:30 }}
-                      {{ (ruta.descripcion || ruta.itinerario || '').length > 30 ? '...' : '' }}
+                    <span class="itinerario-text" [matTooltip]="ruta.descripcion">
+                      {{ (ruta.descripcion || 'SIN ITINERARIO') | slice:0:30 }}
+                      {{ (ruta.descripcion || '').length > 30 ? '...' : '' }}
                     </span>
                   </td>
                 </ng-container>
@@ -778,6 +785,17 @@ import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-b
                     *matRowDef="let row; columns: visibleColumns();"
                     [class.selected-row]="isRutaSeleccionada(row.id)"></tr>
               </table>
+              
+              <!-- Paginador -->
+              <mat-paginator
+                [length]="totalRutasFiltradas()"
+                [pageSize]="pageSize()"
+                [pageIndex]="pageIndex()"
+                [pageSizeOptions]="pageSizeOptions()"
+                [showFirstLastButtons]="true"
+                (page)="onPageChange($event)"
+                class="rutas-paginator">
+              </mat-paginator>
               </div>
             }
           } @else {
@@ -816,11 +834,22 @@ export class RutasComponent implements OnInit {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
 
+  // Signals para paginador
+  pageSize = signal(10);
+  pageIndex = signal(0);
+  pageSizeOptions = signal([5, 10, 25, 50, 100]);
+  rutasPaginadas = signal<Ruta[]>([]);
+  
   // Signals
   rutas = signal<Ruta[]>([]);
   todasLasRutas = signal<Ruta[]>([]); // Mantener todas las rutas para filtrado
   rutasAgrupadasPorResolucion = signal<{[resolucionId: string]: {resolucion: Resolucion | null, rutas: Ruta[]}}>({}); 
   isLoading = signal(false);
+  
+  // Caches para datos relacionados
+  empresasCache = signal<Map<string, Empresa>>(new Map());
+  resolucionesCache = signal<Map<string, Resolucion>>(new Map());
+  
   empresaSeleccionada = signal<Empresa | null>(null);
   resolucionSeleccionada = signal<Resolucion | null>(null);
   empresaSearchValue = signal('');
@@ -889,6 +918,20 @@ export class RutasComponent implements OnInit {
       .map(col => col.key);
   });
 
+  // Computed para el total de rutas filtradas
+  totalRutasFiltradas = computed(() => this.rutas().length);
+
+  // Computed para rutas paginadas
+  rutasPaginadasComputed = computed(() => {
+    const rutas = this.rutas();
+    const pageSize = this.pageSize();
+    const pageIndex = this.pageIndex();
+    const startIndex = pageIndex * pageSize;
+    const endIndex = startIndex + pageSize;
+    
+    return rutas.slice(startIndex, endIndex);
+  });
+
   ngOnInit(): void {
     console.log('🚀 COMPONENTE RUTAS INICIALIZADO');
     this.inicializarFiltros();
@@ -907,7 +950,7 @@ export class RutasComponent implements OnInit {
 
     // Cargar todas las rutas del sistema
     this.rutaService.getRutas().subscribe({
-      next: (rutas) => {
+      next: async (rutas) => {
         console.log('✅ RUTAS CARGADAS EXITOSAMENTE:', {
           total: rutas.length,
           rutas: rutas.map(r => ({
@@ -923,6 +966,11 @@ export class RutasComponent implements OnInit {
         this.rutas.set(rutas);
         this.todasLasRutas.set(rutas); // Actualizar todasLasRutas
         this.totalRutas.set(rutas.length);
+        
+        // Precargar datos relacionados (empresas y resoluciones)
+        console.log('🔄 PRECARGANDO DATOS RELACIONADOS...');
+        await this.precargarDatosRelacionados();
+        console.log('✅ DATOS RELACIONADOS PRECARGADOS');
         
         // Establecer filtro por defecto solo si no hay filtro activo
         if (this.filtroActivo().tipo === 'todas') {
@@ -1011,14 +1059,12 @@ export class RutasComponent implements OnInit {
     this.empresaSearchValue.set('');
     this.resolucionesEmpresa.set([]);
 
-    // Mostrar todas las rutas del sistema
-    this.rutas.set(this.todasLasRutas());
-    
-    // Actualizar filtro activo
-    this.filtroActivo.set({
-      tipo: 'todas',
-      descripcion: 'Todas las Rutas del Sistema'
-    });
+    // Mostrar todas las rutas del sistema con paginador
+    this.aplicarFiltroConPaginador(
+      this.todasLasRutas(),
+      'Todas las Rutas del Sistema',
+      'todas'
+    );
 
     console.log('✅ FILTROS LIMPIADOS, MOSTRANDO TODAS LAS RUTAS');
     this.snackBar.open('Mostrando todas las rutas del sistema', 'Cerrar', { duration: 3000 });
@@ -1035,11 +1081,11 @@ export class RutasComponent implements OnInit {
       this.filtrarRutasPorEmpresa(empresa.id);
     } else {
       // Si no hay empresa, mostrar todas las rutas
-      this.rutas.set(this.todasLasRutas());
-      this.filtroActivo.set({
-        tipo: 'todas',
-        descripcion: 'Todas las Rutas del Sistema'
-      });
+      this.aplicarFiltroConPaginador(
+        this.todasLasRutas(),
+        'Todas las Rutas del Sistema',
+        'todas'
+      );
     }
     
     this.snackBar.open('Filtro de resolución eliminado', 'Cerrar', { duration: 2000 });
@@ -1426,19 +1472,14 @@ export class RutasComponent implements OnInit {
     if (rutasLocales.length > 0) {
       console.log('✅ FILTRADO LOCAL EXITOSO - Usando rutas locales directamente');
       
-      // Usar rutas locales directamente
-      this.rutas.set([...rutasLocales]);
-      this.cdr.detectChanges();
-      
-      // Actualizar filtro activo
+      // Aplicar filtro con paginador
       const empresa = this.empresaSeleccionada();
       const resolucion = this.resolucionSeleccionada();
-      this.filtroActivo.set({
-        tipo: 'empresa-resolucion',
-        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
-        empresaId: empresaId,
-        resolucionId: resolucionId
-      });
+      this.aplicarFiltroConPaginador(
+        [...rutasLocales],
+        `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
+        'empresa-resolucion'
+      );
       
       console.log('✅ FILTRADO LOCAL COMPLETADO');
       this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
@@ -1470,31 +1511,15 @@ export class RutasComponent implements OnInit {
           console.warn(`   • IDs usados: Empresa=${empresaId}, Resolución=${resolucionId}`);
         }
 
-        // FORZAR ACTUALIZACIÓN DEL SIGNAL
-        console.log('🔄 FORZANDO ACTUALIZACIÓN DEL SIGNAL RUTAS...');
-        this.rutas.set([...rutasFiltradas]); // Crear nueva referencia
-        
-        // FORZAR DETECCIÓN DE CAMBIOS MÚLTIPLE
-        this.cdr.detectChanges();
-        
-        setTimeout(() => {
-          this.cdr.detectChanges();
-          console.log('🔍 VERIFICACIÓN POST-FILTRADO:', {
-            rutasEnSignal: this.rutas().length,
-            rutasRecibidas: rutasFiltradas.length,
-            coinciden: this.rutas().length === rutasFiltradas.length
-          });
-        }, 10);
-        
-        // Actualizar filtro activo
+        // FORZAR ACTUALIZACIÓN DEL SIGNAL CON PAGINADOR
+        console.log('🔄 APLICANDO FILTRO CON PAGINADOR...');
         const empresa = this.empresaSeleccionada();
         const resolucion = this.resolucionSeleccionada();
-        this.filtroActivo.set({
-          tipo: 'empresa-resolucion',
-          descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
-          empresaId: empresaId,
-          resolucionId: resolucionId
-        });
+        this.aplicarFiltroConPaginador(
+          [...rutasFiltradas],
+          `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
+          'empresa-resolucion'
+        );
         
         console.log('✅ FILTRADO BACKEND COMPLETADO');
         this.snackBar.open(`Filtrado: ${rutasFiltradas.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
@@ -1537,18 +1562,16 @@ export class RutasComponent implements OnInit {
     if (rutasLocales.length > 0) {
       console.log('✅ FILTRADO LOCAL POR EMPRESA EXITOSO');
       
-      this.rutas.set(rutasLocales);
-      
       // Agrupar rutas por resolución
       this.agruparRutasPorResolucion(rutasLocales);
       
-      // Actualizar filtro activo
+      // Aplicar filtro con paginador
       const empresa = this.empresaSeleccionada();
-      this.filtroActivo.set({
-        tipo: 'empresa',
-        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'}`,
-        empresaId: empresaId
-      });
+      this.aplicarFiltroConPaginador(
+        rutasLocales,
+        `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'}`,
+        'empresa'
+      );
       
       this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la empresa`, 'Cerrar', { duration: 3000 });
       return;
@@ -1751,19 +1774,140 @@ export class RutasComponent implements OnInit {
 
   // Métodos para obtener información de empresa y resolución de las rutas
   obtenerNombreEmpresa(ruta: Ruta): string {
-    // Por simplicidad, mostrar el ID de la empresa por ahora
-    // En el futuro se puede implementar un cache de empresas
-    return ruta.empresaId ? `Empresa ${ruta.empresaId.substring(0, 8)}...` : 'Sin empresa';
+    if (!ruta.empresaId) return 'Sin empresa';
+    
+    const empresa = this.empresasCache().get(ruta.empresaId);
+    if (empresa) {
+      // Manejar tanto string como objeto para razonSocial
+      if (typeof empresa.razonSocial === 'string') {
+        return empresa.razonSocial || 'Sin razón social';
+      } else if (empresa.razonSocial && typeof empresa.razonSocial === 'object') {
+        return empresa.razonSocial.principal || 'Sin razón social';
+      }
+      return 'Sin razón social';
+    }
+    
+    // Si no está en cache, cargar la empresa
+    this.cargarEmpresaEnCache(ruta.empresaId);
+    return 'Cargando...';
   }
 
   obtenerRucEmpresa(ruta: Ruta): string {
-    // Por simplicidad, mostrar información básica por ahora
-    return ruta.empresaId ? 'RUC disponible' : 'Sin RUC';
+    if (!ruta.empresaId) return 'Sin RUC';
+    
+    const empresa = this.empresasCache().get(ruta.empresaId);
+    if (empresa) {
+      return empresa.ruc || 'Sin RUC';
+    }
+    
+    return 'Cargando...';
   }
 
   obtenerNumeroResolucion(ruta: Ruta): string {
-    // Por ahora retornar el ID de la resolución truncado
-    return ruta.resolucionId ? `Res. ${ruta.resolucionId.substring(0, 8)}...` : 'Sin resolución';
+    if (!ruta.resolucionId) return 'Sin resolución';
+    
+    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    if (resolucion) {
+      const numero = resolucion.nroResolucion || 'Sin número';
+      const tipo = resolucion.tipoTramite || '';
+      return tipo ? `${numero} (${tipo})` : numero;
+    }
+    
+    // Si no está en cache, cargar la resolución
+    this.cargarResolucionEnCache(ruta.resolucionId);
+    return 'Cargando...';
+  }
+
+  // Función adicional para obtener información completa de la resolución
+  obtenerInfoCompletaResolucion(ruta: Ruta): { numero: string; tipo: string; estado: string } {
+    if (!ruta.resolucionId) {
+      return { numero: 'Sin resolución', tipo: '', estado: '' };
+    }
+    
+    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    if (resolucion) {
+      return {
+        numero: resolucion.nroResolucion || 'Sin número',
+        tipo: resolucion.tipoTramite || 'Sin tipo',
+        estado: resolucion.estado || 'Sin estado'
+      };
+    }
+    
+    return { numero: 'Cargando...', tipo: '', estado: '' };
+  }
+
+  // Métodos para cargar datos en cache
+  private async cargarEmpresaEnCache(empresaId: string): Promise<void> {
+    try {
+      const empresa = await this.empresaService.getEmpresa(empresaId).toPromise();
+      if (empresa) {
+        const currentCache = this.empresasCache();
+        currentCache.set(empresaId, empresa);
+        this.empresasCache.set(new Map(currentCache));
+      }
+    } catch (error) {
+      console.error('Error cargando empresa:', error);
+    }
+  }
+
+  private async cargarResolucionEnCache(resolucionId: string): Promise<void> {
+    try {
+      const resolucion = await this.resolucionService.getResolucionPorId(resolucionId).toPromise();
+      if (resolucion) {
+        const currentCache = this.resolucionesCache();
+        currentCache.set(resolucionId, resolucion);
+        this.resolucionesCache.set(new Map(currentCache));
+      }
+    } catch (error) {
+      console.error('Error cargando resolución:', error);
+    }
+  }
+
+  // Método para precargar todos los datos relacionados
+  private async precargarDatosRelacionados(): Promise<void> {
+    const rutas = this.todasLasRutas();
+    
+    // Obtener IDs únicos de empresas y resoluciones, filtrando undefined
+    const empresaIds = [...new Set(rutas.map(r => r.empresaId).filter((id): id is string => Boolean(id)))];
+    const resolucionIds = [...new Set(rutas.map(r => r.resolucionId).filter((id): id is string => Boolean(id)))];
+    
+    // Cargar empresas en paralelo
+    const empresasPromises = empresaIds.map(id => 
+      this.empresaService.getEmpresa(id).toPromise().catch(() => null)
+    );
+    
+    // Cargar resoluciones en paralelo
+    const resolucionesPromises = resolucionIds.map(id => 
+      this.resolucionService.getResolucionPorId(id).toPromise().catch(() => null)
+    );
+    
+    try {
+      const [empresas, resoluciones] = await Promise.all([
+        Promise.all(empresasPromises),
+        Promise.all(resolucionesPromises)
+      ]);
+      
+      // Actualizar cache de empresas
+      const empresasMap = new Map(this.empresasCache());
+      empresas.forEach((empresa, index) => {
+        if (empresa) {
+          empresasMap.set(empresaIds[index], empresa);
+        }
+      });
+      this.empresasCache.set(empresasMap);
+      
+      // Actualizar cache de resoluciones
+      const resolucionesMap = new Map(this.resolucionesCache());
+      resoluciones.forEach((resolucion, index) => {
+        if (resolucion) {
+          resolucionesMap.set(resolucionIds[index], resolucion);
+        }
+      });
+      this.resolucionesCache.set(resolucionesMap);
+      
+    } catch (error) {
+      console.error('Error precargando datos relacionados:', error);
+    }
   }
 
   getTipoDisplayName(tipo: TipoRuta | undefined): string {
@@ -2644,5 +2788,36 @@ export class RutasComponent implements OnInit {
     // Implementar exportación según el formato
     console.log(`Exportando ${rutasSeleccionadas.length} rutas en formato ${formato}`);
     this.snackBar.open(`Exportando ${rutasSeleccionadas.length} ruta(s) en formato ${formato.toUpperCase()}`, 'Cerrar', { duration: 3000 });
+  }
+
+  // ========================================
+  // MÉTODOS DEL PAGINADOR
+  // ========================================
+
+  onPageChange(event: PageEvent): void {
+    console.log('📄 CAMBIO DE PÁGINA:', event);
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    
+    // Resetear a la primera página si se cambia el tamaño de página
+    if (event.pageSize !== this.pageSize()) {
+      this.pageIndex.set(0);
+    }
+  }
+
+  resetearPaginador(): void {
+    this.pageIndex.set(0);
+    this.pageSize.set(10);
+  }
+
+  // Método para aplicar filtros y resetear paginador
+  private aplicarFiltroConPaginador(rutas: Ruta[], descripcion: string, tipo: any): void {
+    this.rutas.set(rutas);
+    this.resetearPaginador();
+    
+    this.filtroActivo.set({
+      tipo: tipo,
+      descripcion: descripcion
+    });
   }
 }

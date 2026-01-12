@@ -233,21 +233,37 @@
         font-weight: 500;
         font-size: 13px;
         color: #333;
+        margin-bottom: 2px;
       }
       
       .empresa-ruc {
         font-size: 11px;
         color: #666;
-        margin-top: 2px;
+        font-weight: 400;
       }
     }
     
-    .resolucion-numero {
-      font-size: 12px;
-      color: #666;
-      background-color: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
+    .resolucion-info {
+      .resolucion-numero {
+        font-size: 12px;
+        color: #1976d2;
+        font-weight: 500;
+        background-color: #e3f2fd;
+        padding: 2px 6px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-bottom: 2px;
+      }
+      
+      .resolucion-tipo {
+        font-size: 10px;
+        color: #666;
+        background-color: #f5f5f5;
+        padding: 1px 4px;
+        border-radius: 2px;
+        display: inline-block;
+        text-transform: uppercase;
+      }
     }
     
     .estado-badge {
@@ -1459,3 +1475,106 @@
   border-radius: 4px;
   padding: 6px 8px;
 }}
+
+// ========================================
+// ESTILOS PARA EL PAGINADOR
+// ========================================
+
+.rutas-paginator {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+  
+  .mat-mdc-paginator-container {
+    padding: 8px 16px;
+    min-height: 56px;
+  }
+  
+  .mat-mdc-paginator-page-size {
+    .mat-mdc-form-field {
+      margin-right: 8px;
+    }
+  }
+  
+  .mat-mdc-paginator-range-label {
+    font-size: 14px;
+    color: #666;
+    margin: 0 16px;
+  }
+  
+  .mat-mdc-icon-button {
+    width: 40px;
+    height: 40px;
+    
+    .mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
+}
+
+// Responsive para paginador
+@media (max-width: 768px) {
+  .rutas-paginator {
+    .mat-mdc-paginator-container {
+      padding: 8px 12px;
+      min-height: 48px;
+    }
+    
+    .mat-mdc-paginator-range-label {
+      font-size: 12px;
+      margin: 0 8px;
+    }
+    
+    .mat-mdc-icon-button {
+      width: 36px;
+      height: 36px;
+      
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Estilos para mejorar la visibilidad del paginador
+.table-container {
+  .rutas-paginator {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+  }
+}
+
+// Indicador de página actual
+.mat-mdc-paginator-navigation-first,
+.mat-mdc-paginator-navigation-previous,
+.mat-mdc-paginator-navigation-next,
+.mat-mdc-paginator-navigation-last {
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background-color: rgba(25, 118, 210, 0.1);
+    transform: scale(1.05);
+  }
+  
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+}
+
+// Información adicional del paginador
+.rutas-paginator {
+  .mat-mdc-paginator-range-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
