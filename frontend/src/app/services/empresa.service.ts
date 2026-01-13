@@ -45,8 +45,8 @@ export class EmpresaService {
   }
 
   // Métodos principales CRUD
-  getEmpresas(skip: number = 0, limit: number = 100): Observable<Empresa[]> {
-    // Temporalmente sin headers para debug
+  getEmpresas(skip: number = 0, limit: number = 1000): Observable<Empresa[]> {
+    // Aumentar el límite para obtener todas las empresas
     return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`).pipe(
       map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa))),
       catchError(error => {

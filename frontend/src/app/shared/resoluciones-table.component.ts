@@ -111,6 +111,15 @@ export interface AccionTabla {
                 <app-smart-icon iconName="download" [size]="18"></app-smart-icon>
                 Exportar
               </button>
+              
+              <button mat-stroked-button 
+                      color="warn"
+                      (click)="ejecutarAccionLote('eliminar')"
+                      matTooltip="Eliminar seleccionadas"
+                      class="delete-bulk-btn">
+                <app-smart-icon iconName="delete" [size]="18"></app-smart-icon>
+                Eliminar ({{ seleccion.selected.length }})
+              </button>
             </div>
           }
           
@@ -231,7 +240,7 @@ export interface AccionTabla {
             <mat-header-cell *matHeaderCellDef class="numero-column">
               <app-sortable-header
                 columna="nroResolucion"
-                label="Número de Resolución"
+                label="N° Resolución"
                 [ordenamiento]="configuracion.ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
@@ -298,10 +307,17 @@ export interface AccionTabla {
               </app-sortable-header>
             </mat-header-cell>
             <mat-cell *matCellDef="let resolucion" class="fecha-column">
-              <div class="fecha-info">
-                <div class="fecha-principal">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</div>
-                <div class="fecha-relativa">{{ getFechaRelativa(resolucion.fechaEmision) }}</div>
-              </div>
+              @if (resolucion.fechaEmision) {
+                <div class="fecha-info">
+                  <div class="fecha-principal">{{ resolucion.fechaEmision | date:'dd/MM/yyyy' }}</div>
+                  <div class="fecha-relativa">{{ getFechaRelativa(resolucion.fechaEmision) }}</div>
+                </div>
+              } @else {
+                <div class="fecha-info sin-fecha">
+                  <div class="fecha-principal">-</div>
+                  <div class="fecha-relativa">Sin fecha</div>
+                </div>
+              }
             </mat-cell>
           </ng-container>
 
@@ -343,6 +359,28 @@ export interface AccionTabla {
                   <div class="fecha-estado" [class]="getEstadoVigencia(resolucion.fechaVigenciaFin)">
                     {{ getTextoVigencia(resolucion.fechaVigenciaFin) }}
                   </div>
+                </div>
+              } @else {
+                <span class="no-data">-</span>
+              }
+            </mat-cell>
+          </ng-container>
+
+          <!-- Columna: Años de Vigencia -->
+          <ng-container matColumnDef="aniosVigencia">
+            <mat-header-cell *matHeaderCellDef class="anios-column">
+              <app-sortable-header
+                columna="aniosVigencia"
+                label="Años Vigencia"
+                [ordenamiento]="configuracion.ordenamiento"
+                (ordenamientoChange)="onOrdenamientoChange($event)">
+              </app-sortable-header>
+            </mat-header-cell>
+            <mat-cell *matCellDef="let resolucion" class="anios-column">
+              @if (resolucion.aniosVigencia) {
+                <div class="anios-info">
+                  <div class="anios-numero">{{ resolucion.aniosVigencia }}</div>
+                  <div class="anios-label">{{ resolucion.aniosVigencia === 1 ? 'año' : 'años' }}</div>
                 </div>
               } @else {
                 <span class="no-data">-</span>
@@ -437,28 +475,6 @@ export interface AccionTabla {
                     <span>Sin vehículos</span>
                   </div>
                 }
-              </div>
-            </mat-cell>
-          </ng-container>
-
-          <!-- Columna: Activo -->
-          <ng-container matColumnDef="estaActivo">
-            <mat-header-cell *matHeaderCellDef class="activo-column">
-              <app-sortable-header
-                columna="estaActivo"
-                label="Activo"
-                [ordenamiento]="configuracion.ordenamiento"
-                (ordenamientoChange)="onOrdenamientoChange($event)">
-              </app-sortable-header>
-            </mat-header-cell>
-            <mat-cell *matCellDef="let resolucion" class="activo-column">
-              <div class="activo-indicator" [class.activo]="resolucion.estaActivo">
-                <app-smart-icon 
-                  [iconName]="resolucion.estaActivo ? 'check_circle' : 'cancel'" 
-                  [size]="18"
-                  [class]="resolucion.estaActivo ? 'icon-activo' : 'icon-inactivo'">
-                </app-smart-icon>
-                <span>{{ resolucion.estaActivo ? 'Activo' : 'Inactivo' }}</span>
               </div>
             </mat-cell>
           </ng-container>
@@ -614,6 +630,19 @@ export interface AccionTabla {
       border-right: 1px solid #e0e0e0;
     }
 
+    .delete-bulk-btn {
+      border-color: #f44336;
+      color: #f44336;
+      transition: all 0.3s ease;
+    }
+
+    .delete-bulk-btn:hover {
+      background-color: #f44336;
+      color: white;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+    }
+
     .export-button {
       color: rgba(0, 0, 0, 0.6);
     }
@@ -700,11 +729,17 @@ export interface AccionTabla {
     /* Columnas específicas */
     .selection-column {
       width: 48px;
-      padding: 0 8px;
+      min-width: 48px;
+      max-width: 48px;
+      padding: 0 6px;
+      text-align: center;
     }
 
     .numero-column {
-      min-width: 180px;
+      min-width: 110px;
+      max-width: 120px;
+      width: 115px;
+      padding: 8px 4px;
     }
 
     .empresa-column {
@@ -719,6 +754,10 @@ export interface AccionTabla {
       width: 140px;
     }
 
+    .anios-column {
+      width: 100px;
+    }
+
     .estado-column {
       width: 120px;
     }
@@ -727,32 +766,46 @@ export interface AccionTabla {
       width: 180px;
     }
 
-    .activo-column {
-      width: 100px;
+    .vehiculos-column {
+      width: 180px;
     }
 
     .acciones-column {
       width: 120px;
     }
 
+    /* Optimización específica para checkbox de selección */
+    .selection-column mat-checkbox {
+      transform: scale(0.9);
+      margin: 0;
+    }
+
+    .selection-column .mat-mdc-checkbox {
+      margin: 0;
+      padding: 2px;
+    }
+
     /* Contenido de celdas */
     .numero-resolucion {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 1px;
     }
 
     .numero-principal {
       font-weight: 500;
       color: #1976d2;
+      font-size: 12px;
+      line-height: 1.1;
     }
 
     .tipo-badge {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
+      font-size: 8px;
+      padding: 1px 3px;
+      border-radius: 2px;
       text-transform: uppercase;
       font-weight: 600;
+      line-height: 1;
     }
 
     .tipo-badge.tipo-padre {
@@ -836,6 +889,19 @@ export interface AccionTabla {
       color: rgba(0, 0, 0, 0.5);
     }
 
+    .fecha-info.sin-fecha {
+      opacity: 0.6;
+    }
+
+    .fecha-info.sin-fecha .fecha-principal {
+      color: rgba(0, 0, 0, 0.4);
+    }
+
+    .fecha-info.sin-fecha .fecha-relativa {
+      color: rgba(0, 0, 0, 0.4);
+      font-style: italic;
+    }
+
     .fecha-estado {
       font-size: 11px;
       font-weight: 500;
@@ -847,6 +913,25 @@ export interface AccionTabla {
 
     .fecha-estado.proximo-vencer {
       color: #f57c00;
+    }
+
+    .anios-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .anios-numero {
+      font-weight: 600;
+      font-size: 16px;
+      color: #1976d2;
+    }
+
+    .anios-label {
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.5);
+      text-transform: lowercase;
     }
 
     .fecha-estado.vencido {
@@ -887,21 +972,6 @@ export interface AccionTabla {
     .estado-chip.estado-anulado {
       background-color: #fce4ec;
       color: #c2185b;
-    }
-
-    .activo-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-    }
-
-    .icon-activo {
-      color: #4caf50;
-    }
-
-    .icon-inactivo {
-      color: #f44336;
     }
 
     .rutas-info {
@@ -1683,9 +1753,20 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   /**
    * Obtiene el texto relativo de una fecha
    */
-  getFechaRelativa(fecha: Date): string {
+  getFechaRelativa(fecha: Date | null | undefined): string {
+    // Si no hay fecha, mostrar "Sin fecha"
+    if (!fecha) {
+      return 'Sin fecha';
+    }
+    
     const ahora = new Date();
     const fechaObj = new Date(fecha);
+    
+    // Verificar si la fecha es válida
+    if (isNaN(fechaObj.getTime())) {
+      return 'Sin fecha';
+    }
+    
     const diferenciaDias = Math.floor((ahora.getTime() - fechaObj.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diferenciaDias === 0) return 'Hoy';
@@ -1763,65 +1844,11 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Respeta los filtros y ordenamiento aplicados
    */
   exportarResoluciones(formato: 'excel' | 'pdf'): void {
-    this.exportando.set(true);
-    
-    // Mostrar notificación de inicio
-    this.snackBar.open(
-      `Preparando exportación a ${formato.toUpperCase()}...`,
-      'Cerrar',
-      { duration: 2000 }
-    );
-
-    // Llamar al servicio de exportación con los filtros actuales
-    this.resolucionService.exportarResoluciones(this.configuracion.filtros, formato)
-      .subscribe({
-        next: (blob: Blob) => {
-          this.exportando.set(false);
-          
-          // Crear URL del blob y descargar
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          
-          // Generar nombre de archivo con timestamp
-          const timestamp = new Date().toISOString().split('T')[0];
-          const extension = formato === 'excel' ? 'xlsx' : 'pdf';
-          link.download = `resoluciones_${timestamp}.${extension}`;
-          
-          // Trigger download
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // Limpiar URL del blob
-          window.URL.revokeObjectURL(url);
-          
-          // Mostrar notificación de éxito
-          this.snackBar.open(
-            `Exportación completada: ${this.totalResultados()} resoluciones`,
-            'Cerrar',
-            { duration: 3000 }
-          );
-          
-          // Emitir evento de acción ejecutada
-          this.accionEjecutada.emit({
-            accion: 'exportar',
-            resoluciones: this.dataSource.data,
-            formato
-          });
-        },
-        error: (error) => {
-          this.exportando.set(false);
-          console.error('Error al exportar resoluciones:', error);
-          
-          // Mostrar notificación de error
-          this.snackBar.open(
-            'Error al exportar resoluciones. Por favor, intente nuevamente.',
-            'Cerrar',
-            { duration: 5000 }
-          );
-        }
-      });
+    // Emitir acción para que el componente padre maneje la exportación
+    this.accionEjecutada.emit({
+      accion: 'exportar',
+      formato: formato
+    });
   }
 
   /**
@@ -1843,6 +1870,9 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       case 'exportar':
         this.exportarResolucionesSeleccionadas();
         break;
+      case 'eliminar':
+        this.eliminarResolucionesSeleccionadas();
+        break;
       default:
         console.warn('Acción en lote no implementada:', accion);
     }
@@ -1852,16 +1882,50 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Exporta solo las resoluciones seleccionadas
    */
   private exportarResolucionesSeleccionadas(): void {
-    // Por ahora, exportamos usando el mismo método pero con filtros
-    // En una implementación más avanzada, podríamos enviar los IDs específicos
-    this.snackBar.open(
-      `Exportando ${this.seleccion.selected.length} resoluciones seleccionadas...`,
-      'Cerrar',
-      { duration: 2000 }
-    );
+    const resolucionesSeleccionadas = this.seleccion.selected;
     
-    // Exportar a Excel por defecto para selecciones
-    this.exportarResoluciones('excel');
+    if (resolucionesSeleccionadas.length === 0) {
+      this.snackBar.open('No hay resoluciones seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Emitir acción con las resoluciones seleccionadas
+    this.accionEjecutada.emit({
+      accion: 'exportar',
+      resoluciones: resolucionesSeleccionadas
+    });
+  }
+
+  /**
+   * Elimina las resoluciones seleccionadas con confirmación
+   */
+  private eliminarResolucionesSeleccionadas(): void {
+    const resolucionesSeleccionadas = this.seleccion.selected;
+    
+    if (resolucionesSeleccionadas.length === 0) {
+      this.snackBar.open('No hay resoluciones seleccionadas para eliminar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Mostrar diálogo de confirmación
+    const mensaje = resolucionesSeleccionadas.length === 1 
+      ? `¿Estás seguro de que deseas eliminar la resolución "${resolucionesSeleccionadas[0].nroResolucion}"?`
+      : `¿Estás seguro de que deseas eliminar ${resolucionesSeleccionadas.length} resoluciones seleccionadas?`;
+    
+    const confirmacion = confirm(
+      `${mensaje}\n\n⚠️ Esta acción no se puede deshacer.\n\nResoluciones a eliminar:\n${resolucionesSeleccionadas.map(r => `• ${r.nroResolucion}`).join('\n')}`
+    );
+
+    if (confirmacion) {
+      // Emitir acción con las resoluciones seleccionadas para eliminar
+      this.accionEjecutada.emit({
+        accion: 'eliminar',
+        resoluciones: resolucionesSeleccionadas
+      });
+
+      // Limpiar selección después de confirmar eliminación
+      this.limpiarSeleccion();
+    }
   }
 
   /**

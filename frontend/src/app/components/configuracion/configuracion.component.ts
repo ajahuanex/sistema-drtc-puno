@@ -31,6 +31,7 @@ import { EditarEstadosVehiculosModalComponent } from './editar-estados-vehiculos
 import { GestionarLocalidadModalComponent } from './gestionar-localidad-modal.component';
 import { GestionarTiposRutaModalComponent } from './gestionar-tipos-ruta-modal.component';
 import { GestionarTiposServicioModalComponent } from './gestionar-tipos-servicio-modal.component';
+import { ImportExcelDialogComponent } from '../localidades/import-excel-dialog.component';
 
 export interface TipoRuta {
   id: string;
@@ -401,6 +402,18 @@ export interface TipoRuta {
                 <p>Configurar orígenes y destinos disponibles para las rutas</p>
               </div>
               <div class="header-actions">
+                <button mat-stroked-button 
+                        color="accent" 
+                        (click)="importarLocalidadesExcel()">
+                  <mat-icon>upload_file</mat-icon>
+                  Importar Excel
+                </button>
+                <button mat-stroked-button 
+                        color="primary" 
+                        (click)="exportarLocalidadesExcel()">
+                  <mat-icon>download</mat-icon>
+                  Exportar Excel
+                </button>
                 <button mat-raised-button 
                         color="primary" 
                         (click)="agregarLocalidad()">
@@ -440,11 +453,29 @@ export interface TipoRuta {
                   <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
                   <mat-cell *matCellDef="let localidad">
                     <div class="localidad-info">
-                      <span class="nombre">{{ localidad.nombre }}</span>
+                      <span class="nombre">{{ localidad.nombre || 'Sin nombre' }}</span>
                       @if (localidad.descripcion) {
                         <small class="descripcion">{{ localidad.descripcion }}</small>
                       }
                     </div>
+                  </mat-cell>
+                </ng-container>
+
+                <ng-container matColumnDef="municipalidad_centro_poblado">
+                  <mat-header-cell *matHeaderCellDef>Municipalidad</mat-header-cell>
+                  <mat-cell *matCellDef="let localidad">
+                    <div class="municipalidad-info">
+                      {{ localidad.municipalidad_centro_poblado }}
+                    </div>
+                  </mat-cell>
+                </ng-container>
+
+                <ng-container matColumnDef="nivel_territorial">
+                  <mat-header-cell *matHeaderCellDef>Nivel</mat-header-cell>
+                  <mat-cell *matCellDef="let localidad">
+                    <mat-chip [color]="getNivelTerritorialColor(localidad.nivel_territorial)">
+                      {{ localidad.nivel_territorial }}
+                    </mat-chip>
                   </mat-cell>
                 </ng-container>
 
@@ -488,7 +519,7 @@ export class ConfiguracionComponent implements OnInit {
   cargandoLocalidades = signal<boolean>(false);
   filtroLocalidades = signal<string>('');
 
-  displayedColumnsLocalidades = ['codigo', 'nombre', 'departamento', 'acciones'];
+  displayedColumnsLocalidades = ['codigo', 'nombre', 'municipalidad_centro_poblado', 'nivel_territorial', 'departamento', 'acciones'];
 
   // Signals para las configuraciones
   configuraciones = computed(() => this.configuracionService.configuraciones());
@@ -605,10 +636,19 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   // Métodos para localidades
-  cargarLocalidades(): void {
+  async cargarLocalidades(): Promise<void> {
     this.cargandoLocalidades.set(true);
-    // Simular carga de localidades por ahora
-    setTimeout(() => {
+    try {
+      const localidades = await this.localidadService.obtenerLocalidades();
+      this.localidades.set(localidades);
+      this.aplicarFiltros();
+    } catch (error) {
+      console.error('Error cargando localidades:', error);
+      this.snackBar.open('Error cargando localidades', 'Cerrar', {
+        duration: 3000,
+        panelClass: ['snackbar-error']
+      });
+      // Fallback a datos mock si hay error
       const localidadesMock: Localidad[] = [
         {
           id: '1',
@@ -618,9 +658,11 @@ export class ConfiguracionComponent implements OnInit {
           departamento: 'Puno',
           provincia: 'Puno',
           distrito: 'Puno',
-          estaActiva: true,
-          fechaCreacion: new Date(),
-          fechaActualizacion: new Date()
+          municipalidad_centro_poblado: 'Municipalidad Provincial de Puno',
+          nivel_territorial: 'DISTRITO' as any,
+          esta_activa: true,
+          fecha_creacion: new Date().toISOString(),
+          fecha_actualizacion: new Date().toISOString()
         },
         {
           id: '2',
@@ -630,16 +672,18 @@ export class ConfiguracionComponent implements OnInit {
           departamento: 'Puno',
           provincia: 'San Román',
           distrito: 'Juliaca',
-          estaActiva: true,
-          fechaCreacion: new Date(),
-          fechaActualizacion: new Date()
+          municipalidad_centro_poblado: 'Municipalidad Provincial de San Román',
+          nivel_territorial: 'DISTRITO' as any,
+          esta_activa: true,
+          fecha_creacion: new Date().toISOString(),
+          fecha_actualizacion: new Date().toISOString()
         }
       ];
-      
       this.localidades.set(localidadesMock);
       this.aplicarFiltros();
+    } finally {
       this.cargandoLocalidades.set(false);
-    }, 1000);
+    }
   }
 
   private aplicarFiltros(): void {
@@ -648,8 +692,8 @@ export class ConfiguracionComponent implements OnInit {
     
     if (filtroNombre) {
       localidadesFiltradas = localidadesFiltradas.filter(localidad =>
-        localidad.nombre.toLowerCase().includes(filtroNombre) ||
-        localidad.codigo.toLowerCase().includes(filtroNombre) ||
+        (localidad.nombre?.toLowerCase().includes(filtroNombre) || false) ||
+        (localidad.codigo?.toLowerCase().includes(filtroNombre) || false) ||
         localidad.departamento.toLowerCase().includes(filtroNombre)
       );
     }
@@ -689,6 +733,55 @@ export class ConfiguracionComponent implements OnInit {
         this.cargarLocalidades();
       }
     });
+  }
+
+  importarLocalidadesExcel(): void {
+    const dialogRef = this.dialog.open(ImportExcelDialogComponent, {
+      width: '800px',
+      maxHeight: '90vh',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.cargarLocalidades();
+        this.snackBar.open('Localidades importadas exitosamente', 'Cerrar', {
+          duration: 3000,
+          panelClass: ['snackbar-success']
+        });
+      }
+    });
+  }
+
+  async exportarLocalidadesExcel(): Promise<void> {
+    try {
+      await this.localidadService.exportarExcel();
+      this.snackBar.open('Localidades exportadas exitosamente', 'Cerrar', {
+        duration: 3000,
+        panelClass: ['snackbar-success']
+      });
+    } catch (error) {
+      console.error('Error exportando localidades:', error);
+      this.snackBar.open('Error exportando localidades', 'Cerrar', {
+        duration: 3000,
+        panelClass: ['snackbar-error']
+      });
+    }
+  }
+
+  getNivelTerritorialColor(nivel: string): 'primary' | 'accent' | 'warn' {
+    switch (nivel) {
+      case 'DEPARTAMENTO':
+        return 'warn';
+      case 'PROVINCIA':
+        return 'accent';
+      case 'DISTRITO':
+        return 'primary';
+      case 'CENTRO_POBLADO':
+        return 'primary';
+      default:
+        return 'primary';
+    }
   }
 
   // Métodos para gestión de tipos

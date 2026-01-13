@@ -77,7 +77,7 @@ export class VehiculoService {
     }).pipe(
       catchError(error => {
         console.error('Error obteniendo vehículos:', error);
-        return of([]);
+        throw error; // Propagar el error en lugar de devolver array vacío
       })
     );
   }

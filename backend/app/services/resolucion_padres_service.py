@@ -33,36 +33,59 @@ class ResolucionPadresService:
     def _normalizar_numero_resolucion(numero_resolucion: str, fecha_emision: datetime) -> str:
         """
         Normaliza el número de resolución al formato estándar R-XXXX-YYYY
+        PRESERVA el año original del número si ya está presente
+        
+        IMPORTANTE: El año del número de resolución se basa en la fecha de EMISIÓN,
+        NO en la fecha de vigencia, debido a la figura legal de EFICACIA ANTICIPADA.
+        
+        Eficacia anticipada: Una resolución puede tener vigencia desde una fecha
+        anterior a su emisión. Ejemplo:
+        - Resolución R-0290-2024 (emitida en marzo 2024)
+        - Vigencia desde 01/01/2023 (eficacia anticipada)
+        - El año del número (2024) corresponde al año de emisión
         
         Ejemplos:
-        - "123" → "R-0123-2025"
-        - "0123" → "R-0123-2025"  
-        - "R-123-2025" → "R-0123-2025"
-        - "R-0123-2025" → "R-0123-2025" (ya normalizado)
+        - "0290-2023" → "R-0290-2023" (preserva el año 2023)
+        - "R-0290-2023" → "R-0290-2023" (ya normalizado)
+        - "290" → "R-0290-2025" (usa año de fecha_emision)
         """
         numero = numero_resolucion.strip().upper()
-        anio = fecha_emision.year
         
-        # Si ya tiene el formato completo, extraer solo el número
-        if numero.startswith('R-') and '-' in numero[2:]:
+        # Si ya tiene el formato completo R-XXXX-YYYY, devolverlo tal como está
+        if numero.startswith('R-') and numero.count('-') == 2:
             partes = numero.split('-')
-            if len(partes) >= 2:
-                numero_parte = partes[1]
-            else:
-                numero_parte = numero[2:]  # Quitar "R-"
-        else:
-            # Si no tiene formato, usar todo como número
-            numero_parte = numero.replace('R-', '').replace('-', '')
+            if len(partes) == 3 and partes[1].isdigit() and partes[2].isdigit():
+                # Ya está en formato correcto, solo asegurar padding del número
+                numero_parte = partes[1].zfill(4)
+                anio_parte = partes[2]
+                return f"R-{numero_parte}-{anio_parte}"
         
-        # Limpiar y formatear el número
-        try:
-            numero_int = int(numero_parte)
-            numero_formateado = f"{numero_int:04d}"  # Formato con 4 dígitos
-        except ValueError:
-            # Si no se puede convertir a entero, usar como está pero con padding
-            numero_formateado = numero_parte.zfill(4)
+        # Si tiene formato XXXX-YYYY (sin R-), preservar el año
+        if '-' in numero and not numero.startswith('R-'):
+            partes = numero.split('-')
+            if len(partes) == 2 and partes[0].isdigit() and partes[1].isdigit():
+                numero_parte = partes[0].zfill(4)
+                anio_parte = partes[1]
+                return f"R-{numero_parte}-{anio_parte}"
         
-        return f"R-{numero_formateado}-{anio}"
+        # Si solo tiene el número (sin año), usar el año de la fecha de emisión
+        numero_limpio = numero.replace('R-', '').replace('-', '')
+        if numero_limpio.isdigit():
+            numero_formateado = numero_limpio.zfill(4)
+            anio = fecha_emision.year
+            return f"R-{numero_formateado}-{anio}"
+        
+        # Fallback: intentar extraer números y usar año de fecha
+        import re
+        numeros = re.findall(r'\d+', numero)
+        if numeros:
+            numero_base = numeros[0].zfill(4)
+            anio = fecha_emision.year
+            return f"R-{numero_base}-{anio}"
+        
+        # Último recurso
+        anio = fecha_emision.year
+        return f"R-0001-{anio}"
     
     @staticmethod
     def _parse_excel_date(date_value, fila: int, columna: str) -> Optional[datetime]:
@@ -81,11 +104,16 @@ class ResolucionPadresService:
             # Si es una cadena, intentar parsear con diferentes formatos
             date_str = str(date_value).strip()
             
-            # Formatos comunes de fecha
+            # Si tiene timestamp, extraer solo la fecha
+            if ' ' in date_str:
+                date_str = date_str.split(' ')[0]
+            
+            # Formatos comunes de fecha en orden de prioridad
             formatos = [
-                '%d/%m/%Y',      # 01/01/2025
+                '%d/%m/%Y',      # 01/01/2025 (español - preferido)
+                '%Y-%m-%d',      # 2025-01-01 (ISO - el que está causando problemas)
                 '%d-%m-%Y',      # 01-01-2025
-                '%Y-%m-%d',      # 2025-01-01
+                '%m/%d/%Y',      # 01/01/2025 (americano)
                 '%d/%m/%y',      # 01/01/25
                 '%d-%m-%y'       # 01-01-25
             ]
@@ -96,7 +124,9 @@ class ResolucionPadresService:
                     # Asegurar que el año esté en el rango correcto
                     if fecha.year < 100:
                         fecha = fecha.replace(year=fecha.year + 2000)
-                    return fecha
+                    # Validar que la fecha sea razonable (entre 1900 y 2100)
+                    if 1900 <= fecha.year <= 2100:
+                        return fecha
                 except ValueError:
                     continue
             
@@ -105,48 +135,7 @@ class ResolucionPadresService:
             
         except Exception as e:
             logger.error(f"Error parseando fecha en fila {fila}, columna {columna}: {date_value} - {str(e)}")
-            raise ValueError(f"Fecha inválida en {columna}: '{date_value}'. Use formato DD/MM/YYYY")
-    
-    @staticmethod
-    def _normalizar_numero_resolucion(numero_resolucion: str, fecha_emision: datetime) -> str:
-        """
-        Normaliza el número de resolución al formato estándar R-XXXX-YYYY
-        """
-        try:
-            # Limpiar el número
-            numero_limpio = str(numero_resolucion).strip().upper()
-            
-            # Obtener el año de la fecha de emisión
-            anio = fecha_emision.year
-            
-            # Si ya tiene el formato correcto, devolverlo
-            if numero_limpio.startswith('R-') and numero_limpio.endswith(f'-{anio}'):
-                return numero_limpio
-            
-            # Extraer solo los números del string
-            import re
-            numeros = re.findall(r'\d+', numero_limpio)
-            
-            if numeros:
-                # Tomar el primer número encontrado
-                numero_base = numeros[0]
-                
-                # Asegurar que tenga 4 dígitos con ceros a la izquierda
-                numero_formateado = numero_base.zfill(4)
-                
-                # Construir el formato final
-                numero_normalizado = f"R-{numero_formateado}-{anio}"
-                
-                return numero_normalizado
-            else:
-                # Si no se encuentran números, usar un formato por defecto
-                return f"R-0001-{anio}"
-                
-        except Exception as e:
-            logger.error(f"Error normalizando número de resolución '{numero_resolucion}': {str(e)}")
-            # Fallback en caso de error
-            anio = fecha_emision.year if fecha_emision else datetime.now().year
-            return f"R-0001-{anio}"
+            raise ValueError(f"Fecha inválida en {columna}: '{date_value}'. Formatos aceptados: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY")
     
     @staticmethod
     def validar_plantilla_padres(df: pd.DataFrame) -> Dict[str, Any]:
@@ -263,6 +252,7 @@ class ResolucionPadresService:
                 advertencias.append(f"Fila {fila}, Columna E (FECHA_RESOLUCION): {str(e)} - Se ignorará esta fecha")
             
             # Validar coherencia de fechas solo si todas las fechas obligatorias son válidas
+            # NOTA: Es normal que fecha_inicio sea anterior a fecha_resolucion (eficacia anticipada)
             if fecha_inicio and fecha_fin and 'anios_vigencia' in locals():
                 try:
                     es_valido, mensaje_error = validar_coherencia_fechas(
@@ -342,7 +332,15 @@ class ResolucionPadresService:
                     continue
                 
                 # Normalizar número de resolución al formato R-XXXX-YYYY
-                fecha_para_normalizacion = fecha_resolucion if fecha_resolucion else fecha_inicio
+                # IMPORTANTE: El año debe basarse en la fecha de emisión de la resolución,
+                # NO en la fecha de vigencia (por eficacia anticipada)
+                if fecha_resolucion:
+                    fecha_para_normalizacion = fecha_resolucion
+                else:
+                    # Si no hay fecha de resolución, usar la fecha actual como referencia
+                    # ya que la resolución se está procesando ahora
+                    fecha_para_normalizacion = datetime.now()
+                
                 numero_resolucion = self._normalizar_numero_resolucion(
                     numero_resolucion_original, fecha_para_normalizacion
                 )
@@ -388,7 +386,6 @@ class ResolucionPadresService:
                         "empresaId": empresa_id,
                         "tipoResolucion": "PADRE",  # Las resoluciones padres son siempre PADRE
                         "tipoTramite": tipo_resolucion_backend,  # Usar valor mapeado del backend
-                        "fechaEmision": fecha_resolucion if fecha_resolucion else fecha_inicio,  # Usar fecha de resolución o fecha de inicio
                         "fechaVigenciaInicio": fecha_inicio,
                         "fechaVigenciaFin": fecha_fin,
                         "aniosVigencia": anios_vigencia,
@@ -396,8 +393,9 @@ class ResolucionPadresService:
                         "fechaActualizacion": datetime.now()
                     }
                     
-                    # Solo agregar fecha de emisión adicional si está disponible y es diferente
-                    # (ya se agregó arriba como campo requerido)
+                    # Solo agregar fecha de emisión si está disponible
+                    if fecha_resolucion:
+                        update_data["fechaEmision"] = fecha_resolucion
                     
                     if resolucion_asociada:
                         update_data["resolucionAsociada"] = resolucion_asociada
@@ -420,7 +418,6 @@ class ResolucionPadresService:
                         "empresaId": empresa_id,
                         "tipoResolucion": "PADRE",  # Las resoluciones padres son siempre PADRE
                         "tipoTramite": tipo_resolucion_backend,  # Usar valor mapeado del backend
-                        "fechaEmision": fecha_resolucion if fecha_resolucion else fecha_inicio,  # Usar fecha de resolución o fecha de inicio
                         "fechaVigenciaInicio": fecha_inicio,
                         "fechaVigenciaFin": fecha_fin,
                         "aniosVigencia": anios_vigencia,
@@ -434,8 +431,9 @@ class ResolucionPadresService:
                         "usuarioEmisionId": usuario_id
                     }
                     
-                    # Solo agregar fecha de emisión adicional si está disponible y es diferente
-                    # (ya se agregó arriba como campo requerido)
+                    # Solo agregar fecha de emisión si está disponible
+                    if fecha_resolucion:
+                        nueva_resolucion["fechaEmision"] = fecha_resolucion
                     
                     if resolucion_asociada:
                         nueva_resolucion["resolucionAsociada"] = resolucion_asociada

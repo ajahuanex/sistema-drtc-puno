@@ -63,7 +63,8 @@ export class ConductorService {
   /**
    * Obtener todos los conductores
    */
-  getConductores(skip: number = 0, limit: number = 100, estado?: string, empresaId?: string): Observable<Conductor[]> {
+  getConductores(skip: number = 0, limit: number = 1000, estado?: string, empresaId?: string): Observable<Conductor[]> {
+    // Aumentar el límite para obtener todos los conductores
     this.setLoading(true);
     this.clearError();
 
@@ -192,7 +193,8 @@ export class ConductorService {
   /**
    * Obtener conductores con filtros avanzados
    */
-  getConductoresConFiltros(filtros: ConductorFiltros, skip: number = 0, limit: number = 100): Observable<Conductor[]> {
+  getConductoresConFiltros(filtros: ConductorFiltros, skip: number = 0, limit: number = 1000): Observable<Conductor[]> {
+    // Aumentar el límite para obtener todos los conductores con filtros
     this.setLoading(true);
     this.clearError();
 
@@ -416,7 +418,8 @@ export class ConductorService {
   /**
    * Obtener conductores por empresa
    */
-  getConductoresPorEmpresa(empresaId: string, skip: number = 0, limit: number = 100): Observable<Conductor[]> {
+  getConductoresPorEmpresa(empresaId: string, skip: number = 0, limit: number = 1000): Observable<Conductor[]> {
+    // Aumentar el límite para obtener todos los conductores por empresa
     this.setLoading(true);
     this.clearError();
 

@@ -91,12 +91,17 @@ export class ResolucionesTableService {
     const filtrosActuales = this.filtrosSubject.value;
     const nuevosFiltros = { ...filtrosActuales, ...filtros };
     
+    console.log('🔄 Actualizando filtros:');
+    console.log('  - Filtros actuales:', filtrosActuales);
+    console.log('  - Filtros nuevos:', filtros);
+    console.log('  - Filtros combinados:', nuevosFiltros);
+    
     this.filtrosSubject.next(nuevosFiltros);
     
     // También actualizar en la configuración
     this.actualizarConfiguracion({ filtros: nuevosFiltros });
     
-    console.log('🔍 Filtros actualizados:', nuevosFiltros);
+    console.log('🔍 Filtros actualizados y emitidos');
   }
 
   /**
@@ -306,11 +311,16 @@ export class ResolucionesTableService {
    */
   tieneFiltrosActivos(): boolean {
     const filtros = this.filtrosSubject.value;
-    return Object.keys(filtros).some(key => {
+    console.log('🔍 Verificando filtros activos:', filtros);
+    const tieneActivos = Object.keys(filtros).some(key => {
       const valor = filtros[key as keyof ResolucionFiltros];
-      return valor !== undefined && valor !== null && 
+      const esActivo = valor !== undefined && valor !== null && 
              (Array.isArray(valor) ? valor.length > 0 : valor !== '');
+      console.log(`  - ${key}: ${valor} -> ${esActivo}`);
+      return esActivo;
     });
+    console.log('🔍 Resultado tiene filtros activos:', tieneActivos);
+    return tieneActivos;
   }
 
   /**

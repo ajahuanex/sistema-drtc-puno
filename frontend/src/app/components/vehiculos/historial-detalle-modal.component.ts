@@ -7,6 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
+import { MatSnackBar } from \'@angular/material/snack-bar\';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { HistorialVehicular, TipoEventoHistorial } from '../../models/historial-vehicular.model';
 
@@ -549,18 +550,42 @@ export class HistorialDetalleModalComponent {
     this.mostrarMetadatos.set(!this.mostrarMetadatos());
   }
 
-  verDocumento(documento: any): void {
-    // TODO: Implementar visualización de documento
-    console.log('Ver documento:', documento);
+  verDocumento(documento: unknown): void {
+    const doc = documento as any;
+    if (doc?.url) {
+      window.open(doc.url, '_blank');
+    } else {
+      this.snackBar.open('URL del documento no disponible', 'Cerrar', { duration: 3000 });
+    }
   }
 
-  descargarDocumento(documento: any): void {
-    // TODO: Implementar descarga de documento
-    console.log('Descargar documento:', documento);
+  descargarDocumento(documento: unknown): void {
+    const doc = documento as any;
+    if (doc?.url) {
+      const link = document.createElement('a');
+      link.href = doc.url;
+      link.download = doc.nombre || 'documento';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      this.snackBar.open('URL del documento no disponible', 'Cerrar', { duration: 3000 });
+    }
   }
 
   descargarTodosDocumentos(): void {
-    // TODO: Implementar descarga masiva de documentos
-    console.log('Descargar todos los documentos');
+    const documentos = (this.data as any)?.documentos || [];
+    if (documentos.length === 0) {
+      this.snackBar.open('No hay documentos para descargar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    documentos.forEach((documento: any, index: number) => {
+      setTimeout(() => {
+        this.descargarDocumento(documento);
+      }, index * 500); // Delay entre descargas para evitar bloqueos
+    });
+
+    this.snackBar.open(`Iniciando descarga de ${documentos.length} documentos`, 'Cerrar', { duration: 3000 });
   }
 }

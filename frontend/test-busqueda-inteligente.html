@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Búsqueda Inteligente de Resoluciones</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .search-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+        
+        .search-field {
+            flex: 3;
+            position: relative;
+        }
+        
+        .search-field label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        
+        .search-field input {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-field input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+        }
+        
+        .search-hint {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .advanced-btn, .clear-btn {
+            padding: 8px 16px;
+            border: 1px solid #1976d2;
+            background: white;
+            color: #1976d2;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+        
+        .advanced-btn:hover {
+            background: #1976d2;
+            color: white;
+        }
+        
+        .clear-btn {
+            border-color: #f44336;
+            color: #f44336;
+        }
+        
+        .clear-btn:hover {
+            background: #f44336;
+            color: white;
+        }
+        
+        .advanced-filters {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #1976d2;
+            display: none;
+        }
+        
+        .advanced-filters.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .advanced-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .filter-field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-field label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        
+        .filter-field select, .filter-field input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .examples {
+            padding: 20px;
+            background: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .examples h3 {
+            margin: 0 0 12px 0;
+            color: #2e7d32;
+            font-size: 16px;
+        }
+        
+        .example-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .example-list li {
+            padding: 4px 0;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+        
+        .example-list li strong {
+            color: #1b5e20;
+        }
+        
+        .results-info {
+            padding: 16px 20px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            color: #1565c0;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🔍 Búsqueda Inteligente de Resoluciones</h1>
+            <p class="subtitle">Sistema de búsqueda reactiva por número, empresa o RUC</p>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-field">
+                    <label>Buscar</label>
+                    <input type="text" placeholder="N° resolución, empresa o RUC" id="searchInput">
+                    <span class="search-icon">🔍</span>
+                    <div class="search-hint">Busca por número de resolución, razón social o RUC</div>
+                </div>
+                
+                <button class="advanced-btn" onclick="toggleAdvanced()">
+                    <span id="advancedIcon">⚙️</span>
+                    <span id="advancedText">Avanzado</span>
+                </button>
+                
+                <button class="clear-btn" onclick="clearSearch()" style="display: none;" id="clearBtn">
+                    <span>✖️</span>
+                    Limpiar
+                </button>
+            </div>
+            
+            <div class="advanced-filters" id="advancedFilters">
+                <div class="advanced-grid">
+                    <div class="filter-field">
+                        <label>Estado</label>
+                        <select>
+                            <option value="">Todos</option>
+                            <option value="VIGENTE">Vigente</option>
+                            <option value="VENCIDA">Vencida</option>
+                            <option value="SUSPENDIDA">Suspendida</option>
+                            <option value="REVOCADA">Revocada</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-field">
+                        <label>Tipo de Trámite</label>
+                        <select>
+                            <option value="">Todos</option>
+                            <option value="PRIMIGENIA">Primigenia</option>
+                            <option value="RENOVACION">Renovación</option>
+                            <option value="INCREMENTO">Incremento</option>
+                            <option value="SUSTITUCION">Sustitución</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-field">
+                        <label>Fecha Desde</label>
+                        <input type="date">
+                    </div>
+                    
+                    <div class="filter-field">
+                        <label>Fecha Hasta</label>
+                        <input type="date">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="examples">
+            <h3>✅ Ejemplos de búsqueda inteligente:</h3>
+            <ul class="example-list">
+                <li><strong>R-0994-2025</strong> - Busca por número de resolución exacto</li>
+                <li><strong>0994</strong> - Busca por parte del número de resolución</li>
+                <li><strong>PALMERAS TOURS</strong> - Busca por razón social de la empresa</li>
+                <li><strong>20123456789</strong> - Busca por RUC de la empresa</li>
+                <li><strong>TRANSPORTES</strong> - Busca empresas que contengan "transportes"</li>
+                <li><strong>EXPRESS</strong> - Busca empresas que contengan "express"</li>
+            </ul>
+        </div>
+        
+        <div class="results-info">
+            <span id="resultsText">💡 Escribe en el campo de búsqueda para ver resultados en tiempo real</span>
+        </div>
+    </div>
+
+    <script>
+        let advancedVisible = false;
+        
+        function toggleAdvanced() {
+            const filters = document.getElementById('advancedFilters');
+            const icon = document.getElementById('advancedIcon');
+            const text = document.getElementById('advancedText');
+            
+            advancedVisible = !advancedVisible;
+            
+            if (advancedVisible) {
+                filters.classList.add('show');
+                icon.textContent = '🔼';
+                text.textContent = 'Ocultar';
+            } else {
+                filters.classList.remove('show');
+                icon.textContent = '⚙️';
+                text.textContent = 'Avanzado';
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearBtn').style.display = 'none';
+            document.getElementById('resultsText').textContent = '💡 Escribe en el campo de búsqueda para ver resultados en tiempo real';
+            
+            // Limpiar filtros avanzados
+            const selects = document.querySelectorAll('select');
+            const inputs = document.querySelectorAll('input[type="date"]');
+            
+            selects.forEach(select => select.value = '');
+            inputs.forEach(input => input.value = '');
+        }
+        
+        // Simular búsqueda reactiva
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const value = e.target.value.trim();
+            const clearBtn = document.getElementById('clearBtn');
+            const resultsText = document.getElementById('resultsText');
+            
+            if (value) {
+                clearBtn.style.display = 'flex';
+                
+                // Simular diferentes tipos de búsqueda
+                if (value.match(/^R-\d{4}-\d{4}$/)) {
+                    resultsText.textContent = `🎯 Buscando resolución exacta: "${value}"`;
+                } else if (value.match(/^\d+$/)) {
+                    if (value.length === 11) {
+                        resultsText.textContent = `🏢 Buscando por RUC: "${value}"`;
+                    } else {
+                        resultsText.textContent = `🔢 Buscando por número: "${value}"`;
+                    }
+                } else {
+                    resultsText.textContent = `🏢 Buscando empresas que contengan: "${value}"`;
+                }
+            } else {
+                clearBtn.style.display = 'none';
+                resultsText.textContent = '💡 Escribe en el campo de búsqueda para ver resultados en tiempo real';
+            }
+        });
+    </script>
+</body>
+</html>

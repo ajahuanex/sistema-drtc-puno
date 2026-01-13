@@ -146,8 +146,8 @@ export class EditarRutaModalComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: EditarRutaModalData
   ) {
     this.rutaForm = this.fb.group({
-      origen: [data.ruta.origen || data.ruta.origenId, Validators.required],
-      destino: [data.ruta.destino || data.ruta.destinoId, Validators.required],
+      origen: [data.ruta.origen?.nombre || data.ruta.origen, Validators.required],
+      destino: [data.ruta.destino?.nombre || data.ruta.destino, Validators.required],
       frecuencias: [data.ruta.frecuencias, Validators.required],
       tipoRuta: [data.ruta.tipoRuta, Validators.required],
       estado: [data.ruta.estado, Validators.required],
@@ -168,14 +168,9 @@ export class EditarRutaModalComponent implements OnInit {
     const formValue = this.rutaForm.value;
 
     const rutaActualizada: RutaUpdate = {
-      origen: formValue.origen,
-      destino: formValue.destino,
-      origenId: formValue.origen,
-      destinoId: formValue.destino,
       frecuencias: formValue.frecuencias,
       tipoRuta: formValue.tipoRuta,
       estado: formValue.estado,
-      distancia: formValue.distancia,
       observaciones: formValue.observaciones,
       nombre: `${formValue.origen} - ${formValue.destino}`
     };

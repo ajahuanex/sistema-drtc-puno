@@ -1,0 +1,290 @@
+.gestion-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  
+  h1 {
+    margin: 0 0 8px 0;
+    color: #1976d2;
+    font-size: 28px;
+    font-weight: 500;
+  }
+  
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  
+  mat-progress-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: #666;
+    margin: 0;
+  }
+}
+
+// Estadísticas
+.stats-card {
+  margin-bottom: 24px;
+  
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      mat-icon {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f5f5f5;
+  
+  &.success {
+    background: #e8f5e8;
+    color: #2e7d32;
+  }
+  
+  &.info {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  &.warning {
+    background: #fff3e0;
+    color: #f57c00;
+  }
+  
+  .stat-number {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  
+  .stat-label {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+}
+
+// Empresas
+.empresas-card {
+  margin-bottom: 24px;
+}
+
+.empresas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.empresa-item {
+  padding: 12px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fafafa;
+  
+  .empresa-id {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  
+  .empresa-count {
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+// Validación
+.validation-card {
+  margin-bottom: 24px;
+  
+  &.success {
+    border-left: 4px solid #4caf50;
+  }
+  
+  &.error {
+    border-left: 4px solid #f44336;
+  }
+  
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+}
+
+.duplicados-section {
+  margin-top: 24px;
+  
+  h4 {
+    margin: 0 0 16px 0;
+    color: #f57c00;
+  }
+}
+
+.table-container {
+  margin: 16px 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.duplicados-table {
+  width: 100%;
+  
+  th {
+    background: #f5f5f5;
+    font-weight: 600;
+  }
+  
+  td, th {
+    padding: 12px 16px;
+  }
+}
+
+.warning-chip {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.ids-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.id-chip {
+  font-size: 11px;
+  background: #e3f2fd;
+  color: #1976d2;
+  height: 24px;
+  line-height: 24px;
+}
+
+.consolidation-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+// Info card
+.info-card {
+  .info-content {
+    text-align: center;
+    padding: 40px 20px;
+    
+    .info-icon {
+      font-size: 48px;
+      color: #1976d2;
+      margin-bottom: 16px;
+    }
+    
+    h3 {
+      margin: 0 0 16px 0;
+      color: #333;
+    }
+    
+    p {
+      margin: 0 0 24px 0;
+      color: #666;
+    }
+  }
+}
+
+// Herramientas
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.tool-card {
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+    }
+  }
+  
+  mat-card-content {
+    p {
+      margin: 0 0 16px 0;
+      color: #666;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .gestion-container {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .header-actions {
+    justify-content: flex-start;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
+}

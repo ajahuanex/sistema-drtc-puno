@@ -886,13 +886,6 @@ export class HistorialVehicularComponent implements OnInit {
     const visibles = this.columnasVisiblesState();
     const vehiculoId = this.vehiculoId() || this.vehiculoIdFromUrl();
     
-    console.log('[HISTORIAL-COMPUTED] ⚡ Computed columnasVisibles ejecutado');
-    console.log('[HISTORIAL-COMPUTED] 📊 Estado actual:', visibles);
-    console.log('[HISTORIAL-COMPUTED] 🚗 VehiculoId:', vehiculoId);
-    
-    // SIMPLIFICADO: No filtrar automáticamente la placa, dejar que el usuario decida
-    console.log('[HISTORIAL-COMPUTED] 📋 TABLA RECIBIRÁ ESTAS COLUMNAS:', visibles);
-    
     // Forzar nueva referencia y notificar cambios
     const resultado = [...visibles];
     
@@ -946,8 +939,6 @@ export class HistorialVehicularComponent implements OnInit {
   });
 
   constructor() {
-    console.log('[HISTORIAL-INIT] 🚀 CONSTRUCTOR del historial vehicular iniciado');
-    
     // Effect para reaccionar a cambios en vehiculoId
     effect(() => {
       const vehiculoId = this.vehiculoId();
@@ -971,23 +962,17 @@ export class HistorialVehicularComponent implements OnInit {
       const columnas = this.columnasVisiblesState();
       const renderKey = this.tablaRenderKey();
       
-      console.log('[HISTORIAL-EFFECT] 🔄 Effect detectó cambio en columnas:', columnas);
-      console.log('[HISTORIAL-EFFECT] 🔑 Render key:', renderKey);
-      
       // Forzar detección de cambios cuando cambian las columnas
       this.cdr.markForCheck();
       
       // Programar actualización de la tabla en el próximo ciclo
       setTimeout(() => {
         this.forzarActualizacionTabla();
-        console.log('[HISTORIAL-EFFECT] ✅ Tabla actualizada por effect');
       }, 0);
     });
 
     // Cargar configuración de columnas desde localStorage
-    console.log('[HISTORIAL-INIT] 📂 Cargando configuración de columnas...');
     this.cargarConfiguracionColumnas();
-    console.log('[HISTORIAL-INIT] ✅ Constructor completado');
   }
 
   ngOnInit(): void {
@@ -1252,27 +1237,20 @@ export class HistorialVehicularComponent implements OnInit {
   // Métodos para el selector de columnas
   
   /**
-   * TrackBy function para forzar re-renderización de la tabla
+   * TrackBy function optimizada para la tabla de historial
    */
-  trackByTabla = (index: number, item: any): any => {
-    return `${item.id || index}-${this.tablaRenderKey()}`;
+  trackByTabla = (index: number, item: unknown): string => {
+    const historialItem = item as HistorialVehicular;
+    return historialItem.id || `${(historialItem as any).fecha || Date.now()}-${index}`;
   };
   
   columnaVisible(columna: string): boolean {
     const visible = this.columnasVisiblesState().includes(columna);
-    console.log(`[HISTORIAL-CHECK] 🔍 Verificando columna "${columna}": ${visible ? '✅ VISIBLE' : '❌ OCULTA'}`);
-    console.log(`[HISTORIAL-CHECK] 📊 Estado completo:`, this.columnasVisiblesState());
-    console.log(`[HISTORIAL-CHECK] 🏷️ Componente: HISTORIAL-VEHICULAR`);
     return visible;
   }
 
   toggleColumna(columna: string, visible: boolean): void {
-    console.log(`[HISTORIAL-TOGGLE] 🔄 INICIO - Columna "${columna}" ${visible ? 'MOSTRAR' : 'OCULTAR'}`);
-    console.log(`[HISTORIAL-TOGGLE] 🏷️ COMPONENTE: HISTORIAL-VEHICULAR`);
-    
     const columnasActuales = this.columnasVisiblesState();
-    console.log(`[HISTORIAL-TOGGLE] 📊 Estado ANTES del cambio:`, columnasActuales);
-    
     let nuevasColumnas: string[];
     
     if (visible && !columnasActuales.includes(columna)) {
@@ -1281,13 +1259,10 @@ export class HistorialVehicularComponent implements OnInit {
         .map(col => col.key)
         .filter(key => columnasActuales.includes(key) || key === columna);
       
-      console.log(`[HISTORIAL-TOGGLE] ✅ Columna AGREGADA:`, nuevasColumnas);
-    } else if (!visible && columnasActuales.includes(columna)) {
+      } else if (!visible && columnasActuales.includes(columna)) {
       // Remover columna
       nuevasColumnas = columnasActuales.filter(col => col !== columna);
-      console.log(`[HISTORIAL-TOGGLE] ❌ Columna REMOVIDA:`, nuevasColumnas);
-    } else {
-      console.log(`[HISTORIAL-TOGGLE] ⚠️ Sin cambios necesarios`);
+      } else {
       return;
     }
     
@@ -1300,11 +1275,9 @@ export class HistorialVehicularComponent implements OnInit {
     // Forzar actualización inmediata
     this.forzarActualizacionTabla();
     
-    console.log(`[HISTORIAL-TOGGLE] ✅ CAMBIO COMPLETADO`);
-  }
+    }
 
   resetearColumnas(): void {
-    console.log('[HISTORIAL-TOGGLE] 🔄 Reseteando columnas a valores por defecto');
     const columnasDefault = this.columnasDisponibles.map(col => col.key);
     this.columnasVisiblesState.set(columnasDefault);
     this.guardarConfiguracionColumnas();
@@ -1312,16 +1285,11 @@ export class HistorialVehicularComponent implements OnInit {
     // Forzar actualización de la tabla
     this.forzarActualizacionTabla();
     
-    console.log('[HISTORIAL-TOGGLE] ✅ RESET COMPLETADO');
-  }
+    }
 
   private cargarConfiguracionColumnas(): void {
-    console.log('[HISTORIAL-CONFIG] 📂 INICIANDO carga de configuración');
-    
     try {
       const configuracion = localStorage.getItem('historial-vehicular-columnas-config');
-      console.log('[HISTORIAL-CONFIG] 💾 Configuración en localStorage:', configuracion);
-      
       if (configuracion) {
         const columnas = JSON.parse(configuracion);
         if (Array.isArray(columnas) && columnas.length > 0) {
@@ -1337,7 +1305,6 @@ export class HistorialVehicularComponent implements OnInit {
           
           const columnasFinales = [...new Set([...columnasValidas, ...columnasRequeridas])];
           this.columnasVisiblesState.set(columnasFinales);
-          console.log('[HISTORIAL-CONFIG] ✅ Columnas cargadas desde localStorage:', columnasFinales);
           return;
         }
       }
@@ -1345,27 +1312,20 @@ export class HistorialVehicularComponent implements OnInit {
       // Si no hay configuración válida, usar valores por defecto
       const columnasDefault = this.columnasDisponibles.map(col => col.key);
       this.columnasVisiblesState.set(columnasDefault);
-      console.log('[HISTORIAL-CONFIG] 🔄 Usando columnas por defecto:', columnasDefault);
-      
-    } catch (error) {
-      console.warn('[HISTORIAL-CONFIG] ❌ Error cargando configuración:', error);
+      } catch (error) {
       // En caso de error, usar valores por defecto
       const columnasDefault = this.columnasDisponibles.map(col => col.key);
       this.columnasVisiblesState.set(columnasDefault);
-      console.log('[HISTORIAL-CONFIG] 🔄 Fallback a columnas por defecto:', columnasDefault);
-    }
+      }
     
-    console.log('[HISTORIAL-CONFIG] ✅ Carga de configuración COMPLETADA');
-  }
+    }
 
   private guardarConfiguracionColumnas(): void {
     try {
       const columnas = this.columnasVisiblesState();
       localStorage.setItem('historial-vehicular-columnas-config', JSON.stringify(columnas));
-      console.log('[HISTORIAL] Configuración guardada:', columnas);
-    } catch (error) {
-      console.warn('[HISTORIAL] Error guardando configuración de columnas:', error);
-    }
+      } catch (error) {
+      }
   }
 
   /**
@@ -1373,50 +1333,12 @@ export class HistorialVehicularComponent implements OnInit {
    * Útil cuando los cambios en las columnas no se reflejan inmediatamente
    */
   private forzarActualizacionTabla(): void {
-    console.log('[HISTORIAL-UPDATE] 🔄 Forzando actualización visual de la tabla...');
-    
-    // Estrategia 1: Incrementar el key de renderización
+    // Estrategia optimizada: solo actualizar si es necesario
     this.tablaRenderKey.update(key => key + 1);
     
-    // Estrategia 2: Forzar detección de cambios
-    this.cdr.markForCheck();
-    this.cdr.detectChanges();
-    
-    // Estrategia 3: Re-renderizar la tabla con timeout
-    setTimeout(() => {
-      const tabla = document.getElementById('historial-vehicular-table');
-      if (tabla) {
-        // Forzar re-layout
-        const display = tabla.style.display;
-        tabla.style.display = 'none';
-        tabla.offsetHeight; // Trigger reflow
-        tabla.style.display = display || '';
-        
-        // Forzar recálculo de columnas
-        const headers = tabla.querySelectorAll('th');
-        headers.forEach(header => {
-          const width = header.style.width;
-          header.style.width = '';
-          header.offsetWidth; // Trigger reflow
-          header.style.width = width;
-        });
-        
-        // Forzar recálculo de celdas
-        const cells = tabla.querySelectorAll('td');
-        cells.forEach(cell => {
-          cell.offsetWidth; // Trigger reflow
-        });
-      }
-      
-      // Detección final de cambios
+    // Usar requestAnimationFrame para mejor performance
+    requestAnimationFrame(() => {
       this.cdr.detectChanges();
-      console.log('[HISTORIAL-UPDATE] ✅ Actualización visual completada');
-    }, 10);
-    
-    // Estrategia 4: Actualización adicional con más delay
-    setTimeout(() => {
-      this.cdr.detectChanges();
-      console.log('[HISTORIAL-UPDATE] 🔄 Actualización adicional completada');
-    }, 100);
+    });
   }
 }

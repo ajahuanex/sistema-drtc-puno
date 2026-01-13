@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Filtros de Resoluciones</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        .debug-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .debug-section {
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            margin: 10px 0;
+            padding: 15px;
+        }
+        
+        .debug-title {
+            color: #569cd6;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #3e3e42;
+            padding-bottom: 5px;
+        }
+        
+        .debug-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #1e1e1e;
+            border-radius: 3px;
+        }
+        
+        .debug-key {
+            color: #9cdcfe;
+        }
+        
+        .debug-value {
+            color: #ce9178;
+        }
+        
+        .debug-log {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .log-error {
+            color: #f85149;
+        }
+        
+        .log-warn {
+            color: #d29922;
+        }
+        
+        .log-info {
+            color: #58a6ff;
+        }
+        
+        .log-success {
+            color: #3fb950;
+        }
+        
+        .instructions {
+            background: #0969da;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            margin: 0 0 10px 0;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="instructions">
+            <h3>🔍 Debug de Filtros de Resoluciones</h3>
+            <p>Para debuggear el problema del filtrado:</p>
+            <ol>
+                <li>Abre la consola del navegador (F12)</li>
+                <li>Ve a la página de resoluciones</li>
+                <li>Escribe algo en el campo de búsqueda</li>
+                <li>Observa los logs en la consola</li>
+                <li>Compara con los patrones esperados abajo</li>
+            </ol>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">📝 Flujo Esperado de Logs</div>
+            <div class="debug-log">
+                <div class="log-entry log-info">🔧 Inicializando filtros component con: {}</div>
+                <div class="log-entry log-info">🔧 Valores iniciales del form: {busqueda: "", estado: "", ...}</div>
+                <div class="log-entry log-info">📝 Form values changed: {busqueda: "huancane", estado: "", ...}</div>
+                <div class="log-entry log-info">📤 Emitiendo filtros con valores del form: {busqueda: "huancane", ...}</div>
+                <div class="log-entry log-info">🔍 Agregando busquedaGeneral: huancane</div>
+                <div class="log-entry log-info">🔍 Filtros finales a emitir: {busquedaGeneral: "huancane"}</div>
+                <div class="log-entry log-success">🔍 Filtros cambiados en componente principal: {busquedaGeneral: "huancane"}</div>
+                <div class="log-entry log-success">🔄 Actualizando filtros: ...</div>
+                <div class="log-entry log-success">🔄 Aplicando filtros: {busquedaGeneral: "huancane"}</div>
+                <div class="log-entry log-success">🔄 Tiene filtros activos: true</div>
+                <div class="log-entry log-success">🔍 Usando filtrado local para búsqueda general</div>
+                <div class="log-entry log-success">🔍 Filtrando localmente: 100 resoluciones con filtros: {busquedaGeneral: "huancane"}</div>
+                <div class="log-entry log-success">✅ Resultados filtrados: X</div>
+            </div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">❌ Problemas Comunes</div>
+            <div class="debug-item">
+                <span class="debug-key">Problema:</span> 
+                <span class="debug-value">Siempre busca "12" en lugar del texto escrito</span>
+                <br>
+                <span class="debug-key">Causa:</span> 
+                <span class="debug-value">Valores previos en filtros o loop infinito</span>
+                <br>
+                <span class="debug-key">Solución:</span> 
+                <span class="debug-value">Limpiar filtros al inicio, revisar debounce</span>
+            </div>
+            
+            <div class="debug-item">
+                <span class="debug-key">Problema:</span> 
+                <span class="debug-value">No detecta filtros activos</span>
+                <br>
+                <span class="debug-key">Causa:</span> 
+                <span class="debug-value">tieneFiltrosActivos() no reconoce busquedaGeneral</span>
+                <br>
+                <span class="debug-key">Solución:</span> 
+                <span class="debug-value">Verificar que busquedaGeneral esté en ResolucionFiltros</span>
+            </div>
+            
+            <div class="debug-item">
+                <span class="debug-key">Problema:</span> 
+                <span class="debug-value">Filtrado local no funciona</span>
+                <br>
+                <span class="debug-key">Causa:</span> 
+                <span class="debug-value">Datos de empresa no están cargados correctamente</span>
+                <br>
+                <span class="debug-key">Solución:</span> 
+                <span class="debug-value">Verificar estructura de ResolucionConEmpresa</span>
+            </div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">🔧 Comandos de Debug en Consola</div>
+            <div class="debug-item">
+                <span class="debug-key">Ver filtros actuales:</span><br>
+                <code style="color: #ce9178;">
+                    // En la consola del navegador:<br>
+                    angular.getComponent(document.querySelector('app-resoluciones-minimal')).filtrosActuales()
+                </code>
+            </div>
+            
+            <div class="debug-item">
+                <span class="debug-key">Ver resoluciones cargadas:</span><br>
+                <code style="color: #ce9178;">
+                    angular.getComponent(document.querySelector('app-resoluciones-minimal')).resoluciones()
+                </code>
+            </div>
+            
+            <div class="debug-item">
+                <span class="debug-key">Limpiar filtros manualmente:</span><br>
+                <code style="color: #ce9178;">
+                    angular.getComponent(document.querySelector('app-resoluciones-minimal')).onLimpiarFiltros()
+                </code>
+            </div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">📊 Estado Esperado</div>
+            <div class="debug-item">
+                <span class="debug-key">Filtros vacíos:</span> 
+                <span class="debug-value">{}</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-key">Con búsqueda:</span> 
+                <span class="debug-value">{busquedaGeneral: "texto"}</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-key">Resoluciones filtradas:</span> 
+                <span class="debug-value">Array con elementos que coincidan</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

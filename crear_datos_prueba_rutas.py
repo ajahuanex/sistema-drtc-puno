@@ -1,242 +1,267 @@
+#!/usr/bin/env python3
 """
-Script para crear datos de prueba para el módulo de rutas
-Crea empresas, resoluciones y rutas de ejemplo
+Script para crear datos de prueba realistas para carga masiva de rutas
 """
-import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
-from datetime import datetime, timedelta
+import pandas as pd
+from datetime import datetime
 
-MONGODB_URL = "mongodb://admin:admin123@localhost:27017/"
-DATABASE_NAME = "sirret_db"
-
-
-async def crear_datos_prueba():
-    client = AsyncIOMotorClient(MONGODB_URL)
-    db = client[DATABASE_NAME]
+def crear_datos_prueba_rutas():
+    """Crear archivo Excel con datos de prueba realistas para rutas"""
     
-    try:
-        print("=" * 80)
-        print("CREANDO DATOS DE PRUEBA PARA MÓDULO DE RUTAS")
-        print("=" * 80)
-        print()
+    print("🚌 CREANDO DATOS DE PRUEBA PARA RUTAS")
+    print("=" * 50)
+    
+    # Datos realistas de rutas del sur del Perú
+    datos_rutas = [
+        # Empresa TRANSPORTES PUNO S.A. (ID ficticio)
+        {
+            'Código Ruta': '04',
+            'Nombre': 'PUNO - AREQUIPA',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_001',
+            'Destino ID': 'AREQUIPA_001',
+            'Frecuencias': 'Diaria, cada 2 horas de 06:00 a 20:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 280.5,
+            'Tiempo Estimado': '04:30',
+            'Tarifa Base': 35.00,
+            'Capacidad Máxima': 45,
+            'Observaciones': 'Ruta turística principal con paradas en Lampa y Juliaca'
+        },
+        {
+            'Código Ruta': '05',
+            'Nombre': 'PUNO - CUSCO',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_001',
+            'Destino ID': 'CUSCO_001',
+            'Frecuencias': 'Diaria, 4 salidas: 06:00, 10:00, 14:00, 18:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 385.0,
+            'Tiempo Estimado': '06:00',
+            'Tarifa Base': 45.00,
+            'Capacidad Máxima': 50,
+            'Observaciones': 'Ruta turística hacia Machu Picchu, paradas en Sicuani y Urcos'
+        },
+        {
+            'Código Ruta': '06',
+            'Nombre': 'JULIACA - AREQUIPA',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'JULIACA_001',
+            'Destino ID': 'AREQUIPA_001',
+            'Frecuencias': 'Diaria, cada 3 horas de 05:00 a 23:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 280.0,
+            'Tiempo Estimado': '04:00',
+            'Tarifa Base': 32.00,
+            'Capacidad Máxima': 48,
+            'Observaciones': 'Ruta comercial directa sin paradas intermedias'
+        },
         
-        # 1. Obtener o crear empresa de prueba
-        print("1️⃣ VERIFICANDO EMPRESA...")
-        empresa = await db.empresas.find_one({"ruc": "20505050505"})
+        # Empresa TRANSPORTES LIMA E.I.R.L. (ID ficticio)
+        {
+            'Código Ruta': '01',
+            'Nombre': 'LIMA - PUNO',
+            'Empresa ID': '675e8b5c4a90c2b8f1234568',
+            'Resolución ID': '675e8b5c4a90c2b8f123456a',
+            'Origen ID': 'LIMA_001',
+            'Destino ID': 'PUNO_001',
+            'Frecuencias': 'Diaria, 1 salida nocturna a las 20:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 1293.0,
+            'Tiempo Estimado': '18:00',
+            'Tarifa Base': 120.00,
+            'Capacidad Máxima': 55,
+            'Observaciones': 'Ruta larga distancia con servicio cama, paradas en Nazca, Arequipa'
+        },
+        {
+            'Código Ruta': '02',
+            'Nombre': 'LIMA - CUSCO',
+            'Empresa ID': '675e8b5c4a90c2b8f1234568',
+            'Resolución ID': '675e8b5c4a90c2b8f123456a',
+            'Origen ID': 'LIMA_001',
+            'Destino ID': 'CUSCO_001',
+            'Frecuencias': 'Diaria, 2 salidas: 19:00 y 21:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 1165.0,
+            'Tiempo Estimado': '20:00',
+            'Tarifa Base': 110.00,
+            'Capacidad Máxima': 52,
+            'Observaciones': 'Ruta turística premium con servicios a bordo'
+        },
         
-        if not empresa:
-            print("   Creando empresa de prueba...")
-            empresa_data = {
-                "ruc": "20505050505",
-                "razonSocial": {
-                    "principal": "TRANSPORTES PUNO EXPRESS S.A.C.",
-                    "comercial": "PUNO EXPRESS"
-                },
-                "direccionFiscal": "Av. El Sol 123, Puno",
-                "estado": "HABILITADA",
-                "estaActivo": True,
-                "fechaRegistro": datetime.utcnow(),
-                "fechaActualizacion": datetime.utcnow(),
-                "representanteLegal": {
-                    "dni": "12345678",
-                    "nombres": "Juan",
-                    "apellidos": "Pérez García"
-                },
-                "resolucionesPrimigeniasIds": [],
-                "vehiculosHabilitadosIds": [],
-                "conductoresHabilitadosIds": [],
-                "rutasAutorizadasIds": []
-            }
-            result = await db.empresas.insert_one(empresa_data)
-            empresa = await db.empresas.find_one({"_id": result.inserted_id})
-            print(f"   ✅ Empresa creada: {empresa['_id']}")
-        else:
-            print(f"   ✅ Empresa existente: {empresa['_id']}")
+        # Rutas urbanas de Puno
+        {
+            'Código Ruta': '07',
+            'Nombre': 'CENTRO - UNIVERSIDAD',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_CENTRO',
+            'Destino ID': 'PUNO_UNA',
+            'Frecuencias': 'Lunes a Viernes, cada 15 minutos de 06:00 a 22:00',
+            'Tipo Ruta': 'URBANA',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 8.5,
+            'Tiempo Estimado': '00:25',
+            'Tarifa Base': 1.50,
+            'Capacidad Máxima': 35,
+            'Observaciones': 'Ruta estudiantil con alta demanda en horarios académicos'
+        },
+        {
+            'Código Ruta': '08',
+            'Nombre': 'TERMINAL - AEROPUERTO',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_TERMINAL',
+            'Destino ID': 'PUNO_AEROPUERTO',
+            'Frecuencias': 'Diaria, cada 30 minutos de 05:00 a 23:00',
+            'Tipo Ruta': 'INTERURBANA',
+            'Tipo Servicio': 'PASAJEROS',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 12.0,
+            'Tiempo Estimado': '00:30',
+            'Tarifa Base': 3.00,
+            'Capacidad Máxima': 25,
+            'Observaciones': 'Servicio de conexión aeroportuaria'
+        },
         
-        empresa_id = str(empresa['_id'])
-        print(f"   RUC: {empresa['ruc']}")
-        print(f"   Razón Social: {empresa['razonSocial']['principal']}")
-        print()
+        # Ruta de carga
+        {
+            'Código Ruta': '09',
+            'Nombre': 'PUNO - JULIACA CARGA',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_001',
+            'Destino ID': 'JULIACA_001',
+            'Frecuencias': 'Lunes a Sábado, 6 viajes diarios',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'CARGA',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 45.0,
+            'Tiempo Estimado': '01:15',
+            'Tarifa Base': 25.00,
+            'Capacidad Máxima': 15,
+            'Observaciones': 'Transporte de carga comercial y productos agrícolas'
+        },
         
-        # 2. Crear resolución VIGENTE y PADRE
-        print("2️⃣ CREANDO RESOLUCIÓN VIGENTE...")
-        
-        # Verificar si ya existe
-        resolucion = await db.resoluciones.find_one({
-            "empresaId": empresa_id,
-            "estado": "VIGENTE",
-            "tipoResolucion": "PADRE"
+        # Ruta mixta
+        {
+            'Código Ruta': '10',
+            'Nombre': 'PUNO - YUNGUYO',
+            'Empresa ID': '675e8b5c4a90c2b8f1234567',
+            'Resolución ID': '675e8b5c4a90c2b8f1234569',
+            'Origen ID': 'PUNO_001',
+            'Destino ID': 'YUNGUYO_001',
+            'Frecuencias': 'Diaria, cada 2 horas de 06:00 a 18:00',
+            'Tipo Ruta': 'INTERPROVINCIAL',
+            'Tipo Servicio': 'MIXTO',
+            'Estado': 'ACTIVA',
+            'Distancia (km)': 135.0,
+            'Tiempo Estimado': '02:30',
+            'Tarifa Base': 18.00,
+            'Capacidad Máxima': 30,
+            'Observaciones': 'Servicio mixto pasajeros y encomiendas hacia frontera con Bolivia'
+        }
+    ]
+    
+    # Crear DataFrame
+    df = pd.DataFrame(datos_rutas)
+    
+    # Crear archivo Excel con múltiples hojas
+    nombre_archivo = f"rutas_prueba_realistas_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    with pd.ExcelWriter(nombre_archivo, engine='openpyxl') as writer:
+        # Hoja de instrucciones
+        instrucciones = pd.DataFrame({
+            'INSTRUCCIONES PARA CARGA MASIVA DE RUTAS': [
+                '1. Este archivo contiene datos de prueba realistas',
+                '2. Los IDs de empresa y resolución son ficticios',
+                '3. Antes de usar, actualice los IDs con valores reales del sistema',
+                '4. Verifique que las empresas y resoluciones existan',
+                '5. Los códigos de ruta deben ser únicos dentro de cada resolución',
+                '',
+                'DATOS INCLUIDOS:',
+                f'• {len(datos_rutas)} rutas de prueba',
+                '• Rutas interprovinciales, urbanas e interurbanas',
+                '• Servicios de pasajeros, carga y mixto',
+                '• Empresas ficticias del sur del Perú',
+                '',
+                'MODIFICACIONES NECESARIAS:',
+                '• Actualizar Empresa ID con IDs reales',
+                '• Actualizar Resolución ID con IDs reales',
+                '• Verificar que los códigos de ruta no existan',
+                '• Ajustar Origen ID y Destino ID según su sistema'
+            ]
         })
+        instrucciones.to_excel(writer, sheet_name='INSTRUCCIONES', index=False)
         
-        if not resolucion:
-            resolucion_data = {
-                "nroResolucion": "RD-001-2024-SIRRET",
-                "tipoTramite": "AUTORIZACION_NUEVA",
-                "empresaId": empresa_id,
-                "expedienteId": None,
-                "fechaEmision": datetime.utcnow(),
-                "fechaVencimiento": datetime.utcnow() + timedelta(days=365*5),  # 5 años
-                "tipoResolucion": "PADRE",
-                "resolucionPadreId": None,
-                "resolucionesHijasIds": [],
-                "vehiculosHabilitadosIds": [],
-                "rutasAutorizadasIds": [],
-                "descripcion": "Resolución de autorización nueva para transporte interprovincial",
-                "estaActivo": True,
-                "estado": "VIGENTE",
-                "fechaRegistro": datetime.utcnow(),
-                "fechaActualizacion": datetime.utcnow()
-            }
-            result = await db.resoluciones.insert_one(resolucion_data)
-            resolucion = await db.resoluciones.find_one({"_id": result.inserted_id})
-            print(f"   ✅ Resolución creada: {resolucion['_id']}")
-            
-            # Actualizar empresa
-            await db.empresas.update_one(
-                {"_id": ObjectId(empresa_id)},
-                {"$addToSet": {"resolucionesPrimigeniasIds": str(resolucion['_id'])}}
-            )
-        else:
-            print(f"   ✅ Resolución existente: {resolucion['_id']}")
+        # Hoja de datos
+        df.to_excel(writer, sheet_name='DATOS', index=False)
         
-        resolucion_id = str(resolucion['_id'])
-        print(f"   Número: {resolucion['nroResolucion']}")
-        print(f"   Estado: {resolucion['estado']}")
-        print(f"   Tipo: {resolucion['tipoResolucion']}")
-        print()
-        
-        # 3. Crear rutas de ejemplo
-        print("3️⃣ CREANDO RUTAS DE EJEMPLO...")
-        
-        rutas_ejemplo = [
-            {
-                "codigoRuta": "01",
-                "nombre": "PUNO - JULIACA",
-                "origen": "PUNO",
-                "destino": "JULIACA",
-                "origenId": "1",
-                "destinoId": "2",
-                "distancia": 45.0,
-                "tiempoEstimado": "01:00",
-                "frecuencias": "Diaria, cada 30 minutos",
-                "tipoRuta": "INTERPROVINCIAL",
-                "tipoServicio": "PASAJEROS"
-            },
-            {
-                "codigoRuta": "02",
-                "nombre": "PUNO - CUSCO",
-                "origen": "PUNO",
-                "destino": "CUSCO",
-                "origenId": "1",
-                "destinoId": "3",
-                "distancia": 350.0,
-                "tiempoEstimado": "06:00",
-                "frecuencias": "Diaria, 3 veces al día",
-                "tipoRuta": "INTERPROVINCIAL",
-                "tipoServicio": "PASAJEROS"
-            },
-            {
-                "codigoRuta": "03",
-                "nombre": "PUNO - AREQUIPA",
-                "origen": "PUNO",
-                "destino": "AREQUIPA",
-                "origenId": "1",
-                "destinoId": "4",
-                "distancia": 275.0,
-                "tiempoEstimado": "04:30",
-                "frecuencias": "Diaria, 2 veces al día",
-                "tipoRuta": "INTERPROVINCIAL",
-                "tipoServicio": "PASAJEROS"
-            }
-        ]
-        
-        rutas_creadas = []
-        
-        for ruta_data in rutas_ejemplo:
-            # Verificar si ya existe
-            ruta_existente = await db.rutas.find_one({
-                "codigoRuta": ruta_data["codigoRuta"],
-                "resolucionId": resolucion_id,
-                "estaActivo": True
-            })
-            
-            if not ruta_existente:
-                ruta_completa = {
-                    **ruta_data,
-                    "empresaId": empresa_id,
-                    "resolucionId": resolucion_id,
-                    "estado": "ACTIVA",
-                    "estaActivo": True,
-                    "fechaRegistro": datetime.utcnow(),
-                    "fechaActualizacion": datetime.utcnow(),
-                    "itinerarioIds": [],
-                    "horarios": [],
-                    "restricciones": [],
-                    "observaciones": "Ruta de prueba",
-                    "empresasAutorizadasIds": [empresa_id],
-                    "vehiculosAsignadosIds": [],
-                    "documentosIds": [],
-                    "historialIds": [],
-                    "tarifaBase": 10.0,
-                    "capacidadMaxima": 40
-                }
-                
-                result = await db.rutas.insert_one(ruta_completa)
-                ruta_id = str(result.inserted_id)
-                rutas_creadas.append(ruta_id)
-                
-                # Actualizar empresa
-                await db.empresas.update_one(
-                    {"_id": ObjectId(empresa_id)},
-                    {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
-                )
-                
-                # Actualizar resolución
-                await db.resoluciones.update_one(
-                    {"_id": ObjectId(resolucion_id)},
-                    {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
-                )
-                
-                print(f"   ✅ Ruta creada: {ruta_data['codigoRuta']} - {ruta_data['nombre']}")
-            else:
-                print(f"   ⚠️  Ruta ya existe: {ruta_data['codigoRuta']} - {ruta_data['nombre']}")
-                rutas_creadas.append(str(ruta_existente['_id']))
-        
-        print()
-        
-        # 4. Resumen
-        print("=" * 80)
-        print("RESUMEN DE DATOS CREADOS")
-        print("=" * 80)
-        print()
-        print(f"✅ Empresa ID: {empresa_id}")
-        print(f"   RUC: {empresa['ruc']}")
-        print(f"   Razón Social: {empresa['razonSocial']['principal']}")
-        print()
-        print(f"✅ Resolución ID: {resolucion_id}")
-        print(f"   Número: {resolucion['nroResolucion']}")
-        print(f"   Estado: {resolucion['estado']}")
-        print(f"   Tipo: {resolucion['tipoResolucion']}")
-        print()
-        print(f"✅ Rutas creadas: {len(rutas_creadas)}")
-        for i, ruta_id in enumerate(rutas_creadas, 1):
-            ruta = await db.rutas.find_one({"_id": ObjectId(ruta_id)})
-            if ruta:
-                print(f"   {i}. {ruta['codigoRuta']} - {ruta['nombre']}")
-        print()
-        print("=" * 80)
-        print("DATOS LISTOS PARA USAR EN EL FRONTEND")
-        print("=" * 80)
-        print()
-        print("Usa estos IDs en el frontend:")
-        print(f"  Empresa ID: {empresa_id}")
-        print(f"  Resolución ID: {resolucion_id}")
-        print()
-        
-    finally:
-        client.close()
-
+        # Hoja de resumen
+        resumen = pd.DataFrame({
+            'RESUMEN DE DATOS': [
+                f'Total de rutas: {len(datos_rutas)}',
+                f'Empresas únicas: {df["Empresa ID"].nunique()}',
+                f'Resoluciones únicas: {df["Resolución ID"].nunique()}',
+                '',
+                'Por tipo de ruta:',
+                f'• INTERPROVINCIAL: {len(df[df["Tipo Ruta"] == "INTERPROVINCIAL"])}',
+                f'• URBANA: {len(df[df["Tipo Ruta"] == "URBANA"])}',
+                f'• INTERURBANA: {len(df[df["Tipo Ruta"] == "INTERURBANA"])}',
+                '',
+                'Por tipo de servicio:',
+                f'• PASAJEROS: {len(df[df["Tipo Servicio"] == "PASAJEROS"])}',
+                f'• CARGA: {len(df[df["Tipo Servicio"] == "CARGA"])}',
+                f'• MIXTO: {len(df[df["Tipo Servicio"] == "MIXTO"])}',
+                '',
+                'Distancias:',
+                f'• Mínima: {df["Distancia (km)"].min()} km',
+                f'• Máxima: {df["Distancia (km)"].max()} km',
+                f'• Promedio: {df["Distancia (km)"].mean():.1f} km',
+                '',
+                'Tarifas:',
+                f'• Mínima: S/ {df["Tarifa Base"].min():.2f}',
+                f'• Máxima: S/ {df["Tarifa Base"].max():.2f}',
+                f'• Promedio: S/ {df["Tarifa Base"].mean():.2f}'
+            ]
+        })
+        resumen.to_excel(writer, sheet_name='RESUMEN', index=False)
+    
+    print(f"✅ Archivo creado: {nombre_archivo}")
+    print(f"📊 Datos generados:")
+    print(f"   • {len(datos_rutas)} rutas de prueba")
+    print(f"   • {df['Empresa ID'].nunique()} empresas ficticias")
+    print(f"   • {df['Resolución ID'].nunique()} resoluciones ficticias")
+    print(f"   • Tipos de ruta: {', '.join(df['Tipo Ruta'].unique())}")
+    print(f"   • Tipos de servicio: {', '.join(df['Tipo Servicio'].unique())}")
+    
+    print(f"\n📋 Hojas del archivo:")
+    print(f"   • INSTRUCCIONES: Guía de uso")
+    print(f"   • DATOS: Rutas para cargar")
+    print(f"   • RESUMEN: Estadísticas de los datos")
+    
+    print(f"\n⚠️ IMPORTANTE:")
+    print(f"   • Actualice los IDs de empresa y resolución con valores reales")
+    print(f"   • Verifique que los códigos de ruta no existan en el sistema")
+    print(f"   • Ajuste los IDs de origen y destino según su configuración")
+    
+    return nombre_archivo
 
 if __name__ == "__main__":
-    asyncio.run(crear_datos_prueba())
+    archivo_creado = crear_datos_prueba_rutas()
+    print(f"\n🎯 Archivo listo para usar: {archivo_creado}")
+    print("Ahora puede probar la carga masiva con datos realistas del sistema.")

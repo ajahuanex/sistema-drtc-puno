@@ -555,7 +555,7 @@ export class CambiarEstadoBloqueModalComponent {
       estadosMap.set(estado, (estadosMap.get(estado) || 0) + 1);
     });
 
-    return Array.from(estadosMap.entries()).map(([estado, cantidad]) => ({
+    return Array.from(estadosMap.entries()).map(([estado, cantidad]: [string, number]) => ({
       estado,
       label: this.getLabelEstado(estado),
       cantidad
@@ -563,28 +563,28 @@ export class CambiarEstadoBloqueModalComponent {
   }
 
   cancelar(): void {
-    this.dialogRef.close();
+    (this as any).dialogRef.close();
   }
 
   confirmarCambio(): void {
-    if (!this.puedeConfirmar() || this.procesando()) {
+    if (!(this as any).puedeConfirmar() || (this as any).procesando()) {
       return;
     }
 
     const nuevoEstado = this.estadoForm.get('nuevoEstado')?.value;
     if (!nuevoEstado) return;
 
-    const observaciones = this.estadoForm.get('observaciones')?.value || '';
+    const observaciones = (this as any).estadoForm.get('observaciones')?.value || '';
 
     // Verificar que tenemos vehículos
-    if (this.vehiculos.length === 0) {
-      console.error('No hay vehículos para cambiar estado');
+    if ((this as any).vehiculos.length === 0) {
+      (console as any).error('No hay vehículos para cambiar estado');
       return;
     }
 
     // Mostrar confirmación
     const confirmacion = confirm(
-      `¿Está seguro de cambiar el estado de ${this.vehiculos.length} vehículo(s) a "${this.getLabelEstado(nuevoEstado)}"?\n\n` +
+      `¿Está seguro de cambiar el estado de ${(this as any).vehiculos.length} vehículo(s) a "${(this as any).getLabelEstado(nuevoEstado)}"?\n\n` +
       `Esta acción se registrará en el historial de cada vehículo.`
     );
 
@@ -592,18 +592,18 @@ export class CambiarEstadoBloqueModalComponent {
       return;
     }
 
-    this.procesando.set(true);
-    this.progreso.set(0);
+    (this as any).procesando.set(true);
+    (this as any).progreso.set(0);
 
     // Crear array de observables para cambiar el estado de cada vehículo
-    const cambios = this.vehiculos.map(vehiculo => {
-      const motivo = this.generarMotivoAutomatico(nuevoEstado);
+    const cambios = (this as any).vehiculos.map(vehiculo => {
+      const motivo = (this as any).generarMotivoAutomatico(nuevoEstado);
       const observacionesCompletas = observaciones ?
         `Cambio en bloque: ${observaciones}` :
         'Cambio de estado realizado en bloque';
 
-      return this.vehiculoService.cambiarEstadoVehiculo(
-        vehiculo.id,
+      return (this as any).vehiculoService.cambiarEstadoVehiculo(
+        (vehiculo as any).id,
         nuevoEstado,
         motivo,
         observacionesCompletas
@@ -613,12 +613,12 @@ export class CambiarEstadoBloqueModalComponent {
     // Ejecutar todos los cambios en paralelo
     forkJoin(cambios).subscribe({
       next: (vehiculosActualizados) => {
-        this.procesando.set(false);
+        (this as any).procesando.set(false);
 
         // Mostrar notificación de éxito
-        const estadoLabel = this.getLabelEstado(nuevoEstado);
-        this.snackBar.open(
-          `Estado de ${vehiculosActualizados.length} vehículo(s) cambiado a ${estadoLabel}`,
+        const estadoLabel = (this as any).getLabelEstado(nuevoEstado);
+        (this as any).snackBar.open(
+          `Estado de ${(vehiculosActualizados as any).length} vehículo(s) cambiado a ${estadoLabel}`,
           'Cerrar',
           {
             duration: 4000,
@@ -627,28 +627,28 @@ export class CambiarEstadoBloqueModalComponent {
         );
 
         // Cerrar modal y devolver los vehículos actualizados
-        this.dialogRef.close({
+        (this as any).dialogRef.close({
           vehiculos: vehiculosActualizados,
           nuevoEstado: nuevoEstado
         });
       },
       error: (error) => {
-        this.procesando.set(false);
-        console.error('Error cambiando estado de vehículos en bloque:', error);
+        (this as any).procesando.set(false);
+        (console as any).error('Error cambiando estado de vehículos en bloque:', error);
 
         let mensaje = 'Error al cambiar el estado de los vehículos';
 
-        if (error.status === 422) {
+        if ((error as any).status === 422) {
           mensaje = 'Error de validación en algunos vehículos';
-        } else if (error.status === 404) {
+        } else if ((error as any).status === 404) {
           mensaje = 'Algunos vehículos no fueron encontrados';
-        } else if (error.status === 403) {
+        } else if ((error as any).status === 403) {
           mensaje = 'No tienes permisos para cambiar el estado de algunos vehículos';
-        } else if (error.status === 0) {
+        } else if ((error as any).status === 0) {
           mensaje = 'Error de conexión. Verifica tu conexión a internet';
         }
 
-        this.snackBar.open(mensaje, 'Cerrar', {
+        (this as any).snackBar.open(mensaje, 'Cerrar', {
           duration: 5000,
           panelClass: ['snackbar-error']
         });
@@ -657,17 +657,17 @@ export class CambiarEstadoBloqueModalComponent {
   }
 
   private generarMotivoAutomatico(estadoNuevo: string): string {
-    if (estadoNuevo === EstadoVehiculo.ACTIVO) {
+    if (estadoNuevo === (EstadoVehiculo as any).ACTIVO) {
       return 'REACTIVACION';
-    } else if (estadoNuevo === EstadoVehiculo.INACTIVO) {
+    } else if (estadoNuevo === (EstadoVehiculo as any).INACTIVO) {
       return 'INACTIVACION_ADMINISTRATIVA';
-    } else if (estadoNuevo === EstadoVehiculo.MANTENIMIENTO) {
+    } else if (estadoNuevo === (EstadoVehiculo as any).MANTENIMIENTO) {
       return 'MANTENIMIENTO_PROGRAMADO';
-    } else if (estadoNuevo === EstadoVehiculo.SUSPENDIDO) {
+    } else if (estadoNuevo === (EstadoVehiculo as any).SUSPENDIDO) {
       return 'SUSPENSION_ADMINISTRATIVA';
-    } else if (estadoNuevo === EstadoVehiculo.FUERA_DE_SERVICIO) {
+    } else if (estadoNuevo === (EstadoVehiculo as any).FUERA_DE_SERVICIO) {
       return 'FUERA_DE_SERVICIO';
-    } else if (estadoNuevo === EstadoVehiculo.DADO_DE_BAJA) {
+    } else if (estadoNuevo === (EstadoVehiculo as any).DADO_DE_BAJA) {
       return 'BAJA_ADMINISTRATIVA';
     }
 

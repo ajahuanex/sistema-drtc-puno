@@ -448,7 +448,7 @@ export class RutaFormSharedComponent {
 
     // Configurar búsqueda de localidades
     this.localidadesFiltradas.set(
-      this.localidadService.getLocalidades().pipe(
+      this.localidadService.getLocalidadesActivas().pipe(
         startWith([])
       )
     );

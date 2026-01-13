@@ -7,11 +7,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { VehiculoService } from '../../services/vehiculo.service';
-import { EmpresaService } from '../../services/empresa.service';
-import { Vehiculo } from '../../models/vehiculo.model';
-import { Empresa } from '../../models/empresa.model';
+import { SmartIconComponent } from '../../shared/smart-(icon as any).component';
+import { VehiculoService } from '../../services/(vehiculo as any).service';
+import { EmpresaService } from '../../services/(empresa as any).service';
+import { Vehiculo } from '../../models/(vehiculo as any).model';
+import { Empresa } from '../../models/(empresa as any).model';
 
 interface EstadisticasVehiculos {
   totalVehiculos: number;
@@ -153,24 +153,24 @@ interface AlertaVehiculo {
             </mat-card-header>
             <mat-card-content>
               <div class="alertas-lista">
-                @for (alerta of alertas().slice(0, 5); track alerta.vehiculoId) {
-                  <div class="alerta-item" [class]="'prioridad-' + alerta.prioridad">
+                @for (alerta of alertas().slice(0, 5); track (alerta as any).vehiculoId) {
+                  <div class="alerta-item" [class]="'prioridad-' + (alerta as any).prioridad">
                     <div class="alerta-icon">
                       <app-smart-icon 
-                        [iconName]="getIconoAlerta(alerta.tipo)" 
+                        [iconName]="getIconoAlerta((alerta as any).tipo)" 
                         [size]="24">
                       </app-smart-icon>
                     </div>
                     <div class="alerta-info">
-                      <h4>{{ alerta.placa }}</h4>
-                      <p>{{ alerta.descripcion }}</p>
-                      @if (alerta.fechaVencimiento) {
-                        <small>Vence: {{ formatearFecha(alerta.fechaVencimiento) }}</small>
+                      <h4>{{ (alerta as any).placa }}</h4>
+                      <p>{{ (alerta as any).descripcion }}</p>
+                      @if ((alerta as any).fechaVencimiento) {
+                        <small>Vence: {{ formatearFecha((alerta as any).fechaVencimiento) }}</small>
                       }
                     </div>
                     <div class="alerta-prioridad">
-                      <mat-chip [color]="getColorPrioridad(alerta.prioridad)">
-                        {{ alerta.prioridad.toUpperCase() }}
+                      <mat-chip [color]="getColorPrioridad((alerta as any).prioridad)">
+                        {{ (alerta as any).prioridad.toUpperCase() }}
                       </mat-chip>
                     </div>
                   </div>
@@ -199,7 +199,7 @@ interface AlertaVehiculo {
               <div class="distribucion-estados">
                 <div class="estado-item activo">
                   <div class="estado-barra" 
-                       [style.width.%]="calcularPorcentaje(estadisticas()?.vehiculosActivos || 0)">
+                       [(style as any).width.%]="calcularPorcentaje(estadisticas()?.vehiculosActivos || 0)">
                   </div>
                   <div class="estado-info">
                     <span class="estado-label">Activos</span>
@@ -209,7 +209,7 @@ interface AlertaVehiculo {
 
                 <div class="estado-item inactivo">
                   <div class="estado-barra" 
-                       [style.width.%]="calcularPorcentaje(estadisticas()?.vehiculosInactivos || 0)">
+                       [(style as any).width.%]="calcularPorcentaje(estadisticas()?.vehiculosInactivos || 0)">
                   </div>
                   <div class="estado-info">
                     <span class="estado-label">Inactivos</span>
@@ -219,7 +219,7 @@ interface AlertaVehiculo {
 
                 <div class="estado-item mantenimiento">
                   <div class="estado-barra" 
-                       [style.width.%]="calcularPorcentaje(estadisticas()?.vehiculosEnMantenimiento || 0)">
+                       [(style as any).width.%]="calcularPorcentaje(estadisticas()?.vehiculosEnMantenimiento || 0)">
                   </div>
                   <div class="estado-info">
                     <span class="estado-label">Mantenimiento</span>
@@ -237,15 +237,15 @@ interface AlertaVehiculo {
             </mat-card-header>
             <mat-card-content>
               <div class="distribucion-categorias">
-                @for (categoria of getCategorias(); track categoria.nombre) {
+                @for (categoria of getCategorias(); track (categoria as any).nombre) {
                   <div class="categoria-item">
                     <div class="categoria-info">
-                      <span class="categoria-label">{{ categoria.nombre }}</span>
-                      <span class="categoria-valor">{{ categoria.cantidad }}</span>
+                      <span class="categoria-label">{{ (categoria as any).nombre }}</span>
+                      <span class="categoria-valor">{{ (categoria as any).cantidad }}</span>
                     </div>
                     <div class="categoria-barra">
                       <div class="categoria-progreso" 
-                           [style.width.%]="categoria.porcentaje">
+                           [(style as any).width.%]="(categoria as any).porcentaje">
                       </div>
                     </div>
                   </div>
@@ -263,10 +263,10 @@ interface AlertaVehiculo {
             </mat-card-header>
             <mat-card-content>
               <div class="top-lista">
-                @for (marca of getTopMarcas(); track marca.nombre) {
+                @for (marca of getTopMarcas(); track (marca as any).nombre) {
                   <div class="top-item">
-                    <span class="top-nombre">{{ marca.nombre }}</span>
-                    <span class="top-cantidad">{{ marca.cantidad }}</span>
+                    <span class="top-nombre">{{ (marca as any).nombre }}</span>
+                    <span class="top-cantidad">{{ (marca as any).cantidad }}</span>
                   </div>
                 }
               </div>
@@ -279,11 +279,11 @@ interface AlertaVehiculo {
             </mat-card-header>
             <mat-card-content>
               <div class="sedes-lista">
-                @for (sede of getSedes(); track sede.nombre) {
+                @for (sede of getSedes(); track (sede as any).nombre) {
                   <div class="sede-item">
                     <app-smart-icon [iconName]="'location_city'" [size]="20"></app-smart-icon>
-                    <span class="sede-nombre">{{ sede.nombre }}</span>
-                    <mat-chip>{{ sede.cantidad }}</mat-chip>
+                    <span class="sede-nombre">{{ (sede as any).nombre }}</span>
+                    <mat-chip>{{ (sede as any).cantidad }}</mat-chip>
                   </div>
                 }
               </div>
@@ -390,36 +390,36 @@ interface AlertaVehiculo {
       gap: 20px;
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,(0 as any).1);
+      transition: transform (0 as any).2s ease;
     }
 
     .metrica-card:hover {
       transform: translateY(-2px);
     }
 
-    .metrica-card.total {
+    .metrica-(card as any).total {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
     }
 
-    .metrica-card.activos {
+    .metrica-(card as any).activos {
       background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       color: white;
     }
 
-    .metrica-card.tuc-vigente {
+    .metrica-(card as any).tuc-vigente {
       background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
       color: white;
     }
 
-    .metrica-card.promedio {
+    .metrica-(card as any).promedio {
       background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       color: white;
     }
 
     .metrica-icon {
-      opacity: 0.9;
+      opacity: (0 as any).9;
     }
 
     .metrica-info h2 {
@@ -432,12 +432,12 @@ interface AlertaVehiculo {
       margin: 0 0 4px 0;
       font-size: 16px;
       font-weight: 500;
-      opacity: 0.9;
+      opacity: (0 as any).9;
     }
 
     .metrica-info small {
       font-size: 12px;
-      opacity: 0.8;
+      opacity: (0 as any).8;
     }
 
     .alertas-card {
@@ -459,17 +459,17 @@ interface AlertaVehiculo {
       border-left: 4px solid;
     }
 
-    .alerta-item.prioridad-alta {
+    .alerta-(item as any).prioridad-alta {
       background: #ffebee;
       border-left-color: #f44336;
     }
 
-    .alerta-item.prioridad-media {
+    .alerta-(item as any).prioridad-media {
       background: #fff3e0;
       border-left-color: #ff9800;
     }
 
-    .alerta-item.prioridad-baja {
+    .alerta-(item as any).prioridad-baja {
       background: #e8f5e8;
       border-left-color: #4caf50;
     }
@@ -523,18 +523,18 @@ interface AlertaVehiculo {
     .estado-barra {
       height: 8px;
       border-radius: 4px;
-      transition: width 0.3s ease;
+      transition: width (0 as any).3s ease;
     }
 
-    .estado-item.activo .estado-barra {
+    .estado-(item as any).activo .estado-barra {
       background: linear-gradient(90deg, #4caf50, #66bb6a);
     }
 
-    .estado-item.inactivo .estado-barra {
+    .estado-(item as any).inactivo .estado-barra {
       background: linear-gradient(90deg, #f44336, #ef5350);
     }
 
-    .estado-item.mantenimiento .estado-barra {
+    .estado-(item as any).mantenimiento .estado-barra {
       background: linear-gradient(90deg, #ff9800, #ffb74d);
     }
 
@@ -582,7 +582,7 @@ interface AlertaVehiculo {
     .categoria-progreso {
       height: 100%;
       background: linear-gradient(90deg, #1976d2, #42a5f5);
-      transition: width 0.3s ease;
+      transition: width (0 as any).3s ease;
     }
 
     .distribuciones-adicionales {
@@ -664,7 +664,7 @@ interface AlertaVehiculo {
     }
 
     .accion-info small {
-      color: rgba(255,255,255,0.8);
+      color: rgba(255,255,255,(0 as any).8);
       font-size: 12px;
     }
 
@@ -716,7 +716,7 @@ export class VehiculosDashboardComponent implements OnInit {
     
     try {
       // Cargar datos en paralelo
-      const [vehiculos, empresas] = await Promise.all([
+      const [vehiculos, empresas] = await (Promise as any).all([
         this.vehiculoService.getVehiculos().toPromise(),
         this.empresaService.getEmpresas().toPromise()
       ]);
@@ -731,7 +731,7 @@ export class VehiculosDashboardComponent implements OnInit {
       this.generarAlertas();
       
     } catch (error) {
-      console.error('Error cargando datos del dashboard:', error);
+      (console as any).error('Error cargando datos del dashboard:', error);
     } finally {
       this.cargando.set(false);
     }
@@ -742,14 +742,14 @@ export class VehiculosDashboardComponent implements OnInit {
     const empresas = this.empresas();
 
     const estadisticas: EstadisticasVehiculos = {
-      totalVehiculos: vehiculos.length,
-      vehiculosActivos: vehiculos.filter(v => v.estado === 'ACTIVO').length,
-      vehiculosInactivos: vehiculos.filter(v => v.estado === 'INACTIVO').length,
-      vehiculosEnMantenimiento: vehiculos.filter(v => v.estado === 'EN_MANTENIMIENTO').length,
-      vehiculosFueraDeServicio: vehiculos.filter(v => v.estado === 'FUERA_DE_SERVICIO').length,
-      vehiculosConTucVigente: vehiculos.filter(v => v.tuc && this.isTucVigente(v.tuc)).length,
-      vehiculosSinResolucion: vehiculos.filter(v => !v.resolucionId).length,
-      promedioVehiculosPorEmpresa: empresas.length > 0 ? vehiculos.length / empresas.length : 0,
+      totalVehiculos: (vehiculos as any).length,
+      vehiculosActivos: (vehiculos as any).filter(v => (v as any).estado === 'ACTIVO').length,
+      vehiculosInactivos: (vehiculos as any).filter(v => (v as any).estado === 'INACTIVO').length,
+      vehiculosEnMantenimiento: (vehiculos as any).filter(v => (v as any).estado === 'EN_MANTENIMIENTO').length,
+      vehiculosFueraDeServicio: (vehiculos as any).filter(v => (v as any).estado === 'FUERA_DE_SERVICIO').length,
+      vehiculosConTucVigente: (vehiculos as any).filter(v => (v as any).tuc && this.isTucVigente((v as any).tuc)).length,
+      vehiculosSinResolucion: (vehiculos as any).filter(v => !(v as any).resolucionId).length,
+      promedioVehiculosPorEmpresa: (empresas as any).length > 0 ? (vehiculos as any).length / (empresas as any).length : 0,
       distribucionPorCategoria: this.calcularDistribucion(vehiculos, 'categoria'),
       distribucionPorMarca: this.calcularDistribucion(vehiculos, 'marca'),
       distribucionPorAnio: this.calcularDistribucion(vehiculos, 'anioFabricacion'),
@@ -762,7 +762,7 @@ export class VehiculosDashboardComponent implements OnInit {
   private calcularDistribucion(vehiculos: Vehiculo[], campo: keyof Vehiculo): { [key: string]: number } {
     const distribucion: { [key: string]: number } = {};
     
-    vehiculos.forEach(vehiculo => {
+    (vehiculos as any).forEach(vehiculo => {
       const valor = String(vehiculo[campo] || 'Sin especificar');
       distribucion[valor] = (distribucion[valor] || 0) + 1;
     });
@@ -770,12 +770,12 @@ export class VehiculosDashboardComponent implements OnInit {
     return distribucion;
   }
 
-  private isTucVigente(tuc: any): boolean {
-    if (!tuc || !tuc.fechaEmision) return false;
+  private isTucVigente(tuc: unknown): boolean {
+    if (!tuc || !(tuc as any).fechaEmision) return false;
     
-    const fechaEmision = new Date(tuc.fechaEmision);
+    const fechaEmision = new Date((tuc as any).fechaEmision);
     const fechaVencimiento = new Date(fechaEmision);
-    fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + 1); // TUC válido por 1 año
+    (fechaVencimiento as any).setFullYear((fechaVencimiento as any).getFullYear() + 1); // TUC válido por 1 año
     
     return fechaVencimiento > new Date();
   }
@@ -784,50 +784,50 @@ export class VehiculosDashboardComponent implements OnInit {
     const vehiculos = this.vehiculos();
     const alertas: AlertaVehiculo[] = [];
 
-    vehiculos.forEach(vehiculo => {
+    (vehiculos as any).forEach(vehiculo => {
       // TUC vencido o próximo a vencer
-      if (vehiculo.tuc) {
-        const fechaVencimiento = this.calcularFechaVencimientoTuc(vehiculo.tuc);
+      if ((vehiculo as any).tuc) {
+        const fechaVencimiento = this.calcularFechaVencimientoTuc((vehiculo as any).tuc);
         const diasParaVencer = this.calcularDiasParaVencer(fechaVencimiento);
         
         if (diasParaVencer < 0) {
-          alertas.push({
+          (alertas as any).push({
             tipo: 'tuc_vencido',
-            vehiculoId: vehiculo.id,
-            placa: vehiculo.placa,
+            vehiculoId: (vehiculo as any).id,
+            placa: (vehiculo as any).placa,
             descripcion: 'TUC vencido',
             prioridad: 'alta',
-            fechaVencimiento: fechaVencimiento.toISOString()
+            fechaVencimiento: (fechaVencimiento as any).toISOString()
           });
         } else if (diasParaVencer <= 30) {
-          alertas.push({
+          (alertas as any).push({
             tipo: 'tuc_vencido',
-            vehiculoId: vehiculo.id,
-            placa: vehiculo.placa,
+            vehiculoId: (vehiculo as any).id,
+            placa: (vehiculo as any).placa,
             descripcion: `TUC vence en ${diasParaVencer} días`,
             prioridad: diasParaVencer <= 7 ? 'alta' : 'media',
-            fechaVencimiento: fechaVencimiento.toISOString()
+            fechaVencimiento: (fechaVencimiento as any).toISOString()
           });
         }
       }
 
       // Sin resolución
-      if (!vehiculo.resolucionId) {
-        alertas.push({
+      if (!(vehiculo as any).resolucionId) {
+        (alertas as any).push({
           tipo: 'sin_resolucion',
-          vehiculoId: vehiculo.id,
-          placa: vehiculo.placa,
+          vehiculoId: (vehiculo as any).id,
+          placa: (vehiculo as any).placa,
           descripcion: 'Vehículo sin resolución asignada',
           prioridad: 'media'
         });
       }
 
       // En mantenimiento por mucho tiempo
-      if (vehiculo.estado === 'EN_MANTENIMIENTO') {
-        alertas.push({
+      if ((vehiculo as any).estado === 'EN_MANTENIMIENTO') {
+        (alertas as any).push({
           tipo: 'mantenimiento_pendiente',
-          vehiculoId: vehiculo.id,
-          placa: vehiculo.placa,
+          vehiculoId: (vehiculo as any).id,
+          placa: (vehiculo as any).placa,
           descripcion: 'Vehículo en mantenimiento',
           prioridad: 'baja'
         });
@@ -835,68 +835,66 @@ export class VehiculosDashboardComponent implements OnInit {
     });
 
     // Ordenar por prioridad
-    alertas.sort((a, b) => {
+    (alertas as any).sort((a: any, b: any) => {
       const prioridades = { 'alta': 3, 'media': 2, 'baja': 1 };
-      return prioridades[b.prioridad] - prioridades[a.prioridad];
+      return prioridades[(b as any).prioridad] - prioridades[(a as any).prioridad];
     });
 
     this.alertas.set(alertas);
   }
 
-  private calcularFechaVencimientoTuc(tuc: any): Date {
-    const fechaEmision = new Date(tuc.fechaEmision);
+  private calcularFechaVencimientoTuc(tuc: unknown): Date {
+    const fechaEmision = new Date((tuc as any).fechaEmision);
     const fechaVencimiento = new Date(fechaEmision);
-    fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + 1);
+    (fechaVencimiento as any).setFullYear((fechaVencimiento as any).getFullYear() + 1);
     return fechaVencimiento;
   }
 
   private calcularDiasParaVencer(fechaVencimiento: Date): number {
     const hoy = new Date();
-    const diferencia = fechaVencimiento.getTime() - hoy.getTime();
-    return Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+    const diferencia = (fechaVencimiento as any).getTime() - (hoy as any).getTime();
+    return (Math as any).ceil(diferencia / (1000 * 60 * 60 * 24));
   }
 
   // Métodos de utilidad para la UI
   calcularPorcentaje(valor: number): number {
     const total = this.estadisticas()?.totalVehiculos || 1;
-    return Math.round((valor / total) * 100);
+    return (Math as any).round((valor / total) * 100);
   }
 
   calcularCrecimiento(tipo: string): string {
-    // Simulado - en una implementación real, compararías con datos históricos
-    const crecimiento = Math.floor(Math.random() * 20) - 10; // -10% a +10%
-    const signo = crecimiento >= 0 ? '+' : '';
-    return `${signo}${crecimiento}% vs mes anterior`;
+    // Retornar mensaje sin datos simulados hasta implementar históricos reales
+    return 'Datos históricos no disponibles';
   }
 
   getCategorias(): Array<{nombre: string, cantidad: number, porcentaje: number}> {
     const distribucion = this.estadisticas()?.distribucionPorCategoria || {};
     const total = this.estadisticas()?.totalVehiculos || 1;
     
-    return Object.entries(distribucion)
-      .map(([nombre, cantidad]) => ({
+    return (Object as any).entries(distribucion)
+      .map(([nombre, cantidad]: any[]) => ({
         nombre,
         cantidad,
-        porcentaje: Math.round((cantidad / total) * 100)
+        porcentaje: (Math as any).round((cantidad / total) * 100)
       }))
-      .sort((a, b) => b.cantidad - a.cantidad);
+      .sort((a: any, b: any) => (b as any).cantidad - (a as any).cantidad);
   }
 
   getTopMarcas(): Array<{nombre: string, cantidad: number}> {
     const distribucion = this.estadisticas()?.distribucionPorMarca || {};
     
-    return Object.entries(distribucion)
-      .map(([nombre, cantidad]) => ({ nombre, cantidad }))
-      .sort((a, b) => b.cantidad - a.cantidad)
+    return (Object as any).entries(distribucion)
+      .map(([nombre, cantidad]: any[]) => ({ nombre, cantidad }))
+      .sort((a: any, b: any) => (b as any).cantidad - (a as any).cantidad)
       .slice(0, 5);
   }
 
   getSedes(): Array<{nombre: string, cantidad: number}> {
     const distribucion = this.estadisticas()?.distribucionPorSede || {};
     
-    return Object.entries(distribucion)
-      .map(([nombre, cantidad]) => ({ nombre, cantidad }))
-      .sort((a, b) => b.cantidad - a.cantidad);
+    return (Object as any).entries(distribucion)
+      .map(([nombre, cantidad]: any[]) => ({ nombre, cantidad }))
+      .sort((a: any, b: any) => (b as any).cantidad - (a as any).cantidad);
   }
 
   getIconoAlerta(tipo: string): string {
@@ -932,32 +930,26 @@ export class VehiculosDashboardComponent implements OnInit {
   }
 
   exportarReporte(formato: 'pdf' | 'excel'): void {
-    console.log(`Exportando reporte en formato ${formato}`);
     // Implementar exportación
   }
 
   abrirCargaMasiva(): void {
-    console.log('Abriendo carga masiva');
     // Implementar apertura de modal de carga masiva
   }
 
   generarReporteCompleto(): void {
-    console.log('Generando reporte completo');
     // Implementar generación de reporte
   }
 
   configurarAlertas(): void {
-    console.log('Configurando alertas');
     // Implementar configuración de alertas
   }
 
   exportarDatos(): void {
-    console.log('Exportando datos');
     // Implementar exportación de datos
   }
 
   verTodasLasAlertas(): void {
-    console.log('Ver todas las alertas');
     // Implementar vista de todas las alertas
   }
 }

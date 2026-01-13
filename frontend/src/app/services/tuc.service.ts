@@ -59,7 +59,8 @@ export class TucService {
   }
 
   // Obtener todos los TUCs
-  getTucs(skip: number = 0, limit: number = 100, estado?: EstadoTuc): Observable<Tuc[]> {
+  getTucs(skip: number = 0, limit: number = 1000, estado?: EstadoTuc): Observable<Tuc[]> {
+    // Aumentar el límite para obtener todos los TUCs
     console.log('AuthService.isAuthenticated():', this.authService.isAuthenticated());
     
     if (this.authService.isAuthenticated()) {

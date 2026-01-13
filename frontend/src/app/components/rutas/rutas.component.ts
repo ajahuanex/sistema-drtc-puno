@@ -1,6 +1,6 @@
-import { Component, OnInit, inject, signal, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,7 +14,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { RutaService } from '../../services/ruta.service';
@@ -26,14 +30,18 @@ import { Resolucion } from '../../models/resolucion.model';
 import { Observable, of, forkJoin } from 'rxjs';
 import { map, startWith, catchError } from 'rxjs/operators';
 import { CrearRutaMejoradoComponent } from './crear-ruta-mejorado.component';
+import { DetalleRutaModalComponent } from './detalle-ruta-modal.component';
 import { RutaUpdate } from '../../models/ruta.model';
 import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.component';
+import { ConfirmarEliminacionBloqueModalComponent } from './confirmar-eliminacion-bloque-modal.component';
+import { CambiarEstadoRutasBloqueModalComponent } from './cambiar-estado-rutas-bloque-modal.component';
 
 @Component({
   selector: 'app-rutas',
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -45,6 +53,10 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
     MatAutocompleteModule,
     MatDividerModule,
     MatChipsModule,
+    MatCheckboxModule,
+    MatMenuModule,
+    MatTooltipModule,
+    MatPaginatorModule,
     ReactiveFormsModule,
     MatDialogModule,
   ],
@@ -61,6 +73,12 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   (click)="nuevaRuta()">
             <mat-icon>add</mat-icon>
             Nueva Ruta
+          </button>
+          <button mat-stroked-button 
+                  color="accent" 
+                  routerLink="/rutas/carga-masiva">
+            <mat-icon>upload</mat-icon>
+            Carga Masiva
           </button>
           <button mat-stroked-button 
                   color="accent" 
@@ -389,7 +407,7 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
           <div class="section-header">
             <h3>{{ filtroActivo().descripcion }}</h3>
             <p class="section-subtitle">
-              Mostrando {{ rutas().length }} ruta(s)
+              Mostrando {{ rutasPaginadasComputed().length }} de {{ totalRutasFiltradas() }} ruta(s)
               @if (filtroActivo().tipo === 'resolucion') {
                 de la resolución seleccionada - Vista CRUD
               } @else if (filtroActivo().tipo === 'empresa') {
@@ -464,10 +482,22 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                             <th mat-header-cell *matHeaderCellDef>Acciones</th>
                             <td mat-cell *matCellDef="let ruta">
                               <button mat-icon-button 
+                                      color="accent" 
+                                      (click)="verDetalleRuta(ruta)"
+                                      matTooltip="Ver detalles">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button mat-icon-button 
                                       color="primary" 
                                       (click)="editarRuta(ruta)"
                                       matTooltip="Editar ruta">
                                 <mat-icon>edit</mat-icon>
+                              </button>
+                              <button mat-icon-button 
+                                      color="accent" 
+                                      (click)="duplicarRuta(ruta)"
+                                      matTooltip="Duplicar ruta">
+                                <mat-icon>content_copy</mat-icon>
                               </button>
                               <button mat-icon-button 
                                       color="warn" 
@@ -478,8 +508,10 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                             </td>
                           </ng-container>
 
-                          <tr mat-header-row *matHeaderRowDef="['codigoRuta', 'origen', 'destino', 'frecuencias', 'estado', 'acciones']"></tr>
-                          <tr mat-row *matRowDef="let row; columns: ['codigoRuta', 'origen', 'destino', 'frecuencias', 'estado', 'acciones'];"></tr>
+                          <tr mat-header-row *matHeaderRowDef="visibleColumns()"></tr>
+                          <tr mat-row 
+                              *matRowDef="let row; columns: visibleColumns();"
+                              [class.selected-row]="isRutaSeleccionada(row.id)"></tr>
                         </table>
                       </div>
                     </mat-card-content>
@@ -488,8 +520,94 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
               </div>
             } @else {
               <!-- Vista de tabla normal (para todas las rutas o resolución específica) -->
+              
+              <!-- Acciones de tabla y configuración -->
+              <div class="table-actions">
+                <!-- Acciones en bloque -->
+                @if (getRutasSeleccionadasCount() > 0) {
+                  <div class="bulk-actions">
+                    <span class="selection-info">{{ getRutasSeleccionadasCount() }} seleccionada(s)</span>
+                    <button mat-raised-button color="warn" (click)="eliminarRutasEnBloque()">
+                      <mat-icon>delete</mat-icon>
+                      ELIMINAR ({{ getRutasSeleccionadasCount() }})
+                    </button>
+                    <button mat-raised-button color="primary" (click)="cambiarEstadoRutasEnBloque()">
+                      <mat-icon>swap_horiz</mat-icon>
+                      CAMBIAR ESTADO ({{ getRutasSeleccionadasCount() }})
+                    </button>
+                    <button mat-stroked-button color="accent" (click)="exportarRutasSeleccionadas('excel')">
+                      <mat-icon>file_download</mat-icon>
+                      EXPORTAR EXCEL
+                    </button>
+                    <button mat-button (click)="limpiarSeleccionRutas()">
+                      <mat-icon>clear</mat-icon>
+                      LIMPIAR
+                    </button>
+                  </div>
+                } @else {
+                  <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
+                    <mat-icon>view_column</mat-icon>
+                    COLUMNAS ({{ getVisibleColumnsCount() }})
+                  </button>
+                  <button mat-button color="accent" (click)="recargarRutas()">
+                    <mat-icon>refresh</mat-icon>
+                    RECARGAR
+                  </button>
+                }
+                
+                <!-- Menú de configuración de columnas -->
+                <mat-menu #columnMenu="matMenu" class="columnas-menu rutas-columnas-menu">
+                  <div class="columnas-menu-header" (click)="$event.stopPropagation()">
+                    <h4>Mostrar columnas</h4>
+                  </div>
+                  <mat-divider></mat-divider>
+                  
+                  <div class="column-menu-content">
+                    @for (column of availableColumns(); track column.key) {
+                      <button mat-menu-item class="columna-checkbox" 
+                              [class.disabled-column]="column.required"
+                              (click)="$event.stopPropagation()">
+                        <mat-checkbox 
+                          [checked]="column.visible"
+                          [disabled]="column.required"
+                          (change)="toggleColumn(column.key)"
+                          (click)="$event.stopPropagation()">
+                          {{ column.label }}
+                        </mat-checkbox>
+                      </button>
+                    }
+                  </div>
+                  
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="resetearColumnas()">
+                    <mat-icon>refresh</mat-icon>
+                    Restablecer columnas
+                  </button>
+                </mat-menu>
+              </div>
+
               <div class="table-container">
-                <table mat-table [dataSource]="rutas()" class="rutas-table">
+                <table mat-table [dataSource]="rutasPaginadasComputed()" class="rutas-table">
+                
+                <!-- Columna de Selección -->
+                <ng-container matColumnDef="select">
+                  <th mat-header-cell *matHeaderCellDef class="table-header-cell select-column">
+                    <mat-checkbox 
+                      [checked]="seleccionarTodasLasRutas()"
+                      [indeterminate]="getRutasSeleccionadasCount() > 0 && !seleccionarTodasLasRutas()"
+                      (change)="toggleSeleccionarTodasLasRutas()"
+                      color="primary">
+                    </mat-checkbox>
+                  </th>
+                  <td mat-cell *matCellDef="let ruta" class="table-cell select-column">
+                    <mat-checkbox 
+                      [checked]="isRutaSeleccionada(ruta.id)"
+                      (change)="toggleRutaSeleccion(ruta.id)"
+                      color="primary">
+                    </mat-checkbox>
+                  </td>
+                </ng-container>
+                
                 <!-- Código de Ruta -->
                 <ng-container matColumnDef="codigoRuta">
                   <th mat-header-cell *matHeaderCellDef>Código</th>
@@ -504,7 +622,7 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   <td mat-cell *matCellDef="let ruta">
                     <div class="empresa-info">
                       <div class="empresa-nombre">{{ obtenerNombreEmpresa(ruta) }}</div>
-                      <div class="empresa-ruc">{{ obtenerRucEmpresa(ruta) }}</div>
+                      <div class="empresa-ruc">RUC: {{ obtenerRucEmpresa(ruta) }}</div>
                     </div>
                   </td>
                 </ng-container>
@@ -513,7 +631,12 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                 <ng-container matColumnDef="resolucion">
                   <th mat-header-cell *matHeaderCellDef>Resolución</th>
                   <td mat-cell *matCellDef="let ruta">
-                    <span class="resolucion-numero">{{ obtenerNumeroResolucion(ruta) }}</span>
+                    <div class="resolucion-info">
+                      <div class="resolucion-numero">{{ obtenerInfoCompletaResolucion(ruta).numero }}</div>
+                      @if (obtenerInfoCompletaResolucion(ruta).tipo) {
+                        <div class="resolucion-tipo">{{ obtenerInfoCompletaResolucion(ruta).tipo }}</div>
+                      }
+                    </div>
                   </td>
                 </ng-container>
 
@@ -527,6 +650,77 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                 <ng-container matColumnDef="destino">
                   <th mat-header-cell *matHeaderCellDef>Destino</th>
                   <td mat-cell *matCellDef="let ruta">{{ ruta.destino || ruta.destinoId }}</td>
+                </ng-container>
+
+                <!-- Itinerario -->
+                <ng-container matColumnDef="itinerario">
+                  <th mat-header-cell *matHeaderCellDef>Itinerario</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="itinerario-text" [matTooltip]="ruta.descripcion">
+                      {{ (ruta.descripcion || 'SIN ITINERARIO') | slice:0:30 }}
+                      {{ (ruta.descripcion || '').length > 30 ? '...' : '' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Distancia -->
+                <ng-container matColumnDef="distancia">
+                  <th mat-header-cell *matHeaderCellDef>Distancia</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="distancia-value">
+                      {{ ruta.distancia ? (ruta.distancia + ' km') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tiempo Estimado -->
+                <ng-container matColumnDef="tiempoEstimado">
+                  <th mat-header-cell *matHeaderCellDef>Tiempo Est.</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="tiempo-value">
+                      {{ ruta.tiempoEstimado || '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tipo de Ruta -->
+                <ng-container matColumnDef="tipoRuta">
+                  <th mat-header-cell *matHeaderCellDef>Tipo Ruta</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <mat-chip class="tipo-ruta-chip" [class]="'tipo-' + (ruta.tipoRuta || '').toLowerCase()">
+                      {{ ruta.tipoRuta || '-' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Tipo de Servicio -->
+                <ng-container matColumnDef="tipoServicio">
+                  <th mat-header-cell *matHeaderCellDef>Tipo Servicio</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <mat-chip class="tipo-servicio-chip" [class]="'servicio-' + (ruta.tipoServicio || '').toLowerCase()">
+                      {{ ruta.tipoServicio || '-' }}
+                    </mat-chip>
+                  </td>
+                </ng-container>
+
+                <!-- Capacidad Máxima -->
+                <ng-container matColumnDef="capacidadMaxima">
+                  <th mat-header-cell *matHeaderCellDef>Capacidad</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="capacidad-value">
+                      {{ ruta.capacidadMaxima ? (ruta.capacidadMaxima + ' pax') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <!-- Tarifa Base -->
+                <ng-container matColumnDef="tarifaBase">
+                  <th mat-header-cell *matHeaderCellDef>Tarifa</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="tarifa-value">
+                      {{ ruta.tarifaBase ? ('S/ ' + ruta.tarifaBase.toFixed(2)) : '-' }}
+                    </span>
+                  </td>
                 </ng-container>
 
                 <!-- Frecuencias -->
@@ -545,15 +739,37 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   </td>
                 </ng-container>
 
+                <!-- Fecha de Registro -->
+                <ng-container matColumnDef="fechaRegistro">
+                  <th mat-header-cell *matHeaderCellDef>Fecha Registro</th>
+                  <td mat-cell *matCellDef="let ruta">
+                    <span class="fecha-value">
+                      {{ ruta.fechaRegistro ? (ruta.fechaRegistro | date:'dd/MM/yyyy') : '-' }}
+                    </span>
+                  </td>
+                </ng-container>
+
                 <!-- Acciones -->
                 <ng-container matColumnDef="acciones">
                   <th mat-header-cell *matHeaderCellDef>Acciones</th>
                   <td mat-cell *matCellDef="let ruta">
                     <button mat-icon-button 
+                            color="accent" 
+                            (click)="verDetalleRuta(ruta)"
+                            matTooltip="Ver detalles">
+                      <mat-icon>visibility</mat-icon>
+                    </button>
+                    <button mat-icon-button 
                             color="primary" 
                             (click)="editarRuta(ruta)"
                             matTooltip="Editar ruta">
                       <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button 
+                            color="accent" 
+                            (click)="duplicarRuta(ruta)"
+                            matTooltip="Duplicar ruta">
+                      <mat-icon>content_copy</mat-icon>
                     </button>
                     <button mat-icon-button 
                             color="warn" 
@@ -564,9 +780,22 @@ import { IntercambioCodigosModalComponent } from './intercambio-codigos-modal.co
                   </td>
                 </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                <tr mat-header-row *matHeaderRowDef="visibleColumns()"></tr>
+                <tr mat-row 
+                    *matRowDef="let row; columns: visibleColumns();"
+                    [class.selected-row]="isRutaSeleccionada(row.id)"></tr>
               </table>
+              
+              <!-- Paginador -->
+              <mat-paginator
+                [length]="totalRutasFiltradas()"
+                [pageSize]="pageSize()"
+                [pageIndex]="pageIndex()"
+                [pageSizeOptions]="pageSizeOptions()"
+                [showFirstLastButtons]="true"
+                (page)="onPageChange($event)"
+                class="rutas-paginator">
+              </mat-paginator>
               </div>
             }
           } @else {
@@ -605,17 +834,52 @@ export class RutasComponent implements OnInit {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
 
+  // Signals para paginador
+  pageSize = signal(10);
+  pageIndex = signal(0);
+  pageSizeOptions = signal([5, 10, 25, 50, 100]);
+  rutasPaginadas = signal<Ruta[]>([]);
+  
   // Signals
   rutas = signal<Ruta[]>([]);
   todasLasRutas = signal<Ruta[]>([]); // Mantener todas las rutas para filtrado
   rutasAgrupadasPorResolucion = signal<{[resolucionId: string]: {resolucion: Resolucion | null, rutas: Ruta[]}}>({}); 
   isLoading = signal(false);
+  
+  // Caches para datos relacionados
+  empresasCache = signal<Map<string, Empresa>>(new Map());
+  resolucionesCache = signal<Map<string, Resolucion>>(new Map());
+  
   empresaSeleccionada = signal<Empresa | null>(null);
   resolucionSeleccionada = signal<Resolucion | null>(null);
   empresaSearchValue = signal('');
   empresasFiltradas = signal<Observable<Empresa[]>>(of([]));
   resolucionesEmpresa = signal<Resolucion[]>([]);
   totalRutas = signal<number>(0);
+  
+  // Signals para selección múltiple
+  rutasSeleccionadasIds = signal<Set<string>>(new Set());
+  
+  // Signals para configuración de columnas
+  availableColumns = signal([
+    { key: 'select', label: 'Selección', visible: true, required: true },
+    { key: 'codigoRuta', label: 'Código', visible: true, required: true },
+    { key: 'empresa', label: 'Empresa', visible: true, required: false },
+    { key: 'resolucion', label: 'Resolución', visible: true, required: false },
+    { key: 'origen', label: 'Origen', visible: true, required: false },
+    { key: 'destino', label: 'Destino', visible: true, required: false },
+    { key: 'itinerario', label: 'Itinerario', visible: true, required: false }, // Visible por defecto
+    { key: 'distancia', label: 'Distancia', visible: false, required: false },
+    { key: 'tiempoEstimado', label: 'Tiempo Est.', visible: false, required: false },
+    { key: 'tipoRuta', label: 'Tipo Ruta', visible: false, required: false },
+    { key: 'tipoServicio', label: 'Tipo Servicio', visible: false, required: false },
+    { key: 'capacidadMaxima', label: 'Capacidad', visible: false, required: false },
+    { key: 'tarifaBase', label: 'Tarifa', visible: false, required: false },
+    { key: 'frecuencias', label: 'Frecuencias', visible: true, required: false },
+    { key: 'estado', label: 'Estado', visible: true, required: false },
+    { key: 'fechaRegistro', label: 'Fecha Registro', visible: false, required: false },
+    { key: 'acciones', label: 'Acciones', visible: true, required: true }
+  ]);
   
   // Signals para filtros avanzados
   mostrarFiltrosAvanzados = signal(false);
@@ -645,7 +909,28 @@ export class RutasComponent implements OnInit {
   });
 
   // Columnas simplificadas
-  displayedColumns = ['codigoRuta', 'empresa', 'resolucion', 'origen', 'destino', 'frecuencias', 'estado', 'acciones'];
+  displayedColumns = ['select', 'codigoRuta', 'empresa', 'resolucion', 'origen', 'destino', 'itinerario', 'distancia', 'tiempoEstimado', 'tipoRuta', 'tipoServicio', 'capacidadMaxima', 'tarifaBase', 'frecuencias', 'estado', 'fechaRegistro', 'acciones'];
+
+  // Computed para columnas visibles
+  visibleColumns = computed(() => {
+    return this.availableColumns()
+      .filter(col => col.visible)
+      .map(col => col.key);
+  });
+
+  // Computed para el total de rutas filtradas
+  totalRutasFiltradas = computed(() => this.rutas().length);
+
+  // Computed para rutas paginadas
+  rutasPaginadasComputed = computed(() => {
+    const rutas = this.rutas();
+    const pageSize = this.pageSize();
+    const pageIndex = this.pageIndex();
+    const startIndex = pageIndex * pageSize;
+    const endIndex = startIndex + pageSize;
+    
+    return rutas.slice(startIndex, endIndex);
+  });
 
   ngOnInit(): void {
     console.log('🚀 COMPONENTE RUTAS INICIALIZADO');
@@ -665,7 +950,7 @@ export class RutasComponent implements OnInit {
 
     // Cargar todas las rutas del sistema
     this.rutaService.getRutas().subscribe({
-      next: (rutas) => {
+      next: async (rutas) => {
         console.log('✅ RUTAS CARGADAS EXITOSAMENTE:', {
           total: rutas.length,
           rutas: rutas.map(r => ({
@@ -681,6 +966,11 @@ export class RutasComponent implements OnInit {
         this.rutas.set(rutas);
         this.todasLasRutas.set(rutas); // Actualizar todasLasRutas
         this.totalRutas.set(rutas.length);
+        
+        // Precargar datos relacionados (empresas y resoluciones)
+        console.log('🔄 PRECARGANDO DATOS RELACIONADOS...');
+        await this.precargarDatosRelacionados();
+        console.log('✅ DATOS RELACIONADOS PRECARGADOS');
         
         // Establecer filtro por defecto solo si no hay filtro activo
         if (this.filtroActivo().tipo === 'todas') {
@@ -769,14 +1059,12 @@ export class RutasComponent implements OnInit {
     this.empresaSearchValue.set('');
     this.resolucionesEmpresa.set([]);
 
-    // Mostrar todas las rutas del sistema
-    this.rutas.set(this.todasLasRutas());
-    
-    // Actualizar filtro activo
-    this.filtroActivo.set({
-      tipo: 'todas',
-      descripcion: 'Todas las Rutas del Sistema'
-    });
+    // Mostrar todas las rutas del sistema con paginador
+    this.aplicarFiltroConPaginador(
+      this.todasLasRutas(),
+      'Todas las Rutas del Sistema',
+      'todas'
+    );
 
     console.log('✅ FILTROS LIMPIADOS, MOSTRANDO TODAS LAS RUTAS');
     this.snackBar.open('Mostrando todas las rutas del sistema', 'Cerrar', { duration: 3000 });
@@ -793,11 +1081,11 @@ export class RutasComponent implements OnInit {
       this.filtrarRutasPorEmpresa(empresa.id);
     } else {
       // Si no hay empresa, mostrar todas las rutas
-      this.rutas.set(this.todasLasRutas());
-      this.filtroActivo.set({
-        tipo: 'todas',
-        descripcion: 'Todas las Rutas del Sistema'
-      });
+      this.aplicarFiltroConPaginador(
+        this.todasLasRutas(),
+        'Todas las Rutas del Sistema',
+        'todas'
+      );
     }
     
     this.snackBar.open('Filtro de resolución eliminado', 'Cerrar', { duration: 2000 });
@@ -1184,19 +1472,14 @@ export class RutasComponent implements OnInit {
     if (rutasLocales.length > 0) {
       console.log('✅ FILTRADO LOCAL EXITOSO - Usando rutas locales directamente');
       
-      // Usar rutas locales directamente
-      this.rutas.set([...rutasLocales]);
-      this.cdr.detectChanges();
-      
-      // Actualizar filtro activo
+      // Aplicar filtro con paginador
       const empresa = this.empresaSeleccionada();
       const resolucion = this.resolucionSeleccionada();
-      this.filtroActivo.set({
-        tipo: 'empresa-resolucion',
-        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
-        empresaId: empresaId,
-        resolucionId: resolucionId
-      });
+      this.aplicarFiltroConPaginador(
+        [...rutasLocales],
+        `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
+        'empresa-resolucion'
+      );
       
       console.log('✅ FILTRADO LOCAL COMPLETADO');
       this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
@@ -1228,31 +1511,15 @@ export class RutasComponent implements OnInit {
           console.warn(`   • IDs usados: Empresa=${empresaId}, Resolución=${resolucionId}`);
         }
 
-        // FORZAR ACTUALIZACIÓN DEL SIGNAL
-        console.log('🔄 FORZANDO ACTUALIZACIÓN DEL SIGNAL RUTAS...');
-        this.rutas.set([...rutasFiltradas]); // Crear nueva referencia
-        
-        // FORZAR DETECCIÓN DE CAMBIOS MÚLTIPLE
-        this.cdr.detectChanges();
-        
-        setTimeout(() => {
-          this.cdr.detectChanges();
-          console.log('🔍 VERIFICACIÓN POST-FILTRADO:', {
-            rutasEnSignal: this.rutas().length,
-            rutasRecibidas: rutasFiltradas.length,
-            coinciden: this.rutas().length === rutasFiltradas.length
-          });
-        }, 10);
-        
-        // Actualizar filtro activo
+        // FORZAR ACTUALIZACIÓN DEL SIGNAL CON PAGINADOR
+        console.log('🔄 APLICANDO FILTRO CON PAGINADOR...');
         const empresa = this.empresaSeleccionada();
         const resolucion = this.resolucionSeleccionada();
-        this.filtroActivo.set({
-          tipo: 'empresa-resolucion',
-          descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
-          empresaId: empresaId,
-          resolucionId: resolucionId
-        });
+        this.aplicarFiltroConPaginador(
+          [...rutasFiltradas],
+          `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'} - ${resolucion?.nroResolucion || 'Resolución'}`,
+          'empresa-resolucion'
+        );
         
         console.log('✅ FILTRADO BACKEND COMPLETADO');
         this.snackBar.open(`Filtrado: ${rutasFiltradas.length} ruta(s) de la resolución ${resolucion?.nroResolucion}`, 'Cerrar', { duration: 3000 });
@@ -1295,18 +1562,16 @@ export class RutasComponent implements OnInit {
     if (rutasLocales.length > 0) {
       console.log('✅ FILTRADO LOCAL POR EMPRESA EXITOSO');
       
-      this.rutas.set(rutasLocales);
-      
       // Agrupar rutas por resolución
       this.agruparRutasPorResolucion(rutasLocales);
       
-      // Actualizar filtro activo
+      // Aplicar filtro con paginador
       const empresa = this.empresaSeleccionada();
-      this.filtroActivo.set({
-        tipo: 'empresa',
-        descripcion: `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'}`,
-        empresaId: empresaId
-      });
+      this.aplicarFiltroConPaginador(
+        rutasLocales,
+        `Rutas de ${empresa?.razonSocial?.principal || 'Empresa'}`,
+        'empresa'
+      );
       
       this.snackBar.open(`Filtrado local: ${rutasLocales.length} ruta(s) de la empresa`, 'Cerrar', { duration: 3000 });
       return;
@@ -1509,19 +1774,140 @@ export class RutasComponent implements OnInit {
 
   // Métodos para obtener información de empresa y resolución de las rutas
   obtenerNombreEmpresa(ruta: Ruta): string {
-    // Por simplicidad, mostrar el ID de la empresa por ahora
-    // En el futuro se puede implementar un cache de empresas
-    return ruta.empresaId ? `Empresa ${ruta.empresaId.substring(0, 8)}...` : 'Sin empresa';
+    if (!ruta.empresaId) return 'Sin empresa';
+    
+    const empresa = this.empresasCache().get(ruta.empresaId);
+    if (empresa) {
+      // Manejar tanto string como objeto para razonSocial
+      if (typeof empresa.razonSocial === 'string') {
+        return empresa.razonSocial || 'Sin razón social';
+      } else if (empresa.razonSocial && typeof empresa.razonSocial === 'object') {
+        return empresa.razonSocial.principal || 'Sin razón social';
+      }
+      return 'Sin razón social';
+    }
+    
+    // Si no está en cache, cargar la empresa
+    this.cargarEmpresaEnCache(ruta.empresaId);
+    return 'Cargando...';
   }
 
   obtenerRucEmpresa(ruta: Ruta): string {
-    // Por simplicidad, mostrar información básica por ahora
-    return ruta.empresaId ? 'RUC disponible' : 'Sin RUC';
+    if (!ruta.empresaId) return 'Sin RUC';
+    
+    const empresa = this.empresasCache().get(ruta.empresaId);
+    if (empresa) {
+      return empresa.ruc || 'Sin RUC';
+    }
+    
+    return 'Cargando...';
   }
 
   obtenerNumeroResolucion(ruta: Ruta): string {
-    // Por ahora retornar el ID de la resolución truncado
-    return ruta.resolucionId ? `Res. ${ruta.resolucionId.substring(0, 8)}...` : 'Sin resolución';
+    if (!ruta.resolucionId) return 'Sin resolución';
+    
+    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    if (resolucion) {
+      const numero = resolucion.nroResolucion || 'Sin número';
+      const tipo = resolucion.tipoTramite || '';
+      return tipo ? `${numero} (${tipo})` : numero;
+    }
+    
+    // Si no está en cache, cargar la resolución
+    this.cargarResolucionEnCache(ruta.resolucionId);
+    return 'Cargando...';
+  }
+
+  // Función adicional para obtener información completa de la resolución
+  obtenerInfoCompletaResolucion(ruta: Ruta): { numero: string; tipo: string; estado: string } {
+    if (!ruta.resolucionId) {
+      return { numero: 'Sin resolución', tipo: '', estado: '' };
+    }
+    
+    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    if (resolucion) {
+      return {
+        numero: resolucion.nroResolucion || 'Sin número',
+        tipo: resolucion.tipoTramite || 'Sin tipo',
+        estado: resolucion.estado || 'Sin estado'
+      };
+    }
+    
+    return { numero: 'Cargando...', tipo: '', estado: '' };
+  }
+
+  // Métodos para cargar datos en cache
+  private async cargarEmpresaEnCache(empresaId: string): Promise<void> {
+    try {
+      const empresa = await this.empresaService.getEmpresa(empresaId).toPromise();
+      if (empresa) {
+        const currentCache = this.empresasCache();
+        currentCache.set(empresaId, empresa);
+        this.empresasCache.set(new Map(currentCache));
+      }
+    } catch (error) {
+      console.error('Error cargando empresa:', error);
+    }
+  }
+
+  private async cargarResolucionEnCache(resolucionId: string): Promise<void> {
+    try {
+      const resolucion = await this.resolucionService.getResolucionPorId(resolucionId).toPromise();
+      if (resolucion) {
+        const currentCache = this.resolucionesCache();
+        currentCache.set(resolucionId, resolucion);
+        this.resolucionesCache.set(new Map(currentCache));
+      }
+    } catch (error) {
+      console.error('Error cargando resolución:', error);
+    }
+  }
+
+  // Método para precargar todos los datos relacionados
+  private async precargarDatosRelacionados(): Promise<void> {
+    const rutas = this.todasLasRutas();
+    
+    // Obtener IDs únicos de empresas y resoluciones, filtrando undefined
+    const empresaIds = [...new Set(rutas.map(r => r.empresaId).filter((id): id is string => Boolean(id)))];
+    const resolucionIds = [...new Set(rutas.map(r => r.resolucionId).filter((id): id is string => Boolean(id)))];
+    
+    // Cargar empresas en paralelo
+    const empresasPromises = empresaIds.map(id => 
+      this.empresaService.getEmpresa(id).toPromise().catch(() => null)
+    );
+    
+    // Cargar resoluciones en paralelo
+    const resolucionesPromises = resolucionIds.map(id => 
+      this.resolucionService.getResolucionPorId(id).toPromise().catch(() => null)
+    );
+    
+    try {
+      const [empresas, resoluciones] = await Promise.all([
+        Promise.all(empresasPromises),
+        Promise.all(resolucionesPromises)
+      ]);
+      
+      // Actualizar cache de empresas
+      const empresasMap = new Map(this.empresasCache());
+      empresas.forEach((empresa, index) => {
+        if (empresa) {
+          empresasMap.set(empresaIds[index], empresa);
+        }
+      });
+      this.empresasCache.set(empresasMap);
+      
+      // Actualizar cache de resoluciones
+      const resolucionesMap = new Map(this.resolucionesCache());
+      resoluciones.forEach((resolucion, index) => {
+        if (resolucion) {
+          resolucionesMap.set(resolucionIds[index], resolucion);
+        }
+      });
+      this.resolucionesCache.set(resolucionesMap);
+      
+    } catch (error) {
+      console.error('Error precargando datos relacionados:', error);
+    }
   }
 
   getTipoDisplayName(tipo: TipoRuta | undefined): string {
@@ -1601,6 +1987,55 @@ export class RutasComponent implements OnInit {
     // Por ahora, mostrar mensaje de que la edición no está implementada
     // En el futuro se puede crear un componente de edición basado en CrearRutaMejoradoComponent
     this.snackBar.open('Función de edición en desarrollo', 'Cerrar', { duration: 3000 });
+  }
+
+  verDetalleRuta(ruta: Ruta): void {
+    console.log('👁️ VIENDO DETALLES DE RUTA:', ruta);
+    
+    // Abrir modal de detalles de ruta
+    const dialogRef = this.dialog.open(DetalleRutaModalComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: { ruta: ruta }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Modal de detalles cerrado:', result);
+      }
+    });
+  }
+
+  duplicarRuta(ruta: Ruta): void {
+    console.log('📋 DUPLICANDO RUTA:', ruta);
+    
+    // Crear una copia de la ruta con un nuevo código
+    const rutaDuplicada = {
+      ...ruta,
+      codigoRuta: `${ruta.codigoRuta}-COPIA`,
+      nombre: `${ruta.nombre} (Copia)`,
+      id: undefined // Remover ID para que se genere uno nuevo
+    };
+
+    // Abrir modal de creación con datos pre-llenados
+    const dialogRef = this.dialog.open(CrearRutaMejoradoComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: { 
+        rutaBase: rutaDuplicada,
+        modo: 'duplicar'
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('✅ RUTA DUPLICADA:', result);
+        this.recargarRutas();
+        this.snackBar.open('Ruta duplicada exitosamente', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   eliminarRuta(ruta: Ruta): void {
@@ -2173,5 +2608,216 @@ export class RutasComponent implements OnInit {
       console.error('❌ Error en exportarResultados:', error);
       this.snackBar.open('Error de conexión al exportar', 'Cerrar', { duration: 3000 });
     }
+  }
+
+  // ========================================
+  // MÉTODOS PARA SELECCIÓN MÚLTIPLE
+  // ========================================
+
+  toggleRutaSeleccion(rutaId: string): void {
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    if (seleccionadas.has(rutaId)) {
+      seleccionadas.delete(rutaId);
+    } else {
+      seleccionadas.add(rutaId);
+    }
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  isRutaSeleccionada(rutaId: string): boolean {
+    return this.rutasSeleccionadasIds().has(rutaId);
+  }
+
+  seleccionarTodasLasRutas(): boolean {
+    const rutasVisibles = this.rutas();
+    return rutasVisibles.length > 0 && 
+           rutasVisibles.every(ruta => this.rutasSeleccionadasIds().has(ruta.id));
+  }
+
+  toggleSeleccionarTodasLasRutas(): void {
+    const rutasVisibles = this.rutas();
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    
+    if (this.seleccionarTodasLasRutas()) {
+      // Deseleccionar todas las visibles
+      rutasVisibles.forEach(ruta => seleccionadas.delete(ruta.id));
+    } else {
+      // Seleccionar todas las visibles
+      rutasVisibles.forEach(ruta => seleccionadas.add(ruta.id));
+    }
+    
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  getRutasSeleccionadasCount(): number {
+    return this.rutasSeleccionadasIds().size;
+  }
+
+  limpiarSeleccionRutas(): void {
+    this.rutasSeleccionadasIds.set(new Set());
+  }
+
+  toggleSeleccionGrupo(rutas: Ruta[]): void {
+    const seleccionadas = new Set(this.rutasSeleccionadasIds());
+    const todasSeleccionadas = rutas.every(ruta => seleccionadas.has(ruta.id));
+    
+    if (todasSeleccionadas) {
+      // Deseleccionar todas las rutas del grupo
+      rutas.forEach(ruta => seleccionadas.delete(ruta.id));
+    } else {
+      // Seleccionar todas las rutas del grupo
+      rutas.forEach(ruta => seleccionadas.add(ruta.id));
+    }
+    
+    this.rutasSeleccionadasIds.set(seleccionadas);
+  }
+
+  // ========================================
+  // MÉTODOS PARA ACCIONES EN BLOQUE
+  // ========================================
+
+  eliminarRutasEnBloque(): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmarEliminacionBloqueModalComponent, {
+      width: '500px',
+      data: {
+        tipo: 'rutas',
+        cantidad: rutasSeleccionadas.length,
+        elementos: rutasSeleccionadas.map(r => `${r.codigoRuta} - ${r.origen} → ${r.destino}`)
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.ejecutarEliminacionEnBloque(rutasSeleccionadas);
+      }
+    });
+  }
+
+  private ejecutarEliminacionEnBloque(rutas: Ruta[]): void {
+    const eliminaciones = rutas.map(ruta => 
+      this.rutaService.deleteRuta(ruta.id)
+    );
+
+    forkJoin(eliminaciones).subscribe({
+      next: () => {
+        this.snackBar.open(`${rutas.length} ruta(s) eliminada(s) exitosamente`, 'Cerrar', { duration: 3000 });
+        this.limpiarSeleccionRutas();
+        this.recargarRutas();
+      },
+      error: (error) => {
+        console.error('Error al eliminar rutas en bloque:', error);
+        this.snackBar.open('Error al eliminar algunas rutas', 'Cerrar', { duration: 3000 });
+        this.recargarRutas();
+      }
+    });
+  }
+
+  cambiarEstadoRutasEnBloque(): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(CambiarEstadoRutasBloqueModalComponent, {
+      width: '600px',
+      data: {
+        rutas: rutasSeleccionadas
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.limpiarSeleccionRutas();
+        this.recargarRutas();
+      }
+    });
+  }
+
+  // ========================================
+  // MÉTODOS PARA CONFIGURACIÓN DE COLUMNAS
+  // ========================================
+
+  toggleColumn(columnKey: string): void {
+    const columns = this.availableColumns();
+    const updatedColumns = columns.map(col => 
+      col.key === columnKey ? { ...col, visible: !col.visible } : col
+    );
+    this.availableColumns.set(updatedColumns);
+  }
+
+  getVisibleColumnsCount(): number {
+    return this.availableColumns().filter(col => col.visible).length;
+  }
+
+  resetearColumnas(): void {
+    const columns = this.availableColumns().map(col => ({
+      ...col,
+      visible: true
+    }));
+    this.availableColumns.set(columns);
+    this.snackBar.open('Configuración de columnas restablecida', 'Cerrar', { duration: 2000 });
+  }
+
+  // ========================================
+  // MÉTODOS AUXILIARES
+  // ========================================
+
+  exportarRutasSeleccionadas(formato: 'excel' | 'csv' | 'pdf'): void {
+    const rutasSeleccionadas = Array.from(this.rutasSeleccionadasIds())
+      .map(id => this.rutas().find(r => r.id === id))
+      .filter(ruta => ruta !== undefined) as Ruta[];
+
+    if (rutasSeleccionadas.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Implementar exportación según el formato
+    console.log(`Exportando ${rutasSeleccionadas.length} rutas en formato ${formato}`);
+    this.snackBar.open(`Exportando ${rutasSeleccionadas.length} ruta(s) en formato ${formato.toUpperCase()}`, 'Cerrar', { duration: 3000 });
+  }
+
+  // ========================================
+  // MÉTODOS DEL PAGINADOR
+  // ========================================
+
+  onPageChange(event: PageEvent): void {
+    console.log('📄 CAMBIO DE PÁGINA:', event);
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    
+    // Resetear a la primera página si se cambia el tamaño de página
+    if (event.pageSize !== this.pageSize()) {
+      this.pageIndex.set(0);
+    }
+  }
+
+  resetearPaginador(): void {
+    this.pageIndex.set(0);
+    this.pageSize.set(10);
+  }
+
+  // Método para aplicar filtros y resetear paginador
+  private aplicarFiltroConPaginador(rutas: Ruta[], descripcion: string, tipo: any): void {
+    this.rutas.set(rutas);
+    this.resetearPaginador();
+    
+    this.filtroActivo.set({
+      tipo: tipo,
+      descripcion: descripcion
+    });
   }
 }

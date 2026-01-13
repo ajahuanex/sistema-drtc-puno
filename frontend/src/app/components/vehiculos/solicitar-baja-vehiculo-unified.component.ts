@@ -15,19 +15,19 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { Vehiculo } from '../../models/vehiculo.model';
-import { Empresa } from '../../models/empresa.model';
+import { Vehiculo } from '../../models/(vehiculo as any).model';
+import { Empresa } from '../../models/(empresa as any).model';
 import { 
   SolicitudBajaCreate, 
   MotivoBaja
-} from '../../models/solicitud-baja.model';
-import { SolicitudBajaService } from '../../services/solicitud-baja.service';
-import { EmpresaService } from '../../services/empresa.service';
-import { VehiculoNotificationService } from '../../services/vehiculo-notification.service';
-import { AuthService } from '../../services/auth.service';
-import { ArchivoUploadComponent } from '../../shared/archivo-upload.component';
-import { ArchivoSustentatorio } from '../../models/historial-transferencia-empresa.model';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
+} from '../../models/solicitud-(baja as any).model';
+import { SolicitudBajaService } from '../../services/solicitud-(baja as any).service';
+import { EmpresaService } from '../../services/(empresa as any).service';
+import { VehiculoNotificationService } from '../../services/vehiculo-(notification as any).service';
+import { AuthService } from '../../services/(auth as any).service';
+import { ArchivoUploadComponent } from '../../shared/archivo-(upload as any).component';
+import { ArchivoSustentatorio } from '../../models/historial-transferencia-(empresa as any).model';
+import { SmartIconComponent } from '../../shared/smart-(icon as any).component';
 
 export interface SolicitarBajaVehiculoData {
   vehiculo: Vehiculo;
@@ -66,14 +66,14 @@ export interface SolicitarBajaResult {
     SmartIconComponent
   ],
   template: `
-    <div class="solicitar-baja-modal" [class.modo-simple]="modoSimple()">
+    <div class="solicitar-baja-modal" [(class as any).modo-simple]="modoSimple()">
       <!-- Header -->
       <div class="modal-header">
         <div class="header-content">
           <app-smart-icon [iconName]="'remove_circle'" [size]="28" class="header-icon"></app-smart-icon>
           <div>
             <h2>Solicitar Baja de Vehículo</h2>
-            <p class="header-subtitle">{{ data.vehiculo.placa }} - {{ data.vehiculo.marca }} {{ data.vehiculo.modelo }}</p>
+            <p class="header-subtitle">{{ (data as any).vehiculo.placa }} - {{ (data as any).vehiculo.marca }} {{ (data as any).vehiculo.modelo }}</p>
           </div>
         </div>
         <button mat-icon-button (click)="cancelar()" class="close-button">
@@ -91,16 +91,16 @@ export interface SolicitarBajaResult {
           <div class="vehiculo-info-grid">
             <div class="info-item">
               <span class="info-label">Placa:</span>
-              <span class="info-value">{{ data.vehiculo.placa }}</span>
+              <span class="info-value">{{ (data as any).vehiculo.placa }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Marca/Modelo:</span>
-              <span class="info-value">{{ data.vehiculo.marca }} {{ data.vehiculo.modelo }}</span>
+              <span class="info-value">{{ (data as any).vehiculo.marca }} {{ (data as any).vehiculo.modelo }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Estado:</span>
-              <span class="info-value estado" [class]="'estado-' + data.vehiculo.estado?.toLowerCase()">
-                {{ data.vehiculo.estado }}
+              <span class="info-value estado" [class]="'estado-' + (data as any).vehiculo.estado?.toLowerCase()">
+                {{ (data as any).vehiculo.estado }}
               </span>
             </div>
             @if (empresaVehiculo()) {
@@ -118,13 +118,13 @@ export interface SolicitarBajaResult {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Tipo de Baja</mat-label>
             <mat-select formControlName="tipo" required>
-              @for (tipo of tiposBaja; track tipo.value) {
-                <mat-option [value]="tipo.value">
+              @for (tipo of tiposBaja; track (tipo as any).value) {
+                <mat-option [value]="(tipo as any).value">
                   <div class="tipo-option">
-                    <app-smart-icon [iconName]="tipo.icon" [size]="20"></app-smart-icon>
+                    <app-smart-icon [iconName]="(tipo as any).icon" [size]="20"></app-smart-icon>
                     <div>
-                      <div class="tipo-label">{{ tipo.label }}</div>
-                      <div class="tipo-description">{{ tipo.description }}</div>
+                      <div class="tipo-label">{{ (tipo as any).label }}</div>
+                      <div class="tipo-description">{{ (tipo as any).description }}</div>
                     </div>
                   </div>
                 </mat-option>
@@ -137,12 +137,12 @@ export interface SolicitarBajaResult {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Motivo de la Baja *</mat-label>
             <mat-select formControlName="motivo" required>
-              @for (motivo of motivosBaja(); track motivo.value) {
-                <mat-option [value]="motivo.value">{{ motivo.label }}</mat-option>
+              @for (motivo of motivosBaja(); track (motivo as any).value) {
+                <mat-option [value]="(motivo as any).value">{{ (motivo as any).label }}</mat-option>
               }
             </mat-select>
             <mat-hint>Selecciona el motivo principal de la baja</mat-hint>
-            @if (bajaForm.get('motivo')?.hasError('required')) {
+            @if ((bajaForm as any).get('motivo')?.hasError('required')) {
               <mat-error>El motivo es obligatorio</mat-error>
             }
           </mat-form-field>
@@ -157,10 +157,10 @@ export interface SolicitarBajaResult {
                       required></textarea>
             <app-smart-icon [iconName]="'description'" [size]="20" matSuffix></app-smart-icon>
             <mat-hint>Mínimo 20 caracteres. Incluye todos los detalles relevantes.</mat-hint>
-            @if (bajaForm.get('descripcion')?.hasError('required')) {
+            @if ((bajaForm as any).get('descripcion')?.hasError('required')) {
               <mat-error>La descripción es obligatoria</mat-error>
             }
-            @if (bajaForm.get('descripcion')?.hasError('minlength')) {
+            @if ((bajaForm as any).get('descripcion')?.hasError('minlength')) {
               <mat-error>La descripción debe tener al menos 20 caracteres</mat-error>
             }
           </mat-form-field>
@@ -205,10 +205,10 @@ export interface SolicitarBajaResult {
                 @if (archivosSoporte().length > 0) {
                   <div class="archivos-lista">
                     <h4>Archivos Adjuntos:</h4>
-                    @for (archivo of archivosSoporte(); track archivo.nombre) {
+                    @for (archivo of archivosSoporte(); track (archivo as any).nombre) {
                       <div class="archivo-item">
                         <app-smart-icon [iconName]="'description'" [size]="16"></app-smart-icon>
-                        <span class="archivo-nombre">{{ archivo.nombre }}</span>
+                        <span class="archivo-nombre">{{ (archivo as any).nombre }}</span>
                         <button mat-icon-button 
                                 (click)="removerArchivo(archivo)"
                                 class="remove-button">
@@ -234,7 +234,7 @@ export interface SolicitarBajaResult {
               <li>La solicitud de baja será revisada por el área correspondiente.</li>
               <li>El vehículo permanecerá activo hasta que se apruebe la baja.</li>
               <li>Una vez aprobada, la baja será irreversible.</li>
-              @if (data.vehiculo.rutasAsignadasIds.length || data.vehiculo.rutasEspecificas?.length) {
+              @if ((data as any).vehiculo.(rutasAsignadasIds as any).length || (data as any).vehiculo.rutasEspecificas?.length) {
                 <li class="advertencia-critica">
                   <strong>Atención:</strong> Este vehículo tiene rutas asignadas que serán afectadas.
                 </li>
@@ -272,7 +272,7 @@ export interface SolicitarBajaResult {
       max-width: 95vw;
     }
 
-    .solicitar-baja-modal.modo-simple {
+    .solicitar-baja-(modal as any).modo-simple {
       width: 500px;
     }
 
@@ -360,7 +360,7 @@ export interface SolicitarBajaResult {
       color: #333;
     }
 
-    .info-value.estado {
+    .info-(value as any).estado {
       padding: 4px 8px;
       border-radius: 12px;
       font-size: 12px;
@@ -523,7 +523,7 @@ export class SolicitarBajaVehiculoUnifiedComponent {
   archivosSoporte = signal<any[]>([]);
 
   // Modo de interfaz
-  modoSimple = computed(() => this.data.modo === 'simple');
+  modoSimple = computed(() => (this as any).data.modo === 'simple');
 
   // Tipos de baja disponibles
   tiposBaja = [
@@ -549,7 +549,7 @@ export class SolicitarBajaVehiculoUnifiedComponent {
 
   // Motivos de baja (dinámicos según el tipo)
   motivosBaja = computed(() => {
-    const tipo = this.bajaForm.get('tipo')?.value;
+    const tipo = (this as any).bajaForm.get('tipo')?.value;
     const motivos = {
       'DEFINITIVA': [
         { value: 'SINIESTRO_TOTAL', label: 'Siniestro Total' },
@@ -573,114 +573,111 @@ export class SolicitarBajaVehiculoUnifiedComponent {
   });
 
   // Formulario reactivo
-  bajaForm = this.fb.group({
-    tipo: ['DEFINITIVA', Validators.required],
-    motivo: ['', Validators.required],
-    descripcion: ['', [Validators.required, Validators.minLength(20)]],
-    fechaSolicitud: [new Date(), Validators.required]
+  bajaForm = (this as any).fb.group({
+    tipo: ['DEFINITIVA', (Validators as any).required],
+    motivo: ['', (Validators as any).required],
+    descripcion: ['', [(Validators as any).required, (Validators as any).minLength(20)]],
+    fechaSolicitud: [new Date(), (Validators as any).required]
   });
 
   // Computed para mostrar advertencias
   mostrarAdvertencias = computed(() => {
-    return !this.modoSimple() || 
-           (this.data.vehiculo.rutasAsignadasIds && this.data.vehiculo.rutasAsignadasIds.length > 0) || 
-           (this.data.vehiculo.rutasEspecificas && this.data.vehiculo.rutasEspecificas.length > 0);
+    return !(this as any).modoSimple() || 
+           ((this as any).data.(vehiculo as any).rutasAsignadasIds && (this as any).data.(vehiculo as any).rutasAsignadasIds.length > 0) || 
+           ((this as any).data.(vehiculo as any).rutasEspecificas && (this as any).data.(vehiculo as any).rutasEspecificas.length > 0);
   });
 
   // Computed para validar si puede confirmar
   puedeConfirmar = computed(() => {
-    return this.bajaForm.valid;
+    return (this as any).bajaForm.valid;
   });
 
   constructor() {
     // Cargar información de la empresa del vehículo
-    this.cargarEmpresaVehiculo();
+    (this as any).cargarEmpresaVehiculo();
 
     // Resetear motivo cuando cambia el tipo
-    this.bajaForm.get('tipo')?.valueChanges.subscribe(() => {
-      this.bajaForm.patchValue({ motivo: '' });
+    (this as any).bajaForm.get('tipo')?.(valueChanges as any).subscribe(() => {
+      (this as any).bajaForm.patchValue({ motivo: '' });
     });
   }
 
   private async cargarEmpresaVehiculo(): Promise<void> {
     // Simplificado - usar datos básicos del vehículo
     // En una implementación real, cargarías la empresa desde el servicio
-    console.log('Cargando empresa del vehículo:', this.data.vehiculo.id);
-  }
+    }
 
   onArchivosSeleccionados(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files) {
-      const archivos = Array.from(input.files);
-      const nuevosArchivos = archivos.map(archivo => ({
-        id: Math.random().toString(36),
-        nombre: archivo.name,
-        tipo: archivo.type,
-        tamano: archivo.size,
-        url: URL.createObjectURL(archivo)
+    const input = (event as any).target as HTMLInputElement;
+    if ((input as any).files) {
+      const archivos = (Array as any).from((input as any).files);
+      const nuevosArchivos = (archivos as any).map(archivo => ({
+        id: (Math as any).random().toString(36),
+        nombre: (archivo as any).name,
+        tipo: (archivo as any).type,
+        tamano: (archivo as any).size,
+        url: (URL as any).createObjectURL(archivo)
       }));
-      this.archivosSoporte.set([...this.archivosSoporte(), ...nuevosArchivos]);
+      (this as any).archivosSoporte.set([...(this as any).archivosSoporte(), ...nuevosArchivos]);
     }
   }
 
-  removerArchivo(archivo: any): void {
-    const archivos = this.archivosSoporte().filter(a => a.nombre !== archivo.nombre);
-    this.archivosSoporte.set(archivos);
+  removerArchivo(archivo: unknown): void {
+    const archivos = (this as any).archivosSoporte().filter(a => (a as any).nombre !== (archivo as any).nombre);
+    (this as any).archivosSoporte.set(archivos);
   }
 
   cancelar(): void {
-    this.dialogRef.close();
+    (this as any).dialogRef.close();
   }
 
   async confirmarSolicitud(): Promise<void> {
-    if (!this.puedeConfirmar()) return;
+    if (!(this as any).puedeConfirmar()) return;
 
-    this.procesando.set(true);
+    (this as any).procesando.set(true);
 
     try {
-      const formValue = this.bajaForm.value;
-      const usuario = await this.authService.getCurrentUser();
+      const formValue = (this as any).bajaForm.value;
+      const usuario = await (this as any).authService.getCurrentUser();
 
       const solicitudData: SolicitudBajaCreate = {
-        vehiculoId: this.data.vehiculo.id,
-        motivo: formValue.motivo! as MotivoBaja,
-        descripcion: formValue.descripcion!,
-        fechaSolicitud: formValue.fechaSolicitud!.toISOString(),
+        vehiculoId: (this as any).data.(vehiculo as any).id,
+        motivo: (formValue as any).motivo! as MotivoBaja,
+        descripcion: (formValue as any).descripcion!,
+        fechaSolicitud: (formValue as any).fechaSolicitud!.toISOString(),
         documentosSoporte: [] // Simplificado por ahora
       };
 
       // Crear la solicitud de baja
-      const solicitud = await this.bajaService.crearSolicitudBaja(solicitudData).toPromise();
+      const solicitud = await (this as any).bajaService.crearSolicitudBaja(solicitudData).toPromise();
 
       // Enviar notificación (simplificado)
-      console.log('Notificación de solicitud de baja enviada');
-
       // Preparar resultado
       const resultado: SolicitarBajaResult = {
         solicitudId: solicitud?.id,
-        vehiculoId: this.data.vehiculo.id,
-        motivo: formValue.motivo!,
-        descripcion: formValue.descripcion || undefined,
-        fechaSolicitud: formValue.fechaSolicitud!,
-        documentosSoporte: this.archivosSoporte().map(a => a.nombre),
-        tipo: formValue.tipo!
+        vehiculoId: (this as any).data.(vehiculo as any).id,
+        motivo: (formValue as any).motivo!,
+        descripcion: (formValue as any).descripcion || undefined,
+        fechaSolicitud: (formValue as any).fechaSolicitud!,
+        documentosSoporte: (this as any).archivosSoporte().map(a => (a as any).nombre),
+        tipo: (formValue as any).tipo!
       };
 
-      this.snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', {
+      (this as any).snackBar.open('Solicitud de baja enviada exitosamente', 'Cerrar', {
         duration: 3000,
         panelClass: ['success-snackbar']
       });
 
-      this.dialogRef.close(resultado);
+      (this as any).dialogRef.close(resultado);
 
     } catch (error) {
-      console.error('Error creando solicitud de baja:', error);
-      this.snackBar.open('Error al enviar la solicitud de baja', 'Cerrar', {
+      (console as any).error('Error creando solicitud de baja:', error);
+      (this as any).snackBar.open('Error al enviar la solicitud de baja', 'Cerrar', {
         duration: 5000,
         panelClass: ['error-snackbar']
       });
     } finally {
-      this.procesando.set(false);
+      (this as any).procesando.set(false);
     }
   }
 }

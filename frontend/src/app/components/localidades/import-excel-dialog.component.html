@@ -1,0 +1,170 @@
+<div class="import-dialog">
+  <div mat-dialog-title class="dialog-header">
+    <h2>Importar Localidades desde Excel</h2>
+    <button mat-icon-button mat-dialog-close>
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div mat-dialog-content class="dialog-content">
+    
+    <!-- Instrucciones -->
+    <mat-card class="instructions-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>info</mat-icon>
+          Instrucciones
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <ol class="instructions-list">
+          <li>Descargue la plantilla de ejemplo haciendo clic en "Descargar Plantilla"</li>
+          <li>Complete los datos de las localidades en el archivo Excel</li>
+          <li>Los campos obligatorios son: departamento, provincia, distrito, municipalidad_centro_poblado, nivel_territorial</li>
+          <li>El UBIGEO es opcional pero recomendado para localidades oficiales</li>
+          <li>Seleccione el archivo completado y haga clic en "Importar"</li>
+        </ol>
+
+        <div class="download-template">
+          <button mat-stroked-button color="primary" (click)="descargarPlantilla()">
+            <mat-icon>download</mat-icon>
+            Descargar Plantilla
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Área de carga de archivo -->
+    <mat-card class="upload-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>cloud_upload</mat-icon>
+          Seleccionar Archivo
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        
+        <!-- Zona de arrastrar y soltar -->
+        <div class="drop-zone" 
+             [class.drag-over]="dragOver"
+             [class.has-file]="selectedFile"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)">
+          
+          <div class="drop-content" *ngIf="!selectedFile">
+            <mat-icon class="upload-icon">cloud_upload</mat-icon>
+            <h3>Arrastra tu archivo aquí</h3>
+            <p>o haz clic para seleccionar</p>
+            
+            <input type="file" 
+                   #fileInput
+                   accept=".xlsx,.xls"
+                   (change)="onFileSelected($event)"
+                   style="display: none;">
+            
+            <button mat-raised-button 
+                    color="primary" 
+                    (click)="fileInput.click()">
+              Seleccionar Archivo
+            </button>
+          </div>
+
+          <!-- Archivo seleccionado -->
+          <div class="selected-file" *ngIf="selectedFile">
+            <div class="file-info">
+              <mat-icon class="file-icon">description</mat-icon>
+              <div class="file-details">
+                <h4>{{ selectedFile.name }}</h4>
+                <p>{{ formatFileSize(selectedFile.size) }}</p>
+              </div>
+            </div>
+            
+            <button mat-icon-button 
+                    color="warn" 
+                    (click)="removeFile()"
+                    matTooltip="Quitar archivo">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="file-requirements">
+          <h4>Requisitos del archivo:</h4>
+          <ul>
+            <li>Formato: Excel (.xlsx o .xls)</li>
+            <li>Tamaño máximo: 10 MB</li>
+            <li>Debe contener las columnas obligatorias</li>
+            <li>Los datos deben estar en la primera hoja</li>
+          </ul>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Campos obligatorios -->
+    <mat-card class="fields-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>assignment</mat-icon>
+          Campos del Archivo
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="fields-grid">
+          
+          <div class="field-group">
+            <h4>Campos Obligatorios</h4>
+            <div class="field-list">
+              <mat-chip-set>
+                <mat-chip>departamento</mat-chip>
+                <mat-chip>provincia</mat-chip>
+                <mat-chip>distrito</mat-chip>
+                <mat-chip>municipalidad_centro_poblado</mat-chip>
+                <mat-chip>nivel_territorial</mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h4>Campos Opcionales</h4>
+            <div class="field-list">
+              <mat-chip-set>
+                <mat-chip>ubigeo</mat-chip>
+                <mat-chip>ubigeo_identificador_mcp</mat-chip>
+                <mat-chip>dispositivo_legal_creacion</mat-chip>
+                <mat-chip>nombre</mat-chip>
+                <mat-chip>codigo</mat-chip>
+                <mat-chip>tipo</mat-chip>
+                <mat-chip>descripcion</mat-chip>
+                <mat-chip>observaciones</mat-chip>
+                <mat-chip>latitud</mat-chip>
+                <mat-chip>longitud</mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <div mat-dialog-actions class="dialog-actions">
+    <button mat-button (click)="onCancel()" [disabled]="loading">
+      Cancelar
+    </button>
+    
+    <button mat-raised-button 
+            color="primary" 
+            (click)="importar()"
+            [disabled]="!selectedFile || loading">
+      <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+      <mat-icon *ngIf="!loading">upload</mat-icon>
+      <span *ngIf="!loading">Importar</span>
+      <span *ngIf="loading">Importando...</span>
+    </button>
+  </div>
+</div>

@@ -198,6 +198,34 @@ export class DocumentoService {
   }
 
   /**
+   * Obtener remitentes históricos para autocompletado
+   * Requirements: 1.1
+   */
+  obtenerRemitentesHistoricos(): Observable<string[]> {
+    const cacheKey = 'remitentes_historicos';
+    // Caché de 10 minutos para remitentes históricos
+    return this.cache.get(
+      cacheKey,
+      () => this.http.get<string[]>(`${this.apiUrl}/remitentes-historicos`),
+      10 * 60 * 1000
+    );
+  }
+
+  /**
+   * Obtener expedientes históricos para autocompletado
+   * Requirements: 1.4
+   */
+  obtenerExpedientesHistoricos(): Observable<string[]> {
+    const cacheKey = 'expedientes_historicos';
+    // Caché de 10 minutos para expedientes históricos
+    return this.cache.get(
+      cacheKey,
+      () => this.http.get<string[]>(`${this.apiUrl}/expedientes-historicos`),
+      10 * 60 * 1000
+    );
+  }
+
+  /**
    * Eliminar un documento (soft delete)
    * Requirements: 1.4
    */

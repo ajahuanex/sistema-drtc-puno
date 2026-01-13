@@ -84,7 +84,11 @@ class ResolucionExcelService:
     async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Validar archivo Excel de resoluciones"""
         try:
-            df = pd.read_excel(archivo_excel)
+            # Leer Excel manteniendo las fechas como texto para evitar conversión automática
+            df = pd.read_excel(archivo_excel, dtype=str, keep_default_na=False)
+            
+            # Reemplazar valores NaN y vacíos con cadenas vacías
+            df = df.fillna('')
             
             resultados = {
                 'total_filas': len(df),
@@ -157,7 +161,7 @@ class ResolucionExcelService:
         advertencias = []
         
         # Validar resolución padre (opcional)
-        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if pd.notna(row.get('Resolución Padre')) else ''
+        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if row.get('Resolución Padre') and str(row.get('Resolución Padre')).strip() else ''
         if resolucion_padre:
             # Normalizar formato de resolución padre
             resolucion_padre_normalizada = self._normalizar_numero_resolucion(resolucion_padre)
@@ -169,7 +173,7 @@ class ResolucionExcelService:
                     errores.append(f"La resolución padre {resolucion_padre_normalizada} no existe")
         
         # Validar número de resolución (requerido)
-        numero_resolucion = str(row.get('Número Resolución', '')).strip() if pd.notna(row.get('Número Resolución')) else ''
+        numero_resolucion = str(row.get('Número Resolución', '')).strip() if row.get('Número Resolución') and str(row.get('Número Resolución')).strip() else ''
         if not numero_resolucion:
             errores.append("Número de resolución es requerido")
         else:
@@ -183,7 +187,7 @@ class ResolucionExcelService:
                     advertencias.append(f"La resolución {numero_normalizado} ya existe y será actualizada")
         
         # Validar tipo de resolución y lógica de resolución padre
-        tipo_resolucion = str(row.get('Tipo Resolución', '')).strip().upper() if pd.notna(row.get('Tipo Resolución')) else ''
+        tipo_resolucion = str(row.get('Tipo Resolución', '')).strip().upper() if row.get('Tipo Resolución') and str(row.get('Tipo Resolución')).strip() else ''
         if tipo_resolucion:
             if tipo_resolucion not in [e.value for e in TipoResolucion]:
                 errores.append(f"Tipo de resolución inválido: {tipo_resolucion}. Valores válidos: {', '.join([e.value for e in TipoResolucion])}")
@@ -195,20 +199,20 @@ class ResolucionExcelService:
                     advertencias.append("Las resoluciones PADRE no deberían tener resolución padre")
         
         # Validar fechas de vigencia según tipo de resolución
-        fecha_vigencia_inicio = str(row.get('Fecha Vigencia Inicio', '')).strip() if pd.notna(row.get('Fecha Vigencia Inicio')) else ''
-        fecha_vigencia_fin = str(row.get('Fecha Vigencia Fin', '')).strip() if pd.notna(row.get('Fecha Vigencia Fin')) else ''
+        fecha_vigencia_inicio = str(row.get('Fecha Vigencia Inicio', '')).strip() if row.get('Fecha Vigencia Inicio') and str(row.get('Fecha Vigencia Inicio')).strip() else ''
+        fecha_vigencia_fin = str(row.get('Fecha Vigencia Fin', '')).strip() if row.get('Fecha Vigencia Fin') and str(row.get('Fecha Vigencia Fin')).strip() else ''
         
         if tipo_resolucion == 'PADRE':
             # Las resoluciones padre deben tener fechas de vigencia
             if not fecha_vigencia_inicio:
                 errores.append("Las resoluciones PADRE deben tener fecha de vigencia inicio")
             elif not self._validar_formato_fecha_espanol(fecha_vigencia_inicio):
-                errores.append(f"Formato de fecha de vigencia inicio inválido: {fecha_vigencia_inicio} (debe ser dd/mm/yyyy)")
+                errores.append(f"Formato de fecha de vigencia inicio inválido: {fecha_vigencia_inicio} (formatos aceptados: dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy)")
                 
             if not fecha_vigencia_fin:
                 errores.append("Las resoluciones PADRE deben tener fecha de vigencia fin")
             elif not self._validar_formato_fecha_espanol(fecha_vigencia_fin):
-                errores.append(f"Formato de fecha de vigencia fin inválido: {fecha_vigencia_fin} (debe ser dd/mm/yyyy)")
+                errores.append(f"Formato de fecha de vigencia fin inválido: {fecha_vigencia_fin} (formatos aceptados: dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy)")
         elif tipo_resolucion == 'HIJO':
             # Las resoluciones hijo no deben tener fechas de vigencia
             if fecha_vigencia_inicio:
@@ -217,7 +221,7 @@ class ResolucionExcelService:
                 advertencias.append("Las resoluciones HIJO no necesitan fecha de vigencia fin (se hereda del padre)")
         
         # Validar RUC empresa (requerido)
-        ruc_empresa = str(row.get('RUC Empresa', '')).strip() if pd.notna(row.get('RUC Empresa')) else ''
+        ruc_empresa = str(row.get('RUC Empresa', '')).strip() if row.get('RUC Empresa') and str(row.get('RUC Empresa')).strip() else ''
         if not ruc_empresa:
             errores.append("RUC de empresa es requerido")
         elif not self._validar_formato_ruc(ruc_empresa):
@@ -228,31 +232,31 @@ class ResolucionExcelService:
                 errores.append(f"No se encontró empresa con RUC: {ruc_empresa}")
         
         # Validar fecha de emisión (requerida para todas las resoluciones)
-        fecha_emision = str(row.get('Fecha Emisión', '')).strip() if pd.notna(row.get('Fecha Emisión')) else ''
+        fecha_emision = str(row.get('Fecha Emisión', '')).strip() if row.get('Fecha Emisión') and str(row.get('Fecha Emisión')).strip() else ''
         if not fecha_emision:
             errores.append("Fecha de emisión es requerida")
         elif not self._validar_formato_fecha_espanol(fecha_emision):
-            errores.append(f"Formato de fecha de emisión inválido: {fecha_emision} (debe ser dd/mm/yyyy)")
+            errores.append(f"Formato de fecha de emisión inválido: {fecha_emision} (formatos aceptados: dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy)")
         
         # Validar tipo de trámite
-        tipo_tramite = str(row.get('Tipo Trámite', '')).strip().upper() if pd.notna(row.get('Tipo Trámite')) else ''
+        tipo_tramite = str(row.get('Tipo Trámite', '')).strip().upper() if row.get('Tipo Trámite') and str(row.get('Tipo Trámite')).strip() else ''
         if tipo_tramite and tipo_tramite not in [e.value for e in TipoTramite]:
             errores.append(f"Tipo de trámite inválido: {tipo_tramite}. Valores válidos: {', '.join([e.value for e in TipoTramite])}")
         
         # Validar estado
-        estado = str(row.get('Estado', '')).strip().upper() if pd.notna(row.get('Estado')) else 'VIGENTE'
+        estado = str(row.get('Estado', '')).strip().upper() if row.get('Estado') and str(row.get('Estado')).strip() else 'VIGENTE'
         if estado and estado not in [e.value for e in EstadoResolucion]:
             errores.append(f"Estado inválido: {estado}. Valores válidos: {', '.join([e.value for e in EstadoResolucion])}")
         
         # Validar descripción (requerida)
-        descripcion = str(row.get('Descripción', '')).strip() if pd.notna(row.get('Descripción')) else ''
+        descripcion = str(row.get('Descripción', '')).strip() if row.get('Descripción') and str(row.get('Descripción')).strip() else ''
         if not descripcion:
             errores.append("Descripción es requerida")
         elif len(descripcion) < 10:
             errores.append("Descripción debe tener al menos 10 caracteres")
         
         # Validar ID expediente (OPCIONAL)
-        expediente_id = str(row.get('ID Expediente', '')).strip() if pd.notna(row.get('ID Expediente')) else ''
+        expediente_id = str(row.get('ID Expediente', '')).strip() if row.get('ID Expediente') and str(row.get('ID Expediente')).strip() else ''
         if expediente_id:
             # Normalizar formato de expediente
             expediente_normalizado = self._normalizar_numero_expediente(expediente_id)
@@ -302,21 +306,55 @@ class ResolucionExcelService:
         patron = r'^E-\d{4}-\d{4}$'
         return bool(re.match(patron, expediente.upper()))
     
+    def _validar_y_normalizar_fecha(self, fecha: str) -> Tuple[bool, str]:
+        """
+        Validar y normalizar fecha desde múltiples formatos a formato ISO yyyy-mm-dd
+        Formatos soportados:
+        - dd/mm/yyyy (español)
+        - yyyy-mm-dd (ISO)
+        - dd-mm-yyyy
+        - mm/dd/yyyy (americano)
+        - Con timestamps: yyyy-mm-dd hh:mm:ss
+        """
+        if not fecha or not fecha.strip():
+            return False, ""
+            
+        fecha = fecha.strip()
+        
+        # Si tiene timestamp, extraer solo la fecha
+        if ' ' in fecha:
+            fecha = fecha.split(' ')[0]
+        
+        # Lista de formatos a probar en orden de prioridad
+        formatos = [
+            '%d/%m/%Y',    # dd/mm/yyyy (español - preferido)
+            '%Y-%m-%d',    # yyyy-mm-dd (ISO)
+            '%d-%m-%Y',    # dd-mm-yyyy
+            '%m/%d/%Y',    # mm/dd/yyyy (americano)
+            '%Y/%m/%d',    # yyyy/mm/dd
+            '%d.%m.%Y',    # dd.mm.yyyy
+        ]
+        
+        for formato in formatos:
+            try:
+                fecha_obj = datetime.strptime(fecha, formato)
+                # Validar que la fecha sea razonable (entre 1900 y 2100)
+                if 1900 <= fecha_obj.year <= 2100:
+                    return True, fecha_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+        
+        return False, fecha
+    
     def _validar_formato_fecha_espanol(self, fecha: str) -> bool:
-        """Validar formato de fecha español dd/mm/yyyy"""
-        try:
-            datetime.strptime(fecha, '%d/%m/%Y')
-            return True
-        except ValueError:
-            return False
+        """Validar formato de fecha (múltiples formatos soportados)"""
+        valida, _ = self._validar_y_normalizar_fecha(fecha)
+        return valida
     
     def _convertir_fecha_espanol_a_iso(self, fecha_espanol: str) -> str:
-        """Convertir fecha de formato español dd/mm/yyyy a ISO yyyy-mm-dd"""
-        try:
-            fecha_obj = datetime.strptime(fecha_espanol, '%d/%m/%Y')
-            return fecha_obj.strftime('%Y-%m-%d')
-        except ValueError:
-            return fecha_espanol  # Retornar original si no se puede convertir
+        """Convertir fecha de múltiples formatos a ISO yyyy-mm-dd"""
+        valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_espanol)
+        return fecha_normalizada if valida else fecha_espanol
     
     def _validar_formato_ruc(self, ruc: str) -> bool:
         """Validar formato de RUC: 11 dígitos"""
@@ -370,7 +408,7 @@ class ResolucionExcelService:
         """Convertir fila de Excel a datos de resolución"""
         
         # Resolución padre (opcional)
-        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if pd.notna(row.get('Resolución Padre')) else None
+        resolucion_padre = str(row.get('Resolución Padre', '')).strip() if row.get('Resolución Padre') and str(row.get('Resolución Padre')).strip() else None
         if resolucion_padre:
             resolucion_padre = self._normalizar_numero_resolucion(resolucion_padre)
         
@@ -382,7 +420,8 @@ class ResolucionExcelService:
         # Fechas - convertir de formato español a ISO
         fecha_emision = str(row.get('Fecha Emisión', '')).strip()
         if fecha_emision:
-            fecha_emision = self._convertir_fecha_espanol_a_iso(fecha_emision)
+            valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_emision)
+            fecha_emision = fecha_normalizada if valida else fecha_emision
         
         # Fechas de vigencia (solo para resoluciones padre)
         tipo_resolucion = str(row.get('Tipo Resolución', 'PADRE')).strip().upper()
@@ -390,23 +429,25 @@ class ResolucionExcelService:
         fecha_vigencia_fin = None
         
         if tipo_resolucion == 'PADRE':
-            fecha_vigencia_inicio_str = str(row.get('Fecha Vigencia Inicio', '')).strip() if pd.notna(row.get('Fecha Vigencia Inicio')) else ''
-            fecha_vigencia_fin_str = str(row.get('Fecha Vigencia Fin', '')).strip() if pd.notna(row.get('Fecha Vigencia Fin')) else ''
+            fecha_vigencia_inicio_str = str(row.get('Fecha Vigencia Inicio', '')).strip() if row.get('Fecha Vigencia Inicio') and str(row.get('Fecha Vigencia Inicio')).strip() else ''
+            fecha_vigencia_fin_str = str(row.get('Fecha Vigencia Fin', '')).strip() if row.get('Fecha Vigencia Fin') and str(row.get('Fecha Vigencia Fin')).strip() else ''
             
             if fecha_vigencia_inicio_str:
-                fecha_vigencia_inicio = self._convertir_fecha_espanol_a_iso(fecha_vigencia_inicio_str)
+                valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_vigencia_inicio_str)
+                fecha_vigencia_inicio = fecha_normalizada if valida else fecha_vigencia_inicio_str
             if fecha_vigencia_fin_str:
-                fecha_vigencia_fin = self._convertir_fecha_espanol_a_iso(fecha_vigencia_fin_str)
+                valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_vigencia_fin_str)
+                fecha_vigencia_fin = fecha_normalizada if valida else fecha_vigencia_fin_str
         
         # Otros campos
         tipo_tramite = str(row.get('Tipo Trámite', 'PRIMIGENIA')).strip().upper()
         estado = str(row.get('Estado', 'VIGENTE')).strip().upper()
         descripcion = str(row.get('Descripción', '')).strip()
         usuario_emision = str(row.get('Usuario Emisión', 'USR001')).strip()
-        observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else None
+        observaciones = str(row.get('Observaciones', '')).strip() if row.get('Observaciones') and str(row.get('Observaciones')).strip() else None
         
         # Expediente (opcional) - normalizar si existe
-        expediente_id = str(row.get('ID Expediente', '')).strip() if pd.notna(row.get('ID Expediente')) else ''
+        expediente_id = str(row.get('ID Expediente', '')).strip() if row.get('ID Expediente') and str(row.get('ID Expediente')).strip() else ''
         if expediente_id:
             expediente_id = self._normalizar_numero_expediente(expediente_id)
         else:

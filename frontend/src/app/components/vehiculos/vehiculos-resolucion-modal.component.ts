@@ -33,7 +33,7 @@ export interface VehiculosResolucionModalData {
 @Component({
   selector: 'app-vehiculos-resolucion-modal',
   standalone: true,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: (ChangeDetectionStrategy as any).OnPush,
   imports: [
     CommonModule,
     MatDialogModule,
@@ -58,8 +58,8 @@ export interface VehiculosResolucionModalData {
         <div class="header-content">
           <h2>VEHÍCULOS DE LA RESOLUCIÓN</h2>
           <div class="resolucion-info">
-            <p class="empresa-nombre">{{ data.empresa.razonSocial.principal }}</p>
-            <p class="resolucion-numero">{{ data.resolucion.nroResolucion }} - {{ data.resolucion.tipoTramite }}</p>
+            <p class="empresa-nombre">{{ (data as any).empresa.(razonSocial as any).principal }}</p>
+            <p class="resolucion-numero">{{ (data as any).resolucion.nroResolucion }} - {{ (data as any).resolucion.tipoTramite }}</p>
           </div>
         </div>
         <button mat-icon-button (click)="closeModal()" class="close-button">
@@ -84,21 +84,21 @@ export interface VehiculosResolucionModalData {
               <!-- Placa Column -->
               <ng-container matColumnDef="placa">
                 <th mat-header-cell *matHeaderCellDef class="table-header">PLACA</th>
-                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ vehiculo.placa }}</td>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ (vehiculo as any).placa }}</td>
               </ng-container>
 
               <!-- Marca Column -->
               <ng-container matColumnDef="marca">
                 <th mat-header-cell *matHeaderCellDef class="table-header">MARCA</th>
-                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ vehiculo.marca }}</td>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ (vehiculo as any).marca }}</td>
               </ng-container>
 
               <!-- Categoría Column -->
               <ng-container matColumnDef="categoria">
                 <th mat-header-cell *matHeaderCellDef class="table-header">CATEGORÍA</th>
                 <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                  <mat-chip [class]="'categoria-chip-' + vehiculo.categoria?.toLowerCase()">
-                    {{ vehiculo.categoria }}
+                  <mat-chip [class]="'categoria-chip-' + (vehiculo as any).categoria?.toLowerCase()">
+                    {{ (vehiculo as any).categoria }}
                   </mat-chip>
                 </td>
               </ng-container>
@@ -107,8 +107,8 @@ export interface VehiculosResolucionModalData {
               <ng-container matColumnDef="estado">
                 <th mat-header-cell *matHeaderCellDef class="table-header">ESTADO</th>
                 <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                  <mat-chip [class]="'estado-chip-' + vehiculo.estado?.toLowerCase()">
-                    {{ vehiculo.estado }}
+                  <mat-chip [class]="'estado-chip-' + (vehiculo as any).estado?.toLowerCase()">
+                    {{ (vehiculo as any).estado }}
                   </mat-chip>
                 </td>
               </ng-container>
@@ -116,14 +116,14 @@ export interface VehiculosResolucionModalData {
               <!-- Año Column -->
               <ng-container matColumnDef="anioFabricacion">
                 <th mat-header-cell *matHeaderCellDef class="table-header">AÑO</th>
-                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ vehiculo.anioFabricacion }}</td>
+                <td mat-cell *matCellDef="let vehiculo" class="table-cell">{{ (vehiculo as any).anioFabricacion }}</td>
               </ng-container>
 
               <!-- Rutas Column -->
               <ng-container matColumnDef="rutas">
                 <th mat-header-cell *matHeaderCellDef class="table-header">RUTAS</th>
                 <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                  <mat-chip color="warn" selected>{{ vehiculo.rutasAsignadasIds.length || 0 }}</mat-chip>
+                  <mat-chip color="warn" selected>{{ (vehiculo as any).rutasAsignadasIds.length || 0 }}</mat-chip>
                 </td>
               </ng-container>
 
@@ -189,19 +189,19 @@ export interface VehiculosResolucionModalData {
                          maxlength="10"
                          (input)="convertirPlacaMayusculas($event)">
                   <mat-icon matSuffix 
-                           [class.valid-icon]="vehiculoForm.get('placa')?.valid && vehiculoForm.get('placa')?.value"
-                           [class.invalid-icon]="vehiculoForm.get('placa')?.invalid && vehiculoForm.get('placa')?.touched">
+                           [(class as any).valid-icon]="(vehiculoForm as any).get('placa')?.valid && (vehiculoForm as any).get('placa')?.value"
+                           [(class as any).invalid-icon]="(vehiculoForm as any).get('placa')?.invalid && (vehiculoForm as any).get('placa')?.touched">
                     {{ getPlacaIcon() }}
                   </mat-icon>
                   <mat-hint>Formato: ABC-123, AB-1234 o A1B-234</mat-hint>
-                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('required')">
+                  <mat-error *ngIf="(vehiculoForm as any).get('placa')?.hasError('required')">
                     La placa es obligatoria
                   </mat-error>
-                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('placaInvalida')">
-                    {{ vehiculoForm.get('placa')?.errors?.['placaInvalida']?.message }}
+                  <mat-error *ngIf="(vehiculoForm as any).get('placa')?.hasError('placaInvalida')">
+                    {{ (vehiculoForm as any).get('placa')?.errors?.['placaInvalida']?.message }}
                   </mat-error>
-                  <mat-error *ngIf="vehiculoForm.get('placa')?.hasError('placaDuplicada')">
-                    {{ vehiculoForm.get('placa')?.errors?.['placaDuplicada']?.message }}
+                  <mat-error *ngIf="(vehiculoForm as any).get('placa')?.hasError('placaDuplicada')">
+                    {{ (vehiculoForm as any).get('placa')?.errors?.['placaDuplicada']?.message }}
                   </mat-error>
                 </mat-form-field>
 
@@ -218,7 +218,7 @@ export interface VehiculosResolucionModalData {
                   </mat-autocomplete>
                   <mat-icon matSuffix>branding_watermark</mat-icon>
                   <mat-hint>Selecciona o escribe una marca</mat-hint>
-                  <mat-error *ngIf="vehiculoForm.get('marca')?.hasError('required')">
+                  <mat-error *ngIf="(vehiculoForm as any).get('marca')?.hasError('required')">
                     La marca es obligatoria
                   </mat-error>
                 </mat-form-field>
@@ -232,7 +232,7 @@ export interface VehiculosResolucionModalData {
                     <mat-option value="N2">N2 - Camión Mediano</mat-option>
                   </mat-select>
                   <mat-icon matSuffix>category</mat-icon>
-                  <mat-error *ngIf="vehiculoForm.get('categoria')?.hasError('required')">
+                  <mat-error *ngIf="(vehiculoForm as any).get('categoria')?.hasError('required')">
                     La categoría es obligatoria
                   </mat-error>
                 </mat-form-field>
@@ -242,17 +242,17 @@ export interface VehiculosResolucionModalData {
                   <input matInput formControlName="anioFabricacion" type="number">
                   <mat-icon matSuffix>calendar_today</mat-icon>
                   <mat-hint>Entre 1990 y {{ getCurrentYear() + 1 }}</mat-hint>
-                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('required')">
+                  <mat-error *ngIf="(vehiculoForm as any).get('anioFabricacion')?.hasError('required')">
                     El año es obligatorio
                   </mat-error>
-                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMinimo')">
-                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
+                  <mat-error *ngIf="(vehiculoForm as any).get('anioFabricacion')?.hasError('anioMinimo')">
+                    {{ (vehiculoForm as any).get('anioFabricacion')?.errors?.['anioMinimo']?.message }}
                   </mat-error>
-                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioMaximo')">
-                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
+                  <mat-error *ngIf="(vehiculoForm as any).get('anioFabricacion')?.hasError('anioMaximo')">
+                    {{ (vehiculoForm as any).get('anioFabricacion')?.errors?.['anioMaximo']?.message }}
                   </mat-error>
-                  <mat-error *ngIf="vehiculoForm.get('anioFabricacion')?.hasError('anioInvalido')">
-                    {{ vehiculoForm.get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
+                  <mat-error *ngIf="(vehiculoForm as any).get('anioFabricacion')?.hasError('anioInvalido')">
+                    {{ (vehiculoForm as any).get('anioFabricacion')?.errors?.['anioInvalido']?.message }}
                   </mat-error>
                 </mat-form-field>
 
@@ -264,7 +264,7 @@ export interface VehiculosResolucionModalData {
                     <mat-option value="INACTIVO">INACTIVO</mat-option>
                   </mat-select>
                   <mat-icon matSuffix>info</mat-icon>
-                  <mat-error *ngIf="vehiculoForm.get('estado')?.hasError('required')">
+                  <mat-error *ngIf="(vehiculoForm as any).get('estado')?.hasError('required')">
                     El estado es obligatorio
                   </mat-error>
                 </mat-form-field>
@@ -277,7 +277,7 @@ export interface VehiculosResolucionModalData {
                 <button mat-raised-button 
                         color="primary" 
                         (click)="guardarVehiculo()"
-                        [disabled]="vehiculoForm.invalid || guardando()"
+                        [disabled]="(vehiculoForm as any).invalid || guardando()"
                         class="save-button">
                   <mat-icon>save</mat-icon>
                   {{ vehiculoEditando() ? 'ACTUALIZAR' : 'GUARDAR' }}
@@ -336,7 +336,7 @@ export interface VehiculosResolucionModalData {
     .resolucion-numero {
       margin: 0;
       font-size: 14px;
-      opacity: 0.9;
+      opacity: (0 as any).9;
     }
 
     .close-button {
@@ -364,7 +364,7 @@ export interface VehiculosResolucionModalData {
       margin-bottom: 20px;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,(0 as any).1);
     }
 
     .vehiculos-table {
@@ -453,7 +453,7 @@ export interface VehiculosResolucionModalData {
     .subtitle {
       font-size: 14px;
       margin-top: 10px;
-      opacity: 0.7;
+      opacity: (0 as any).7;
     }
 
     .form-container {
@@ -515,7 +515,7 @@ export interface VehiculosResolucionModalData {
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.9);
+      background-color: rgba(255, 255, 255, (0 as any).9);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -538,22 +538,22 @@ export interface VehiculosResolucionModalData {
       color: #f44336 !important;
     }
 
-    mat-icon.mat-icon[matsuffix] {
-      transition: color 0.3s ease;
+    mat-(icon as any).mat-icon[matsuffix] {
+      transition: color (0 as any).3s ease;
     }
 
     /* Estilos para campos con validación */
-    mat-form-field.mat-form-field-invalid .mat-form-field-outline {
+    mat-form-(field as any).mat-form-field-invalid .mat-form-field-outline {
       border-color: #f44336 !important;
     }
 
-    mat-form-field.mat-form-field-valid .mat-form-field-outline {
+    mat-form-(field as any).mat-form-field-valid .mat-form-field-outline {
       border-color: #4caf50 !important;
     }
 
     /* Animación para mensajes de error */
     mat-error {
-      animation: slideIn 0.3s ease;
+      animation: slideIn (0 as any).3s ease;
     }
 
     @keyframes slideIn {
@@ -623,109 +623,109 @@ export class VehiculosResolucionModalComponent {
   vehiculoForm: FormGroup;
 
   constructor() {
-    this.vehiculoForm = this.fb.group({
+    (this as any).vehiculoForm = (this as any).fb.group({
       placa: [
         '', 
-        [Validators.required, placaPeruanaValidator()],
-        [placaDuplicadaValidator(this.vehiculoService, this.vehiculoEditando()?.id)]
+        [(Validators as any).required, placaPeruanaValidator()],
+        [placaDuplicadaValidator((this as any).vehiculoService, (this as any).vehiculoEditando()?.id)]
       ],
-      marca: ['', [Validators.required, Validators.maxLength(50)]],
-      categoria: ['', Validators.required],
-      anioFabricacion: ['', [Validators.required, anioFabricacionValidator()]],
-      estado: ['ACTIVO', Validators.required]
+      marca: ['', [(Validators as any).required, (Validators as any).maxLength(50)]],
+      categoria: ['', (Validators as any).required],
+      anioFabricacion: ['', [(Validators as any).required, anioFabricacionValidator()]],
+      estado: ['ACTIVO', (Validators as any).required]
     });
 
-    this.cargarVehiculos();
+    (this as any).cargarVehiculos();
   }
 
   cargarVehiculos(): void {
-    this.isLoading.set(true);
-    this.vehiculoService.getVehiculosPorResolucion(this.data.resolucion.id).subscribe({
+    (this as any).isLoading.set(true);
+    (this as any).vehiculoService.getVehiculosPorResolucion(this.data.resolucion.id).subscribe({
       next: (vehiculos: Vehiculo[]) => {
-        this.vehiculos.set(vehiculos);
-        this.isLoading.set(false);
+        (this as any).vehiculos.set(vehiculos);
+        (this as any).isLoading.set(false);
       },
-      error: (error: any) => {
-        console.error('Error cargando vehículos:', error);
-        this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 3000 });
-        this.isLoading.set(false);
+      error: (error: unknown) => {
+        (console as any).error('Error cargando vehículos:', error);
+        (this as any).snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 3000 });
+        (this as any).isLoading.set(false);
       }
     });
   }
 
   mostrarFormularioNuevo(): void {
-    this.vehiculoEditando.set(null);
+    (this as any).vehiculoEditando.set(null);
     
     // Resetear el validador asíncrono de placa para nuevo vehículo
-    const placaControl = this.vehiculoForm.get('placa');
+    const placaControl = (this as any).vehiculoForm.get('placa');
     if (placaControl) {
-      placaControl.clearAsyncValidators();
-      placaControl.setAsyncValidators([placaDuplicadaValidator(this.vehiculoService)]);
-      placaControl.updateValueAndValidity();
+      (placaControl as any).clearAsyncValidators();
+      (placaControl as any).setAsyncValidators([placaDuplicadaValidator((this as any).vehiculoService)]);
+      (placaControl as any).updateValueAndValidity();
     }
     
-    this.vehiculoForm.reset({
+    (this as any).vehiculoForm.reset({
       estado: 'ACTIVO'
     });
-    this.mostrarFormulario.set(true);
+    (this as any).mostrarFormulario.set(true);
   }
 
   editarVehiculo(vehiculo: Vehiculo): void {
-    this.vehiculoEditando.set(vehiculo);
+    (this as any).vehiculoEditando.set(vehiculo);
     
     // Actualizar el validador asíncrono de placa con el ID del vehículo actual
-    const placaControl = this.vehiculoForm.get('placa');
+    const placaControl = (this as any).vehiculoForm.get('placa');
     if (placaControl) {
-      placaControl.clearAsyncValidators();
-      placaControl.setAsyncValidators([placaDuplicadaValidator(this.vehiculoService, vehiculo.id)]);
-      placaControl.updateValueAndValidity();
+      (placaControl as any).clearAsyncValidators();
+      (placaControl as any).setAsyncValidators([placaDuplicadaValidator((this as any).vehiculoService, (vehiculo as any).id)]);
+      (placaControl as any).updateValueAndValidity();
     }
     
-    this.vehiculoForm.patchValue({
-      placa: vehiculo.placa,
-      marca: vehiculo.marca,
-      categoria: vehiculo.categoria,
-      anioFabricacion: vehiculo.anioFabricacion,
-      estado: vehiculo.estado
+    (this as any).vehiculoForm.patchValue({
+      placa: (vehiculo as any).placa,
+      marca: (vehiculo as any).marca,
+      categoria: (vehiculo as any).categoria,
+      anioFabricacion: (vehiculo as any).anioFabricacion,
+      estado: (vehiculo as any).estado
     });
-    this.mostrarFormulario.set(true);
+    (this as any).mostrarFormulario.set(true);
   }
 
   ocultarFormulario(): void {
-    this.mostrarFormulario.set(false);
-    this.vehiculoEditando.set(null);
-    this.vehiculoForm.reset();
+    (this as any).mostrarFormulario.set(false);
+    (this as any).vehiculoEditando.set(null);
+    (this as any).vehiculoForm.reset();
   }
 
   guardarVehiculo(): void {
-    if (this.vehiculoForm.invalid) return;
+    if ((this as any).vehiculoForm.invalid) return;
 
-    this.guardando.set(true);
-    const formData = this.vehiculoForm.value;
+    (this as any).guardando.set(true);
+    const formData = (this as any).vehiculoForm.value;
 
-    if (this.vehiculoEditando()) {
+    if ((this as any).vehiculoEditando()) {
       // Actualizar vehículo existente
       const vehiculoUpdate = {
-        ...this.vehiculoEditando()!,
+        ...(this as any).vehiculoEditando()!,
         ...formData
       };
 
-      this.vehiculoService.updateVehiculo(vehiculoUpdate.id, vehiculoUpdate).subscribe({
+      (this as any).vehiculoService.updateVehiculo((vehiculoUpdate as any).id, vehiculoUpdate).subscribe({
         next: () => {
-          this.snackBar.open(
-            `✓ Vehículo ${formData.placa} actualizado exitosamente`, 
+          (this as any).snackBar.open(
+            `✓ Vehículo ${(formData as any).placa} actualizado exitosamente`, 
             'Cerrar', 
             { duration: 4000 }
           );
-          this.cargarVehiculos();
-          this.ocultarFormulario();
-          this.guardando.set(false);
+          (this as any).cargarVehiculos();
+          (this as any).ocultarFormulario();
+          (this as any).guardando.set(false);
         },
-        error: (error: any) => {
-          console.error('Error actualizando vehículo:', error);
-          const errorMsg = error.error?.message || 'Error al actualizar vehículo';
-          this.snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
-          this.guardando.set(false);
+        error: (error: unknown) => {
+          (console as any).error('Error actualizando vehículo:', error);
+          const errorMsg = (error as any).error?.message || 'Error al actualizar vehículo';
+          (this as any).snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
+          (this as any).guardando.set(false);
         }
       });
     } else {
@@ -738,22 +738,22 @@ export class VehiculosResolucionModalComponent {
         estaActivo: true
       };
 
-      this.vehiculoService.createVehiculo(nuevoVehiculo).subscribe({
+      (this as any).vehiculoService.createVehiculo(nuevoVehiculo).subscribe({
         next: () => {
-          this.snackBar.open(
-            `✓ Vehículo ${formData.placa} (${formData.marca}) creado exitosamente`, 
+          (this as any).snackBar.open(
+            `✓ Vehículo ${(formData as any).placa} (${(formData as any).marca}) creado exitosamente`, 
             'Cerrar', 
             { duration: 4000 }
           );
-          this.cargarVehiculos();
-          this.ocultarFormulario();
-          this.guardando.set(false);
+          (this as any).cargarVehiculos();
+          (this as any).ocultarFormulario();
+          (this as any).guardando.set(false);
         },
-        error: (error: any) => {
-          console.error('Error creando vehículo:', error);
-          const errorMsg = error.error?.message || 'Error al crear vehículo';
-          this.snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
-          this.guardando.set(false);
+        error: (error: unknown) => {
+          (console as any).error('Error creando vehículo:', error);
+          const errorMsg = (error as any).error?.message || 'Error al crear vehículo';
+          (this as any).snackBar.open(`✗ ${errorMsg}`, 'Cerrar', { duration: 5000 });
+          (this as any).guardando.set(false);
         }
       });
     }
@@ -761,29 +761,29 @@ export class VehiculosResolucionModalComponent {
 
   eliminarVehiculo(vehiculo: Vehiculo): void {
     if (confirm(
-      `¿Estás seguro de eliminar el vehículo ${vehiculo.placa}?\n\n` +
+      `¿Estás seguro de eliminar el vehículo ${(vehiculo as any).placa}?\n\n` +
       `El vehículo será marcado como eliminado pero se mantendrá en el sistema para fines de auditoría.`
     )) {
-      this.vehiculoService.deleteVehiculo(vehiculo.id).subscribe({
+      (this as any).vehiculoService.deleteVehiculo((vehiculo as any).id).subscribe({
         next: () => {
-          this.snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
-          this.cargarVehiculos(); // Recargar la lista
+          (this as any).snackBar.open('Vehículo eliminado exitosamente', 'Cerrar', { duration: 3000 });
+          (this as any).cargarVehiculos(); // Recargar la lista
         },
         error: (error) => {
-          console.error('Error eliminando vehículo:', error);
-          this.snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
+          (console as any).error('Error eliminando vehículo:', error);
+          (this as any).snackBar.open('Error al eliminar el vehículo', 'Cerrar', { duration: 3000 });
         }
       });
     }
   }
 
   closeModal(): void {
-    this.dialogRef.close();
+    (this as any).dialogRef.close();
   }
 
   seleccionarVehiculo(vehiculo: Vehiculo): void {
     // Cerrar el modal y devolver el vehículo seleccionado
-    this.dialogRef.close(vehiculo);
+    (this as any).dialogRef.close(vehiculo);
   }
 
   // ========================================
@@ -794,31 +794,31 @@ export class VehiculosResolucionModalComponent {
    * Convertir placa a mayúsculas automáticamente
    */
   convertirPlacaMayusculas(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = input.value.toUpperCase();
-    this.vehiculoForm.get('placa')?.setValue(value, { emitEvent: false });
-    input.value = value;
+    const input = (event as any).target as HTMLInputElement;
+    const value = (input as any).value.toUpperCase();
+    (this as any).vehiculoForm.get('placa')?.setValue(value, { emitEvent: false });
+    (input as any).value = value;
   }
 
   /**
    * Obtener icono para el campo de placa según su estado de validación
    */
   getPlacaIcon(): string {
-    const placaControl = this.vehiculoForm.get('placa');
+    const placaControl = (this as any).vehiculoForm.get('placa');
     
     if (!placaControl?.value) {
       return 'directions_car';
     }
     
-    if (placaControl.pending) {
+    if ((placaControl as any).pending) {
       return 'hourglass_empty'; // Validación asíncrona en progreso
     }
     
-    if (placaControl.valid) {
+    if ((placaControl as any).valid) {
       return 'check_circle'; // Válido
     }
     
-    if (placaControl.invalid && placaControl.touched) {
+    if ((placaControl as any).invalid && (placaControl as any).touched) {
       return 'error'; // Inválido
     }
     
@@ -836,13 +836,13 @@ export class VehiculosResolucionModalComponent {
    * Mostrar resumen de datos antes de guardar
    */
   mostrarResumenDatos(): string {
-    const formData = this.vehiculoForm.value;
+    const formData = (this as any).vehiculoForm.value;
     return `
-      Placa: ${formData.placa}
-      Marca: ${formData.marca}
-      Categoría: ${formData.categoria}
-      Año: ${formData.anioFabricacion}
-      Estado: ${formData.estado}
+      Placa: ${(formData as any).placa}
+      Marca: ${(formData as any).marca}
+      Categoría: ${(formData as any).categoria}
+      Año: ${(formData as any).anioFabricacion}
+      Estado: ${(formData as any).estado}
     `;
   }
 } 

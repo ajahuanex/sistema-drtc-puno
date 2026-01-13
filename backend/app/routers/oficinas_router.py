@@ -31,12 +31,13 @@ async def create_oficina(
                 detail="No tienes permisos para crear oficinas"
             )
         
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.create_oficina(oficina_data)
-        # En modo mock, devolver respuesta simulada
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta OficinaService real"
         )
         
     except OficinaAlreadyExistsException as e:
@@ -83,9 +84,10 @@ async def get_oficinas(
                 estaActivo=esta_activo
             )
         
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.get_oficinas(skip=skip, limit=limit, filtros=filtros)
-        # En modo mock, devolver respuesta simulada
+        
         return []
         
     except DatabaseErrorException as e:
@@ -100,9 +102,10 @@ async def get_oficinas_resumen(
 ):
     """Obtener resumen de todas las oficinas activas"""
     try:
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.get_oficinas_resumen()
-        # En modo mock, devolver respuesta simulada
+        
         return []
         
     except DatabaseErrorException as e:
@@ -186,99 +189,16 @@ async def get_flujo_expedientes(
 ):
     """Obtener lista de flujos de expedientes"""
     try:
-        # Por ahora retornamos datos simulados
-        # En el futuro esto se implementaría con un servicio real
-        expedientes_mock = [
-            {
-                "expedienteId": "EXP001",
-                "numeroExpediente": "EXP-2024-001",
-                "empresa": "EMPRESA TRANSPORTES ABC S.A.C.",
-                "estadoActual": "EN_PROCESO",
-                "oficinaActual": "OFICINA LEGAL",
-                "fechaCreacion": "2024-01-15T08:00:00Z",
-                "ultimaActualizacion": "2024-01-20T14:30:00Z",
-                "movimientos": [
-                    {
-                        "id": "MOV001",
-                        "expedienteId": "EXP001",
-                        "tipo": "INGRESO",
-                        "oficina": "OFICINA DE RECEPCIÓN",
-                        "fecha": "2024-01-15T08:00:00Z",
-                        "observacion": "Documentos recibidos y validados",
-                        "esActual": False,
-                        "oficinaDestinoId": "OFICINA DE RECEPCIÓN",
-                        "motivo": "RECEPCIÓN INICIAL DE DOCUMENTOS",
-                        "observaciones": "Documentos recibidos y validados",
-                        "documentosRequeridos": ["SOLICITUD", "DNI REPRESENTANTE", "RUC EMPRESA"],
-                        "documentosEntregados": ["SOLICITUD", "DNI REPRESENTANTE", "RUC EMPRESA"]
-                    },
-                    {
-                        "id": "MOV002",
-                        "expedienteId": "EXP001",
-                        "tipo": "TRANSFERENCIA",
-                        "oficina": "OFICINA DE REVISIÓN TÉCNICA",
-                        "fecha": "2024-01-16T10:00:00Z",
-                        "observacion": "Enviado para revisión técnica",
-                        "esActual": False,
-                        "oficinaDestinoId": "OFICINA DE REVISIÓN TÉCNICA",
-                        "motivo": "REVISIÓN TÉCNICA REQUERIDA",
-                        "observaciones": "Enviado para revisión técnica",
-                        "documentosRequeridos": ["INFORME TÉCNICO", "ESPECIFICACIONES"],
-                        "documentosEntregados": ["INFORME TÉCNICO"]
-                    },
-                    {
-                        "id": "MOV003",
-                        "expedienteId": "EXP001",
-                        "tipo": "TRANSFERENCIA",
-                        "oficina": "OFICINA LEGAL",
-                        "fecha": "2024-01-20T14:30:00Z",
-                        "observacion": "Enviado para revisión legal",
-                        "esActual": True,
-                        "oficinaDestinoId": "OFICINA LEGAL",
-                        "motivo": "REVISIÓN LEGAL REQUERIDA",
-                        "observaciones": "Enviado para revisión legal",
-                        "documentosRequeridos": ["CONTRATO", "AVALÚO"],
-                        "documentosEntregados": ["CONTRATO"]
-                    }
-                ]
-            },
-            {
-                "expedienteId": "EXP002",
-                "numeroExpediente": "EXP-2024-002",
-                "empresa": "EMPRESA TRANSPORTES XYZ S.A.C.",
-                "estadoActual": "PENDIENTE",
-                "oficinaActual": "OFICINA DE RECEPCIÓN",
-                "fechaCreacion": "2024-01-18T09:00:00Z",
-                "ultimaActualizacion": "2024-01-18T09:00:00Z",
-                "movimientos": [
-                    {
-                        "id": "MOV004",
-                        "expedienteId": "EXP002",
-                        "tipo": "INGRESO",
-                        "oficina": "OFICINA DE RECEPCIÓN",
-                        "fecha": "2024-01-18T09:00:00Z",
-                        "observacion": "Documentos recibidos, pendiente de validación",
-                        "esActual": True,
-                        "oficinaDestinoId": "OFICINA DE RECEPCIÓN",
-                        "motivo": "RECEPCIÓN INICIAL DE DOCUMENTOS",
-                        "observaciones": "Documentos recibidos, pendiente de validación",
-                        "documentosRequeridos": ["SOLICITUD", "DNI REPRESENTANTE", "RUC EMPRESA"],
-                        "documentosEntregados": ["SOLICITUD", "DNI REPRESENTANTE"]
-                    }
-                ]
-            }
-        ]
-        
-        # Aplicar paginación
-        start = skip
-        end = skip + limit
-        expedientes_paginados = expedientes_mock[start:end]
+        # TODO: Implementar servicio real de expedientes
+        # expediente_service = ExpedienteService(db)
+        # return await expediente_service.get_flujos_expedientes(skip=skip, limit=limit)
         
         return {
-            "expedientes": expedientes_paginados,
-            "total": len(expedientes_mock),
+            "expedientes": [],
+            "total": 0,
             "skip": skip,
-            "limit": limit
+            "limit": limit,
+            "mensaje": "Servicio de expedientes no implementado - use datos reales del sistema"
         }
         
     except Exception as e:
@@ -427,12 +347,13 @@ async def get_oficina(
 ):
     """Obtener una oficina específica por ID"""
     try:
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.get_oficina(oficina_id)
-        # En modo mock, devolver respuesta simulada
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta OficinaService real"
         )
         
     except OficinaNotFoundException as e:
@@ -462,12 +383,13 @@ async def update_oficina(
                 detail="No tienes permisos para actualizar oficinas"
             )
         
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.update_oficina(oficina_id, oficina_data)
-        # En modo mock, devolver respuesta simulada
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta OficinaService real"
         )
         
     except OficinaNotFoundException as e:
@@ -501,12 +423,13 @@ async def delete_oficina(
                 detail="No tienes permisos para eliminar oficinas"
             )
         
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # success = await oficina_service.delete_oficina(oficina_id)
-        # En modo mock, devolver respuesta simulada
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta OficinaService real"
         )
         
     except OficinaNotFoundException as e:
@@ -534,9 +457,10 @@ async def get_expedientes_por_oficina(
 ):
     """Obtener expedientes que están en una oficina específica"""
     try:
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.get_expedientes_por_oficina(oficina_id, skip=skip, limit=limit)
-        # En modo mock, devolver respuesta simulada
+        
         return []
         
     except DatabaseErrorException as e:
@@ -573,12 +497,13 @@ async def mover_expediente(
         #     motivo=motivo,
         #     observaciones=observaciones,
         #     documentos_requeridos=documentos_requeridos,
-        #     documentos_entregados=documentos_entregados
-        # )
-        # En modo mock, devolver respuesta simulada
+        # TODO: Implementar servicio real de movimientos
+        # movimiento_service = MovimientoService(db)
+        # return await movimiento_service.create_movimiento(...)
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta servicio real"
         )
         
     except ValidationErrorException as e:
@@ -599,12 +524,13 @@ async def get_estadisticas_oficina(
 ):
     """Obtener estadísticas detalladas de una oficina"""
     try:
+        # TODO: Implementar OficinaService real
         # oficina_service = OficinaService(db)
         # return await oficina_service.get_estadisticas_oficina(oficina_id)
-        # En modo mock, devolver respuesta simulada
+        
         raise HTTPException(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Funcionalidad no implementada en modo mock"
+            detail="Funcionalidad no implementada - falta OficinaService real"
         )
         
     except OficinaNotFoundException as e:

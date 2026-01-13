@@ -913,45 +913,16 @@ export class RegistroDocumentoComponent implements OnInit {
    * Requirements: 1.1, 2.1
    */
   private cargarTiposDocumento(): void {
-    // Mock data - En producción, obtener del servicio
-    this.tiposDocumento = [
-      {
-        id: '1',
-        nombre: 'Solicitud',
-        codigo: 'SOL',
-        categorias: []
+    // Cargar tipos de documento desde el servicio real
+    this.documentoService.obtenerTiposDocumento().subscribe({
+      next: (tipos) => {
+        this.tiposDocumento = tipos;
       },
-      {
-        id: '2',
-        nombre: 'Oficio',
-        codigo: 'OF',
-        categorias: []
-      },
-      {
-        id: '3',
-        nombre: 'Memorándum',
-        codigo: 'MEM',
-        categorias: []
-      },
-      {
-        id: '4',
-        nombre: 'Carta',
-        codigo: 'CAR',
-        categorias: []
-      },
-      {
-        id: '5',
-        nombre: 'Informe',
-        codigo: 'INF',
-        categorias: []
-      },
-      {
-        id: '6',
-        nombre: 'Resolución',
-        codigo: 'RES',
-        categorias: []
+      error: (error) => {
+        console.error('Error cargando tipos de documento:', error);
+        this.tiposDocumento = [];
       }
-    ];
+    });
   }
 
   /**
@@ -959,19 +930,16 @@ export class RegistroDocumentoComponent implements OnInit {
    * Requirements: 1.1
    */
   private configurarAutocompletadoRemitente(): void {
-    // Mock data - En producción, obtener del servicio
-    this.remitentesHistorico = [
-      'Juan Pérez García',
-      'María López Rodríguez',
-      'Carlos Sánchez Martínez',
-      'Ana Torres Fernández',
-      'Luis Ramírez Castro',
-      'Ministerio de Educación',
-      'Municipalidad Provincial',
-      'Gobierno Regional',
-      'SUNAT',
-      'RENIEC'
-    ];
+    // Cargar remitentes históricos desde el servicio real
+    this.documentoService.obtenerRemitentesHistoricos().subscribe({
+      next: (remitentes) => {
+        this.remitentesHistorico = remitentes;
+      },
+      error: (error) => {
+        console.error('Error cargando remitentes históricos:', error);
+        this.remitentesHistorico = [];
+      }
+    });
 
     this.remitentesFiltrados$ = this.documentoForm.get('remitente')!.valueChanges.pipe(
       startWith(''),
@@ -996,14 +964,16 @@ export class RegistroDocumentoComponent implements OnInit {
    * Requirements: 1.4
    */
   private configurarAutocompletadoExpediente(): void {
-    // Mock data - En producción, obtener del servicio
-    this.expedientesHistorico = [
-      'EXP-2025-0001',
-      'EXP-2025-0002',
-      'EXP-2025-0003',
-      'EXP-2024-0999',
-      'EXP-2024-0998'
-    ];
+    // Cargar expedientes históricos desde el servicio real
+    this.documentoService.obtenerExpedientesHistoricos().subscribe({
+      next: (expedientes) => {
+        this.expedientesHistorico = expedientes;
+      },
+      error: (error) => {
+        console.error('Error cargando expedientes históricos:', error);
+        this.expedientesHistorico = [];
+      }
+    });
 
     this.expedientesFiltrados$ = this.documentoForm.get('expedienteRelacionadoId')!.valueChanges.pipe(
       startWith(''),

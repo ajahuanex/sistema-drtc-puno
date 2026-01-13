@@ -1,80 +1,122 @@
+// ✅ NUEVAS INTERFACES OPTIMIZADAS (sin campos legacy)
+
+export interface LocalidadEmbebida {
+  id: string;
+  nombre: string;
+}
+
+export interface LocalidadItinerario extends LocalidadEmbebida {
+  orden: number;
+}
+
+export interface EmpresaEmbebida {
+  id: string;
+  ruc: string;
+  razonSocial: string;
+}
+
+export interface ResolucionEmbebida {
+  id: string;
+  nroResolucion: string;
+  tipoResolucion: string; // PADRE o HIJO
+  estado: string;
+}
+
+// ✅ MODELO PRINCIPAL OPTIMIZADO
 export interface Ruta {
   id: string;
   codigoRuta: string;
   nombre: string;
-  origenId: string;
-  destinoId: string;
-  origen?: string;           // Nombre de la localidad de origen (opcional)
-  destino?: string;          // Nombre de la localidad de destino (opcional)
-  distancia?: number;        // Distancia en kilómetros
-  tiempoEstimado?: string | number;   // Tiempo estimado (HH:MM o horas)
-  itinerarioIds: string[];
+  
+  // ESTRUCTURA OPTIMIZADA - Objetos embebidos
+  origen: LocalidadEmbebida;
+  destino: LocalidadEmbebida;
+  itinerario: LocalidadItinerario[];
+  empresa: EmpresaEmbebida;
+  resolucion: ResolucionEmbebida;
+  
+  // Datos operativos
   frecuencias: string;
+  tipoRuta: TipoRuta;
+  tipoServicio: TipoServicio;
   estado: EstadoRuta;
-  estaActivo: boolean;
-  empresaId?: string;       // Empresa propietaria de la ruta
-  resolucionId?: string;    // Resolución primigenia asociada
-  fechaRegistro?: Date;
-  fechaActualizacion?: Date;
-  observaciones?: string;
-  descripcion?: string;     // Descripción de la ruta
-  tipoRuta: TipoRuta;      // Tipo de ruta (INTERURBANA, URBANA, etc.)
-  tipoServicio?: TipoServicio; // Tipo de servicio
-  capacidadMaxima?: number; // Capacidad máxima de pasajeros
-  tarifaBase?: number;      // Tarifa base del pasaje
+  
+  // Datos técnicos opcionales
+  distancia?: number;
+  tiempoEstimado?: string;
+  tarifaBase?: number;
+  capacidadMaxima?: number;
+  
+  // Datos adicionales
   horarios?: any[];
   restricciones?: string[];
-  empresasAutorizadasIds?: string[];
-  vehiculosAsignadosIds?: string[];
-  documentosIds?: string[];
-  historialIds?: string[];
+  observaciones?: string;
+  descripcion?: string;
+  
+  // Control de estado
+  estaActivo: boolean;
+  fechaRegistro?: Date;
+  fechaActualizacion?: Date;
 }
 
 export interface RutaCreate {
   codigoRuta: string;
   nombre: string;
-  origenId: string;
-  destinoId: string;
-  origen?: string; // Nombre del origen (opcional)
-  destino?: string; // Nombre del destino (opcional)
-  itinerarioIds: string[];
+  
+  // ESTRUCTURA OPTIMIZADA
+  origen: LocalidadEmbebida;
+  destino: LocalidadEmbebida;
+  itinerario: LocalidadItinerario[];
+  empresa: EmpresaEmbebida;
+  resolucion: ResolucionEmbebida;
+  
+  // Datos operativos
   frecuencias: string;
   tipoRuta: TipoRuta;
-  tipoServicio: TipoServicio; // Campo requerido por el backend
+  tipoServicio: TipoServicio;
+  
+  // Datos técnicos opcionales
   distancia?: number;
-  tiempoEstimado?: string; // Formato HH:MM
+  tiempoEstimado?: string;
   tarifaBase?: number;
   capacidadMaxima?: number;
+  
+  // Datos adicionales
   horarios?: any[];
   restricciones?: string[];
-  descripcion?: string; // Descripción/itinerario de la ruta
   observaciones?: string;
-  empresaId: string; // Obligatorio
-  resolucionId: string; // Obligatorio
+  descripcion?: string;
 }
 
 export interface RutaUpdate {
   codigoRuta?: string;
   nombre?: string;
-  origenId?: string;
-  destinoId?: string;
-  origen?: string;
-  destino?: string;
-  distancia?: number;
-  tiempoEstimado?: string | number;
-  itinerarioIds?: string[];
+  
+  // ESTRUCTURA OPTIMIZADA (opcional para actualización)
+  origen?: LocalidadEmbebida;
+  destino?: LocalidadEmbebida;
+  itinerario?: LocalidadItinerario[];
+  empresa?: EmpresaEmbebida;
+  resolucion?: ResolucionEmbebida;
+  
+  // Datos operativos
   frecuencias?: string;
-  estado?: EstadoRuta;
-  estaActivo?: boolean;
-  observaciones?: string;
-  descripcion?: string;
   tipoRuta?: TipoRuta;
   tipoServicio?: TipoServicio;
-  capacidadMaxima?: number;
+  estado?: EstadoRuta;
+  
+  // Datos técnicos opcionales
+  distancia?: number;
+  tiempoEstimado?: string;
   tarifaBase?: number;
-  empresaId?: string;
+  capacidadMaxima?: number;
+  
+  // Datos adicionales
   horarios?: any[];
   restricciones?: string[];
+  observaciones?: string;
+  descripcion?: string;
+  estaActivo?: boolean;
   fechaActualizacion?: Date;
 }
 

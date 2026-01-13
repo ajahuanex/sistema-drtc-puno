@@ -290,16 +290,49 @@ class RutaService:
     ) -> List[Ruta]:
         """Obtener rutas filtradas por empresa y resolución"""
         try:
+            # CORREGIDO: usar nombres de campos con guión bajo como están en la BD
             rutas = await self.rutas_collection.find({
-                "empresaId": empresa_id,
-                "resolucionId": resolucion_id,
-                "estaActivo": True
+                "empresa_id": empresa_id,
+                "resolucion_id": resolucion_id,
+                "estado": "activo"  # También corregido: usar 'estado' en lugar de 'estaActivo'
             }).to_list(length=None)
             
+            # Convertir ObjectId a string y mapear campos
+            rutas_convertidas = []
             for ruta in rutas:
-                ruta["id"] = str(ruta.pop("_id"))
+                ruta_dict = {
+                    "id": str(ruta.pop("_id")),
+                    "codigoRuta": ruta.get("codigoRuta", ""),
+                    "nombre": ruta.get("descripcion", ""),  # Mapear descripcion a nombre
+                    "origenId": ruta.get("origen", ""),
+                    "destinoId": ruta.get("destino", ""),
+                    "origen": ruta.get("origen", ""),
+                    "destino": ruta.get("destino", ""),
+                    "itinerarioIds": [],
+                    "frecuencias": "Diaria",  # Valor por defecto
+                    "estado": "ACTIVA",  # Mapear estado activo a ACTIVA
+                    "estaActivo": True,
+                    "fechaRegistro": ruta.get("fechaCreacion", datetime.utcnow()),
+                    "fechaActualizacion": None,
+                    "tipoRuta": "INTERPROVINCIAL",  # Valor por defecto
+                    "tipoServicio": "PASAJEROS",  # Valor por defecto
+                    "distancia": ruta.get("distancia", 0.0),
+                    "tiempoEstimado": ruta.get("duracion", ""),
+                    "tarifaBase": ruta.get("tarifa", 0.0),
+                    "capacidadMaxima": 50,  # Valor por defecto
+                    "horarios": [],
+                    "restricciones": [],
+                    "observaciones": "",
+                    "empresasAutorizadasIds": [],
+                    "vehiculosAsignadosIds": [],
+                    "documentosIds": [],
+                    "historialIds": [],
+                    "empresaId": str(ruta.get("empresa_id", "")),
+                    "resolucionId": str(ruta.get("resolucion_id", ""))
+                }
+                rutas_convertidas.append(ruta_dict)
             
-            return [Ruta(**ruta) for ruta in rutas]
+            return [Ruta(**ruta) for ruta in rutas_convertidas]
             
         except Exception as e:
             raise HTTPException(

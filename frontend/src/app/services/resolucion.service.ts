@@ -84,19 +84,27 @@ export class ResolucionService {
     });
   }
 
-  getResoluciones(skip: number = 0, limit: number = 100, estado?: string, empresaId?: string, tipo?: string): Observable<Resolucion[]> {
+  getResoluciones(skip: number = 0, limit: number = 1000, estado?: string, empresaId?: string, tipo?: string): Observable<Resolucion[]> {
+    // Aumentar el límite para obtener todas las resoluciones
     const url = `${this.apiUrl}/resoluciones`;
     const params = new URLSearchParams();
     if (skip > 0) params.append('skip', skip.toString());
-    if (limit !== 100) params.append('limit', limit.toString());
+    params.append('limit', limit.toString()); // Siempre agregar el límite
     if (estado) params.append('estado', estado);
     if (empresaId) params.append('empresa_id', empresaId);
     if (tipo) params.append('tipo_tramite', tipo);
 
-    return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
+    const finalUrl = `${url}?${params.toString()}`;
+    console.log('🔍 [RESOLUCION-SERVICE] URL construida:', finalUrl);
+    console.log('🔍 [RESOLUCION-SERVICE] Parámetros:', { skip, limit, estado, empresaId, tipo });
+
+    return this.http.get<Resolucion[]>(finalUrl, { headers: this.getHeaders() })
       .pipe(
+        tap(resoluciones => {
+          console.log('✅ [RESOLUCION-SERVICE] Resoluciones obtenidas:', resoluciones.length);
+        }),
         catchError(error => {
-          console.error('Error fetching resoluciones:', error);
+          console.error('❌ [RESOLUCION-SERVICE] Error fetching resoluciones:', error);
           
           // Si es error de autenticación y no hay token, devolver array vacío
           if ((error.status === 401 || error.status === 403) && !this.authService.getToken()) {
@@ -364,6 +372,24 @@ export class ResolucionService {
     // Iniciar medición de rendimiento
     PerformanceMonitor.startMeasure('getResolucionesFiltradas');
 
+    // Si hay búsqueda general, usar filtrado local
+    if (filtros.busquedaGeneral) {
+      console.log('🔍 Usando filtrado local para búsqueda general');
+      return this.getResolucionesConEmpresa().pipe(
+        map(resoluciones => this.filtrarResolucionesLocal(resoluciones, filtros)),
+        tap(resoluciones => {
+          const executionTime = PerformanceMonitor.endMeasure('getResolucionesFiltradas');
+          PerformanceMonitor.recordFilterMetrics({
+            filterType: 'local',
+            executionTime,
+            resultCount: resoluciones.length,
+            datasetSize: resoluciones.length,
+            timestamp: new Date()
+          });
+        })
+      );
+    }
+
     // CONVERTIR filtros del formato frontend al formato backend
     const filtrosBackend: any = this.convertirFiltrosFrontendABackend(filtros);
     console.log('Filtros convertidos (backend):', filtrosBackend);
@@ -389,8 +415,11 @@ export class ResolucionService {
           });
         }),
         catchError(error => {
-          console.error('Error fetching filtered resoluciones from backend:', error);
-          return throwError(() => error);
+          console.error('Error fetching filtered resoluciones from backend, usando filtrado local:', error);
+          // Fallback a filtrado local
+          return this.getResolucionesConEmpresa().pipe(
+            map(resoluciones => this.filtrarResolucionesLocal(resoluciones, filtros))
+          );
         })
       );
   }
@@ -403,7 +432,12 @@ export class ResolucionService {
   private convertirFiltrosFrontendABackend(filtrosFrontend: ResolucionFiltros): any {
     const filtrosBackend: any = {};
 
-    // Mapear numeroResolucion (frontend) → nroResolucion (backend)
+    // Búsqueda inteligente (número, razón social o RUC)
+    if (filtrosFrontend.busquedaGeneral) {
+      filtrosBackend.busquedaGeneral = filtrosFrontend.busquedaGeneral;
+    }
+
+    // Mapear numeroResolucion (frontend) → nroResolucion (backend) - para compatibilidad
     if (filtrosFrontend.numeroResolucion) {
       filtrosBackend.nroResolucion = filtrosFrontend.numeroResolucion;
     }
@@ -431,6 +465,91 @@ export class ResolucionService {
     }
 
     return filtrosBackend;
+  }
+
+  /**
+   * Filtra resoluciones localmente (en el frontend)
+   * @param resoluciones - Lista de resoluciones con empresa
+   * @param filtros - Filtros a aplicar
+   * @returns Lista filtrada
+   */
+  private filtrarResolucionesLocal(resoluciones: ResolucionConEmpresa[], filtros: ResolucionFiltros): ResolucionConEmpresa[] {
+    console.log('🔍 Filtrando localmente:', resoluciones.length, 'resoluciones con filtros:', filtros);
+    
+    const resultados = resoluciones.filter(resolucion => {
+      // Búsqueda general (número, razón social o RUC)
+      if (filtros.busquedaGeneral) {
+        const busqueda = filtros.busquedaGeneral.toLowerCase().trim();
+        const coincideNumero = resolucion.nroResolucion.toLowerCase().includes(busqueda);
+        const coincideRazonSocial = resolucion.empresa?.razonSocial?.principal?.toLowerCase().includes(busqueda) || false;
+        const coincideRUC = resolucion.empresa?.ruc?.includes(busqueda) || false;
+        
+        console.log(`Evaluando ${resolucion.nroResolucion}:`, {
+          busqueda,
+          coincideNumero,
+          coincideRazonSocial,
+          coincideRUC,
+          razonSocial: resolucion.empresa?.razonSocial?.principal,
+          ruc: resolucion.empresa?.ruc
+        });
+        
+        if (!coincideNumero && !coincideRazonSocial && !coincideRUC) {
+          return false;
+        }
+      }
+
+      // Filtro por número de resolución específico
+      if (filtros.numeroResolucion) {
+        const numeroFiltro = filtros.numeroResolucion.toLowerCase().trim();
+        if (!resolucion.nroResolucion.toLowerCase().includes(numeroFiltro)) {
+          return false;
+        }
+      }
+
+      // Filtro por estados
+      if (filtros.estados && filtros.estados.length > 0) {
+        if (!filtros.estados.includes(resolucion.estado || '')) {
+          return false;
+        }
+      }
+
+      // Filtro por tipos de trámite
+      if (filtros.tiposTramite && filtros.tiposTramite.length > 0) {
+        if (!filtros.tiposTramite.includes(resolucion.tipoTramite)) {
+          return false;
+        }
+      }
+
+      // Filtro por empresa
+      if (filtros.empresaId) {
+        if (resolucion.empresaId !== filtros.empresaId) {
+          return false;
+        }
+      }
+
+      // Filtro por fecha de inicio
+      if (filtros.fechaInicio) {
+        const fechaEmision = new Date(resolucion.fechaEmision);
+        const fechaInicio = new Date(filtros.fechaInicio);
+        if (fechaEmision < fechaInicio) {
+          return false;
+        }
+      }
+
+      // Filtro por fecha de fin
+      if (filtros.fechaFin) {
+        const fechaEmision = new Date(resolucion.fechaEmision);
+        const fechaFin = new Date(filtros.fechaFin);
+        if (fechaEmision > fechaFin) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+    
+    console.log('✅ Resultados filtrados:', resultados.length);
+    return resultados;
   }
 
   /**
@@ -568,6 +687,130 @@ export class ResolucionService {
         );
       })
     );
+  }
+
+  /**
+   * Exporta resoluciones seleccionadas a Excel con columnas visibles
+   * @param resoluciones - Resoluciones a exportar (solo las seleccionadas)
+   * @param columnasVisibles - Columnas que están visibles en la tabla
+   * @returns Observable con el blob del archivo Excel
+   */
+  exportarResolucionesSeleccionadas(
+    resoluciones: ResolucionConEmpresa[], 
+    columnasVisibles: string[]
+  ): Observable<Blob> {
+    console.log('=== exportarResolucionesSeleccionadas ===');
+    console.log('Resoluciones a exportar:', resoluciones.length);
+    console.log('Columnas visibles:', columnasVisibles);
+
+    return this.generarExcel(resoluciones, columnasVisibles);
+  }
+
+  /**
+   * Genera archivo Excel con las resoluciones seleccionadas
+   */
+  private generarExcel(resoluciones: ResolucionConEmpresa[], columnasVisibles: string[]): Observable<Blob> {
+    return new Observable(observer => {
+      try {
+        // Importar xlsx dinámicamente
+        import('xlsx').then(XLSX => {
+          // Definir mapeo de columnas
+          const columnasMap: { [key: string]: { header: string, accessor: (r: ResolucionConEmpresa) => any } } = {
+            'nroResolucion': {
+              header: 'N° Resolución',
+              accessor: (r) => r.nroResolucion
+            },
+            'empresa': {
+              header: 'Empresa',
+              accessor: (r) => r.empresa?.razonSocial?.principal || 'Sin empresa'
+            },
+            'tipoTramite': {
+              header: 'Tipo de Trámite',
+              accessor: (r) => r.tipoTramite
+            },
+            'fechaEmision': {
+              header: 'Fecha Emisión',
+              accessor: (r) => new Date(r.fechaEmision).toLocaleDateString('es-PE')
+            },
+            'fechaVigenciaInicio': {
+              header: 'Vigencia Inicio',
+              accessor: (r) => r.fechaVigenciaInicio ? new Date(r.fechaVigenciaInicio).toLocaleDateString('es-PE') : '-'
+            },
+            'fechaVigenciaFin': {
+              header: 'Vigencia Fin',
+              accessor: (r) => r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin).toLocaleDateString('es-PE') : '-'
+            },
+            'aniosVigencia': {
+              header: 'Años Vigencia',
+              accessor: (r) => r.aniosVigencia ? `${r.aniosVigencia} ${r.aniosVigencia === 1 ? 'año' : 'años'}` : '-'
+            },
+            'estado': {
+              header: 'Estado',
+              accessor: (r) => r.estado || 'Sin estado'
+            },
+            'rutasAutorizadas': {
+              header: 'Rutas Autorizadas',
+              accessor: (r) => r.cantidadRutas ? `${r.cantidadRutas} rutas` : 'Sin rutas'
+            },
+            'vehiculosHabilitados': {
+              header: 'Vehículos Habilitados',
+              accessor: (r) => r.cantidadVehiculos ? `${r.cantidadVehiculos} vehículos` : 'Sin vehículos'
+            }
+          };
+
+          // Filtrar solo las columnas visibles (excluyendo acciones y selección)
+          const columnasExportar = columnasVisibles.filter(col => 
+            col !== 'acciones' && col !== 'seleccion' && columnasMap[col]
+          );
+
+          // Crear headers
+          const headers = columnasExportar.map(col => columnasMap[col].header);
+
+          // Crear filas de datos
+          const filas = resoluciones.map(resolucion => 
+            columnasExportar.map(col => columnasMap[col].accessor(resolucion))
+          );
+
+          // Crear worksheet
+          const wsData = [headers, ...filas];
+          const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+          // Configurar anchos de columnas
+          const colWidths = columnasExportar.map(col => {
+            switch (col) {
+              case 'nroResolucion': return { wch: 15 };
+              case 'empresa': return { wch: 40 };
+              case 'tipoTramite': return { wch: 15 };
+              case 'fechaEmision': return { wch: 12 };
+              case 'fechaVigenciaInicio': return { wch: 12 };
+              case 'fechaVigenciaFin': return { wch: 12 };
+              case 'aniosVigencia': return { wch: 12 };
+              case 'estado': return { wch: 12 };
+              case 'rutasAutorizadas': return { wch: 18 };
+              case 'vehiculosHabilitados': return { wch: 20 };
+              default: return { wch: 15 };
+            }
+          });
+          ws['!cols'] = colWidths;
+
+          // Crear workbook
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Resoluciones');
+
+          // Generar archivo
+          const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([excelBuffer], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+
+          observer.next(blob);
+          observer.complete();
+        });
+      } catch (error) {
+        console.error('Error generando Excel:', error);
+        observer.error(error);
+      }
+    });
   }
 
   /**
@@ -881,6 +1124,52 @@ export class ResolucionService {
       catchError(error => {
         console.error('Error obteniendo reporte de estados de resoluciones padres:', error);
         return throwError(() => new Error('Error al obtener el reporte de estados'));
+      })
+    );
+  }
+
+  // ========================================
+  // MÉTODOS DE RESTORE/RECUPERACIÓN
+  // ========================================
+
+  /**
+   * Obtener resoluciones eliminadas recientemente (últimos 30 días)
+   */
+  getResolucionesEliminadas(limit: number = 50): Observable<any[]> {
+    const url = `${this.apiUrl}/resoluciones/eliminadas?limit=${limit}`;
+
+    return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error obteniendo resoluciones eliminadas:', error);
+        return throwError(() => new Error('Error al obtener resoluciones eliminadas'));
+      })
+    );
+  }
+
+  /**
+   * Restaurar una resolución eliminada
+   */
+  restoreResolucion(resolucionId: string): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/${resolucionId}/restore`;
+
+    return this.http.post(url, {}, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error restaurando resolución:', error);
+        return throwError(() => new Error('Error al restaurar la resolución'));
+      })
+    );
+  }
+
+  /**
+   * Restaurar múltiples resoluciones eliminadas
+   */
+  restoreResolucionesMultiples(resolucionesIds: string[]): Observable<any> {
+    const url = `${this.apiUrl}/resoluciones/restore-multiple`;
+
+    return this.http.post(url, resolucionesIds, { headers: this.getHeaders() }).pipe(
+      catchError(error => {
+        console.error('Error restaurando resoluciones múltiples:', error);
+        return throwError(() => new Error('Error al restaurar las resoluciones'));
       })
     );
   }

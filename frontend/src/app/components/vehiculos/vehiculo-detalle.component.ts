@@ -537,8 +537,8 @@ export class VehiculoDetalleComponent {
     // Cargar información de la resolución
     if (vehiculo.resolucionId) {
       this.resolucionService.getResolucionById(vehiculo.resolucionId).subscribe({
-        next: (resolucion: any) => this.resolucionInfo.set(resolucion),
-        error: (error: any) => console.error('Error cargando resolución:', error)
+        next: (resolucion: unknown) => this.resolucionInfo.set(resolucion),
+        error: (error: unknown) => console.error('Error cargando resolución:', error)
       });
     }
   }

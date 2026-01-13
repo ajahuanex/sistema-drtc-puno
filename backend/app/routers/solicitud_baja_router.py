@@ -19,7 +19,7 @@ router = APIRouter(prefix="/solicitudes-baja", tags=["Solicitudes de Baja"])
 def get_solicitud_baja_service(db: AsyncIOMotorDatabase = Depends(get_database)) -> SolicitudBajaService:
     return SolicitudBajaService(db)
 
-# Usuario mock para desarrollo - en producción esto vendría del token JWT
+# TODO: Implementar autenticación real - en producción esto vendría del token JWT
 def get_current_user():
     return {
         "id": "user-demo-123",

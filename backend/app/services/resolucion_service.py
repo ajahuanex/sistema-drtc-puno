@@ -204,9 +204,63 @@ class ResolucionService:
 
         result = await self.collection.update_one(
             {"_id": doc_raw["_id"]},
-            {"$set": {"estaActivo": False, "fechaActualizacion": datetime.utcnow()}}
+            {"$set": {
+                "estaActivo": False, 
+                "fechaActualizacion": datetime.utcnow(),
+                "fechaEliminacion": datetime.utcnow()
+            }}
         )
         return result.modified_count > 0
+
+    async def restore_resolucion(self, resolucion_id: str) -> bool:
+        """Restaurar una resolución eliminada (soft delete)"""
+        # Resolver _id
+        filter_query = {"id": resolucion_id}
+        if ObjectId.is_valid(resolucion_id):
+             filter_query = {"$or": [{"id": resolucion_id}, {"_id": ObjectId(resolucion_id)}]}
+        doc_raw = await self.collection.find_one(filter_query)
+        
+        if not doc_raw:
+            return False
+
+        # Verificar que la resolución esté eliminada
+        if doc_raw.get("estaActivo", True):
+            return False  # Ya está activa
+
+        result = await self.collection.update_one(
+            {"_id": doc_raw["_id"]},
+            {
+                "$set": {
+                    "estaActivo": True, 
+                    "fechaActualizacion": datetime.utcnow()
+                },
+                "$unset": {
+                    "fechaEliminacion": ""
+                }
+            }
+        )
+        return result.modified_count > 0
+
+    async def get_resoluciones_eliminadas(self, limit: int = 50) -> List[ResolucionInDB]:
+        """Obtener resoluciones eliminadas recientemente (últimos 30 días)"""
+        from datetime import timedelta
+        
+        fecha_limite = datetime.utcnow() - timedelta(days=30)
+        
+        cursor = self.collection.find({
+            "estaActivo": False,
+            "fechaEliminacion": {"$gte": fecha_limite}
+        }).sort("fechaEliminacion", -1).limit(limit)
+        
+        docs = await cursor.to_list(length=None)
+        
+        # Convertir _id a id para cada documento
+        for doc in docs:
+            if "_id" in doc:
+                if "id" not in doc or not doc.get("id"):
+                    doc["id"] = str(doc["_id"])
+        
+        return [ResolucionInDB(**doc) for doc in docs]
 
     async def validar_numero_unico_por_anio(self, numero: str, fecha_emision: datetime) -> bool:
         anio = fecha_emision.year

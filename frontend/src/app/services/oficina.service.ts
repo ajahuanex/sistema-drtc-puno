@@ -125,7 +125,8 @@ export class OficinaService {
   flujoExpediente$ = this.flujoExpedienteSubject.asObservable();
 
   // Métodos CRUD para Oficinas
-  getOficinas(filtros?: OficinaFiltros, skip: number = 0, limit: number = 100): Observable<Oficina[]> {
+  getOficinas(filtros?: OficinaFiltros, skip: number = 0, limit: number = 1000): Observable<Oficina[]> {
+    // Aumentar el límite para obtener todas las oficinas
     let params = new HttpParams()
       .set('skip', skip.toString())
       .set('limit', limit.toString());
@@ -169,7 +170,8 @@ export class OficinaService {
   }
 
   // Métodos para Expedientes
-  getExpedientesPorOficina(oficinaId: string, skip: number = 0, limit: number = 100): Observable<any[]> {
+  getExpedientesPorOficina(oficinaId: string, skip: number = 0, limit: number = 1000): Observable<any[]> {
+    // Aumentar el límite para obtener todos los expedientes por oficina
     const params = new HttpParams()
       .set('skip', skip.toString())
       .set('limit', limit.toString());

@@ -104,7 +104,8 @@ export class NotificationService {
   }
 
   // Métodos CRUD
-  getNotificaciones(filtros?: NotificacionFiltros, skip: number = 0, limit: number = 100): Observable<Notificacion[]> {
+  getNotificaciones(filtros?: NotificacionFiltros, skip: number = 0, limit: number = 1000): Observable<Notificacion[]> {
+    // Aumentar el límite para obtener todas las notificaciones
     let params = new URLSearchParams();
     params.set('skip', skip.toString());
     params.set('limit', limit.toString());

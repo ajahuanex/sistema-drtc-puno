@@ -64,7 +64,7 @@ import { VehiculoEstadoSelectorComponent } from './vehiculo-estado-selector.comp
     VehiculoEstadoSelectorComponent
   ],
   templateUrl: './vehiculos.component.html',
-  styleUrls: ['./vehiculos.component.scss']
+  styleUrls: ['./(vehiculos as any).component.scss']
 })
 export class VehiculosComponent implements OnInit {
   private vehiculoService = inject(VehiculoService);
@@ -99,7 +99,7 @@ export class VehiculosComponent implements OnInit {
   });
 
   // Formulario de filtros
-  filtrosForm: FormGroup = this.fb.group({
+  filtrosForm: FormGroup = (this as any).fb.group({
     placa: [''],
     marca: [''],
     empresaId: [''],
@@ -150,233 +150,229 @@ export class VehiculosComponent implements OnInit {
   
   // Computed para columnas visibles
   columnasVisibles = computed(() => {
-    const visibles = this.columnasVisiblesState();
-    console.log('[VEHICULOS-COMPUTED] Columnas visibles:', visibles);
+    const visibles = (this as any).columnasVisiblesState();
     return [...visibles];
   });
 
   // Computed para availableColumns (para compatibilidad con el template)
   availableColumns = computed(() => {
-    const visibles = this.columnasVisiblesState();
-    return this.columnasDisponibles.map(col => ({
+    const visibles = (this as any).columnasVisiblesState();
+    return (this as any).columnasDisponibles.map(col => ({
       ...col,
-      visible: visibles.includes(col.key)
+      visible: (visibles as any).includes((col as any).key)
     }));
   });
 
   // Computed properties
   vehiculosFiltrados = computed(() => {
-    const filtros = this.filtrosValues();
-    let vehiculosFiltrados = this.vehiculos();
+    const filtros = (this as any).filtrosValues();
+    let vehiculosFiltrados = (this as any).vehiculos();
 
     // FILTRO POR DEFECTO MEJORADO: 
     // - Si mostrarSinResolucion está activado, mostrar SOLO los que NO tienen resolución o empresa
     // - Si está desactivado, mostrar TODOS los vehículos (con y sin resolución)
     // - Esto permite ver los vehículos recién cargados que aún no tienen resolución asignada
-    if (filtros.mostrarSinResolucion) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        !v.resolucionId || !v.empresaActualId
+    if ((filtros as any).mostrarSinResolucion) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        !(v as any).resolucionId || !(v as any).empresaActualId
       );
     }
     // Si mostrarSinResolucion está desactivado, mostrar todos los vehículos
     // (comentamos el filtro restrictivo anterior)
-    // if (!filtros.mostrarSinResolucion) {
-    //   vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-    //     v.resolucionId && v.empresaActualId
+    // if (!(filtros as any).mostrarSinResolucion) {
+    //   vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+    //     (v as any).resolucionId && (v as any).empresaActualId
     //   );
     // }
 
-    if (filtros.placa) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.placa.toLowerCase().includes(filtros.placa.toLowerCase())
+    if ((filtros as any).placa) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        (v as any).placa.toLowerCase().includes((filtros as any).placa.toLowerCase())
       );
     }
 
-    if (filtros.marca) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.marca?.toLowerCase().includes(filtros.marca.toLowerCase())
+    if ((filtros as any).marca) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        (v as any).marca?.toLowerCase().includes((filtros as any).marca.toLowerCase())
       );
     }
 
-    if (filtros.empresaId) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.empresaActualId === filtros.empresaId
+    if ((filtros as any).empresaId) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        (v as any).empresaActualId === (filtros as any).empresaId
       );
     }
 
-    if (filtros.estado) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.estado === filtros.estado
+    if ((filtros as any).estado) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        (v as any).estado === (filtros as any).estado
       );
     }
 
-    if (filtros.categoria) {
-      vehiculosFiltrados = vehiculosFiltrados.filter(v => 
-        v.categoria === filtros.categoria
+    if ((filtros as any).categoria) {
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+        (v as any).categoria === (filtros as any).categoria
       );
     }
 
     // ORDENAMIENTO POR FECHA MÁS RECIENTE PRIMERO
     // Prioridad: fechaActualizacion > fechaRegistro > fechaCreacion
-    vehiculosFiltrados = vehiculosFiltrados.sort((a, b) => {
-      const fechaA = this.obtenerFechaMasReciente(a);
-      const fechaB = this.obtenerFechaMasReciente(b);
+    vehiculosFiltrados = (vehiculosFiltrados as any).sort((a: any, b: any) => {
+      const fechaA = (this as any).obtenerFechaMasReciente(a);
+      const fechaB = (this as any).obtenerFechaMasReciente(b);
       
       // Ordenar de más reciente a más antiguo (descendente)
-      return fechaB.getTime() - fechaA.getTime();
+      return (fechaB as any).getTime() - (fechaA as any).getTime();
     });
 
     return vehiculosFiltrados;
   });
 
   displayedColumns = computed(() => {
-    const columnas = this.columnasVisibles();
-    console.log('[VEHICULOS-COMPUTED] DisplayedColumns:', columnas);
+    const columnas = (this as any).columnasVisibles();
     return columnas;
   });
 
   // Getter para usar en el template (Angular no puede usar computed directamente en matHeaderRowDef)
   get displayedColumnsArray(): string[] {
-    return this.displayedColumns();
+    return (this as any).displayedColumns();
   }
 
   constructor() {
     // Effect para reaccionar a cambios en columnas
     effect(() => {
-      const columnas = this.columnasVisiblesState();
-      console.log('[VEHICULOS-EFFECT] Columnas cambiaron:', columnas);
-      this.cdr.markForCheck();
+      const columnas = (this as any).columnasVisiblesState();
+      (this as any).cdr.markForCheck();
     });
   }
 
   ngOnInit(): void {
-    this.loadColumnPreferences();
-    this.cargarDatos();
+    (this as any).loadColumnPreferences();
+    (this as any).cargarDatos();
     
     // Suscribirse a cambios en el formulario de filtros y actualizar el signal
-    this.filtrosForm.valueChanges.subscribe((values) => {
-      this.filtrosValues.set(values);
-      this.paginaActual.set(0);
+    this.filtrosForm.valueChanges.subscribe((values: any) => {
+      (this as any).filtrosValues.set(values);
+      (this as any).paginaActual.set(0);
     });
 
     // Inicializar el signal con los valores iniciales del formulario
-    this.filtrosValues.set(this.filtrosForm.value);
+    (this as any).filtrosValues.set((this as any).filtrosForm.value);
   }
 
   private cargarDatos(): void {
-    this.cargando.set(true);
+    (this as any).cargando.set(true);
     
-    Promise.all([
-      this.vehiculoService.getVehiculos().toPromise(),
-      this.empresaService.getEmpresas().toPromise(),
-      this.rutaService.getRutas().toPromise()
-    ]).then(([vehiculos, empresas, rutas]) => {
-      this.vehiculos.set(vehiculos || []);
-      this.empresas.set(empresas || []);
-      this.rutas.set(rutas || []);
-      this.cargando.set(false);
+    (Promise as any).all([
+      (this as any).vehiculoService.getVehiculos().toPromise(),
+      (this as any).empresaService.getEmpresas().toPromise(),
+      (this as any).rutaService.getRutas().toPromise()
+    ]).then(([vehiculos, empresas, rutas]: any[]) => {
+      (this as any).vehiculos.set(vehiculos || []);
+      (this as any).empresas.set(empresas || []);
+      (this as any).rutas.set(rutas || []);
+      (this as any).cargando.set(false);
       
       // Log solo si no hay datos para diagnosticar
       if (!vehiculos?.length && !empresas?.length && !rutas?.length) {
-        console.warn('⚠️ No se cargaron datos. Verificar backend y base de datos.');
-      }
-    }).catch((error: any) => {
-      console.error('❌ Error cargando datos:', error);
-      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
-      this.cargando.set(false);
+        }
+    }).catch((error: unknown) => {
+      (console as any).error('❌ Error cargando datos:', error);
+      (this as any).snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      (this as any).cargando.set(false);
     });
   }
 
   recargarVehiculos(): void {
-    this.cargarDatos();
+    (this as any).cargarDatos();
   }
 
   // Métodos de filtros
   aplicarFiltros(): void {
     // Actualizar el signal con los valores actuales del formulario
-    this.filtrosValues.set(this.filtrosForm.value);
-    this.paginaActual.set(0);
+    (this as any).filtrosValues.set((this as any).filtrosForm.value);
+    (this as any).paginaActual.set(0);
   }
 
   limpiarFiltros(): void {
-    this.filtrosForm.reset();
+    (this as any).filtrosForm.reset();
     // Actualizar el signal con los valores reseteados
-    this.filtrosValues.set(this.filtrosForm.value);
-    this.paginaActual.set(0);
+    (this as any).filtrosValues.set((this as any).filtrosForm.value);
+    (this as any).paginaActual.set(0);
   }
 
   // Métodos de estadísticas
   getVehiculosActivos(): number {
-    return this.vehiculos().filter(v => v.estado === 'ACTIVO').length;
+    return (this as any).vehiculos().filter(v => (v as any).estado === 'ACTIVO').length;
   }
 
   getVehiculosPorEstado(estado: string): number {
-    return this.vehiculos().filter(v => v.estado === estado).length;
+    return (this as any).vehiculos().filter(v => (v as any).estado === estado).length;
   }
 
   // Métodos de paginación
   getPaginatedVehiculos(): Vehiculo[] {
-    const vehiculos = this.vehiculosFiltrados();
-    const inicio = this.paginaActual() * this.elementosPorPagina();
-    const fin = inicio + this.elementosPorPagina();
-    return vehiculos.slice(inicio, fin);
+    const vehiculos = (this as any).vehiculosFiltrados();
+    const inicio = (this as any).paginaActual() * (this as any).elementosPorPagina();
+    const fin = inicio + (this as any).elementosPorPagina();
+    return (vehiculos as any).slice(inicio, fin);
   }
 
   // Métodos de selección
   isVehiculoSeleccionado(vehiculoId: string): boolean {
-    return this.vehiculosSeleccionados().has(vehiculoId);
+    return (this as any).vehiculosSeleccionados().has(vehiculoId);
   }
 
   toggleVehiculoSeleccion(vehiculoId: string): void {
-    const seleccionados = new Set(this.vehiculosSeleccionados());
-    if (seleccionados.has(vehiculoId)) {
-      seleccionados.delete(vehiculoId);
+    const seleccionados = new Set((this as any).vehiculosSeleccionados());
+    if ((seleccionados as any).has(vehiculoId)) {
+      (seleccionados as any).delete(vehiculoId);
     } else {
-      seleccionados.add(vehiculoId);
+      (seleccionados as any).add(vehiculoId);
     }
-    this.vehiculosSeleccionados.set(seleccionados);
+    (this as any).vehiculosSeleccionados.set(seleccionados);
   }
 
   seleccionarTodos(): boolean {
-    const vehiculosVisibles = this.getPaginatedVehiculos();
-    return vehiculosVisibles.length > 0 && 
-           vehiculosVisibles.every(v => this.vehiculosSeleccionados().has(v.id));
+    const vehiculosVisibles = (this as any).getPaginatedVehiculos();
+    return (vehiculosVisibles as any).length > 0 && 
+           (vehiculosVisibles as any).every(v => (this as any).vehiculosSeleccionados().has((v as any).id));
   }
 
   toggleSeleccionarTodos(): void {
-    const vehiculosVisibles = this.getPaginatedVehiculos();
-    const seleccionados = new Set(this.vehiculosSeleccionados());
+    const vehiculosVisibles = (this as any).getPaginatedVehiculos();
+    const seleccionados = new Set((this as any).vehiculosSeleccionados());
     
-    if (this.seleccionarTodos()) {
+    if ((this as any).seleccionarTodos()) {
       // Deseleccionar todos los visibles
-      vehiculosVisibles.forEach(v => seleccionados.delete(v.id));
+      (vehiculosVisibles as any).forEach(v => (seleccionados as any).delete((v as any).id));
     } else {
       // Seleccionar todos los visibles
-      vehiculosVisibles.forEach(v => seleccionados.add(v.id));
+      (vehiculosVisibles as any).forEach(v => (seleccionados as any).add((v as any).id));
     }
     
-    this.vehiculosSeleccionados.set(seleccionados);
+    (this as any).vehiculosSeleccionados.set(seleccionados);
   }
 
   getVehiculosSeleccionadosCount(): number {
-    return this.vehiculosSeleccionados().size;
+    return (this as any).vehiculosSeleccionados().size;
   }
 
   limpiarSeleccion(): void {
-    this.vehiculosSeleccionados.set(new Set());
+    (this as any).vehiculosSeleccionados.set(new Set());
   }
 
   cambiarEstadoEnBloque(): void {
-    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
-      .map(id => this.vehiculos().find(v => v.id === id))
+    const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
+      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
       .filter(v => v !== undefined) as Vehiculo[];
 
-    if (vehiculosSeleccionados.length === 0) {
-      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+    if ((vehiculosSeleccionados as any).length === 0) {
+      (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+    const dialogRef = (this as any).dialog.open(CambiarEstadoBloqueModalComponent, {
       data: { vehiculos: vehiculosSeleccionados },
       width: '700px',
       maxWidth: '95vw',
@@ -384,30 +380,29 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'cambiar-estado-bloque-modal-panel'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe(result => {
       if (result) {
         // Limpiar selección después del cambio exitoso
-        this.limpiarSeleccion();
+        (this as any).limpiarSeleccion();
         
         // Recargar vehículos para mostrar los cambios
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
         
-        console.log(`Estados cambiados para ${result.vehiculos.length} vehículos a ${result.nuevoEstado}`);
-      }
+        }
     });
   }
 
   editarEnBloque(): void {
-    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
-      .map(id => this.vehiculos().find(v => v.id === id))
+    const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
+      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
       .filter(v => v !== undefined) as Vehiculo[];
 
-    if (vehiculosSeleccionados.length === 0) {
-      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+    if ((vehiculosSeleccionados as any).length === 0) {
+      (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+    const dialogRef = (this as any).dialog.open(CambiarEstadoBloqueModalComponent, {
       data: { 
         vehiculos: vehiculosSeleccionados,
         campo: 'ambos' // Permitir editar tanto estado como tipo de servicio
@@ -418,30 +413,29 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'edicion-bloque-modal-panel'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe(result => {
       if (result) {
         // Limpiar selección después del cambio exitoso
-        this.limpiarSeleccion();
+        (this as any).limpiarSeleccion();
         
         // Recargar vehículos para mostrar los cambios
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
         
-        console.log(`Vehículos actualizados en bloque:`, result);
-      }
+        }
     });
   }
 
   cambiarTipoServicioEnBloque(): void {
-    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
-      .map(id => this.vehiculos().find(v => v.id === id))
+    const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
+      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
       .filter(v => v !== undefined) as Vehiculo[];
 
-    if (vehiculosSeleccionados.length === 0) {
-      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+    if ((vehiculosSeleccionados as any).length === 0) {
+      (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+    const dialogRef = (this as any).dialog.open(CambiarEstadoBloqueModalComponent, {
       data: { 
         vehiculos: vehiculosSeleccionados,
         campo: 'tipoServicio' // Solo editar tipo de servicio
@@ -452,203 +446,188 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'edicion-bloque-modal-panel'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe(result => {
       if (result) {
         // Limpiar selección después del cambio exitoso
-        this.limpiarSeleccion();
+        (this as any).limpiarSeleccion();
         
         // Recargar vehículos para mostrar los cambios
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
         
-        console.log(`Tipos de servicio cambiados para ${result.vehiculos.length} vehículos`);
-      }
+        }
     });
   }
 
   // Métodos de columnas
   columnaVisible(columna: string): boolean {
-    const visible = this.columnasVisiblesState().includes(columna);
-    console.log(`[VEHICULOS-CHECK] Columna "${columna}": ${visible ? 'VISIBLE' : 'OCULTA'}`);
+    const visible = (this as any).columnasVisiblesState().includes(columna);
     return visible;
   }
 
   toggleColumn(columnKey: string): void {
-    console.log(`[VEHICULOS-TOGGLE] Toggling columna "${columnKey}"`);
+    const columnasActuales = (this as any).columnasVisiblesState();
+    const columnaConfig = (this as any).columnasDisponibles.find(col => (col as any).key === columnKey);
     
-    const columnasActuales = this.columnasVisiblesState();
-    const columnaConfig = this.columnasDisponibles.find(col => col.key === columnKey);
-    
-    if (!columnaConfig || columnaConfig.required) {
-      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" es requerida, no se puede cambiar`);
+    if (!columnaConfig || (columnaConfig as any).required) {
       return;
     }
     
     let nuevasColumnas: string[];
     
-    if (columnasActuales.includes(columnKey)) {
+    if ((columnasActuales as any).includes(columnKey)) {
       // Remover columna
-      nuevasColumnas = columnasActuales.filter(col => col !== columnKey);
-      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" REMOVIDA`);
-    } else {
+      nuevasColumnas = (columnasActuales as any).filter(col => col !== columnKey);
+      } else {
       // Agregar columna manteniendo el orden original
-      nuevasColumnas = this.columnasDisponibles
-        .map(col => col.key)
-        .filter(key => columnasActuales.includes(key) || key === columnKey);
-      console.log(`[VEHICULOS-TOGGLE] Columna "${columnKey}" AGREGADA`);
-    }
+      nuevasColumnas = (this as any).columnasDisponibles
+        .map(col => (col as any).key)
+        .filter(key => (columnasActuales as any).includes(key) || key === columnKey);
+      }
     
     // Actualizar estado
-    this.columnasVisiblesState.set(nuevasColumnas);
+    (this as any).columnasVisiblesState.set(nuevasColumnas);
     
     // Incrementar key para forzar re-renderización
-    this.tablaRenderKey.update(key => key + 1);
+    (this as any).tablaRenderKey.update(key => key + 1);
     
     // Guardar preferencias
-    this.saveColumnPreferences();
+    (this as any).saveColumnPreferences();
     
     // Forzar detección de cambios
-    this.cdr.detectChanges();
+    (this as any).cdr.detectChanges();
     
-    console.log(`[VEHICULOS-TOGGLE] Nuevas columnas:`, nuevasColumnas);
-  }
+    }
 
   getVisibleColumnsCount(): number {
-    return this.columnasVisiblesState().length;
+    return (this as any).columnasVisiblesState().length;
   }
 
   getHiddenColumnsCount(): number {
-    return this.columnasDisponibles.length - this.columnasVisiblesState().length;
+    return (this as any).columnasDisponibles.length - (this as any).columnasVisiblesState().length;
   }
 
   resetColumns(): void {
-    console.log('[VEHICULOS-RESET] Reseteando columnas a configuración por defecto');
-    
     const columnasDefault = ['select', 'placa', 'marca', 'empresa', 'categoria', 'estado', 'rutas-especificas', 'acciones'];
     
     // Actualizar estado
-    this.columnasVisiblesState.set(columnasDefault);
+    (this as any).columnasVisiblesState.set(columnasDefault);
     
     // Incrementar key para forzar re-renderización
-    this.tablaRenderKey.update(key => key + 1);
+    (this as any).tablaRenderKey.update(key => key + 1);
     
     // Guardar preferencias
-    this.saveColumnPreferences();
+    (this as any).saveColumnPreferences();
     
     // Forzar detección de cambios
-    this.cdr.detectChanges();
+    (this as any).cdr.detectChanges();
     
-    console.log('[VEHICULOS-RESET] Columnas reseteadas:', columnasDefault);
-  }
+    }
 
   private saveColumnPreferences(): void {
     try {
       const preferences = {
-        columnasVisibles: this.columnasVisiblesState(),
+        columnasVisibles: (this as any).columnasVisiblesState(),
         timestamp: new Date().toISOString()
       };
-      localStorage.setItem('vehiculos-columnas-preferences', JSON.stringify(preferences));
-      console.log('[VEHICULOS-PREFS] Preferencias guardadas:', preferences);
-    } catch (error) {
-      console.warn('[VEHICULOS-PREFS] Error guardando preferencias:', error);
-    }
+      (localStorage as any).setItem('vehiculos-columnas-preferences', (JSON as any).stringify(preferences));
+      } catch (error) {
+      }
   }
 
   private loadColumnPreferences(): void {
     try {
-      const saved = localStorage.getItem('vehiculos-columnas-preferences');
+      const saved = (localStorage as any).getItem('vehiculos-columnas-preferences');
       if (saved) {
-        const preferences = JSON.parse(saved);
-        if (preferences.columnasVisibles && Array.isArray(preferences.columnasVisibles)) {
+        const preferences = (JSON as any).parse(saved);
+        if ((preferences as any).columnasVisibles && (Array as any).isArray((preferences as any).columnasVisibles)) {
           // Validar que las columnas guardadas existen en la configuración actual
-          const columnasValidas = preferences.columnasVisibles.filter((col: string) => 
-            this.columnasDisponibles.some(disponible => disponible.key === col)
+          const columnasValidas = (preferences as any).columnasVisibles.filter((col: string) => 
+            (this as any).columnasDisponibles.some(disponible => (disponible as any).key === col)
           );
           
           // Asegurar que las columnas requeridas estén incluidas
-          const columnasRequeridas = this.columnasDisponibles
-            .filter(col => col.required)
-            .map(col => col.key);
+          const columnasRequeridas = (this as any).columnasDisponibles
+            .filter(col => (col as any).required)
+            .map(col => (col as any).key);
           
           const columnasFinales = [...new Set([...columnasRequeridas, ...columnasValidas])];
           
-          this.columnasVisiblesState.set(columnasFinales);
-          console.log('[VEHICULOS-PREFS] Preferencias cargadas:', columnasFinales);
-        }
+          (this as any).columnasVisiblesState.set(columnasFinales);
+          }
       }
     } catch (error) {
-      console.warn('[VEHICULOS-PREFS] Error cargando preferencias:', error);
-    }
+      }
   }
 
   // Métodos de utilidad para mostrar datos
   getEmpresaNombre(empresaId: string): string {
-    const empresa = this.empresas().find(e => e.id === empresaId);
+    const empresa = (this as any).empresas().find(e => (e as any).id === empresaId);
     return empresa?.razonSocial?.principal || 'Sin empresa';
   }
 
   getVehiculoTuc(vehiculo: Vehiculo): string {
-    return vehiculo.tuc?.nroTuc || 'N/A';
+    return (vehiculo as any).tuc?.nroTuc || 'N/A';
   }
 
   getVehiculoResolucion(vehiculo: Vehiculo): string {
-    return vehiculo.resolucionId || 'Sin resolución';
+    return (vehiculo as any).resolucionId || 'Sin resolución';
   }
 
   getMedidas(vehiculo: Vehiculo): string {
-    const medidas = vehiculo.datosTecnicos?.medidas;
+    const medidas = (vehiculo as any).datosTecnicos?.medidas;
     if (!medidas) return 'N/A';
-    return `${medidas.largo || 0}x${medidas.ancho || 0}x${medidas.alto || 0}m`;
+    return `${(medidas as any).largo || 0}x${(medidas as any).ancho || 0}x${(medidas as any).alto || 0}m`;
   }
 
   getFechaRegistro(vehiculo: Vehiculo): string {
-    return vehiculo.fechaRegistro ? new Date(vehiculo.fechaRegistro).toLocaleDateString() : 'N/A';
+    return (vehiculo as any).fechaRegistro ? new Date((vehiculo as any).fechaRegistro).toLocaleDateString() : 'N/A';
   }
 
   getFechaActualizacion(vehiculo: Vehiculo): string {
-    return vehiculo.fechaActualizacion ? new Date(vehiculo.fechaActualizacion).toLocaleDateString() : 'N/A';
+    return (vehiculo as any).fechaActualizacion ? new Date((vehiculo as any).fechaActualizacion).toLocaleDateString() : 'N/A';
   }
 
   getRutasEspecificasCount(vehiculo: Vehiculo): number {
     // Verificar si tiene rutasAsignadasIds (array de IDs de rutas)
-    if (vehiculo.rutasAsignadasIds && Array.isArray(vehiculo.rutasAsignadasIds)) {
-      return vehiculo.rutasAsignadasIds.length;
+    if ((vehiculo as any).rutasAsignadasIds && (Array as any).isArray((vehiculo as any).rutasAsignadasIds)) {
+      return (vehiculo as any).rutasAsignadasIds.length;
     }
     
     // Fallback a rutasEspecificas si existe
-    if (vehiculo.rutasEspecificas && Array.isArray(vehiculo.rutasEspecificas)) {
-      return vehiculo.rutasEspecificas.length;
+    if ((vehiculo as any).rutasEspecificas && (Array as any).isArray((vehiculo as any).rutasEspecificas)) {
+      return (vehiculo as any).rutasEspecificas.length;
     }
     
     return 0;
   }
 
   getRutasEspecificasText(vehiculo: Vehiculo): string {
-    const count = this.getRutasEspecificasCount(vehiculo);
+    const count = (this as any).getRutasEspecificasCount(vehiculo);
     if (count === 0) return 'Sin rutas';
     
     // Obtener los códigos de las rutas asignadas
-    const codigosRutas = this.getRutasCodigosArray(vehiculo);
+    const codigosRutas = (this as any).getRutasCodigosArray(vehiculo);
     
-    if (codigosRutas.length === 0) {
+    if ((codigosRutas as any).length === 0) {
       return count === 1 ? '1 ruta' : `${count} rutas`;
     }
     
     // Mostrar los códigos, truncar a 12 caracteres si es muy largo
-    const codigosTexto = codigosRutas.join(',');
-    if (codigosTexto.length > 12) {
-      return codigosTexto.substring(0, 12) + '...';
+    const codigosTexto = (codigosRutas as any).join(',');
+    if ((codigosTexto as any).length > 12) {
+      return (codigosTexto as any).substring(0, 12) + '...';
     }
     
     return codigosTexto;
   }
 
   getRutasCodigosArray(vehiculo: Vehiculo): string[] {
-    const rutasIds = vehiculo.rutasAsignadasIds || [];
-    const rutas = this.rutas();
+    const rutasIds = (vehiculo as any).rutasAsignadasIds || [];
+    const rutas = (this as any).rutas();
     
     return rutasIds
       .map(rutaId => {
-        const ruta = rutas.find((r: Ruta) => r.id === rutaId);
+        const ruta = (rutas as any).find((r: Ruta) => (r as any).id === rutaId);
         return ruta?.codigoRuta || null;
       })
       .filter(codigo => codigo !== null)
@@ -657,13 +636,13 @@ export class VehiculosComponent implements OnInit {
   }
 
   getRutasCodigosCompletos(vehiculo: Vehiculo): string {
-    const codigosRutas = this.getRutasCodigosArray(vehiculo);
+    const codigosRutas = (this as any).getRutasCodigosArray(vehiculo);
     
-    if (codigosRutas.length === 0) {
+    if ((codigosRutas as any).length === 0) {
       return 'Sin rutas asignadas';
     }
     
-    return codigosRutas.join(', ');
+    return (codigosRutas as any).join(', ');
   }
 
   getTipoServicioVehiculo(vehiculo: Vehiculo): string {
@@ -683,7 +662,7 @@ export class VehiculosComponent implements OnInit {
       { codigo: 'MIXTO', nombre: 'Transporte Mixto' }
     ];
     
-    const tipo = tipos.find(t => t.codigo === codigo);
+    const tipo = (tipos as any).find(t => (t as any).codigo === codigo);
     return tipo?.nombre || codigo;
   }
 
@@ -692,107 +671,107 @@ export class VehiculosComponent implements OnInit {
     const fechas: Date[] = [];
     
     // Agregar fechaActualizacion si existe
-    if (vehiculo.fechaActualizacion) {
-      fechas.push(new Date(vehiculo.fechaActualizacion));
+    if ((vehiculo as any).fechaActualizacion) {
+      (fechas as any).push(new Date((vehiculo as any).fechaActualizacion));
     }
     
     // Agregar fechaRegistro si existe
-    if (vehiculo.fechaRegistro) {
-      fechas.push(new Date(vehiculo.fechaRegistro));
+    if ((vehiculo as any).fechaRegistro) {
+      (fechas as any).push(new Date((vehiculo as any).fechaRegistro));
     }
     
     // Si no hay fechas, usar fecha muy antigua para que aparezca al final
-    if (fechas.length === 0) {
+    if ((fechas as any).length === 0) {
       return new Date(0);
     }
     
     // Retornar la fecha más reciente
-    return new Date(Math.max(...fechas.map(fecha => fecha.getTime())));
+    return new Date((Math as any).max(...(fechas as any).map(fecha => (fecha as any).getTime())));
   }
 
   // Métodos adicionales requeridos por el template
   gestionarRutasEspecificas(vehiculo: Vehiculo): void {
-    this.gestionarRutasVehiculo(vehiculo);
+    (this as any).gestionarRutasVehiculo(vehiculo);
   }
 
   getRutasAsignadasCompletas(vehiculo: Vehiculo): string {
-    return this.getRutasCodigosCompletos(vehiculo);
+    return (this as any).getRutasCodigosCompletos(vehiculo);
   }
 
   getRutasAsignadasCount(vehiculo: Vehiculo): number {
-    return this.getRutasEspecificasCount(vehiculo);
+    return (this as any).getRutasEspecificasCount(vehiculo);
   }
 
   getRutasAsignadas(vehiculo: Vehiculo): string {
-    return this.getRutasEspecificasText(vehiculo);
+    return (this as any).getRutasEspecificasText(vehiculo);
   }
 
   verDetalle(vehiculo: Vehiculo): void {
-    this.verDetalleVehiculo(vehiculo);
+    (this as any).verDetalleVehiculo(vehiculo);
   }
 
   verHistorial(vehiculo: Vehiculo): void {
-    this.verHistorialVehiculo(vehiculo);
+    (this as any).verHistorialVehiculo(vehiculo);
   }
 
   transferirVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(TransferirEmpresaModalComponent, {
+    const dialogRef = (this as any).dialog.open(TransferirEmpresaModalComponent, {
       width: '800px',
       maxHeight: '90vh',
       data: { vehiculo: vehiculo }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result?.success) {
-        this.snackBar.open(
-          `Vehículo ${vehiculo.placa} transferido exitosamente`,
+        (this as any).snackBar.open(
+          `Vehículo ${(vehiculo as any).placa} transferido exitosamente`,
           'Cerrar',
           { duration: 5000 }
         );
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   duplicarVehiculo(vehiculo: Vehiculo): void {
-    this.snackBar.open('Función de duplicación en desarrollo', 'Cerrar', { duration: 3000 });
+    (this as any).snackBar.open('Función de duplicación en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
   // Propiedades para el paginador
   get pageSize(): number {
-    return this.elementosPorPagina();
+    return (this as any).elementosPorPagina();
   }
 
   get currentPage(): number {
-    return this.paginaActual();
+    return (this as any).paginaActual();
   }
 
-  onPageChange(event: any): void {
-    this.paginaActual.set(event.pageIndex);
-    this.elementosPorPagina.set(event.pageSize);
+  onPageChange(event: unknown): void {
+    (this as any).paginaActual.set((event as any).pageIndex);
+    (this as any).elementosPorPagina.set((event as any).pageSize);
   }
 
   // Métodos de acciones
   nuevoVehiculo(): void {
-    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+    const dialogRef = (this as any).dialog.open(VehiculoModalComponent, {
       width: '900px',
       maxHeight: '90vh',
       data: { mode: 'create' }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result) {
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   verHistorialCompleto(): void {
-    this.router.navigate(['/historial-vehiculos']);
+    (this as any).router.navigate(['/historial-vehiculos']);
   }
 
   editarVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+    const dialogRef = (this as any).dialog.open(VehiculoModalComponent, {
       width: '900px',
       maxHeight: '90vh',
       data: { 
@@ -802,133 +781,131 @@ export class VehiculosComponent implements OnInit {
     });
 
     // Suscribirse al evento de actualización del modal
-    const modalInstance = dialogRef.componentInstance;
+    const modalInstance = (dialogRef as any).componentInstance;
     
-    modalInstance.vehiculoUpdated.subscribe((vehiculoActualizado) => {
-      console.log('Vehículo actualizado:', vehiculoActualizado);
-      this.recargarVehiculos();
+    (modalInstance as any).vehiculoUpdated.subscribe((vehiculoActualizado: any) => {
+      (this as any).recargarVehiculos();
     });
 
-    modalInstance.modalClosed.subscribe(() => {
-      console.log('Modal cerrado');
-    });
+    (modalInstance as any).modalClosed.subscribe(() => {
+      });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result) {
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   verDetalleVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(VehiculoDetalleComponent, {
+    const dialogRef = (this as any).dialog.open(VehiculoDetalleComponent, {
       width: '1000px',
       maxHeight: '90vh',
       data: { vehiculo: vehiculo }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result?.action === 'edit') {
-        this.editarVehiculo(result.vehiculo);
+        (this as any).editarVehiculo((result as any).vehiculo);
       }
     });
   }
 
   cambiarEstadoVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+    const dialogRef = (this as any).dialog.open(CambiarEstadoBloqueModalComponent, {
       width: '600px',
       data: { 
         vehiculo: vehiculo
       }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result) {
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   verHistorialVehiculo(vehiculo: Vehiculo): void {
     // Navegar a la página del historial vehicular con filtros específicos del vehículo
-    this.router.navigate(['/historial-vehiculos'], {
+    (this as any).router.navigate(['/historial-vehiculos'], {
       queryParams: {
-        vehiculoId: vehiculo.id,
-        placa: vehiculo.placa
+        vehiculoId: (vehiculo as any).id,
+        placa: (vehiculo as any).placa
       }
     });
   }
 
   gestionarRutasVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(GestionarRutasEspecificasModalComponent, {
+    const dialogRef = (this as any).dialog.open(GestionarRutasEspecificasModalComponent, {
       width: '1000px',
       maxHeight: '90vh',
       data: { vehiculo: vehiculo }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result) {
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   solicitarBajaVehiculo(vehiculo: Vehiculo): void {
-    const dialogRef = this.dialog.open(SolicitarBajaVehiculoUnifiedComponent, {
+    const dialogRef = (this as any).dialog.open(SolicitarBajaVehiculoUnifiedComponent, {
       width: '800px',
       maxHeight: '90vh',
       data: { vehiculo: vehiculo }
     });
 
-    dialogRef.afterClosed().subscribe((result: any) => {
+    (dialogRef as any).afterClosed().subscribe((result: unknown) => {
       if (result?.success) {
-        this.snackBar.open(
-          `Solicitud de baja para vehículo ${vehiculo.placa} enviada exitosamente`,
+        (this as any).snackBar.open(
+          `Solicitud de baja para vehículo ${(vehiculo as any).placa} enviada exitosamente`,
           'Cerrar',
           { duration: 5000 }
         );
-        this.recargarVehiculos();
+        (this as any).recargarVehiculos();
       }
     });
   }
 
   eliminarVehiculo(vehiculo: Vehiculo): void {
     const confirmar = confirm(
-      `¿Estás seguro de que deseas eliminar el vehículo ${vehiculo.placa}?\n\n` +
+      `¿Estás seguro de que deseas eliminar el vehículo ${(vehiculo as any).placa}?\n\n` +
       `El vehículo será marcado como eliminado pero se mantendrá en el sistema para fines de auditoría.`
     );
 
     if (confirmar) {
-      this.vehiculoService.deleteVehiculo(vehiculo.id).subscribe({
+      (this as any).vehiculoService.deleteVehiculo((vehiculo as any).id).subscribe({
         next: () => {
-          this.snackBar.open(
-            `Vehículo ${vehiculo.placa} eliminado exitosamente`,
+          (this as any).snackBar.open(
+            `Vehículo ${(vehiculo as any).placa} eliminado exitosamente`,
             'Cerrar',
             { 
               duration: 3000,
               panelClass: ['snackbar-success']
             }
           );
-          this.cargarDatos(); // Recargar la lista
+          (this as any).cargarDatos(); // Recargar la lista
         },
         error: (error) => {
-          console.error('Error eliminando vehículo:', error);
+          (console as any).error('Error eliminando vehículo:', error);
           
           let mensaje = 'Error al eliminar el vehículo';
           
-          if (error.status === 422) {
+          if ((error as any).status === 422) {
             // Error de validación - el vehículo tiene dependencias
-            mensaje = `No se puede eliminar el vehículo ${vehiculo.placa}. ` +
+            mensaje = `No se puede eliminar el vehículo ${(vehiculo as any).placa}. ` +
                      'Es posible que tenga rutas asignadas, resoluciones activas o esté siendo utilizado en otros procesos.';
-          } else if (error.status === 404) {
+          } else if ((error as any).status === 404) {
             mensaje = 'El vehículo no fue encontrado';
-          } else if (error.status === 403) {
+          } else if ((error as any).status === 403) {
             mensaje = 'No tienes permisos para eliminar este vehículo';
-          } else if (error.status === 0) {
+          } else if ((error as any).status === 0) {
             mensaje = 'Error de conexión. Verifica tu conexión a internet';
           }
           
-          this.snackBar.open(mensaje, 'Cerrar', { 
+          (this as any).snackBar.open(mensaje, 'Cerrar', { 
             duration: 5000,
             panelClass: ['snackbar-error']
           });
@@ -938,91 +915,87 @@ export class VehiculosComponent implements OnInit {
   }
 
   gestionarRutasEnBloque(): void {
-    const vehiculosSeleccionados = Array.from(this.vehiculosSeleccionados())
-      .map(id => this.vehiculos().find(v => v.id === id))
+    const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
+      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
       .filter(v => v !== undefined) as Vehiculo[];
 
-    if (vehiculosSeleccionados.length === 0) {
-      this.snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
+    if ((vehiculosSeleccionados as any).length === 0) {
+      (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
       return;
     }
 
     // Aquí implementarías la lógica para gestionar rutas en bloque
-    this.snackBar.open(
-      `Gestionando rutas para ${vehiculosSeleccionados.length} vehículos`,
+    (this as any).snackBar.open(
+      `Gestionando rutas para ${(vehiculosSeleccionados as any).length} vehículos`,
       'Cerrar',
       { duration: 3000 }
     );
   }
 
   verVehiculosEliminados(): void {
-    this.vehiculoService.getVehiculosEliminados().subscribe({
+    (this as any).vehiculoService.getVehiculosEliminados().subscribe({
       next: (vehiculosEliminados) => {
-        if (vehiculosEliminados.length === 0) {
-          this.snackBar.open('No hay vehículos eliminados', 'Cerrar', { duration: 3000 });
+        if ((vehiculosEliminados as any).length === 0) {
+          (this as any).snackBar.open('No hay vehículos eliminados', 'Cerrar', { duration: 3000 });
           return;
         }
 
         // Mostrar modal con vehículos eliminados
-        const dialogRef = this.dialog.open(VehiculosEliminadosModalComponent, {
+        const dialogRef = (this as any).dialog.open(VehiculosEliminadosModalComponent, {
           width: '90%',
           maxWidth: '1200px',
           data: { vehiculosEliminados }
         });
 
-        dialogRef.afterClosed().subscribe(result => {
+        (dialogRef as any).afterClosed().subscribe(result => {
           if (result?.restaurado) {
-            this.cargarDatos(); // Recargar datos si se restauró algún vehículo
+            (this as any).cargarDatos(); // Recargar datos si se restauró algún vehículo
           }
         });
       },
       error: (error) => {
-        console.error('Error obteniendo vehículos eliminados:', error);
-        this.snackBar.open('Error al obtener vehículos eliminados', 'Cerrar', { duration: 3000 });
+        (console as any).error('Error obteniendo vehículos eliminados:', error);
+        (this as any).snackBar.open('Error al obtener vehículos eliminados', 'Cerrar', { duration: 3000 });
       }
     });
   }
 
   exportarVehiculos(): void {
-    console.log('[VEHICULOS-EXPORT] Iniciando exportación de vehículos');
-    
     // Verificar si hay vehículos seleccionados
-    const vehiculosSeleccionadosIds = Array.from(this.vehiculosSeleccionados());
-    const vehiculosSeleccionados = this.vehiculosFiltrados().filter(v => vehiculosSeleccionadosIds.includes(v.id));
-    const exportarSoloSeleccionados = vehiculosSeleccionados.length > 0;
+    const vehiculosSeleccionadosIds = (Array as any).from((this as any).vehiculosSeleccionados());
+    const vehiculosSeleccionados = (this as any).vehiculosFiltrados().filter(v => (vehiculosSeleccionadosIds as any).includes((v as any).id));
+    const exportarSoloSeleccionados = (vehiculosSeleccionados as any).length > 0;
     
     if (exportarSoloSeleccionados) {
-      console.log(`[VEHICULOS-EXPORT] Exportando ${vehiculosSeleccionados.length} vehículos seleccionados`);
-    } else {
-      console.log('[VEHICULOS-EXPORT] Exportando todos los vehículos filtrados');
-    }
+      } else {
+      }
     
     // Construir filtros basados en el estado actual
     const filtros: any = {
       // Filtros de búsqueda
-      busqueda: this.filtrosForm.get('busqueda')?.value || '',
+      busqueda: (this as any).filtrosForm.get('busqueda')?.value || '',
       
       // Filtros específicos
-      empresa: this.filtrosForm.get('empresa')?.value || '',
-      categoria: this.filtrosForm.get('categoria')?.value || '',
-      estado: this.filtrosForm.get('estado')?.value || '',
-      sedeRegistro: this.filtrosForm.get('sedeRegistro')?.value || '',
+      empresa: (this as any).filtrosForm.get('empresa')?.value || '',
+      categoria: (this as any).filtrosForm.get('categoria')?.value || '',
+      estado: (this as any).filtrosForm.get('estado')?.value || '',
+      sedeRegistro: (this as any).filtrosForm.get('sedeRegistro')?.value || '',
       
       // Filtros de fecha si existen
-      fechaDesde: this.filtrosForm.get('fechaDesde')?.value || '',
-      fechaHasta: this.filtrosForm.get('fechaHasta')?.value || '',
+      fechaDesde: (this as any).filtrosForm.get('fechaDesde')?.value || '',
+      fechaHasta: (this as any).filtrosForm.get('fechaHasta')?.value || '',
       
       // Columnas visibles para exportar solo las necesarias
-      columnas: this.columnasVisibles().join(','),
+      columnas: (this as any).columnasVisibles().join(','),
       
       // IDs de vehículos seleccionados si aplica
-      vehiculosSeleccionados: exportarSoloSeleccionados ? vehiculosSeleccionadosIds.join(',') : ''
+      vehiculosSeleccionados: exportarSoloSeleccionados ? (vehiculosSeleccionadosIds as any).join(',') : ''
     };
     
     // Por ahora mostrar mensaje de desarrollo
-    this.snackBar.open(
+    (this as any).snackBar.open(
       exportarSoloSeleccionados 
-        ? `Exportando ${vehiculosSeleccionados.length} vehículos seleccionados`
+        ? `Exportando ${(vehiculosSeleccionados as any).length} vehículos seleccionados`
         : 'Exportando todos los vehículos filtrados',
       'Cerrar',
       { duration: 3000 }
@@ -1030,25 +1003,25 @@ export class VehiculosComponent implements OnInit {
   }
 
   cargaMasivaVehiculos(): void {
-    const dialogRef = this.dialog.open(CargaMasivaVehiculosComponent, {
+    const dialogRef = (this as any).dialog.open(CargaMasivaVehiculosComponent, {
       width: '90%',
       maxWidth: '1200px',
       maxHeight: '90vh',
       panelClass: 'carga-masiva-modal-panel'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.exitosos > 0) {
-        this.recargarVehiculos();
-        this.snackBar.open(
-          `${result.exitosos} vehículos cargados exitosamente`,
+    (dialogRef as any).afterClosed().subscribe(result => {
+      if (result && (result as any).exitosos > 0) {
+        (this as any).recargarVehiculos();
+        (this as any).snackBar.open(
+          `${(result as any).exitosos} vehículos cargados exitosamente`,
           'Cerrar',
           { duration: 4000, panelClass: ['snackbar-success'] }
         );
-      } else if (result && result.total_procesados > 0) {
+      } else if (result && (result as any).total_procesados > 0) {
         // Si se procesaron vehículos pero no hubo exitosos, mostrar mensaje de error
-        this.snackBar.open(
-          `Se procesaron ${result.total_procesados} vehículos pero hubo ${result.errores} errores`,
+        (this as any).snackBar.open(
+          `Se procesaron ${(result as any).total_procesados} vehículos pero hubo ${(result as any).errores} errores`,
           'Cerrar',
           { duration: 5000, panelClass: ['snackbar-error'] }
         );
@@ -1058,33 +1031,33 @@ export class VehiculosComponent implements OnInit {
 
   // Métodos adicionales para el historial
   actualizarHistorialTodos(): void {
-    this.snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
+    (this as any).snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
   verEstadisticasHistorial(): void {
-    this.snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
+    (this as any).snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
   marcarVehiculosActuales(): void {
-    this.snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
+    (this as any).snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
   verEstadisticasFiltrado(): void {
-    this.snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
+    (this as any).snackBar.open('Función en desarrollo', 'Cerrar', { duration: 3000 });
   }
 
-  onEstadoVehiculoChanged(event: any): void {
+  onEstadoVehiculoChanged(event: unknown): void {
     // Recargar vehículos cuando se cambie el estado
-    this.recargarVehiculos();
+    (this as any).recargarVehiculos();
   }
 
   onVehiculoActualizado(vehiculoActualizado: Vehiculo): void {
-    const vehiculos = this.vehiculos();
-    const index = vehiculos.findIndex(v => v.id === vehiculoActualizado.id);
+    const vehiculos = (this as any).vehiculos();
+    const index = (vehiculos as any).findIndex(v => (v as any).id === (vehiculoActualizado as any).id);
     if (index !== -1) {
       const vehiculosActualizados = [...vehiculos];
       vehiculosActualizados[index] = vehiculoActualizado;
-      this.vehiculos.set(vehiculosActualizados);
+      (this as any).vehiculos.set(vehiculosActualizados);
     }
   }
 }

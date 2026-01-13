@@ -568,14 +568,14 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
 
     // Cargar horarios
     if (ruta.horarios && ruta.horarios.length > 0) {
-      ruta.horarios.forEach((horario: any) => {
+      ruta.horarios.forEach((horario: unknown) => {
         this.agregarHorario(horario);
       });
     }
 
     // Cargar paradas
     if (ruta.paradasAdicionales && ruta.paradasAdicionales.length > 0) {
-      ruta.paradasAdicionales.forEach((parada: any) => {
+      ruta.paradasAdicionales.forEach((parada: unknown) => {
         this.agregarParada(parada);
       });
     }
@@ -589,18 +589,18 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
     return this.rutaForm.get('paradasAdicionales') as FormArray;
   }
 
-  agregarHorario(horarioData?: any): void {
+  agregarHorario(horarioData?: unknown): void {
     const horarioForm = this.fb.group({
-      horaSalida: [horarioData?.horaSalida || '', [Validators.required]],
-      horaLlegada: [horarioData?.horaLlegada || '', [Validators.required]],
-      frecuencia: [horarioData?.frecuencia || 60, [Validators.required, Validators.min(15)]],
-      lunes: [horarioData?.lunes || true],
-      martes: [horarioData?.martes || true],
-      miercoles: [horarioData?.miercoles || true],
-      jueves: [horarioData?.jueves || true],
-      viernes: [horarioData?.viernes || true],
-      sabado: [horarioData?.sabado || false],
-      domingo: [horarioData?.domingo || false]
+      horaSalida: [(horarioData as any)?.horaSalida || '', [Validators.required]],
+      horaLlegada: [(horarioData as any)?.horaLlegada || '', [Validators.required]],
+      frecuencia: [(horarioData as any)?.frecuencia || 60, [Validators.required, Validators.min(15)]],
+      lunes: [(horarioData as any)?.lunes || true],
+      martes: [(horarioData as any)?.martes || true],
+      miercoles: [(horarioData as any)?.miercoles || true],
+      jueves: [(horarioData as any)?.jueves || true],
+      viernes: [(horarioData as any)?.viernes || true],
+      sabado: [(horarioData as any)?.sabado || false],
+      domingo: [(horarioData as any)?.domingo || false]
     });
 
     this.horariosFormArray.push(horarioForm);
@@ -614,12 +614,12 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
     }
   }
 
-  agregarParada(paradaData?: any): void {
+  agregarParada(paradaData?: unknown): void {
     const paradaForm = this.fb.group({
-      nombre: [paradaData?.nombre || '', [Validators.required]],
-      ubicacion: [paradaData?.ubicacion || ''],
-      orden: [paradaData?.orden || this.paradasFormArray.length + 1, [Validators.required, Validators.min(1)]],
-      tiempoParada: [paradaData?.tiempoParada || 5, [Validators.required, Validators.min(1)]]
+      nombre: [(paradaData as any)?.nombre || '', [Validators.required]],
+      ubicacion: [(paradaData as any)?.ubicacion || ''],
+      orden: [(paradaData as any)?.orden || this.paradasFormArray.length + 1, [Validators.required, Validators.min(1)]],
+      tiempoParada: [(paradaData as any)?.tiempoParada || 5, [Validators.required, Validators.min(1)]]
     });
 
     this.paradasFormArray.push(paradaForm);
@@ -642,8 +642,6 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
       
       if (this.data.modoBloque && this.data.vehiculos) {
         // Modo bloque: crear rutas específicas para múltiples vehículos
-        console.log('💾 Guardando rutas específicas en modo bloque para', this.data.vehiculos.length, 'vehículos');
-        
         const rutasCreadas = [];
         const errores = [];
         
@@ -671,9 +669,7 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
             // const rutaCreada = await this.rutaEspecificaService.crearRutaEspecifica(rutaEspecifica);
             
             rutasCreadas.push(rutaEspecifica);
-            console.log(`✅ Ruta específica creada para vehículo ${vehiculo.placa}`);
-            
-          } catch (error) {
+            } catch (error) {
             console.error(`❌ Error creando ruta para vehículo ${vehiculo.placa}:`, error);
             errores.push(`Error en vehículo ${vehiculo.placa}: ${error}`);
           }
@@ -722,21 +718,20 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
           fechaCreacion: new Date()
         };
 
-        console.log('💾 Guardando ruta específica individual:', rutaEspecifica);
+        // Implementar llamada al servicio de rutas
+        try {
+          const rutaCreada = await this.rutaService.createRuta(rutaEspecifica).toPromise();
+          
+          this.snackBar.open(
+            `Ruta específica ${this.data.esEdicion ? 'actualizada' : 'creada'} exitosamente`,
+            'Cerrar',
+            { duration: 3000 }
+          );
 
-        // TODO: Implementar llamada al servicio
-        // await this.rutaEspecificaService.crearRutaEspecifica(rutaEspecifica);
-
-        // Simular guardado
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        this.snackBar.open(
-          `Ruta específica ${this.data.esEdicion ? 'actualizada' : 'creada'} exitosamente`,
-          'Cerrar',
-          { duration: 3000 }
-        );
-
-        this.dialogRef.close(rutaEspecifica);
+          this.dialogRef.close(rutaCreada);
+        } catch (serviceError) {
+          throw serviceError; // Re-lanzar para que sea manejado por el catch exterior
+        }
       }
       
     } catch (error) {

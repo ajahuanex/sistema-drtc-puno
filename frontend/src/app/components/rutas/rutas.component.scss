@@ -116,6 +116,9 @@
 }
 
 .content-section {
+  width: 100%;
+  overflow: hidden;
+  
   .section-header {
     margin-bottom: 16px;
     
@@ -178,6 +181,30 @@
   overflow-x: auto;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+  
+  .rutas-table {
+    width: 100%;
+    min-width: 1200px; // Ancho mínimo optimizado
+    table-layout: fixed;
+    
+    // Hacer que la columna de acciones sea sticky (siempre visible)
+    .mat-mdc-header-cell:last-child,
+    .mat-mdc-cell:last-child {
+      position: sticky;
+      right: 0;
+      background-color: white;
+      border-left: 2px solid #e0e0e0;
+      z-index: 2;
+      box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+    }
+    
+    .mat-mdc-header-cell:last-child {
+      background-color: #f5f5f5;
+      font-weight: 600;
+    }
   
   .rutas-table {
     width: 100%;
@@ -206,21 +233,37 @@
         font-weight: 500;
         font-size: 13px;
         color: #333;
+        margin-bottom: 2px;
       }
       
       .empresa-ruc {
         font-size: 11px;
         color: #666;
-        margin-top: 2px;
+        font-weight: 400;
       }
     }
     
-    .resolucion-numero {
-      font-size: 12px;
-      color: #666;
-      background-color: #f5f5f5;
-      padding: 2px 6px;
-      border-radius: 3px;
+    .resolucion-info {
+      .resolucion-numero {
+        font-size: 12px;
+        color: #1976d2;
+        font-weight: 500;
+        background-color: #e3f2fd;
+        padding: 2px 6px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-bottom: 2px;
+      }
+      
+      .resolucion-tipo {
+        font-size: 10px;
+        color: #666;
+        background-color: #f5f5f5;
+        padding: 1px 4px;
+        border-radius: 2px;
+        display: inline-block;
+        text-transform: uppercase;
+      }
     }
     
     .estado-badge {
@@ -820,4 +863,718 @@
   border-left: 3px solid #ff9800;
   padding-left: 8px;
   background-color: #fafafa;
+}
+
+// ========================================
+// ESTILOS PARA SELECCIÓN MÚLTIPLE Y ACCIONES EN BLOQUE
+// ========================================
+
+.table-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    
+    .selection-info {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1976d2;
+      background-color: #e3f2fd;
+      padding: 6px 12px;
+      border-radius: 16px;
+      border: 1px solid #bbdefb;
+    }
+    
+    button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+  
+  .column-config-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// Estilos para la columna de selección
+.select-column {
+  width: 48px;
+  max-width: 48px;
+  text-align: center;
+  padding: 8px 4px !important;
+  
+  mat-checkbox {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+.table-header-cell.select-column {
+  background-color: #f5f5f5;
+  border-right: 1px solid #e0e0e0;
+}
+
+.table-cell.select-column {
+  border-right: 1px solid #e0e0e0;
+}
+
+// ========================================
+// ESTILOS PARA CONFIGURACIÓN DE COLUMNAS
+// ========================================
+
+.columnas-menu {
+  max-width: 280px;
+  
+  .columnas-menu-header {
+    padding: 12px 16px;
+    background-color: #f5f5f5;
+    
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+  
+  .column-menu-content {
+    max-height: 300px;
+    overflow-y: auto;
+    
+    .columna-checkbox {
+      min-height: 40px;
+      
+      &.disabled-column {
+        opacity: 0.6;
+        
+        mat-checkbox {
+          pointer-events: none;
+        }
+      }
+      
+      mat-checkbox {
+        width: 100%;
+        
+        .mdc-checkbox {
+          margin-right: 8px;
+        }
+        
+        .mdc-form-field {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// MEJORAS EN LA TABLA PARA SELECCIÓN MÚLTIPLE
+// ========================================
+
+.rutas-table {
+  .mat-mdc-row {
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: #f8f9fa;
+    }
+    
+    &.selected-row {
+      background-color: #e3f2fd;
+      border-left: 3px solid #1976d2;
+    }
+  }
+  
+  .mat-mdc-header-row {
+    background-color: #f5f5f5;
+    
+    .mat-mdc-header-cell {
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+    }
+  }
+  
+  .mat-mdc-cell {
+    padding: 12px 8px;
+    font-size: 13px;
+    
+    &.select-column {
+      padding: 8px 4px;
+    }
+  }
+}
+
+// ========================================
+// RESPONSIVE PARA SELECCIÓN MÚLTIPLE
+// ========================================
+
+@media (max-width: 768px) {
+  .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    
+    .bulk-actions {
+      justify-content: center;
+      
+      .selection-info {
+        order: -1;
+        text-align: center;
+      }
+      
+      button {
+        flex: 1;
+        min-width: 120px;
+        font-size: 12px;
+        
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+  }
+  
+  .select-column {
+    width: 40px;
+    max-width: 40px;
+  }
+  
+  .rutas-table {
+    .mat-mdc-cell,
+    .mat-mdc-header-cell {
+      padding: 8px 4px;
+      font-size: 12px;
+      
+      &.select-column {
+        padding: 4px 2px;
+      }
+    }
+  }
+}
+
+// ========================================
+// ANIMACIONES PARA MEJOR UX
+// ========================================
+
+.bulk-actions {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selection-info {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(25, 118, 210, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(25, 118, 210, 0);
+  }
+}
+
+// ========================================
+// ESTILOS PARA ESTADOS DE CARGA
+// ========================================
+
+.table-container {
+  position: relative;
+  
+  &.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+  }
+}
+
+// ========================================
+// MEJORAS VISUALES ADICIONALES
+// ========================================
+
+.rutas-columnas-menu {
+  .mat-mdc-menu-content {
+    padding: 0;
+  }
+  
+  .mat-mdc-menu-item {
+    &:hover {
+      background-color: #f5f5f5;
+    }
+    
+    &.disabled-column {
+      color: #999;
+      
+      &:hover {
+        background-color: transparent;
+      }
+    }
+  }
+}
+
+// Indicador visual para filas seleccionadas
+.mat-mdc-row.selected-row {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #1976d2;
+  }
+}
+
+// Mejoras en los checkboxes
+.mat-mdc-checkbox {
+  .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+  
+  .mdc-checkbox__native-control:enabled:indeterminate ~ .mdc-checkbox__background {
+    background-color: #1976d2;
+    border-color: #1976d2;
+  }
+}
+
+// ========================================
+// ESTILOS PARA NUEVAS COLUMNAS
+// ========================================
+
+// Columna de Itinerario
+.itinerario-text {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.3;
+  display: block;
+  max-width: 200px;
+  word-wrap: break-word;
+}
+
+// Columnas de valores numéricos
+.distancia-value,
+.tiempo-value,
+.capacidad-value,
+.tarifa-value {
+  font-weight: 500;
+  font-size: 13px;
+  color: #333;
+}
+
+.tarifa-value {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+// Chips para tipos
+.tipo-ruta-chip,
+.tipo-servicio-chip {
+  font-size: 11px !important;
+  height: 24px !important;
+  line-height: 24px !important;
+  padding: 0 8px !important;
+  
+  &.tipo-urbana {
+    background-color: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  &.tipo-interurbana {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+  }
+  
+  &.tipo-interprovincial {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+  }
+  
+  &.tipo-interregional {
+    background-color: #fff3e0;
+    color: #f57c00;
+  }
+  
+  &.tipo-rural {
+    background-color: #fce4ec;
+    color: #c2185b;
+  }
+  
+  &.servicio-pasajeros {
+    background-color: #e1f5fe;
+    color: #0277bd;
+  }
+  
+  &.servicio-carga {
+    background-color: #efebe9;
+    color: #5d4037;
+  }
+  
+  &.servicio-mixto {
+    background-color: #f1f8e9;
+    color: #558b2f;
+  }
+}
+
+// Columna de fecha
+.fecha-value {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+// Ajustes responsive para nuevas columnas
+@media (max-width: 1200px) {
+  .itinerario-text {
+    max-width: 150px;
+  }
+  
+  .tipo-ruta-chip,
+  .tipo-servicio-chip {
+    font-size: 10px !important;
+    height: 20px !important;
+    line-height: 20px !important;
+    padding: 0 6px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .itinerario-text {
+    max-width: 100px;
+  }
+  
+  .distancia-value,
+  .tiempo-value,
+  .capacidad-value,
+  .tarifa-value,
+  .fecha-value {
+    font-size: 11px;
+  }
+  
+  .tipo-ruta-chip,
+  .tipo-servicio-chip {
+    font-size: 9px !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    padding: 0 4px !important;
+  }
+}
+
+// Mejoras en el ancho de columnas
+.rutas-table {
+  .mat-mdc-header-cell,
+  .mat-mdc-cell {
+    &:nth-child(1) { width: 50px; min-width: 50px; } // Selección
+    &:nth-child(2) { width: 80px; min-width: 80px; } // Código
+    &:nth-child(3) { width: 180px; min-width: 150px; } // Empresa
+    &:nth-child(4) { width: 100px; min-width: 90px; } // Resolución
+    &:nth-child(5) { width: 100px; min-width: 80px; } // Origen
+    &:nth-child(6) { width: 100px; min-width: 80px; } // Destino
+    &:nth-child(7) { width: 150px; min-width: 120px; } // Itinerario
+    &:nth-child(8) { width: 70px; min-width: 60px; } // Distancia
+    &:nth-child(9) { width: 80px; min-width: 70px; } // Tiempo
+    &:nth-child(10) { width: 90px; min-width: 80px; } // Tipo Ruta
+    &:nth-child(11) { width: 90px; min-width: 80px; } // Tipo Servicio
+    &:nth-child(12) { width: 70px; min-width: 60px; } // Capacidad
+    &:nth-child(13) { width: 70px; min-width: 60px; } // Tarifa
+    &:nth-child(14) { width: 120px; min-width: 100px; } // Frecuencias
+    &:nth-child(15) { width: 70px; min-width: 60px; } // Estado
+    &:nth-child(16) { width: 90px; min-width: 80px; } // Fecha
+    &:nth-child(17) { width: 140px; min-width: 120px; } // Acciones
+  }
+}
+
+// Scroll horizontal para tablas con muchas columnas
+.table-container {
+  overflow-x: auto;
+  max-width: 100%;
+  width: 100%;
+  
+  .rutas-table {
+    min-width: 1400px; // Reducido de 1800px a 1400px
+    width: 100%;
+    table-layout: fixed; // Forzar el ancho de columnas
+  }
+}
+
+// ========================================
+// ESTILOS PARA BOTONES DE ACCIONES CRUD
+// ========================================
+
+// Columna de acciones
+.mat-mdc-cell:last-child,
+.mat-mdc-header-cell:last-child {
+  text-align: center;
+  padding: 8px 4px;
+  position: sticky;
+  right: 0;
+  background-color: white;
+  border-left: 1px solid #e0e0e0;
+  z-index: 1;
+}
+
+// Botones de acciones
+.mat-mdc-icon-button {
+  width: 32px;
+  height: 32px;
+  margin: 0 2px;
+  
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  // Colores específicos para cada acción
+  &[color="accent"] {
+    .mat-icon {
+      color: #ff9800;
+    }
+    
+    &:hover {
+      background-color: rgba(255, 152, 0, 0.1);
+    }
+  }
+  
+  &[color="primary"] {
+    .mat-icon {
+      color: #1976d2;
+    }
+    
+    &:hover {
+      background-color: rgba(25, 118, 210, 0.1);
+    }
+  }
+  
+  &[color="warn"] {
+    .mat-icon {
+      color: #d32f2f;
+    }
+    
+    &:hover {
+      background-color: rgba(211, 47, 47, 0.1);
+    }
+  }
+}
+
+// Responsive para botones de acciones
+@media (max-width: 768px) {
+  .mat-mdc-icon-button {
+    width: 28px;
+    height: 28px;
+    margin: 0 1px;
+    
+    .mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+  
+  // En móviles, mostrar solo iconos esenciales
+  .mat-mdc-cell:last-child {
+    padding: 4px 2px;
+    min-width: 100px;
+  }
+  
+  // Reducir ancho mínimo de tabla en móviles
+  .table-container .rutas-table {
+    min-width: 1200px;
+  }
+  
+  // Ajustar anchos de columnas en móviles
+  .rutas-table {
+    .mat-mdc-header-cell,
+    .mat-mdc-cell {
+      &:nth-child(3) { width: 140px; min-width: 120px; } // Empresa
+      &:nth-child(7) { width: 120px; min-width: 100px; } // Itinerario
+      &:nth-child(14) { width: 100px; min-width: 80px; } // Frecuencias
+      &:nth-child(17) { width: 120px; min-width: 100px; } // Acciones
+    }
+  }
+}
+
+// Animaciones para botones
+.mat-mdc-icon-button {
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Tooltips para acciones
+.mat-mdc-tooltip {
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  border-radius: 4px;
+  padding: 6px 8px;
+}}
+
+// ========================================
+// ESTILOS PARA EL PAGINADOR
+// ========================================
+
+.rutas-paginator {
+  border-top: 1px solid #e0e0e0;
+  background-color: #fafafa;
+  
+  .mat-mdc-paginator-container {
+    padding: 8px 16px;
+    min-height: 56px;
+  }
+  
+  .mat-mdc-paginator-page-size {
+    .mat-mdc-form-field {
+      margin-right: 8px;
+    }
+  }
+  
+  .mat-mdc-paginator-range-label {
+    font-size: 14px;
+    color: #666;
+    margin: 0 16px;
+  }
+  
+  .mat-mdc-icon-button {
+    width: 40px;
+    height: 40px;
+    
+    .mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
+}
+
+// Responsive para paginador
+@media (max-width: 768px) {
+  .rutas-paginator {
+    .mat-mdc-paginator-container {
+      padding: 8px 12px;
+      min-height: 48px;
+    }
+    
+    .mat-mdc-paginator-range-label {
+      font-size: 12px;
+      margin: 0 8px;
+    }
+    
+    .mat-mdc-icon-button {
+      width: 36px;
+      height: 36px;
+      
+      .mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Estilos para mejorar la visibilidad del paginador
+.table-container {
+  .rutas-paginator {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+  }
+}
+
+// Indicador de página actual
+.mat-mdc-paginator-navigation-first,
+.mat-mdc-paginator-navigation-previous,
+.mat-mdc-paginator-navigation-next,
+.mat-mdc-paginator-navigation-last {
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background-color: rgba(25, 118, 210, 0.1);
+    transform: scale(1.05);
+  }
+  
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+}
+
+// Información adicional del paginador
+.rutas-paginator {
+  .mat-mdc-paginator-range-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 }

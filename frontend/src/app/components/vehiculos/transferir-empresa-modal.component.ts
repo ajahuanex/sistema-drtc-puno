@@ -708,7 +708,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
 
   private configurarFormulario(): void {
     // Limpiar resolución hija cuando cambie la resolución padre
-    this.transferirForm.get('resolucionPadreId')?.valueChanges.subscribe((resolucionPadreId) => {
+    this.transferirForm.get('resolucionPadreId')?.valueChanges.subscribe((resolucionPadreId: any) => {
       const resolucionHijaControl = this.transferirForm.get('resolucionHijaId');
       resolucionHijaControl?.setValue('');
       
@@ -721,7 +721,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
     });
 
     // Cargar resoluciones cuando cambie la empresa
-    this.transferirForm.get('empresaDestinoId')?.valueChanges.subscribe((empresaId) => {
+    this.transferirForm.get('empresaDestinoId')?.valueChanges.subscribe((empresaId: any) => {
       this.transferirForm.get('resolucionPadreId')?.setValue('');
       this.transferirForm.get('resolucionHijaId')?.setValue('');
       

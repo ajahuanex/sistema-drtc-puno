@@ -11,8 +11,8 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { VehiculoService } from '../../services/vehiculo.service';
+import { SmartIconComponent } from '../../shared/smart-(icon as any).component';
+import { VehiculoService } from '../../services/(vehiculo as any).service';
 
 interface ValidacionExcel {
   fila: number;
@@ -82,12 +82,12 @@ interface ResultadoCarga {
             <form [formGroup]="archivoForm">
               <div class="upload-section">
                 <div class="upload-area" 
-                     [class.dragover]="isDragOver()"
-                     [class.has-file]="archivoSeleccionado()"
+                     [(class as any).dragover]="isDragOver()"
+                     [(class as any).has-file]="archivoSeleccionado()"
                      (dragover)="onDragOver($event)"
                      (dragleave)="onDragLeave($event)"
                      (drop)="onDrop($event)"
-                     (click)="fileInput.click()">
+                     (click)="(fileInput as any).click()">
                   
                   <input #fileInput 
                          type="file" 
@@ -238,7 +238,7 @@ interface ResultadoCarga {
               <div class="validation-results">
                 <div class="validation-summary">
                   <div class="summary-cards">
-                    <div class="summary-card valid" [class.active]="validacionesValidas() > 0">
+                    <div class="summary-card valid" [(class as any).active]="validacionesValidas() > 0">
                       <div class="card-icon">
                         <app-smart-icon [iconName]="'check_circle'" [size]="32"></app-smart-icon>
                       </div>
@@ -248,7 +248,7 @@ interface ResultadoCarga {
                       </div>
                     </div>
                     
-                    <div class="summary-card invalid" [class.active]="validacionesInvalidas() > 0">
+                    <div class="summary-card invalid" [(class as any).active]="validacionesInvalidas() > 0">
                       <div class="card-icon">
                         <app-smart-icon [iconName]="'error'" [size]="32"></app-smart-icon>
                       </div>
@@ -292,7 +292,7 @@ interface ResultadoCarga {
                           Fila
                         </th>
                         <td mat-cell *matCellDef="let validacion">
-                          <span class="row-number">{{ validacion.fila }}</span>
+                          <span class="row-number">{{ (validacion as any).fila }}</span>
                         </td>
                       </ng-container>
 
@@ -302,7 +302,7 @@ interface ResultadoCarga {
                           Placa
                         </th>
                         <td mat-cell *matCellDef="let validacion">
-                          <span class="placa-text">{{ validacion.placa }}</span>
+                          <span class="placa-text">{{ (validacion as any).placa }}</span>
                         </td>
                       </ng-container>
 
@@ -312,7 +312,7 @@ interface ResultadoCarga {
                           Estado
                         </th>
                         <td mat-cell *matCellDef="let validacion">
-                          @if (validacion.valido) {
+                          @if ((validacion as any).valido) {
                             <div class="status-chip valid">
                               <app-smart-icon [iconName]="'check'" [size]="14"></app-smart-icon>
                               <span>Válido</span>
@@ -332,9 +332,9 @@ interface ResultadoCarga {
                           Detalles
                         </th>
                         <td mat-cell *matCellDef="let validacion">
-                          @if (validacion.errores.length > 0) {
+                          @if ((validacion as any).errores.length > 0) {
                             <div class="error-details">
-                              @for (error of validacion.errores; track error) {
+                              @for (error of (validacion as any).errores; track error) {
                                 <div class="error-item">
                                   <app-smart-icon [iconName]="'error_outline'" [size]="12"></app-smart-icon>
                                   <span>{{ error }}</span>
@@ -342,9 +342,9 @@ interface ResultadoCarga {
                               }
                             </div>
                           }
-                          @if (validacion.advertencias.length > 0) {
+                          @if ((validacion as any).advertencias.length > 0) {
                             <div class="warning-details">
-                              @for (advertencia of validacion.advertencias; track advertencia) {
+                              @for (advertencia of (validacion as any).advertencias; track advertencia) {
                                 <div class="warning-item">
                                   <app-smart-icon [iconName]="'warning'" [size]="12"></app-smart-icon>
                                   <span>{{ advertencia }}</span>
@@ -352,7 +352,7 @@ interface ResultadoCarga {
                               }
                             </div>
                           }
-                          @if (validacion.valido && validacion.errores.length === 0 && validacion.advertencias.length === 0) {
+                          @if ((validacion as any).valido && (validacion as any).errores.length === 0 && (validacion as any).advertencias.length === 0) {
                             <div class="success-message">
                               <app-smart-icon [iconName]="'check_circle'" [size]="12"></app-smart-icon>
                               <span>Sin problemas</span>
@@ -363,8 +363,8 @@ interface ResultadoCarga {
 
                       <tr mat-header-row *matHeaderRowDef="columnasValidacion"></tr>
                       <tr mat-row *matRowDef="let row; columns: columnasValidacion;" 
-                          [class.error-row]="!row.valido"
-                          [class.valid-row]="row.valido"></tr>
+                          [(class as any).error-row]="!(row as any).valido"
+                          [(class as any).valid-row]="(row as any).valido"></tr>
                     </table>
                   </div>
                 </div>
@@ -421,8 +421,8 @@ interface ResultadoCarga {
                       <svg width="120" height="120">
                         <circle cx="60" cy="60" r="54" fill="none" stroke="#e0e0e0" stroke-width="8"/>
                         <circle cx="60" cy="60" r="54" fill="none" stroke="#1976d2" stroke-width="8"
-                                stroke-dasharray="339.292" 
-                                [attr.stroke-dashoffset]="339.292 - (339.292 * progresoProcesamiento() / 100)"
+                                stroke-dasharray="(339 as any).292" 
+                                [(attr as any).stroke-dashoffset]="(339 as any).292 - ((339 as any).292 * progresoProcesamiento() / 100)"
                                 class="progress-circle"/>
                       </svg>
                       <div class="progress-text">
@@ -447,7 +447,7 @@ interface ResultadoCarga {
 
                 <div class="results-summary">
                   <div class="summary-grid">
-                    <div class="result-card created" [class.active]="(resultadoCarga()?.vehiculos_creados?.length || 0) > 0">
+                    <div class="result-card created" [(class as any).active]="(resultadoCarga()?.vehiculos_creados?.length || 0) > 0">
                       <div class="card-header">
                         <div class="card-icon">
                           <app-smart-icon [iconName]="'add_circle'" [size]="40"></app-smart-icon>
@@ -460,7 +460,7 @@ interface ResultadoCarga {
                       </div>
                     </div>
 
-                    <div class="result-card updated" [class.active]="(resultadoCarga()?.vehiculos_actualizados?.length || 0) > 0">
+                    <div class="result-card updated" [(class as any).active]="(resultadoCarga()?.vehiculos_actualizados?.length || 0) > 0">
                       <div class="card-header">
                         <div class="card-icon">
                           <app-smart-icon [iconName]="'update'" [size]="40"></app-smart-icon>
@@ -473,7 +473,7 @@ interface ResultadoCarga {
                       </div>
                     </div>
 
-                    <div class="result-card errors" [class.active]="(resultadoCarga()?.errores || 0) > 0">
+                    <div class="result-card errors" [(class as any).active]="(resultadoCarga()?.errores || 0) > 0">
                       <div class="card-header">
                         <div class="card-icon">
                           <app-smart-icon [iconName]="'error'" [size]="40"></app-smart-icon>
@@ -540,24 +540,24 @@ interface ResultadoCarga {
                   </div>
                 }
 
-                @if (resultadoCarga()?.errores_detalle && resultadoCarga()!.errores_detalle.length > 0) {
+                @if (resultadoCarga()?.errores_detalle && resultadoCarga()!.(errores_detalle as any).length > 0) {
                   <div class="error-details-section">
                     <div class="section-header error">
                       <app-smart-icon [iconName]="'error_outline'" [size]="24"></app-smart-icon>
                       <h4>Errores Detallados</h4>
                     </div>
                     <div class="error-list">
-                      @for (error of resultadoCarga()?.errores_detalle; track error.fila) {
+                      @for (error of resultadoCarga()?.errores_detalle; track (error as any).fila) {
                         <div class="error-item-detail">
                           <div class="error-header">
                             <div class="error-info">
-                              <span class="error-row">Fila {{ error.fila }}</span>
-                              <span class="error-placa">{{ error.placa }}</span>
+                              <span class="error-row">Fila {{ (error as any).fila }}</span>
+                              <span class="error-placa">{{ (error as any).placa }}</span>
                             </div>
                             <app-smart-icon [iconName]="'error'" [size]="20"></app-smart-icon>
                           </div>
                           <div class="error-messages">
-                            @for (err of error.errores; track err) {
+                            @for (err of (error as any).errores; track err) {
                               <div class="error-message">
                                 <app-smart-icon [iconName]="'chevron_right'" [size]="14"></app-smart-icon>
                                 <span>{{ err }}</span>
@@ -613,7 +613,7 @@ interface ResultadoCarga {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 20px;
       color: white;
-      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 20px 40px rgba(102, 126, 234, (0 as any).3);
       position: relative;
       overflow: hidden;
     }
@@ -625,7 +625,7 @@ interface ResultadoCarga {
       left: 0;
       right: 0;
       bottom: 0;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      background: url('data:image/svg+xml,<svg xmlns="http://(www as any).w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="(0 as any).1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
       pointer-events: none;
     }
 
@@ -639,7 +639,7 @@ interface ResultadoCarga {
 
     .header-icon {
       padding: 16px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, (0 as any).2);
       border-radius: 16px;
       backdrop-filter: blur(10px);
     }
@@ -648,29 +648,29 @@ interface ResultadoCarga {
       margin: 0 0 8px 0;
       font-size: 32px;
       font-weight: 700;
-      letter-spacing: -0.5px;
+      letter-spacing: -(0 as any).5px;
     }
 
     .header-text p {
       margin: 0;
-      opacity: 0.9;
+      opacity: (0 as any).9;
       font-size: 16px;
       font-weight: 400;
     }
 
     .close-button {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, (0 as any).2);
       color: white;
       backdrop-filter: blur(10px);
       border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all (0 as any).3s cubic-bezier((0 as any).4, 0, (0 as any).2, 1);
       z-index: 1;
       position: relative;
     }
 
     .close-button:hover {
-      background: rgba(244, 67, 54, 0.2);
-      transform: scale(1.1) rotate(90deg);
+      background: rgba(244, 67, 54, (0 as any).2);
+      transform: scale((1 as any).1) rotate(90deg);
     }
 
     /* Modern Stepper */
@@ -687,18 +687,18 @@ interface ResultadoCarga {
       border-radius: 16px;
       margin: 0 8px;
       padding: 16px 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, (0 as any).1);
+      transition: all (0 as any).3s cubic-bezier((0 as any).4, 0, (0 as any).2, 1);
       border: 2px solid transparent;
     }
 
     :host ::ng-deep .modern-stepper .mat-step-header:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, (0 as any).15);
     }
 
-    :host ::ng-deep .modern-stepper .mat-step-header.cdk-keyboard-focused,
-    :host ::ng-deep .modern-stepper .mat-step-header.cdk-program-focused {
+    :host ::ng-deep .modern-stepper .mat-step-(header as any).cdk-keyboard-focused,
+    :host ::ng-deep .modern-stepper .mat-step-(header as any).cdk-program-focused {
       border-color: #667eea;
     }
 
@@ -715,8 +715,8 @@ interface ResultadoCarga {
       padding: 32px;
       background: white;
       border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, (0 as any).1);
+      border: 1px solid rgba(255, 255, 255, (0 as any).2);
     }
 
     /* Upload Section */
@@ -731,7 +731,7 @@ interface ResultadoCarga {
       padding: 64px 32px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all (0 as any).4s cubic-bezier((0 as any).4, 0, (0 as any).2, 1);
       margin-bottom: 32px;
       background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
       position: relative;
@@ -745,9 +745,9 @@ interface ResultadoCarga {
       left: 0;
       right: 0;
       bottom: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 70%);
+      background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, (0 as any).05) 0%, transparent 70%);
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity (0 as any).3s ease;
     }
 
     .upload-area:hover::before {
@@ -758,17 +758,17 @@ interface ResultadoCarga {
       border-color: #667eea;
       background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
       transform: translateY(-4px);
-      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.2);
+      box-shadow: 0 20px 60px rgba(102, 126, 234, (0 as any).2);
     }
 
-    .upload-area.dragover {
+    .upload-(area as any).dragover {
       border-color: #667eea;
       background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-      transform: scale(1.02);
-      box-shadow: 0 25px 80px rgba(102, 126, 234, 0.3);
+      transform: scale((1 as any).02);
+      box-shadow: 0 25px 80px rgba(102, 126, 234, (0 as any).3);
     }
 
-    .upload-area.has-file {
+    .upload-(area as any).has-file {
       border-color: #10b981;
       background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
     }
@@ -781,7 +781,7 @@ interface ResultadoCarga {
 
     .upload-icon {
       color: #667eea;
-      filter: drop-shadow(0 4px 12px rgba(102, 126, 234, 0.3));
+      filter: drop-shadow(0 4px 12px rgba(102, 126, 234, (0 as any).3));
     }
 
     .upload-pulse {
@@ -793,21 +793,21 @@ interface ResultadoCarga {
       height: 120px;
       border: 2px solid #667eea;
       border-radius: 50%;
-      opacity: 0.3;
+      opacity: (0 as any).3;
       animation: pulse 2s infinite;
     }
 
     @keyframes pulse {
       0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 0.7;
+        transform: translate(-50%, -50%) scale((0 as any).8);
+        opacity: (0 as any).7;
       }
       50% {
-        transform: translate(-50%, -50%) scale(1.2);
-        opacity: 0.3;
+        transform: translate(-50%, -50%) scale((1 as any).2);
+        opacity: (0 as any).3;
       }
       100% {
-        transform: translate(-50%, -50%) scale(1.6);
+        transform: translate(-50%, -50%) scale((1 as any).6);
         opacity: 0;
       }
     }
@@ -817,7 +817,7 @@ interface ResultadoCarga {
       font-size: 28px;
       font-weight: 700;
       color: #1e293b;
-      letter-spacing: -0.5px;
+      letter-spacing: -(0 as any).5px;
     }
 
     .upload-placeholder p {
@@ -830,7 +830,7 @@ interface ResultadoCarga {
     .supported-formats {
       margin: 32px 0;
       padding: 24px;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, (0 as any).7);
       border-radius: 16px;
       backdrop-filter: blur(10px);
     }
@@ -861,20 +861,20 @@ interface ResultadoCarga {
       border-radius: 12px;
       font-size: 14px;
       font-weight: 600;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
       cursor: default;
     }
 
-    .format-chip.excel {
+    .format-(chip as any).excel {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, (0 as any).3);
     }
 
-    .format-chip.csv {
+    .format-(chip as any).csv {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, (0 as any).3);
     }
 
     .file-requirements {
@@ -914,7 +914,7 @@ interface ResultadoCarga {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, (0 as any).1) 50%, transparent 70%);
       animation: shimmer 2s infinite;
     }
 
@@ -926,7 +926,7 @@ interface ResultadoCarga {
     .file-icon-container {
       position: relative;
       padding: 16px;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, (0 as any).8);
       border-radius: 16px;
       backdrop-filter: blur(10px);
     }
@@ -947,7 +947,7 @@ interface ResultadoCarga {
       align-items: center;
       justify-content: center;
       color: white;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, (0 as any).4);
     }
 
     .file-info {
@@ -971,7 +971,7 @@ interface ResultadoCarga {
 
     .file-size, .file-type {
       padding: 4px 12px;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, (0 as any).8);
       border-radius: 8px;
       font-size: 12px;
       font-weight: 600;
@@ -988,19 +988,19 @@ interface ResultadoCarga {
     }
 
     .remove-file-btn {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, (0 as any).9);
       color: #64748b;
       backdrop-filter: blur(10px);
       border-radius: 12px;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
       z-index: 1;
       position: relative;
     }
 
     .remove-file-btn:hover {
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(239, 68, 68, (0 as any).1);
       color: #ef4444;
-      transform: scale(1.1);
+      transform: scale((1 as any).1);
     }
 
     /* Action Buttons */
@@ -1024,20 +1024,20 @@ interface ResultadoCarga {
       font-weight: 600;
       border-radius: 12px;
       padding: 12px 24px;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
     }
 
     .download-template-btn:hover {
       border-color: #3b82f6;
       color: #3b82f6;
-      background: rgba(59, 130, 246, 0.05);
+      background: rgba(59, 130, 246, (0 as any).05);
       transform: translateY(-2px);
     }
 
     .help-btn:hover {
       border-color: #8b5cf6;
       color: #8b5cf6;
-      background: rgba(139, 92, 246, 0.05);
+      background: rgba(139, 92, 246, (0 as any).05);
       transform: translateY(-2px);
     }
 
@@ -1046,11 +1046,11 @@ interface ResultadoCarga {
       font-weight: 600;
       border-radius: 12px;
       padding: 12px 24px;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
     }
 
     .cancel-btn:hover {
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(239, 68, 68, (0 as any).1);
       color: #ef4444;
     }
 
@@ -1059,14 +1059,14 @@ interface ResultadoCarga {
       border-radius: 12px;
       padding: 12px 32px;
       font-weight: 700;
-      letter-spacing: 0.5px;
-      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: (0 as any).5px;
+      box-shadow: 0 8px 24px rgba(102, 126, 234, (0 as any).3);
+      transition: all (0 as any).3s cubic-bezier((0 as any).4, 0, (0 as any).2, 1);
     }
 
     .validate-btn:hover, .process-btn:hover, .primary-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 12px 32px rgba(102, 126, 234, (0 as any).4);
     }
 
     .validate-btn:disabled, .process-btn:disabled {
@@ -1109,11 +1109,11 @@ interface ResultadoCarga {
       height: 8px;
       background: #667eea;
       border-radius: 50%;
-      animation: bounce 1.4s ease-in-out infinite both;
+      animation: bounce (1 as any).4s ease-in-out infinite both;
     }
 
-    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+    .loading-dots span:nth-child(1) { animation-delay: -(0 as any).32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -(0 as any).16s; }
 
     @keyframes bounce {
       0%, 80%, 100% {
@@ -1164,36 +1164,36 @@ interface ResultadoCarga {
       display: flex;
       align-items: center;
       gap: 16px;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
       border: 2px solid transparent;
-      opacity: 0.6;
+      opacity: (0 as any).6;
     }
 
-    .summary-card.active {
+    .summary-(card as any).active {
       opacity: 1;
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, (0 as any).1);
     }
 
-    .summary-card.valid {
+    .summary-(card as any).valid {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
     }
 
-    .summary-card.valid.active {
-      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.3);
+    .summary-(card as any).valid.active {
+      box-shadow: 0 12px 32px rgba(16, 185, 129, (0 as any).3);
     }
 
-    .summary-card.invalid {
+    .summary-(card as any).invalid {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: white;
     }
 
-    .summary-card.invalid.active {
-      box-shadow: 0 12px 32px rgba(239, 68, 68, 0.3);
+    .summary-(card as any).invalid.active {
+      box-shadow: 0 12px 32px rgba(239, 68, 68, (0 as any).3);
     }
 
-    .summary-card.total {
+    .summary-(card as any).total {
       background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
       color: white;
     }
@@ -1206,7 +1206,7 @@ interface ResultadoCarga {
 
     .card-content p {
       margin: 0;
-      opacity: 0.9;
+      opacity: (0 as any).9;
       font-weight: 600;
     }
 
@@ -1215,7 +1215,7 @@ interface ResultadoCarga {
       background: white;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, (0 as any).1);
       margin-bottom: 32px;
     }
 
@@ -1246,7 +1246,7 @@ interface ResultadoCarga {
       font-size: 14px;
       font-weight: 600;
       padding: 8px 16px;
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(239, 68, 68, (0 as any).1);
       border-radius: 8px;
     }
 
@@ -1274,19 +1274,19 @@ interface ResultadoCarga {
     }
 
     :host ::ng-deep .validation-table .mat-row {
-      transition: all 0.2s ease;
+      transition: all (0 as any).2s ease;
     }
 
     :host ::ng-deep .validation-table .mat-row:hover {
       background: #f8fafc;
     }
 
-    :host ::ng-deep .validation-table .mat-row.error-row {
-      background: rgba(239, 68, 68, 0.05);
+    :host ::ng-deep .validation-table .mat-(row as any).error-row {
+      background: rgba(239, 68, 68, (0 as any).05);
     }
 
-    :host ::ng-deep .validation-table .mat-row.valid-row {
-      background: rgba(16, 185, 129, 0.05);
+    :host ::ng-deep .validation-table .mat-(row as any).valid-row {
+      background: rgba(16, 185, 129, (0 as any).05);
     }
 
     .row-number {
@@ -1315,13 +1315,13 @@ interface ResultadoCarga {
       font-weight: 700;
     }
 
-    .status-chip.valid {
-      background: rgba(16, 185, 129, 0.1);
+    .status-(chip as any).valid {
+      background: rgba(16, 185, 129, (0 as any).1);
       color: #059669;
     }
 
-    .status-chip.invalid {
-      background: rgba(239, 68, 68, 0.1);
+    .status-(chip as any).invalid {
+      background: rgba(239, 68, 68, (0 as any).1);
       color: #dc2626;
     }
 
@@ -1336,7 +1336,7 @@ interface ResultadoCarga {
       align-items: flex-start;
       gap: 6px;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: (1 as any).4;
     }
 
     .error-item {
@@ -1399,7 +1399,7 @@ interface ResultadoCarga {
     }
 
     .progress-circle {
-      transition: stroke-dashoffset 0.3s ease;
+      transition: stroke-dashoffset (0 as any).3s ease;
     }
 
     .progress-text {
@@ -1445,7 +1445,7 @@ interface ResultadoCarga {
 
     @keyframes successPulse {
       0% { transform: scale(0); opacity: 0; }
-      50% { transform: scale(1.2); opacity: 0.8; }
+      50% { transform: scale((1 as any).2); opacity: (0 as any).8; }
       100% { transform: scale(1); opacity: 1; }
     }
 
@@ -1476,9 +1476,9 @@ interface ResultadoCarga {
     .result-card {
       padding: 32px 24px;
       border-radius: 20px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all (0 as any).3s cubic-bezier((0 as any).4, 0, (0 as any).2, 1);
       border: 2px solid transparent;
-      opacity: 0.6;
+      opacity: (0 as any).6;
       position: relative;
       overflow: hidden;
     }
@@ -1490,37 +1490,37 @@ interface ResultadoCarga {
       left: 0;
       right: 0;
       bottom: 0;
-      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+      background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, (0 as any).1) 50%, transparent 70%);
       transform: translateX(-100%);
-      transition: transform 0.6s ease;
+      transition: transform (0 as any).6s ease;
     }
 
-    .result-card.active {
+    .result-(card as any).active {
       opacity: 1;
       transform: translateY(-4px);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, (0 as any).15);
     }
 
-    .result-card.active::before {
+    .result-(card as any).active::before {
       transform: translateX(100%);
     }
 
-    .result-card.created {
+    .result-(card as any).created {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       color: white;
     }
 
-    .result-card.updated {
+    .result-(card as any).updated {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
     }
 
-    .result-card.errors {
+    .result-(card as any).errors {
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: white;
     }
 
-    .result-card.total {
+    .result-(card as any).total {
       background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
       color: white;
     }
@@ -1534,7 +1534,7 @@ interface ResultadoCarga {
 
     .card-badge {
       padding: 4px 12px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, (0 as any).2);
       border-radius: 8px;
       font-size: 12px;
       font-weight: 700;
@@ -1550,7 +1550,7 @@ interface ResultadoCarga {
 
     .card-content p {
       margin: 0;
-      opacity: 0.9;
+      opacity: (0 as any).9;
       font-weight: 600;
       font-size: 16px;
     }
@@ -1601,7 +1601,7 @@ interface ResultadoCarga {
       font-size: 14px;
       font-weight: 700;
       font-family: 'Courier New', monospace;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
       cursor: default;
     }
 
@@ -1609,18 +1609,18 @@ interface ResultadoCarga {
       transform: translateY(-2px);
     }
 
-    .vehicle-chip.created {
+    .vehicle-(chip as any).created {
       background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
       color: #065f46;
       border: 2px solid #10b981;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, (0 as any).2);
     }
 
-    .vehicle-chip.updated {
+    .vehicle-(chip as any).updated {
       background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
       color: #1e40af;
       border: 2px solid #3b82f6;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, (0 as any).2);
     }
 
     /* Error Details */
@@ -1632,7 +1632,7 @@ interface ResultadoCarga {
       border: 2px solid #fecaca;
     }
 
-    .section-header.error {
+    .section-(header as any).error {
       color: #dc2626;
     }
 
@@ -1647,7 +1647,7 @@ interface ResultadoCarga {
       border-radius: 12px;
       padding: 20px;
       border-left: 4px solid #ef4444;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, (0 as any).1);
     }
 
     .error-header {
@@ -1690,11 +1690,11 @@ interface ResultadoCarga {
       gap: 8px;
       color: #dc2626;
       font-size: 14px;
-      line-height: 1.4;
+      line-height: (1 as any).4;
     }
 
     /* Final Actions */
-    .action-buttons.final {
+    .action-(buttons as any).final {
       justify-content: center;
       gap: 24px;
     }
@@ -1705,13 +1705,13 @@ interface ResultadoCarga {
       font-weight: 600;
       border-radius: 12px;
       padding: 12px 24px;
-      transition: all 0.3s ease;
+      transition: all (0 as any).3s ease;
     }
 
     .secondary-btn:hover {
       border-color: #64748b;
       color: #1e293b;
-      background: rgba(100, 116, 139, 0.05);
+      background: rgba(100, 116, 139, (0 as any).05);
       transform: translateY(-2px);
     }
 
@@ -1839,7 +1839,7 @@ interface ResultadoCarga {
       .mat-mdc-snack-bar-label {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         font-size: 14px !important;
-        line-height: 1.4 !important;
+        line-height: (1 as any).4 !important;
         font-weight: 500 !important;
       }
     }
@@ -1847,21 +1847,21 @@ interface ResultadoCarga {
     :host ::ng-deep .snackbar-success {
       .mdc-snackbar__surface {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(16, 185, 129, (0 as any).3) !important;
       }
     }
 
     :host ::ng-deep .snackbar-error {
       .mdc-snackbar__surface {
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-        box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(239, 68, 68, (0 as any).3) !important;
       }
     }
 
     :host ::ng-deep .snackbar-info {
       .mdc-snackbar__surface {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
-        box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3) !important;
+        box-shadow: 0 8px 32px rgba(59, 130, 246, (0 as any).3) !important;
       }
     }
   `]
@@ -1873,8 +1873,8 @@ export class CargaMasivaVehiculosComponent {
   private dialogRef = inject(MatDialogRef<CargaMasivaVehiculosComponent>);
 
   // Formularios
-  archivoForm = this.fb.group({
-    archivo: [null as File | null, Validators.required]
+  archivoForm = (this as any).fb.group({
+    archivo: [null as File | null, (Validators as any).required]
   });
 
   // Estado del componente
@@ -1893,51 +1893,49 @@ export class CargaMasivaVehiculosComponent {
 
   // Computed properties
   validacionesValidas = computed(() => 
-    this.validaciones().filter(v => v.valido).length
+    (this as any).validaciones().filter(v => (v as any).valido).length
   );
 
   validacionesInvalidas = computed(() => 
-    this.validaciones().filter(v => !v.valido).length
+    (this as any).validaciones().filter(v => !(v as any).valido).length
   );
 
   // Métodos de drag & drop
   onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(true);
+    (event as any).preventDefault();
+    (this as any).isDragOver.set(true);
   }
 
   onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(false);
+    (event as any).preventDefault();
+    (this as any).isDragOver.set(false);
   }
 
   onDrop(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(false);
+    (event as any).preventDefault();
+    (this as any).isDragOver.set(false);
     
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      this.handleFile(files[0]);
+    const files = (event as any).dataTransfer?.files;
+    if (files && (files as any).length > 0) {
+      (this as any).handleFile(files[0]);
     }
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.handleFile(input.files[0]);
+    const input = (event as any).target as HTMLInputElement;
+    if ((input as any).files && (input as any).files.length > 0) {
+      (this as any).handleFile((input as any).files[0]);
     }
   }
 
   private handleFile(file: File): void {
-    console.log('[CARGA-MASIVA] Procesando archivo:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
-    
     // Validar extensión del archivo
-    const fileName = file.name.toLowerCase();
+    const fileName = (file as any).name.toLowerCase();
     const validExtensions = ['.xlsx', '.xls', '.csv'];
-    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    const hasValidExtension = (validExtensions as any).some(ext => (fileName as any).endsWith(ext));
     
     if (!hasValidExtension) {
-      this.snackBar.open(
+      (this as any).snackBar.open(
         'Tipo de archivo no válido. Use archivos Excel (.xlsx, .xls) o CSV (.csv)', 
         'Cerrar', 
         { 
@@ -1950,9 +1948,9 @@ export class CargaMasivaVehiculosComponent {
 
     // Validar tamaño (máximo 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      this.snackBar.open(
-        `El archivo es demasiado grande (${this.formatFileSize(file.size)}). Máximo permitido: 10MB`, 
+    if ((file as any).size > maxSize) {
+      (this as any).snackBar.open(
+        `El archivo es demasiado grande (${(this as any).formatFileSize((file as any).size)}). Máximo permitido: 10MB`, 
         'Cerrar', 
         { 
           duration: 5000,
@@ -1963,8 +1961,8 @@ export class CargaMasivaVehiculosComponent {
     }
 
     // Validar que el archivo no esté vacío
-    if (file.size === 0) {
-      this.snackBar.open('El archivo está vacío. Seleccione un archivo válido.', 'Cerrar', { 
+    if ((file as any).size === 0) {
+      (this as any).snackBar.open('El archivo está vacío. Seleccione un archivo válido.', 'Cerrar', { 
         duration: 3000,
         panelClass: ['snackbar-error']
       });
@@ -1972,15 +1970,15 @@ export class CargaMasivaVehiculosComponent {
     }
 
     // Archivo válido
-    this.archivoSeleccionado.set(file);
-    this.archivoForm.patchValue({ archivo: file });
+    (this as any).archivoSeleccionado.set(file);
+    (this as any).archivoForm.patchValue({ archivo: file });
     
     // Limpiar validaciones anteriores
-    this.validaciones.set([]);
-    this.resultadoCarga.set(null);
+    (this as any).validaciones.set([]);
+    (this as any).resultadoCarga.set(null);
     
-    this.snackBar.open(
-      `Archivo "${file.name}" seleccionado correctamente`, 
+    (this as any).snackBar.open(
+      `Archivo "${(file as any).name}" seleccionado correctamente`, 
       'Cerrar', 
       { 
         duration: 2000,
@@ -1990,22 +1988,22 @@ export class CargaMasivaVehiculosComponent {
   }
 
   removeFile(event: Event): void {
-    event.stopPropagation();
-    this.archivoSeleccionado.set(null);
-    this.archivoForm.patchValue({ archivo: null });
-    this.validaciones.set([]);
+    (event as any).stopPropagation();
+    (this as any).archivoSeleccionado.set(null);
+    (this as any).archivoForm.patchValue({ archivo: null });
+    (this as any).validaciones.set([]);
   }
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const i = (Math as any).floor((Math as any).log(bytes) / (Math as any).log(k));
+    return parseFloat((bytes / (Math as any).pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   getFileType(fileName: string): string {
-    const extension = fileName.toLowerCase().split('.').pop();
+    const extension = (fileName as any).toLowerCase().split('.').pop();
     switch (extension) {
       case 'xlsx':
         return 'Excel 2007+';
@@ -2019,32 +2017,32 @@ export class CargaMasivaVehiculosComponent {
   }
 
   descargarPlantilla(): void {
-    this.vehiculoService.descargarPlantillaExcel().subscribe({
+    (this as any).vehiculoService.descargarPlantillaExcel().subscribe({
       next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
+        const url = (window as any).URL.createObjectURL(blob);
+        const link = (document as any).createElement('a');
+        (link as any).href = url;
         
         // Generar nombre con fecha actual y extensión Excel
         const fecha = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        link.download = `plantilla_vehiculos_sirret_${fecha}.xlsx`;
+        (link as any).download = `plantilla_vehiculos_sirret_${fecha}.xlsx`;
         
         // Agregar al DOM temporalmente para hacer clic
-        document.body.appendChild(link);
-        link.click();
+        (document as any).body.appendChild(link);
+        (link as any).click();
         
         // Limpiar
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        (document as any).body.removeChild(link);
+        (window as any).URL.revokeObjectURL(url);
         
-        this.snackBar.open('Plantilla Excel descargada exitosamente', 'Cerrar', { 
+        (this as any).snackBar.open('Plantilla Excel descargada exitosamente', 'Cerrar', { 
           duration: 3000,
           panelClass: ['snackbar-success']
         });
       },
       error: (error) => {
-        console.error('Error descargando plantilla:', error);
-        this.snackBar.open('Error al descargar la plantilla. Intente nuevamente.', 'Cerrar', { 
+        (console as any).error('Error descargando plantilla:', error);
+        (this as any).snackBar.open('Error al descargar la plantilla. Intente nuevamente.', 'Cerrar', { 
           duration: 5000,
           panelClass: ['snackbar-error']
         });
@@ -2053,96 +2051,90 @@ export class CargaMasivaVehiculosComponent {
   }
 
   validarArchivo(): void {
-    const archivo = this.archivoSeleccionado();
+    const archivo = (this as any).archivoSeleccionado();
     if (!archivo) return;
 
-    console.log('[COMPONENTE] 🔍 Iniciando validación de archivo:', archivo.name);
-    this.validando.set(true);
+    (this as any).validando.set(true);
     
-    this.vehiculoService.validarExcel(archivo).subscribe({
+    (this as any).vehiculoService.validarExcel(archivo).subscribe({
       next: (validaciones) => {
-        console.log('[COMPONENTE] 📊 Validaciones recibidas:', validaciones);
-        console.log('[COMPONENTE] 📈 Cantidad de validaciones:', validaciones.length);
+        (this as any).validaciones.set(validaciones);
+        (this as any).validando.set(false);
         
-        this.validaciones.set(validaciones);
-        this.validando.set(false);
-        
-        if (validaciones.length === 0) {
-          console.log('[COMPONENTE] ⚠️ No hay validaciones para mostrar');
-          this.snackBar.open('El archivo está vacío o no tiene datos válidos', 'Cerrar', { duration: 3000 });
+        if ((validaciones as any).length === 0) {
+          (this as any).snackBar.open('El archivo está vacío o no tiene datos válidos', 'Cerrar', { duration: 3000 });
         } else {
-          console.log('[COMPONENTE] ✅ Validaciones establecidas correctamente');
-        }
+          }
       },
       error: (error) => {
-        console.error('[COMPONENTE] ❌ Error validando archivo:', error);
-        this.snackBar.open('Error al validar el archivo', 'Cerrar', { duration: 3000 });
-        this.validando.set(false);
+        (console as any).error('[COMPONENTE] ❌ Error validando archivo:', error);
+        (this as any).snackBar.open('Error al validar el archivo', 'Cerrar', { duration: 3000 });
+        (this as any).validando.set(false);
       }
     });
   }
 
   procesarCarga(): void {
-    const archivo = this.archivoSeleccionado();
+    const archivo = (this as any).archivoSeleccionado();
     if (!archivo) return;
 
-    this.procesando.set(true);
-    this.progresoProcesamiento.set(0);
+    (this as any).procesando.set(true);
+    (this as any).progresoProcesamiento.set(0);
 
     // Simular progreso
     const interval = setInterval(() => {
-      const progreso = this.progresoProcesamiento();
+      const progreso = (this as any).progresoProcesamiento();
       if (progreso < 90) {
-        this.progresoProcesamiento.set(progreso + 10);
+        (this as any).progresoProcesamiento.set(progreso + 10);
       }
     }, 500);
 
-    this.vehiculoService.cargaMasivaVehiculos(archivo).subscribe({
+    (this as any).vehiculoService.cargaMasivaVehiculos(archivo).subscribe({
       next: (resultado) => {
         clearInterval(interval);
-        this.progresoProcesamiento.set(100);
-        this.resultadoCarga.set(resultado);
-        this.procesando.set(false);
+        (this as any).progresoProcesamiento.set(100);
+        (this as any).resultadoCarga.set(resultado);
+        (this as any).procesando.set(false);
         
         const mensajeExito = [];
-        if (resultado.vehiculos_creados?.length > 0) {
-          mensajeExito.push(`${resultado.vehiculos_creados.length} vehículos creados`);
+        if ((resultado as any).vehiculos_creados?.length > 0) {
+          (mensajeExito as any).push(`${(resultado as any).vehiculos_creados.length} vehículos creados`);
         }
-        if (resultado.vehiculos_actualizados?.length > 0) {
-          mensajeExito.push(`${resultado.vehiculos_actualizados.length} vehículos actualizados`);
+        if ((resultado as any).vehiculos_actualizados?.length > 0) {
+          (mensajeExito as any).push(`${(resultado as any).vehiculos_actualizados.length} vehículos actualizados`);
         }
         
-        const mensaje = mensajeExito.length > 0 
-          ? `Carga completada: ${mensajeExito.join(', ')}`
-          : `Procesamiento completado: ${resultado.exitosos} vehículos procesados`;
+        const mensaje = (mensajeExito as any).length > 0 
+          ? `Carga completada: ${(mensajeExito as any).join(', ')}`
+          : `Procesamiento completado: ${(resultado as any).exitosos} vehículos procesados`;
         
-        this.snackBar.open(mensaje, 'Cerrar', {
+        (this as any).snackBar.open(mensaje, 'Cerrar', {
           duration: 5000,
           panelClass: ['snackbar-success']
         });
       },
       error: (error) => {
         clearInterval(interval);
-        console.error('Error en carga masiva:', error);
-        this.snackBar.open('Error en la carga masiva', 'Cerrar', { 
+        (console as any).error('Error en carga masiva:', error);
+        (this as any).snackBar.open('Error en la carga masiva', 'Cerrar', { 
           duration: 3000,
           panelClass: ['snackbar-error']
         });
-        this.procesando.set(false);
+        (this as any).procesando.set(false);
       }
     });
   }
 
   reiniciarProceso(): void {
-    this.archivoSeleccionado.set(null);
-    this.validaciones.set([]);
-    this.resultadoCarga.set(null);
-    this.archivoForm.reset();
+    (this as any).archivoSeleccionado.set(null);
+    (this as any).validaciones.set([]);
+    (this as any).resultadoCarga.set(null);
+    (this as any).archivoForm.reset();
   }
 
   cerrarModal(): void {
     // Si hay procesamiento en curso, confirmar antes de cerrar
-    if (this.procesando()) {
+    if ((this as any).procesando()) {
       const confirmar = confirm('¿Está seguro de cancelar? El procesamiento está en curso y se perderá el progreso.');
       if (!confirmar) {
         return;
@@ -2150,14 +2142,14 @@ export class CargaMasivaVehiculosComponent {
     }
     
     // Si hay datos cargados pero no procesados, confirmar
-    if (this.archivoSeleccionado() && this.validaciones().length > 0 && !this.resultadoCarga()) {
+    if ((this as any).archivoSeleccionado() && (this as any).validaciones().length > 0 && !(this as any).resultadoCarga()) {
       const confirmar = confirm('¿Está seguro de cancelar? Se perderán los datos validados.');
       if (!confirmar) {
         return;
       }
     }
     
-    this.dialogRef.close(this.resultadoCarga());
+    (this as any).dialogRef.close((this as any).resultadoCarga());
   }
 
   mostrarAyuda(): void {
@@ -2225,7 +2217,7 @@ export class CargaMasivaVehiculosComponent {
     Consulte las hojas de instrucciones en el archivo Excel.
     `;
 
-    this.snackBar.open(ayudaContent, 'Cerrar', {
+    (this as any).snackBar.open(ayudaContent, 'Cerrar', {
       duration: 15000,
       panelClass: ['snackbar-info', 'snackbar-multiline'],
       verticalPosition: 'top',

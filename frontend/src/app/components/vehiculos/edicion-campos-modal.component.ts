@@ -12,10 +12,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { Vehiculo } from '../../models/vehiculo.model';
-import { VehiculoService } from '../../services/vehiculo.service';
-import { ConfiguracionService } from '../../services/configuracion.service';
+import { SmartIconComponent } from '../../shared/smart-(icon as any).component';
+import { Vehiculo } from '../../models/(vehiculo as any).model';
+import { VehiculoService } from '../../services/(vehiculo as any).service';
+import { ConfiguracionService } from '../../services/(configuracion as any).service';
 import { forkJoin } from 'rxjs';
 
 export interface EdicionCamposModalData {
@@ -48,7 +48,7 @@ export interface EdicionCamposModalData {
           <app-smart-icon [iconName]="'edit'" [size]="28" class="header-icon"></app-smart-icon>
           <div>
             <h2>Editar Campos en Bloque</h2>
-            <p class="header-subtitle">{{ vehiculos.length }} vehículo(s) seleccionado(s)</p>
+            <p class="header-subtitle">{{ (vehiculos as any).length }} vehículo(s) seleccionado(s)</p>
           </div>
         </div>
         <button mat-icon-button (click)="cancelar()" class="close-button">
@@ -61,14 +61,14 @@ export interface EdicionCamposModalData {
         <div class="vehiculos-seleccionados">
           <h3>Vehículos a modificar:</h3>
           <div class="vehiculos-list">
-            @for (vehiculo of vehiculos; track vehiculo.id) {
+            @for (vehiculo of vehiculos; track (vehiculo as any).id) {
               <div class="vehiculo-item">
                 <div class="vehiculo-info">
-                  <span class="vehiculo-placa">{{ vehiculo.placa }}</span>
-                  <span class="vehiculo-marca">{{ vehiculo.marca }} {{ vehiculo.modelo }}</span>
+                  <span class="vehiculo-placa">{{ (vehiculo as any).placa }}</span>
+                  <span class="vehiculo-marca">{{ (vehiculo as any).marca }} {{ (vehiculo as any).modelo }}</span>
                 </div>
                 <div class="vehiculo-estado-actual">
-                  {{ vehiculo.estado }}
+                  {{ (vehiculo as any).estado }}
                 </div>
               </div>
             }
@@ -86,8 +86,8 @@ export interface EdicionCamposModalData {
                 <mat-label>Nuevo Estado</mat-label>
                 <mat-select formControlName="nuevoEstado">
                   <mat-option value="">-- No cambiar --</mat-option>
-                  @for (estado of estadosDisponibles(); track estado.codigo) {
-                    <mat-option [value]="estado.codigo">{{ estado.nombre }}</mat-option>
+                  @for (estado of estadosDisponibles(); track (estado as any).codigo) {
+                    <mat-option [value]="(estado as any).codigo">{{ (estado as any).nombre }}</mat-option>
                   }
                 </mat-select>
                 <app-smart-icon [iconName]="'check_circle'" [size]="20" matSuffix></app-smart-icon>
@@ -130,20 +130,20 @@ export interface EdicionCamposModalData {
             <div class="resumen-info">
               <div class="resumen-item">
                 <span class="resumen-label">Vehículos afectados:</span>
-                <span class="resumen-value">{{ vehiculos.length }}</span>
+                <span class="resumen-value">{{ (vehiculos as any).length }}</span>
               </div>
               
-              @if (camposForm.get('nuevoEstado')?.value) {
+              @if ((camposForm as any).get('nuevoEstado')?.value) {
                 <div class="resumen-item">
                   <span class="resumen-label">Nuevo estado:</span>
-                  <span class="resumen-value">{{ camposForm.get('nuevoEstado')?.value }}</span>
+                  <span class="resumen-value">{{ (camposForm as any).get('nuevoEstado')?.value }}</span>
                 </div>
               }
 
-              @if (camposForm.get('nuevoTipoServicio')?.value) {
+              @if ((camposForm as any).get('nuevoTipoServicio')?.value) {
                 <div class="resumen-item">
                   <span class="resumen-label">Nuevo tipo de servicio:</span>
-                  <span class="resumen-value">{{ camposForm.get('nuevoTipoServicio')?.value }}</span>
+                  <span class="resumen-value">{{ (camposForm as any).get('nuevoTipoServicio')?.value }}</span>
                 </div>
               }
             </div>
@@ -166,7 +166,7 @@ export interface EdicionCamposModalData {
             <span>Procesando...</span>
           } @else {
             <app-smart-icon [iconName]="'check'" [size]="20"></app-smart-icon>
-            <span>Aplicar Cambios ({{ vehiculos.length }} vehículos)</span>
+            <span>Aplicar Cambios ({{ (vehiculos as any).length }} vehículos)</span>
           }
         </button>
       </div>
@@ -381,17 +381,17 @@ export class EdicionCamposModalComponent {
   private snackBar = inject(MatSnackBar);
 
   procesando = signal(false);
-  vehiculos = this.data.vehiculos;
-  campo = this.data.campo;
+  vehiculos = (this as any).data.vehiculos;
+  campo = (this as any).data.campo;
 
   // Computed para mostrar campos
-  mostrarEstado = computed(() => this.campo === 'estado' || this.campo === 'ambos');
-  mostrarTipoServicio = computed(() => this.campo === 'tipoServicio' || this.campo === 'ambos');
+  mostrarEstado = computed(() => (this as any).campo === 'estado' || (this as any).campo === 'ambos');
+  mostrarTipoServicio = computed(() => (this as any).campo === 'tipoServicio' || (this as any).campo === 'ambos');
 
   // Estados disponibles
   estadosDisponibles = computed(() => {
     try {
-      return this.configuracionService.estadosVehiculosConfig();
+      return (this as any).configuracionService.estadosVehiculosConfig();
     } catch {
       return [
         { codigo: 'ACTIVO', nombre: 'Activo' },
@@ -403,32 +403,32 @@ export class EdicionCamposModalComponent {
   });
 
   // Formulario
-  camposForm = this.fb.group({
+  camposForm = (this as any).fb.group({
     nuevoEstado: [''],
     nuevoTipoServicio: [''],
     observaciones: ['']
   });
 
   haySeleccionesValidas(): boolean {
-    const tieneEstado = this.camposForm.get('nuevoEstado')?.value;
-    const tieneTipoServicio = this.camposForm.get('nuevoTipoServicio')?.value;
+    const tieneEstado = (this as any).camposForm.get('nuevoEstado')?.value;
+    const tieneTipoServicio = (this as any).camposForm.get('nuevoTipoServicio')?.value;
     return !!(tieneEstado || tieneTipoServicio);
   }
 
   cancelar(): void {
-    this.dialogRef.close();
+    (this as any).dialogRef.close();
   }
 
   confirmarCambios(): void {
-    if (!this.haySeleccionesValidas() || this.procesando()) {
+    if (!(this as any).haySeleccionesValidas() || (this as any).procesando()) {
       return;
     }
 
-    const nuevoEstado = this.camposForm.get('nuevoEstado')?.value;
-    const nuevoTipoServicio = this.camposForm.get('nuevoTipoServicio')?.value;
-    const observaciones = this.camposForm.get('observaciones')?.value || '';
+    const nuevoEstado = (this as any).camposForm.get('nuevoEstado')?.value;
+    const nuevoTipoServicio = (this as any).camposForm.get('nuevoTipoServicio')?.value;
+    const observaciones = (this as any).camposForm.get('observaciones')?.value || '';
 
-    let mensaje = `¿Está seguro de aplicar los cambios a ${this.vehiculos.length} vehículo(s)?\\n\\n`;
+    let mensaje = `¿Está seguro de aplicar los cambios a ${(this as any).vehiculos.length} vehículo(s)?\\n\\n`;
     
     if (nuevoEstado) {
       mensaje += `• Estado: ${nuevoEstado}\\n`;
@@ -442,14 +442,14 @@ export class EdicionCamposModalComponent {
       return;
     }
 
-    this.procesando.set(true);
+    (this as any).procesando.set(true);
 
     // Crear array de observables para actualizar cada vehículo
-    const actualizaciones = this.vehiculos.map(vehiculo => {
+    const actualizaciones = (this as any).vehiculos.map(vehiculo => {
       const updateData: any = {};
       
       if (nuevoEstado) {
-        updateData.estado = nuevoEstado;
+        (updateData as any).estado = nuevoEstado;
       }
       
       // Para tipo de servicio, por ahora lo agregamos como observación
@@ -460,27 +460,27 @@ export class EdicionCamposModalComponent {
           nuevoTipoServicio && `Tipo de servicio: ${nuevoTipoServicio}`
         ].filter(Boolean).join('. ');
         
-        updateData.observaciones = observacionesCompletas;
+        (updateData as any).observaciones = observacionesCompletas;
       }
 
       // Usar el método existente de actualización
-      return this.vehiculoService.updateVehiculo(vehiculo.id, updateData);
+      return (this as any).vehiculoService.updateVehiculo((vehiculo as any).id, updateData);
     });
 
     // Ejecutar todas las actualizaciones en paralelo
     forkJoin(actualizaciones).subscribe({
       next: (vehiculosActualizados) => {
-        this.procesando.set(false);
+        (this as any).procesando.set(false);
 
-        let mensajeExito = `${vehiculosActualizados.length} vehículo(s) actualizado(s)`;
+        let mensajeExito = `${(vehiculosActualizados as any).length} vehículo(s) actualizado(s)`;
         
-        this.snackBar.open(mensajeExito, 'Cerrar', {
+        (this as any).snackBar.open(mensajeExito, 'Cerrar', {
           duration: 4000,
           panelClass: ['snackbar-success']
         });
 
         // Cerrar modal y devolver los vehículos actualizados
-        this.dialogRef.close({
+        (this as any).dialogRef.close({
           vehiculos: vehiculosActualizados,
           cambios: {
             estado: nuevoEstado,
@@ -489,19 +489,19 @@ export class EdicionCamposModalComponent {
         });
       },
       error: (error) => {
-        this.procesando.set(false);
-        console.error('Error actualizando vehículos:', error);
+        (this as any).procesando.set(false);
+        (console as any).error('Error actualizando vehículos:', error);
 
         let mensaje = 'Error al actualizar los vehículos';
-        if (error.status === 422) {
+        if ((error as any).status === 422) {
           mensaje = 'Error de validación en algunos vehículos';
-        } else if (error.status === 404) {
+        } else if ((error as any).status === 404) {
           mensaje = 'Algunos vehículos no fueron encontrados';
-        } else if (error.status === 403) {
+        } else if ((error as any).status === 403) {
           mensaje = 'No tienes permisos para actualizar algunos vehículos';
         }
 
-        this.snackBar.open(mensaje, 'Cerrar', {
+        (this as any).snackBar.open(mensaje, 'Cerrar', {
           duration: 5000,
           panelClass: ['snackbar-error']
         });
