@@ -11,16 +11,38 @@ export interface RutaConLocalidadesData {
   nombre: string;
   tipoRuta: string;
   tipoServicio: string;
-  empresaId: string;
-  resolucionId: string;
   frecuencias?: string;
   descripcion?: string;
   observaciones?: string;
+  resolucionId?: string;
   
-  // Localidades
-  origen: LocalidadRuta;
-  destino: LocalidadRuta;
-  itinerario?: LocalidadRuta[];
+  // NUEVA ESTRUCTURA OPTIMIZADA - Objetos completos
+  origen: {
+    id?: string;
+    nombre: string;
+    departamento?: string;
+    provincia?: string;
+    distrito?: string;
+  };
+  destino: {
+    id?: string;
+    nombre: string;
+    departamento?: string;
+    provincia?: string;
+    distrito?: string;
+  };
+  itinerario?: Array<{
+    id?: string;
+    nombre: string;
+    departamento?: string;
+    provincia?: string;
+    distrito?: string;
+  }>;
+  empresa: {
+    id: string;
+    ruc: string;
+    razonSocial: string;
+  };
 }
 
 export interface ResultadoProcesamientoRuta {

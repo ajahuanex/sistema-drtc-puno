@@ -523,9 +523,27 @@ export class CrearRutaModalComponent implements OnInit {
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
         nombre: formValue.nombre,
-        origenId: formValue.origenId,
-        destinoId: formValue.destinoId,
-        itinerarioIds: [],
+        origen: {
+          id: formValue.origenId,
+          nombre: formValue.origenNombre || 'ORIGEN'
+        },
+        destino: {
+          id: formValue.destinoId,
+          nombre: formValue.destinoNombre || 'DESTINO'
+        },
+        itinerario: [],
+        resolucion: {
+          id: this.resolucionSeleccionada()?.id || '',
+          nroResolucion: this.resolucionSeleccionada()?.nroResolucion || '',
+          tipoResolucion: this.resolucionSeleccionada()?.tipoResolucion || 'PADRE',
+          tipoTramite: this.resolucionSeleccionada()?.tipoTramite || 'PRIMIGENIA',
+          estado: this.resolucionSeleccionada()?.estado || 'VIGENTE',
+          empresa: {
+            id: this.empresa()?.id || '',
+            ruc: this.empresa()?.ruc || '',
+            razonSocial: this.empresa()?.razonSocial?.principal || ''
+          }
+        },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta as TipoRuta,
         tipoServicio: formValue.tipoServicio as TipoServicio,

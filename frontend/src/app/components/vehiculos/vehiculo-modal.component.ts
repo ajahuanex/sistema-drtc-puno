@@ -1132,7 +1132,6 @@ export class VehiculoModalComponent {
     // Incluir forceUpdate para forzar recálculo
     this.forceUpdate();
     const empresaId = this.empresaIdSeleccionada();
-    console.log('Computed empresaIdParaSelector:', empresaId);
     return empresaId;
   });
   
@@ -1140,7 +1139,6 @@ export class VehiculoModalComponent {
     // Incluir forceUpdate para forzar recálculo
     this.forceUpdate();
     const resolucionId = this.resolucionIdSeleccionada();
-    console.log('Computed resolucionIdParaSelector:', resolucionId);
     return resolucionId;
   });
 
@@ -1156,8 +1154,6 @@ export class VehiculoModalComponent {
       const empresaId = this.empresaIdSeleccionada();
       const resolucionId = this.resolucionIdSeleccionada();
       
-      console.log('Effect ejecutado - empresaId:', empresaId, 'resolucionId:', resolucionId);
-      
       // Forzar actualización del formulario si los signals cambian
       if (this.vehiculoForm && (empresaId || resolucionId)) {
         // Usar setTimeout para evitar problemas de timing
@@ -1172,10 +1168,7 @@ export class VehiculoModalComponent {
   }
 
   ngOnInit(): void {
-    console.log('🚀 VehiculoModalComponent ngOnInit iniciado');
     console.log('🔍 modalData:', this.modalData());
-    console.log('🔍 dialogData:', this.dialogData);
-    
     // Inicializar formulario inmediatamente para evitar errores de template
     this.initializeForm();
     
@@ -1188,10 +1181,9 @@ export class VehiculoModalComponent {
 
       // Inicializar datos del modal después de un breve delay para asegurar que todo esté listo
       setTimeout(() => {
-        console.log('⏰ Ejecutando initializeModalData después del delay');
         this.initializeModalData();
       }, 100);
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
       console.error('Error cargando configuraciones, usando valores por defecto:', error);
       // Continuar con valores por defecto si falla la carga
       this.loadEmpresas();
@@ -1199,7 +1191,6 @@ export class VehiculoModalComponent {
       this.configurarAutocompletadoSedes();
 
       setTimeout(() => {
-        console.log('⏰ Ejecutando initializeModalData después del delay (error case)');
         this.initializeModalData();
       }, 100);
     });
@@ -1329,21 +1320,14 @@ export class VehiculoModalComponent {
 
   private initializeModalData(): void {
     const data = this.modalData() || this.dialogData;
-    console.log('🔍 initializeModalData - data recibida:', data);
-    
     if (!data) {
-      console.log('❌ No hay datos en initializeModalData');
       return;
     }
 
     console.log('🔍 Modo de edición:', this.isEditing());
-    console.log('🔍 Datos del vehículo:', data.vehiculo);
-
     if (this.isEditing()) {
-      console.log('✅ Llamando a loadVehiculo()...');
       this.loadVehiculo();
     } else {
-      console.log('✅ Modo creación - configurando valores iniciales...');
       // En modo creación, pre-configurar empresa y resolución si se proporcionan
       if (data.empresaId) {
         this.vehiculoForm.patchValue({
@@ -1452,20 +1436,12 @@ export class VehiculoModalComponent {
 
   private loadVehiculo(): void {
     const data = this.modalData() || this.dialogData;
-    console.log('🚀 loadVehiculo - data:', data);
-    
     if (!data?.vehiculo) {
-      console.log('❌ No hay vehículo en los datos');
       return;
     }
 
     this.isLoading.set(true);
     const vehiculo = data.vehiculo;
-
-    console.log('=== CARGANDO VEHÍCULO ===');
-    console.log('Vehículo completo:', vehiculo);
-    console.log('Empresa ID:', vehiculo.empresaActualId);
-    console.log('Resolución ID:', vehiculo.resolucionId);
 
     // Cargar TODOS los datos del vehículo en el formulario PRIMERO
     this.vehiculoForm.patchValue({
@@ -1514,7 +1490,6 @@ export class VehiculoModalComponent {
 
     // DESPUÉS establecer los signals para que los selectores reaccionen
     setTimeout(() => {
-      console.log('🔄 Estableciendo signals para selectores...');
       console.log('🔍 Antes - empresaIdSeleccionada:', this.empresaIdSeleccionada());
       console.log('🔍 Antes - resolucionIdSeleccionada:', this.resolucionIdSeleccionada());
       
@@ -1527,7 +1502,6 @@ export class VehiculoModalComponent {
       // Forzar actualización de los computed signals
       this.forceUpdate.set(this.forceUpdate() + 1);
       
-      console.log('✅ Signals establecidos:');
       console.log('- empresaIdSeleccionada:', this.empresaIdSeleccionada());
       console.log('- resolucionIdSeleccionada:', this.resolucionIdSeleccionada());
       
@@ -1639,14 +1613,9 @@ export class VehiculoModalComponent {
   }
 
   onSubmit(): void {
-    console.log('🔄 onSubmit llamado');
-    console.log('🔍 vehiculoForm válido:', this.vehiculoForm?.valid);
     console.log('🔍 isEditing:', this.isEditing());
     console.log('🔍 modalData:', this.modalData());
-    console.log('🔍 dialogData:', this.dialogData);
-    
     if (!this.vehiculoForm?.valid) {
-      console.log('❌ Formulario no válido');
       this.snackBar.open('Por favor, completa todos los campos obligatorios', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -1654,10 +1623,8 @@ export class VehiculoModalComponent {
     this.isSubmitting.set(true);
 
     if (this.isEditing()) {
-      console.log('✅ Llamando updateVehiculo');
       this.updateVehiculo();
     } else {
-      console.log('✅ Llamando createVehiculo');
       this.createVehiculo();
     }
   }
@@ -1711,22 +1678,14 @@ export class VehiculoModalComponent {
 
   private updateVehiculo(): void {
     const data = this.modalData() || this.dialogData;
-    console.log('🔄 updateVehiculo llamado');
-    console.log('🔍 data:', data);
-    console.log('🔍 vehiculo.id:', data?.vehiculo?.id);
-    
     if (!data?.vehiculo?.id) {
-      console.log('❌ No hay ID de vehículo para actualizar');
       this.isSubmitting.set(false);
       return;
     }
 
     const vehiculoData = this.buildVehiculoUpdateData();
-    console.log('🔍 vehiculoData para actualizar:', vehiculoData);
-
     this.vehiculoService.updateVehiculo(data.vehiculo.id, vehiculoData).subscribe({
       next: (vehiculo) => {
-        console.log('✅ Vehículo actualizado exitosamente:', vehiculo);
         this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
         this.vehiculoUpdated.emit(vehiculoData);
         this.isSubmitting.set(false);

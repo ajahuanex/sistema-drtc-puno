@@ -17,15 +17,15 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { VehiculoService } from '../../services/vehiculo.service';
-import { EmpresaService } from '../../services/empresa.service';
-import { ResolucionService } from '../../services/resolucion.service';
-import { RutaService } from '../../services/ruta.service';
-import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
-import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
-import { Resolucion } from '../../models/resolucion.model';
-import { Ruta } from '../../models/ruta.model';
-import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
+import { VehiculoService } from '../../services/(vehiculo as any).service';
+import { EmpresaService } from '../../services/(empresa as any).service';
+import { ResolucionService } from '../../services/(resolucion as any).service';
+import { RutaService } from '../../services/(ruta as any).service';
+import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/(vehiculo as any).model';
+import { Empresa, EstadoEmpresa } from '../../models/(empresa as any).model';
+import { Resolucion } from '../../models/(resolucion as any).model';
+import { Ruta } from '../../models/(ruta as any).model';
+import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-(modal as any).component';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import {
@@ -36,12 +36,12 @@ import {
   numeroMotorValidator,
   numeroChasisValidator,
   numeroTucValidator
-} from '../../validators/vehiculo.validators';
+} from '../../validators/(vehiculo as any).validators';
 
 @Component({
   selector: 'app-vehiculo-form',
   standalone: true,
-  encapsulation: ViewEncapsulation.Emulated,
+  encapsulation: (ViewEncapsulation as any).Emulated,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -121,9 +121,9 @@ import {
                     <mat-autocomplete #empresaAuto="matAutocomplete" 
                                      [displayWith]="displayEmpresa"
                                      (optionSelected)="onEmpresaSelected($event)">
-                      @for (empresa of empresasFiltradas | async; track empresa.id) {
+                      @for (empresa of empresasFiltradas | async; track (empresa as any).id) {
                         <mat-option [value]="empresa">
-                          {{ empresa.ruc }} - {{ empresa.razonSocial.principal || 'Sin razón social' }}
+                          {{ (empresa as any).ruc }} - {{ (empresa as any).razonSocial.principal || 'Sin razón social' }}
                         </mat-option>
                       }
                     </mat-autocomplete>
@@ -131,19 +131,19 @@ import {
                     <button matSuffix mat-icon-button 
                             type="button" 
                             (click)="limpiarEmpresa()"
-                            *ngIf="empresaControl.value"
+                            *ngIf="(empresaControl as any).value"
                             matTooltip="Limpiar empresa">
                       <mat-icon>clear</mat-icon>
                     </button>
                     <mat-hint>Empresa propietaria del vehículo</mat-hint>
-                    <mat-error *ngIf="empresaControl.hasError('required')">
+                    <mat-error *ngIf="(empresaControl as any).hasError('required')">
                       La empresa es obligatoria
                     </mat-error>
                   </mat-form-field>
 
                   <mat-form-field appearance="outline" class="form-field">
                     <mat-hint>Resolución asociada al vehículo (primigenia o hija)</mat-hint>
-                    <mat-error *ngIf="vehiculoForm.get('resolucionId')?.hasError('required')">
+                    <mat-error *ngIf="(vehiculoForm as any).get('resolucionId')?.hasError('required')">
                       La resolución es obligatoria
                     </mat-error>
                   </mat-form-field>
@@ -264,18 +264,18 @@ import {
                           <p class="selection-hint">{{ getRutasHint() }}</p>
                           
                           @if (rutasDisponibles().length > 0) {
-                            <div class="rutas-checkboxes" [class.disabled]="!puedeSeleccionarRutas()">
-                              @for (ruta of rutasDisponibles(); track ruta.id) {
+                            <div class="rutas-checkboxes" [(class as any).disabled]="!puedeSeleccionarRutas()">
+                              @for (ruta of rutasDisponibles(); track (ruta as any).id) {
                                 <div class="ruta-checkbox-item">
                                   <mat-checkbox 
-                                    [checked]="vehiculoForm.get('rutasAsignadasIds')?.value?.includes(ruta.id)"
+                                    [checked]="(vehiculoForm as any).get('rutasAsignadasIds')?.value?.includes((ruta as any).id)"
                                     [disabled]="!puedeSeleccionarRutas()"
-                                    (change)="onRutaCheckboxChange(ruta.id, $event.checked)"
+                                    (change)="onRutaCheckboxChange((ruta as any).id, $event.checked)"
                                     class="ruta-checkbox">
                                     <div class="ruta-info">
-                                      <span class="ruta-codigo">{{ ruta.codigoRuta }}</span>
-                                      <span class="ruta-descripcion">{{ ruta.origen }} → {{ ruta.destino }}</span>
-                                      <span class="ruta-detalles">{{ ruta.tipoRuta }} | {{ ruta.frecuencias }}</span>
+                                      <span class="ruta-codigo">{{ (ruta as any).codigoRuta }}</span>
+                                      <span class="ruta-descripcion">{{ (ruta as any).origen }} → {{ (ruta as any).destino }}</span>
+                                      <span class="ruta-detalles">{{ (ruta as any).tipoRuta }} | {{ (ruta as any).frecuencias }}</span>
                                     </div>
                                   </mat-checkbox>
                                 </div>
@@ -288,7 +288,7 @@ import {
                             </div>
                           }
                           
-                          @if (vehiculoForm.get('rutasAsignadasIds')?.hasError('required')) {
+                          @if ((vehiculoForm as any).get('rutasAsignadasIds')?.hasError('required')) {
                             <div class="error-message">
                               <mat-icon>error</mat-icon>
                               <span>Debe seleccionar al menos una ruta</span>
@@ -378,7 +378,7 @@ import {
               <button mat-raised-button 
                       color="primary" 
                       type="submit" 
-                      [disabled]="vehiculoForm.invalid || isSubmitting()"
+                      [disabled]="(vehiculoForm as any).invalid || isSubmitting()"
                       class="primary-button">
                 @if (isSubmitting()) {
                   <mat-spinner diameter="20"></mat-spinner>
@@ -394,7 +394,7 @@ import {
       }
     </div>
   `,
-  styleUrls: ['./vehiculo-form.component.css']
+  styleUrls: ['./vehiculo-(form as any).component.css']
 })
 export class VehiculoFormComponent implements OnInit {
   // Propiedades de entrada para modo modal
@@ -473,20 +473,20 @@ export class VehiculoFormComponent implements OnInit {
 
   private initializeForm(): void {
     this.vehiculoForm = this.fb.group({
-      empresaActualId: ['', Validators.required],
-      resolucionId: [{ value: '', disabled: true }, Validators.required],
+      empresaActualId: ['', (Validators as any).required],
+      resolucionId: [{ value: '', disabled: true }, (Validators as any).required],
       numeroTuc: ['', [numeroTucValidator()]],
-      rutasAsignadasIds: [[], Validators.required],
+      rutasAsignadasIds: [[], (Validators as any).required],
       placa: [
         '',
-        [Validators.required, placaPeruanaValidator()],
+        [(Validators as any).required, placaPeruanaValidator()],
         [placaDuplicadaValidator(this.vehiculoService, this.vehiculoId() || undefined)]
       ],
-      marca: ['', Validators.required],
+      marca: ['', (Validators as any).required],
       modelo: [''],
       categoria: ['M3'],
       asientos: ['', [capacidadPasajerosValidator()]],
-      anioFabricacion: ['', [Validators.required, anioFabricacionValidator()]],
+      anioFabricacion: ['', [(Validators as any).required, anioFabricacionValidator()]],
       estado: ['ACTIVO'],
       datosTecnicos: this.fb.group({
         motor: ['', [numeroMotorValidator()]],
@@ -506,7 +506,7 @@ export class VehiculoFormComponent implements OnInit {
   }
 
   private loadVehiculo(): void {
-    const id = this.route.snapshot.paramMap.get('id');
+    const id = this.route.(snapshot as any).paramMap.get('id');
     if (id) {
       this.isLoading.set(true);
       this.isEditing.set(true);
@@ -520,40 +520,40 @@ export class VehiculoFormComponent implements OnInit {
             return;
           }
           this.vehiculoForm.patchValue({
-            empresaActualId: vehiculo.empresaActualId,
-            resolucionId: vehiculo.resolucionId,
-            numeroTuc: vehiculo.tuc?.nroTuc || '',
-            rutasAsignadasIds: vehiculo.rutasAsignadasIds || [],
-            placa: vehiculo.placa,
-            marca: vehiculo.marca,
-            modelo: vehiculo.modelo,
-            categoria: vehiculo.categoria,
-            anioFabricacion: vehiculo.anioFabricacion,
-            estado: vehiculo.estado,
+            empresaActualId: (vehiculo as any).empresaActualId,
+            resolucionId: (vehiculo as any).resolucionId,
+            numeroTuc: (vehiculo as any).tuc?.nroTuc || '',
+            rutasAsignadasIds: (vehiculo as any).rutasAsignadasIds || [],
+            placa: (vehiculo as any).placa,
+            marca: (vehiculo as any).marca,
+            modelo: (vehiculo as any).modelo,
+            categoria: (vehiculo as any).categoria,
+            anioFabricacion: (vehiculo as any).anioFabricacion,
+            estado: (vehiculo as any).estado,
             datosTecnicos: {
-              motor: vehiculo.datosTecnicos.motor,
-              chasis: vehiculo.datosTecnicos.chasis,
-              cilindros: vehiculo.datosTecnicos.cilindros,
-              ejes: vehiculo.datosTecnicos.ejes,
-              ruedas: vehiculo.datosTecnicos.ruedas,
-              pesoNeto: vehiculo.datosTecnicos.pesoNeto,
-              pesoBruto: vehiculo.datosTecnicos.pesoBruto,
-              medidas: vehiculo.datosTecnicos.medidas
+              motor: (vehiculo as any).datosTecnicos.motor,
+              chasis: (vehiculo as any).datosTecnicos.chasis,
+              cilindros: (vehiculo as any).datosTecnicos.cilindros,
+              ejes: (vehiculo as any).datosTecnicos.ejes,
+              ruedas: (vehiculo as any).datosTecnicos.ruedas,
+              pesoNeto: (vehiculo as any).datosTecnicos.pesoNeto,
+              pesoBruto: (vehiculo as any).datosTecnicos.pesoBruto,
+              medidas: (vehiculo as any).datosTecnicos.medidas
             }
           });
           // Update the asientos field separately since it's part of datosTecnicos
           this.vehiculoForm.patchValue({
-            asientos: vehiculo.datosTecnicos.asientos
+            asientos: (vehiculo as any).datosTecnicos.asientos
           });
 
           // Cargar resoluciones y rutas para este vehículo
-          this.loadResoluciones(vehiculo.empresaActualId);
-          this.loadRutasDisponibles(vehiculo.resolucionId);
+          this.loadResoluciones((vehiculo as any).empresaActualId);
+          this.loadRutasDisponibles((vehiculo as any).resolucionId);
 
           this.isLoading.set(false);
         },
-        error: (error: any) => {
-          console.error('Error loading vehicle:', error);
+        error: (error: unknown) => {
+          (console as any).error('Error loading vehicle:', error);
           this.snackBar.open('Error al cargar el vehículo', 'Cerrar', { duration: 3000 });
           this.isLoading.set(false);
         }
@@ -566,12 +566,12 @@ export class VehiculoFormComponent implements OnInit {
   private loadEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
       next: (empresas) => {
-        this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA));
+        this.empresas.set((empresas as any).filter(e => (e as any).estado === (EstadoEmpresa as any).AUTORIZADA));
         // Configurar autocompletado después de cargar empresas
         setTimeout(() => this.configurarAutocompletado(), 0);
       },
       error: (error) => {
-        console.error('Error cargando empresas:', error);
+        (console as any).error('Error cargando empresas:', error);
         this.snackBar.open('Error al cargar empresas', 'Cerrar', { duration: 3000 });
       }
     });
@@ -581,27 +581,27 @@ export class VehiculoFormComponent implements OnInit {
     // Solo configurar si el formulario está inicializado
     if (this.vehiculoForm && this.empresaControl) {
       // Autocompletado para empresas
-      this.empresasFiltradas = this.empresaControl.valueChanges.pipe(
+      this.empresasFiltradas = this.empresaControl.(valueChanges as any).pipe(
         startWith(''),
         map(value => this.filtrarEmpresas(value))
       );
     }
   }
 
-  private filtrarEmpresas(value: any): Empresa[] {
+  private filtrarEmpresas(value: unknown): Empresa[] {
     if (!value) return this.empresas();
 
     // Si el valor es un objeto Empresa, extraer el texto para filtrar
     let filterValue = '';
     if (typeof value === 'string') {
-      filterValue = value.toLowerCase();
+      filterValue = (value as any).toLowerCase();
     } else if (value && typeof value === 'object') {
-      filterValue = (value.razonSocial?.principal?.toLowerCase() || value.ruc?.toLowerCase() || '');
+      filterValue = ((value as any).razonSocial?.principal?.toLowerCase() || (value as any).ruc?.toLowerCase() || '');
     }
 
     return this.empresas().filter(empresa => {
-      const rucMatch = empresa.ruc.toLowerCase().includes(filterValue);
-      const razonSocialMatch = empresa.razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
+      const rucMatch = (empresa as any).ruc.toLowerCase().includes(filterValue);
+      const razonSocialMatch = (empresa as any).razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
       return rucMatch || razonSocialMatch;
     });
   }
@@ -612,7 +612,7 @@ export class VehiculoFormComponent implements OnInit {
 
     // Si es un string (ID), buscar la empresa en la lista
     if (typeof empresa === 'string') {
-      const empresaEncontrada = this.empresas().find(e => e.id === empresa);
+      const empresaEncontrada = this.empresas().find(e => (e as any).id === empresa);
       if (empresaEncontrada) {
         empresa = empresaEncontrada;
       } else {
@@ -621,23 +621,23 @@ export class VehiculoFormComponent implements OnInit {
     }
 
     // Verificar que razonSocial existe y tiene la propiedad principal
-    if (empresa.razonSocial && empresa.razonSocial.principal) {
-      return `${empresa.ruc} - ${empresa.razonSocial.principal}`;
-    } else if (empresa.razonSocial) {
-      return `${empresa.ruc} - Sin razón social`;
+    if ((empresa as any).razonSocial && (empresa as any).razonSocial.principal) {
+      return `${(empresa as any).ruc} - ${(empresa as any).razonSocial.principal}`;
+    } else if ((empresa as any).razonSocial) {
+      return `${(empresa as any).ruc} - Sin razón social`;
     } else {
-      return `${empresa.ruc} - Sin información de razón social`;
+      return `${(empresa as any).ruc} - Sin información de razón social`;
     }
   }
 
   // Método para manejar la selección de empresa
-  onEmpresaSelected(event: any): void {
+  onEmpresaSelected(event: unknown): void {
     const empresa = event.option.value;
-    if (empresa && empresa.id) {
+    if (empresa && (empresa as any).id) {
       // Establecer el objeto empresa completo en el control
       this.empresaControl.setValue(empresa);
       // También actualizar el valor del formulario con el ID
-      this.vehiculoForm.patchValue({ empresaActualId: empresa.id });
+      this.vehiculoForm.patchValue({ empresaActualId: (empresa as any).id });
 
       // Habilitar el campo de resolución
       this.vehiculoForm.get('resolucionId')?.enable();
@@ -649,13 +649,10 @@ export class VehiculoFormComponent implements OnInit {
   private loadResoluciones(empresaId: string): void {
     if (!empresaId) return;
 
-    console.log('🔍 Cargando resoluciones para empresaId:', empresaId);
-
     // Usar el método específico que filtra por empresa en el backend
     this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
       next: (resoluciones) => {
-        console.log('📋 Resoluciones recibidas:', resoluciones.length);
-        console.log('   Detalle:', resoluciones.map(r => ({ numero: r.nroResolucion, tipo: r.tipoResolucion })));
+        (console as any).log('   Detalle:', (resoluciones as any).map(r => ({ numero: (r as any).nroResolucion, tipo: (r as any).tipoResolucion })));
         
         this.resoluciones.set(resoluciones);
 
@@ -665,7 +662,7 @@ export class VehiculoFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error cargando resoluciones:', error);
+        (console as any).error('Error cargando resoluciones:', error);
         this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
       }
     });
@@ -677,11 +674,11 @@ export class VehiculoFormComponent implements OnInit {
     this.rutaService.getRutas().subscribe({
       next: (rutas) => {
         // Filtrar rutas de la resolución seleccionada
-        const rutasResolucion = rutas.filter(r => r.resolucionId === resolucionId);
+        const rutasResolucion = (rutas as any).filter(r => (r as any).resolucionId === resolucionId);
         this.rutasDisponibles.set(rutasResolucion);
       },
       error: (error) => {
-        console.error('Error cargando rutas:', error);
+        (console as any).error('Error cargando rutas:', error);
         this.snackBar.open('Error al cargar rutas', 'Cerrar', { duration: 3000 });
       }
     });
@@ -695,22 +692,22 @@ export class VehiculoFormComponent implements OnInit {
       if (this.modalMode()) {
         // Modo modal: emitir evento
         const vehiculoCreate: VehiculoCreate = {
-          placa: formValue.placa,
-          marca: formValue.marca,
-          modelo: formValue.modelo,
-          categoria: formValue.categoria,
-          anioFabricacion: formValue.anioFabricacion,
+          placa: (formValue as any).placa,
+          marca: (formValue as any).marca,
+          modelo: (formValue as any).modelo,
+          categoria: (formValue as any).categoria,
+          anioFabricacion: (formValue as any).anioFabricacion,
           empresaActualId: this.empresaId(),
           resolucionId: this.resolucionId(),
           tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
-          rutasAsignadasIds: formValue.rutasAsignadasIds || [],
-          tuc: formValue.numeroTuc ? {
-            nroTuc: formValue.numeroTuc,
+          rutasAsignadasIds: (formValue as any).rutasAsignadasIds || [],
+          tuc: (formValue as any).numeroTuc ? {
+            nroTuc: (formValue as any).numeroTuc,
             fechaEmision: new Date().toISOString()
           } : undefined,
           datosTecnicos: {
-            ...formValue.datosTecnicos,
-            asientos: formValue.asientos
+            ...(formValue as any).datosTecnicos,
+            asientos: (formValue as any).asientos
           }
         };
 
@@ -741,22 +738,22 @@ export class VehiculoFormComponent implements OnInit {
         // Modo normal: guardar en servicio
         if (this.isEditing()) {
           const vehiculoUpdate: VehiculoUpdate = {
-            placa: formValue.placa,
-            marca: formValue.marca,
-            modelo: formValue.modelo,
-            categoria: formValue.categoria,
-            anioFabricacion: formValue.anioFabricacion,
-            estado: formValue.estado,
-            empresaActualId: formValue.empresaActualId,
-            resolucionId: formValue.resolucionId,
-            rutasAsignadasIds: formValue.rutasAsignadasIds || [],
-            tuc: formValue.numeroTuc ? {
-              nroTuc: formValue.numeroTuc,
+            placa: (formValue as any).placa,
+            marca: (formValue as any).marca,
+            modelo: (formValue as any).modelo,
+            categoria: (formValue as any).categoria,
+            anioFabricacion: (formValue as any).anioFabricacion,
+            estado: (formValue as any).estado,
+            empresaActualId: (formValue as any).empresaActualId,
+            resolucionId: (formValue as any).resolucionId,
+            rutasAsignadasIds: (formValue as any).rutasAsignadasIds || [],
+            tuc: (formValue as any).numeroTuc ? {
+              nroTuc: (formValue as any).numeroTuc,
               fechaEmision: new Date().toISOString()
             } : undefined,
             datosTecnicos: {
-              ...formValue.datosTecnicos,
-              asientos: formValue.asientos
+              ...(formValue as any).datosTecnicos,
+              asientos: (formValue as any).asientos
             }
           };
 
@@ -766,29 +763,29 @@ export class VehiculoFormComponent implements OnInit {
               this.volver();
             },
             error: (error) => {
-              console.error('Error updating vehicle:', error);
+              (console as any).error('Error updating vehicle:', error);
               this.snackBar.open('Error al actualizar el vehículo', 'Cerrar', { duration: 3000 });
               this.isSubmitting.set(false);
             }
           });
         } else {
           const vehiculoCreate: VehiculoCreate = {
-            placa: formValue.placa,
-            marca: formValue.marca,
-            modelo: formValue.modelo,
-            categoria: formValue.categoria,
-            anioFabricacion: formValue.anioFabricacion,
-            empresaActualId: formValue.empresaActualId,
-            resolucionId: formValue.resolucionId,
+            placa: (formValue as any).placa,
+            marca: (formValue as any).marca,
+            modelo: (formValue as any).modelo,
+            categoria: (formValue as any).categoria,
+            anioFabricacion: (formValue as any).anioFabricacion,
+            empresaActualId: (formValue as any).empresaActualId,
+            resolucionId: (formValue as any).resolucionId,
             tipoServicio: 'PERSONAS', // Valor por defecto - debería venir del formulario
-            rutasAsignadasIds: formValue.rutasAsignadasIds || [],
-            tuc: formValue.numeroTuc ? {
-              nroTuc: formValue.numeroTuc,
+            rutasAsignadasIds: (formValue as any).rutasAsignadasIds || [],
+            tuc: (formValue as any).numeroTuc ? {
+              nroTuc: (formValue as any).numeroTuc,
               fechaEmision: new Date().toISOString()
             } : undefined,
             datosTecnicos: {
-              ...formValue.datosTecnicos,
-              asientos: formValue.asientos
+              ...(formValue as any).datosTecnicos,
+              asientos: (formValue as any).asientos
             }
           };
 
@@ -798,7 +795,7 @@ export class VehiculoFormComponent implements OnInit {
               this.volver();
             },
             error: (error) => {
-              console.error('Error creating vehicle:', error);
+              (console as any).error('Error creating vehicle:', error);
               this.snackBar.open('Error al crear el vehículo', 'Cerrar', { duration: 3000 });
               this.isSubmitting.set(false);
             }
@@ -810,7 +807,7 @@ export class VehiculoFormComponent implements OnInit {
 
   convertirAMayusculas(event: any, campo: string): void {
     const valor = event.target.value;
-    const valorMayusculas = valor.toUpperCase();
+    const valorMayusculas = (valor as any).toUpperCase();
 
     if (valor !== valorMayusculas) {
       this.vehiculoForm.get(campo)?.setValue(valorMayusculas, { emitEvent: false });
@@ -883,12 +880,12 @@ export class VehiculoFormComponent implements OnInit {
 
     if (checked) {
       // Agregar la ruta si no está ya seleccionada
-      if (!currentValue.includes(rutaId)) {
+      if (!(currentValue as any).includes(rutaId)) {
         rutasControl?.setValue([...currentValue, rutaId]);
       }
     } else {
       // Remover la ruta si está seleccionada
-      rutasControl?.setValue(currentValue.filter((id: string) => id !== rutaId));
+      rutasControl?.setValue((currentValue as any).filter((id: string) => id !== rutaId));
     }
 
     // Marcar el control como touched para activar validaciones
@@ -896,8 +893,8 @@ export class VehiculoFormComponent implements OnInit {
   }
 
   calcularCargaUtil(): number {
-    const pesoBruto = this.vehiculoForm.get('datosTecnicos.pesoBruto')?.value;
-    const pesoNeto = this.vehiculoForm.get('datosTecnicos.pesoNeto')?.value;
+    const pesoBruto = this.vehiculoForm.get('(datosTecnicos as any).pesoBruto')?.value;
+    const pesoNeto = this.vehiculoForm.get('(datosTecnicos as any).pesoNeto')?.value;
     if (pesoBruto && pesoNeto) {
       return Number((pesoBruto - pesoNeto).toFixed(3));
     }
@@ -915,16 +912,16 @@ export class VehiculoFormComponent implements OnInit {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     if (!empresaId) return 'No seleccionada';
 
-    const empresa = this.empresas().find(e => e.id === empresaId);
-    return empresa ? `${empresa.ruc} - ${empresa.razonSocial.principal}` : 'No encontrada';
+    const empresa = this.empresas().find(e => (e as any).id === empresaId);
+    return empresa ? `${(empresa as any).ruc} - ${(empresa as any).razonSocial.principal}` : 'No encontrada';
   }
 
   getResolucionNumero(): string {
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
     if (!resolucionId) return 'No seleccionada';
 
-    const resolucion = this.resoluciones().find(r => r.id === resolucionId);
-    return resolucion ? `${resolucion.nroResolucion} - ${resolucion.tipoTramite}` : 'No encontrada';
+    const resolucion = this.resoluciones().find(r => (r as any).id === resolucionId);
+    return resolucion ? `${(resolucion as any).nroResolucion} - ${(resolucion as any).tipoTramite}` : 'No encontrada';
   }
 
   puedeGestionarVehiculos(): boolean {
@@ -942,8 +939,8 @@ export class VehiculoFormComponent implements OnInit {
       return;
     }
 
-    const empresa = this.empresas().find(e => e.id === empresaId);
-    const resolucion = this.resoluciones().find(r => r.id === resolucionId);
+    const empresa = this.empresas().find(e => (e as any).id === empresaId);
+    const resolucion = this.resoluciones().find(r => (r as any).id === resolucionId);
 
     if (!empresa || !resolucion) {
       this.snackBar.open('Error: Empresa o resolución no encontrada', 'Cerrar', { duration: 3000 });
@@ -960,7 +957,7 @@ export class VehiculoFormComponent implements OnInit {
     });
 
     // Escuchar cuando se cierre el modal
-    dialogRef.afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe(result => {
       if (result) {
         // Si se seleccionó un vehículo, actualizar el formulario
         this.vehiculoSeleccionado.set(result);

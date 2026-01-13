@@ -301,12 +301,12 @@ export class VehiculosEstadisticasAvanzadasComponent {
     });
 
     return Array.from(marcasMap.entries())
-      .map(([marca, cantidad]) => ({
+      .map(([marca, cantidad]: any[]) => ({
         marca,
         cantidad,
         porcentaje: (cantidad / total) * 100
       }))
-      .sort((a, b) => b.cantidad - a.cantidad)
+      .sort((a: any, b: any) => b.cantidad - a.cantidad)
       .slice(0, 5);
   });
 
@@ -326,12 +326,12 @@ export class VehiculosEstadisticasAvanzadasComponent {
     });
 
     return Array.from(categoriasMap.entries())
-      .map(([categoria, cantidad]) => ({
+      .map(([categoria, cantidad]: any[]) => ({
         categoria,
         cantidad,
         porcentaje: (cantidad / total) * 100
       }))
-      .sort((a, b) => b.cantidad - a.cantidad);
+      .sort((a: any, b: any) => b.cantidad - a.cantidad);
   });
 
   /**

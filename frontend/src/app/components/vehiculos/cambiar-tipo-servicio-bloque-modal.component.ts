@@ -490,7 +490,6 @@ export class CambiarTipoServicioBloqueModalComponent {
         this.tiposServicioDisponibles = JSON.parse(config.valor).filter((tipo: TipoServicioConfig) => tipo.estaActivo);
       }
     } catch (error) {
-      console.warn('Error cargando tipos de servicio desde configuración, usando valores por defecto:', error);
       this.tiposServicioDisponibles = this.getTiposServicioDefault();
     }
   }
@@ -559,7 +558,7 @@ export class CambiarTipoServicioBloqueModalComponent {
       tiposMap.set(tipoServicio, (tiposMap.get(tipoServicio) || 0) + 1);
     });
 
-    return Array.from(tiposMap.entries()).map(([tipo, cantidad]) => ({
+    return Array.from(tiposMap.entries()).map(([tipo, cantidad]: any[]) => ({
       tipo,
       label: this.getLabelTipoServicio(tipo),
       cantidad

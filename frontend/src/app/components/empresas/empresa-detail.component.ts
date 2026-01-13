@@ -2969,8 +2969,24 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   gestionarRutasResolucion(resolucionId: string): void {
-    // TODO: Implementar modal para gestionar rutas de la resolución
-    this.snackBar.open('Funcionalidad de gestión de rutas próximamente', 'Cerrar', { duration: 3000 });
+    // Navegar al módulo de rutas con filtro específico de resolución
+    if (this.empresa) {
+      this.router.navigate(['/rutas'], { 
+        queryParams: { 
+          empresaId: this.empresa.id,
+          empresaRuc: this.empresa.ruc,
+          empresaNombre: this.empresa.razonSocial.principal,
+          resolucionId: resolucionId,
+          vista: 'resolucion-crud'
+        } 
+      });
+      
+      this.snackBar.open('Navegando al módulo de rutas optimizado...', 'Cerrar', { 
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+    }
   }
 
   crearResolucionHija(resolucionPadreId: string): void {
@@ -3066,13 +3082,23 @@ export class EmpresaDetailComponent implements OnInit {
   // Métodos para Rutas
   irAModuloRutas(): void {
     if (this.empresa) {
-      // Redirigir al módulo de rutas con el ID de la empresa como parámetro
+      // Redirigir al módulo de rutas optimizado con el ID de la empresa como parámetro
       this.router.navigate(['/rutas'], { 
         queryParams: { 
           empresaId: this.empresa.id,
-          action: 'create'
+          empresaRuc: this.empresa.ruc,
+          empresaNombre: this.empresa.razonSocial.principal,
+          accion: 'crear'
         } 
       });
+      
+      this.snackBar.open('Navegando al módulo de rutas optimizado...', 'Cerrar', { 
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
+    } else {
+      this.snackBar.open('Error: No se pudo cargar la información de la empresa', 'Cerrar', { duration: 3000 });
     }
   }
 
@@ -3102,7 +3128,19 @@ export class EmpresaDetailComponent implements OnInit {
 
   verTodasRutas(): void {
     if (this.empresa) {
-      this.router.navigate(['/rutas'], { queryParams: { empresaId: this.empresa.id } });
+      this.router.navigate(['/rutas'], { 
+        queryParams: { 
+          empresaId: this.empresa.id,
+          empresaRuc: this.empresa.ruc,
+          empresaNombre: this.empresa.razonSocial.principal
+        } 
+      });
+      
+      this.snackBar.open('Navegando al módulo de rutas optimizado...', 'Cerrar', { 
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
+      });
     }
   }
 
@@ -3226,13 +3264,22 @@ export class EmpresaDetailComponent implements OnInit {
 
   irAModuloRutasConResolucion(resolucionId: string): void {
     if (this.empresa) {
-      // Redirigir al módulo de rutas con empresa y resolución específica
+      // Redirigir al módulo de rutas optimizado con empresa y resolución específica
       this.router.navigate(['/rutas'], { 
         queryParams: { 
           empresaId: this.empresa.id,
+          empresaRuc: this.empresa.ruc,
+          empresaNombre: this.empresa.razonSocial.principal,
           resolucionId: resolucionId,
-          action: 'create'
+          accion: 'crear',
+          vista: 'resolucion-crud'
         } 
+      });
+      
+      this.snackBar.open('Navegando al módulo de rutas optimizado...', 'Cerrar', { 
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'top'
       });
     }
   }
@@ -3338,18 +3385,32 @@ export class EmpresaDetailComponent implements OnInit {
     if (resolucionAsociada) {
       console.log('📋 Vehículo asociado a resolución:', resolucionAsociada.nroResolucion);
       
-      // Navegar al módulo de rutas filtrado por la resolución específica
+      // Navegar al módulo de rutas optimizado filtrado por la resolución específica
       this.router.navigate(['/rutas'], {
         queryParams: {
           vehiculoId: vehiculo.id,
+          vehiculoPlaca: vehiculo.placa,
           empresaId: this.empresa?.id,
+          empresaRuc: this.empresa?.ruc,
+          empresaNombre: this.empresa?.razonSocial.principal,
           resolucionId: resolucionAsociada.id,
           resolucionNumero: resolucionAsociada.nroResolucion,
-          action: 'manage-vehicle-routes',
+          accion: 'gestionar-vehiculo-rutas',
+          vista: 'vehiculo-rutas',
           returnTo: 'empresa-detail',
           returnId: this.empresa?.id
         }
       });
+      
+      this.snackBar.open(
+        `Navegando al módulo de rutas para gestionar rutas del vehículo ${vehiculo.placa}`,
+        'Cerrar',
+        { 
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top'
+        }
+      );
     } else {
       console.log('⚠️ Vehículo no asociado a ninguna resolución');
       
@@ -3363,12 +3424,15 @@ export class EmpresaDetailComponent implements OnInit {
         }
       );
       
-      // Opcionalmente, navegar al módulo de rutas general
+      // Opcionalmente, navegar al módulo de rutas general para asignar resolución
       this.router.navigate(['/rutas'], {
         queryParams: {
           vehiculoId: vehiculo.id,
+          vehiculoPlaca: vehiculo.placa,
           empresaId: this.empresa?.id,
-          action: 'assign-to-resolution',
+          empresaRuc: this.empresa?.ruc,
+          empresaNombre: this.empresa?.razonSocial.principal,
+          accion: 'asignar-resolucion',
           returnTo: 'empresa-detail',
           returnId: this.empresa?.id
         }

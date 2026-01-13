@@ -506,17 +506,31 @@ export class AgregarRutaModalComponent implements OnDestroy {
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
         nombre: `${formValue.origen} - ${formValue.destino}`,
-        origenId: origenId, // ID de localidad correcto
-        destinoId: destinoId, // ID de localidad correcto
-        origen: formValue.origen, // Nombre del origen
-        destino: formValue.destino, // Nombre del destino
+        origen: {
+          id: origenId,
+          nombre: formValue.origen
+        },
+        destino: {
+          id: destinoId,
+          nombre: formValue.destino
+        },
+        itinerario: [],
+        resolucion: {
+          id: this.data.resolucion?.id || '',
+          nroResolucion: this.data.resolucion?.nroResolucion || '',
+          tipoResolucion: this.data.resolucion?.tipoResolucion || 'PADRE',
+          tipoTramite: this.data.resolucion?.tipoTramite || 'PRIMIGENIA',
+          estado: this.data.resolucion?.estado || 'VIGENTE',
+          empresa: {
+            id: this.data.empresa?.id || '',
+            ruc: this.data.empresa?.ruc || '',
+            razonSocial: this.data.empresa?.razonSocial?.principal || ''
+          }
+        },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta,
-        tipoServicio: formValue.tipoServicio || 'PASAJEROS', // Campo requerido por el backend
-        observaciones: formValue.observaciones || '',
-        empresaId: this.data.empresa?.id || '',
-        resolucionId: this.data.resolucion?.id || '',
-        itinerarioIds: []
+        tipoServicio: formValue.tipoServicio || 'PASAJEROS',
+        observaciones: formValue.observaciones || ''
       };
 
       console.log('💾 GUARDANDO NUEVA RUTA:', JSON.stringify(nuevaRuta, null, 2));

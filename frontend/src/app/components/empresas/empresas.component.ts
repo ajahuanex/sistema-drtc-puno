@@ -475,7 +475,12 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   crearRutaGeneral(): void {
-    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+    // Navegar al módulo de rutas para crear una nueva ruta general
+    this.router.navigate(['/rutas'], { 
+      queryParams: { 
+        accion: 'crear'
+      } 
+    });
   }
 
   dashboardEmpresas(): void {
@@ -637,7 +642,14 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   verRutasEmpresa(empresa: Empresa): void {
-    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+    // Navegar al módulo de rutas con filtro de empresa
+    this.router.navigate(['/rutas'], { 
+      queryParams: { 
+        empresaId: empresa.id,
+        empresaRuc: empresa.ruc,
+        empresaNombre: empresa.razonSocial.principal
+      } 
+    });
   }
 
   gestionarVehiculos(empresaId: string): void {
@@ -669,7 +681,15 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   crearRuta(empresa: Empresa): void {
-    this.snackBar.open('Funcionalidad en desarrollo', 'Cerrar', { duration: 2000 });
+    // Navegar al módulo de rutas para crear una nueva ruta para esta empresa
+    this.router.navigate(['/rutas'], { 
+      queryParams: { 
+        empresaId: empresa.id,
+        empresaRuc: empresa.ruc,
+        empresaNombre: empresa.razonSocial.principal,
+        accion: 'crear'
+      } 
+    });
   }
 
   eliminarEmpresa(id: string): void {

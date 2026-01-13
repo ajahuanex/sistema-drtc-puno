@@ -9,6 +9,7 @@ from app.routers import auth_router, empresas_router, vehiculos_router, rutas_ro
 from app.routers.configuraciones import router as configuraciones_router
 from app.routers.data_manager_router import router as data_manager_router
 from app.routers.ruta_especifica_router import router as ruta_especifica_router
+from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 from app.routers.historial_vehicular_router import router as historial_vehicular_router
 from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_router
@@ -86,7 +87,7 @@ app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
 app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
-app.include_router(rutas_router, prefix=settings.API_V1_STR)
+app.include_router(rutas_simples_router, prefix=settings.API_V1_STR)
 app.include_router(ruta_especifica_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
 app.include_router(expedientes_router, prefix=settings.API_V1_STR)

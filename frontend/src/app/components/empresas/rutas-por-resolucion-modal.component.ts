@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,12 +24,21 @@ export interface RutasPorResolucionData {
 }
 
 interface RutaConResolucion extends Ruta {
-  resolucion?: Resolucion;
+  // Ya no necesitamos campos adicionales porque la resolución está embebida
 }
 
 interface ResolucionConRutas {
-  resolucion: Resolucion;
-  rutas: RutaConResolucion[];
+  resolucionId: string;
+  nroResolucion: string;
+  tipoResolucion: string;
+  tipoTramite: string;
+  estado: string;
+  empresa: {
+    id: string;
+    ruc: string;
+    razonSocial: string;
+  };
+  rutas: Ruta[];
   totalRutas: number;
 }
 
@@ -92,11 +102,11 @@ export class RutasPorResolucionModalComponent implements OnInit {
   }
 
   private organizarRutasPorResolucion(rutas: Ruta[]): void {
-    // Agrupar rutas por resolución
-    const rutasPorResolucion = new Map<string, RutaConResolucion[]>();
+    // Agrupar rutas por resolución usando la resolución embebida
+    const rutasPorResolucion = new Map<string, Ruta[]>();
 
     rutas.forEach(ruta => {
-      const resolucionId = ruta.resolucionId;
+      const resolucionId = ruta.resolucion?.id;
       if (resolucionId) {
         if (!rutasPorResolucion.has(resolucionId)) {
           rutasPorResolucion.set(resolucionId, []);
@@ -105,46 +115,36 @@ export class RutasPorResolucionModalComponent implements OnInit {
       }
     });
 
-    // Cargar información de las resoluciones
-    const resolucionIds = Array.from(rutasPorResolucion.keys());
+    // Crear estructura de resoluciones con rutas usando datos embebidos
+    const resolucionesConRutas: ResolucionConRutas[] = [];
     
-    if (resolucionIds.length === 0) {
-      this.isLoading.set(false);
-      return;
-    }
-
-    // Cargar resoluciones
-    this.resolucionService.getResoluciones().subscribe({
-      next: (resoluciones) => {
-        const resolucionesConRutasData: ResolucionConRutas[] = [];
-
-        resolucionIds.forEach(resolucionId => {
-          const resolucion = resoluciones.find(r => r.id === resolucionId);
-          const rutasDeResolucion = rutasPorResolucion.get(resolucionId) || [];
-
-          if (resolucion) {
-            resolucionesConRutasData.push({
-              resolucion,
-              rutas: rutasDeResolucion,
-              totalRutas: rutasDeResolucion.length
-            });
-          }
+    rutasPorResolucion.forEach((rutasDeResolucion, resolucionId) => {
+      if (rutasDeResolucion.length > 0) {
+        // Usar datos de la primera ruta para obtener información de la resolución
+        const primeraRuta = rutasDeResolucion[0];
+        
+        resolucionesConRutas.push({
+          resolucionId: resolucionId,
+          nroResolucion: primeraRuta.resolucion.nroResolucion,
+          tipoResolucion: primeraRuta.resolucion.tipoResolucion,
+          tipoTramite: primeraRuta.resolucion.tipoTramite,
+          estado: primeraRuta.resolucion.estado,
+          empresa: primeraRuta.resolucion.empresa,
+          rutas: rutasDeResolucion,
+          totalRutas: rutasDeResolucion.length
         });
-
-        // Ordenar por fecha de emisión (más reciente primero)
-        resolucionesConRutasData.sort((a, b) => 
-          new Date(b.resolucion.fechaEmision).getTime() - new Date(a.resolucion.fechaEmision).getTime()
-        );
-
-        this.resolucionesConRutas.set(resolucionesConRutasData);
-        this.isLoading.set(false);
-        console.log('✅ Rutas organizadas por resolución:', resolucionesConRutasData);
-      },
-      error: (error) => {
-        console.error('❌ Error cargando resoluciones:', error);
-        this.isLoading.set(false);
       }
     });
+
+    // Ordenar por número de resolución
+    resolucionesConRutas.sort((a, b) => 
+      a.nroResolucion.localeCompare(b.nroResolucion)
+    );
+
+    this.resolucionesConRutas.set(resolucionesConRutas);
+    this.isLoading.set(false);
+    
+    console.log('✅ Rutas organizadas por resolución:', resolucionesConRutas);
   }
 
   getEstadoColor(estado: string): 'primary' | 'accent' | 'warn' {
@@ -195,12 +195,50 @@ export class RutasPorResolucionModalComponent implements OnInit {
 
   verDetalleRuta(ruta: Ruta): void {
     console.log('Ver detalle de ruta:', ruta);
-    // Aquí podrías abrir otro modal o navegar a la vista de detalle
+    // Navegar al módulo de rutas con la ruta específica
+    this.dialogRef.close();
+    
+    const router = inject(Router);
+    router.navigate(['/rutas'], {
+      queryParams: {
+        empresaId: this.data.empresa.id,
+        empresaRuc: this.data.empresa.ruc,
+        empresaNombre: this.data.empresa.razonSocial.principal,
+        rutaId: ruta.id,
+        accion: 'ver-detalle'
+      }
+    });
   }
 
   editarRuta(ruta: Ruta): void {
     console.log('Editar ruta:', ruta);
-    // Aquí podrías abrir un modal de edición
+    // Navegar al módulo de rutas para editar
+    this.dialogRef.close();
+    
+    const router = inject(Router);
+    router.navigate(['/rutas'], {
+      queryParams: {
+        empresaId: this.data.empresa.id,
+        empresaRuc: this.data.empresa.ruc,
+        empresaNombre: this.data.empresa.razonSocial.principal,
+        rutaId: ruta.id,
+        accion: 'editar'
+      }
+    });
+  }
+
+  irAModuloRutas(): void {
+    // Cerrar modal y navegar al módulo de rutas
+    this.dialogRef.close();
+    
+    const router = inject(Router);
+    router.navigate(['/rutas'], {
+      queryParams: {
+        empresaId: this.data.empresa.id,
+        empresaRuc: this.data.empresa.ruc,
+        empresaNombre: this.data.empresa.razonSocial.principal
+      }
+    });
   }
 
   exportarRutas(): void {

@@ -554,7 +554,6 @@ export class DocumentosHistorialModalComponent {
         text: documento.descripcion || 'Documento del historial vehicular',
         url: documento.url || window.location.href
       }).catch(err => {
-        console.log('Error compartiendo:', err);
         this.copiarEnlace(documento);
       });
     } else {
