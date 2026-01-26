@@ -533,24 +533,17 @@ export class CrearRutaModalComponent implements OnInit {
         },
         itinerario: [],
         resolucion: {
-          id: this.resolucionSeleccionada()?.id || '',
-          nroResolucion: this.resolucionSeleccionada()?.nroResolucion || '',
-          tipoResolucion: this.resolucionSeleccionada()?.tipoResolucion || 'PADRE',
-          tipoTramite: this.resolucionSeleccionada()?.tipoTramite || 'PRIMIGENIA',
-          estado: this.resolucionSeleccionada()?.estado || 'VIGENTE',
-          empresa: {
-            id: this.empresa()?.id || '',
-            ruc: this.empresa()?.ruc || '',
-            razonSocial: this.empresa()?.razonSocial?.principal || ''
-          }
+          id: this.resolucionSeleccionada?.id || '',
+          nroResolucion: this.resolucionSeleccionada?.nroResolucion || '',
+          tipoResolucion: this.resolucionSeleccionada?.tipoResolucion || 'PADRE',
+          estado: this.resolucionSeleccionada?.estado || 'VIGENTE'
         },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta as TipoRuta,
         tipoServicio: formValue.tipoServicio as TipoServicio,
         distancia: formValue.distancia || 0,
         observaciones: observacionesFinales,
-        empresaId: this.empresa.id,
-        resolucionId: this.resolucionSeleccionada.id
+        empresa: { id: this.empresa.id, ruc: this.empresa.ruc, razonSocial: this.empresa.razonSocial.principal }
       };
 
       console.log('📤 Enviando ruta al backend:', nuevaRuta);

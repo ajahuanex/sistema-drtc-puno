@@ -959,7 +959,7 @@ export class RutasComponent implements OnInit {
             nombre: r.nombre,
             origen: r.origen,
             destino: r.destino,
-            resolucionId: r.resolucionId
+            resolucionId: r.resolucion.id
           }))
         });
 
@@ -1253,9 +1253,9 @@ export class RutasComponent implements OnInit {
       // VERIFICACIÓN ADICIONAL: Mostrar todas las rutas disponibles para debug
       console.log('🔍 DEBUG - RUTAS DISPONIBLES EN EL SISTEMA:', {
         totalRutas: this.todasLasRutas().length,
-        rutasConEmpresa: this.todasLasRutas().filter(r => r.empresaId === empresa.id).length,
-        rutasConResolucion: this.todasLasRutas().filter(r => r.resolucionId === resolucion.id).length,
-        rutasConAmbos: this.todasLasRutas().filter(r => r.empresaId === empresa.id && r.resolucionId === resolucion.id).length
+        rutasConEmpresa: this.todasLasRutas().filter(r => r.empresa.id === empresa.id).length,
+        rutasConResolucion: this.todasLasRutas().filter(r => r.resolucion.id === resolucion.id).length,
+        rutasConAmbos: this.todasLasRutas().filter(r => r.empresa.id === empresa.id && r.resolucion.id === resolucion.id).length
       });
 
       // Los IDs ahora son correctos por diseño, no necesitamos verificación compleja
@@ -1457,7 +1457,7 @@ export class RutasComponent implements OnInit {
     // SOLUCIÓN TEMPORAL: Usar filtrado local PRIMERO para asegurar que funcione
     console.log('🔄 INTENTANDO FILTRADO LOCAL PRIMERO...');
     const rutasLocales = this.todasLasRutas().filter(r => 
-      r.empresaId === empresaId && r.resolucionId === resolucionId
+      r.empresa.id === empresaId && r.resolucion.id === resolucionId
     );
     
     console.log('🔍 FILTRADO LOCAL RESULTADO:', {
@@ -1465,8 +1465,8 @@ export class RutasComponent implements OnInit {
       rutasEncontradas: rutasLocales.length,
       empresaId: empresaId,
       resolucionId: resolucionId,
-      rutasDeEmpresa: this.todasLasRutas().filter(r => r.empresaId === empresaId).length,
-      rutasDeResolucion: this.todasLasRutas().filter(r => r.resolucionId === resolucionId).length
+      rutasDeEmpresa: this.todasLasRutas().filter(r => r.empresa.id === empresaId).length,
+      rutasDeResolucion: this.todasLasRutas().filter(r => r.resolucion.id === resolucionId).length
     });
 
     if (rutasLocales.length > 0) {
@@ -1552,7 +1552,9 @@ export class RutasComponent implements OnInit {
 
     // SOLUCIÓN TEMPORAL: Usar filtrado local PRIMERO
     console.log('🔄 INTENTANDO FILTRADO LOCAL POR EMPRESA...');
-    const rutasLocales = this.todasLasRutas().filter(ruta => ruta.empresaId === empresaId);
+    const rutasLocales = this.todasLasRutas().filter(ruta => 
+      ruta && ruta.empresa && ruta.empresa.id === empresaId
+    );
     
     console.log('🔍 FILTRADO LOCAL POR EMPRESA:', {
       rutasEncontradas: rutasLocales.length,
@@ -1640,7 +1642,7 @@ export class RutasComponent implements OnInit {
     
     // Agrupar rutas por resolución
     rutas.forEach(ruta => {
-      const resolucionId = ruta.resolucionId;
+      const resolucionId = ruta && ruta.resolucion && ruta.resolucion.id;
       if (resolucionId) {
         if (!grupos[resolucionId]) {
           grupos[resolucionId] = {
@@ -1696,7 +1698,9 @@ export class RutasComponent implements OnInit {
       error: (error) => {
         console.error('❌ ERROR AL CARGAR RUTAS DE RESOLUCIÓN:', error);
         // Fallback: filtrar de todas las rutas por resolucionId
-        const rutasFiltradas = this.todasLasRutas().filter(ruta => ruta.resolucionId === resolucionId);
+        const rutasFiltradas = this.todasLasRutas().filter(ruta => 
+          ruta && ruta.resolucion && ruta.resolucion.id === resolucionId
+        );
         this.rutas.set(rutasFiltradas);
         
         // Actualizar filtro activo con información básica
@@ -1774,9 +1778,12 @@ export class RutasComponent implements OnInit {
 
   // Métodos para obtener información de empresa y resolución de las rutas
   obtenerNombreEmpresa(ruta: Ruta): string {
-    if (!ruta.empresaId) return 'Sin empresa';
+    // Verificar que ruta y empresa existan
+    if (!ruta || !ruta.empresa || !ruta.empresa.id) {
+      return 'Sin empresa';
+    }
     
-    const empresa = this.empresasCache().get(ruta.empresaId);
+    const empresa = this.empresasCache().get(ruta.empresa.id);
     if (empresa) {
       // Manejar tanto string como objeto para razonSocial
       if (typeof empresa.razonSocial === 'string') {
@@ -1788,14 +1795,17 @@ export class RutasComponent implements OnInit {
     }
     
     // Si no está en cache, cargar la empresa
-    this.cargarEmpresaEnCache(ruta.empresaId);
+    this.cargarEmpresaEnCache(ruta.empresa.id);
     return 'Cargando...';
   }
 
   obtenerRucEmpresa(ruta: Ruta): string {
-    if (!ruta.empresaId) return 'Sin RUC';
+    // Verificar que ruta y empresa existan
+    if (!ruta || !ruta.empresa || !ruta.empresa.id) {
+      return 'Sin RUC';
+    }
     
-    const empresa = this.empresasCache().get(ruta.empresaId);
+    const empresa = this.empresasCache().get(ruta.empresa.id);
     if (empresa) {
       return empresa.ruc || 'Sin RUC';
     }
@@ -1804,9 +1814,12 @@ export class RutasComponent implements OnInit {
   }
 
   obtenerNumeroResolucion(ruta: Ruta): string {
-    if (!ruta.resolucionId) return 'Sin resolución';
+    // Verificar que ruta y resolución existan
+    if (!ruta || !ruta.resolucion || !ruta.resolucion.id) {
+      return 'Sin resolución';
+    }
     
-    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    const resolucion = this.resolucionesCache().get(ruta.resolucion.id);
     if (resolucion) {
       const numero = resolucion.nroResolucion || 'Sin número';
       const tipo = resolucion.tipoTramite || '';
@@ -1814,17 +1827,18 @@ export class RutasComponent implements OnInit {
     }
     
     // Si no está en cache, cargar la resolución
-    this.cargarResolucionEnCache(ruta.resolucionId);
+    this.cargarResolucionEnCache(ruta.resolucion.id);
     return 'Cargando...';
   }
 
   // Función adicional para obtener información completa de la resolución
   obtenerInfoCompletaResolucion(ruta: Ruta): { numero: string; tipo: string; estado: string } {
-    if (!ruta.resolucionId) {
+    // Verificar que ruta y resolución existan
+    if (!ruta || !ruta.resolucion || !ruta.resolucion.id) {
       return { numero: 'Sin resolución', tipo: '', estado: '' };
     }
     
-    const resolucion = this.resolucionesCache().get(ruta.resolucionId);
+    const resolucion = this.resolucionesCache().get(ruta.resolucion.id);
     if (resolucion) {
       return {
         numero: resolucion.nroResolucion || 'Sin número',
@@ -1867,9 +1881,18 @@ export class RutasComponent implements OnInit {
   private async precargarDatosRelacionados(): Promise<void> {
     const rutas = this.todasLasRutas();
     
-    // Obtener IDs únicos de empresas y resoluciones, filtrando undefined
-    const empresaIds = [...new Set(rutas.map(r => r.empresaId).filter((id): id is string => Boolean(id)))];
-    const resolucionIds = [...new Set(rutas.map(r => r.resolucionId).filter((id): id is string => Boolean(id)))];
+    // Obtener IDs únicos de empresas y resoluciones, filtrando undefined y verificando existencia
+    const empresaIds = [...new Set(rutas
+      .filter(r => r && r.empresa && r.empresa.id)
+      .map(r => r.empresa.id)
+      .filter((id): id is string => Boolean(id))
+    )];
+    
+    const resolucionIds = [...new Set(rutas
+      .filter(r => r && r.resolucion && r.resolucion.id)
+      .map(r => r.resolucion.id)
+      .filter((id): id is string => Boolean(id))
+    )];
     
     // Cargar empresas en paralelo
     const empresasPromises = empresaIds.map(id => 
@@ -2067,12 +2090,12 @@ export class RutasComponent implements OnInit {
 
   // Método para intercambiar códigos entre rutas
   intercambiarCodigos(ruta1: Ruta, ruta2: Ruta): void {
-    if (!ruta1.resolucionId || !ruta2.resolucionId) {
+    if (!ruta1.resolucion.id || !ruta2.resolucion.id) {
       this.snackBar.open('Las rutas deben tener resolución asignada', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    if (ruta1.resolucionId !== ruta2.resolucionId) {
+    if (ruta1.resolucion.id !== ruta2.resolucion.id) {
       this.snackBar.open('Solo se pueden intercambiar códigos entre rutas de la misma resolución', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -2080,7 +2103,7 @@ export class RutasComponent implements OnInit {
     console.log('🔄 INTERCAMBIANDO CÓDIGOS:', {
       ruta1: { id: ruta1.id, codigoRuta: ruta1.codigoRuta, nombre: ruta1.nombre },
       ruta2: { id: ruta2.id, codigoRuta: ruta2.codigoRuta, nombre: ruta2.nombre },
-      resolucionId: ruta1.resolucionId
+      resolucionId: ruta1.resolucion.id
     });
 
     // Crear copias de las rutas con códigos intercambiados
@@ -2156,7 +2179,7 @@ export class RutasComponent implements OnInit {
 
   // Método para abrir modal de intercambio de códigos
   abrirModalIntercambio(rutaOrigen: Ruta): void {
-    if (!rutaOrigen.resolucionId) {
+    if (!rutaOrigen.resolucion.id) {
       this.snackBar.open('La ruta debe tener resolución asignada', 'Cerrar', { duration: 3000 });
       return;
     }
@@ -2164,7 +2187,7 @@ export class RutasComponent implements OnInit {
     // Obtener todas las rutas de la misma resolución
     const rutasMismaResolucion = this.todasLasRutas().filter(r =>
       r.id !== rutaOrigen.id &&
-      r.resolucionId === rutaOrigen.resolucionId
+      r.resolucion.id === rutaOrigen.resolucion.id
     );
 
     if (rutasMismaResolucion.length === 0) {
@@ -2378,7 +2401,10 @@ export class RutasComponent implements OnInit {
       this.rutas.set(todasLasRutasFiltradas);
       
       // Crear resultado para mostrar estadísticas
-      const empresasUnicas = new Set(todasLasRutasFiltradas.map(r => r.empresaId));
+      const empresasUnicas = new Set(todasLasRutasFiltradas
+        .filter(r => r && r.empresa && r.empresa.id)
+        .map(r => r.empresa.id)
+      );
       
       this.resultadoFiltroAvanzado.set({
         total_rutas: todasLasRutasFiltradas.length,
@@ -2411,8 +2437,8 @@ export class RutasComponent implements OnInit {
         const destinos = new Set<string>();
         
         rutas.forEach(ruta => {
-          if (ruta.origen) origenes.add(ruta.origen);
-          if (ruta.destino) destinos.add(ruta.destino);
+          if (ruta.origen) origenes.add(ruta.origen.nombre);
+          if (ruta.destino) destinos.add(ruta.destino.nombre);
         });
         
         const origenesArray = Array.from(origenes).sort();
@@ -2498,8 +2524,8 @@ export class RutasComponent implements OnInit {
     
     // Filtrar localmente las rutas
     const rutasFiltradas = this.todasLasRutas().filter(ruta => {
-      const coincideOrigen = !origen || (ruta.origen && ruta.origen.toLowerCase().includes(origen.toLowerCase()));
-      const coincideDestino = !destino || (ruta.destino && ruta.destino.toLowerCase().includes(destino.toLowerCase()));
+      const coincideOrigen = !origen || (ruta.origen && ruta.origen.nombre?.toLowerCase().includes(origen.toLowerCase()));
+      const coincideDestino = !destino || (ruta.destino && ruta.destino.nombre?.toLowerCase().includes(destino.toLowerCase()));
       
       return coincideOrigen && coincideDestino;
     });
@@ -2513,7 +2539,10 @@ export class RutasComponent implements OnInit {
     this.rutas.set(rutasFiltradas);
     
     // Crear resultado para mostrar estadísticas
-    const empresasUnicas = new Set(rutasFiltradas.map(r => r.empresaId));
+    const empresasUnicas = new Set(rutasFiltradas
+      .filter(r => r && r.empresa && r.empresa.id)
+      .map(r => r.empresa.id)
+    );
     
     this.resultadoFiltroAvanzado.set({
       total_rutas: rutasFiltradas.length,

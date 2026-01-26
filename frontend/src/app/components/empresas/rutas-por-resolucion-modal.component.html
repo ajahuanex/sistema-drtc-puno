@@ -49,16 +49,16 @@
     </div>
 
     <mat-accordion class="resoluciones-accordion">
-      @for (resolucionData of resolucionesConRutas(); track resolucionData.resolucion.id) {
+      @for (resolucionData of resolucionesConRutas(); track resolucionData.resolucionId) {
         <mat-expansion-panel class="resolucion-panel" [expanded]="$index === 0">
           <mat-expansion-panel-header>
             <mat-panel-title>
               <div class="resolucion-header">
                 <div class="resolucion-info">
-                  <span class="resolucion-numero">{{ resolucionData.resolucion.nroResolucion }}</span>
+                  <span class="resolucion-numero">{{ resolucionData.nroResolucion }}</span>
                   <mat-chip-set>
-                    <mat-chip [color]="getEstadoColor(resolucionData.resolucion.estado || 'VIGENTE')" selected>
-                      {{ resolucionData.resolucion.estado || 'VIGENTE' }}
+                    <mat-chip [color]="getEstadoColor(resolucionData.estado || 'VIGENTE')" selected>
+                      {{ resolucionData.estado || 'VIGENTE' }}
                     </mat-chip>
                   </mat-chip-set>
                 </div>
@@ -71,9 +71,9 @@
             </mat-panel-title>
             <mat-panel-description>
               <div class="resolucion-description">
-                <span>{{ formatFecha(resolucionData.resolucion.fechaEmision) }}</span>
+                <span>{{ formatFecha("Fecha no disponible") }}</span>
                 <span class="separator">•</span>
-                <span>{{ resolucionData.resolucion.tipoTramite }}</span>
+                <span>{{ resolucionData.tipoTramite }}</span>
               </div>
             </mat-panel-description>
           </mat-expansion-panel-header>

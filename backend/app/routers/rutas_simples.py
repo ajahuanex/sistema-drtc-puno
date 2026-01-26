@@ -526,6 +526,9 @@ async def generar_siguiente_codigo_simple(
         return {"codigo": codigo_generado}
         
     except Exception as e:
+        logger.error(f"Error al generar código simple: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al generar código: {str(e)}")
+
 # ========================================
 # CARGA MASIVA DE RUTAS
 # ========================================

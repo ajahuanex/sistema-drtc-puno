@@ -14,11 +14,11 @@ import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { SmartIconComponent } from '../../shared/smart-(icon as any).component';
-import { VehiculoService } from '../../services/(vehiculo as any).service';
-import { EmpresaService } from '../../services/(empresa as any).service';
-import { Vehiculo } from '../../models/(vehiculo as any).model';
-import { Empresa } from '../../models/(empresa as any).model';
+import { SmartIconComponent } from '../../shared/smart-icon.component';
+import { VehiculoService } from '../../services/vehiculo.service';
+import { EmpresaService } from '../../services/empresa.service';
+import { Vehiculo } from '../../models/vehiculo.model';
+import { Empresa } from '../../models/empresa.model';
 import { Observable, of, debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs';
 
 interface FiltrosBusqueda {
@@ -81,17 +81,17 @@ interface SugerenciaBusqueda {
           <mat-autocomplete #autoSugerencias="matAutocomplete" 
                            [autoActiveFirstOption]="true"
                            (optionSelected)="onSugerenciaSeleccionada($event)">
-            @for (sugerencia of sugerencias(); track (sugerencia as any).valor) {
-              <mat-option [value]="(sugerencia as any).valor">
+            @for (sugerencia of sugerencias(); track sugerencia.valor) {
+              <mat-option [value]="sugerencia.valor">
                 <div class="sugerencia-item">
-                  <app-smart-icon [iconName]="(sugerencia as any).icono" [size]="20"></app-smart-icon>
+                  <app-smart-icon [iconName]="sugerencia.icono" [size]="20"></app-smart-icon>
                   <div class="sugerencia-info">
-                    <span class="sugerencia-valor">{{ (sugerencia as any).valor }}</span>
-                    @if ((sugerencia as any).descripcion) {
-                      <small class="sugerencia-descripcion">{{ (sugerencia as any).descripcion }}</small>
+                    <span class="sugerencia-valor">{{ sugerencia.valor }}</span>
+                    @if (sugerencia.descripcion) {
+                      <small class="sugerencia-descripcion">{{ sugerencia.descripcion }}</small>
                     }
                   </div>
-                  <mat-chip class="sugerencia-tipo">{{ (sugerencia as any).tipo }}</mat-chip>
+                  <mat-chip class="sugerencia-tipo">{{ sugerencia.tipo }}</mat-chip>
                 </div>
               </mat-option>
             }
@@ -135,10 +135,10 @@ interface SugerenciaBusqueda {
         <div class="filtros-activos">
           <span class="filtros-label">Filtros activos:</span>
           <div class="chips-container">
-            @for (filtro of filtrosActivos(); track (filtro as any).clave) {
-              <mat-chip [removable]="true" (removed)="removerFiltro((filtro as any).clave)">
-                <app-smart-icon [iconName]="(filtro as any).icono" [size]="16"></app-smart-icon>
-                {{ (filtro as any).etiqueta }}: {{ (filtro as any).valor }}
+            @for (filtro of filtrosActivos(); track filtro.clave) {
+              <mat-chip [removable]="true" (removed)="removerFiltro(filtro.clave)">
+                <app-smart-icon [iconName]="filtro.icono" [size]="16"></app-smart-icon>
+                {{ filtro.etiqueta }}: {{ filtro.valor }}
                 <app-smart-icon matChipRemove [iconName]="'cancel'" [size]="16"></app-smart-icon>
               </mat-chip>
             }
@@ -173,9 +173,9 @@ interface SugerenciaBusqueda {
                 <mat-label>Empresa</mat-label>
                 <mat-select formControlName="empresaId">
                   <mat-option value="">Todas las empresas</mat-option>
-                  @for (empresa of empresas(); track (empresa as any).id) {
-                    <mat-option [value]="(empresa as any).id">
-                      {{ (empresa as any).ruc }} - {{ (empresa as any).razonSocial.principal }}
+                  @for (empresa of empresas(); track empresa.id) {
+                    <mat-option [value]="empresa.id">
+                      {{ empresa.ruc }} - {{ empresa.razonSocial.principal }}
                     </mat-option>
                   }
                 </mat-select>
@@ -331,17 +331,17 @@ interface SugerenciaBusqueda {
         <div class="resultados-rapidos">
           <h4>Resultados de búsqueda ({{ resultadosBusqueda().length }})</h4>
           <div class="resultados-lista">
-            @for (vehiculo of resultadosBusqueda().slice(0, 5); track (vehiculo as any).id) {
+            @for (vehiculo of resultadosBusqueda().slice(0, 5); track vehiculo.id) {
               <div class="resultado-item" (click)="seleccionarVehiculo(vehiculo)">
                 <div class="resultado-info">
                   <div class="resultado-principal">
-                    <strong>{{ (vehiculo as any).placa }}</strong>
-                    <span class="resultado-marca">{{ (vehiculo as any).marca }} {{ (vehiculo as any).modelo }}</span>
+                    <strong>{{ vehiculo.placa }}</strong>
+                    <span class="resultado-marca">{{ vehiculo.marca }} {{ vehiculo.modelo }}</span>
                   </div>
                   <div class="resultado-detalles">
-                    <small>{{ (vehiculo as any).anioFabricacion }} • {{ (vehiculo as any).categoria }}</small>
-                    <mat-chip [class]="'estado-' + (vehiculo as any).estado.toLowerCase()">
-                      {{ (vehiculo as any).estado }}
+                    <small>{{ vehiculo.anioFabricacion }} • {{ vehiculo.categoria }}</small>
+                    <mat-chip [class]="'estado-' + vehiculo.estado.toLowerCase()">
+                      {{ vehiculo.estado }}
                     </mat-chip>
                   </div>
                 </div>
@@ -499,7 +499,7 @@ interface SugerenciaBusqueda {
     .resultados-rapidos {
       background: white;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,(0 as any).1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       padding: 24px;
     }
 
@@ -523,7 +523,7 @@ interface SugerenciaBusqueda {
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       cursor: pointer;
-      transition: all (0 as any).2s ease;
+      transition: all 0.2s ease;
     }
 
     .resultado-item:hover {
@@ -627,12 +627,12 @@ export class VehiculoBusquedaAvanzadaComponent {
 
   // Datos para autocompletado
   marcasDisponibles = computed(() => {
-    const marcas = new Set((this as any).vehiculos().map(v => (v as any).marca).filter(Boolean));
+    const marcas = new Set((this as any).vehiculos().map((v: any) => (v as any).marca).filter(Boolean));
     return (Array as any).from(marcas).sort();
   });
 
   modelosDisponibles = computed(() => {
-    const modelos = new Set((this as any).vehiculos().map(v => (v as any).modelo).filter(Boolean));
+    const modelos = new Set((this as any).vehiculos().map((v: any) => (v as any).modelo).filter(Boolean));
     return (Array as any).from(modelos).sort();
   });
 
@@ -656,7 +656,7 @@ export class VehiculoBusquedaAvanzadaComponent {
   // Computed properties
   hayFiltros = computed(() => {
     const valores = (this as any).filtrosForm.value;
-    return (Object as any).values(valores).some(valor => 
+    return (Object as any).values(valores).some((valor: any) => 
       valor !== null && valor !== undefined && valor !== '' && valor !== false
     );
   });
@@ -684,7 +684,7 @@ export class VehiculoBusquedaAvanzadaComponent {
     }
 
     if ((valores as any).empresaId) {
-      const empresa = (this as any).empresas().find(e => (e as any).id === (valores as any).empresaId);
+      const empresa = (this as any).empresas().find((e: any) => (e as any).id === (valores as any).empresaId);
       (activos as any).push({
         clave: 'empresaId',
         etiqueta: 'Empresa',
@@ -804,7 +804,7 @@ export class VehiculoBusquedaAvanzadaComponent {
         debounceTime(300),
         distinctUntilChanged(),
         switchMap(termino => (this as any).generarSugerencias(termino || ''))
-      ).subscribe(sugerencias => {
+      ).subscribe((sugerencias: any) => {
         (this as any).sugerencias.set(sugerencias);
       });
     }
@@ -820,9 +820,9 @@ export class VehiculoBusquedaAvanzadaComponent {
 
     // Sugerencias de placas
     (this as any).vehiculos()
-      .filter(v => (v as any).placa.toLowerCase().includes(terminoLower))
+      .filter((v: any) => (v as any).placa.toLowerCase().includes(terminoLower))
       .slice(0, 3)
-      .forEach(vehiculo => {
+      .forEach((vehiculo: any) => {
         (sugerencias as any).push({
           tipo: 'placa',
           valor: (vehiculo as any).placa,
@@ -833,11 +833,11 @@ export class VehiculoBusquedaAvanzadaComponent {
 
     // Sugerencias de marcas
     const marcas = (this as any).marcasDisponibles()
-      .filter(marca => (marca as any).toLowerCase().includes(terminoLower))
+      .filter((marca: any) => (marca as any).toLowerCase().includes(terminoLower))
       .slice(0, 3);
     
-    (marcas as any).forEach(marca => {
-      const cantidad = (this as any).vehiculos().filter(v => (v as any).marca === marca).length;
+    (marcas as any).forEach((marca: any) => {
+      const cantidad = (this as any).vehiculos().filter((v: any) => (v as any).marca === marca).length;
       (sugerencias as any).push({
         tipo: 'marca',
         valor: marca,
@@ -848,11 +848,11 @@ export class VehiculoBusquedaAvanzadaComponent {
 
     // Sugerencias de modelos
     const modelos = (this as any).modelosDisponibles()
-      .filter(modelo => (modelo as any).toLowerCase().includes(terminoLower))
+      .filter((modelo: any) => (modelo as any).toLowerCase().includes(terminoLower))
       .slice(0, 3);
     
-    (modelos as any).forEach(modelo => {
-      const cantidad = (this as any).vehiculos().filter(v => (v as any).modelo === modelo).length;
+    (modelos as any).forEach((modelo: any) => {
+      const cantidad = (this as any).vehiculos().filter((v: any) => (v as any).modelo === modelo).length;
       (sugerencias as any).push({
         tipo: 'modelo',
         valor: modelo,
@@ -863,12 +863,12 @@ export class VehiculoBusquedaAvanzadaComponent {
 
     // Sugerencias de empresas
     (this as any).empresas()
-      .filter(empresa => 
+      .filter((empresa: any) => 
         (empresa as any).ruc.includes(termino) || 
         (empresa as any).razonSocial?.principal?.toLowerCase().includes(terminoLower)
       )
       .slice(0, 2)
-      .forEach(empresa => {
+      .forEach((empresa: any) => {
         (sugerencias as any).push({
           tipo: 'empresa',
           valor: (empresa as any).razonSocial?.principal || (empresa as any).ruc,
@@ -914,7 +914,7 @@ export class VehiculoBusquedaAvanzadaComponent {
   }
 
   onSugerenciaSeleccionada(event: unknown): void {
-    const sugerencia = (this as any).sugerencias().find(s => (s as any).valor === (event as any).(option as any).value);
+    const sugerencia = (this as any).sugerencias().find((s: any) => (s as any).valor === (event as any).option.value);
     if (!sugerencia) return;
 
     // Aplicar la sugerencia al filtro correspondiente
@@ -929,7 +929,7 @@ export class VehiculoBusquedaAvanzadaComponent {
         (this as any).filtrosForm.patchValue({ modelo: (sugerencia as any).valor });
         break;
       case 'empresa':
-        const empresa = (this as any).empresas().find(e => 
+        const empresa = (this as any).empresas().find((e: any) => 
           (e as any).razonSocial?.principal === (sugerencia as any).valor
         );
         if (empresa) {
@@ -946,7 +946,7 @@ export class VehiculoBusquedaAvanzadaComponent {
   private buscarVehiculosRapido(termino: string): void {
     const terminoLower = (termino as any).toLowerCase();
     
-    const resultados = (this as any).vehiculos().filter(vehiculo => {
+    const resultados = (this as any).vehiculos().filter((vehiculo: any) => {
       return (vehiculo as any).placa.toLowerCase().includes(terminoLower) ||
              (vehiculo as any).marca?.toLowerCase().includes(terminoLower) ||
              (vehiculo as any).modelo?.toLowerCase().includes(terminoLower);
@@ -956,7 +956,7 @@ export class VehiculoBusquedaAvanzadaComponent {
   }
 
   toggleFiltrosAvanzados(): void {
-    (this as any).mostrarFiltrosAvanzados.update(valor => !valor);
+    (this as any).mostrarFiltrosAvanzados.update((valor: any) => !valor);
   }
 
   buscar(): void {

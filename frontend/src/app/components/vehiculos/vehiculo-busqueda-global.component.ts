@@ -370,7 +370,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
           })
         );
       })
-    ).subscribe(resultado => {
+    ).subscribe((resultado: any) => {
       this.buscando.set(false);
       
       if (resultado) {
@@ -402,7 +402,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
    * Obtiene sugerencias filtradas por tipo
    */
   getSugerenciasPorTipo(tipo: 'vehiculo' | 'empresa' | 'resolucion'): BusquedaSugerencia[] {
-    return this.sugerencias().filter(s => s.tipo === tipo);
+    return this.sugerencias().filter((s: any) => s.tipo === tipo);
   }
 
   /**
@@ -470,7 +470,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
     // Evitar duplicados
     const nuevasRecientes = [
       terminoLimpio,
-      ...recientes.filter(b => b !== terminoLimpio)
+      ...recientes.filter((b: any) => b !== terminoLimpio)
     ].slice(0, this.maxRecientes());
 
     this.busquedasRecientes.set(nuevasRecientes);

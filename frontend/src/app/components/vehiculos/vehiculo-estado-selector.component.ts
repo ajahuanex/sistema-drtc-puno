@@ -143,7 +143,7 @@ export class VehiculoEstadoSelectorComponent {
       panelClass: 'cambiar-estado-individual-modal'
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
         // Emitir el evento de cambio de estado
         this.estadoChanged.emit({

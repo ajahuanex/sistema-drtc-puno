@@ -64,7 +64,7 @@ import { VehiculoEstadoSelectorComponent } from './vehiculo-estado-selector.comp
     VehiculoEstadoSelectorComponent
   ],
   templateUrl: './vehiculos.component.html',
-  styleUrls: ['./(vehiculos as any).component.scss']
+  styleUrls: ['./vehiculos.component.scss']
 })
 export class VehiculosComponent implements OnInit {
   private vehiculoService = inject(VehiculoService);
@@ -157,7 +157,7 @@ export class VehiculosComponent implements OnInit {
   // Computed para availableColumns (para compatibilidad con el template)
   availableColumns = computed(() => {
     const visibles = (this as any).columnasVisiblesState();
-    return (this as any).columnasDisponibles.map(col => ({
+    return (this as any).columnasDisponibles.map((col: any) => ({
       ...col,
       visible: (visibles as any).includes((col as any).key)
     }));
@@ -173,44 +173,44 @@ export class VehiculosComponent implements OnInit {
     // - Si está desactivado, mostrar TODOS los vehículos (con y sin resolución)
     // - Esto permite ver los vehículos recién cargados que aún no tienen resolución asignada
     if ((filtros as any).mostrarSinResolucion) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         !(v as any).resolucionId || !(v as any).empresaActualId
       );
     }
     // Si mostrarSinResolucion está desactivado, mostrar todos los vehículos
     // (comentamos el filtro restrictivo anterior)
     // if (!(filtros as any).mostrarSinResolucion) {
-    //   vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+    //   vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
     //     (v as any).resolucionId && (v as any).empresaActualId
     //   );
     // }
 
     if ((filtros as any).placa) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         (v as any).placa.toLowerCase().includes((filtros as any).placa.toLowerCase())
       );
     }
 
     if ((filtros as any).marca) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         (v as any).marca?.toLowerCase().includes((filtros as any).marca.toLowerCase())
       );
     }
 
     if ((filtros as any).empresaId) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         (v as any).empresaActualId === (filtros as any).empresaId
       );
     }
 
     if ((filtros as any).estado) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         (v as any).estado === (filtros as any).estado
       );
     }
 
     if ((filtros as any).categoria) {
-      vehiculosFiltrados = (vehiculosFiltrados as any).filter(v => 
+      vehiculosFiltrados = (vehiculosFiltrados as any).filter((v: any) => 
         (v as any).categoria === (filtros as any).categoria
       );
     }
@@ -303,18 +303,18 @@ export class VehiculosComponent implements OnInit {
 
   // Métodos de estadísticas
   getVehiculosActivos(): number {
-    return (this as any).vehiculos().filter(v => (v as any).estado === 'ACTIVO').length;
+    return (this as any).vehiculos().filter((v: any) => (v as any).estado === 'ACTIVO').length;
   }
 
   getVehiculosPorEstado(estado: string): number {
-    return (this as any).vehiculos().filter(v => (v as any).estado === estado).length;
+    return (this as any).vehiculos().filter((v: any) => (v as any).estado === estado).length;
   }
 
   // Métodos de paginación
   getPaginatedVehiculos(): Vehiculo[] {
     const vehiculos = (this as any).vehiculosFiltrados();
     const inicio = (this as any).paginaActual() * (this as any).elementosPorPagina();
-    const fin = inicio + (this as any).elementosPorPagina();
+    const fin = inicio + this.elementosPorPagina();
     return (vehiculos as any).slice(inicio, fin);
   }
 
@@ -336,7 +336,7 @@ export class VehiculosComponent implements OnInit {
   seleccionarTodos(): boolean {
     const vehiculosVisibles = (this as any).getPaginatedVehiculos();
     return (vehiculosVisibles as any).length > 0 && 
-           (vehiculosVisibles as any).every(v => (this as any).vehiculosSeleccionados().has((v as any).id));
+           (vehiculosVisibles as any).every((v: any) => (this as any).vehiculosSeleccionados().has((v as any).id));
   }
 
   toggleSeleccionarTodos(): void {
@@ -345,10 +345,10 @@ export class VehiculosComponent implements OnInit {
     
     if ((this as any).seleccionarTodos()) {
       // Deseleccionar todos los visibles
-      (vehiculosVisibles as any).forEach(v => (seleccionados as any).delete((v as any).id));
+      (vehiculosVisibles as any).forEach((v: any) => (seleccionados as any).delete((v as any).id));
     } else {
       // Seleccionar todos los visibles
-      (vehiculosVisibles as any).forEach(v => (seleccionados as any).add((v as any).id));
+      (vehiculosVisibles as any).forEach((v: any) => (seleccionados as any).add((v as any).id));
     }
     
     (this as any).vehiculosSeleccionados.set(seleccionados);
@@ -364,8 +364,8 @@ export class VehiculosComponent implements OnInit {
 
   cambiarEstadoEnBloque(): void {
     const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
-      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
-      .filter(v => v !== undefined) as Vehiculo[];
+      .map((id: any) => (this as any).vehiculos().find((v: any) => (v as any).id === id))
+      .filter((v: any) => v !== undefined) as Vehiculo[];
 
     if ((vehiculosSeleccionados as any).length === 0) {
       (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
@@ -380,7 +380,7 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'cambiar-estado-bloque-modal-panel'
     });
 
-    (dialogRef as any).afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe((result: any) => {
       if (result) {
         // Limpiar selección después del cambio exitoso
         (this as any).limpiarSeleccion();
@@ -394,8 +394,8 @@ export class VehiculosComponent implements OnInit {
 
   editarEnBloque(): void {
     const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
-      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
-      .filter(v => v !== undefined) as Vehiculo[];
+      .map((id: any) => (this as any).vehiculos().find((v: any) => (v as any).id === id))
+      .filter((v: any) => v !== undefined) as Vehiculo[];
 
     if ((vehiculosSeleccionados as any).length === 0) {
       (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
@@ -413,7 +413,7 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'edicion-bloque-modal-panel'
     });
 
-    (dialogRef as any).afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe((result: any) => {
       if (result) {
         // Limpiar selección después del cambio exitoso
         (this as any).limpiarSeleccion();
@@ -427,8 +427,8 @@ export class VehiculosComponent implements OnInit {
 
   cambiarTipoServicioEnBloque(): void {
     const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
-      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
-      .filter(v => v !== undefined) as Vehiculo[];
+      .map((id: any) => (this as any).vehiculos().find((v: any) => (v as any).id === id))
+      .filter((v: any) => v !== undefined) as Vehiculo[];
 
     if ((vehiculosSeleccionados as any).length === 0) {
       (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
@@ -446,7 +446,7 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'edicion-bloque-modal-panel'
     });
 
-    (dialogRef as any).afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe((result: any) => {
       if (result) {
         // Limpiar selección después del cambio exitoso
         (this as any).limpiarSeleccion();
@@ -466,7 +466,7 @@ export class VehiculosComponent implements OnInit {
 
   toggleColumn(columnKey: string): void {
     const columnasActuales = (this as any).columnasVisiblesState();
-    const columnaConfig = (this as any).columnasDisponibles.find(col => (col as any).key === columnKey);
+    const columnaConfig = (this as any).columnasDisponibles.find((col: any) => (col as any).key === columnKey);
     
     if (!columnaConfig || (columnaConfig as any).required) {
       return;
@@ -476,19 +476,19 @@ export class VehiculosComponent implements OnInit {
     
     if ((columnasActuales as any).includes(columnKey)) {
       // Remover columna
-      nuevasColumnas = (columnasActuales as any).filter(col => col !== columnKey);
+      nuevasColumnas = (columnasActuales as any).filter((col: any) => col !== columnKey);
       } else {
       // Agregar columna manteniendo el orden original
       nuevasColumnas = (this as any).columnasDisponibles
-        .map(col => (col as any).key)
-        .filter(key => (columnasActuales as any).includes(key) || key === columnKey);
+        .map((col: any) => (col as any).key)
+        .filter((key: any) => (columnasActuales as any).includes(key) || key === columnKey);
       }
     
     // Actualizar estado
     (this as any).columnasVisiblesState.set(nuevasColumnas);
     
     // Incrementar key para forzar re-renderización
-    (this as any).tablaRenderKey.update(key => key + 1);
+    (this as any).tablaRenderKey.update((key: any) => key + 1);
     
     // Guardar preferencias
     (this as any).saveColumnPreferences();
@@ -513,7 +513,7 @@ export class VehiculosComponent implements OnInit {
     (this as any).columnasVisiblesState.set(columnasDefault);
     
     // Incrementar key para forzar re-renderización
-    (this as any).tablaRenderKey.update(key => key + 1);
+    (this as any).tablaRenderKey.update((key: any) => key + 1);
     
     // Guardar preferencias
     (this as any).saveColumnPreferences();
@@ -542,13 +542,13 @@ export class VehiculosComponent implements OnInit {
         if ((preferences as any).columnasVisibles && (Array as any).isArray((preferences as any).columnasVisibles)) {
           // Validar que las columnas guardadas existen en la configuración actual
           const columnasValidas = (preferences as any).columnasVisibles.filter((col: string) => 
-            (this as any).columnasDisponibles.some(disponible => (disponible as any).key === col)
+            (this as any).columnasDisponibles.some((disponible: any) => (disponible as any).key === col)
           );
           
           // Asegurar que las columnas requeridas estén incluidas
           const columnasRequeridas = (this as any).columnasDisponibles
-            .filter(col => (col as any).required)
-            .map(col => (col as any).key);
+            .filter((col: any) => (col as any).required)
+            .map((col: any) => (col as any).key);
           
           const columnasFinales = [...new Set([...columnasRequeridas, ...columnasValidas])];
           
@@ -561,7 +561,7 @@ export class VehiculosComponent implements OnInit {
 
   // Métodos de utilidad para mostrar datos
   getEmpresaNombre(empresaId: string): string {
-    const empresa = (this as any).empresas().find(e => (e as any).id === empresaId);
+    const empresa = (this as any).empresas().find((e: any) => (e as any).id === empresaId);
     return empresa?.razonSocial?.principal || 'Sin empresa';
   }
 
@@ -626,12 +626,12 @@ export class VehiculosComponent implements OnInit {
     const rutas = (this as any).rutas();
     
     return rutasIds
-      .map(rutaId => {
+      .map((rutaId: any) => {
         const ruta = (rutas as any).find((r: Ruta) => (r as any).id === rutaId);
         return ruta?.codigoRuta || null;
       })
-      .filter(codigo => codigo !== null)
-      .map(codigo => codigo as string)
+      .filter((codigo: any) => codigo !== null)
+      .map((codigo: any) => codigo as string)
       .sort(); // Ordenar los códigos
   }
 
@@ -662,7 +662,7 @@ export class VehiculosComponent implements OnInit {
       { codigo: 'MIXTO', nombre: 'Transporte Mixto' }
     ];
     
-    const tipo = (tipos as any).find(t => (t as any).codigo === codigo);
+    const tipo = (tipos as any).find((t: any) => (t as any).codigo === codigo);
     return tipo?.nombre || codigo;
   }
 
@@ -686,7 +686,7 @@ export class VehiculosComponent implements OnInit {
     }
     
     // Retornar la fecha más reciente
-    return new Date((Math as any).max(...(fechas as any).map(fecha => (fecha as any).getTime())));
+    return new Date((Math as any).max(...(fechas as any).map((fecha: any) => (fecha as any).getTime())));
   }
 
   // Métodos adicionales requeridos por el template
@@ -722,7 +722,7 @@ export class VehiculosComponent implements OnInit {
     });
 
     (dialogRef as any).afterClosed().subscribe((result: unknown) => {
-      if (result?.success) {
+      if ((result as any)?.success) {
         (this as any).snackBar.open(
           `Vehículo ${(vehiculo as any).placa} transferido exitosamente`,
           'Cerrar',
@@ -805,7 +805,7 @@ export class VehiculosComponent implements OnInit {
     });
 
     (dialogRef as any).afterClosed().subscribe((result: unknown) => {
-      if (result?.action === 'edit') {
+      if ((result as any)?.action === 'edit') {
         (this as any).editarVehiculo((result as any).vehiculo);
       }
     });
@@ -858,7 +858,7 @@ export class VehiculosComponent implements OnInit {
     });
 
     (dialogRef as any).afterClosed().subscribe((result: unknown) => {
-      if (result?.success) {
+      if ((result as any)?.success) {
         (this as any).snackBar.open(
           `Solicitud de baja para vehículo ${(vehiculo as any).placa} enviada exitosamente`,
           'Cerrar',
@@ -888,7 +888,7 @@ export class VehiculosComponent implements OnInit {
           );
           (this as any).cargarDatos(); // Recargar la lista
         },
-        error: (error) => {
+        error: (error: any) => {
           (console as any).error('Error eliminando vehículo:', error);
           
           let mensaje = 'Error al eliminar el vehículo';
@@ -916,8 +916,8 @@ export class VehiculosComponent implements OnInit {
 
   gestionarRutasEnBloque(): void {
     const vehiculosSeleccionados = (Array as any).from((this as any).vehiculosSeleccionados())
-      .map(id => (this as any).vehiculos().find(v => (v as any).id === id))
-      .filter(v => v !== undefined) as Vehiculo[];
+      .map((id: any) => (this as any).vehiculos().find((v: any) => (v as any).id === id))
+      .filter((v: any) => v !== undefined) as Vehiculo[];
 
     if ((vehiculosSeleccionados as any).length === 0) {
       (this as any).snackBar.open('No hay vehículos seleccionados', 'Cerrar', { duration: 3000 });
@@ -934,7 +934,7 @@ export class VehiculosComponent implements OnInit {
 
   verVehiculosEliminados(): void {
     (this as any).vehiculoService.getVehiculosEliminados().subscribe({
-      next: (vehiculosEliminados) => {
+      next: (vehiculosEliminados: any) => {
         if ((vehiculosEliminados as any).length === 0) {
           (this as any).snackBar.open('No hay vehículos eliminados', 'Cerrar', { duration: 3000 });
           return;
@@ -947,13 +947,13 @@ export class VehiculosComponent implements OnInit {
           data: { vehiculosEliminados }
         });
 
-        (dialogRef as any).afterClosed().subscribe(result => {
+        (dialogRef as any).afterClosed().subscribe((result: any) => {
           if (result?.restaurado) {
             (this as any).cargarDatos(); // Recargar datos si se restauró algún vehículo
           }
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         (console as any).error('Error obteniendo vehículos eliminados:', error);
         (this as any).snackBar.open('Error al obtener vehículos eliminados', 'Cerrar', { duration: 3000 });
       }
@@ -963,7 +963,7 @@ export class VehiculosComponent implements OnInit {
   exportarVehiculos(): void {
     // Verificar si hay vehículos seleccionados
     const vehiculosSeleccionadosIds = (Array as any).from((this as any).vehiculosSeleccionados());
-    const vehiculosSeleccionados = (this as any).vehiculosFiltrados().filter(v => (vehiculosSeleccionadosIds as any).includes((v as any).id));
+    const vehiculosSeleccionados = (this as any).vehiculosFiltrados().filter((v: any) => (vehiculosSeleccionadosIds as any).includes((v as any).id));
     const exportarSoloSeleccionados = (vehiculosSeleccionados as any).length > 0;
     
     if (exportarSoloSeleccionados) {
@@ -1010,7 +1010,7 @@ export class VehiculosComponent implements OnInit {
       panelClass: 'carga-masiva-modal-panel'
     });
 
-    (dialogRef as any).afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe((result: any) => {
       if (result && (result as any).exitosos > 0) {
         (this as any).recargarVehiculos();
         (this as any).snackBar.open(
@@ -1053,7 +1053,7 @@ export class VehiculosComponent implements OnInit {
 
   onVehiculoActualizado(vehiculoActualizado: Vehiculo): void {
     const vehiculos = (this as any).vehiculos();
-    const index = (vehiculos as any).findIndex(v => (v as any).id === (vehiculoActualizado as any).id);
+    const index = (vehiculos as any).findIndex((v: any) => (v as any).id === (vehiculoActualizado as any).id);
     if (index !== -1) {
       const vehiculosActualizados = [...vehiculos];
       vehiculosActualizados[index] = vehiculoActualizado;

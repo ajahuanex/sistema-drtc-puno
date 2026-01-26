@@ -208,7 +208,7 @@ export class VehiculosEliminadosModalComponent {
             this.dialogRef.close({ restaurado: true });
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error restaurando vehículo:', error);
           this.snackBar.open(
             'Error al restaurar el vehículo',

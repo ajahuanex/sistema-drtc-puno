@@ -527,7 +527,7 @@ export class CambiarTipoServicioBloqueModalComponent {
   }
 
   getLabelTipoServicio(codigo: string): string {
-    const tipoConfig = this.tiposServicioDisponibles.find(t => t.codigo === codigo);
+    const tipoConfig = this.tiposServicioDisponibles.find((t: any) => t.codigo === codigo);
     return tipoConfig?.nombre || codigo;
   }
 
@@ -553,7 +553,7 @@ export class CambiarTipoServicioBloqueModalComponent {
   getTiposActuales() {
     const tiposMap = new Map<string, number>();
 
-    this.vehiculos.forEach(vehiculo => {
+    this.vehiculos.forEach((vehiculo: any) => {
       const tipoServicio = (vehiculo as any).tipoServicio || 'PASAJEROS';
       tiposMap.set(tipoServicio, (tiposMap.get(tipoServicio) || 0) + 1);
     });
@@ -599,7 +599,7 @@ export class CambiarTipoServicioBloqueModalComponent {
     this.progreso.set(0);
 
     // Crear array de observables para cambiar el tipo de servicio de cada vehículo
-    const cambios = this.vehiculos.map(vehiculo => {
+    const cambios = this.vehiculos.map((vehiculo: any) => {
       const observacionesCompletas = observaciones ?
         `Cambio de tipo de servicio en bloque: ${observaciones}` :
         'Cambio de tipo de servicio realizado en bloque';
@@ -615,7 +615,7 @@ export class CambiarTipoServicioBloqueModalComponent {
 
     // Ejecutar todos los cambios en paralelo
     forkJoin(cambios).subscribe({
-      next: (vehiculosActualizados) => {
+      next: (vehiculosActualizados: any) => {
         this.procesando.set(false);
 
         // Mostrar notificación de éxito
@@ -635,7 +635,7 @@ export class CambiarTipoServicioBloqueModalComponent {
           nuevoTipoServicio: nuevoTipoServicio
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         this.procesando.set(false);
         console.error('Error cambiando tipo de servicio de vehículos en bloque:', error);
 

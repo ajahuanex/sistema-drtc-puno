@@ -1105,7 +1105,7 @@ export class VehiculoModalComponent {
       return 0;
     }
 
-    return vehiculosActuales.filter(v => v.empresaActualId === empresaId).length;
+    return vehiculosActuales.filter((v: any) => v.empresaActualId === empresaId).length;
   });
 
   isEditing = computed(() => {
@@ -1201,10 +1201,10 @@ export class VehiculoModalComponent {
    */
   private loadVehiculosActuales(): void {
     this.vehiculoService.getVehiculos().subscribe({
-      next: (vehiculos) => {
+      next: (vehiculos: any) => {
         this.vehiculosActuales.set(vehiculos);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando vehículos actuales:', error);
       }
     });
@@ -1239,7 +1239,7 @@ export class VehiculoModalComponent {
       return this.sedesDisponibles();
     }
 
-    return this.sedesDisponibles().filter(sede =>
+    return this.sedesDisponibles().filter((sede: any) =>
       sede.toLowerCase().includes(filterValue)
     );
   }
@@ -1393,28 +1393,28 @@ export class VehiculoModalComponent {
    */
   private setupFormListeners(): void {
     // Listener para número de serie -> chasis
-    this.vehiculoForm.get('numeroSerie')?.valueChanges.subscribe(value => {
+    this.vehiculoForm.get('numeroSerie')?.valueChanges.subscribe((value: any) => {
       if (value && value.trim() && !this.vehiculoForm.get('chasis')?.value) {
         this.vehiculoForm.get('chasis')?.setValue(value, { emitEvent: false });
       }
     });
 
     // Listener para chasis -> número de serie
-    this.vehiculoForm.get('chasis')?.valueChanges.subscribe(value => {
+    this.vehiculoForm.get('chasis')?.valueChanges.subscribe((value: any) => {
       if (value && value.trim() && !this.vehiculoForm.get('numeroSerie')?.value) {
         this.vehiculoForm.get('numeroSerie')?.setValue(value, { emitEvent: false });
       }
     });
 
     // Listener para validar que peso bruto sea mayor que peso neto
-    this.vehiculoForm.get('pesoNeto')?.valueChanges.subscribe(pesoNeto => {
+    this.vehiculoForm.get('pesoNeto')?.valueChanges.subscribe((pesoNeto: any) => {
       const pesoBruto = this.vehiculoForm.get('pesoBruto')?.value;
       if (pesoNeto && pesoBruto && pesoNeto >= pesoBruto) {
         this.vehiculoForm.get('pesoBruto')?.setValue(pesoNeto + 0.5, { emitEvent: false });
       }
     });
 
-    this.vehiculoForm.get('pesoBruto')?.valueChanges.subscribe(pesoBruto => {
+    this.vehiculoForm.get('pesoBruto')?.valueChanges.subscribe((pesoBruto: any) => {
       const pesoNeto = this.vehiculoForm.get('pesoNeto')?.value;
       if (pesoNeto && pesoBruto && pesoBruto <= pesoNeto) {
         this.vehiculoForm.get('pesoNeto')?.setValue(pesoBruto - 0.5, { emitEvent: false });
@@ -1424,10 +1424,10 @@ export class VehiculoModalComponent {
 
   private loadEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
-      next: (empresas) => {
-        this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA));
+      next: (empresas: any) => {
+        this.empresas.set(empresas.filter((e: any) => e.estado === EstadoEmpresa.AUTORIZADA));
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando empresas:', error);
         this.snackBar.open('Error al cargar empresas', 'Cerrar', { duration: 3000 });
       }
@@ -1552,7 +1552,7 @@ export class VehiculoModalComponent {
 
     // Buscar vehículo por placa
     this.vehiculoService.getVehiculoByPlaca(placa).subscribe({
-      next: (vehiculo) => {
+      next: (vehiculo: any) => {
         if (vehiculo) {
           this.snackBar.open(
             `⚠️ La placa ${placa} ya está registrada`,
@@ -1563,7 +1563,7 @@ export class VehiculoModalComponent {
           this.vehiculoForm.get('placa')?.setValue('');
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error validando placa:', error);
       }
     });
@@ -1634,7 +1634,7 @@ export class VehiculoModalComponent {
     
     if (!this.vehiculoForm) return errors;
     
-    Object.keys(this.vehiculoForm.controls).forEach(key => {
+    Object.keys(this.vehiculoForm.controls).forEach((key: any) => {
       const control = this.vehiculoForm.get(key);
       if (control && control.invalid && control.errors) {
         const fieldErrors: string[] = [];
@@ -1662,13 +1662,13 @@ export class VehiculoModalComponent {
     const vehiculoData = this.buildVehiculoData();
 
     this.vehiculoService.createVehiculo(vehiculoData).subscribe({
-      next: (vehiculo) => {
+      next: (vehiculo: any) => {
         this.snackBar.open('Vehículo creado exitosamente', 'Cerrar', { duration: 3000 });
         this.vehiculoCreated.emit(vehiculoData);
         this.isSubmitting.set(false);
         this.close();
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error creando vehículo:', error);
         this.snackBar.open('Error al crear vehículo', 'Cerrar', { duration: 3000 });
         this.isSubmitting.set(false);
@@ -1685,13 +1685,13 @@ export class VehiculoModalComponent {
 
     const vehiculoData = this.buildVehiculoUpdateData();
     this.vehiculoService.updateVehiculo(data.vehiculo.id, vehiculoData).subscribe({
-      next: (vehiculo) => {
+      next: (vehiculo: any) => {
         this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
         this.vehiculoUpdated.emit(vehiculoData);
         this.isSubmitting.set(false);
         this.close();
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('❌ Error actualizando vehículo:', error);
         this.snackBar.open('Error al actualizar vehículo', 'Cerrar', { duration: 3000 });
         this.isSubmitting.set(false);

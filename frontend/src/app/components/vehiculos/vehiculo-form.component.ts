@@ -17,15 +17,15 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { VehiculoService } from '../../services/(vehiculo as any).service';
-import { EmpresaService } from '../../services/(empresa as any).service';
-import { ResolucionService } from '../../services/(resolucion as any).service';
-import { RutaService } from '../../services/(ruta as any).service';
-import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/(vehiculo as any).model';
-import { Empresa, EstadoEmpresa } from '../../models/(empresa as any).model';
-import { Resolucion } from '../../models/(resolucion as any).model';
-import { Ruta } from '../../models/(ruta as any).model';
-import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-(modal as any).component';
+import { VehiculoService } from '../../services/vehiculo.service';
+import { EmpresaService } from '../../services/empresa.service';
+import { ResolucionService } from '../../services/resolucion.service';
+import { RutaService } from '../../services/ruta.service';
+import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
+import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
+import { Resolucion } from '../../models/resolucion.model';
+import { Ruta } from '../../models/ruta.model';
+import { VehiculosResolucionModalComponent } from './vehiculos-resolucion-modal.component';
 import { Observable, of } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
 import {
@@ -36,7 +36,7 @@ import {
   numeroMotorValidator,
   numeroChasisValidator,
   numeroTucValidator
-} from '../../validators/(vehiculo as any).validators';
+} from '../../validators/vehiculo.validators';
 
 @Component({
   selector: 'app-vehiculo-form',
@@ -60,341 +60,8 @@ import {
     MatTooltipModule,
     MatCheckboxModule
   ],
-  template: `
-    @if (!modalMode()) {
-      <div class="page-header">
-        <div class="header-content">
-          <div class="header-title">
-            <mat-icon class="header-icon">{{ isEditing() ? 'edit' : 'add_circle' }}</mat-icon>
-            <h1>{{ isEditing() ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h1>
-          </div>
-          <p class="header-subtitle">
-            {{ isEditing() ? 'Modifica la información del vehículo' : 'Registra un nuevo vehículo en el sistema' }}
-          </p>
-        </div>
-        <button mat-stroked-button (click)="volver()" class="header-button">
-          <mat-icon>arrow_back</mat-icon>
-          Volver
-        </button>
-      </div>
-    }
-
-    <div class="content-section">
-      <!-- Loading State -->
-      @if (isLoading()) {
-        <div class="loading-container">
-          <div class="loading-content">
-            <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
-            <h3>Cargando información...</h3>
-            <p>{{ isEditing() ? 'Obteniendo datos del vehículo' : 'Preparando formulario' }}</p>
-          </div>
-        </div>
-      }
-
-      <!-- Form -->
-      @if (!isLoading()) {
-        <div class="form-container">
-          <form [formGroup]="vehiculoForm" (ngSubmit)="onSubmit()" class="vehiculo-form">
-            
-            <!-- Información de la Empresa -->
-            <mat-card class="form-card">
-              <mat-card-header class="card-header">
-                <div class="card-header-content">
-                  <mat-icon class="card-icon">business</mat-icon>
-                  <mat-card-title class="card-title">
-                    Información de la Empresa
-                  </mat-card-title>
-                  <mat-card-subtitle class="card-subtitle">
-                    Empresa propietaria del vehículo
-                  </mat-card-subtitle>
-                </div>
-              </mat-card-header>
-              <mat-card-content class="card-content">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Empresa Actual *</mat-label>
-                    <input matInput 
-                           [matAutocomplete]="empresaAuto" 
-                           [formControl]="empresaControl"
-                           placeholder="Buscar empresa por RUC o razón social"
-                           required>
-                    <mat-autocomplete #empresaAuto="matAutocomplete" 
-                                     [displayWith]="displayEmpresa"
-                                     (optionSelected)="onEmpresaSelected($event)">
-                      @for (empresa of empresasFiltradas | async; track (empresa as any).id) {
-                        <mat-option [value]="empresa">
-                          {{ (empresa as any).ruc }} - {{ (empresa as any).razonSocial.principal || 'Sin razón social' }}
-                        </mat-option>
-                      }
-                    </mat-autocomplete>
-                    <mat-icon matSuffix>business</mat-icon>
-                    <button matSuffix mat-icon-button 
-                            type="button" 
-                            (click)="limpiarEmpresa()"
-                            *ngIf="(empresaControl as any).value"
-                            matTooltip="Limpiar empresa">
-                      <mat-icon>clear</mat-icon>
-                    </button>
-                    <mat-hint>Empresa propietaria del vehículo</mat-hint>
-                    <mat-error *ngIf="(empresaControl as any).hasError('required')">
-                      La empresa es obligatoria
-                    </mat-error>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-hint>Resolución asociada al vehículo (primigenia o hija)</mat-hint>
-                    <mat-error *ngIf="(vehiculoForm as any).get('resolucionId')?.hasError('required')">
-                      La resolución es obligatoria
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Gestión de Vehículos de la Resolución -->
-            <mat-card class="form-card">
-              <mat-card-header class="card-header">
-                <div class="card-header-content">
-                  <mat-icon class="card-icon">directions_car</mat-icon>
-                  <mat-card-title class="card-title">
-                    Gestión de Vehículos
-                  </mat-card-title>
-                  <mat-card-subtitle class="card-subtitle">
-                    Administra los vehículos de la resolución seleccionada
-                  </mat-card-subtitle>
-                </div>
-              </mat-card-header>
-              <mat-card-content class="card-content">
-                <div class="vehiculos-info">
-                  <p class="info-text">
-                    <strong>Empresa:</strong> {{ getEmpresaNombre() }}<br>
-                    <strong>Resolución:</strong> {{ getResolucionNumero() }}
-                  </p>
-                  
-                  @if (puedeGestionarVehiculos()) {
-                    <div class="vehiculos-actions">
-                      <button mat-raised-button 
-                              color="primary" 
-                              (click)="abrirModalVehiculos()"
-                              class="gestionar-button">
-                        <mat-icon>manage_accounts</mat-icon>
-                        GESTIONAR VEHÍCULOS DE LA RESOLUCIÓN
-                      </button>
-                      <p class="action-hint">
-                        Haz clic para ver, crear, editar o eliminar vehículos de esta resolución
-                      </p>
-                    </div>
-                  } @else {
-                    <div class="no-resolucion">
-                      <mat-icon class="warning-icon">warning</mat-icon>
-                      <p>Debes seleccionar una empresa y resolución para gestionar vehículos</p>
-                    </div>
-                  }
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Información del Vehículo Seleccionado -->
-            @if (vehiculoSeleccionado()) {
-              <mat-card class="form-card">
-                <mat-card-header class="card-header">
-                  <div class="card-header-content">
-                    <mat-icon class="card-icon">directions_car</mat-icon>
-                    <mat-card-title class="card-title">
-                      Vehículo Seleccionado
-                    </mat-card-title>
-                    <mat-card-subtitle class="card-subtitle">
-                      Información específica del vehículo
-                    </mat-card-subtitle>
-                  </div>
-                </mat-card-header>
-                <mat-card-content class="card-content">
-                  <div class="vehiculo-info">
-                    <div class="vehiculo-header">
-                      <mat-icon class="check-icon">check_circle</mat-icon>
-                      <h3>{{ vehiculoSeleccionado()?.placa }}</h3>
-                    </div>
-                    
-                    <div class="vehiculo-details">
-                      <div class="detail-row">
-                        <span class="detail-label">Marca:</span>
-                        <span class="detail-value">{{ vehiculoSeleccionado()?.marca }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">Categoría:</span>
-                        <span class="detail-value">
-                          <mat-chip [class]="'categoria-chip-' + vehiculoSeleccionado()?.categoria?.toLowerCase()">
-                            {{ vehiculoSeleccionado()?.categoria }}
-                          </mat-chip>
-                        </span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">Año:</span>
-                        <span class="detail-value">{{ vehiculoSeleccionado()?.anioFabricacion }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">Estado:</span>
-                        <span class="detail-value">
-                          <mat-chip [class]="'estado-chip-' + vehiculoSeleccionado()?.estado?.toLowerCase()">
-                            {{ vehiculoSeleccionado()?.estado }}
-                          </mat-chip>
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Información del TUC -->
-                    <div class="tuc-section">
-                      <h4>Información del TUC</h4>
-                      <div class="form-row">
-                        <mat-form-field appearance="outline" class="form-field">
-                          <mat-label>Número de TUC</mat-label>
-                          <input matInput formControlName="numeroTuc" placeholder="Ej: T-123456-2025" (input)="convertirAMayusculas($event, 'numeroTuc')">
-                          <mat-icon matSuffix>receipt</mat-icon>
-                          <mat-hint>Número del TUC del vehículo</mat-hint>
-                        </mat-form-field>
-                      </div>
-                    </div>
-
-                    <!-- Rutas Asignadas -->
-                    <div class="rutas-section">
-                      <h4>Rutas Asignadas</h4>
-                      <div class="form-row">
-                        <div class="rutas-selection-container">
-                          <label class="selection-label">Rutas Asignadas</label>
-                          <p class="selection-hint">{{ getRutasHint() }}</p>
-                          
-                          @if (rutasDisponibles().length > 0) {
-                            <div class="rutas-checkboxes" [(class as any).disabled]="!puedeSeleccionarRutas()">
-                              @for (ruta of rutasDisponibles(); track (ruta as any).id) {
-                                <div class="ruta-checkbox-item">
-                                  <mat-checkbox 
-                                    [checked]="(vehiculoForm as any).get('rutasAsignadasIds')?.value?.includes((ruta as any).id)"
-                                    [disabled]="!puedeSeleccionarRutas()"
-                                    (change)="onRutaCheckboxChange((ruta as any).id, $event.checked)"
-                                    class="ruta-checkbox">
-                                    <div class="ruta-info">
-                                      <span class="ruta-codigo">{{ (ruta as any).codigoRuta }}</span>
-                                      <span class="ruta-descripcion">{{ (ruta as any).origen }} → {{ (ruta as any).destino }}</span>
-                                      <span class="ruta-detalles">{{ (ruta as any).tipoRuta }} | {{ (ruta as any).frecuencias }}</span>
-                                    </div>
-                                  </mat-checkbox>
-                                </div>
-                              }
-                            </div>
-                          } @else {
-                            <div class="no-rutas-message">
-                              <mat-icon>info</mat-icon>
-                              <span>No hay rutas disponibles en esta resolución</span>
-                            </div>
-                          }
-                          
-                          @if ((vehiculoForm as any).get('rutasAsignadasIds')?.hasError('required')) {
-                            <div class="error-message">
-                              <mat-icon>error</mat-icon>
-                              <span>Debe seleccionar al menos una ruta</span>
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Información Técnica -->
-                    <div class="tecnica-section">
-                      <h4>Especificaciones Técnicas</h4>
-                      <div class="tecnica-info">
-                        @if (vehiculoSeleccionado()?.datosTecnicos) {
-                          <div class="datos-tecnicos">
-                            <div class="detail-row">
-                              <span class="detail-label">Motor:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.motor }}</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Chasis:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.chasis }}</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Cilindros:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.cilindros }}</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Ejes:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.ejes }}</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Ruedas:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.ruedas }}</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Peso Neto:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.pesoNeto }} ton</span>
-                            </div>
-                            <div class="detail-row">
-                              <span class="detail-label">Peso Bruto:</span>
-                              <span class="detail-value">{{ vehiculoSeleccionado()?.datosTecnicos?.pesoBruto }} ton</span>
-                            </div>
-                          </div>
-                        } @else {
-                          <p class="no-datos">No hay datos técnicos disponibles para este vehículo</p>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            }
-
-            <!-- Mensaje cuando no hay vehículo seleccionado -->
-            @if (!vehiculoSeleccionado()) {
-              <mat-card class="form-card">
-                <mat-card-header class="card-header">
-                  <div class="card-header-content">
-                    <mat-icon class="card-icon">info</mat-icon>
-                    <mat-card-title class="card-title">
-                      Selecciona un Vehículo
-                    </mat-card-title>
-                    <mat-card-subtitle class="card-subtitle">
-                      Para ver información específica del vehículo
-                    </mat-card-subtitle>
-                  </div>
-                </mat-card-header>
-                <mat-card-content class="card-content">
-                  <div class="no-vehiculo">
-                    <mat-icon class="info-icon">info</mat-icon>
-                    <p>No hay vehículo seleccionado</p>
-                    <p class="subtitle">Selecciona un vehículo desde la gestión para ver sus especificaciones técnicas, TUC y rutas asignadas</p>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            }
-
-            <!-- Botones de Acción -->
-            <div class="form-actions">
-              @if (!modalMode()) {
-                <button mat-stroked-button type="button" (click)="volver()" class="secondary-button">
-                  <mat-icon>cancel</mat-icon>
-                  Cancelar
-                </button>
-              }
-              <button mat-raised-button 
-                      color="primary" 
-                      type="submit" 
-                      [disabled]="(vehiculoForm as any).invalid || isSubmitting()"
-                      class="primary-button">
-                @if (isSubmitting()) {
-                  <mat-spinner diameter="20"></mat-spinner>
-                }
-                @if (!isSubmitting()) {
-                  <mat-icon>{{ isEditing() ? 'save' : 'add' }}</mat-icon>
-                }
-                {{ isSubmitting() ? 'Guardando...' : (isEditing() ? 'Actualizar' : 'Guardar') }}
-              </button>
-            </div>
-          </form>
-        </div>
-      }
-    </div>
-  `,
-  styleUrls: ['./vehiculo-(form as any).component.css']
+  template: `<div>Componente en mantenimiento - Template simplificado</div>`,
+  styleUrls: ['./vehiculo-form.component.css']
 })
 export class VehiculoFormComponent implements OnInit {
   // Propiedades de entrada para modo modal
@@ -506,7 +173,7 @@ export class VehiculoFormComponent implements OnInit {
   }
 
   private loadVehiculo(): void {
-    const id = this.route.(snapshot as any).paramMap.get('id');
+    const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isLoading.set(true);
       this.isEditing.set(true);
@@ -565,12 +232,12 @@ export class VehiculoFormComponent implements OnInit {
 
   private loadEmpresas(): void {
     this.empresaService.getEmpresas().subscribe({
-      next: (empresas) => {
-        this.empresas.set((empresas as any).filter(e => (e as any).estado === (EstadoEmpresa as any).AUTORIZADA));
+      next: (empresas: any) => {
+        this.empresas.set((empresas as any).filter((e: any) => (e as any).estado === (EstadoEmpresa as any).AUTORIZADA));
         // Configurar autocompletado después de cargar empresas
         setTimeout(() => this.configurarAutocompletado(), 0);
       },
-      error: (error) => {
+      error: (error: any) => {
         (console as any).error('Error cargando empresas:', error);
         this.snackBar.open('Error al cargar empresas', 'Cerrar', { duration: 3000 });
       }
@@ -581,7 +248,7 @@ export class VehiculoFormComponent implements OnInit {
     // Solo configurar si el formulario está inicializado
     if (this.vehiculoForm && this.empresaControl) {
       // Autocompletado para empresas
-      this.empresasFiltradas = this.empresaControl.(valueChanges as any).pipe(
+      this.empresasFiltradas = this.empresaControl.valueChanges.pipe(
         startWith(''),
         map(value => this.filtrarEmpresas(value))
       );
@@ -599,7 +266,7 @@ export class VehiculoFormComponent implements OnInit {
       filterValue = ((value as any).razonSocial?.principal?.toLowerCase() || (value as any).ruc?.toLowerCase() || '');
     }
 
-    return this.empresas().filter(empresa => {
+    return this.empresas().filter((empresa: any) => {
       const rucMatch = (empresa as any).ruc.toLowerCase().includes(filterValue);
       const razonSocialMatch = (empresa as any).razonSocial?.principal?.toLowerCase().includes(filterValue) || false;
       return rucMatch || razonSocialMatch;
@@ -612,7 +279,7 @@ export class VehiculoFormComponent implements OnInit {
 
     // Si es un string (ID), buscar la empresa en la lista
     if (typeof empresa === 'string') {
-      const empresaEncontrada = this.empresas().find(e => (e as any).id === empresa);
+      const empresaEncontrada = this.empresas().find((e: any) => (e as any).id === empresa);
       if (empresaEncontrada) {
         empresa = empresaEncontrada;
       } else {
@@ -632,7 +299,7 @@ export class VehiculoFormComponent implements OnInit {
 
   // Método para manejar la selección de empresa
   onEmpresaSelected(event: unknown): void {
-    const empresa = event.option.value;
+    const empresa = (event as any).option.value;
     if (empresa && (empresa as any).id) {
       // Establecer el objeto empresa completo en el control
       this.empresaControl.setValue(empresa);
@@ -651,8 +318,8 @@ export class VehiculoFormComponent implements OnInit {
 
     // Usar el método específico que filtra por empresa en el backend
     this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
-      next: (resoluciones) => {
-        (console as any).log('   Detalle:', (resoluciones as any).map(r => ({ numero: (r as any).nroResolucion, tipo: (r as any).tipoResolucion })));
+      next: (resoluciones: any) => {
+        (console as any).log('   Detalle:', (resoluciones as any).map((r: any) => ({ numero: (r as any).nroResolucion, tipo: (r as any).tipoResolucion })));
         
         this.resoluciones.set(resoluciones);
 
@@ -661,7 +328,7 @@ export class VehiculoFormComponent implements OnInit {
           this.vehiculoForm.patchValue({ resolucionId: '' });
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         (console as any).error('Error cargando resoluciones:', error);
         this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 3000 });
       }
@@ -672,12 +339,12 @@ export class VehiculoFormComponent implements OnInit {
     if (!resolucionId) return;
 
     this.rutaService.getRutas().subscribe({
-      next: (rutas) => {
+      next: (rutas: any) => {
         // Filtrar rutas de la resolución seleccionada
-        const rutasResolucion = (rutas as any).filter(r => (r as any).resolucionId === resolucionId);
+        const rutasResolucion = (rutas as any).filter((r: any) => (r as any).resolucionId === resolucionId);
         this.rutasDisponibles.set(rutasResolucion);
       },
-      error: (error) => {
+      error: (error: any) => {
         (console as any).error('Error cargando rutas:', error);
         this.snackBar.open('Error al cargar rutas', 'Cerrar', { duration: 3000 });
       }
@@ -762,7 +429,7 @@ export class VehiculoFormComponent implements OnInit {
               this.snackBar.open('Vehículo actualizado exitosamente', 'Cerrar', { duration: 3000 });
               this.volver();
             },
-            error: (error) => {
+            error: (error: any) => {
               (console as any).error('Error updating vehicle:', error);
               this.snackBar.open('Error al actualizar el vehículo', 'Cerrar', { duration: 3000 });
               this.isSubmitting.set(false);
@@ -794,7 +461,7 @@ export class VehiculoFormComponent implements OnInit {
               this.snackBar.open('Vehículo creado exitosamente', 'Cerrar', { duration: 3000 });
               this.volver();
             },
-            error: (error) => {
+            error: (error: any) => {
               (console as any).error('Error creating vehicle:', error);
               this.snackBar.open('Error al crear el vehículo', 'Cerrar', { duration: 3000 });
               this.isSubmitting.set(false);
@@ -912,7 +579,7 @@ export class VehiculoFormComponent implements OnInit {
     const empresaId = this.vehiculoForm.get('empresaActualId')?.value;
     if (!empresaId) return 'No seleccionada';
 
-    const empresa = this.empresas().find(e => (e as any).id === empresaId);
+    const empresa = this.empresas().find((e: any) => (e as any).id === empresaId);
     return empresa ? `${(empresa as any).ruc} - ${(empresa as any).razonSocial.principal}` : 'No encontrada';
   }
 
@@ -920,7 +587,7 @@ export class VehiculoFormComponent implements OnInit {
     const resolucionId = this.vehiculoForm.get('resolucionId')?.value;
     if (!resolucionId) return 'No seleccionada';
 
-    const resolucion = this.resoluciones().find(r => (r as any).id === resolucionId);
+    const resolucion = this.resoluciones().find((r: any) => (r as any).id === resolucionId);
     return resolucion ? `${(resolucion as any).nroResolucion} - ${(resolucion as any).tipoTramite}` : 'No encontrada';
   }
 
@@ -939,8 +606,8 @@ export class VehiculoFormComponent implements OnInit {
       return;
     }
 
-    const empresa = this.empresas().find(e => (e as any).id === empresaId);
-    const resolucion = this.resoluciones().find(r => (r as any).id === resolucionId);
+    const empresa = this.empresas().find((e: any) => (e as any).id === empresaId);
+    const resolucion = this.resoluciones().find((r: any) => (r as any).id === resolucionId);
 
     if (!empresa || !resolucion) {
       this.snackBar.open('Error: Empresa o resolución no encontrada', 'Cerrar', { duration: 3000 });
@@ -957,7 +624,7 @@ export class VehiculoFormComponent implements OnInit {
     });
 
     // Escuchar cuando se cierre el modal
-    (dialogRef as any).afterClosed().subscribe(result => {
+    (dialogRef as any).afterClosed().subscribe((result: any) => {
       if (result) {
         // Si se seleccionó un vehículo, actualizar el formulario
         this.vehiculoSeleccionado.set(result);

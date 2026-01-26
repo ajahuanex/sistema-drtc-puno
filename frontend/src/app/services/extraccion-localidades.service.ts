@@ -56,12 +56,12 @@ export class ExtraccionLocalidadesService {
       rutas.forEach(ruta => {
         // Procesar origen
         if (ruta.origen) {
-          this.procesarLocalidad(localidadesMap, ruta.origen, 'origen', ruta.id);
+          this.procesarLocalidad(localidadesMap, ruta.origen.nombre, 'origen', ruta.id);
         }
 
         // Procesar destino
         if (ruta.destino) {
-          this.procesarLocalidad(localidadesMap, ruta.destino, 'destino', ruta.id);
+          this.procesarLocalidad(localidadesMap, ruta.destino.nombre, 'destino', ruta.id);
         }
 
         // Procesar itinerario/descripción

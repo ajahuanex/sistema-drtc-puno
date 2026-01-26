@@ -7,7 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
-import { MatSnackBar } from \'@angular/material/snack-bar\';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { HistorialVehicular, TipoEventoHistorial } from '../../models/historial-vehicular.model';
 
@@ -456,6 +456,9 @@ import { HistorialVehicular, TipoEventoHistorial } from '../../models/historial-
   `]
 })
 export class HistorialDetalleModalComponent {
+
+  constructor(private snackBar: MatSnackBar) {}
+
   data = inject<HistorialVehicular>(MAT_DIALOG_DATA);
   dialogRef = inject(MatDialogRef<HistorialDetalleModalComponent>);
 
@@ -497,7 +500,7 @@ export class HistorialDetalleModalComponent {
   }
 
   getLabelTipoEvento(tipo: TipoEventoHistorial): string {
-    const tipoEncontrado = this.tiposEvento.find(t => t.value === tipo);
+    const tipoEncontrado = this.tiposEvento.find((t: any) => t.value === tipo);
     return tipoEncontrado?.label || tipo;
   }
 

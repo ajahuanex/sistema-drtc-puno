@@ -504,7 +504,7 @@ export class RutaConLocalidadesUnicasComponent implements OnInit {
         nombre: rutaData.nombre,
         tipoRuta: rutaData.tipoRuta,
         tipoServicio: rutaData.tipoServicio,
-        empresaId: rutaData.empresaId,
+        empresa: { id: rutaData.empresaId || "", ruc: "", razonSocial: "" },
         resolucionId: rutaData.resolucionId,
         frecuencias: rutaData.frecuencias || '',
         descripcion: rutaData.descripcion,
@@ -512,15 +512,13 @@ export class RutaConLocalidadesUnicasComponent implements OnInit {
           nombre: localidadesData.origenNombre,
           departamento: localidadesData.origenDepartamento,
           provincia: localidadesData.origenProvincia,
-          distrito: localidadesData.origenDistrito,
-          tipo: 'ORIGEN'
+          distrito: localidadesData.origenDistrito
         },
         destino: {
           nombre: localidadesData.destinoNombre,
           departamento: localidadesData.destinoDepartamento,
           provincia: localidadesData.destinoProvincia,
-          distrito: localidadesData.destinoDistrito,
-          tipo: 'DESTINO'
+          distrito: localidadesData.destinoDistrito
         }
       };
 

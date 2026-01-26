@@ -253,7 +253,7 @@ export class CambiarEstadoVehiculoModalComponent {
       'Cambio manual de estado',
       observaciones
     ).subscribe({
-      next: (vehiculoActualizado) => {
+      next: (vehiculoActualizado: any) => {
         this.procesando.set(false);
         
         this.snackBar.open(
@@ -267,7 +267,7 @@ export class CambiarEstadoVehiculoModalComponent {
           vehiculo: vehiculoActualizado
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         this.procesando.set(false);
         console.error('Error cambiando estado:', error);
         

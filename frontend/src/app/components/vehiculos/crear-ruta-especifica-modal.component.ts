@@ -1,4 +1,5 @@
 import { Component, OnInit, Inject, inject } from '@angular/core';
+import { RutaService } from '../../services/ruta.service';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -524,7 +525,8 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
 
   constructor(
     public dialogRef: MatDialogRef<CrearRutaEspecificaModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: RutaEspecificaData
+    @Inject(MAT_DIALOG_DATA) public data: RutaEspecificaData,
+    private rutaService: RutaService
   ) {}
 
   ngOnInit(): void {

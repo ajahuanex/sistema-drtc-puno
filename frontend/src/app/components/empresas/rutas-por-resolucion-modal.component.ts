@@ -127,9 +127,9 @@ export class RutasPorResolucionModalComponent implements OnInit {
           resolucionId: resolucionId,
           nroResolucion: primeraRuta.resolucion.nroResolucion,
           tipoResolucion: primeraRuta.resolucion.tipoResolucion,
-          tipoTramite: primeraRuta.resolucion.tipoTramite,
+          tipoTramite: primeraRuta.resolucion.tipoResolucion,
           estado: primeraRuta.resolucion.estado,
-          empresa: primeraRuta.resolucion.empresa,
+          empresa: primeraRuta.empresa,
           rutas: rutasDeResolucion,
           totalRutas: rutasDeResolucion.length
         });

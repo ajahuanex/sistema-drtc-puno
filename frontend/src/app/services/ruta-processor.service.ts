@@ -120,14 +120,24 @@ export class RutaProcessorService {
       const rutaParaCrear: RutaCreate = {
         codigoRuta: rutaData.codigoRuta,
         nombre: rutaData.nombre,
-        origenId: origenProcesado.id,
-        destinoId: destinoProcesado.id,
-        itinerarioIds: itinerarioProcesado.map(loc => loc.id),
+        origen: {
+          id: origenProcesado.id,
+          nombre: origenProcesado.nombre
+        },
+        destino: {
+          id: destinoProcesado.id,
+          nombre: destinoProcesado.nombre
+        },
+        itinerario: itinerarioProcesado.map((loc, index) => ({
+          id: loc.id,
+          nombre: loc.nombre,
+          orden: index + 1
+        })),
+        empresa: rutaData.empresa,
+        resolucion: rutaData.resolucionId ? { id: rutaData.resolucionId } as any : undefined as any,
         frecuencias: rutaData.frecuencias || '',
         tipoRuta: rutaData.tipoRuta as any,
         tipoServicio: rutaData.tipoServicio as any,
-        empresaId: rutaData.empresaId,
-        resolucionId: rutaData.resolucionId,
         descripcion: rutaData.descripcion,
         observaciones: rutaData.observaciones
       };
@@ -243,7 +253,7 @@ export class RutaProcessorService {
       errores.push('El nombre de ruta es requerido');
     }
 
-    if (!rutaData.empresaId || rutaData.empresaId.trim() === '') {
+    if (!rutaData.empresa || !rutaData.empresa.id || rutaData.empresa.id.trim() === '') {
       errores.push('El ID de empresa es requerido');
     }
 

@@ -550,7 +550,7 @@ export class CambiarEstadoBloqueModalComponent {
   getEstadosActuales() {
     const estadosMap = new Map<string, number>();
 
-    this.vehiculos.forEach(vehiculo => {
+    this.vehiculos.forEach((vehiculo: any) => {
       const estado = vehiculo.estado;
       estadosMap.set(estado, (estadosMap.get(estado) || 0) + 1);
     });
@@ -596,7 +596,7 @@ export class CambiarEstadoBloqueModalComponent {
     (this as any).progreso.set(0);
 
     // Crear array de observables para cambiar el estado de cada vehículo
-    const cambios = (this as any).vehiculos.map(vehiculo => {
+    const cambios = (this as any).vehiculos.map((vehiculo: any) => {
       const motivo = (this as any).generarMotivoAutomatico(nuevoEstado);
       const observacionesCompletas = observaciones ?
         `Cambio en bloque: ${observaciones}` :
@@ -612,7 +612,7 @@ export class CambiarEstadoBloqueModalComponent {
 
     // Ejecutar todos los cambios en paralelo
     forkJoin(cambios).subscribe({
-      next: (vehiculosActualizados) => {
+      next: (vehiculosActualizados: any) => {
         (this as any).procesando.set(false);
 
         // Mostrar notificación de éxito
@@ -632,7 +632,7 @@ export class CambiarEstadoBloqueModalComponent {
           nuevoEstado: nuevoEstado
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         (this as any).procesando.set(false);
         (console as any).error('Error cambiando estado de vehículos en bloque:', error);
 

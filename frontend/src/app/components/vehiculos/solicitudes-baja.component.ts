@@ -443,19 +443,19 @@ export class SolicitudesBajaComponent implements OnInit {
     let solicitudesFiltradas = [...solicitudes];
 
     if (filtros.estado?.length > 0) {
-      solicitudesFiltradas = solicitudesFiltradas.filter(s => 
+      solicitudesFiltradas = solicitudesFiltradas.filter((s: any) => 
         filtros.estado.includes(s.estado)
       );
     }
 
     if (filtros.motivo?.length > 0) {
-      solicitudesFiltradas = solicitudesFiltradas.filter(s => 
+      solicitudesFiltradas = solicitudesFiltradas.filter((s: any) => 
         filtros.motivo.includes(s.motivo)
       );
     }
 
     if (filtros.vehiculoPlaca) {
-      solicitudesFiltradas = solicitudesFiltradas.filter(s => 
+      solicitudesFiltradas = solicitudesFiltradas.filter((s: any) => 
         s.vehiculoPlaca.toLowerCase().includes(filtros.vehiculoPlaca.toLowerCase())
       );
     }
@@ -474,7 +474,7 @@ export class SolicitudesBajaComponent implements OnInit {
         this.solicitudes.set(solicitudes);
         this.cargando.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando solicitudes:', error);
         this.snackBar.open('Error al cargar las solicitudes de baja', 'Cerrar', { duration: 3000 });
         this.cargando.set(false);

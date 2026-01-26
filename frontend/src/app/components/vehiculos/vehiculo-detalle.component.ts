@@ -529,8 +529,8 @@ export class VehiculoDetalleComponent {
     // Cargar información de la empresa
     if (vehiculo.empresaActualId) {
       this.empresaService.getEmpresa(vehiculo.empresaActualId).subscribe({
-        next: (empresa) => this.empresaInfo.set(empresa),
-        error: (error) => console.error('Error cargando empresa:', error)
+        next: (empresa: any) => this.empresaInfo.set(empresa),
+        error: (error: any) => console.error('Error cargando empresa:', error)
       });
     }
 

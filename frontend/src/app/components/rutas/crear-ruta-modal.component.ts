@@ -193,17 +193,15 @@ export class CrearRutaModalComponent implements OnInit {
     const nuevaRuta: RutaCreate = {
       codigoRuta: formValue.codigoRuta,
       nombre: `${formValue.origen} - ${formValue.destino}`,
-      origenId: formValue.origen,
-      destinoId: formValue.destino,
-      origen: formValue.origen,
-      destino: formValue.destino,
+      origen: { id: formValue.origen, nombre: "" },
+      destino: { id: formValue.destino, nombre: "" },
       frecuencias: formValue.frecuencias,
       tipoRuta: formValue.tipoRuta,
       tipoServicio: 'PASAJEROS',
       observaciones: formValue.observaciones || '',
-      empresaId: this.data.empresa.id,
-      resolucionId: this.data.resolucion.id,
-      itinerarioIds: []
+      resolucion: { id: this.data.resolucion.id, nroResolucion: this.data.resolucion.nroResolucion, tipoResolucion: this.data.resolucion.tipoResolucion, estado: this.data.resolucion.estado || "VIGENTE" },
+      empresa: { id: this.data.empresa.id, ruc: this.data.empresa.ruc, razonSocial: this.data.empresa.razonSocial.principal },
+      itinerario: []
     };
 
     // Si hay itinerario, guardarlo en descripcion

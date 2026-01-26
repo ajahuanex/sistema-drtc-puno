@@ -72,10 +72,20 @@ export class RutaLocalidadProcessorService {
         }
       }
 
-      // 4. Actualizar la ruta con los IDs de localidades procesadas
-      rutaData.ruta.origenId = resultado.origenId;
-      rutaData.ruta.destinoId = resultado.destinoId;
-      rutaData.ruta.itinerarioIds = resultado.itinerarioIds;
+      // 4. Actualizar la ruta con los objetos de localidades procesadas
+      rutaData.ruta.origen = {
+        id: resultado.origenId,
+        nombre: resultado.localidadesProcesadas.find((l: any) => l.id === resultado.origenId)?.nombre || ''
+      };
+      rutaData.ruta.destino = {
+        id: resultado.destinoId,
+        nombre: resultado.localidadesProcesadas.find((l: any) => l.id === resultado.destinoId)?.nombre || ''
+      };
+      rutaData.ruta.itinerario = resultado.itinerarioIds.map((id, index) => ({
+        id,
+        nombre: resultado.localidadesProcesadas.find((l: any) => l.id === id)?.nombre || '',
+        orden: index + 1
+      }));
 
       // 5. Crear o actualizar la ruta
       if ('id' in rutaData.ruta && rutaData.ruta.id) {

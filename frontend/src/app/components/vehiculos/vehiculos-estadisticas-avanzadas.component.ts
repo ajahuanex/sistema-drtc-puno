@@ -295,7 +295,7 @@ export class VehiculosEstadisticasAvanzadasComponent {
     if (total === 0) return [];
 
     const marcasMap = new Map<string, number>();
-    vehiculos.forEach(v => {
+    vehiculos.forEach((v: any) => {
       const marca = v.marca || 'SIN MARCA';
       marcasMap.set(marca, (marcasMap.get(marca) || 0) + 1);
     });
@@ -320,7 +320,7 @@ export class VehiculosEstadisticasAvanzadasComponent {
     if (total === 0) return [];
 
     const categoriasMap = new Map<string, number>();
-    vehiculos.forEach(v => {
+    vehiculos.forEach((v: any) => {
       const categoria = v.categoria || 'SIN CATEGORÍA';
       categoriasMap.set(categoria, (categoriasMap.get(categoria) || 0) + 1);
     });
@@ -341,7 +341,7 @@ export class VehiculosEstadisticasAvanzadasComponent {
     const vehiculos = this.vehiculos();
     const añoActual = new Date().getFullYear();
 
-    const vehiculosConAño = vehiculos.filter(v => v.anioFabricacion);
+    const vehiculosConAño = vehiculos.filter((v: any) => v.anioFabricacion);
     const promedioAntiguedad = vehiculosConAño.length > 0
       ? vehiculosConAño.reduce((sum, v) => sum + (añoActual - (v.anioFabricacion || añoActual)), 0) / vehiculosConAño.length
       : 0;
@@ -364,9 +364,9 @@ export class VehiculosEstadisticasAvanzadasComponent {
    */
   tendencias = computed(() => {
     const vehiculos = this.vehiculos();
-    const activos = vehiculos.filter(v => v.estado === 'ACTIVO').length;
-    const inactivos = vehiculos.filter(v => v.estado === 'INACTIVO').length;
-    const suspendidos = vehiculos.filter(v => v.estado === 'SUSPENDIDO').length;
+    const activos = vehiculos.filter((v: any) => v.estado === 'ACTIVO').length;
+    const inactivos = vehiculos.filter((v: any) => v.estado === 'INACTIVO').length;
+    const suspendidos = vehiculos.filter((v: any) => v.estado === 'SUSPENDIDO').length;
 
     return {
       saludFlota: activos > (inactivos + suspendidos) ? 'buena' : 'regular',

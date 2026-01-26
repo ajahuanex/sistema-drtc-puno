@@ -112,7 +112,7 @@ interface RutaSeleccionable {
                   <div class="ruta-content">
                     <span class="codigo">{{ rutaItem.ruta.codigoRuta }}</span>
                     <span class="trayecto">
-                      @if (rutaItem.ruta.origen && rutaItem.ruta.destino && rutaItem.ruta.origen !== 'Sin origen') {
+                      @if (rutaItem.ruta.origen && rutaItem.ruta.destino && rutaItem.ruta.origen?.nombre !== 'Sin origen') {
                         {{ rutaItem.ruta.origen }} → {{ rutaItem.ruta.destino }}
                       } @else {
                         {{ rutaItem.ruta.nombre || 'Ruta sin nombre' }}
@@ -357,7 +357,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
       const resoluciones = await this.resolucionService.getResoluciones().toPromise();
       const vehiculoPrincipal = vehiculos[0];
       
-      this.resolucionAsociada = resoluciones?.find(r => 
+      this.resolucionAsociada = resoluciones?.find((r: any) => 
         r.vehiculosHabilitadosIds?.includes(vehiculoPrincipal.id)
       ) || null;
 
@@ -372,7 +372,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
 
       // 2. Obtener rutas autorizadas de la resolución
       const todasRutas = await this.rutaService.getRutas().toPromise();
-      const rutasAutorizadas = todasRutas?.filter(ruta => 
+      const rutasAutorizadas = todasRutas?.filter((ruta: any) => 
         this.resolucionAsociada!.rutasAutorizadasIds?.includes(ruta.id)
       ) || [];
 
@@ -381,19 +381,19 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
       
       if (this.data.modoBloque) {
         // En modo bloque, pre-seleccionar solo las rutas que TODOS los vehículos tienen
-        const rutasComunes = rutasAutorizadas.filter(ruta => 
-          vehiculos.every(vehiculo => 
+        const rutasComunes = rutasAutorizadas.filter((ruta: any) => 
+          vehiculos.every((vehiculo: any) => 
             vehiculo.rutasAsignadasIds?.includes(ruta.id)
           )
         );
-        rutasYaAsignadas = rutasComunes.map(r => r.id);
+        rutasYaAsignadas = rutasComunes.map((r: any) => r.id);
       } else {
         // Modo individual
         rutasYaAsignadas = vehiculoPrincipal.rutasAsignadasIds || [];
       }
 
       // 4. Preparar lista de rutas seleccionables
-      this.rutasDisponibles = rutasAutorizadas.map(ruta => ({
+      this.rutasDisponibles = rutasAutorizadas.map((ruta: any) => ({
         ruta,
         seleccionada: rutasYaAsignadas.includes(ruta.id),
         yaAsignada: false
@@ -414,17 +414,17 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
   }
 
   contarSeleccionadas(): number {
-    return this.rutasDisponibles.filter(r => r.seleccionada).length;
+    return this.rutasDisponibles.filter((r: any) => r.seleccionada).length;
   }
 
   seleccionarTodas(): void {
-    this.rutasDisponibles.forEach(r => {
+    this.rutasDisponibles.forEach((r: any) => {
       r.seleccionada = true;
     });
   }
 
   deseleccionarTodas(): void {
-    this.rutasDisponibles.forEach(r => r.seleccionada = false);
+    this.rutasDisponibles.forEach((r: any) => r.seleccionada = false);
   }
 
   toggleRuta(rutaItem: RutaSeleccionable): void {
@@ -434,8 +434,8 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
   async asignarRutas(): Promise<void> {
     // Obtener todas las rutas seleccionadas
     const rutasSeleccionadas = this.rutasDisponibles
-      .filter(r => r.seleccionada)
-      .map(r => r.ruta.id);
+      .filter((r: any) => r.seleccionada)
+      .map((r: any) => r.ruta.id);
 
     this.cargando = true;
 
@@ -443,7 +443,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
       if (this.data.modoBloque) {
         // Modo bloque: actualizar múltiples vehículos
         const vehiculos = this.data.vehiculos!;
-        const promesasActualizacion = vehiculos.map(vehiculo => 
+        const promesasActualizacion = vehiculos.map((vehiculo: any) => 
           this.vehiculoService.updateVehiculo(vehiculo.id, {
             rutasAsignadasIds: rutasSeleccionadas
           }).toPromise()

@@ -977,7 +977,7 @@ export class HistorialVehicularComponent implements OnInit {
 
   ngOnInit(): void {
     // Leer parámetros de la URL
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params: any) => {
       this.vehiculoIdFromUrl.set(params['vehiculoId'] || null);
       this.placaFromUrl.set(params['placa'] || null);
 
@@ -1004,10 +1004,10 @@ export class HistorialVehicularComponent implements OnInit {
     if (!vehiculoId) return;
 
     this.historialService.getResumenHistorialVehiculo(vehiculoId).subscribe({
-      next: (resumen) => {
+      next: (resumen: any) => {
         this.resumenVehiculo.set(resumen);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando resumen del vehículo:', error);
       }
     });
@@ -1020,7 +1020,7 @@ export class HistorialVehicularComponent implements OnInit {
     const filtros = this.construirFiltros();
 
     this.historialService.getHistorialVehicular(filtros).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         this.historialData.set(response.historial);
         this.totalRegistros.set(response.total);
         this.paginacion.set({
@@ -1029,7 +1029,7 @@ export class HistorialVehicularComponent implements OnInit {
         });
         this.cargando.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error cargando historial:', error);
         this.error.set('Error al cargar el historial vehicular');
         this.snackBar.open('Error al cargar el historial', 'Cerrar', { duration: 3000 });
@@ -1123,7 +1123,7 @@ export class HistorialVehicularComponent implements OnInit {
     const filtros = this.construirFiltros();
 
     this.historialService.exportarHistorial(filtros, 'excel').subscribe({
-      next: (blob) => {
+      next: (blob: any) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -1133,7 +1133,7 @@ export class HistorialVehicularComponent implements OnInit {
 
         this.snackBar.open('Historial exportado exitosamente', 'Cerrar', { duration: 3000 });
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error exportando historial:', error);
         this.snackBar.open('Error al exportar el historial', 'Cerrar', { duration: 3000 });
       }
@@ -1188,7 +1188,7 @@ export class HistorialVehicularComponent implements OnInit {
   }
 
   getLabelTipoEvento(tipo: TipoEventoHistorial): string {
-    const tipoEncontrado = this.tiposEvento.find(t => t.value === tipo);
+    const tipoEncontrado = this.tiposEvento.find((t: any) => t.value === tipo);
     return tipoEncontrado?.label || tipo;
   }
 
@@ -1256,12 +1256,12 @@ export class HistorialVehicularComponent implements OnInit {
     if (visible && !columnasActuales.includes(columna)) {
       // Agregar columna manteniendo el orden original
       nuevasColumnas = this.columnasDisponibles
-        .map(col => col.key)
-        .filter(key => columnasActuales.includes(key) || key === columna);
+        .map((col: any) => col.key)
+        .filter((key: any) => columnasActuales.includes(key) || key === columna);
       
       } else if (!visible && columnasActuales.includes(columna)) {
       // Remover columna
-      nuevasColumnas = columnasActuales.filter(col => col !== columna);
+      nuevasColumnas = columnasActuales.filter((col: any) => col !== columna);
       } else {
       return;
     }
@@ -1278,7 +1278,7 @@ export class HistorialVehicularComponent implements OnInit {
     }
 
   resetearColumnas(): void {
-    const columnasDefault = this.columnasDisponibles.map(col => col.key);
+    const columnasDefault = this.columnasDisponibles.map((col: any) => col.key);
     this.columnasVisiblesState.set(columnasDefault);
     this.guardarConfiguracionColumnas();
     
@@ -1294,14 +1294,14 @@ export class HistorialVehicularComponent implements OnInit {
         const columnas = JSON.parse(configuracion);
         if (Array.isArray(columnas) && columnas.length > 0) {
           // Validar que las columnas existen
-          const columnasValidas = columnas.filter(col => 
-            this.columnasDisponibles.some(disponible => disponible.key === col)
+          const columnasValidas = columnas.filter((col: any) => 
+            this.columnasDisponibles.some((disponible: any) => disponible.key === col)
           );
           
           // Asegurar que las columnas requeridas estén presentes
           const columnasRequeridas = this.columnasDisponibles
-            .filter(col => col.required)
-            .map(col => col.key);
+            .filter((col: any) => col.required)
+            .map((col: any) => col.key);
           
           const columnasFinales = [...new Set([...columnasValidas, ...columnasRequeridas])];
           this.columnasVisiblesState.set(columnasFinales);
@@ -1310,11 +1310,11 @@ export class HistorialVehicularComponent implements OnInit {
       }
       
       // Si no hay configuración válida, usar valores por defecto
-      const columnasDefault = this.columnasDisponibles.map(col => col.key);
+      const columnasDefault = this.columnasDisponibles.map((col: any) => col.key);
       this.columnasVisiblesState.set(columnasDefault);
       } catch (error) {
       // En caso de error, usar valores por defecto
-      const columnasDefault = this.columnasDisponibles.map(col => col.key);
+      const columnasDefault = this.columnasDisponibles.map((col: any) => col.key);
       this.columnasVisiblesState.set(columnasDefault);
       }
     

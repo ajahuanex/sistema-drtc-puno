@@ -650,7 +650,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
     const todasEmpresas = this.empresas();
     const empresaActualId = this.data.vehiculo.empresaActualId;
     
-    return todasEmpresas.filter(empresa => 
+    return todasEmpresas.filter((empresa: any) => 
       empresa.id !== empresaActualId && 
       empresa.estaActivo === true
     );
@@ -661,11 +661,11 @@ export class TransferirEmpresaModalComponent implements OnInit {
     const empresasDisponibles = this.empresasDisponibles();
     
     // Intentar búsqueda con comparación estricta primero
-    let empresa = empresasDisponibles.find(empresa => empresa.id === empresaId);
+    let empresa = empresasDisponibles.find((empresa: any) => empresa.id === empresaId);
     
     // Si no se encuentra, intentar comparación con conversión a string
     if (!empresa && empresaId) {
-      empresa = empresasDisponibles.find(empresa => String(empresa.id) === String(empresaId));
+      empresa = empresasDisponibles.find((empresa: any) => String(empresa.id) === String(empresaId));
     }
     
     return empresa || null;
@@ -673,7 +673,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
 
   resolucionesPadre = computed(() => {
     // Solo mostrar resoluciones padre activas
-    return this.resoluciones().filter(resolucion => 
+    return this.resoluciones().filter((resolucion: any) => 
       resolucion.tipoResolucion === 'PADRE' &&
       resolucion.estaActivo === true
     );
@@ -684,7 +684,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
     if (!resolucionPadreId) return [];
     
     // Solo mostrar resoluciones hijas de la resolución padre seleccionada
-    return this.resoluciones().filter(resolucion => 
+    return this.resoluciones().filter((resolucion: any) => 
       resolucion.resolucionPadreId === resolucionPadreId && 
       resolucion.tipoResolucion === 'HIJO' &&
       resolucion.estaActivo === true
@@ -749,7 +749,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
       // Fallback: cargar todas las resoluciones y filtrar
       try {
         const todasResoluciones = await this.resolucionService.getResoluciones().toPromise();
-        const resolucionesFiltradas = (todasResoluciones || []).filter(r => r.empresaId === empresaId);
+        const resolucionesFiltradas = (todasResoluciones || []).filter((r: any) => r.empresaId === empresaId);
         this.resoluciones.set(resolucionesFiltradas);
       } catch (fallbackError) {
         console.error('Error en fallback:', fallbackError);
@@ -801,7 +801,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
       let empresaFinal = empresaDestino;
       if (!empresaDestino) {
         const empresasDisponiblesArray = this.empresasDisponibles();
-        empresaFinal = empresasDisponiblesArray.find(empresa => empresa.id === formData.empresaDestinoId) || null;
+        empresaFinal = empresasDisponiblesArray.find((empresa: any) => empresa.id === formData.empresaDestinoId) || null;
       }
 
       if (!empresaFinal) {

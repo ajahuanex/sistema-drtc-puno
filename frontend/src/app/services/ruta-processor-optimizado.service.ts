@@ -87,15 +87,15 @@ export class RutaProcessorOptimizadoService {
       }
 
       // 2. Procesar SOLO las localidades únicas (sin consultas a empresas)
-      const localidadesParaProcesar = [
-        { ...rutaData.origen, tipo: 'ORIGEN' as const },
-        { ...rutaData.destino, tipo: 'DESTINO' as const }
+      const localidadesParaProcesar: any[] = [
+        { ...rutaData.origen, tipo: 'origen' },
+        { ...rutaData.destino, tipo: 'destino' }
       ];
 
       // Agregar itinerario si existe
       if (rutaData.itinerario && rutaData.itinerario.length > 0) {
         rutaData.itinerario.forEach(loc => {
-          localidadesParaProcesar.push({ ...loc, tipo: 'ITINERARIO' as const });
+          localidadesParaProcesar.push({ ...loc, tipo: 'itinerario' });
         });
       }
 
@@ -122,24 +122,16 @@ export class RutaProcessorOptimizadoService {
         // OBJETOS EMBEBIDOS - Sin necesidad de consultas adicionales
         origen: {
           id: origenProcesado.id,
-          nombre: origenProcesado.nombre,
-          departamento: rutaData.origen.departamento,
-          provincia: rutaData.origen.provincia,
-          distrito: rutaData.origen.distrito
+          nombre: origenProcesado.nombre
         },
         destino: {
           id: destinoProcesado.id,
-          nombre: destinoProcesado.nombre,
-          departamento: rutaData.destino.departamento,
-          provincia: rutaData.destino.provincia,
-          distrito: rutaData.destino.distrito
+          nombre: destinoProcesado.nombre
         },
         itinerario: itinerarioProcesado.map((loc, index) => ({
           id: loc.id,
           nombre: loc.nombre,
-          departamento: rutaData.itinerario?.[index]?.departamento,
-          provincia: rutaData.itinerario?.[index]?.provincia,
-          distrito: rutaData.itinerario?.[index]?.distrito
+          orden: index + 1
         })),
         empresa: {
           id: rutaData.empresa.id,
@@ -153,7 +145,7 @@ export class RutaProcessorOptimizadoService {
         tipoServicio: rutaData.tipoServicio as any,
         descripcion: rutaData.descripcion,
         observaciones: rutaData.observaciones,
-        resolucionId: rutaData.resolucionId
+        resolucion: rutaData.resolucionId ? { id: rutaData.resolucionId, nroResolucion: '', tipoResolucion: '', estado: 'VIGENTE' } : { id: '', nroResolucion: '', tipoResolucion: '', estado: 'VIGENTE' }
       };
 
       // 5. Crear ruta en el backend (UNA SOLA LLAMADA)

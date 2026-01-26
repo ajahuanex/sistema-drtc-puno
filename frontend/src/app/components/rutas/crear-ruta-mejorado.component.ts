@@ -983,17 +983,17 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
         nombre: `${origenLocalidad.nombre} - ${destinoLocalidad.nombre}`,
-        origenId: origenLocalidad.id,
-        destinoId: destinoLocalidad.id,
-        origen: origenLocalidad.nombre,
-        destino: destinoLocalidad.nombre,
+        // origenId removido - usando objeto origen embebido
+        // destinoId removido - usando objeto destino embebido
+        origen: { id: origenLocalidad.id || "", nombre: origenLocalidad.nombre || "" },
+        destino: { id: destinoLocalidad.id || "", nombre: destinoLocalidad.nombre || "" },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio,
         observaciones: formValue.observaciones || '',
-        empresaId: this.empresaSeleccionada?.id || '',
-        resolucionId: formValue.resolucionId,
-        itinerarioIds: []
+        empresa: { id: this.empresaSeleccionada?.id || "", ruc: this.empresaSeleccionada?.ruc || "", razonSocial: this.empresaSeleccionada?.razonSocial?.principal || "" },
+        resolucion: { id: formValue.resolucionId, nroResolucion: "", tipoResolucion: "", estado: "VIGENTE" },
+        itinerario: []
       };
 
       console.log('💾 Creando nueva ruta:', nuevaRuta);

@@ -1,6 +1,8 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
+import { AppInitializerService } from './app/services/app-initializer.service';
+import { AutoLoginService } from './app/services/auto-login.service';
 import 'zone.js';
 
 // Configuración de hidratación y optimizaciones
@@ -8,6 +10,9 @@ const bootstrapConfig = {
   ...appConfig,
   providers: [
     ...appConfig.providers || [],
+    // Servicios de inicialización
+    AppInitializerService,
+    AutoLoginService,
     // Configuración para hidratación
     { provide: 'APP_INITIALIZER', useValue: () => Promise.resolve(), multi: true }
   ]
@@ -21,7 +26,17 @@ async function initializeApp() {
     await preloadCriticalData();
   }
   
-  return bootstrapApplication(AppComponent, bootstrapConfig);
+  const app = await bootstrapApplication(AppComponent, bootstrapConfig);
+  
+  // Inicializar autenticación después del bootstrap
+  try {
+    const appInitializer = app.injector.get(AppInitializerService);
+    await appInitializer.initialize();
+  } catch (error) {
+    console.warn('Error en inicialización de autenticación:', error);
+  }
+  
+  return app;
 }
 
 // Pre-carga de datos críticos
@@ -45,8 +60,6 @@ async function preloadCriticalData() {
     console.warn('Error preloading critical data:', error);
   }
 }
-
-
 
 // Inicializar la aplicación
 initializeApp().catch(err => console.error('Error starting app:', err));

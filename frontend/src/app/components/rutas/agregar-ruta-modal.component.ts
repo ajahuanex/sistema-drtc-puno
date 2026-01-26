@@ -515,17 +515,12 @@ export class AgregarRutaModalComponent implements OnDestroy {
           nombre: formValue.destino
         },
         itinerario: [],
+        empresa: { id: this.data.empresa.id, ruc: this.data.empresa.ruc, razonSocial: this.data.empresa.razonSocial.principal },
         resolucion: {
           id: this.data.resolucion?.id || '',
           nroResolucion: this.data.resolucion?.nroResolucion || '',
           tipoResolucion: this.data.resolucion?.tipoResolucion || 'PADRE',
-          tipoTramite: this.data.resolucion?.tipoTramite || 'PRIMIGENIA',
-          estado: this.data.resolucion?.estado || 'VIGENTE',
-          empresa: {
-            id: this.data.empresa?.id || '',
-            ruc: this.data.empresa?.ruc || '',
-            razonSocial: this.data.empresa?.razonSocial?.principal || ''
-          }
+          estado: this.data.resolucion?.estado || 'VIGENTE'
         },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta,
