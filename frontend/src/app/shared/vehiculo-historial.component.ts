@@ -534,7 +534,7 @@ export class VehiculoHistorialComponent implements OnInit {
       this.historialCargado.emit(historialData);
       
     } catch (error) {
-      console.error('❌ Error cargando historial:', error);
+      console.error('❌ Error cargando historial::', error);
       this.error.set('No se pudo cargar el historial del vehículo');
     } finally {
       this.cargando.set(false);

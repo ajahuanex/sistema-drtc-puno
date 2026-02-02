@@ -44,11 +44,11 @@ export class ExtraccionLocalidadesService {
    */
   async extraerLocalidadesDeRutas(): Promise<ResultadoExtraccion> {
     try {
-      console.log('🔍 Iniciando extracción de localidades de rutas...');
+      // console.log removed for production
       
       // Obtener todas las rutas
       const rutas = await this.rutaService.getRutas().toPromise() as Ruta[];
-      console.log(`📊 Analizando ${rutas.length} rutas`);
+      // console.log removed for production
 
       const localidadesMap = new Map<string, LocalidadExtraida>();
 
@@ -91,11 +91,11 @@ export class ExtraccionLocalidadesService {
         estadisticas
       };
 
-      console.log('✅ Extracción completada:', resultado);
+      // console.log removed for production
       return resultado;
 
     } catch (error) {
-      console.error('❌ Error extrayendo localidades:', error);
+      console.error('❌ Error extrayendo localidades::', error);
       throw error;
     }
   }
@@ -175,13 +175,13 @@ export class ExtraccionLocalidadesService {
    */
   async crearLocalidadesDesdeRutas(): Promise<{ creadas: number; errores: string[] }> {
     try {
-      console.log('🚀 Iniciando creación automática de localidades...');
+      // console.log removed for production
       
       const extraccion = await this.extraerLocalidadesDeRutas();
       const localidadesExistentes = await this.localidadService.getLocalidades().toPromise() as Localidad[];
       
       const nombresExistentes = new Set(
-        localidadesExistentes.map(l => l.municipalidad_centro_poblado.toUpperCase())
+        localidadesExistentes.map(l => l.municipalidad_centro_poblado?.toUpperCase() || l.nombre?.toUpperCase() || '')
       );
 
       const localidadesACrear: LocalidadCreate[] = [];
@@ -191,6 +191,8 @@ export class ExtraccionLocalidadesService {
       extraccion.localidadesEncontradas.forEach(localidadExtraida => {
         if (!nombresExistentes.has(localidadExtraida.nombre)) {
           localidadesACrear.push({
+            nombre: localidadExtraida.nombre,
+            tipo: 'CENTRO_POBLADO' as any,
             municipalidad_centro_poblado: localidadExtraida.nombre,
             departamento: 'PUNO', // Por defecto, se puede ajustar
             provincia: 'PENDIENTE_CLASIFICAR',
@@ -202,13 +204,13 @@ export class ExtraccionLocalidadesService {
         }
       });
 
-      console.log(`📝 Creando ${localidadesACrear.length} localidades nuevas...`);
+      // console.log removed for production
 
       // Crear localidades en lotes
       const promesasCreacion = localidadesACrear.map(async (localidad, index) => {
         try {
           await this.localidadService.crearLocalidad(localidad);
-          console.log(`✅ Creada: ${localidad.municipalidad_centro_poblado}`);
+          // console.log removed for production
         } catch (error) {
           const mensaje = `Error creando ${localidad.municipalidad_centro_poblado}: ${error}`;
           errores.push(mensaje);
@@ -223,11 +225,11 @@ export class ExtraccionLocalidadesService {
         errores
       };
 
-      console.log('✅ Creación automática completada:', resultado);
+      // console.log removed for production
       return resultado;
 
     } catch (error) {
-      console.error('❌ Error en creación automática:', error);
+      console.error('❌ Error en creación automática::', error);
       throw error;
     }
   }
@@ -259,7 +261,7 @@ export class ExtraccionLocalidadesService {
       };
 
     } catch (error) {
-      console.error('❌ Error obteniendo estadísticas:', error);
+      console.error('❌ Error obteniendo estadísticas::', error);
       throw error;
     }
   }
@@ -269,7 +271,7 @@ export class ExtraccionLocalidadesService {
    */
   async sincronizarLocalidades(): Promise<any> {
     try {
-      console.log('🔄 Iniciando sincronización de localidades...');
+      // console.log removed for production
       
       const [extraccion, localidadesExistentes] = await Promise.all([
         this.extraerLocalidadesDeRutas(),
@@ -278,7 +280,7 @@ export class ExtraccionLocalidadesService {
 
       const nombresEnRutas = new Set(extraccion.localidadesUnicas);
       const nombresEnBD = new Set(
-        localidadesExistentes.map(l => l.municipalidad_centro_poblado.toUpperCase())
+        localidadesExistentes.map(l => l.municipalidad_centro_poblado?.toUpperCase() || l.nombre?.toUpperCase() || '')
       );
 
       // Localidades en rutas pero no en BD
@@ -288,7 +290,7 @@ export class ExtraccionLocalidadesService {
 
       // Localidades en BD pero no en rutas
       const noUsadasEnRutas = localidadesExistentes.filter(localidad => 
-        !nombresEnRutas.has(localidad.municipalidad_centro_poblado.toUpperCase())
+        !nombresEnRutas.has((localidad.municipalidad_centro_poblado || localidad.nombre || '').toUpperCase())
       );
 
       return {
@@ -303,7 +305,7 @@ export class ExtraccionLocalidadesService {
       };
 
     } catch (error) {
-      console.error('❌ Error en sincronización:', error);
+      console.error('❌ Error en sincronización::', error);
       throw error;
     }
   }

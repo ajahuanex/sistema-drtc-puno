@@ -182,10 +182,10 @@ export class DataManagerClientService {
   private loadStats(): void {
     this.getStats().subscribe({
       next: (response) => {
-        console.log('📊 Estadísticas del DataManager actualizadas:', response.data);
+        // console.log removed for production
       },
       error: (error) => {
-        console.error('❌ Error al cargar estadísticas del DataManager:', error);
+        console.error('❌ Error al cargar estadísticas del DataManager::', error);
       }
     });
   }

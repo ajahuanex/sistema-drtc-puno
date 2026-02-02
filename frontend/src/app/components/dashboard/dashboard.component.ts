@@ -863,40 +863,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private cargarEmpresas(): void {
-    console.log('🔄 Cargando empresas...');
+    // console.log removed for production
     this.empresaService.getEmpresas().subscribe({
       next: (empresas) => {
-        console.log('✅ Empresas cargadas:', empresas.length);
-        console.log('📊 Datos de empresas:', empresas);
+        // console.log removed for production
+        // console.log removed for production
         this.empresas.set(empresas);
       },
       error: (error) => {
-        console.error('❌ Error cargando empresas:', error);
-        console.error('❌ Status del error:', error.status);
-        console.error('❌ URL del API:', `${this.empresaService['apiUrl']}/empresas`);
+        console.error('❌ Error cargando empresas::', error);
+        console.error('❌ Status del error::', error.status);
+        console.error('❌ URL del API::', `${this.empresaService['apiUrl']}/empresas`);
         this.snackBar.open('Error cargando empresas: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
       }
     });
   }
 
   private cargarVehiculos(): void {
-    console.log('🔄 Cargando vehículos...');
+    // console.log removed for production
     this.vehiculoService.getVehiculos().subscribe({
       next: (vehiculos) => {
-        console.log('✅ Vehículos cargados:', vehiculos.length);
-        console.log('📊 Datos de vehículos:', vehiculos);
+        // console.log removed for production
+        // console.log removed for production
         this.vehiculos.set(vehiculos);
       },
       error: (error) => {
-        console.error('❌ Error cargando vehículos:', error);
-        console.error('❌ Status del error:', error.status);
+        console.error('❌ Error cargando vehículos::', error);
+        console.error('❌ Status del error::', error.status);
         this.snackBar.open('Error cargando vehículos: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
       }
     });
   }
 
   private cargarConductores(): void {
-    console.log('🔄 Cargando conductores...');
+    // console.log removed for production
     // NOTA: El módulo de conductores será un sistema separado en el futuro
     // Por ahora, establecemos un array vacío para evitar errores
     console.log('ℹ️ Módulo de conductores: Sistema separado (futuro)');
@@ -905,59 +905,59 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // TODO: Implementar integración con sistema externo de conductores
     // this.conductorService.getConductores().subscribe({
     //   next: (conductores) => {
-    //     console.log('✅ Conductores cargados:', conductores.length);
+    //     // console.log removed for production
     //     this.conductores.set(conductores);
     //   },
     //   error: (error) => {
-    //     console.error('❌ Error cargando conductores:', error);
+    //     console.error('❌ Error cargando conductores::', error);
     //     this.snackBar.open('Error cargando conductores', 'Cerrar', { duration: 3000 });
     //   }
     // });
   }
 
   private cargarRutas(): void {
-    console.log('🔄 Cargando rutas...');
+    // console.log removed for production
     this.rutaService.getRutas().subscribe({
       next: (rutas) => {
-        console.log('✅ Rutas cargadas:', rutas.length);
+        // console.log removed for production
         this.rutas.set(rutas);
       },
       error: (error) => {
-        console.error('❌ Error cargando rutas:', error);
+        console.error('❌ Error cargando rutas::', error);
         this.snackBar.open('Error cargando rutas', 'Cerrar', { duration: 3000 });
       }
     });
   }
 
   private cargarResoluciones(): void {
-    console.log('🔄 Cargando resoluciones...');
+    // console.log removed for production
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
-        console.log('✅ Resoluciones cargadas:', resoluciones.length);
-        console.log('📊 Datos de resoluciones:', resoluciones);
-        console.log('🔍 URL utilizada:', `${this.resolucionService['apiUrl']}/resoluciones?limit=1000`);
+        // console.log removed for production
+        // console.log removed for production
+        // console.log removed for production
         this.resoluciones.set(resoluciones);
       },
       error: (error) => {
-        console.error('❌ Error cargando resoluciones:', error);
-        console.error('❌ Status del error:', error.status);
-        console.error('❌ URL del API:', `${this.resolucionService['apiUrl']}/resoluciones`);
+        console.error('❌ Error cargando resoluciones::', error);
+        console.error('❌ Status del error::', error.status);
+        console.error('❌ URL del API::', `${this.resolucionService['apiUrl']}/resoluciones`);
         this.snackBar.open('Error cargando resoluciones: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
       }
     });
   }
 
   private cargarExpedientes(): void {
-    console.log('🔄 Cargando expedientes...');
+    // console.log removed for production
     this.loadingExpedientes.set(true);
     this.expedienteService.getExpedientes().subscribe({
       next: (expedientes) => {
-        console.log('✅ Expedientes cargados:', expedientes.length);
+        // console.log removed for production
         this.expedientes.set(expedientes);
         this.loadingExpedientes.set(false);
       },
       error: (error) => {
-        console.error('❌ Error cargando expedientes:', error);
+        console.error('❌ Error cargando expedientes::', error);
         this.snackBar.open('Error cargando expedientes', 'Cerrar', { duration: 3000 });
         this.loadingExpedientes.set(false);
       }
@@ -972,7 +972,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loadingOficinas.set(false);
       },
       error: (error) => {
-        console.error('Error cargando oficinas:', error);
+        console.error('Error cargando oficinas::', error);
         this.loadingOficinas.set(false);
       }
     });
@@ -986,7 +986,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loadingNotificaciones.set(false);
       },
       error: (error) => {
-        console.error('Error cargando notificaciones:', error);
+        console.error('Error cargando notificaciones::', error);
         this.loadingNotificaciones.set(false);
       }
     });

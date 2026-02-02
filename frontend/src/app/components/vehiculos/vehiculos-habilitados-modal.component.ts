@@ -73,7 +73,7 @@ export interface VehiculosHabilitadosModalData {
               
               <div class="info-item">
                 <span class="info-label">Total de Vehículos:</span>
-                <span class="info-value">{{ vehiculosHabilitados().length }}</span>
+                <span class="info-value">{{ (vehiculosHabilitados())?.length || 0 }}</span>
               </div>
               
               @if (data.resolucion.tipoResolucion === 'HIJO' && data.resolucion.resolucionPadreId) {
@@ -103,7 +103,7 @@ export interface VehiculosHabilitadosModalData {
           <div class="vehiculos-header">
             <h3>
               <app-smart-icon iconName="directions_car" [size]="20"></app-smart-icon>
-              Vehículos Habilitados ({{ vehiculosHabilitados().length }})
+              Vehículos Habilitados ({{ (vehiculosHabilitados())?.length || 0 }})
             </h3>
           </div>
           
@@ -574,7 +574,7 @@ export class VehiculosHabilitadosModalComponent {
         this.cargando.set(false);
       },
       error: (error) => {
-        console.error('Error cargando vehículos habilitados:', error);
+        console.error('Error cargando vehículos habilitados::', error);
         this.vehiculosHabilitados.set([]);
         this.cargando.set(false);
       }

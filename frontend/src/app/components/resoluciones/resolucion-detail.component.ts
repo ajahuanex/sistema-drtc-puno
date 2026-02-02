@@ -676,7 +676,7 @@ export class ResolucionDetailComponent implements OnInit {
               this.expediente.set(expediente);
             },
             error: (error) => {
-              console.error('Error cargando expediente:', error);
+              console.error('Error cargando expediente::', error);
             }
           });
         }
@@ -688,7 +688,7 @@ export class ResolucionDetailComponent implements OnInit {
               this.empresa.set(empresa);
             },
             error: (error) => {
-              console.error('Error cargando empresa:', error);
+              console.error('Error cargando empresa::', error);
             }
           });
         }
@@ -696,7 +696,7 @@ export class ResolucionDetailComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error loading resolucion:', error);
+        console.error('Error loading resolucion::', error);
         this.isLoading.set(false);
         this.snackBar.open('Error al cargar la resolución', 'Cerrar', { duration: 3000 });
       }

@@ -8,7 +8,7 @@ from app.dependencies.auth import get_current_active_user
 from app.dependencies.db import get_database
 from app.services.ruta_service import RutaService
 from app.services.ruta_excel_service import RutaExcelService
-from app.models.ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
+from app.models.ruta import RutaCreate, RutaUpdate, RutaInDB, Ruta
 from app.utils.exceptions import (
     RutaNotFoundException, 
     RutaAlreadyExistsException,
@@ -17,42 +17,15 @@ from app.utils.exceptions import (
 
 router = APIRouter(prefix="/rutas", tags=["rutas"])
 
-def build_ruta_response(ruta) -> RutaResponse:
-    """Función helper para construir RutaResponse con todos los campos requeridos"""
-    return RutaResponse(
-        id=ruta.id,
-        codigoRuta=ruta.codigoRuta,
-        nombre=ruta.nombre,
-        origenId=ruta.origenId,
-        destinoId=ruta.destinoId,
-        itinerarioIds=ruta.itinerarioIds,
-        frecuencias=ruta.frecuencias,
-        estado=ruta.estado,
-        estaActivo=ruta.estaActivo,
-        fechaRegistro=ruta.fechaRegistro,
-        fechaActualizacion=ruta.fechaActualizacion,
-        tipoRuta=ruta.tipoRuta,
-        tipoServicio=ruta.tipoServicio,
-        distancia=ruta.distancia,
-        tiempoEstimado=ruta.tiempoEstimado,
-        tarifaBase=ruta.tarifaBase,
-        capacidadMaxima=ruta.capacidadMaxima,
-        horarios=ruta.horarios,
-        restricciones=ruta.restricciones,
-        observaciones=ruta.observaciones,
-        empresasAutorizadasIds=ruta.empresasAutorizadasIds,
-        vehiculosAsignadosIds=ruta.vehiculosAsignadosIds,
-        documentosIds=ruta.documentosIds,
-        historialIds=ruta.historialIds,
-        empresaId=getattr(ruta, 'empresaId', None),
-        resolucionId=getattr(ruta, 'resolucionId', None)
-    )
+def build_ruta_response(ruta) -> Ruta:
+    """Función helper para construir respuesta de ruta"""
+    return ruta
 
-@router.post("/", response_model=RutaResponse, status_code=201)
+@router.post("/", response_model=Ruta, status_code=201)
 async def create_ruta(
     ruta_data: RutaCreate,
     db = Depends(get_database)
-) -> RutaResponse:
+) -> Ruta:
     """Crear nueva ruta con validaciones completas"""
     # Guard clauses al inicio
     if not ruta_data.codigoRuta.strip():
@@ -74,32 +47,32 @@ async def create_ruta(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear ruta: {str(e)}")
 
-@router.get("/empresa/{empresa_id}/resolucion/{resolucion_id}", response_model=List[RutaResponse])
+@router.get("/empresa/{empresa_id}/resolucion/{resolucion_id}", response_model=List[Ruta])
 async def get_rutas_por_empresa_y_resolucion(
     empresa_id: str,
     resolucion_id: str,
     db = Depends(get_database)
-) -> List[RutaResponse]:
+) -> List[Ruta]:
     """Obtener rutas filtradas por empresa y resolución"""
     ruta_service = RutaService(db)
     rutas = await ruta_service.get_rutas_por_empresa_y_resolucion(empresa_id, resolucion_id)
     return [build_ruta_response(r) for r in rutas]
 
-@router.get("/empresa/{empresa_id}", response_model=List[RutaResponse])
+@router.get("/empresa/{empresa_id}", response_model=List[Ruta])
 async def get_rutas_por_empresa(
     empresa_id: str,
     db = Depends(get_database)
-) -> List[RutaResponse]:
+) -> List[Ruta]:
     """Obtener rutas de una empresa"""
     ruta_service = RutaService(db)
     rutas = await ruta_service.get_rutas_por_empresa(empresa_id)
     return [build_ruta_response(r) for r in rutas]
 
-@router.get("/resolucion/{resolucion_id}", response_model=List[RutaResponse])
+@router.get("/resolucion/{resolucion_id}", response_model=List[Ruta])
 async def get_rutas_por_resolucion(
     resolucion_id: str,
     db = Depends(get_database)
-) -> List[RutaResponse]:
+) -> List[Ruta]:
     """Obtener rutas de una resolución"""
     ruta_service = RutaService(db)
     rutas = await ruta_service.get_rutas_por_resolucion(resolucion_id)
@@ -230,19 +203,19 @@ async def get_todas_resoluciones_primigenias(
             detail=f"Error al obtener resoluciones primigenias: {str(e)}"
         )
 
-@router.get("/", response_model=List[RutaResponse])
+@router.get("/", response_model=List[Ruta])
 async def get_rutas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
     db = Depends(get_database)
-) -> List[RutaResponse]:
+) -> List[Ruta]:
     """Obtener lista de rutas con filtros opcionales"""
     ruta_service = RutaService(db)
     rutas = await ruta_service.get_rutas(skip=skip, limit=limit, estado=estado)
     return [build_ruta_response(r) for r in rutas]
 
-@router.get("/filtros", response_model=List[RutaResponse])
+@router.get("/filtros", response_model=List[Ruta])
 async def get_rutas_con_filtros(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -252,7 +225,7 @@ async def get_rutas_con_filtros(
     origen_id: Optional[str] = Query(None),
     destino_id: Optional[str] = Query(None),
     db = Depends(get_database)
-) -> List[RutaResponse]:
+) -> List[Ruta]:
     """Obtener rutas con filtros avanzados"""
     ruta_service = RutaService(db)
     
@@ -455,21 +428,28 @@ async def get_origenes_destinos_disponibles(
         combinaciones = set()
         
         for ruta in rutas:
-            # Convertir a dict si es necesario
-            if hasattr(ruta, '__dict__'):
-                ruta_dict = ruta.__dict__
-            else:
-                ruta_dict = ruta
+            # Obtener nombres de origen y destino desde los objetos embebidos
+            origen_nombre = ""
+            destino_nombre = ""
             
-            origen = ruta_dict.get('origen', ruta_dict.get('origenId', ''))
-            destino = ruta_dict.get('destino', ruta_dict.get('destinoId', ''))
+            if hasattr(ruta, 'origen') and ruta.origen:
+                if isinstance(ruta.origen, dict):
+                    origen_nombre = ruta.origen.get('nombre', '')
+                else:
+                    origen_nombre = getattr(ruta.origen, 'nombre', str(ruta.origen))
             
-            if origen:
-                origenes.add(origen)
-            if destino:
-                destinos.add(destino)
-            if origen and destino:
-                combinaciones.add(f"{origen} → {destino}")
+            if hasattr(ruta, 'destino') and ruta.destino:
+                if isinstance(ruta.destino, dict):
+                    destino_nombre = ruta.destino.get('nombre', '')
+                else:
+                    destino_nombre = getattr(ruta.destino, 'nombre', str(ruta.destino))
+            
+            if origen_nombre:
+                origenes.add(origen_nombre)
+            if destino_nombre:
+                destinos.add(destino_nombre)
+            if origen_nombre and destino_nombre:
+                combinaciones.add(f"{origen_nombre} → {destino_nombre}")
         
         return {
             "origenes": sorted(list(origenes)),
@@ -644,11 +624,11 @@ async def exportar_filtro_avanzado(
             detail=f"Error al exportar: {str(e)}"
         )
 
-@router.get("/{ruta_id}", response_model=RutaResponse)
+@router.get("/{ruta_id}", response_model=Ruta)
 async def get_ruta(
     ruta_id: str,
     db = Depends(get_database)
-) -> RutaResponse:
+) -> Ruta:
     """Obtener ruta por ID"""
     ruta_service = RutaService(db)
     ruta = await ruta_service.get_ruta_by_id(ruta_id)
@@ -658,11 +638,11 @@ async def get_ruta(
     
     return build_ruta_response(ruta)
 
-@router.get("/codigo/{codigo}", response_model=RutaResponse)
+@router.get("/codigo/{codigo}", response_model=Ruta)
 async def get_ruta_by_codigo(
     codigo: str,
     db = Depends(get_database)
-) -> RutaResponse:
+) -> Ruta:
     """Obtener ruta por código"""
     ruta_service = RutaService(db)
     ruta = await ruta_service.get_ruta_by_codigo(codigo)
@@ -694,6 +674,152 @@ async def validar_codigo_ruta(
         "ruta": ruta_existente
     }
 
+@router.put("/{ruta_id}", response_model=Ruta)
+async def update_ruta(
+    ruta_id: str,
+    ruta_data: RutaUpdate,
+    db = Depends(get_database)
+) -> Ruta:
+    """Actualizar ruta existente"""
+    ruta_service = RutaService(db)
+    
+    try:
+        ruta = await ruta_service.update_ruta(ruta_id, ruta_data)
+        if not ruta:
+            raise RutaNotFoundException(ruta_id)
+        return build_ruta_response(ruta)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar ruta: {str(e)}")
+
+@router.post("/limpiar-todas")
+async def limpiar_todas_las_rutas(
+    confirmar: bool = Query(False, description="Confirmar eliminación de todas las rutas"),
+    db = Depends(get_database)
+):
+    """Endpoint simplificado para limpiar todas las rutas"""
+    
+    if not confirmar:
+        total_rutas = await db.rutas.count_documents({})
+        return {
+            "mensaje": "Para confirmar la eliminación, use ?confirmar=true",
+            "total_rutas_actuales": total_rutas,
+            "advertencia": "Esta operación eliminará TODAS las rutas permanentemente"
+        }
+    
+    try:
+        # Contar y eliminar
+        total_rutas = await db.rutas.count_documents({})
+        resultado = await db.rutas.delete_many({})
+        
+        # Limpiar referencias
+        await db.empresas.update_many({}, {"$unset": {"rutasAutorizadasIds": ""}})
+        await db.resoluciones.update_many({}, {"$unset": {"rutasAutorizadasIds": ""}})
+        
+        return {
+            "mensaje": "Todas las rutas han sido eliminadas",
+            "total_eliminadas": resultado.deleted_count,
+            "operacion_exitosa": True
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.delete("/")
+async def delete_all_rutas(
+    confirmar: bool = Query(False, description="Confirmar eliminación de todas las rutas"),
+    db = Depends(get_database)
+):
+    """Eliminar TODAS las rutas de la base de datos - USAR CON PRECAUCIÓN"""
+    
+    if not confirmar:
+        return {
+            "mensaje": "Para eliminar todas las rutas, debe confirmar con ?confirmar=true",
+            "advertencia": "Esta operación eliminará TODAS las rutas permanentemente",
+            "total_rutas": await db.rutas.count_documents({})
+        }
+    
+    try:
+        # Contar rutas antes de eliminar
+        total_rutas = await db.rutas.count_documents({})
+        
+        if total_rutas == 0:
+            return {
+                "mensaje": "No hay rutas para eliminar",
+                "total_eliminadas": 0
+            }
+        
+        # Eliminar todas las rutas
+        resultado = await db.rutas.delete_many({})
+        
+        # Limpiar referencias en empresas
+        await db.empresas.update_many(
+            {},
+            {"$set": {"rutasAutorizadasIds": []}}
+        )
+        
+        # Limpiar referencias en resoluciones
+        await db.resoluciones.update_many(
+            {},
+            {"$set": {"rutasAutorizadasIds": []}}
+        )
+        
+        return {
+            "mensaje": f"Se eliminaron {resultado.deleted_count} rutas correctamente",
+            "total_eliminadas": resultado.deleted_count,
+            "referencias_limpiadas": {
+                "empresas": "✓ Referencias eliminadas",
+                "resoluciones": "✓ Referencias eliminadas"
+            },
+            "advertencia": "Operación completada - todas las rutas han sido eliminadas permanentemente"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al eliminar todas las rutas: {str(e)}"
+        )
+
+@router.delete("/{ruta_id}")
+async def delete_ruta(
+    ruta_id: str,
+    db = Depends(get_database)
+):
+    """Eliminar ruta por ID"""
+    ruta_service = RutaService(db)
+    
+    try:
+        # Verificar que la ruta existe
+        ruta_existente = await ruta_service.get_ruta_by_id(ruta_id)
+        if not ruta_existente:
+            raise RutaNotFoundException(ruta_id)
+        
+        # Eliminar la ruta
+        resultado = await ruta_service.delete_ruta(ruta_id)
+        
+        if resultado:
+            return {
+                "mensaje": f"Ruta {ruta_id} eliminada correctamente",
+                "ruta_id": ruta_id,
+                "eliminada": True
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="No se pudo eliminar la ruta"
+            )
+            
+    except RutaNotFoundException:
+        raise
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al eliminar ruta: {str(e)}"
+        )
+
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL
 # ========================================
@@ -715,7 +841,8 @@ async def descargar_plantilla_rutas():
 
 @router.post("/carga-masiva/validar")
 async def validar_archivo_rutas(
-    archivo: UploadFile = File(..., description="Archivo Excel con rutas")
+    archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
+    db = Depends(get_database)
 ):
     """Validar archivo Excel de rutas sin procesarlo"""
     
@@ -732,8 +859,8 @@ async def validar_archivo_rutas(
         archivo_buffer = BytesIO(contenido)
         
         # Validar con el servicio
-        excel_service = RutaExcelService()
-        resultado = excel_service.validar_archivo_excel(archivo_buffer)
+        excel_service = RutaExcelService(db)
+        resultado = await excel_service.validar_archivo_excel(archivo_buffer)
         
         return {
             "archivo": archivo.filename,
@@ -750,7 +877,8 @@ async def validar_archivo_rutas(
 @router.post("/carga-masiva/procesar")
 async def procesar_carga_masiva_rutas(
     archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
-    solo_validar: bool = Query(False, description="Solo validar sin crear rutas")
+    solo_validar: bool = Query(False, description="Solo validar sin crear rutas"),
+    db = Depends(get_database)
 ):
     """Procesar carga masiva de rutas desde Excel"""
     
@@ -767,14 +895,14 @@ async def procesar_carga_masiva_rutas(
         archivo_buffer = BytesIO(contenido)
         
         # Procesar con el servicio
-        excel_service = RutaExcelService()
+        excel_service = RutaExcelService(db)
         
         if solo_validar:
-            resultado = excel_service.validar_archivo_excel(archivo_buffer)
+            resultado = await excel_service.validar_archivo_excel(archivo_buffer)
             mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
         else:
-            resultado = excel_service.procesar_carga_masiva(archivo_buffer)
-            mensaje = f"Procesamiento completado: {resultado.get('total_creadas', 0)} rutas creadas"
+            resultado = await excel_service.procesar_carga_masiva(archivo_buffer)
+            mensaje = f"Procesamiento completado: {resultado.get('exitosas', 0)} rutas creadas"
         
         return {
             "archivo": archivo.filename,

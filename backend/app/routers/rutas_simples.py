@@ -4,16 +4,16 @@ from datetime import datetime
 import logging
 from bson import ObjectId
 
-from ..models.ruta_simple import (
-    RutaSimple,
-    RutaSimpleCreate,
-    RutaSimpleUpdate,
-    RutaSimpleResponse,
-    FiltrosRutaSimple,
-    ConsultaEmpresasEnRuta,
-    ConsultaVehiculosEnRuta,
-    ConsultaIncrementosEmpresa,
-    EstadisticasRutasSimples
+from ..models.ruta import (
+    Ruta,
+    RutaCreate,
+    RutaUpdate,
+    RutaResponse,
+    RutaFiltros,
+    RutaEstadisticas,
+    EstadoRuta,
+    TipoRuta,
+    TipoServicio
 )
 from ..database import get_database
 from ..dependencies.auth import get_current_user
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/rutas", tags=["rutas"])
 # CRUD BÁSICO SIMPLIFICADO
 # ========================================
 
-@router.get("/", response_model=List[RutaSimpleResponse])
+@router.get("/", response_model=List[RutaResponse])
 async def obtener_rutas_simples(
     # Filtros básicos
     codigoRuta: Optional[str] = Query(None, description="Código de ruta"),
@@ -117,7 +117,7 @@ async def obtener_rutas_simples(
                     "observaciones": doc.get("observaciones")
                 }
                 
-                ruta = RutaSimpleResponse(**ruta_simple)
+                ruta = RutaResponse(**ruta_simple)
                 rutas.append(ruta)
             except Exception as e:
                 logger.error(f"Error procesando ruta {doc.get('id', 'unknown')}: {e}")
@@ -130,7 +130,7 @@ async def obtener_rutas_simples(
         logger.error(f"Error obteniendo rutas simples: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
-@router.get("/{ruta_id}", response_model=RutaSimpleResponse)
+@router.get("/{ruta_id}", response_model=RutaResponse)
 async def obtener_ruta_simple_por_id(
     ruta_id: str,
     db=Depends(get_database),
@@ -171,7 +171,7 @@ async def obtener_ruta_simple_por_id(
             "observaciones": doc.get("observaciones")
         }
         
-        ruta = RutaSimpleResponse(**ruta_simple)
+        ruta = RutaResponse(**ruta_simple)
         
         logger.info(f"Ruta simple obtenida: {ruta.codigoRuta}")
         return ruta
@@ -182,9 +182,9 @@ async def obtener_ruta_simple_por_id(
         logger.error(f"Error obteniendo ruta simple por ID: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
-@router.post("/", response_model=RutaSimpleResponse)
+@router.post("/", response_model=RutaResponse)
 async def crear_ruta_simple(
-    ruta_data: RutaSimpleCreate,
+    ruta_data: RutaCreate,
     db=Depends(get_database),
     current_user=Depends(get_current_user)
 ):
@@ -226,7 +226,7 @@ async def crear_ruta_simple(
         ruta_creada["id"] = str(ruta_creada["_id"])
         del ruta_creada["_id"]
         
-        ruta_response = RutaSimpleResponse(**ruta_creada)
+        ruta_response = RutaResponse(**ruta_creada)
         
         logger.info(f"Ruta simple creada exitosamente: {ruta_response.id}")
         return ruta_response
@@ -238,166 +238,10 @@ async def crear_ruta_simple(
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
 
 # ========================================
-# CONSULTAS DE NEGOCIO SIMPLES
+# ESTADÍSTICAS
 # ========================================
 
-@router.get("/consultas/empresas-en-ruta", response_model=ConsultaEmpresasEnRuta)
-async def obtener_empresas_en_ruta_simple(
-    origen: str = Query(..., description="Nombre de localidad origen"),
-    destino: str = Query(..., description="Nombre de localidad destino"),
-    db=Depends(get_database),
-    current_user=Depends(get_current_user)
-):
-    """
-    ¿Qué empresas operan en la ruta origen-destino? (Versión simple)
-    """
-    try:
-        logger.info(f"Consultando empresas en ruta simple: {origen} → {destino}")
-        
-        rutas_collection = db.rutas
-        
-        # Filtros simples
-        filtros = {
-            "origen.nombre": {"$regex": origen, "$options": "i"},
-            "destino.nombre": {"$regex": destino, "$options": "i"},
-            "estado": "ACTIVA"
-        }
-        
-        # Obtener rutas
-        cursor = rutas_collection.find(filtros)
-        rutas_docs = await cursor.to_list(length=None)
-        
-        # Extraer empresas únicas
-        empresas = set()
-        for doc in rutas_docs:
-            if "resolucion" in doc and "empresa" in doc["resolucion"]:
-                empresa = doc["resolucion"]["empresa"]
-                empresas.add(empresa["razonSocial"])
-        
-        empresas_lista = list(empresas)
-        
-        resultado = ConsultaEmpresasEnRuta(
-            origen=origen,
-            destino=destino,
-            empresas=empresas_lista,
-            total_empresas=len(empresas_lista),
-            total_rutas=len(rutas_docs)
-        )
-        
-        logger.info(f"Encontradas {len(empresas_lista)} empresas operando en ruta {origen} → {destino}")
-        return resultado
-        
-    except Exception as e:
-        logger.error(f"Error consultando empresas en ruta simple: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-
-@router.get("/consultas/vehiculos-en-ruta", response_model=ConsultaVehiculosEnRuta)
-async def obtener_vehiculos_en_ruta_simple(
-    origen: str = Query(..., description="Nombre de localidad origen"),
-    destino: str = Query(..., description="Nombre de localidad destino"),
-    db=Depends(get_database),
-    current_user=Depends(get_current_user)
-):
-    """
-    ¿Cuántos vehículos operan en la ruta origen-destino? (Versión simple)
-    """
-    try:
-        logger.info(f"Consultando vehículos en ruta simple: {origen} → {destino}")
-        
-        # Para obtener vehículos, consultamos el módulo de vehículos
-        vehiculos_collection = db.vehiculos
-        
-        # Obtener vehículos que operan en rutas con este origen-destino
-        pipeline = [
-            {
-                "$lookup": {
-                    "from": "rutas",
-                    "localField": "rutasAsignadasIds",
-                    "foreignField": "_id",
-                    "as": "rutas"
-                }
-            },
-            {
-                "$match": {
-                    "rutas.origen.nombre": {"$regex": origen, "$options": "i"},
-                    "rutas.destino.nombre": {"$regex": destino, "$options": "i"},
-                    "rutas.estado": "ACTIVA",
-                    "estado": "ACTIVO"
-                }
-            },
-            {
-                "$count": "total_vehiculos"
-            }
-        ]
-        
-        cursor = vehiculos_collection.aggregate(pipeline)
-        resultado_vehiculos = await cursor.to_list(length=1)
-        
-        total_vehiculos = resultado_vehiculos[0]["total_vehiculos"] if resultado_vehiculos else 0
-        
-        # Contar rutas también
-        rutas_collection = db.rutas
-        total_rutas = await rutas_collection.count_documents({
-            "origen.nombre": {"$regex": origen, "$options": "i"},
-            "destino.nombre": {"$regex": destino, "$options": "i"},
-            "estado": "ACTIVA"
-        })
-        
-        resultado = ConsultaVehiculosEnRuta(
-            origen=origen,
-            destino=destino,
-            total_vehiculos=total_vehiculos,
-            total_rutas=total_rutas
-        )
-        
-        logger.info(f"Encontrados {total_vehiculos} vehículos operando en ruta {origen} → {destino}")
-        return resultado
-        
-    except Exception as e:
-        logger.error(f"Error consultando vehículos en ruta simple: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-
-@router.get("/consultas/incrementos-empresa/{empresa_id}", response_model=ConsultaIncrementosEmpresa)
-async def obtener_incrementos_empresa_simple(
-    empresa_id: str,
-    db=Depends(get_database),
-    current_user=Depends(get_current_user)
-):
-    """
-    ¿Cuántos incrementos tiene una empresa? (Versión simple)
-    """
-    try:
-        logger.info(f"Consultando incrementos de empresa simple: {empresa_id}")
-        
-        rutas_collection = db.rutas
-        
-        # Contar incrementos
-        total_incrementos = await rutas_collection.count_documents({
-            "resolucion.empresa.id": empresa_id,
-            "resolucion.tipoTramite": "INCREMENTO"
-        })
-        
-        # Contar primigenias
-        total_primigenias = await rutas_collection.count_documents({
-            "resolucion.empresa.id": empresa_id,
-            "resolucion.tipoTramite": "PRIMIGENIA"
-        })
-        
-        resultado = ConsultaIncrementosEmpresa(
-            empresa_id=empresa_id,
-            total_incrementos=total_incrementos,
-            total_primigenias=total_primigenias,
-            total_rutas=total_incrementos + total_primigenias
-        )
-        
-        logger.info(f"Empresa {empresa_id} tiene {total_incrementos} incrementos y {total_primigenias} primigenias")
-        return resultado
-        
-    except Exception as e:
-        logger.error(f"Error consultando incrementos de empresa simple: {e}")
-        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
-
-@router.get("/estadisticas", response_model=EstadisticasRutasSimples)
+@router.get("/estadisticas", response_model=RutaEstadisticas)
 async def obtener_estadisticas_simples(
     db=Depends(get_database),
     current_user=Depends(get_current_user)
@@ -431,7 +275,7 @@ async def obtener_estadisticas_simples(
         empresas_docs = await empresas_cursor.to_list(length=None)
         total_empresas = len(empresas_docs)
         
-        resultado = EstadisticasRutasSimples(
+        resultado = RutaEstadisticas(
             total_rutas=total_rutas,
             rutas_activas=rutas_activas,
             rutas_inactivas=rutas_inactivas,
@@ -827,35 +671,15 @@ async def descargar_plantilla_rutas():
         from fastapi.responses import StreamingResponse
         
         # Crear plantilla con datos de ejemplo
-        datos_ejemplo = [
-            {
-                'codigoRuta': '01',
-                'nombre': 'PUNO - JULIACA',
-                'origenNombre': 'PUNO',
-                'destinoNombre': 'JULIACA',
-                'empresaRuc': '20123456789',
-                'resolucionNumero': 'RD-001-2024-MTC',
-                'frecuencias': '08 DIARIAS',
-                'tipoRuta': 'INTERPROVINCIAL',
-                'tipoServicio': 'PASAJEROS',
-                'observaciones': 'Ruta de ejemplo'
-            },
-            {
-                'codigoRuta': '02',
-                'nombre': 'JULIACA - AREQUIPA',
-                'origenNombre': 'JULIACA',
-                'destinoNombre': 'AREQUIPA',
-                'empresaRuc': '20987654321',
-                'resolucionNumero': 'RD-002-2024-MTC',
-                'frecuencias': '10 DIARIAS',
-                'tipoRuta': 'INTERPROVINCIAL',
-                'tipoServicio': 'PASAJEROS',
-                'observaciones': 'Ruta de ejemplo 2'
-            }
-        ]
+        # Crear plantilla vacía sin datos de ejemplo
+        datos_plantilla = []
         
-        # Crear DataFrame
-        df = pd.DataFrame(datos_ejemplo)
+        # Crear DataFrame vacío con las columnas correctas
+        df = pd.DataFrame(columns=[
+            'codigoRuta', 'nombre', 'origenNombre', 'destinoNombre',
+            'empresaRuc', 'resolucionNumero', 'frecuencias', 
+            'tipoRuta', 'tipoServicio', 'observaciones'
+        ])
         
         # Crear archivo Excel en memoria
         output = BytesIO()

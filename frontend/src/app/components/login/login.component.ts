@@ -40,7 +40,7 @@ import { LoginRequest } from '../../models/usuario.model';
               <div class="logo-fallback" [style.display]="logoError() ? 'flex' : 'none'">SIRRET</div>
             </div>
             <h1 class="system-title">SIRRET</h1>
-            <p class="system-subtitle">Sistema Integral de Registros y Regulación de Empresas de Transporte</p>
+            <p class="system-subtitle">Sistema Regional de Registros de Transporte (SIRRET)</p>
             <p class="system-organization">Dirección Regional de Transportes y Comunicaciones - Puno</p>
           </div>
         </div>
@@ -511,7 +511,7 @@ export class LoginComponent {
       this.authService.login(loginRequest).subscribe({
         next: (response) => {
           this.isLoading.set(false);
-          console.log('Login exitoso, redirigiendo al dashboard...');
+          // console.log removed for production
           
           // Usar setTimeout para asegurar que el estado se actualice antes de navegar
           setTimeout(() => {
@@ -521,7 +521,7 @@ export class LoginComponent {
         },
         error: (error) => {
           this.isLoading.set(false);
-          console.error('Error en login:', error);
+          console.error('Error en login::', error);
           
           let errorMessage = 'Error al iniciar sesión';
           if (error.status === 401) {

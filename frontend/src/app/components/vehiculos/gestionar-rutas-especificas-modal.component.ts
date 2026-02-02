@@ -54,7 +54,7 @@ interface RutaSeleccionable {
       <div class="modal-content">
         <div class="vehiculo-info">
           @if (data.modoBloque) {
-            <p><strong>Vehículos seleccionados:</strong> {{ data.vehiculos?.length }} vehículo(s)</p>
+            <p><strong>Vehículos seleccionados:</strong> {{ data.vehiculos?.length || 0 }} vehículo(s)</p>
             <div class="vehiculos-list">
               @for (vehiculo of data.vehiculos?.slice(0, 5); track vehiculo.id) {
                 <span class="vehiculo-chip">{{ vehiculo.placa }}</span>
@@ -84,7 +84,7 @@ interface RutaSeleccionable {
           </div>
         } @else {
           <div class="rutas-section">
-            <h3>Rutas Autorizadas ({{ rutasDisponibles.length }})</h3>
+            <h3>Rutas Autorizadas ({{ (rutasDisponibles)?.length || 0 }})</h3>
             <p class="subtitle">Selecciona las rutas que este vehículo puede operar</p>
             
             <!-- Encabezado de columnas -->
@@ -406,7 +406,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
       this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
 
     } catch (error) {
-      console.error('❌ Error cargando datos:', error);
+      console.error('❌ Error cargando datos::', error);
       this.snackBar.open('Error cargando datos', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando = false;
@@ -491,7 +491,7 @@ export class GestionarRutasEspecificasModalComponent implements OnInit {
       }
 
     } catch (error) {
-      console.error('❌ Error actualizando rutas:', error);
+      console.error('❌ Error actualizando rutas::', error);
       const mensajeError = this.data.modoBloque 
         ? 'Error al actualizar rutas de los vehículos'
         : 'Error al actualizar rutas';

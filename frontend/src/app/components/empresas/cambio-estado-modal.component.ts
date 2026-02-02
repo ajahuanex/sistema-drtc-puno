@@ -344,11 +344,10 @@ export class CambioEstadoModalComponent implements OnInit {
 
   getEstadoLabel(estado: EstadoEmpresa): string {
     const labels = {
-      'AUTORIZADA': 'Autorizada',
+      'AUTORIZADO': 'Autorizado',
       'EN_TRAMITE': 'En Trámite',
-      'SUSPENDIDA': 'Suspendida',
-      'CANCELADA': 'Cancelada',
-      'DADA_DE_BAJA': 'Dada de Baja'
+      'SUSPENDIDO': 'Suspendido',
+      'CANCELADO': 'Cancelado'
     };
     return labels[estado] || estado;
   }

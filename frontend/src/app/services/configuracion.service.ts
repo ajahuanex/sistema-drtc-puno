@@ -159,7 +159,7 @@ export class ConfiguracionService {
       try {
         return JSON.parse(config.valor);
       } catch (error) {
-        console.error('Error parseando configuración de estados de vehículos:', error);
+        console.error('Error parseando configuración de estados de vehículos::', error);
         return this.getEstadosVehiculosDefault();
       }
     }
@@ -177,12 +177,12 @@ export class ConfiguracionService {
   });
 
   constructor() {
-    console.log('🔧 ConfiguracionService inicializado - cargando configuraciones automáticamente');
+    // console.log removed for production
     // Cargar configuraciones automáticamente al inicializar el servicio
     this.cargarConfiguraciones().then(() => {
-      console.log('✅ Configuraciones cargadas automáticamente');
+      // console.log removed for production
     }).catch(error => {
-      console.error('❌ Error cargando configuraciones automáticamente:', error);
+      console.error('❌ Error cargando configuraciones automáticamente::', error);
     });
   }
 
@@ -205,7 +205,7 @@ export class ConfiguracionService {
       const response = await this.http.get<ConfiguracionSistema[]>(`${this.apiUrl}`).toPromise();
       
       if (response && response.length > 0) {
-        console.log('✅ Configuraciones cargadas desde la API:', response.length);
+        // console.log removed for production
         this.configuracionesSignal.set(response);
         this.configuracionesCargadasSignal.set(true);
         this.actualizarBehaviorSubjects(response);
@@ -216,7 +216,7 @@ export class ConfiguracionService {
       
     } catch (error) {
       console.warn('⚠️ Error cargando configuraciones desde la API:', error);
-      console.log('🔄 Usando configuraciones por defecto...');
+      // console.log removed for production
       
       // Usar configuraciones por defecto directamente
       const configuracionesDefault = this.getConfiguracionesDefault();
@@ -625,14 +625,14 @@ export class ConfiguracionService {
           this.actualizarBehaviorSubjects(configuraciones);
         }
         
-        console.log('✅ Configuración actualizada exitosamente');
+        // console.log removed for production
         return true;
       }
       
       return false;
       
     } catch (error) {
-      console.error('❌ Error actualizando configuración:', error);
+      console.error('❌ Error actualizando configuración::', error);
       throw error;
     }
   }
@@ -641,19 +641,19 @@ export class ConfiguracionService {
    * Crea una nueva configuración
    */
   crearConfiguracion(configuracion: ConfiguracionCreate): Observable<ConfiguracionSistema> {
-    console.log('📤 Creando configuración en backend:', configuracion);
+    // console.log removed for production
     
     return this.http.post<ConfiguracionSistema>(this.apiUrl, configuracion, { headers: this.getHeaders() })
       .pipe(
         tap((nuevaConfiguracion) => {
-          console.log('✅ Configuración creada en backend:', nuevaConfiguracion);
+          // console.log removed for production
           // Agregar al signal local
           const configuraciones = this.configuraciones();
           configuraciones.push(nuevaConfiguracion);
           this.configuracionesSignal.set([...configuraciones]);
         }),
         catchError(error => {
-          console.error('❌ Error creando configuración:', error);
+          console.error('❌ Error creando configuración::', error);
           return throwError(() => error);
         })
       );
@@ -688,12 +688,12 @@ export class ConfiguracionService {
    * Resetea una configuración a su valor por defecto
    */
   resetearConfiguracion(nombre: string): Observable<ConfiguracionSistema> {
-    console.log('📤 Reseteando configuración en API:', nombre);
+    // console.log removed for production
     const url = `${this.apiUrl}/reset/${nombre}`;
     
     return this.http.post<ConfiguracionSistema>(url, {}, { headers: this.getHeaders() }).pipe(
       tap(configuracionReseteada => {
-        console.log('✅ Configuración reseteada en API:', configuracionReseteada);
+        // console.log removed for production
         // Actualizar en el signal local
         const configuraciones = this.configuraciones();
         const index = configuraciones.findIndex(c => c.nombre === nombre);
@@ -704,7 +704,7 @@ export class ConfiguracionService {
         }
       }),
       catchError(error => {
-        console.error('❌ Error reseteando configuración:', error);
+        console.error('❌ Error reseteando configuración::', error);
         return throwError(() => error);
       })
     );
@@ -714,18 +714,18 @@ export class ConfiguracionService {
    * Resetea todas las configuraciones a sus valores por defecto
    */
   resetearTodasLasConfiguraciones(): Observable<ConfiguracionSistema[]> {
-    console.log('📤 Reseteando todas las configuraciones en API...');
+    // console.log removed for production
     
     const url = `${this.apiUrl}/reset`;
     return this.http.post<ConfiguracionSistema[]>(url, {}, { headers: this.getHeaders() })
       .pipe(
         tap((configuracionesReseteadas) => {
-          console.log('✅ Configuraciones reseteadas en API:', configuracionesReseteadas.length);
+          // console.log removed for production
           this.configuracionesSignal.set(configuracionesReseteadas);
           this.actualizarBehaviorSubjects(configuracionesReseteadas);
         }),
         catchError(error => {
-          console.error('❌ Error reseteando configuraciones:', error);
+          console.error('❌ Error reseteando configuraciones::', error);
           return throwError(() => error);
         })
       );
@@ -764,11 +764,11 @@ export class ConfiguracionService {
 
       return of(datos.configuraciones).pipe(
         tap(() => {
-          console.log('🔧 Configuraciones importadas exitosamente');
+          // console.log removed for production
         })
       );
     } catch (error) {
-      console.error('Error importando configuraciones:', error);
+      console.error('Error importando configuraciones::', error);
       throw error;
     }
   }
@@ -795,7 +795,7 @@ export class ConfiguracionService {
       // TODO: Implementar parser dinámico del formato configurado
       return `${dia}/${mes}/${anio}`;
     } catch (error) {
-      console.error('Error formateando fecha:', error);
+      console.error('Error formateando fecha::', error);
       return 'FECHA INVÁLIDA';
     }
   }
@@ -823,7 +823,7 @@ export class ConfiguracionService {
       // TODO: Implementar parser dinámico del formato configurado
       return `${dia}/${mes}/${anio} ${hora}:${minutos}`;
     } catch (error) {
-      console.error('Error formateando fecha con hora:', error);
+      console.error('Error formateando fecha con hora::', error);
       return 'FECHA INVÁLIDA';
     }
   }

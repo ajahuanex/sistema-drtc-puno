@@ -137,7 +137,7 @@ export class ColumnSelectorComponent {
         <div class="columns-list-container">
           <div class="columns-list-header">
             <span class="list-title">Columnas Disponibles</span>
-            <span class="visible-count">{{ contadorVisibles() }} de {{ columnasOrdenadas().length }}</span>
+            <span class="visible-count">{{ contadorVisibles() }} de {{ (columnasOrdenadas())?.length || 0 }}</span>
           </div>
 
           <div class="columns-list" 

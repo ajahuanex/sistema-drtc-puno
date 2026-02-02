@@ -470,7 +470,7 @@ export class RutaConLocalidadesUnicasComponent implements OnInit {
       const empresas = await this.empresaService.getEmpresas().toPromise();
       this.empresas.set(empresas || []);
     } catch (error) {
-      console.error('Error cargando empresas:', error);
+      console.error('Error cargando empresas::', error);
       this.snackBar.open('Error cargando empresas', 'Cerrar', { duration: 3000 });
     }
   }
@@ -480,7 +480,7 @@ export class RutaConLocalidadesUnicasComponent implements OnInit {
       const resoluciones = await this.resolucionService.getResoluciones().toPromise();
       this.resoluciones.set(resoluciones || []);
     } catch (error) {
-      console.error('Error cargando resoluciones:', error);
+      console.error('Error cargando resoluciones::', error);
       this.snackBar.open('Error cargando resoluciones', 'Cerrar', { duration: 3000 });
     }
   }
@@ -539,7 +539,7 @@ export class RutaConLocalidadesUnicasComponent implements OnInit {
       }
 
     } catch (error: any) {
-      console.error('Error creando ruta:', error);
+      console.error('Error creando ruta::', error);
       this.snackBar.open(`Error creando ruta: ${error.message || error}`, 'Cerrar', { duration: 5000 });
       
       this.resultadoCreacion.set({

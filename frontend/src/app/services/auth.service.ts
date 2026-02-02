@@ -26,7 +26,7 @@ export class AuthService {
         const parsedUser = JSON.parse(user);
         this.currentUserSubject.next(parsedUser);
       } catch (error) {
-        console.error('Error parsing user from storage:', error);
+        console.error('Error parsing user from storage::', error);
         this.logout();
       }
     }
@@ -58,7 +58,7 @@ export class AuthService {
         this.handleLoginResponse(response);
       }),
       catchError(error => {
-        console.error('Error en login:', error);
+        console.error('Error en login::', error);
         throw error;
       })
     );

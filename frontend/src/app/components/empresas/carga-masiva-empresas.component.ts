@@ -131,7 +131,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
   }
 
   private handleFile(archivo: File): void {
-    console.log('[CARGA-MASIVA] Procesando archivo:', archivo.name, 'Tamaño:', archivo.size, 'Tipo:', archivo.type);
+    // console.log removed for production
     
     // Validar extensión del archivo
     const fileName = archivo.name.toLowerCase();
@@ -177,7 +177,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       // Mostrar mensaje de éxito
       this.mostrarMensaje('✅ Plantilla descargada exitosamente', 'success');
     } catch (error: any) {
-      console.error('Error al descargar plantilla:', error);
+      console.error('Error al descargar plantilla::', error);
       this.mostrarMensaje(`❌ Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
     } finally {
       this.cargando = false;
@@ -194,16 +194,13 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       this.cargando = true;
       this.limpiarResultados();
 
-      console.log('[CARGA-MASIVA] Iniciando procesamiento:', {
-        archivo: this.archivoSeleccionado.name,
-        soloValidar: this.soloValidar
-      });
+      // console.log removed for production
 
       if (this.soloValidar) {
         // Solo validar
-        console.log('[CARGA-MASIVA] Modo: Solo validar');
+        // console.log removed for production
         const resultado = await this.empresaService.validarArchivoEmpresas(this.archivoSeleccionado);
-        console.log('[CARGA-MASIVA] Resultado validación:', resultado);
+        // console.log removed for production
         
         if (resultado && resultado.validacion) {
           this.resultadoValidacion = resultado.validacion;
@@ -213,12 +210,12 @@ export class CargaMasivaEmpresasComponent implements OnInit {
         }
       } else {
         // Procesar y crear empresas
-        console.log('[CARGA-MASIVA] Modo: Validar y crear');
+        // console.log removed for production
         const resultado = await this.empresaService.procesarCargaMasivaEmpresas(
           this.archivoSeleccionado, 
           false // soloValidar = false para crear empresas
         );
-        console.log('[CARGA-MASIVA] Resultado procesamiento:', resultado);
+        // console.log removed for production
         
         if (resultado && resultado.resultado) {
           this.resultadoProcesamiento = resultado.resultado;
@@ -231,7 +228,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       this.mostrarResultados = true;
 
     } catch (error: any) {
-      console.error('[CARGA-MASIVA] Error al procesar archivo:', error);
+      console.error('[CARGA-MASIVA] Error al procesar archivo::', error);
       
       let mensajeError = 'Error desconocido';
       if (error.message) {

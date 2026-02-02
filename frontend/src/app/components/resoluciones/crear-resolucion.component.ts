@@ -151,8 +151,8 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
               <!-- Debug Info -->
               <div class="debug-info">
                 <p>🔍 Debug: Empresa seleccionada: {{ empresaSeleccionada()?.id || 'NONE' }}</p>
-                <p>🔍 Debug: Total expedientes: {{ expedientes().length }}</p>
-                <p>🔍 Debug: Expedientes filtrados: {{ expedientesFiltrados().length }}</p>
+                <p>🔍 Debug: Total expedientes: {{ (expedientes())?.length || 0 }}</p>
+                <p>🔍 Debug: Expedientes filtrados: {{ (expedientesFiltrados())?.length || 0 }}</p>
                 <p>🔍 Debug: Empresa ID en formulario: {{ resolucionForm.get('empresaId')?.value || 'NONE' }}</p>
                 <p>🔍 Debug: Empresa ID (signal): {{ empresaIdForm() || 'NONE' }}</p>
                 <p>🔍 Debug: Fecha inicio: {{ resolucionForm.get('fechaVigenciaInicio')?.value || 'NONE' }}</p>
@@ -199,7 +199,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                     @if (expedienteSeleccionado()) {
                       Expediente: {{ expedienteSeleccionado()?.nroExpediente }} | Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
                     } @else if (expedientesFiltrados().length > 0) {
-                      {{ expedientesFiltrados().length }} expediente(s) disponible(s) para {{ empresaSeleccionada()?.razonSocial?.principal | uppercase }}
+                      {{ (expedientesFiltrados())?.length || 0 }} expediente(s) disponible(s) para {{ empresaSeleccionada()?.razonSocial?.principal | uppercase }}
                     } @else {
                       NO HAY EXPEDIENTES DISPONIBLES PARA ESTA EMPRESA
                     }
@@ -899,7 +899,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   // Debug: Log del estado de expedientesFiltrados
   debugExpedientesFiltrados = computed(() => {
     const expedientes = this.expedientesFiltrados();
-    console.log('🔍 Debug expedientesFiltrados signal:', expedientes);
+    // console.log removed for production
     return expedientes;
   });
 
@@ -910,14 +910,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     // Obtener empresa desde input o query params
     if (this.empresaId) {
       const empresa = this.empresas().find(e => e.id === this.empresaId);
-      console.log('🔍 Empresa desde input empresaId:', this.empresaId, 'encontrada:', !!empresa);
+      // console.log removed for production
       if (empresa) return empresa;
     }
 
     const empresaId = this.route.snapshot.queryParams['empresaId'];
     if (empresaId) {
       const empresa = this.empresas().find(e => e.id === empresaId);
-      console.log('🔍 Empresa desde query params:', empresaId, 'encontrada:', !!empresa);
+      // console.log removed for production
       if (empresa) return empresa;
     }
 
@@ -925,11 +925,11 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     const empresaFormId = this.empresaIdForm();
     if (empresaFormId) {
       const empresa = this.empresas().find(e => e.id === empresaFormId);
-      console.log('🔍 Empresa desde signal empresaIdForm:', empresaFormId, 'encontrada:', !!empresa);
+      // console.log removed for production
       if (empresa) return empresa;
     }
 
-    console.log('🔍 No se encontró empresa seleccionada');
+    // console.log removed for production
     return null;
   });
 
@@ -1031,11 +1031,11 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         const fechaFin = this.calcularFechaVigenciaFin(fechaInicio, aniosVigencia);
         if (fechaFin) {
           const resultado = this.formatearFechaEspanol(fechaFin);
-          console.log('✅ Computed: Fecha calculada exitosamente:', resultado);
+          // console.log removed for production
           return resultado;
         }
       } catch (error) {
-        console.error('Error en cálculo del computed:', error);
+        console.error('Error en cálculo del computed::', error);
       }
     }
 
@@ -1101,7 +1101,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     // Suscribirse a cambios en las configuraciones
     effect(() => {
       const config = configuracionesWatcher();
-      console.log('🔧 Configuraciones actualizadas:', config);
+      // console.log removed for production
 
       // Actualizar el formulario con los nuevos valores
       const aniosVigenciaControl = this.resolucionForm.get('aniosVigencia');
@@ -1111,7 +1111,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         if (valorActual === this.aniosVigenciaSignal()) {
           aniosVigenciaControl.setValue(config.aniosDefault);
           this.aniosVigenciaSignal.set(config.aniosDefault);
-          console.log('🔄 Campo aniosVigencia actualizado a:', config.aniosDefault);
+          // console.log removed for production
         }
 
         // Actualizar validadores
@@ -1151,7 +1151,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
     // Escuchar cambios en la empresa seleccionada
     this.resolucionForm.get('empresaId')?.valueChanges.subscribe(empresaId => {
-      console.log('🔄 Cambio en empresaId del formulario:', empresaId);
+      // console.log removed for production
       this.empresaIdForm.set(empresaId);
 
       if (empresaId) {
@@ -1172,22 +1172,22 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
     // Escuchar cambios en fecha de vigencia inicio y años de vigencia para actualizar fecha fin
     this.resolucionForm.get('fechaVigenciaInicio')?.valueChanges.subscribe((fecha) => {
-      console.log('🔄 Cambio en fecha de vigencia inicio:', fecha);
+      // console.log removed for production
       this.fechaVigenciaInicioSignal.set(fecha);
     });
 
     this.resolucionForm.get('aniosVigencia')?.valueChanges.subscribe((anios) => {
-      console.log('🔄 Cambio en años de vigencia:', anios);
+      // console.log removed for production
       this.aniosVigenciaSignal.set(anios);
     });
 
     // Escuchar cambios en expedienteId
     this.resolucionForm.get('expedienteId')?.valueChanges.subscribe(expedienteId => {
-      console.log('🔄 Cambio en expedienteId:', expedienteId);
+      // console.log removed for production
       if (expedienteId) {
         const expediente = this.expedientesFiltrados().find(e => e.id === expedienteId);
         if (expediente) {
-          console.log('📋 Expediente seleccionado desde listener:', expediente);
+          // console.log removed for production
           this.expedienteSeleccionado.set(expediente);
         }
       } else {
@@ -1198,7 +1198,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     // Marcar el formulario como listo después de la inicialización
     setTimeout(() => {
       this.formularioListo.set(true);
-      console.log('✅ Formulario marcado como listo');
+      // console.log removed for production
     }, 100);
   }
 
@@ -1225,14 +1225,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   }
 
   cargarExpedientesPorEmpresa(empresaId: string): void {
-    console.log('🔍 Cargando expedientes para empresa:', empresaId);
+    // console.log removed for production
 
     const expedientes = this.expedientes();
-    console.log('📋 Total de expedientes disponibles:', expedientes.length);
+    // console.log removed for production
 
     const expedientesFiltrados = expedientes.filter(e => e.empresaId === empresaId);
 
-    console.log('📋 Expedientes encontrados para la empresa:', expedientesFiltrados.length);
+    // console.log removed for production
     expedientesFiltrados.forEach(exp => {
       console.log(`  - ${exp.nroExpediente}: ${exp.descripcion} (${exp.tipoTramite})`);
     });
@@ -1258,7 +1258,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
     this.resolucionService.getResolucionById(resolucionId).subscribe({
       next: (resolucion) => {
-        console.log('📋 Resolución cargada para edición:', resolucion);
+        // console.log removed for production
 
         // Calcular años de vigencia basándose en las fechas
         let aniosVigencia = this.configuracionService.aniosVigenciaDefault();
@@ -1305,7 +1305,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error cargando resolución para edición:', error);
+        console.error('Error cargando resolución para edición::', error);
         this.loading.set(false);
         this.snackBar.open('Error al cargar la resolución para edición', 'Cerrar', { duration: 3000 });
       }
@@ -1314,7 +1314,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
     if (empresa) {
-      console.log('🏢 Empresa seleccionada desde buscador:', empresa);
+      // console.log removed for production
 
       // Actualizar el formulario (esto hará que empresaSeleccionada computed se actualice)
       this.resolucionForm.patchValue({ empresaId: empresa.id });
@@ -1326,7 +1326,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       // Filtrar expedientes por la nueva empresa
       this.filtrarExpedientesPorEmpresa(empresa.id);
     } else {
-      console.log('🏢 Empresa deseleccionada');
+      // console.log removed for production
       this.expedienteSeleccionado.set(null);
       this.resolucionForm.patchValue({
         empresaId: '',
@@ -1338,7 +1338,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   private filtrarExpedientesPorEmpresa(empresaId: string): void {
     // Esta lógica ya existe en el computed expedientesFiltrados
     // Solo necesitamos asegurar que se actualice
-    console.log('🔍 Filtrando expedientes para empresa:', empresaId);
+    // console.log removed for production
   }
 
   onExpedienteChange(event: any): void {
@@ -1348,7 +1348,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       // Buscar en los expedientes filtrados por empresa
       const expediente = this.expedientesFiltrados().find(e => e.id === expedienteId);
       if (expediente) {
-        console.log('📋 Expediente seleccionado:', expediente);
+        // console.log removed for production
         this.expedienteSeleccionado.set(expediente);
         this.tipoTramiteSignal.set(expediente.tipoTramite);
         this.actualizarFormularioPorTipoTramite(expediente.tipoTramite);
@@ -1400,25 +1400,21 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   }
 
   private cargarResolucionesPadre(): void {
-    console.log('🔄 CARGANDO RESOLUCIONES PADRE...');
+    // console.log removed for production
     
     const empresaId = this.empresaSeleccionada()?.id || this.resolucionForm.get('empresaId')?.value;
     if (!empresaId) {
-      console.log('❌ No hay empresa seleccionada');
+      // console.log removed for production
       return;
     }
 
     const expediente = this.expedienteSeleccionado();
     if (!expediente) {
-      console.log('❌ No hay expediente seleccionado');
+      // console.log removed for production
       return;
     }
 
-    console.log('📊 DATOS PARA FILTRADO:', {
-      empresaId: empresaId,
-      expedienteTipo: expediente.tipoTramite,
-      expedienteId: expediente.id
-    });
+    // console.log removed for production
 
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
@@ -1444,7 +1440,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         let resolucionesPadre: Resolucion[] = [];
 
         if (expediente.tipoTramite === 'RENOVACION') {
-          console.log('🔄 FILTRADO PARA RENOVACIÓN...');
+          // console.log removed for production
           resolucionesPadre = resolucionesEmpresa.filter(r => {
             const esPadre = r.tipoResolucion === 'PADRE';
             const estaActivo = r.estaActivo;
@@ -1452,30 +1448,24 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
             const tieneFechaFin = r.fechaVigenciaFin;
             const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
             
-            console.log(`   📋 ${r.nroResolucion}:`, {
-              esPadre, estaActivo, esVigente, tieneFechaFin, noVencido,
-              cumpleCondiciones: esPadre && estaActivo && esVigente && tieneFechaFin && noVencido
-            });
+            // console.log removed for production
             
             return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
           });
         } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION') {
-          console.log('🔄 FILTRADO PARA INCREMENTO/SUSTITUCION - MOSTRANDO RESOLUCIONES PRIMIGENIAS...');
+          // console.log removed for production
           resolucionesPadre = resolucionesEmpresa.filter(r => {
             const esPrimigenia = r.tipoResolucion === 'PADRE'; // Las primigenias son tipo PADRE
             const estaActivo = r.estaActivo;
             const esVigente = r.estado === 'VIGENTE';
             
-            console.log(`   📋 ${r.nroResolucion}:`, {
-              esPrimigenia, estaActivo, esVigente,
-              cumpleCondiciones: esPrimigenia && estaActivo && esVigente
-            });
+            // console.log removed for production
             
             // Para INCREMENTO/SUSTITUCION mostrar todas las resoluciones primigenias vigentes
             return esPrimigenia && estaActivo && esVigente;
           });
         } else if (expediente.tipoTramite === 'OTROS') {
-          console.log('🔄 FILTRADO PARA OTROS...');
+          // console.log removed for production
           resolucionesPadre = resolucionesEmpresa.filter(r => {
             const esPadre = r.tipoResolucion === 'PADRE';
             const estaActivo = r.estaActivo;
@@ -1483,10 +1473,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
             const tieneFechaFin = r.fechaVigenciaFin;
             const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
             
-            console.log(`   📋 ${r.nroResolucion}:`, {
-              esPadre, estaActivo, esVigente, tieneFechaFin, noVencido,
-              cumpleCondiciones: esPadre && estaActivo && esVigente && tieneFechaFin && noVencido
-            });
+            // console.log removed for production
             
             return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
           });
@@ -1503,13 +1490,13 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.resolucionesPadre.set(resolucionesPadre);
         
         if (resolucionesPadre.length > 0) {
-          console.log('🎉 DROPDOWN DEBERÍA MOSTRAR', resolucionesPadre.length, 'OPCIONES');
+          // console.log removed for production
         } else {
-          console.log('⚠️ DROPDOWN ESTARÁ VACÍO - No hay resoluciones padre válidas');
+          // console.log removed for production
         }
       },
       error: (error) => {
-        console.error('❌ ERROR CARGANDO RESOLUCIONES:', error);
+        console.error('❌ ERROR CARGANDO RESOLUCIONES::', error);
         this.resolucionesPadre.set([]);
       }
     });
@@ -1623,7 +1610,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error al validar número de resolución:', error);
+        console.error('Error al validar número de resolución::', error);
       }
     });
   }
@@ -1750,14 +1737,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       fechaFin.setFullYear(fechaFin.getFullYear() + aniosVigencia);
       return fechaFin;
     } catch (error) {
-      console.error('Error calculando fecha de vigencia fin:', error);
+      console.error('Error calculando fecha de vigencia fin::', error);
       return undefined;
     }
   }
 
   // Método para debuggear el estado actual
   debugEstadoActual(): void {
-    console.log('=== DEBUG ESTADO ACTUAL ===');
+    // console.log removed for production
     console.log('Empresa ID (input):', this.empresaId);
     console.log('Empresa ID (query params):', this.route.snapshot.queryParams['empresaId']);
     console.log('Empresa ID (formulario):', this.resolucionForm.get('empresaId')?.value);
@@ -1766,46 +1753,46 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     console.log('Total empresas:', this.empresas().length);
     console.log('Total expedientes:', this.expedientes().length);
     console.log('Expedientes filtrados:', this.expedientesFiltrados());
-    console.log('=== FIN DEBUG ===');
+    // console.log removed for production
   }
 
   // Método para debuggear específicamente la fecha de vigencia
   debugFechaVigencia(): void {
-    console.log('=== DEBUG FECHA VIGENCIA ===');
+    // console.log removed for production
     const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
     const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
     const mostrarFecha = this.mostrarFechaVigenciaFin();
 
-    console.log('Valores del formulario:');
-    console.log('  - fechaVigenciaInicio:', fechaInicio);
-    console.log('  - aniosVigencia:', aniosVigencia);
-    console.log('  - mostrarFecha:', mostrarFecha);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
-    console.log('Tipos de datos:');
-    console.log('  - fechaInicio type:', typeof fechaInicio);
-    console.log('  - aniosVigencia type:', typeof aniosVigencia);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
-    console.log('Valores truthy:');
-    console.log('  - !!fechaInicio:', !!fechaInicio);
-    console.log('  - !!aniosVigencia:', !!aniosVigencia);
-    console.log('  - !!mostrarFecha:', !!mostrarFecha);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     if (fechaInicio && aniosVigencia && mostrarFecha) {
-      console.log('✅ Condición cumplida, probando cálculo...');
+      // console.log removed for production
       try {
         const fechaFin = this.calcularFechaVigenciaFin(fechaInicio, aniosVigencia);
-        console.log('  - fechaFin calculada:', fechaFin);
+        // console.log removed for production
         if (fechaFin) {
           const fechaFormateada = this.formatearFechaEspanol(fechaFin);
-          console.log('  - fechaFormateada:', fechaFormateada);
+          // console.log removed for production
         }
       } catch (error) {
-        console.error('  - Error en cálculo:', error);
+        console.error('  - Error en cálculo::', error);
       }
     } else {
-      console.log('❌ Condición NO cumplida');
+      // console.log removed for production
     }
-    console.log('=== FIN DEBUG FECHA VIGENCIA ===');
+    // console.log removed for production
   }
 
   onSubmit(): void {
@@ -1876,7 +1863,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.submitting.set(false);
-          console.error('Error al actualizar resolución:', error);
+          console.error('Error al actualizar resolución::', error);
           this.snackBar.open('Error al actualizar la resolución', 'Cerrar', { duration: 3000 });
         }
       });
@@ -1897,7 +1884,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.submitting.set(false);
-          console.error('Error al crear resolución:', error);
+          console.error('Error al crear resolución::', error);
           this.snackBar.open('Error al crear la resolución', 'Cerrar', { duration: 3000 });
         }
       });

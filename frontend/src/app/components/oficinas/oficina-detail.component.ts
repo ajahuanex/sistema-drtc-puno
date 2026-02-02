@@ -810,7 +810,7 @@ export class OficinaDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar oficina:', error);
+        console.error('Error al cargar oficina::', error);
         this.loading.set(false);
       }
     });
@@ -822,7 +822,7 @@ export class OficinaDetailComponent implements OnInit {
         this.estadisticas.set(estadisticas);
       },
       error: (error) => {
-        console.error('Error al cargar estadísticas:', error);
+        console.error('Error al cargar estadísticas::', error);
       }
     });
   }
@@ -836,7 +836,7 @@ export class OficinaDetailComponent implements OnInit {
         this.expedientesLoading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar expedientes:', error);
+        console.error('Error al cargar expedientes::', error);
         this.expedientesLoading.set(false);
       }
     });

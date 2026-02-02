@@ -96,7 +96,7 @@ export class EmpresaVehiculosBatchComponent implements OnInit {
           this.isLoading.set(false);
         },
         error: (error) => {
-          console.error('Error cargando empresa:', error);
+          console.error('Error cargando empresa::', error);
           this.snackBar.open('Error al cargar la empresa', 'Cerrar', { duration: 5000 });
           this.isLoading.set(false);
           this.volver();
@@ -117,7 +117,7 @@ export class EmpresaVehiculosBatchComponent implements OnInit {
           this.resolucionesJerarquicas.set(padres);
         },
         error: (error) => {
-          console.error('Error cargando resoluciones:', error);
+          console.error('Error cargando resoluciones::', error);
           this.snackBar.open('Error al cargar resoluciones', 'Cerrar', { duration: 5000 });
         }
       });
@@ -131,7 +131,7 @@ export class EmpresaVehiculosBatchComponent implements OnInit {
           this.vehiculos.set(vehiculos);
         },
         error: (error: any) => {
-          console.error('Error cargando vehículos:', error);
+          console.error('Error cargando vehículos::', error);
           this.snackBar.open('Error al cargar vehículos', 'Cerrar', { duration: 5000 });
         }
       });

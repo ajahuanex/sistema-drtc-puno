@@ -58,7 +58,7 @@ export class ExpedienteValidationService {
     
     return this.http.get<ResultadoValidacionExpediente>(url).pipe(
       catchError(error => {
-        console.error('Error al validar unicidad de expediente:', error);
+        console.error('Error al validar unicidad de expediente::', error);
         return of({
           valido: false,
           mensaje: 'Error al validar la unicidad del expediente. Intente nuevamente.',

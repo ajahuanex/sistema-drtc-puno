@@ -1,208 +1,310 @@
-<div class="localidad-modal">
-  <div mat-dialog-title class="modal-header">
-    <h2>{{ titulo }}</h2>
-    <button mat-icon-button mat-dialog-close>
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
+<!-- Modal para crear/editar localidades -->
+<div class="modal-overlay" (click)="onCancelar()">
+  <div class="modal-container">>>
+    <div class="modal-header">
+      <h2>
+        <mat-icon>{{ esEdicion ? 'edit' : 'add' }}</mat-icon>
+        {{ esEdicion ? 'Editar Localidad' : 'Nueva Localidad' }}
+      </h2>
+      <button mat-icon-button (click)="onCancelar()" class="close-button">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
 
-  <div mat-dialog-content class="modal-content">
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      
-      <!-- Información básica -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-card-title>Información Básica</mat-card-title>
-        </mat-card-header>
+    <form [formGroup]="formulario" (ngSubmit)="onGuardar()" (click)="$event.stopPropagation()" class="modal-form">
+      <div class="modal-content">
         
-        <mat-card-content>
-          <div class="form-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>Departamento *</mat-label>
-              <input matInput formControlName="departamento" placeholder="Ej: PUNO">
-              <mat-error>{{ getFieldError('departamento') }}</mat-error>
+        <!-- Información Básica -->
+        <div class="seccion-basica">
+          <h3>Información Básica</h3>
+          
+          <div class="campos-grid">
+            <!-- Nombre (OBLIGATORIO) -->
+            <mat-form-field appearance="outline" class="campo-completo">
+              <mat-label>Nombre de la Localidad *</mat-label>
+              <input matInput formControlName="nombre" placeholder="Ej: Puno, Juliaca, Azángaro">
+              <mat-icon matSuffix>place</mat-icon>
+              @if (formulario.get('nombre')?.hasError('required')) {
+                <mat-error>El nombre es obligatorio</mat-error>
+              }
+              @if (formulario.get('nombre')?.hasError('minlength')) {
+                <mat-error>El nombre debe tener al menos 2 caracteres</mat-error>
+              }
             </mat-form-field>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Provincia *</mat-label>
-              <input matInput formControlName="provincia" placeholder="Ej: PUNO">
-              <mat-error>{{ getFieldError('provincia') }}</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Distrito *</mat-label>
-              <input matInput formControlName="distrito" placeholder="Ej: PUNO">
-              <mat-error>{{ getFieldError('distrito') }}</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Nivel Territorial *</mat-label>
-              <mat-select formControlName="nivel_territorial" (selectionChange)="sugerirNombreMunicipalidad()">
-                <mat-option *ngFor="let nivel of nivelesTerritoriales" [value]="nivel">
-                  {{ nivel }}
-                </mat-option>
-              </mat-select>
-              <mat-error>{{ getFieldError('nivel_territorial') }}</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Municipalidad de Centro Poblado *</mat-label>
-              <input matInput formControlName="municipalidad_centro_poblado" 
-                     placeholder="Ej: Municipalidad Provincial de Puno">
-              <button mat-icon-button matSuffix type="button" 
-                      (click)="sugerirNombreMunicipalidad()"
-                      matTooltip="Generar sugerencia automática">
-                <mat-icon>auto_fix_high</mat-icon>
-              </button>
-              <mat-error>{{ getFieldError('municipalidad_centro_poblado') }}</mat-error>
-            </mat-form-field>
+            <!-- Tipo (por defecto PUEBLO) -->
+            <div class="tipo-selector">
+              <label class="tipo-label">Tipo de Localidad *</label>
+              <div class="tipo-opciones">
+                @for (tipo of tiposLocalidad; track tipo.value) {
+                  <div class="tipo-opcion" 
+                       [class.selected]="tipoSeleccionado === tipo.value"
+                       (click)="seleccionarTipo(tipo.value)">
+                    <div class="tipo-radio">
+                      <input type="radio" 
+                             [id]="'tipo-' + tipo.value" 
+                             [value]="tipo.value"
+                             [checked]="tipoSeleccionado === tipo.value"
+                             (change)="seleccionarTipo(tipo.value)">
+                      <span class="radio-custom"></span>
+                    </div>
+                    <label [for]="'tipo-' + tipo.value" class="tipo-texto">
+                      {{ tipo.label }}
+                    </label>
+                  </div>
+                }
+              </div>
+              <div class="tipo-hint">{{ getHintPorTipo() }}</div>
+            </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
 
-      <!-- Códigos e identificadores -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-card-title>Códigos e Identificadores</mat-card-title>
-          <mat-card-subtitle>Campos opcionales para identificación oficial</mat-card-subtitle>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="form-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>UBIGEO</mat-label>
-              <input matInput formControlName="ubigeo" 
-                     placeholder="6 dígitos" 
-                     maxlength="6"
-                     (blur)="generarUbigeoIdentificadorMcp()">
-              <mat-hint>Código UBIGEO oficial de 6 dígitos (opcional)</mat-hint>
-              <mat-error>{{ getFieldError('ubigeo') }}</mat-error>
-            </mat-form-field>
+        <!-- Ubicación Administrativa (Condicional según tipo) -->
+        @if (mostrarCamposJerarquicos()) {
+          <div class="seccion-ubicacion">
+            <h3>{{ getTituloSeccionUbicacion() }}</h3>
+            
+            <div class="campos-grid">
+              <!-- Departamento (solo para PROVINCIA y niveles inferiores) -->
+              @if (mostrarCampoDepartamento()) {
+                @if (usarSelectDepartamento()) {
+                  <!-- Select dinámico cuando hay múltiples opciones -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Departamento</mat-label>
+                    <mat-select formControlName="departamento" panelClass="select-panel-high-z-index">
+                      <mat-option value="">Seleccionar departamento</mat-option>
+                      @for (dept of departamentosDisponibles; track dept) {
+                        <mat-option [value]="dept">{{ dept }}</mat-option>
+                      }
+                    </mat-select>
+                    <mat-icon matSuffix>map</mat-icon>
+                  </mat-form-field>
+                } @else {
+                  <!-- Input cuando solo hay una opción o está cargando -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Departamento</mat-label>
+                    <input matInput formControlName="departamento" placeholder="Por defecto: PUNO">
+                    <mat-icon matSuffix>map</mat-icon>
+                    @if (cargandoOpciones) {
+                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                    }
+                  </mat-form-field>
+                }
+              }
 
-            <mat-form-field appearance="outline">
-              <mat-label>UBIGEO e Identificador MCP</mat-label>
-              <input matInput formControlName="ubigeo_identificador_mcp" 
-                     placeholder="Ej: 210101-MCP-001">
-              <button mat-icon-button matSuffix type="button" 
-                      (click)="generarUbigeoIdentificadorMcp()"
-                      matTooltip="Generar automáticamente desde UBIGEO">
-                <mat-icon>auto_fix_high</mat-icon>
-              </button>
-              <mat-hint>Identificador único MCP (opcional)</mat-hint>
-              <mat-error>{{ getFieldError('ubigeo_identificador_mcp') }}</mat-error>
-            </mat-form-field>
+              <!-- Provincia (solo para DISTRITO y niveles inferiores) -->
+              @if (mostrarCampoProvincia()) {
+                @if (usarSelectProvincia()) {
+                  <!-- Autocomplete con búsqueda cuando hay múltiples opciones -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Provincia</mat-label>
+                    <input matInput 
+                           [formControl]="provinciaControl"
+                           [matAutocomplete]="provinciaAuto"
+                           placeholder="Buscar provincia..."
+                           [disabled]="provinciasDisponibles.length === 0">
+                    <mat-autocomplete #provinciaAuto="matAutocomplete" 
+                                    panelClass="select-panel-high-z-index"
+                                    (optionSelected)="onProvinciaSelected($event)">
+                      @for (provincia of provinciasFiltradas | async; track provincia) {
+                        <mat-option [value]="provincia">
+                          {{ provincia }}
+                        </mat-option>
+                      }
+                      @if ((provinciasFiltradas | async)?.length === 0) {
+                        <mat-option disabled>
+                          No se encontraron provincias
+                        </mat-option>
+                      }
+                    </mat-autocomplete>
+                    <mat-icon matSuffix>location_city</mat-icon>
+                    @if (cargandoOpciones) {
+                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                    }
+                  </mat-form-field>
+                } @else {
+                  <!-- Input cuando solo hay una opción o no hay departamento seleccionado -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Provincia</mat-label>
+                    <input matInput formControlName="provincia" 
+                           placeholder="Por defecto: PUNO"
+                           [disabled]="provinciasDisponibles.length === 0">
+                    <mat-icon matSuffix>location_city</mat-icon>
+                    @if (cargandoOpciones) {
+                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                    }
+                  </mat-form-field>
+                }
+              }
 
-            <mat-form-field appearance="outline">
-              <mat-label>Código Legacy</mat-label>
-              <input matInput formControlName="codigo" placeholder="Ej: PUN001">
-              <mat-hint>Código anterior del sistema (opcional)</mat-hint>
-              <mat-error>{{ getFieldError('codigo') }}</mat-error>
-            </mat-form-field>
+              <!-- Distrito (solo para PUEBLO y CENTRO_POBLADO) -->
+              @if (mostrarCampoDistrito()) {
+                @if (usarSelectDistrito()) {
+                  <!-- Autocomplete con búsqueda cuando hay múltiples opciones -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Distrito</mat-label>
+                    <input matInput 
+                           [formControl]="distritoControl"
+                           [matAutocomplete]="distritoAuto"
+                           placeholder="Buscar distrito..."
+                           [disabled]="distritosDisponibles.length === 0">
+                    <mat-autocomplete #distritoAuto="matAutocomplete" 
+                                    panelClass="select-panel-high-z-index"
+                                    (optionSelected)="onDistritoSelected($event)">
+                      @for (distrito of distritosFiltrados | async; track distrito) {
+                        <mat-option [value]="distrito">
+                          {{ distrito }}
+                        </mat-option>
+                      }
+                      @if ((distritosFiltrados | async)?.length === 0) {
+                        <mat-option disabled>
+                          No se encontraron distritos
+                        </mat-option>
+                      }
+                    </mat-autocomplete>
+                    <mat-icon matSuffix>place</mat-icon>
+                    @if (cargandoOpciones) {
+                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                    }
+                  </mat-form-field>
+                } @else {
+                  <!-- Input cuando solo hay una opción o no hay provincia seleccionada -->
+                  <mat-form-field appearance="outline">
+                    <mat-label>Distrito</mat-label>
+                    <input matInput formControlName="distrito" 
+                           placeholder="Por defecto: PUNO"
+                           [disabled]="distritosDisponibles.length === 0">
+                    <mat-icon matSuffix>place</mat-icon>
+                    @if (cargandoOpciones) {
+                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                    }
+                  </mat-form-field>
+                }
+              }
 
-            <mat-form-field appearance="outline">
-              <mat-label>Nombre</mat-label>
-              <input matInput formControlName="nombre" placeholder="Nombre común">
-              <mat-hint>Nombre común de la localidad (opcional)</mat-hint>
-              <mat-error>{{ getFieldError('nombre') }}</mat-error>
-            </mat-form-field>
+              <!-- UBIGEO (solo para CENTRO_POBLADO) -->
+              @if (mostrarCampoUbigeo()) {
+                <mat-form-field appearance="outline">
+                  <mat-label>UBIGEO</mat-label>
+                  <input matInput formControlName="ubigeo" placeholder="Ej: 210101" maxlength="6">
+                  <mat-icon matSuffix>pin</mat-icon>
+                  @if (formulario.get('ubigeo')?.hasError('pattern')) {
+                    <mat-error>El UBIGEO debe tener 6 dígitos</mat-error>
+                  }
+                </mat-form-field>
+              }
+            </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        }
 
-      <!-- Información adicional -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-card-title>Información Adicional</mat-card-title>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="form-grid">
-            <mat-form-field appearance="outline">
-              <mat-label>Tipo</mat-label>
-              <mat-select formControlName="tipo">
-                <mat-option value="">Seleccionar tipo</mat-option>
-                <mat-option *ngFor="let tipo of tiposLocalidad" [value]="tipo">
-                  {{ tipo }}
-                </mat-option>
-              </mat-select>
-              <mat-error>{{ getFieldError('tipo') }}</mat-error>
-            </mat-form-field>
+        <!-- Información Adicional (Opcional) -->
+        <mat-expansion-panel class="seccion-adicional">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>info</mat-icon>
+              Información Adicional (Opcional)
+            </mat-panel-title>
+          </mat-expansion-panel-header>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Dispositivo Legal de Creación</mat-label>
-              <input matInput formControlName="dispositivo_legal_creacion" 
-                     placeholder="Ej: Ley N° 27972 - Ley Orgánica de Municipalidades">
-              <mat-hint>Dispositivo legal que creó la municipalidad (opcional)</mat-hint>
-              <mat-error>{{ getFieldError('dispositivo_legal_creacion') }}</mat-error>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
+          <div class="campos-grid">
+            <mat-form-field appearance="outline" class="campo-completo">
               <mat-label>Descripción</mat-label>
-              <textarea matInput formControlName="descripcion" 
-                        rows="3" 
+              <textarea matInput formControlName="descripcion" rows="3" 
                         placeholder="Descripción de la localidad"></textarea>
-              <mat-error>{{ getFieldError('descripcion') }}</mat-error>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="campo-completo">
               <mat-label>Observaciones</mat-label>
-              <textarea matInput formControlName="observaciones" 
-                        rows="3" 
+              <textarea matInput formControlName="observaciones" rows="2" 
                         placeholder="Observaciones adicionales"></textarea>
-              <mat-error>{{ getFieldError('observaciones') }}</mat-error>
             </mat-form-field>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </mat-expansion-panel>
 
-      <!-- Coordenadas geográficas -->
-      <mat-card class="section-card">
-        <mat-card-header>
-          <mat-card-title>Coordenadas Geográficas</mat-card-title>
-          <mat-card-subtitle>Ubicación geográfica (opcional)</mat-card-subtitle>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="form-grid">
+        <!-- Coordenadas (Opcional) -->
+        <mat-expansion-panel class="seccion-coordenadas">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon>my_location</mat-icon>
+              Coordenadas Geográficas (Opcional)
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="campos-grid">
             <mat-form-field appearance="outline">
               <mat-label>Latitud</mat-label>
-              <input matInput formControlName="latitud" 
-                     type="number" 
-                     step="0.000001"
-                     placeholder="Ej: -15.8402">
-              <mat-hint>Grados decimales (-90 a 90)</mat-hint>
-              <mat-error>{{ getFieldError('latitud') }}</mat-error>
+              <input matInput type="number" formControlName="latitud" 
+                     placeholder="Ej: -15.8422" step="0.000001">
+              <mat-icon matSuffix>south</mat-icon>
+              @if (formulario.get('latitud')?.hasError('min') || formulario.get('latitud')?.hasError('max')) {
+                <mat-error>La latitud debe estar entre -90 y 90</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Longitud</mat-label>
-              <input matInput formControlName="longitud" 
-                     type="number" 
-                     step="0.000001"
-                     placeholder="Ej: -70.0219">
-              <mat-hint>Grados decimales (-180 a 180)</mat-hint>
-              <mat-error>{{ getFieldError('longitud') }}</mat-error>
+              <input matInput type="number" formControlName="longitud" 
+                     placeholder="Ej: -70.0199" step="0.000001">
+              <mat-icon matSuffix>east</mat-icon>
+              @if (formulario.get('longitud')?.hasError('min') || formulario.get('longitud')?.hasError('max')) {
+                <mat-error>La longitud debe estar entre -180 y 180</mat-error>
+              }
             </mat-form-field>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </mat-expansion-panel>
 
+        <!-- Información del Sistema -->
+        @if (esEdicion && localidad) {
+          <div class="seccion-sistema">
+            <h3>Información del Sistema</h3>
+            <div class="info-sistema">
+              <div class="info-item">
+                <mat-icon>schedule</mat-icon>
+                <div>
+                  <div class="info-label">Fecha de Creación</div>
+                  <div class="info-value">{{ localidad.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</div>
+                </div>
+              </div>
+              <div class="info-item">
+                <mat-icon>update</mat-icon>
+                <div>
+                  <div class="info-label">Última Actualización</div>
+                  <div class="info-value">{{ localidad.fechaActualizacion | date:'dd/MM/yyyy HH:mm' }}</div>
+                </div>
+              </div>
+              <div class="info-item">
+                <mat-icon>{{ localidad.estaActiva ? 'check_circle' : 'cancel' }}</mat-icon>
+                <div>
+                  <div class="info-label">Estado</div>
+                  <div class="info-value">{{ localidad.estaActiva ? 'Activa' : 'Inactiva' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-actions">
+        <!-- Botón temporal de debugging -->
+        <button type="button" mat-stroked-button (click)="debugFormulario()" style="background-color: #ff9800; color: white;">
+          🔍 Debug
+        </button>
+        
+        <button type="button" mat-stroked-button (click)="onCancelar()">
+          <mat-icon>cancel</mat-icon>
+          Cancelar
+        </button>
+        
+        <button type="submit" mat-raised-button color="primary" 
+                [disabled]="formulario.invalid || guardando">
+          @if (guardando) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>{{ esEdicion ? 'save' : 'add' }}</mat-icon>
+          }
+          {{ esEdicion ? 'Actualizar' : 'Crear' }} Localidad
+        </button>
+      </div>
     </form>
-  </div>
-
-  <div mat-dialog-actions class="modal-actions">
-    <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
-      Cancelar
-    </button>
-    
-    <button mat-raised-button 
-            color="primary" 
-            type="submit"
-            (click)="onSubmit()"
-            [disabled]="loading || form.invalid">
-      <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-      <span *ngIf="!loading">{{ textoBoton }}</span>
-      <span *ngIf="loading">Guardando...</span>
-    </button>
   </div>
 </div>

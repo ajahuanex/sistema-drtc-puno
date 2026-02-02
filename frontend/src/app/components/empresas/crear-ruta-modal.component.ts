@@ -473,11 +473,11 @@ export class CrearRutaModalComponent implements OnInit {
       this.rutaService.getSiguienteCodigoDisponible(this.resolucionSeleccionada.id)
         .subscribe({
           next: (codigo: string) => {
-            console.log('✅ Código generado automáticamente:', codigo);
+            // console.log removed for production
             this.rutaForm.patchValue({ codigoRuta: codigo });
           },
           error: (error: any) => {
-            console.error('❌ Error generando código automático:', error);
+            console.error('❌ Error generando código automático::', error);
             // Fallback: usar código simple
             this.rutaForm.patchValue({ codigoRuta: '01' });
           }
@@ -546,13 +546,13 @@ export class CrearRutaModalComponent implements OnInit {
         empresa: { id: this.empresa.id, ruc: this.empresa.ruc, razonSocial: this.empresa.razonSocial.principal }
       };
 
-      console.log('📤 Enviando ruta al backend:', nuevaRuta);
-      console.log('📋 Tipo de asignación:', tipoAsignacion);
-      console.log('📋 Resolución seleccionada:', this.resolucionSeleccionada);
+      // console.log removed for production
+      // console.log removed for production
+      // console.log removed for production
 
       this.rutaService.createRuta(nuevaRuta).subscribe({
         next: (rutaGuardada: Ruta) => {
-          console.log('✅ Ruta creada exitosamente:', rutaGuardada);
+          // console.log removed for production
           const mensaje = tipoAsignacion === 'GENERAL' 
             ? 'Ruta general creada exitosamente y asignada a la resolución primigenia'
             : 'Ruta específica creada exitosamente. Recuerde asignarla a vehículos específicos';
@@ -564,7 +564,7 @@ export class CrearRutaModalComponent implements OnInit {
           this.dialogRef.close(rutaGuardada);
         },
         error: (error: any) => {
-          console.error('❌ Error al crear la ruta:', error);
+          console.error('❌ Error al crear la ruta::', error);
           this.snackBar.open('Error al crear la ruta: ' + (error.message || 'Error desconocido'), 'Cerrar', { 
             duration: 5000,
             panelClass: ['error-snackbar']

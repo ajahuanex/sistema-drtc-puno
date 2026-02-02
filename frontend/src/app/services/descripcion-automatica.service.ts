@@ -168,7 +168,7 @@ export class DescripcionAutomaticaService {
     contexto?: any
   ): string {
     const descripcionGenerada = this.generarDescripcionAutomatica(nombre, categoria, contexto);
-    console.log(`🔧 Descripción automática generada para ${nombre}:`, descripcionGenerada);
+    // console.log removed for production
     return descripcionGenerada;
   }
 

@@ -1,0 +1,620 @@
+// ========================================
+// ESTILOS DEL COMPONENTE CONSOLIDADO DE VEHÍCULOS
+// ========================================
+
+.vehiculos-header {
+  margin-bottom: 24px;
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+
+    .title-section {
+      h1 {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        font-weight: 500;
+
+        mat-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+        }
+
+        mat-chip-set {
+          margin-left: 16px;
+        }
+      }
+
+      .subtitle {
+        color: rgba(0, 0, 0, 0.6);
+        margin: 0;
+        font-size: 14px;
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+  }
+
+  .stats-bar {
+    display: flex;
+    gap: 24px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    margin-bottom: 16px;
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+
+      .stat-label {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.6);
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-size: 20px;
+        font-weight: 600;
+
+        &.stat-primary { color: #1976d2; }
+        &.stat-accent { color: #ff4081; }
+        &.stat-warn { color: #f57c00; }
+        &.stat-basic { color: rgba(0, 0, 0, 0.87); }
+      }
+    }
+  }
+
+  .system-status {
+    margin-top: 8px;
+  }
+}
+
+// ========================================
+// BARRA DE BÚSQUEDA Y FILTROS
+// ========================================
+
+.search-filters-card {
+  margin-bottom: 24px;
+
+  .search-section {
+    margin-bottom: 16px;
+
+    .search-form {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+
+      .search-field {
+        flex: 1;
+        min-width: 300px;
+      }
+
+      .campos-field {
+        min-width: 200px;
+      }
+
+      .search-indicator {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+      }
+    }
+
+    .search-results {
+      margin-top: 12px;
+    }
+  }
+
+  .controls-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .filter-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .view-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+  }
+
+  .advanced-filters {
+    margin-top: 16px;
+
+    .filters-form {
+      .filters-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+
+        mat-form-field {
+          flex: 1;
+          min-width: 200px;
+        }
+
+        mat-slide-toggle {
+          margin: 16px 0;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// AUTOCOMPLETADO DE SUGERENCIAS
+// ========================================
+
+.mat-mdc-option {
+  .sugerencia-tipo {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+}
+
+// ========================================
+// ACCIONES EN LOTE
+// ========================================
+
+.bulk-actions {
+  margin-bottom: 24px;
+
+  .bulk-actions-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .selection-info {
+      font-weight: 500;
+      color: #1976d2;
+    }
+
+    .bulk-buttons {
+      display: flex;
+      gap: 12px;
+    }
+  }
+}
+
+// ========================================
+// CONTENIDO PRINCIPAL
+// ========================================
+
+.main-content {
+  .table-card {
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+
+      .table-info {
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.6);
+      }
+
+      .table-actions {
+        display: flex;
+        gap: 8px;
+      }
+    }
+
+    .table-container {
+      .vehiculos-table {
+        width: 100%;
+
+        .placa-cell {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .inactive-icon {
+            color: rgba(0, 0, 0, 0.4);
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .empresa-cell {
+          .empresa-nombre {
+            display: block;
+            font-weight: 500;
+          }
+        }
+
+        .rutas-cell {
+          .no-rutas {
+            color: rgba(0, 0, 0, 0.4);
+            font-style: italic;
+          }
+        }
+
+        .acciones-cell {
+          text-align: center;
+        }
+
+        .selected-row {
+          background-color: rgba(25, 118, 210, 0.08);
+        }
+
+        .delete-action {
+          color: #f44336;
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // VISTA DE TARJETAS
+  // ========================================
+
+  .cards-view {
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+
+      .vehiculo-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .vehiculo-avatar {
+          background-color: #1976d2;
+          color: white;
+        }
+
+        .card-info {
+          .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+
+            mat-icon {
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
+              color: rgba(0, 0, 0, 0.6);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // VISTA DE ESTADÍSTICAS
+  // ========================================
+
+  .stats-view {
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+
+      .stat-card {
+        .stat-item-large {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          margin-bottom: 16px;
+
+          .stat-number {
+            font-size: 36px;
+            font-weight: 600;
+            color: #1976d2;
+          }
+
+          .stat-label {
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.6);
+            text-transform: uppercase;
+            font-weight: 500;
+          }
+        }
+
+        .chart-placeholder {
+          .chart-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+
+            .bar-label {
+              min-width: 80px;
+              font-size: 12px;
+              color: rgba(0, 0, 0, 0.6);
+            }
+
+            .bar-container {
+              flex: 1;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              height: 24px;
+
+              .bar-fill {
+                height: 8px;
+                border-radius: 4px;
+                transition: width 0.3s ease;
+
+                &.bar-primary { background-color: #1976d2; }
+                &.bar-accent { background-color: #ff4081; }
+                &.bar-warn { background-color: #f57c00; }
+                &.bar-basic { background-color: rgba(0, 0, 0, 0.12); }
+              }
+
+              .bar-value {
+                font-size: 12px;
+                font-weight: 500;
+                min-width: 30px;
+                text-align: right;
+              }
+            }
+          }
+        }
+
+        .cache-stats {
+          .cache-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+            &:last-child {
+              border-bottom: none;
+            }
+
+            .cache-label {
+              font-size: 14px;
+              color: rgba(0, 0, 0, 0.6);
+            }
+
+            .cache-value {
+              font-weight: 500;
+              color: #1976d2;
+            }
+          }
+        }
+
+        .cache-actions {
+          margin-top: 16px;
+          text-align: center;
+        }
+      }
+    }
+  }
+}
+
+// ========================================
+// INDICADOR DE CARGA GLOBAL
+// ========================================
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  p {
+    margin-top: 16px;
+    font-size: 16px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+// ========================================
+// RESPONSIVE DESIGN
+// ========================================
+
+@media (max-width: 768px) {
+  .vehiculos-header {
+    .header-content {
+      flex-direction: column;
+      gap: 16px;
+
+      .title-section h1 {
+        font-size: 24px;
+
+        mat-chip-set {
+          margin-left: 0;
+          margin-top: 8px;
+        }
+      }
+    }
+
+    .stats-bar {
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  }
+
+  .search-filters-card {
+    .search-section .search-form {
+      flex-direction: column;
+    }
+
+    .controls-section {
+      flex-direction: column;
+      align-items: stretch;
+
+      .filter-controls,
+      .view-controls {
+        justify-content: center;
+      }
+    }
+
+    .advanced-filters .filters-form .filters-row {
+      flex-direction: column;
+    }
+  }
+
+  .bulk-actions .bulk-actions-content {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+
+  .main-content {
+    .table-card .table-container {
+      overflow-x: auto;
+    }
+
+    .cards-view .cards-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-view .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// ========================================
+// ANIMACIONES
+// ========================================
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vehiculos-header,
+.search-filters-card,
+.bulk-actions,
+.main-content > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+// ========================================
+// UTILIDADES
+// ========================================
+
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.font-weight-bold {
+  font-weight: 600;
+}
+
+.margin-bottom-16 {
+  margin-bottom: 16px;
+}
+
+.margin-bottom-24 {
+  margin-bottom: 24px;
+}
+
+// ========================================
+// TEMAS Y COLORES
+// ========================================
+
+.success-snackbar {
+  background-color: #4caf50;
+  color: white;
+}
+
+.error-snackbar {
+  background-color: #f44336;
+  color: white;
+}
+
+.info-snackbar {
+  background-color: #2196f3;
+  color: white;
+}
+
+// ========================================
+// MEJORAS DE ACCESIBILIDAD
+// ========================================
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Focus visible para mejor accesibilidad
+button:focus-visible,
+.mat-mdc-button:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+// ========================================
+// PRINT STYLES
+// ========================================
+
+@media print {
+  .vehiculos-header .header-actions,
+  .search-filters-card,
+  .bulk-actions,
+  .loading-overlay {
+    display: none;
+  }
+
+  .main-content .table-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .vehiculos-table {
+    font-size: 12px;
+
+    .acciones-cell {
+      display: none;
+    }
+  }
+}

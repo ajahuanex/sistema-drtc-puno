@@ -186,7 +186,7 @@ export class HistorialVehiculoDetailComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        console.error('Error al cargar vehículo:', error);
+        console.error('Error al cargar vehículo::', error);
         this.mostrarError('Error al cargar la información del vehículo');
       }
     });
@@ -200,7 +200,7 @@ export class HistorialVehiculoDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error: any) => {
-        console.error('Error al cargar historial:', error);
+        console.error('Error al cargar historial::', error);
         this.loading.set(false);
         this.mostrarError('Error al cargar el historial');
       }
@@ -213,7 +213,7 @@ export class HistorialVehiculoDetailComponent implements OnInit {
         this.resumen.set(resumen);
       },
       error: (error: any) => {
-        console.error('Error al cargar resumen:', error);
+        console.error('Error al cargar resumen::', error);
       }
     });
   }
@@ -224,7 +224,7 @@ export class HistorialVehiculoDetailComponent implements OnInit {
 
   exportarHistorial(): void {
     // Implementar exportación del historial
-    console.log('Exportar historial');
+    // console.log removed for production
     this.mostrarMensaje('Funcionalidad de exportación en desarrollo');
   }
 

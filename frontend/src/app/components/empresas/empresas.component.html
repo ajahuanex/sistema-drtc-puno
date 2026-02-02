@@ -67,7 +67,7 @@
       </div>
 
       <!-- Tabla de Empresas -->
-      @if (dataSource.data.length > 0) {
+      @if (empresas().length > 0) {
         <div class="table-container">
           <table mat-table [dataSource]="dataSource" class="empresas-table">
             <!-- RUC Column -->
@@ -92,14 +92,52 @@
               </td>
             </ng-container>
 
+            <!-- Tipo de Servicio Column -->
+            <ng-container matColumnDef="tipoServicio">
+              <th mat-header-cell *matHeaderCellDef>TIPO DE SERVICIO</th>
+              <td mat-cell *matCellDef="let empresa">
+                {{ empresa.tiposServicio?.join(', ') || 'PERSONAS' }}
+              </td>
+            </ng-container>
+
+            <!-- Rutas Column -->
+            <ng-container matColumnDef="rutas">
+              <th mat-header-cell *matHeaderCellDef>RUTAS</th>
+              <td mat-cell *matCellDef="let empresa">
+                <mat-chip class="count-chip">
+                  {{ empresa.rutasAutorizadasIds?.length || 0 }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Vehículos Column -->
+            <ng-container matColumnDef="vehiculos">
+              <th mat-header-cell *matHeaderCellDef>VEHÍCULOS</th>
+              <td mat-cell *matCellDef="let empresa">
+                <mat-chip class="count-chip">
+                  {{ empresa.vehiculosHabilitadosIds?.length || 0 }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Conductores Column -->
+            <ng-container matColumnDef="conductores">
+              <th mat-header-cell *matHeaderCellDef>CONDUCTORES</th>
+              <td mat-cell *matCellDef="let empresa">
+                <mat-chip class="count-chip">
+                  {{ empresa.conductoresHabilitadosIds?.length || 0 }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
             <!-- Acciones Column -->
             <ng-container matColumnDef="acciones">
               <th mat-header-cell *matHeaderCellDef>ACCIONES</th>
               <td mat-cell *matCellDef="let empresa">
-                <button mat-icon-button (click)="verEmpresa(empresa)" matTooltip="Ver detalles">
+                <button mat-icon-button (click)="verEmpresa(empresa.id)" matTooltip="Ver detalles">
                   <mat-icon>visibility</mat-icon>
                 </button>
-                <button mat-icon-button (click)="editarEmpresa(empresa)" matTooltip="Editar">
+                <button mat-icon-button (click)="editarEmpresa(empresa.id)" matTooltip="Editar">
                   <mat-icon>edit</mat-icon>
                 </button>
               </td>
@@ -120,7 +158,7 @@
       }
 
       <!-- Sin datos -->
-      @if (dataSource.data.length === 0) {
+      @if (empresas().length === 0 && !isLoading()) {
         <div class="empty-state">
           <div class="empty-content">
             <div class="empty-icon-container">

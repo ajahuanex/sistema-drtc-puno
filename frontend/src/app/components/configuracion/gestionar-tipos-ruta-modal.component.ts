@@ -236,7 +236,7 @@ export class GestionarTiposRutaModalComponent implements OnInit {
         const tipos = JSON.parse(config.valor);
         this.tiposRuta.set(tipos);
       } catch (error) {
-        console.error('Error parseando tipos de ruta:', error);
+        console.error('Error parseando tipos de ruta::', error);
         this.tiposRuta.set(this.getTiposRutaDefault());
       }
     } else {
@@ -315,7 +315,7 @@ export class GestionarTiposRutaModalComponent implements OnInit {
       this.snackBar.open('Tipos de ruta guardados exitosamente', 'Cerrar', { duration: 3000 });
       this.dialogRef.close(true);
     } catch (error) {
-      console.error('Error guardando tipos de ruta:', error);
+      console.error('Error guardando tipos de ruta::', error);
       this.snackBar.open('Error guardando los cambios', 'Cerrar', { duration: 3000 });
     }
   }

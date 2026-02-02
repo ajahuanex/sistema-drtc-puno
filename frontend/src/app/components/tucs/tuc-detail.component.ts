@@ -643,15 +643,15 @@ export class TucDetailComponent implements OnInit {
         return;
       }
 
-      console.log('Cargando TUC con ID:', tucId);
+      // console.log removed for production
       this.tucService.getTucCompleto(tucId).subscribe({
         next: (tucCompleto) => {
-          console.log('TUC cargado exitosamente:', tucCompleto);
+          // console.log removed for production
           this.tucCompleto.set(tucCompleto);
           this.cargando.set(false);
         },
         error: (error) => {
-          console.error('Error cargando TUC:', error);
+          console.error('Error cargando TUC::', error);
           this.notificationService.showError('Error al cargar el TUC');
           this.cargando.set(false);
         }

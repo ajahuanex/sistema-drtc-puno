@@ -43,7 +43,7 @@ export class HistorialVehicularService {
     page: number;
     limit: number;
   }> {
-    console.log('[HISTORIAL-SERVICE] 🔍 Obteniendo historial vehicular con filtros:', filtros);
+    // console.log removed for production
     
     // Construir parámetros de consulta
     let params = new URLSearchParams();
@@ -71,7 +71,7 @@ export class HistorialVehicularService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('[HISTORIAL-SERVICE] ❌ Error obteniendo historial vehicular:', error);
+        console.error('[HISTORIAL-SERVICE] ❌ Error obteniendo historial vehicular::', error);
         
         // Retornar estructura vacía en caso de error
         return of({
@@ -92,7 +92,7 @@ export class HistorialVehicularService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error creando registro de historial:', error);
+        console.error('Error creando registro de historial::', error);
         return throwError(() => error);
       })
     );
@@ -102,11 +102,11 @@ export class HistorialVehicularService {
    * Obtiene el resumen del historial de un vehículo específico
    */
   getResumenHistorialVehiculo(vehiculoId: string): Observable<ResumenHistorialVehicular> {
-    console.log('[HISTORIAL-SERVICE] 📊 Obteniendo resumen de historial para vehículo:', vehiculoId);
+    // console.log removed for production
     
     // Verificar caché primero
     if (this.resumenCache.has(vehiculoId)) {
-      console.log('[HISTORIAL-SERVICE] 💾 Resumen obtenido desde caché');
+      // console.log removed for production
       return of(this.resumenCache.get(vehiculoId)!);
     }
 
@@ -116,10 +116,10 @@ export class HistorialVehicularService {
       tap(resumen => {
         // Guardar en caché
         this.resumenCache.set(vehiculoId, resumen);
-        console.log('[HISTORIAL-SERVICE] ✅ Resumen obtenido y guardado en caché');
+        // console.log removed for production
       }),
       catchError(error => {
-        console.error('[HISTORIAL-SERVICE] ❌ Error obteniendo resumen de historial:', error);
+        console.error('[HISTORIAL-SERVICE] ❌ Error obteniendo resumen de historial::', error);
         
         // Retornar resumen vacío en caso de error
         const resumenVacio: ResumenHistorialVehicular = {
@@ -162,7 +162,7 @@ export class HistorialVehicularService {
       responseType: 'blob'
     }).pipe(
       catchError(error => {
-        console.error('Error exportando historial:', error);
+        console.error('Error exportando historial::', error);
         throw error;
       })
     );
@@ -175,7 +175,7 @@ export class HistorialVehicularService {
     return this.http.get<ConfiguracionHistorial>(`${this.apiUrl}/configuracion`)
       .pipe(
         catchError(error => {
-          console.error('Error obteniendo configuración de historial:', error);
+          console.error('Error obteniendo configuración de historial::', error);
           // Retornar configuración por defecto
           return of({
             retencionDias: 2555, // 7 años

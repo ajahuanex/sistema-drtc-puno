@@ -89,7 +89,7 @@ export interface AccionTabla {
             <div class="selection-info">
               <mat-chip-set>
                 <mat-chip class="selection-chip">
-                  {{ seleccion.selected.length }} seleccionada(s)
+                  {{ (seleccion.selected)?.length || 0 }} seleccionada(s)
                   <button mat-icon-button 
                           (click)="limpiarSeleccion()"
                           matTooltip="Limpiar selección">
@@ -118,7 +118,7 @@ export interface AccionTabla {
                       matTooltip="Eliminar seleccionadas"
                       class="delete-bulk-btn">
                 <app-smart-icon iconName="delete" [size]="18"></app-smart-icon>
-                Eliminar ({{ seleccion.selected.length }})
+                Eliminar ({{ (seleccion.selected)?.length || 0 }})
               </button>
             </div>
           }
@@ -1442,8 +1442,8 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Emitir el cambio completo
     this.configuracionChange.emit(nuevaConfiguracion);
     
-    console.log('Columnas visibles actualizadas:', columnas);
-    console.log('Configuración actualizada:', nuevaConfiguracion);
+    // console.log removed for production
+    // console.log removed for production
   }
 
   /**
@@ -1464,8 +1464,8 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Emitir el cambio completo
     this.configuracionChange.emit(nuevaConfiguracion);
     
-    console.log('Orden de columnas actualizado:', orden);
-    console.log('Configuración actualizada:', nuevaConfiguracion);
+    // console.log removed for production
+    // console.log removed for production
   }
 
   // ========================================
@@ -1937,7 +1937,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       return;
     }
 
-    console.log('🛣️ Ver rutas autorizadas de la resolución:', resolucion.nroResolucion);
+    // console.log removed for production
     
     // Emitir acción para que el componente padre maneje la apertura del modal
     this.accionEjecutada.emit({
@@ -1955,7 +1955,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       return;
     }
 
-    console.log('🚗 Ver vehículos habilitados de la resolución:', resolucion.nroResolucion);
+    // console.log removed for production
     
     // Emitir acción para que el componente padre maneje la apertura del modal
     this.accionEjecutada.emit({

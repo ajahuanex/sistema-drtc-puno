@@ -156,7 +156,7 @@ export class ExpedienteService {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error descargando plantilla:', error);
+      console.error('Error descargando plantilla::', error);
     }
   }
 

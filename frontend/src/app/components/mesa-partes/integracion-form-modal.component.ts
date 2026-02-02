@@ -800,7 +800,7 @@ export class IntegracionFormModalComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        console.error('Error al probar conexión:', error);
+        console.error('Error al probar conexión::', error);
         this.snackBar.open('❌ Error al probar conexión', 'Cerrar', {
           duration: 3000
         });
@@ -838,7 +838,7 @@ export class IntegracionFormModalComponent implements OnInit {
         this.dialogRef.close(integracion);
       },
       error: (error) => {
-        console.error('Error al guardar integración:', error);
+        console.error('Error al guardar integración::', error);
         this.guardando = false;
         this.snackBar.open('Error al guardar integración', 'Cerrar', {
           duration: 3000

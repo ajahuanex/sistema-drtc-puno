@@ -481,7 +481,7 @@ export class CrearExpedienteModalComponent {
     const empresaId = this.data?.empresaId || '';
     const empresa = this.data?.empresa;
     
-    console.log('🏢 Modal expediente inicializado con:', { empresaId, empresa });
+    // console.log removed for production
     
     // Configurar signals con datos iniciales
     if (empresaId) {
@@ -610,7 +610,7 @@ export class CrearExpedienteModalComponent {
           this.dialogRef.close(expedienteCreado);
         },
         error: (error) => {
-          console.error('Error al crear expediente:', error);
+          console.error('Error al crear expediente::', error);
           this.isSubmitting.set(false);
           this.snackBar.open('Error al crear expediente', 'Cerrar', {
             duration: 3000
@@ -631,7 +631,7 @@ export class CrearExpedienteModalComponent {
    * Maneja el cambio del ID de empresa
    */
   onEmpresaIdChange(empresaId: string): void {
-    console.log('🏢 Cambio de empresa ID:', empresaId);
+    // console.log removed for production
     this.expedienteForm.get('empresaId')?.setValue(empresaId, { emitEvent: false });
     this.empresaId.set(empresaId); // Actualizar señal reactiva
   }
@@ -641,7 +641,7 @@ export class CrearExpedienteModalComponent {
    */
   onEmpresaSeleccionada(empresa: any): void {
     if (empresa) {
-      console.log('🏢 Empresa seleccionada:', empresa);
+      // console.log removed for production
       this.empresaSeleccionada.set(empresa);
       this.empresaId.set(empresa.id); // Actualizar señal reactiva
       this.snackBar.open(`Empresa seleccionada: ${empresa.razonSocial.principal}`, 'Cerrar', {
@@ -649,7 +649,7 @@ export class CrearExpedienteModalComponent {
       });
     } else {
       // Si se deselecciona la empresa, limpiar resolución padre
-      console.log('🏢 Empresa deseleccionada');
+      // console.log removed for production
       this.empresaSeleccionada.set(null);
       this.empresaId.set(''); // Limpiar señal reactiva
       this.expedienteForm.patchValue({ resolucionPadreId: '' });
@@ -714,13 +714,13 @@ export class CrearExpedienteModalComponent {
           exp.estado === 'EN_PROCESO'
         );
         
-        console.log('📋 Expedientes de la empresa:', expedientes.length);
+        // console.log removed for production
         console.log('📋 Expedientes filtrados (EN_PROCESO):', expedientesFiltrados.length);
         
         this.expedientesDisponibles.set(expedientesFiltrados);
       },
       error: (error) => {
-        console.error('Error al cargar expedientes:', error);
+        console.error('Error al cargar expedientes::', error);
         this.expedientesDisponibles.set([]);
       }
     });
@@ -756,7 +756,7 @@ export class CrearExpedienteModalComponent {
    */
   onValidacionExpedienteCompleta(resultado: any): void {
     // La validación se completó, el formulario se actualiza automáticamente
-    console.log('Validación de expediente completada:', resultado);
+    // console.log removed for production
   }
 
   /**

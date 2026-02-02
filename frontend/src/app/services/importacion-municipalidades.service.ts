@@ -54,11 +54,11 @@ export class ImportacionMunicipalidadesService {
           // Procesar datos (asumiendo que la primera fila son headers)
           const municipalidades = this.procesarDatosExcel(jsonData as any[][]);
           
-          console.log(`📊 Procesadas ${municipalidades.length} municipalidades del Excel`);
+          // console.log removed for production
           resolve(municipalidades);
           
         } catch (error) {
-          console.error('❌ Error procesando Excel:', error);
+          console.error('❌ Error procesando Excel::', error);
           reject(error);
         }
       };
@@ -134,7 +134,7 @@ export class ImportacionMunicipalidadesService {
    * Limpia y normaliza texto
    */
   private limpiarTexto(valor: any): string {
-    if (valor === null || valor === undefined) return '';
+    if (typeof valor === null || valor === "undefined") return '';
     return String(valor).trim();
   }
 
@@ -146,7 +146,7 @@ export class ImportacionMunicipalidadesService {
     sobreescribir: boolean = false
   ): Promise<ResultadoImportacion> {
     
-    console.log(`🚀 Iniciando importación de ${municipalidades.length} municipalidades...`);
+    // console.log removed for production
     
     const resultado: ResultadoImportacion = {
       totalProcesados: municipalidades.length,
@@ -184,6 +184,8 @@ export class ImportacionMunicipalidadesService {
 
         // Crear la localidad
         const localidadCreate: LocalidadCreate = {
+          nombre: municipalidad.municipalidad_centro_poblado,
+          tipo: 'CENTRO_POBLADO' as any,
           ubigeo: municipalidad.ubigeo || undefined,
           ubigeo_identificador_mcp: municipalidad.ubigeo_identificador_mcp || undefined,
           departamento: municipalidad.departamento.toUpperCase(),
@@ -201,7 +203,7 @@ export class ImportacionMunicipalidadesService {
         resultado.exitosos++;
         resultado.municipalidadesCreadas.push(municipalidad.municipalidad_centro_poblado);
         
-        console.log(`✅ Creada: ${municipalidad.municipalidad_centro_poblado}`);
+        // console.log removed for production
         
       } catch (error) {
         resultado.errores++;
@@ -211,7 +213,7 @@ export class ImportacionMunicipalidadesService {
       }
     }
 
-    console.log('✅ Importación completada:', resultado);
+    // console.log removed for production
     return resultado;
   }
 

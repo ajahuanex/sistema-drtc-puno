@@ -743,10 +743,10 @@ export class DashboardEmpresasComponent implements OnInit {
 
   // Estados de empresa para el dashboard
   estadosEmpresa = [
-    { valor: EstadoEmpresa.AUTORIZADA, nombre: 'AUTORIZADAS', cantidad: 0, porcentaje: 0, color: 'primary' },
+    { valor: EstadoEmpresa.AUTORIZADO, nombre: 'AUTORIZADAS', cantidad: 0, porcentaje: 0, color: 'primary' },
     { valor: EstadoEmpresa.EN_TRAMITE, nombre: 'EN TRÁMITE', cantidad: 0, porcentaje: 0, color: 'accent' },
-    { valor: EstadoEmpresa.SUSPENDIDA, nombre: 'SUSPENDIDAS', cantidad: 0, porcentaje: 0, color: 'warn' },
-    { valor: EstadoEmpresa.CANCELADA, nombre: 'CANCELADAS', cantidad: 0, porcentaje: 0, color: 'warn' }
+    { valor: EstadoEmpresa.SUSPENDIDO, nombre: 'SUSPENDIDAS', cantidad: 0, porcentaje: 0, color: 'warn' },
+    { valor: EstadoEmpresa.CANCELADO, nombre: 'CANCELADAS', cantidad: 0, porcentaje: 0, color: 'warn' }
   ];
 
   ngOnInit(): void {
@@ -762,7 +762,7 @@ export class DashboardEmpresasComponent implements OnInit {
       }
       this.actualizarEstadosEmpresa();
     } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
+      console.error('Error al cargar estadísticas::', error);
     } finally {
       this.isLoading.set(false);
     }
@@ -828,6 +828,6 @@ export class DashboardEmpresasComponent implements OnInit {
 
   generarReporte(): void {
     // Implementar generación de reporte
-    console.log('Generando reporte...');
+    // console.log removed for production
   }
 } 

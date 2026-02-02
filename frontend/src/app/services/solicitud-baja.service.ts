@@ -38,7 +38,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error creando solicitud de baja:', error);
+        console.error('Error creando solicitud de baja::', error);
         return throwError(() => error);
       })
     );
@@ -78,7 +78,7 @@ export class SolicitudBajaService {
       params
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo solicitudes de baja:', error);
+        console.error('Error obteniendo solicitudes de baja::', error);
         return of([]); // Devolver array vacío en caso de error
       })
     );
@@ -92,7 +92,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo solicitud de baja:', error);
+        console.error('Error obteniendo solicitud de baja::', error);
         return throwError(() => error);
       })
     );
@@ -106,7 +106,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error actualizando solicitud de baja:', error);
+        console.error('Error actualizando solicitud de baja::', error);
         return throwError(() => error);
       })
     );
@@ -120,7 +120,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo solicitudes por vehículo:', error);
+        console.error('Error obteniendo solicitudes por vehículo::', error);
         return throwError(() => error);
       })
     );
@@ -134,7 +134,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error aprobando solicitud de baja:', error);
+        console.error('Error aprobando solicitud de baja::', error);
         return throwError(() => error);
       })
     );
@@ -149,7 +149,7 @@ export class SolicitudBajaService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error rechazando solicitud de baja:', error);
+        console.error('Error rechazando solicitud de baja::', error);
         return throwError(() => error);
       })
     );
@@ -163,7 +163,7 @@ export class SolicitudBajaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error cancelando solicitud de baja:', error);
+        console.error('Error cancelando solicitud de baja::', error);
         return throwError(() => error);
       })
     );

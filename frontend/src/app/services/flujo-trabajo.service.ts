@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment';
 
 /**
  * Representa un flujo de trabajo completo para el manejo de expedientes
- * entre diferentes oficinas del sistema SIRRET.
+ * entre diferentes oficinas del Sistema Regional de Registros de Transporte (SIRRET).
  */
 export interface FlujoTrabajo {
   id: string;
@@ -156,7 +156,7 @@ export interface FlujoFiltros {
  * 
  * // Obtener todos los flujos activos
  * this.flujoService.getFlujos({ activo: true }).subscribe(flujos => {
- *   console.log('Flujos activos:', flujos);
+ *   // console.log removed for production
  * });
  * 
  * // Mover un expediente a la siguiente oficina
@@ -171,12 +171,12 @@ export interface FlujoFiltros {
  * };
  * 
  * this.flujoService.moverExpediente(movimiento).subscribe(resultado => {
- *   console.log('Expediente movido:', resultado);
+ *   // console.log removed for production
  * });
  * ```
  * 
  * @since 1.0.0
- * @author Sistema SIRRET
+ * @author Sistema Regional de Registros de Transporte (SIRRET)
  * 
  * TODO: Integración futura
  * - Conectar con componentes de expedientes para mostrar flujos activos
@@ -229,7 +229,7 @@ export class FlujoTrabajoService {
    * ```typescript
    * // Obtener todos los flujos
    * this.flujoService.getFlujos().subscribe(flujos => {
-   *   console.log('Todos los flujos:', flujos);
+   *   // console.log removed for production
    * });
    * 
    * // Obtener solo flujos activos de un tipo específico
@@ -237,7 +237,7 @@ export class FlujoTrabajoService {
    *   activo: true,
    *   tipoTramite: 'LICENCIA_CONDUCIR'
    * }).subscribe(flujos => {
-   *   console.log('Flujos de licencias activos:', flujos);
+   *   // console.log removed for production
    * });
    * ```
    */
@@ -271,8 +271,8 @@ export class FlujoTrabajoService {
    * @example
    * ```typescript
    * this.flujoService.getFlujoById('FLUJO-001').subscribe(flujo => {
-   *   console.log('Flujo encontrado:', flujo.nombre);
-   *   console.log('Oficinas en el flujo:', flujo.oficinas.length);
+   *   // console.log removed for production
+   *   // console.log removed for production
    * });
    * ```
    */
@@ -306,7 +306,7 @@ export class FlujoTrabajoService {
    * };
    * 
    * this.flujoService.crearFlujo(nuevoFlujo).subscribe(flujoCreado => {
-   *   console.log('Flujo creado con ID:', flujoCreado.id);
+   *   // console.log removed for production
    * });
    * ```
    */
@@ -342,12 +342,12 @@ export class FlujoTrabajoService {
    * ```typescript
    * // Obtener todos los movimientos
    * this.flujoService.getMovimientos().subscribe(movimientos => {
-   *   console.log('Total movimientos:', movimientos.length);
+   *   // console.log removed for production
    * });
    * 
    * // Obtener movimientos de un expediente específico
    * this.flujoService.getMovimientos('EXP-001').subscribe(movimientos => {
-   *   console.log('Historial del expediente EXP-001:', movimientos);
+   *   // console.log removed for production
    * });
    * ```
    */
@@ -391,7 +391,7 @@ export class FlujoTrabajoService {
    * };
    * 
    * this.flujoService.moverExpediente(movimiento).subscribe(resultado => {
-   *   console.log('Expediente movido exitosamente:', resultado.id);
+   *   // console.log removed for production
    *   // Actualizar UI o mostrar notificación
    * });
    * ```
@@ -411,13 +411,13 @@ export class FlujoTrabajoService {
    * @example
    * ```typescript
    * this.flujoService.getEstadoFlujo('EXP-001').subscribe(estado => {
-   *   console.log(`Expediente en oficina: ${estado.oficinaActualId}`);
-   *   console.log(`Progreso: ${estado.porcentajeCompletado}%`);
-   *   console.log(`Paso ${estado.pasoActual} de ${estado.totalPasos}`);
+   *   // console.log removed for production
+   *   // console.log removed for production
+   *   // console.log removed for production
    *   
    *   // Mostrar historial
    *   estado.historial.forEach(paso => {
-   *     console.log(`- ${paso.oficinaNombre}: ${paso.accion}`);
+   *     // console.log removed for production
    *   });
    * });
    * ```
@@ -467,9 +467,9 @@ export class FlujoTrabajoService {
    * 
    * this.flujoService.getReporteFlujo('FLUJO-001', fechaDesde, fechaHasta)
    *   .subscribe(reporte => {
-   *     console.log('Expedientes procesados:', reporte.totalExpedientes);
-   *     console.log('Tiempo promedio:', reporte.tiempoPromedio);
-   *     console.log('Oficina más lenta:', reporte.cuellosBotella[0]);
+   *     // console.log removed for production
+   *     // console.log removed for production
+   *     // console.log removed for production
    *   });
    * ```
    */
@@ -495,9 +495,9 @@ export class FlujoTrabajoService {
    * @example
    * ```typescript
    * this.flujoService.getDashboardFlujos().subscribe(dashboard => {
-   *   console.log('Expedientes activos:', dashboard.expedientesActivos);
-   *   console.log('Alertas pendientes:', dashboard.alertas.length);
-   *   console.log('Rendimiento general:', dashboard.rendimiento);
+   *   // console.log removed for production
+   *   // console.log removed for production
+   *   // console.log removed for production
    *   
    *   // Actualizar widgets del dashboard
    *   this.actualizarWidgets(dashboard);
@@ -555,7 +555,7 @@ export class FlujoTrabajoService {
    * @example
    * ```typescript
    * const tiempoTotal = this.flujoService.calcularTiempoEstimado(flujo);
-   * console.log(`Tiempo estimado: ${tiempoTotal} minutos`);
+   * // console.log removed for production
    * console.log(`Equivale a: ${Math.round(tiempoTotal / 60)} horas`);
    * ```
    */
@@ -574,10 +574,10 @@ export class FlujoTrabajoService {
    * ```typescript
    * const siguienteOficina = this.flujoService.obtenerOficinaSiguiente(flujo, 'MESA_PARTES');
    * if (siguienteOficina) {
-   *   console.log('Siguiente oficina:', siguienteOficina.oficinaId);
-   *   console.log('Tiempo estimado:', siguienteOficina.tiempoEstimado);
+   *   // console.log removed for production
+   *   // console.log removed for production
    * } else {
-   *   console.log('Esta es la última oficina del flujo');
+   *   // console.log removed for production
    * }
    * ```
    */
@@ -607,10 +607,10 @@ export class FlujoTrabajoService {
    * @example
    * ```typescript
    * if (this.flujoService.esUltimaOficina(flujo, oficinaActual)) {
-   *   console.log('Expediente listo para finalizar');
+   *   // console.log removed for production
    *   this.mostrarBotonFinalizar = true;
    * } else {
-   *   console.log('Expediente puede continuar al siguiente paso');
+   *   // console.log removed for production
    *   this.mostrarBotonSiguiente = true;
    * }
    * ```

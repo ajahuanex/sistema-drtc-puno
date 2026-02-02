@@ -43,7 +43,7 @@ export class IntegracionService {
   listarIntegraciones(activa?: boolean): Observable<Integracion[]> {
     let params = new HttpParams();
 
-    if (activa !== undefined) {
+    if (typeof activa !== "undefined") {
       params = params.set('activa', activa.toString());
     }
 
@@ -146,10 +146,10 @@ export class IntegracionService {
     if (fechaHasta) {
       params = params.set('fecha_hasta', fechaHasta.toISOString());
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 

@@ -167,7 +167,7 @@ export class RestaurarDocumentoModalComponent {
         },
         error: (error) => {
           this.loading = false;
-          console.error('Error restoring document:', error);
+          console.error('Error restoring document::', error);
           alert('Error al restaurar el documento. Por favor, intente nuevamente.');
         }
       });

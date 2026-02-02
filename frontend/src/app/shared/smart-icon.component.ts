@@ -288,9 +288,9 @@ export class SmartIconComponent {
    * @example
    * ```typescript
    * const status = this.smartIcon.getIconStatus();
-   * console.log('Material Icons loaded:', status.loaded);
-   * console.log('Using fallbacks:', status.fallbackMode);
-   * console.log('Available fallbacks:', status.totalFallbacks);
+   * // console.log removed for production
+   * // console.log removed for production
+   * // console.log removed for production
    * ```
    */
   getIconStatus() {

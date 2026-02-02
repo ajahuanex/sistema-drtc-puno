@@ -243,7 +243,7 @@ interface TransferirEmpresaData {
         </form>
 
         <!-- Información sobre rutas -->
-        @if (data.vehiculo.rutasAsignadasIds.length || data.vehiculo.rutasEspecificas?.length) {
+        @if (data.vehiculo.rutasAsignadasIds?.length || data.vehiculo.rutasEspecificas?.length) {
           <mat-card class="rutas-info-card">
             <mat-card-content>
               <div class="rutas-info-content">
@@ -252,8 +252,8 @@ interface TransferirEmpresaData {
                   <h4>Información sobre Rutas</h4>
                   <p>Este vehículo tiene rutas asignadas que serán removidas durante la transferencia:</p>
                   <ul>
-                    @if (data.vehiculo.rutasAsignadasIds.length) {
-                      <li>{{ data.vehiculo.rutasAsignadasIds.length }} ruta(s) general(es)</li>
+                    @if (data.vehiculo.rutasAsignadasIds?.length) {
+                      <li>{{ data.vehiculo.rutasAsignadasIds?.length || 0 }} ruta(s) general(es)</li>
                     }
                     @if (data.vehiculo.rutasEspecificas?.length) {
                       <li>{{ data.vehiculo.rutasEspecificas?.length || 0 }} ruta(s) específica(s)</li>
@@ -745,14 +745,14 @@ export class TransferirEmpresaModalComponent implements OnInit {
       const resoluciones = await this.resolucionService.getResolucionesPorEmpresa(empresaId).toPromise();
       this.resoluciones.set(resoluciones || []);
     } catch (error) {
-      console.error('Error cargando resoluciones de la empresa:', error);
+      console.error('Error cargando resoluciones de la empresa::', error);
       // Fallback: cargar todas las resoluciones y filtrar
       try {
         const todasResoluciones = await this.resolucionService.getResoluciones().toPromise();
         const resolucionesFiltradas = (todasResoluciones || []).filter((r: any) => r.empresaId === empresaId);
         this.resoluciones.set(resolucionesFiltradas);
       } catch (fallbackError) {
-        console.error('Error en fallback:', fallbackError);
+        console.error('Error en fallback::', fallbackError);
         this.snackBar.open('Error al cargar las resoluciones', 'Cerrar', { duration: 3000 });
       }
     } finally {
@@ -767,7 +767,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
       const empresas = await this.empresaService.getEmpresas().toPromise();
       this.empresas.set(empresas || []);
     } catch (error) {
-      console.error('Error cargando empresas:', error);
+      console.error('Error cargando empresas::', error);
       this.snackBar.open('Error al cargar las empresas', 'Cerrar', { duration: 3000 });
     } finally {
       this.cargandoEmpresas.set(false);
@@ -781,7 +781,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
       const empresa = await this.empresaService.getEmpresa(this.data.vehiculo.empresaActualId).toPromise();
       this.empresaActual.set(empresa || null);
     } catch (error) {
-      console.error('Error cargando empresa actual:', error);
+      console.error('Error cargando empresa actual::', error);
     }
   }
 
@@ -859,7 +859,7 @@ export class TransferirEmpresaModalComponent implements OnInit {
       });
 
     } catch (error) {
-      console.error('Error en la transferencia:', error);
+      console.error('Error en la transferencia::', error);
       this.snackBar.open('Error al transferir el vehículo. Intente nuevamente.', 'Cerrar', { duration: 3000 });
     } finally {
       this.procesando.set(false);

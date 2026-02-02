@@ -104,7 +104,7 @@ export class CargaMasivaExpedientesComponent implements OnInit {
       // Mostrar mensaje de éxito
       this.mostrarMensaje('✅ Plantilla descargada exitosamente', 'success');
     } catch (error: any) {
-      console.error('Error al descargar plantilla:', error);
+      console.error('Error al descargar plantilla::', error);
       this.mostrarMensaje(`❌ Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
     } finally {
       this.cargando = false;
@@ -137,7 +137,7 @@ export class CargaMasivaExpedientesComponent implements OnInit {
       this.mostrarResultados = true;
 
     } catch (error: any) {
-      console.error('Error al procesar archivo:', error);
+      console.error('Error al procesar archivo::', error);
       this.mostrarMensaje(`❌ Error al procesar archivo: ${error.message || 'Error desconocido'}`, 'error');
     } finally {
       this.cargando = false;

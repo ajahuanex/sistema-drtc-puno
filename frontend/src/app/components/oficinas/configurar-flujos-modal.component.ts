@@ -265,7 +265,7 @@ export interface OficinaFlujo {
                   </div>
                   <div class="resumen-item">
                     <span class="label">Total de Oficinas:</span>
-                    <span class="value">{{ oficinasArray.length }}</span>
+                    <span class="value">{{ (oficinasArray)?.length || 0 }}</span>
                   </div>
                 </div>
 
@@ -403,7 +403,7 @@ export class ConfigurarFlujosModalComponent {
       });
 
     } catch (error) {
-      console.error('Error guardando flujo:', error);
+      console.error('Error guardando flujo::', error);
       this.mostrarError('Error al guardar el flujo de trabajo');
     } finally {
       this.procesando.set(false);

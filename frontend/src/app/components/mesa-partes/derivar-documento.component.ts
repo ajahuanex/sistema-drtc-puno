@@ -242,7 +242,7 @@ export interface DerivarDocumentoDialogData {
                   <h3>¿Está seguro de derivar este documento?</h3>
                   <p>
                     El documento <strong>{{ documento.numeroExpediente }}</strong> será derivado a 
-                    <strong>{{ areasSeleccionadas().length }}</strong> 
+                    <strong>{{ (areasSeleccionadas())?.length || 0 }}</strong> 
                     {{ areasSeleccionadas().length === 1 ? 'área' : 'áreas' }}.
                   </p>
                   @if (derivacionForm.get('esUrgente')?.value) {

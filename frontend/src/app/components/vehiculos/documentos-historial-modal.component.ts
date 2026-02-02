@@ -42,7 +42,7 @@ interface DocumentoSoporte {
           <app-smart-icon [iconName]="'attach_file'" [size]="32" class="header-icon"></app-smart-icon>
           <div>
             <h2>Documentos de Soporte</h2>
-            <p class="header-subtitle">{{ data.documentos.length }} documento(s) disponible(s)</p>
+            <p class="header-subtitle">{{ (data.documentos)?.length || 0 }} documento(s) disponible(s)</p>
           </div>
         </div>
         <button mat-icon-button mat-dialog-close>

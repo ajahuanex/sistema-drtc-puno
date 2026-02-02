@@ -26,7 +26,7 @@ export class AutoLoginService {
       this.isAutoLoggingIn = true;
       this.autoLoginSubject.next(true);
 
-      console.log('🔄 Realizando login automático...');
+      // console.log removed for production
 
       // Limpiar tokens corruptos
       localStorage.removeItem('token');
@@ -62,7 +62,7 @@ export class AutoLoginService {
             fechaCreacion: new Date().toISOString()
           }));
 
-          console.log('✅ Login automático exitoso');
+          // console.log removed for production
           this.autoLoginSubject.next(false);
           this.isAutoLoggingIn = false;
           return true;
@@ -74,7 +74,7 @@ export class AutoLoginService {
         throw new Error(`Error ${response.status}: ${errorData.detail || 'Error desconocido'}`);
       }
     } catch (error) {
-      console.error('❌ Error en login automático:', error);
+      console.error('❌ Error en login automático::', error);
       this.autoLoginSubject.next(false);
       this.isAutoLoggingIn = false;
       return false;
@@ -120,7 +120,7 @@ export class AutoLoginService {
       return true;
     }
 
-    console.log('🔧 Token inválido o expirado, realizando login automático...');
+    // console.log removed for production
     return await this.performAutoLogin();
   }
 }

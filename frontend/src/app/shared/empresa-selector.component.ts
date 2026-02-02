@@ -69,7 +69,7 @@ import { Empresa } from '../models/empresa.model';
  * ```
  * 
  * @since 1.0.0
- * @author Sistema SIRRET
+ * @author Sistema Regional de Registros de Transporte (SIRRET)
  */
 @Component({
   selector: 'app-empresa-selector',
@@ -276,7 +276,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
    * ```typescript
    * onEmpresaSeleccionada(empresa: Empresa | null): void {
    *   if (empresa) {
-   *     console.log('Empresa seleccionada:', empresa.razonSocial.principal);
+   *     // console.log removed for production
    *     this.form.patchValue({ empresaId: empresa.id });
    *   }
    * }
@@ -338,7 +338,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['empresaId'] && !changes['empresaId'].firstChange) {
       const newEmpresaId = changes['empresaId'].currentValue;
-      console.log('🔄 EmpresaSelector: empresaId cambió a:', newEmpresaId);
+      // console.log removed for production
       
       if (newEmpresaId) {
         this.setEmpresaById(newEmpresaId);
@@ -354,23 +354,23 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
    * @param empresaId - ID de la empresa a seleccionar
    */
   private setEmpresaById(empresaId: string): void {
-    console.log('🎯 Buscando empresa con ID:', empresaId);
+    // console.log removed for production
     
     // Si ya tenemos las empresas cargadas, buscar inmediatamente
     const empresas = this.empresas();
     if (empresas.length > 0) {
       const empresa = empresas.find(e => e.id === empresaId);
       if (empresa) {
-        console.log('✅ Empresa encontrada:', empresa.razonSocial.principal);
+        // console.log removed for production
         // En lugar de usar displayFn, establecer el ID directamente
         // El autocompletado mostrará el texto correcto automáticamente
         this.empresaControl.setValue(empresaId);
       } else {
-        console.log('❌ Empresa no encontrada con ID:', empresaId);
+        // console.log removed for production
       }
     } else {
       // Si no tenemos empresas aún, esperar a que se carguen
-      console.log('⏳ Esperando a que se carguen las empresas...');
+      // console.log removed for production
       setTimeout(() => this.setEmpresaById(empresaId), 100);
     }
   }
@@ -390,12 +390,12 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
       )
       .subscribe({
         next: (empresas) => {
-          console.log('📋 Empresas cargadas en selector:', empresas.length);
-          console.log('📋 Primera empresa:', empresas[0]);
+          // console.log removed for production
+          // console.log removed for production
           this.empresas.set(empresas);
         },
         error: (error) => {
-          console.error('Error al cargar empresas:', error);
+          console.error('Error al cargar empresas::', error);
           this.empresas.set([]);
         }
       });
@@ -429,11 +429,11 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
    * - Código de Empresa: Coincidencia parcial en el código (si existe)
    */
   private _filter(value: string): Empresa[] {
-    console.log('🔍 Filtrando con valor:', value, 'Tipo:', typeof value);
+    // console.log removed for production
     console.log('🔍 Total empresas disponibles:', this.empresas().length);
 
     if (typeof value !== 'string') {
-      console.log('⚠️ Valor no es string, retornando todas');
+      // console.log removed for production
       return this.empresas();
     }
 
@@ -441,7 +441,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
 
     // Si no hay valor de búsqueda, retornar todas las empresas
     if (!filterValue) {
-      console.log('🔍 Sin filtro, retornando todas las empresas');
+      // console.log removed for production
       return this.empresas();
     }
 
@@ -463,7 +463,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
       return matchRuc || matchRazonPrincipal || matchRazonMinimo || matchCodigoEmpresa;
     });
 
-    console.log('🔍 Empresas filtradas:', filtered.length);
+    // console.log removed for production
     return filtered;
   }
 
@@ -548,7 +548,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
    * ```typescript
    * const empresaId = this.empresaSelector.getValue();
    * if (empresaId) {
-   *   console.log('Empresa seleccionada:', empresaId);
+   *   // console.log removed for production
    * }
    * ```
    */
@@ -619,7 +619,7 @@ export class EmpresaSelectorComponent implements OnInit, OnChanges {
    * @example
    * ```typescript
    * const estado = this.empresaSelector.getEstado();
-   * console.log('Estado del selector:', estado);
+   * // console.log removed for production
    * // { loading: false, hasEmpresas: true, hasValue: true }
    * 
    * // Usar en lógica condicional

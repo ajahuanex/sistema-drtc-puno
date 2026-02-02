@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     
     # Información del sistema
     SISTEMA_NOMBRE: str = "SIRRET"
-    SISTEMA_NOMBRE_COMPLETO: str = "Sistema Regional de Registros de Transporte"
+    SISTEMA_NOMBRE_COMPLETO: str = "Sistema Regional de Registros de Transporte (SIRRET)"
     ENTIDAD_NOMBRE: str = "Dirección Regional de Transportes y Comunicaciones Puno"
     DOMINIO_INSTITUCIONAL: str = "transportespuno.gob.pe"
     EMAIL_INSTITUCIONAL: str = "admin@transportespuno.gob.pe"

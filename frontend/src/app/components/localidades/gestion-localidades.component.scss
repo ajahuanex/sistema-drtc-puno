@@ -35,17 +35,72 @@
 }
 
 // ========================================
-// FILTROS Y BÚSQUEDA
+// FILTROS SIMPLIFICADOS
 // ========================================
 
-.filtros-grid {
+.filtros-container {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  align-items: end;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.filtro-busqueda {
+  .mat-mdc-text-field-wrapper {
+    background-color: white;
+  }
+}
+
+.filtros-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  
+  .btn-limpiar {
+    white-space: nowrap;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    
+    &:hover {
+      background-color: #f8f9fa;
+    }
+  }
+  
+  .contador-resultados {
+    font-size: 12px;
+    color: #6c757d;
+    text-align: center;
+    padding: 4px 8px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    
+    .contador-resultados {
+      font-size: 11px;
+      flex: 1;
+      margin-left: 8px;
+    }
   }
 }
 

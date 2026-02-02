@@ -52,7 +52,7 @@ export class WebSocketService {
    */
   connect(token: string, areaId?: string): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket ya está conectado');
+      // console.log removed for production
       return;
     }
     
@@ -70,7 +70,7 @@ export class WebSocketService {
       this.socket.onclose = (event) => this.onClose(event);
       
     } catch (error) {
-      console.error('Error creando WebSocket:', error);
+      console.error('Error creando WebSocket::', error);
       this.scheduleReconnect(token, areaId);
     }
   }
@@ -156,7 +156,7 @@ export class WebSocketService {
   }
   
   private onOpen(): void {
-    console.log('WebSocket conectado');
+    // console.log removed for production
     
     this.updateConnectionStatus({
       connected: true,
@@ -188,16 +188,16 @@ export class WebSocketService {
       }
       
     } catch (error) {
-      console.error('Error parseando mensaje WebSocket:', error);
+      console.error('Error parseando mensaje WebSocket::', error);
     }
   }
   
   private onError(error: Event): void {
-    console.error('Error en WebSocket:', error);
+    console.error('Error en WebSocket::', error);
   }
   
   private onClose(event: CloseEvent): void {
-    console.log('WebSocket desconectado:', event.code, event.reason);
+    // console.log removed for production
     
     this.clearTimers();
     

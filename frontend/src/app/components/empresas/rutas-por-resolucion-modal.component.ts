@@ -36,7 +36,7 @@ interface ResolucionConRutas {
   empresa: {
     id: string;
     ruc: string;
-    razonSocial: string;
+    razonSocial: string | { principal: string };
   };
   rutas: Ruta[];
   totalRutas: number;
@@ -91,11 +91,11 @@ export class RutasPorResolucionModalComponent implements OnInit {
     // Cargar rutas de la empresa
     this.rutaService.getRutasPorEmpresa(this.data.empresa.id).subscribe({
       next: (rutas) => {
-        console.log('🔍 Rutas cargadas:', rutas);
+        // console.log removed for production
         this.organizarRutasPorResolucion(rutas);
       },
       error: (error) => {
-        console.error('❌ Error cargando rutas:', error);
+        console.error('❌ Error cargando rutas::', error);
         this.isLoading.set(false);
       }
     });
@@ -144,7 +144,7 @@ export class RutasPorResolucionModalComponent implements OnInit {
     this.resolucionesConRutas.set(resolucionesConRutas);
     this.isLoading.set(false);
     
-    console.log('✅ Rutas organizadas por resolución:', resolucionesConRutas);
+    // console.log removed for production
   }
 
   getEstadoColor(estado: string): 'primary' | 'accent' | 'warn' {
@@ -194,7 +194,7 @@ export class RutasPorResolucionModalComponent implements OnInit {
   }
 
   verDetalleRuta(ruta: Ruta): void {
-    console.log('Ver detalle de ruta:', ruta);
+    // console.log removed for production
     // Navegar al módulo de rutas con la ruta específica
     this.dialogRef.close();
     
@@ -211,7 +211,7 @@ export class RutasPorResolucionModalComponent implements OnInit {
   }
 
   editarRuta(ruta: Ruta): void {
-    console.log('Editar ruta:', ruta);
+    // console.log removed for production
     // Navegar al módulo de rutas para editar
     this.dialogRef.close();
     
@@ -243,7 +243,7 @@ export class RutasPorResolucionModalComponent implements OnInit {
 
   exportarRutas(): void {
     const data = this.resolucionesConRutas();
-    console.log('Exportar rutas:', data);
+    // console.log removed for production
     // Implementar exportación a Excel/PDF
   }
 }

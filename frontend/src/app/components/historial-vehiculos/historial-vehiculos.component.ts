@@ -113,7 +113,7 @@ export class HistorialVehiculosComponent implements OnInit {
         this.resumen.set(resumen);
       },
       error: (error: any) => {
-        console.error('Error al cargar resumen:', error);
+        console.error('Error al cargar resumen::', error);
       }
     });
   }
@@ -137,17 +137,17 @@ export class HistorialVehiculosComponent implements OnInit {
 
   ordenarDatos(sort: Sort): void {
     // Implementar lógica de ordenamiento
-    console.log('Ordenar por:', sort);
+    // console.log removed for production
   }
 
   verDetalles(historial: HistorialVehiculo): void {
     // Implementar modal de detalles
-    console.log('Ver detalles:', historial);
+    // console.log removed for production
   }
 
   editarHistorial(historial: HistorialVehiculo): void {
     // Implementar modal de edición
-    console.log('Editar historial:', historial);
+    // console.log removed for production
   }
 
   obtenerColorTipoCambio(tipo: TipoCambioVehiculo): string {

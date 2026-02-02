@@ -152,7 +152,7 @@ export class CargaMasivaResolucionesComponent implements OnInit {
   }
 
   private handleFile(archivo: File): void {
-    console.log('[CARGA-MASIVA-RESOLUCIONES] Procesando archivo:', archivo.name, 'Tamaño:', archivo.size, 'Tipo:', archivo.type);
+    // console.log removed for production
     
     // Validar extensión del archivo
     const fileName = archivo.name.toLowerCase();
@@ -207,7 +207,7 @@ export class CargaMasivaResolucionesComponent implements OnInit {
           this.mostrarMensaje('✅ Plantilla descargada exitosamente', 'success');
         },
         error: (error) => {
-          console.error('Error al descargar plantilla:', error);
+          console.error('Error al descargar plantilla::', error);
           this.mostrarMensaje(`❌ Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
         },
         complete: () => {
@@ -215,7 +215,7 @@ export class CargaMasivaResolucionesComponent implements OnInit {
         }
       });
     } catch (error: any) {
-      console.error('Error al descargar plantilla:', error);
+      console.error('Error al descargar plantilla::', error);
       this.mostrarMensaje(`❌ Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
       this.cargando = false;
     }
@@ -231,17 +231,14 @@ export class CargaMasivaResolucionesComponent implements OnInit {
       this.cargando = true;
       this.limpiarResultados();
 
-      console.log('[CARGA-MASIVA-RESOLUCIONES] Iniciando procesamiento:', {
-        archivo: this.archivoSeleccionado.name,
-        soloValidar: this.soloValidar
-      });
+      // console.log removed for production
 
       if (this.soloValidar) {
         // Solo validar
-        console.log('[CARGA-MASIVA-RESOLUCIONES] Modo: Solo validar');
+        // console.log removed for production
         this.resolucionService.validarArchivoExcel(this.archivoSeleccionado).subscribe({
           next: (resultado) => {
-            console.log('[CARGA-MASIVA-RESOLUCIONES] Resultado validación:', resultado);
+            // console.log removed for production
             
             if (resultado && resultado.validacion) {
               this.resultadoValidacion = resultado.validacion;
@@ -260,10 +257,10 @@ export class CargaMasivaResolucionesComponent implements OnInit {
         });
       } else {
         // Procesar y crear resoluciones
-        console.log('[CARGA-MASIVA-RESOLUCIONES] Modo: Validar y crear');
+        // console.log removed for production
         this.resolucionService.procesarCargaMasiva(this.archivoSeleccionado, false).subscribe({
           next: (resultado) => {
-            console.log('[CARGA-MASIVA-RESOLUCIONES] Resultado procesamiento:', resultado);
+            // console.log removed for production
             
             if (resultado && resultado.resultado) {
               this.resultadoProcesamiento = resultado.resultado;
@@ -289,7 +286,7 @@ export class CargaMasivaResolucionesComponent implements OnInit {
   }
 
   private handleError(error: any): void {
-    console.error('[CARGA-MASIVA-RESOLUCIONES] Error al procesar archivo:', error);
+    console.error('[CARGA-MASIVA-RESOLUCIONES] Error al procesar archivo::', error);
     
     let mensajeError = 'Error desconocido';
     

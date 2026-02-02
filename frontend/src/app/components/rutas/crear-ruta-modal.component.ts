@@ -175,7 +175,7 @@ export class CrearRutaModalComponent implements OnInit {
         this.rutaForm.patchValue({ codigoRuta: codigo });
       },
       error: (error) => {
-        console.error('Error generando código:', error);
+        console.error('Error generando código::', error);
         this.rutaForm.patchValue({ codigoRuta: '01' });
       }
     });
@@ -209,16 +209,16 @@ export class CrearRutaModalComponent implements OnInit {
       nuevaRuta.descripcion = formValue.itinerario;
     }
 
-    console.log('💾 Creando ruta:', nuevaRuta);
+    // console.log removed for production
 
     this.rutaService.createRuta(nuevaRuta).subscribe({
       next: (rutaCreada) => {
-        console.log('✅ Ruta creada exitosamente:', rutaCreada);
+        // console.log removed for production
         this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { duration: 3000 });
         this.dialogRef.close(rutaCreada);
       },
       error: (error) => {
-        console.error('❌ Error creando ruta:', error);
+        console.error('❌ Error creando ruta::', error);
         this.snackBar.open('Error al crear la ruta', 'Cerrar', { duration: 3000 });
         this.isSubmitting = false;
       }

@@ -181,6 +181,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           }
         </a>
 
+        <!-- Localidades -->
+        <a mat-list-item 
+           routerLink="/localidades" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Localidades' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'place'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Localidades</span>
+          }
+        </a>
+
         <!-- Resoluciones -->
         <a mat-list-item 
            routerLink="/resoluciones" 

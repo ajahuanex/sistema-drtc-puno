@@ -236,7 +236,7 @@ export class GestionarTiposServicioModalComponent implements OnInit {
         const tipos = JSON.parse(config.valor);
         this.tiposServicio.set(tipos);
       } catch (error) {
-        console.error('Error parseando tipos de servicio:', error);
+        console.error('Error parseando tipos de servicio::', error);
         this.tiposServicio.set(this.getTiposServicioDefault());
       }
     } else {
@@ -314,7 +314,7 @@ export class GestionarTiposServicioModalComponent implements OnInit {
       this.snackBar.open('Tipos de servicio guardados exitosamente', 'Cerrar', { duration: 3000 });
       this.dialogRef.close(true);
     } catch (error) {
-      console.error('Error guardando tipos de servicio:', error);
+      console.error('Error guardando tipos de servicio::', error);
       this.snackBar.open('Error guardando los cambios', 'Cerrar', { duration: 3000 });
     }
   }

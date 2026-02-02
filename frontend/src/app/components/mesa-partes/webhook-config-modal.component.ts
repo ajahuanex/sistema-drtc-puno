@@ -675,7 +675,7 @@ export class WebhookConfigModalComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error al probar webhook:', error);
+        console.error('Error al probar webhook::', error);
         this.probando = false;
         this.snackBar.open('❌ Error al probar webhook', 'Cerrar', {
           duration: 3000
@@ -707,7 +707,7 @@ export class WebhookConfigModalComponent implements OnInit {
         this.dialogRef.close(resultado);
       },
       error: (error) => {
-        console.error('Error al guardar configuración:', error);
+        console.error('Error al guardar configuración::', error);
         this.guardando = false;
         this.snackBar.open('Error al guardar configuración', 'Cerrar', {
           duration: 3000

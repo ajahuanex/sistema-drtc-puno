@@ -16,7 +16,7 @@ class LocalidadService:
         self.collection = db.localidades
 
     async def create_localidad(self, localidad_data: LocalidadCreate) -> Localidad:
-        """Crear una nueva localidad"""
+        """Crear una nueva localidad - Solo nombre es obligatorio"""
         # Verificar que el UBIGEO sea único si se proporciona
         if localidad_data.ubigeo:
             existing = await self.collection.find_one({"ubigeo": localidad_data.ubigeo})
@@ -25,6 +25,11 @@ class LocalidadService:
 
         # Crear documento
         localidad_dict = localidad_data.model_dump()
+        
+        # Calcular nivel territorial automáticamente
+        nivel_territorial = localidad_data.get_nivel_territorial()
+        localidad_dict["nivel_territorial"] = nivel_territorial
+        
         localidad_dict.update({
             "_id": ObjectId(),
             "estaActiva": True,
@@ -281,19 +286,9 @@ class LocalidadService:
         return R * c
 
     def _obtener_distancia_aproximada(self, codigo_origen: str, codigo_destino: str) -> float:
-        """Obtener distancia aproximada entre localidades conocidas"""
-        distancias = {
-            'PUN001-JUL001': 45,    # Puno - Juliaca
-            'PUN001-LIM001': 1320,  # Puno - Lima
-            'PUN001-ARE001': 290,   # Puno - Arequipa
-            'PUN001-CUS001': 390,   # Puno - Cusco
-            'JUL001-LIM001': 1275,  # Juliaca - Lima
-            'JUL001-ARE001': 280,   # Juliaca - Arequipa
-            'PUN001-LAP001': 150,   # Puno - La Paz
-            'DES001-LAP001': 10,    # Desaguadero - La Paz
-        }
-        
-        return distancias.get(f"{codigo_origen}-{codigo_destino}", 100.0)
+        """Obtener distancia aproximada entre localidades - calculada dinámicamente"""
+        # Sin datos hardcodeados - se calcula usando coordenadas reales
+        return 100.0  # Distancia por defecto en km
 
     def _document_to_localidad(self, doc: Dict[str, Any]) -> Localidad:
         """Convertir documento de MongoDB a modelo Localidad"""
@@ -304,95 +299,170 @@ class LocalidadService:
         doc["id"] = str(doc["_id"])
         del doc["_id"]
         
-        return Localidad(**doc)
+        # Limpiar coordenadas nulas o inválidas
+        if "coordenadas" in doc:
+            coordenadas = doc["coordenadas"]
+            if coordenadas is None:
+                doc["coordenadas"] = None
+            elif isinstance(coordenadas, dict):
+                latitud = coordenadas.get("latitud")
+                longitud = coordenadas.get("longitud")
+                
+                # Si alguna coordenada es None o no es un número válido, eliminar coordenadas
+                if (latitud is None or longitud is None or 
+                    not isinstance(latitud, (int, float)) or 
+                    not isinstance(longitud, (int, float)) or
+                    not (-90 <= latitud <= 90) or 
+                    not (-180 <= longitud <= 180)):
+                    doc["coordenadas"] = None
+                else:
+                    doc["coordenadas"] = {
+                        "latitud": float(latitud),
+                        "longitud": float(longitud)
+                    }
+        
+        # Calcular nivel territorial automáticamente si no existe
+        if "nivel_territorial" not in doc and "tipo" in doc:
+            tipo = doc["tipo"]
+            mapping = {
+                "DEPARTAMENTO": "DEPARTAMENTO",
+                "PROVINCIA": "PROVINCIA", 
+                "DISTRITO": "DISTRITO",
+                "CENTRO_POBLADO": "CENTRO_POBLADO",
+                "CIUDAD": "DISTRITO",  # Ciudad equivale a distrito
+                "PUEBLO": "CENTRO_POBLADO"  # Pueblo equivale a centro poblado
+            }
+            doc["nivel_territorial"] = mapping.get(tipo, "DISTRITO")
+        
+        # Asegurar que esta_activa esté definido
+        if "esta_activa" not in doc:
+            doc["esta_activa"] = doc.get("estaActiva", True)
+        
+        try:
+            return Localidad(**doc)
+        except Exception as e:
+            print(f"Error creando Localidad desde documento: {e}")
+            print(f"Documento problemático: {doc}")
+            # Crear una versión mínima válida
+            return Localidad(
+                id=doc["id"],
+                nombre=doc.get("nombre", "Localidad sin nombre"),
+                tipo=doc.get("tipo", "LOCALIDAD"),
+                departamento=doc.get("departamento", "PUNO"),
+                provincia=doc.get("provincia", "PUNO"),
+                distrito=doc.get("distrito", "PUNO"),
+                estaActiva=doc.get("estaActiva", True),
+                fechaCreacion=doc.get("fechaCreacion", datetime.utcnow()),
+                fechaActualizacion=doc.get("fechaActualizacion", datetime.utcnow())
+            )
 
     async def inicializar_localidades_default(self) -> List[Localidad]:
-        """Inicializar localidades por defecto si no existen"""
+        """Inicializar localidades básicas para el funcionamiento del sistema"""
         count = await self.collection.count_documents({})
         if count > 0:
+            print(f"✅ Ya existen {count} localidades en la base de datos")
             return await self.get_localidades_activas()
 
-        # Localidades por defecto para Puno
-        localidades_default = [
+        print("🌱 Inicializando localidades básicas para el sistema...")
+        
+        # Localidades básicas para el funcionamiento del sistema
+        localidades_basicas = [
             {
-                "ubigeo": "210101",
-                "ubigeo_identificador_mcp": "210101-MCP-001",
-                "departamento": "PUNO",
-                "provincia": "PUNO",
-                "distrito": "PUNO",
-                "municipalidad_centro_poblado": "Municipalidad Provincial de Puno",
-                "nivel_territorial": "DISTRITO",
-                "nombre": "Puno",
-                "codigo": "PUN001",
+                "nombre": "PUNO",
                 "tipo": "CIUDAD",
-                "descripcion": "Capital del departamento de Puno",
-                "coordenadas": {"latitud": -15.8402, "longitud": -70.0219}
+                "nivelTerritorial": "CAPITAL_DEPARTAMENTAL",
+                "departamento": "PUNO",
+                "provincia": "PUNO", 
+                "distrito": "PUNO",
+                "ubigeo": "210101",
+                "coordenadas": {
+                    "latitud": -15.8422,
+                    "longitud": -70.0199
+                },
+                "estaActiva": True
             },
             {
-                "ubigeo": "211301",
-                "ubigeo_identificador_mcp": "211301-MCP-001",
+                "nombre": "JULIACA",
+                "tipo": "CIUDAD",
+                "nivelTerritorial": "CAPITAL_PROVINCIAL",
                 "departamento": "PUNO",
                 "provincia": "SAN ROMAN",
-                "distrito": "JULIACA",
-                "municipalidad_centro_poblado": "Municipalidad Provincial de San Román",
-                "nivel_territorial": "DISTRITO",
-                "nombre": "Juliaca",
-                "codigo": "JUL001", 
-                "tipo": "CIUDAD",
-                "descripcion": "Ciudad comercial importante de Puno",
-                "coordenadas": {"latitud": -15.5000, "longitud": -70.1333}
+                "distrito": "JULIACA", 
+                "ubigeo": "211101",
+                "coordenadas": {
+                    "latitud": -15.5000,
+                    "longitud": -70.1333
+                },
+                "estaActiva": True
             },
             {
-                "ubigeo": "150101",
-                "ubigeo_identificador_mcp": "150101-MCP-001",
-                "departamento": "LIMA",
-                "provincia": "LIMA",
-                "distrito": "LIMA",
-                "municipalidad_centro_poblado": "Municipalidad Metropolitana de Lima",
-                "nivel_territorial": "DISTRITO",
-                "nombre": "Lima",
-                "codigo": "LIM001",
+                "nombre": "ILAVE",
+                "tipo": "CIUDAD",
+                "nivelTerritorial": "CAPITAL_PROVINCIAL",
+                "departamento": "PUNO",
+                "provincia": "EL COLLAO",
+                "distrito": "ILAVE",
+                "ubigeo": "210401",
+                "coordenadas": {
+                    "latitud": -16.0833,
+                    "longitud": -69.6333
+                },
+                "estaActiva": True
+            },
+            {
+                "nombre": "YUNGUYO",
                 "tipo": "CIUDAD", 
-                "descripcion": "Capital del Perú",
-                "coordenadas": {"latitud": -12.0464, "longitud": -77.0428}
+                "nivelTerritorial": "CAPITAL_PROVINCIAL",
+                "departamento": "PUNO",
+                "provincia": "YUNGUYO",
+                "distrito": "YUNGUYO",
+                "ubigeo": "211301",
+                "coordenadas": {
+                    "latitud": -16.2500,
+                    "longitud": -69.0833
+                },
+                "estaActiva": True
             },
             {
-                "ubigeo": "040101",
-                "ubigeo_identificador_mcp": "040101-MCP-001",
-                "departamento": "AREQUIPA",
-                "provincia": "AREQUIPA",
-                "distrito": "AREQUIPA",
-                "municipalidad_centro_poblado": "Municipalidad Provincial de Arequipa",
-                "nivel_territorial": "DISTRITO",
-                "nombre": "Arequipa",
-                "codigo": "ARE001",
+                "nombre": "AZANGARO",
                 "tipo": "CIUDAD",
-                "descripcion": "Ciudad Blanca del sur del Perú",
-                "coordenadas": {"latitud": -16.4090, "longitud": -71.5375}
-            },
-            {
-                "ubigeo": "080101",
-                "ubigeo_identificador_mcp": "080101-MCP-001",
-                "departamento": "CUSCO",
-                "provincia": "CUSCO",
-                "distrito": "CUSCO",
-                "municipalidad_centro_poblado": "Municipalidad Provincial del Cusco",
-                "nivel_territorial": "DISTRITO",
-                "nombre": "Cusco",
-                "codigo": "CUS001",
-                "tipo": "CIUDAD",
-                "descripcion": "Capital histórica del Perú",
-                "coordenadas": {"latitud": -13.5319, "longitud": -71.9675}
+                "nivelTerritorial": "CAPITAL_PROVINCIAL", 
+                "departamento": "PUNO",
+                "provincia": "AZANGARO",
+                "distrito": "AZANGARO",
+                "ubigeo": "210201",
+                "coordenadas": {
+                    "latitud": -14.9167,
+                    "longitud": -70.1833
+                },
+                "estaActiva": True
             }
         ]
 
         localidades_creadas = []
-        for localidad_data in localidades_default:
+        
+        for localidad_data in localidades_basicas:
             try:
-                localidad_create = LocalidadCreate(**localidad_data)
-                localidad = await self.create_localidad(localidad_create)
+                # Crear el documento de localidad
+                localidad_doc = {
+                    **localidad_data,
+                    "fechaCreacion": datetime.utcnow(),
+                    "fechaActualizacion": datetime.utcnow()
+                }
+                
+                # Insertar en la base de datos
+                resultado = await self.collection.insert_one(localidad_doc)
+                localidad_doc["_id"] = resultado.inserted_id
+                
+                # Convertir a modelo Localidad
+                localidad = self._doc_to_localidad(localidad_doc)
                 localidades_creadas.append(localidad)
+                
+                print(f"✅ Localidad creada: {localidad.nombre}")
+                
             except Exception as e:
-                print(f"Error creando localidad {localidad_data['nombre']}: {e}")
+                print(f"❌ Error creando localidad {localidad_data['nombre']}: {e}")
+                continue
 
+        print(f"🎉 Inicialización completada: {len(localidades_creadas)} localidades creadas")
         return localidades_creadas

@@ -154,7 +154,7 @@ class DataManagerService:
         for conductor in conductores_data:
             self.agregar_conductor(conductor)
         
-        # 4. RUTAS - Datos mock eliminados, usar solo MongoDB
+        # 4. RUTAS - Solo datos reales de MongoDB
         rutas_data = []
         
         for ruta in rutas_data:

@@ -46,11 +46,11 @@
         .rutas-table th:nth-child(1),
         .rutas-table td:nth-child(1) { width: 50px; min-width: 50px; } /* Selección */
         .rutas-table th:nth-child(2),
-        .rutas-table td:nth-child(2) { width: 80px; min-width: 80px; } /* Código */
+        .rutas-table td:nth-child(2) { width: 100px; min-width: 90px; } /* RUC */
         .rutas-table th:nth-child(3),
-        .rutas-table td:nth-child(3) { width: 180px; min-width: 150px; } /* Empresa */
+        .rutas-table td:nth-child(3) { width: 120px; min-width: 100px; } /* Resolución */
         .rutas-table th:nth-child(4),
-        .rutas-table td:nth-child(4) { width: 100px; min-width: 90px; } /* Resolución */
+        .rutas-table td:nth-child(4) { width: 80px; min-width: 80px; } /* Código Ruta */
         .rutas-table th:nth-child(5),
         .rutas-table td:nth-child(5) { width: 100px; min-width: 80px; } /* Origen */
         .rutas-table th:nth-child(6),
@@ -60,9 +60,13 @@
         .rutas-table th:nth-child(8),
         .rutas-table td:nth-child(8) { width: 120px; min-width: 100px; } /* Frecuencias */
         .rutas-table th:nth-child(9),
-        .rutas-table td:nth-child(9) { width: 70px; min-width: 60px; } /* Estado */
+        .rutas-table td:nth-child(9) { width: 120px; min-width: 100px; } /* Tipo Ruta */
         .rutas-table th:nth-child(10),
-        .rutas-table td:nth-child(10) { width: 140px; min-width: 120px; } /* Acciones */
+        .rutas-table td:nth-child(10) { width: 120px; min-width: 100px; } /* Tipo Servicio */
+        .rutas-table th:nth-child(11),
+        .rutas-table td:nth-child(11) { width: 70px; min-width: 60px; } /* Estado */
+        .rutas-table th:nth-child(12),
+        .rutas-table td:nth-child(12) { width: 140px; min-width: 120px; } /* Acciones */
         
         /* Columna de acciones sticky */
         .rutas-table th:last-child,
@@ -133,6 +137,19 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
+        .ruc-text {
+            font-family: monospace;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .tipo-ruta-text,
+        .tipo-servicio-text {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #555;
+        }
         
         .info-panel {
             background-color: #e3f2fd;
@@ -156,7 +173,7 @@
     <div class="info-panel">
         <h3>🧪 Test de Visualización - Tabla de Rutas</h3>
         <p><strong>Propósito:</strong> Verificar que la tabla se vea correctamente con todas las columnas</p>
-        <p><strong>Columnas visibles por defecto:</strong> Selección, Código, Empresa, Resolución, Origen, Destino, Itinerario, Frecuencias, Estado, Acciones</p>
+        <p><strong>Columnas visibles por defecto:</strong> Selección, RUC, Resolución, Código Ruta, Origen, Destino, Itinerario, Frecuencias, Tipo Ruta, Tipo Servicio, Estado, Acciones</p>
         <p><strong>Característica especial:</strong> La columna de Acciones es "sticky" (siempre visible al hacer scroll horizontal)</p>
     </div>
 
@@ -165,13 +182,15 @@
             <thead>
                 <tr>
                     <th>☑️</th>
-                    <th>Código</th>
-                    <th>Empresa</th>
+                    <th>RUC</th>
                     <th>Resolución</th>
+                    <th>Código Ruta</th>
                     <th>Origen</th>
                     <th>Destino</th>
                     <th>Itinerario</th>
                     <th>Frecuencias</th>
+                    <th>Tipo Ruta</th>
+                    <th>Tipo Servicio</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -179,13 +198,15 @@
             <tbody>
                 <tr>
                     <td><input type="checkbox" class="checkbox"></td>
-                    <td><span class="codigo-ruta">R001</span></td>
-                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
-                    <td>R-001-2025</td>
+                    <td>20484041242</td>
+                    <td>R-2021-2023</td>
+                    <td><span class="codigo-ruta">G1</span></td>
                     <td>PUNO</td>
                     <td>JULIACA</td>
                     <td><span class="itinerario-text">SIN ITINERARIO</span></td>
-                    <td>Cada 30 minutos</td>
+                    <td>08 DIARIAS</td>
+                    <td>INTERPROVINCIAL</td>
+                    <td>PASAJEROS</td>
                     <td><span class="estado-badge">ACTIVA</span></td>
                     <td>
                         <button class="action-button view" title="Ver detalles">👁️</button>
@@ -196,13 +217,15 @@
                 </tr>
                 <tr>
                     <td><input type="checkbox" class="checkbox"></td>
-                    <td><span class="codigo-ruta">R002</span></td>
-                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
-                    <td>R-001-2025</td>
+                    <td>20484041242</td>
+                    <td>R-2005-2022</td>
+                    <td><span class="codigo-ruta">G2</span></td>
                     <td>JULIACA</td>
                     <td>AREQUIPA</td>
                     <td><span class="itinerario-text">JULIACA - LAMPA - AREQUIPA</span></td>
-                    <td>Cada 2 horas</td>
+                    <td>04 DIARIAS</td>
+                    <td>INTERREGIONAL</td>
+                    <td>PASAJEROS</td>
                     <td><span class="estado-badge">ACTIVA</span></td>
                     <td>
                         <button class="action-button view" title="Ver detalles">👁️</button>
@@ -213,13 +236,15 @@
                 </tr>
                 <tr>
                     <td><input type="checkbox" class="checkbox"></td>
-                    <td><span class="codigo-ruta">R003</span></td>
-                    <td>EMPRESA DE TRANSPORTES PRUEBA S.A.C.</td>
-                    <td>R-001-2025</td>
+                    <td>20115042429</td>
+                    <td>R-2005-2023</td>
+                    <td><span class="codigo-ruta">G1</span></td>
                     <td>PUNO</td>
                     <td>CUSCO</td>
                     <td><span class="itinerario-text">SIN ITINERARIO</span></td>
-                    <td>Diario a las 6:00 AM</td>
+                    <td>02 DIARIAS</td>
+                    <td>INTERREGIONAL</td>
+                    <td>PASAJEROS</td>
                     <td><span class="estado-badge">ACTIVA</span></td>
                     <td>
                         <button class="action-button view" title="Ver detalles">👁️</button>

@@ -77,7 +77,7 @@ export class RutaProcessorService {
     };
 
     try {
-      console.log('🔄 Iniciando procesamiento de ruta:', rutaData.codigoRuta);
+      // console.log removed for production
 
       // 1. Validar datos básicos
       const validacion = this.validarDatosRuta(rutaData);
@@ -101,7 +101,7 @@ export class RutaProcessorService {
       }
 
       // 3. Procesar todas las localidades para asegurar unicidad
-      console.log('🔄 Procesando localidades únicas...');
+      // console.log removed for production
       const localidadesProcesadas = await this.localidadManager.procesarLocalidadesRuta(localidadesParaProcesar);
       resultado.localidadesProcesadas = localidadesProcesadas;
 
@@ -143,7 +143,7 @@ export class RutaProcessorService {
       };
 
       // 6. Crear la ruta en el backend
-      console.log('🔄 Creando ruta en el backend...');
+      // console.log removed for production
       const rutaCreada = await this.rutaService.createRuta(rutaParaCrear).toPromise();
 
       if (!rutaCreada) {
@@ -157,11 +157,11 @@ export class RutaProcessorService {
       resultado.rutaId = rutaCreada.id;
       resultado.mensaje = `Ruta "${rutaData.nombre}" creada exitosamente con ${localidadesProcesadas.length} localidades procesadas`;
 
-      console.log('✅ Ruta procesada exitosamente:', resultado);
+      // console.log removed for production
       return resultado;
 
     } catch (error: any) {
-      console.error('❌ Error procesando ruta completa:', error);
+      console.error('❌ Error procesando ruta completa::', error);
       resultado.errores.push(`Error general: ${error.message || error}`);
       resultado.mensaje = 'Error inesperado durante el procesamiento';
       return resultado;
@@ -172,13 +172,13 @@ export class RutaProcessorService {
    * Procesa múltiples rutas en lote
    */
   async procesarRutasEnLote(rutas: RutaConLocalidadesData[]): Promise<ResultadoProcesamientoRuta[]> {
-    console.log(`🔄 Procesando ${rutas.length} rutas en lote`);
+    // console.log removed for production
     
     const resultados: ResultadoProcesamientoRuta[] = [];
     
     for (let i = 0; i < rutas.length; i++) {
       const ruta = rutas[i];
-      console.log(`🔄 Procesando ruta ${i + 1}/${rutas.length}: ${ruta.nombre || ruta.codigoRuta}`);
+      // console.log removed for production
       
       try {
         const resultado = await this.procesarRutaCompleta(ruta);
@@ -301,7 +301,7 @@ export class RutaProcessorService {
         mensaje: 'Estadísticas obtenidas correctamente'
       };
     } catch (error) {
-      console.error('Error obteniendo estadísticas:', error);
+      console.error('Error obteniendo estadísticas::', error);
       return {
         localidades: {
           total_localidades: 0,

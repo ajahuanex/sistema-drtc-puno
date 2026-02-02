@@ -133,7 +133,7 @@ import { DerivacionService } from '../../services/mesa-partes/derivacion.service
 
         <!-- Archivos adjuntos -->
         <div class="section archivos-section">
-          <h3><i class="fas fa-paperclip"></i> Archivos Adjuntos ({{ documento.archivosAdjuntos.length }})</h3>
+          <h3><i class="fas fa-paperclip"></i> Archivos Adjuntos ({{ (documento.archivosAdjuntos)?.length || 0 }})</h3>
           <div *ngIf="documento.archivosAdjuntos.length === 0" class="empty-state">
             <i class="fas fa-folder-open"></i>
             <p>No hay archivos adjuntos</p>
@@ -886,7 +886,7 @@ export class DetalleDocumentoComponent implements OnInit {
         this.cargando = false;
       },
       error: (error) => {
-        console.error('Error al cargar documento:', error);
+        console.error('Error al cargar documento::', error);
         this.error = 'No se pudo cargar el documento';
         this.cargando = false;
       }
@@ -905,7 +905,7 @@ export class DetalleDocumentoComponent implements OnInit {
         this.cargandoHistorial = false;
       },
       error: (error) => {
-        console.error('Error al cargar historial:', error);
+        console.error('Error al cargar historial::', error);
         this.cargandoHistorial = false;
       }
     });

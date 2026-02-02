@@ -114,7 +114,7 @@ export class NotificationService {
       if (filtros.tipo) params.set('tipo', filtros.tipo);
       if (filtros.categoria) params.set('categoria', filtros.categoria);
       if (filtros.prioridad) params.set('prioridad', filtros.prioridad);
-      if (filtros.leida !== undefined) params.set('leida', filtros.leida.toString());
+      if (typeof filtros.leida !== "undefined") params.set('leida', filtros.leida.toString());
       if (filtros.fechaDesde) params.set('fechaDesde', filtros.fechaDesde.toISOString());
       if (filtros.fechaHasta) params.set('fechaHasta', filtros.fechaHasta.toISOString());
       if (filtros.destinatarioId) params.set('destinatarioId', filtros.destinatarioId);
@@ -164,7 +164,7 @@ export class NotificationService {
         this.actualizarNotificacionesFiltradas();
       },
       error: (error) => {
-        console.error('Error cargando notificaciones:', error);
+        console.error('Error cargando notificaciones::', error);
       }
     });
   }
@@ -217,7 +217,7 @@ export class NotificationService {
         this.actualizarNotificacionesFiltradas();
       },
       error: (error) => {
-        console.error('Error creando notificación:', error);
+        console.error('Error creando notificación::', error);
       }
     });
   }
@@ -249,7 +249,7 @@ export class NotificationService {
         this.actualizarNotificacionesFiltradas();
       },
       error: (error) => {
-        console.error('Error creando notificación:', error);
+        console.error('Error creando notificación::', error);
       }
     });
   }
@@ -278,7 +278,7 @@ export class NotificationService {
         this.actualizarNotificacionesFiltradas();
       },
       error: (error) => {
-        console.error('Error creando notificación:', error);
+        console.error('Error creando notificación::', error);
       }
     });
   }
@@ -315,17 +315,17 @@ export class NotificationService {
 
   // Métodos de utilidad para mostrar notificaciones
   showError(mensaje: string): void {
-    console.error('Error:', mensaje);
+    console.error('Error::', mensaje);
     // Aquí se podría integrar con un servicio de toast o snackbar
   }
 
   showInfo(mensaje: string): void {
-    console.log('Info:', mensaje);
+    // console.log removed for production
     // Aquí se podría integrar con un servicio de toast o snackbar
   }
 
   showSuccess(mensaje: string): void {
-    console.log('Success:', mensaje);
+    // console.log removed for production
     // Aquí se podría integrar con un servicio de toast o snackbar
   }
 

@@ -137,7 +137,7 @@ import { LocalidadService } from '../../services/localidad.service';
                   
                   @if (!resultadoValidacion()?.valido && resultadoValidacion()?.duplicados?.length) {
                     <div class="duplicados-section">
-                      <h4>Localidades Duplicadas Encontradas ({{ resultadoValidacion()?.duplicados?.length }})</h4>
+                      <h4>Localidades Duplicadas Encontradas ({{ resultadoValidacion()?.duplicados?.length || 0 }})</h4>
                       
                       <div class="table-container">
                         <table mat-table [dataSource]="resultadoValidacion()?.duplicados || []" class="duplicados-table">
@@ -149,7 +149,7 @@ import { LocalidadService } from '../../services/localidad.service';
                           <ng-container matColumnDef="cantidad">
                             <th mat-header-cell *matHeaderCellDef>Cantidad</th>
                             <td mat-cell *matCellDef="let duplicado">
-                              <mat-chip class="warning-chip">{{ duplicado.ids.length }}</mat-chip>
+                              <mat-chip class="warning-chip">{{ (duplicado.ids)?.length || 0 }}</mat-chip>
                             </td>
                           </ng-container>
 
@@ -311,7 +311,7 @@ export class GestionLocalidadesUnicasComponent implements OnInit {
       const stats = await this.localidadUnicaService.obtenerEstadisticasLocalidadesRutas();
       this.estadisticas.set(stats);
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      console.error('Error cargando estadísticas::', error);
       this.snackBar.open('Error cargando estadísticas', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando.set(false);
@@ -331,7 +331,7 @@ export class GestionLocalidadesUnicasComponent implements OnInit {
         this.snackBar.open(`⚠️ Se encontraron ${resultado.duplicados?.length || 0} grupos de duplicados`, 'Cerrar', { duration: 5000 });
       }
     } catch (error) {
-      console.error('Error validando unicidad:', error);
+      console.error('Error validando unicidad::', error);
       this.snackBar.open('Error validando unicidad', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando.set(false);
@@ -347,7 +347,7 @@ export class GestionLocalidadesUnicasComponent implements OnInit {
       // Revalidar después de consolidar
       await this.validarUnicidad();
     } catch (error) {
-      console.error('Error consolidando duplicado:', error);
+      console.error('Error consolidando duplicado::', error);
       this.snackBar.open('Error consolidando duplicados', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando.set(false);
@@ -371,7 +371,7 @@ export class GestionLocalidadesUnicasComponent implements OnInit {
       await this.validarUnicidad();
       await this.recargarEstadisticas();
     } catch (error) {
-      console.error('Error consolidando todos los duplicados:', error);
+      console.error('Error consolidando todos los duplicados::', error);
       this.snackBar.open('Error consolidando duplicados', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando.set(false);
@@ -394,7 +394,7 @@ export class GestionLocalidadesUnicasComponent implements OnInit {
       await this.localidadService.exportarExcel();
       this.snackBar.open('✅ Reporte exportado exitosamente', 'Cerrar', { duration: 3000 });
     } catch (error) {
-      console.error('Error exportando reporte:', error);
+      console.error('Error exportando reporte::', error);
       this.snackBar.open('Error exportando reporte', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando.set(false);

@@ -7,7 +7,8 @@ from bson import ObjectId
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.models.ruta import Ruta, RutaCreate, RutaUpdate, EstadoRuta
+from app.models.ruta import Ruta, RutaCreate, RutaUpdate, EstadoRuta, LocalidadEmbebida, LocalidadItinerario
+from app.services.localidad_service import LocalidadService
 
 
 class RutaService:
@@ -18,6 +19,169 @@ class RutaService:
         self.rutas_collection = db["rutas"]
         self.resoluciones_collection = db["resoluciones"]
         self.empresas_collection = db["empresas"]
+        self.localidad_service = LocalidadService(db)
+    
+    def _format_ruta_response(self, ruta: Dict[str, Any]) -> Dict[str, Any]:
+        """Helper para formatear la respuesta de ruta de manera consistente"""
+        # La empresa está directamente embebida en la ruta
+        empresa_data = ruta.get("empresa", {})
+        resolucion_data = ruta.get("resolucion", {})
+        
+        return {
+            "id": str(ruta.pop("_id")),
+            "codigoRuta": ruta.get("codigoRuta", ""),
+            "nombre": ruta.get("nombre", ""),
+            
+            # Localidades embebidas
+            "origen": ruta.get("origen", {}),
+            "destino": ruta.get("destino", {}),
+            "itinerario": ruta.get("itinerario", []),
+            
+            # Empresa embebida
+            "empresa": {
+                "id": empresa_data.get("id", ""),
+                "ruc": empresa_data.get("ruc", ""),
+                "razonSocial": empresa_data.get("razonSocial", "")
+            },
+            
+            # Resolución embebida
+            "resolucion": {
+                "id": resolucion_data.get("id", ""),
+                "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                "estado": resolucion_data.get("estado", "")
+            },
+            
+            # Frecuencia
+            "frecuencia": {
+                "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                "dias": ruta.get("frecuencia", {}).get("dias", []),
+                "descripcion": ruta.get("frecuencia", {}).get("descripcion", "Sin frecuencia")
+            },
+            
+            "horarios": [],
+            "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+            "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+            "estado": ruta.get("estado", "ACTIVA"),
+            "estaActivo": ruta.get("estaActivo", True),
+            "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+            "fechaActualizacion": ruta.get("fechaActualizacion"),
+            
+            # Campos opcionales
+            "distancia": ruta.get("distancia"),
+            "tiempoEstimado": ruta.get("tiempoEstimado"),
+            "tarifaBase": ruta.get("tarifaBase"),
+            "capacidadMaxima": ruta.get("capacidadMaxima"),
+            "restricciones": ruta.get("restricciones", []),
+            "observaciones": ruta.get("observaciones"),
+            "descripcion": ruta.get("descripcion")
+        }
+    
+    async def validar_localidad_existe(self, localidad_id: str, nombre_campo: str) -> LocalidadEmbebida:
+        """
+        Validar que una localidad existe y obtener sus datos embebidos
+        
+        Args:
+            localidad_id: ID de la localidad a validar
+            nombre_campo: Nombre del campo para el error (origen, destino, etc.)
+            
+        Returns:
+            LocalidadEmbebida con los datos de la localidad
+            
+        Raises:
+            HTTPException: Si la localidad no existe o no está activa
+        """
+        try:
+            localidad = await self.localidad_service.get_localidad_by_id(localidad_id)
+            
+            if not localidad:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Localidad {nombre_campo} con ID {localidad_id} no encontrada"
+                )
+            
+            if not localidad.estaActiva:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La localidad {nombre_campo} '{localidad.nombre}' no está activa"
+                )
+            
+            return LocalidadEmbebida(
+                id=localidad.id,
+                nombre=localidad.nombre
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al validar localidad {nombre_campo}: {str(e)}"
+            )
+    
+    async def validar_itinerario(self, itinerario_data: List[Dict[str, Any]]) -> List[LocalidadItinerario]:
+        """
+        Validar y procesar itinerario de localidades
+        
+        Args:
+            itinerario_data: Lista de diccionarios con {id, nombre, orden}
+            
+        Returns:
+            Lista de LocalidadItinerario validadas
+            
+        Raises:
+            HTTPException: Si hay errores en el itinerario
+        """
+        if not itinerario_data:
+            return []
+        
+        localidades_itinerario = []
+        ordenes_usados = set()
+        
+        for item in itinerario_data:
+            # Validar estructura
+            if not isinstance(item, dict) or 'id' not in item or 'orden' not in item:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cada elemento del itinerario debe tener 'id' y 'orden'"
+                )
+            
+            localidad_id = item['id']
+            orden = item['orden']
+            
+            # Validar orden único
+            if orden in ordenes_usados:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El orden {orden} está duplicado en el itinerario"
+                )
+            ordenes_usados.add(orden)
+            
+            # Validar que la localidad existe
+            localidad = await self.localidad_service.get_localidad_by_id(localidad_id)
+            if not localidad:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Localidad del itinerario con ID {localidad_id} no encontrada"
+                )
+            
+            if not localidad.estaActiva:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"La localidad del itinerario '{localidad.nombre}' no está activa"
+                )
+            
+            localidades_itinerario.append(LocalidadItinerario(
+                id=localidad.id,
+                nombre=localidad.nombre,
+                orden=orden
+            ))
+        
+        # Ordenar por orden
+        localidades_itinerario.sort(key=lambda x: x.orden)
+        
+        return localidades_itinerario
     
     async def validar_resolucion_vigente(self, resolucion_id: str) -> bool:
         """
@@ -121,15 +285,35 @@ class RutaService:
             HTTPException: Si hay errores de validación
         """
         try:
-            # 1. Validar empresa
+            # 1. Validar localidades (origen, destino e itinerario)
+            origen_embebido = await self.validar_localidad_existe(ruta_data.origen.id, "origen")
+            destino_embebido = await self.validar_localidad_existe(ruta_data.destino.id, "destino")
+            
+            # Validar que origen y destino sean diferentes
+            if ruta_data.origen.id == ruta_data.destino.id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El origen y destino no pueden ser la misma localidad"
+                )
+            
+            # Validar itinerario si se proporciona
+            itinerario_validado = []
+            if ruta_data.itinerario:
+                itinerario_data = [
+                    {"id": loc.id, "orden": loc.orden} 
+                    for loc in ruta_data.itinerario
+                ]
+                itinerario_validado = await self.validar_itinerario(itinerario_data)
+            
+            # 2. Validar empresa
             empresa = await self.empresas_collection.find_one({
-                "_id": ObjectId(ruta_data.empresaId)
+                "_id": ObjectId(ruta_data.empresa.id)
             })
             
             if not empresa:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Empresa {ruta_data.empresaId} no encontrada"
+                    detail=f"Empresa con ID {ruta_data.empresa.id} no encontrada"
                 )
             
             if not empresa.get("estaActivo", False):
@@ -138,36 +322,49 @@ class RutaService:
                     detail="La empresa no está activa"
                 )
             
-            # 2. Validar resolución VIGENTE y PADRE
-            await self.validar_resolucion_vigente(ruta_data.resolucionId)
+            # 3. Validar resolución VIGENTE y PADRE
+            await self.validar_resolucion_vigente(ruta_data.resolucion.id)
             
-            # 3. Validar código único en resolución
+            # 4. Validar código único en resolución
             await self.validar_codigo_unico(
                 ruta_data.codigoRuta,
-                ruta_data.resolucionId
+                ruta_data.resolucion.id
             )
             
-            # 4. Validar origen y destino diferentes
-            if ruta_data.origenId == ruta_data.destinoId:
-                raise HTTPException(
-                    status_code=400,
-                    detail="El origen y destino no pueden ser iguales"
-                )
-            
-            # 5. Preparar documento para inserción
+            # 5. Preparar documento para inserción con datos embebidos validados
             ruta_dict = ruta_data.model_dump()
+            
+            print(f"🔍 DEBUG RUTA_SERVICE: Empresa recibida en ruta_data: {ruta_data.empresa}")
+            print(f"🔍 DEBUG RUTA_SERVICE: Frecuencia recibida en ruta_data: {ruta_data.frecuencia}")
+            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict empresa antes: {ruta_dict.get('empresa')}")
+            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict frecuencia antes: {ruta_dict.get('frecuencia')}")
+            
+            # Actualizar con datos validados
+            ruta_dict["origen"] = origen_embebido.model_dump()
+            ruta_dict["destino"] = destino_embebido.model_dump()
+            ruta_dict["itinerario"] = [loc.model_dump() for loc in itinerario_validado]
+            
+            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict empresa después: {ruta_dict.get('empresa')}")
+            
+            # Metadatos
             ruta_dict["fechaRegistro"] = datetime.utcnow()
             ruta_dict["fechaActualizacion"] = datetime.utcnow()
             ruta_dict["estaActivo"] = True
             ruta_dict["estado"] = EstadoRuta.ACTIVA
             
             # 6. Insertar ruta
+            print(f"🔍 DEBUG RUTA_SERVICE: Insertando ruta en BD con empresa: {ruta_dict.get('empresa')}")
             result = await self.rutas_collection.insert_one(ruta_dict)
             ruta_id = str(result.inserted_id)
+            print(f"🔍 DEBUG RUTA_SERVICE: Ruta insertada con ID: {ruta_id}")
+            
+            # Verificar lo que se guardó realmente
+            ruta_guardada = await self.rutas_collection.find_one({"_id": result.inserted_id})
+            print(f"🔍 DEBUG RUTA_SERVICE: Empresa en BD después de insertar: {ruta_guardada.get('empresa') if ruta_guardada else 'No encontrada'}")
             
             # 7. Actualizar relaciones en empresa
             await self.empresas_collection.update_one(
-                {"_id": ObjectId(ruta_data.empresaId)},
+                {"_id": ObjectId(ruta_data.empresa.id)},
                 {
                     "$addToSet": {"rutasAutorizadasIds": ruta_id},
                     "$set": {"fechaActualizacion": datetime.utcnow()}
@@ -176,7 +373,7 @@ class RutaService:
             
             # 8. Actualizar relaciones en resolución
             await self.resoluciones_collection.update_one(
-                {"_id": ObjectId(ruta_data.resolucionId)},
+                {"_id": ObjectId(ruta_data.resolucion.id)},
                 {
                     "$addToSet": {"rutasAutorizadasIds": ruta_id},
                     "$set": {"fechaActualizacion": datetime.utcnow()}
@@ -208,8 +405,62 @@ class RutaService:
             if not ruta:
                 return None
             
-            ruta["id"] = str(ruta.pop("_id"))
-            return Ruta(**ruta)
+            # Convertir a formato esperado
+            empresa_data = ruta.get("empresa", {})  # Empresa está directamente en ruta.empresa
+            resolucion_data = ruta.get("resolucion", {})
+            
+            ruta_dict = {
+                "id": str(ruta.pop("_id")),
+                "codigoRuta": ruta.get("codigoRuta", ""),
+                "nombre": ruta.get("nombre", ""),
+                
+                # Localidades embebidas
+                "origen": ruta.get("origen", {}),
+                "destino": ruta.get("destino", {}),
+                "itinerario": ruta.get("itinerario", []),
+                
+                # Empresa embebida
+                "empresa": {
+                    "id": empresa_data.get("id", ""),
+                    "ruc": empresa_data.get("ruc", ""),
+                    "razonSocial": empresa_data.get("razonSocial", "")
+                },
+                
+                # Resolución embebida
+                "resolucion": {
+                    "id": resolucion_data.get("id", ""),
+                    "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                    "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                    "estado": resolucion_data.get("estado", "")
+                },
+                
+                # Frecuencia
+                "frecuencia": {
+                    "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                    "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                    "dias": ruta.get("frecuencia", {}).get("dias", []),
+                    "descripcion": ruta.get("frecuencias", "1 diario")
+                },
+                
+                "horarios": [],
+                "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+                "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+                "estado": ruta.get("estado", "ACTIVA"),
+                "estaActivo": ruta.get("estaActivo", True),
+                "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+                "fechaActualizacion": ruta.get("fechaActualizacion"),
+                
+                # Campos opcionales
+                "distancia": ruta.get("distancia"),
+                "tiempoEstimado": ruta.get("tiempoEstimado"),
+                "tarifaBase": ruta.get("tarifaBase"),
+                "capacidadMaxima": ruta.get("capacidadMaxima"),
+                "restricciones": ruta.get("restricciones", []),
+                "observaciones": ruta.get("observaciones", ""),
+                "descripcion": ruta.get("descripcion")
+            }
+            
+            return Ruta(**ruta_dict)
             
         except Exception as e:
             raise HTTPException(
@@ -233,11 +484,67 @@ class RutaService:
             cursor = self.rutas_collection.find(query).skip(skip).limit(limit)
             rutas = await cursor.to_list(length=limit)
             
-            # Convertir ObjectId a string
+            # Convertir a formato esperado
+            rutas_convertidas = []
             for ruta in rutas:
-                ruta["id"] = str(ruta.pop("_id"))
+                # La empresa está directamente embebida en la ruta
+                empresa_data = ruta.get("empresa", {})
+                resolucion_data = ruta.get("resolucion", {})
+                
+                ruta_dict = {
+                    "id": str(ruta.pop("_id")),
+                    "codigoRuta": ruta.get("codigoRuta", ""),
+                    "nombre": ruta.get("nombre", ""),
+                    
+                    # Localidades embebidas
+                    "origen": ruta.get("origen", {}),
+                    "destino": ruta.get("destino", {}),
+                    "itinerario": ruta.get("itinerario", []),
+                    
+                    # Empresa embebida
+                    "empresa": {
+                        "id": empresa_data.get("id", ""),
+                        "ruc": empresa_data.get("ruc", ""),
+                        "razonSocial": empresa_data.get("razonSocial", "")
+                    },
+                    
+                    # Resolución embebida
+                    "resolucion": {
+                        "id": resolucion_data.get("id", ""),
+                        "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                        "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                        "estado": resolucion_data.get("estado", "")
+                    },
+                    
+                    # Frecuencia
+                    "frecuencia": {
+                        "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                        "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                        "dias": ruta.get("frecuencia", {}).get("dias", []),
+                        "descripcion": ruta.get("frecuencia", {}).get("descripcion", "Sin frecuencia")
+                    },
+                    
+                    
+                    "horarios": [],
+                    "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+                    "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+                    "estado": ruta.get("estado", "ACTIVA"),
+                    "estaActivo": ruta.get("estaActivo", True),
+                    "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+                    "fechaActualizacion": ruta.get("fechaActualizacion"),
+                    
+                    # Campos opcionales
+                    "distancia": ruta.get("distancia"),
+                    "tiempoEstimado": ruta.get("tiempoEstimado"),
+                    "tarifaBase": ruta.get("tarifaBase"),
+                    "capacidadMaxima": ruta.get("capacidadMaxima"),
+                    "restricciones": ruta.get("restricciones", []),
+                    "observaciones": ruta.get("observaciones", ""),
+                    "descripcion": ruta.get("descripcion")
+                }
+                rutas_convertidas.append(ruta_dict)
             
-            return [Ruta(**ruta) for ruta in rutas]
+            return rutas_convertidas
             
         except Exception as e:
             raise HTTPException(
@@ -249,14 +556,71 @@ class RutaService:
         """Obtener rutas de una empresa específica"""
         try:
             rutas = await self.rutas_collection.find({
-                "empresaId": empresa_id,
+                "resolucion.empresa.id": empresa_id,
                 "estaActivo": True
             }).to_list(length=None)
             
+            # Convertir a formato esperado
+            rutas_convertidas = []
             for ruta in rutas:
-                ruta["id"] = str(ruta.pop("_id"))
+                # La empresa está directamente embebida en la ruta
+                empresa_data = ruta.get("empresa", {})
+                resolucion_data = ruta.get("resolucion", {})
+                
+                ruta_dict = {
+                    "id": str(ruta.pop("_id")),
+                    "codigoRuta": ruta.get("codigoRuta", ""),
+                    "nombre": ruta.get("nombre", ""),
+                    
+                    # Localidades embebidas
+                    "origen": ruta.get("origen", {}),
+                    "destino": ruta.get("destino", {}),
+                    "itinerario": ruta.get("itinerario", []),
+                    
+                    # Empresa embebida
+                    "empresa": {
+                        "id": empresa_data.get("id", ""),
+                        "ruc": empresa_data.get("ruc", ""),
+                        "razonSocial": empresa_data.get("razonSocial", "")
+                    },
+                    
+                    # Resolución embebida
+                    "resolucion": {
+                        "id": resolucion_data.get("id", ""),
+                        "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                        "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                        "estado": resolucion_data.get("estado", "")
+                    },
+                    
+                    # Frecuencia
+                    "frecuencia": {
+                        "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                        "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                        "dias": ruta.get("frecuencia", {}).get("dias", []),
+                        "descripcion": ruta.get("frecuencia", {}).get("descripcion", "Sin frecuencia")
+                    },
+                    
+                    
+                    "horarios": [],
+                    "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+                    "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+                    "estado": ruta.get("estado", "ACTIVA"),
+                    "estaActivo": ruta.get("estaActivo", True),
+                    "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+                    "fechaActualizacion": ruta.get("fechaActualizacion"),
+                    
+                    # Campos opcionales
+                    "distancia": ruta.get("distancia"),
+                    "tiempoEstimado": ruta.get("tiempoEstimado"),
+                    "tarifaBase": ruta.get("tarifaBase"),
+                    "capacidadMaxima": ruta.get("capacidadMaxima"),
+                    "restricciones": ruta.get("restricciones", []),
+                    "observaciones": ruta.get("observaciones", ""),
+                    "descripcion": ruta.get("descripcion")
+                }
+                rutas_convertidas.append(ruta_dict)
             
-            return [Ruta(**ruta) for ruta in rutas]
+            return rutas_convertidas
             
         except Exception as e:
             raise HTTPException(
@@ -268,14 +632,71 @@ class RutaService:
         """Obtener rutas de una resolución específica"""
         try:
             rutas = await self.rutas_collection.find({
-                "resolucionId": resolucion_id,
+                "resolucion.id": resolucion_id,
                 "estaActivo": True
             }).to_list(length=None)
             
+            # Convertir a formato esperado
+            rutas_convertidas = []
             for ruta in rutas:
-                ruta["id"] = str(ruta.pop("_id"))
+                # La empresa está directamente embebida en la ruta
+                empresa_data = ruta.get("empresa", {})
+                resolucion_data = ruta.get("resolucion", {})
+                
+                ruta_dict = {
+                    "id": str(ruta.pop("_id")),
+                    "codigoRuta": ruta.get("codigoRuta", ""),
+                    "nombre": ruta.get("nombre", ""),
+                    
+                    # Localidades embebidas
+                    "origen": ruta.get("origen", {}),
+                    "destino": ruta.get("destino", {}),
+                    "itinerario": ruta.get("itinerario", []),
+                    
+                    # Empresa embebida
+                    "empresa": {
+                        "id": empresa_data.get("id", ""),
+                        "ruc": empresa_data.get("ruc", ""),
+                        "razonSocial": empresa_data.get("razonSocial", "")
+                    },
+                    
+                    # Resolución embebida
+                    "resolucion": {
+                        "id": resolucion_data.get("id", ""),
+                        "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                        "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                        "estado": resolucion_data.get("estado", "")
+                    },
+                    
+                    # Frecuencia
+                    "frecuencia": {
+                        "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                        "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                        "dias": ruta.get("frecuencia", {}).get("dias", []),
+                        "descripcion": ruta.get("frecuencia", {}).get("descripcion", "Sin frecuencia")
+                    },
+                    
+                    
+                    "horarios": [],
+                    "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+                    "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+                    "estado": ruta.get("estado", "ACTIVA"),
+                    "estaActivo": ruta.get("estaActivo", True),
+                    "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+                    "fechaActualizacion": ruta.get("fechaActualizacion"),
+                    
+                    # Campos opcionales
+                    "distancia": ruta.get("distancia"),
+                    "tiempoEstimado": ruta.get("tiempoEstimado"),
+                    "tarifaBase": ruta.get("tarifaBase"),
+                    "capacidadMaxima": ruta.get("capacidadMaxima"),
+                    "restricciones": ruta.get("restricciones", []),
+                    "observaciones": ruta.get("observaciones", ""),
+                    "descripcion": ruta.get("descripcion")
+                }
+                rutas_convertidas.append(ruta_dict)
             
-            return [Ruta(**ruta) for ruta in rutas]
+            return rutas_convertidas
             
         except Exception as e:
             raise HTTPException(
@@ -290,49 +711,75 @@ class RutaService:
     ) -> List[Ruta]:
         """Obtener rutas filtradas por empresa y resolución"""
         try:
-            # CORREGIDO: usar nombres de campos con guión bajo como están en la BD
+            # Buscar rutas que tengan la empresa y resolución en sus objetos embebidos
             rutas = await self.rutas_collection.find({
-                "empresa_id": empresa_id,
-                "resolucion_id": resolucion_id,
-                "estado": "activo"  # También corregido: usar 'estado' en lugar de 'estaActivo'
+                "resolucion.empresa.id": empresa_id,
+                "resolucion.id": resolucion_id,
+                "estaActivo": True
             }).to_list(length=None)
             
-            # Convertir ObjectId a string y mapear campos
+            # Convertir a formato esperado por el modelo
             rutas_convertidas = []
             for ruta in rutas:
+                # Extraer datos de empresa y resolución embebidos
+                # La empresa está directamente embebida en la ruta
+                empresa_data = ruta.get("empresa", {})
+                resolucion_data = ruta.get("resolucion", {})
+                
                 ruta_dict = {
                     "id": str(ruta.pop("_id")),
                     "codigoRuta": ruta.get("codigoRuta", ""),
-                    "nombre": ruta.get("descripcion", ""),  # Mapear descripcion a nombre
-                    "origenId": ruta.get("origen", ""),
-                    "destinoId": ruta.get("destino", ""),
-                    "origen": ruta.get("origen", ""),
-                    "destino": ruta.get("destino", ""),
-                    "itinerarioIds": [],
-                    "frecuencias": "Diaria",  # Valor por defecto
-                    "estado": "ACTIVA",  # Mapear estado activo a ACTIVA
-                    "estaActivo": True,
-                    "fechaRegistro": ruta.get("fechaCreacion", datetime.utcnow()),
-                    "fechaActualizacion": None,
-                    "tipoRuta": "INTERPROVINCIAL",  # Valor por defecto
-                    "tipoServicio": "PASAJEROS",  # Valor por defecto
-                    "distancia": ruta.get("distancia", 0.0),
-                    "tiempoEstimado": ruta.get("duracion", ""),
-                    "tarifaBase": ruta.get("tarifa", 0.0),
-                    "capacidadMaxima": 50,  # Valor por defecto
+                    "nombre": ruta.get("nombre", ""),
+                    
+                    # Localidades embebidas
+                    "origen": ruta.get("origen", {}),
+                    "destino": ruta.get("destino", {}),
+                    "itinerario": ruta.get("itinerario", []),
+                    
+                    # Empresa embebida
+                    "empresa": {
+                        "id": empresa_data.get("id", ""),
+                        "ruc": empresa_data.get("ruc", ""),
+                        "razonSocial": empresa_data.get("razonSocial", "")
+                    },
+                    
+                    # Resolución embebida
+                    "resolucion": {
+                        "id": resolucion_data.get("id", ""),
+                        "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                        "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                        "estado": resolucion_data.get("estado", "")
+                    },
+                    
+                    # Frecuencia
+                    "frecuencia": {
+                        "tipo": ruta.get("frecuencia", {}).get("tipo", "DIARIO"),
+                        "cantidad": ruta.get("frecuencia", {}).get("cantidad", 1),
+                        "dias": ruta.get("frecuencia", {}).get("dias", []),
+                        "descripcion": ruta.get("frecuencia", {}).get("descripcion", "Sin frecuencia")
+                    },
+                    
+                    
                     "horarios": [],
-                    "restricciones": [],
-                    "observaciones": "",
-                    "empresasAutorizadasIds": [],
-                    "vehiculosAsignadosIds": [],
-                    "documentosIds": [],
-                    "historialIds": [],
-                    "empresaId": str(ruta.get("empresa_id", "")),
-                    "resolucionId": str(ruta.get("resolucion_id", ""))
+                    "tipoRuta": ruta.get("tipoRuta", "INTERPROVINCIAL"),
+                    "tipoServicio": ruta.get("tipoServicio", "PASAJEROS"),
+                    "estado": ruta.get("estado", "ACTIVA"),
+                    "estaActivo": ruta.get("estaActivo", True),
+                    "fechaRegistro": ruta.get("fechaRegistro", datetime.utcnow()),
+                    "fechaActualizacion": ruta.get("fechaActualizacion"),
+                    
+                    # Campos opcionales
+                    "distancia": ruta.get("distancia"),
+                    "tiempoEstimado": ruta.get("tiempoEstimado"),
+                    "tarifaBase": ruta.get("tarifaBase"),
+                    "capacidadMaxima": ruta.get("capacidadMaxima"),
+                    "restricciones": ruta.get("restricciones", []),
+                    "observaciones": ruta.get("observaciones", ""),
+                    "descripcion": ruta.get("descripcion")
                 }
                 rutas_convertidas.append(ruta_dict)
             
-            return [Ruta(**ruta) for ruta in rutas_convertidas]
+            return rutas_convertidas
             
         except Exception as e:
             raise HTTPException(
@@ -429,6 +876,44 @@ class RutaService:
                 detail=f"Error al eliminar ruta: {str(e)}"
             )
     
+    async def delete_ruta(self, ruta_id: str) -> bool:
+        """Eliminar ruta físicamente de la base de datos"""
+        try:
+            # Validar que la ruta existe
+            ruta_existente = await self.get_ruta_by_id(ruta_id)
+            if not ruta_existente:
+                return False
+            
+            # Obtener datos de la ruta antes de eliminar
+            ruta = await self.rutas_collection.find_one({"_id": ObjectId(ruta_id)})
+            
+            # Eliminar físicamente
+            resultado = await self.rutas_collection.delete_one(
+                {"_id": ObjectId(ruta_id)}
+            )
+            
+            if resultado.deleted_count > 0:
+                # Remover de relaciones si existían
+                if ruta and ruta.get("empresaId"):
+                    await self.empresas_collection.update_one(
+                        {"_id": ObjectId(ruta["empresaId"])},
+                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
+                    )
+                
+                if ruta and ruta.get("resolucionId"):
+                    await self.resoluciones_collection.update_one(
+                        {"_id": ObjectId(ruta["resolucionId"])},
+                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
+                    )
+            
+            return resultado.deleted_count > 0
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al eliminar ruta físicamente: {str(e)}"
+            )
+    
     async def generar_siguiente_codigo(self, resolucion_id: str) -> str:
         """Generar el siguiente código disponible para una resolución"""
         try:
@@ -515,8 +1000,8 @@ class RutaService:
                 "pasajeros": stats.get("pasajeros", 0),
                 "carga": stats.get("carga", 0),
                 "mixto": stats.get("mixto", 0),
-                "distancia_promedio": round(stats.get("distancia_promedio", 0.0), 2),
-                "tarifa_promedio": round(stats.get("tarifa_promedio", 0.0), 2)
+                "distancia_promedio": round(stats.get("distancia_promedio") or 0.0, 2),
+                "tarifa_promedio": round(stats.get("tarifa_promedio") or 0.0, 2)
             }
             
         except Exception as e:
@@ -553,69 +1038,6 @@ class RutaService:
                 status_code=500,
                 detail=f"Error al obtener rutas con filtros: {str(e)}"
             )
-    async def get_rutas_filtro_avanzado(self, filtros: Dict[str, Any]) -> List[Dict]:
-        """
-        Obtener rutas con filtro avanzado por origen y destino
-        
-        Args:
-            filtros: Diccionario con filtros (origen, destino)
-            
-        Returns:
-            Lista de rutas que coinciden con los filtros
-        """
-        try:
-            # Construir query de MongoDB
-            query = {"estaActivo": True}
-            
-            # Filtro por origen
-            if filtros.get('origen'):
-                # Buscar tanto en campo 'origen' como 'origenId'
-                query["$or"] = [
-                    {"origen": {"$regex": filtros['origen'], "$options": "i"}},
-                    {"origenId": {"$regex": filtros['origen'], "$options": "i"}}
-                ]
-            
-            # Filtro por destino
-            if filtros.get('destino'):
-                destino_query = [
-                    {"destino": {"$regex": filtros['destino'], "$options": "i"}},
-                    {"destinoId": {"$regex": filtros['destino'], "$options": "i"}}
-                ]
-                
-                if "$or" in query:
-                    # Combinar con filtro de origen usando $and
-                    query = {
-                        "$and": [
-                            {"$or": query["$or"]},
-                            {"$or": destino_query},
-                            {"estaActivo": True}
-                        ]
-                    }
-                else:
-                    query["$or"] = destino_query
-            
-            print(f"🔍 QUERY FILTRO AVANZADO: {query}")
-            
-            # Ejecutar consulta
-            cursor = self.rutas_collection.find(query)
-            rutas = await cursor.to_list(length=None)
-            
-            # Convertir ObjectId a string
-            for ruta in rutas:
-                if "_id" in ruta:
-                    ruta["id"] = str(ruta["_id"])
-                    del ruta["_id"]
-            
-            print(f"✅ RUTAS ENCONTRADAS: {len(rutas)}")
-            return rutas
-            
-        except Exception as e:
-            print(f"❌ ERROR EN FILTRO AVANZADO: {e}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error al aplicar filtro avanzado: {str(e)}"
-            )
-    
     async def get_origenes_destinos_unicos(self) -> Dict[str, List[str]]:
         """
         Obtener lista única de orígenes y destinos de todas las rutas

@@ -13,19 +13,19 @@ export class AppInitializerService {
    */
   async initialize(): Promise<void> {
     try {
-      console.log('🚀 Inicializando aplicación SIRRET...');
+      // console.log removed for production
       
       // Verificar y asegurar autenticación
       const isAuthenticated = await this.autoLoginService.ensureAuthenticated();
       
       if (isAuthenticated) {
-        console.log('✅ Aplicación inicializada con autenticación válida');
+        // console.log removed for production
       } else {
-        console.log('⚠️ Aplicación inicializada sin autenticación');
+        // console.log removed for production
       }
       
     } catch (error) {
-      console.error('❌ Error inicializando aplicación:', error);
+      console.error('❌ Error inicializando aplicación::', error);
       // No lanzar error para no bloquear la aplicación
     }
   }

@@ -891,7 +891,7 @@ export class ExpedientesComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar expedientes:', error);
+        console.error('Error al cargar expedientes::', error);
         this.isLoading.set(false);
         this.snackBar.open('Error al cargar expedientes', 'Cerrar', {
           duration: 3000
@@ -1117,7 +1117,7 @@ export class ExpedientesComponent implements OnInit {
         this.empresas.set(empresas);
       },
       error: (error) => {
-        console.error('Error al cargar empresas:', error);
+        console.error('Error al cargar empresas::', error);
       }
     });
   }

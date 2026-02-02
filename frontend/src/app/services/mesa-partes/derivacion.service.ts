@@ -73,10 +73,10 @@ export class DerivacionService {
     if (estado) {
       params = params.set('estado', estado);
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 

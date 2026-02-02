@@ -740,7 +740,7 @@ export class EmpresaFormComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('ERROR CARGANDO EMPRESA:', error);
+        console.error('ERROR CARGANDO EMPRESA::', error);
         this.snackBar.open('ERROR AL CARGAR LA EMPRESA', 'CERRAR', { duration: 3000 });
         this.isLoading.set(false);
         this.cdr.detectChanges();
@@ -758,7 +758,7 @@ export class EmpresaFormComponent implements OnInit {
           }
         },
         error: (error) => {
-          console.error('ERROR VALIDANDO RUC:', error);
+          console.error('ERROR VALIDANDO RUC::', error);
         }
       });
     }
@@ -829,7 +829,7 @@ export class EmpresaFormComponent implements OnInit {
         },
         error: (error) => {
           this.isSubmitting.set(false);
-          console.error('ERROR GUARDANDO EMPRESA:', error);
+          console.error('ERROR GUARDANDO EMPRESA::', error);
           const message = this.isEditing() ? 'ERROR AL ACTUALIZAR EMPRESA' : 'ERROR AL CREAR EMPRESA';
           this.snackBar.open(message, 'CERRAR', { duration: 3000 });
         }

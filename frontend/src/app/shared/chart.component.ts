@@ -132,7 +132,7 @@ export class ChartComponent implements OnInit, OnDestroy {
       
       this.loading.set(false);
     } catch (err) {
-      console.error('Error loading chart:', err);
+      console.error('Error loading chart::', err);
       this.error.set(true);
       this.loading.set(false);
     }

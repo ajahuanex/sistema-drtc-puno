@@ -4,7 +4,7 @@ export const environment = {
   baseUrl: 'http://localhost:8000',
   frontendUrl: 'http://localhost:4200',
   systemName: 'SIRRET',
-  systemFullName: 'Sistema Regional de Registros de Transporte',
+  systemFullName: 'Sistema Regional de Registros de Transporte (SIRRET)',
   entityName: 'Dirección Regional de Transportes y Comunicaciones Puno',
   version: '1.0.0',
   useDataManager: false

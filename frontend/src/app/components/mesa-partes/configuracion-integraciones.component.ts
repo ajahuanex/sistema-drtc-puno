@@ -99,7 +99,7 @@ import { WebhookConfigModalComponent, WebhookConfigData } from './webhook-config
                 <mat-card-title>
                   <mat-icon>settings</mat-icon>
                   Integraciones Configuradas
-                  <span class="count-badge">({{ integraciones.length }})</span>
+                  <span class="count-badge">({{ (integraciones)?.length || 0 }})</span>
                 </mat-card-title>
               </mat-card-header>
 
@@ -891,7 +891,7 @@ export class ConfiguracionIntegracionesComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
         error: (error) => {
-          console.error('Error al cargar integraciones:', error);
+          console.error('Error al cargar integraciones::', error);
           this.loading = false;
           this.snackBar.open('Error al cargar integraciones', 'Cerrar', {
             duration: 3000
@@ -923,7 +923,7 @@ export class ConfiguracionIntegracionesComponent implements OnInit, OnDestroy {
           this.loadingLogs = false;
         },
         error: (error) => {
-          console.error('Error al cargar logs:', error);
+          console.error('Error al cargar logs::', error);
           this.loadingLogs = false;
           this.snackBar.open('Error al cargar logs', 'Cerrar', {
             duration: 3000
@@ -1007,7 +1007,7 @@ export class ConfiguracionIntegracionesComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Error al probar conexión:', error);
+          console.error('Error al probar conexión::', error);
           this.probandoConexion[integracion.id] = false;
           integracion.estadoConexion = EstadoConexion.ERROR;
           this.snackBar.open('Error al probar conexión', 'Cerrar', {
@@ -1067,7 +1067,7 @@ export class ConfiguracionIntegracionesComponent implements OnInit, OnDestroy {
             });
           },
           error: (error) => {
-            console.error('Error al eliminar integración:', error);
+            console.error('Error al eliminar integración::', error);
             this.snackBar.open('Error al eliminar integración', 'Cerrar', {
               duration: 3000
             });
@@ -1081,7 +1081,7 @@ export class ConfiguracionIntegracionesComponent implements OnInit, OnDestroy {
    * Requirements: 4.5, 4.6
    */
   verDetallesLog(log: LogSincronizacion): void {
-    console.log('Ver detalles del log:', log);
+    // console.log removed for production
     // TODO: Implementar modal con detalles del log
     this.snackBar.open('Detalles del log próximamente disponibles', 'Cerrar', {
       duration: 2000

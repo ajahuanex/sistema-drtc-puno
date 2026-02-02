@@ -95,20 +95,20 @@ export class ResolucionService {
     if (tipo) params.append('tipo_tramite', tipo);
 
     const finalUrl = `${url}?${params.toString()}`;
-    console.log('🔍 [RESOLUCION-SERVICE] URL construida:', finalUrl);
-    console.log('🔍 [RESOLUCION-SERVICE] Parámetros:', { skip, limit, estado, empresaId, tipo });
+    // console.log removed for production
+    // console.log removed for production
 
     return this.http.get<Resolucion[]>(finalUrl, { headers: this.getHeaders() })
       .pipe(
         tap(resoluciones => {
-          console.log('✅ [RESOLUCION-SERVICE] Resoluciones obtenidas:', resoluciones.length);
+          // console.log removed for production
         }),
         catchError(error => {
-          console.error('❌ [RESOLUCION-SERVICE] Error fetching resoluciones:', error);
+          console.error('❌ [RESOLUCION-SERVICE] Error fetching resoluciones::', error);
           
           // Si es error de autenticación y no hay token, devolver array vacío
           if ((error.status === 401 || error.status === 403) && !this.authService.getToken()) {
-            console.log('Sin autenticación: devolviendo resoluciones vacías');
+            // console.log removed for production
             return of([]);
           }
           
@@ -123,7 +123,7 @@ export class ResolucionService {
     return this.http.get<Resolucion>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error fetching resolucion:', error);
+          console.error('Error fetching resolucion::', error);
           // No hay fallback disponible
           return throwError(() => new Error('Resolución no encontrada'));
         })
@@ -198,14 +198,14 @@ export class ResolucionService {
       usuarioAnulacionId: null
     };
 
-    console.log('Creando resolución en backend:', resolucionBackend);
-    console.log('URL del backend:', url);
+    // console.log removed for production
+    // console.log removed for production
     console.log('Headers:', this.getHeaders());
 
     return this.http.post<Resolucion>(url, resolucionBackend, { headers: this.getHeaders() })
       .pipe(
         tap(resolucionCreada => {
-          console.log('Resolución creada exitosamente en backend:', resolucionCreada);
+          // console.log removed for production
           // Resolución creada exitosamente
           const nuevaResolucion: Resolucion = {
             id: resolucionCreada.id || Date.now().toString(),
@@ -233,12 +233,12 @@ export class ResolucionService {
             documentos: resolucionCreada.documentos || [],
             auditoria: resolucionCreada.auditoria || []
           };
-          console.log('Resolución creada:', nuevaResolucion);
+          // console.log removed for production
 
           // Las relaciones padre-hijo se manejan en el backend
         }),
         catchError(error => {
-          console.error('Error creating resolucion in backend:', error);
+          console.error('Error creating resolucion in backend::', error);
           return throwError(() => error);
         })
       );
@@ -250,7 +250,7 @@ export class ResolucionService {
     return this.http.put<Resolucion>(url, resolucion, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error updating resolucion:', error);
+          console.error('Error updating resolucion::', error);
           return throwError(() => error);
         })
       );
@@ -262,16 +262,16 @@ export class ResolucionService {
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error deleting resolucion:', error);
+          console.error('Error deleting resolucion::', error);
           return throwError(() => error);
         })
       );
   }
 
   getResolucionesPorEmpresa(empresaId: string): Observable<Resolucion[]> {
-    console.log('=== INICIO getResolucionesPorEmpresa ===');
-    console.log('Empresa ID solicitada:', empresaId);
-    console.log('Consultando resoluciones desde backend');
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     const url = `${this.apiUrl}/resoluciones`;
     const params = new URLSearchParams();
@@ -282,27 +282,18 @@ export class ResolucionService {
     return this.http.get<Resolucion[]>(`${url}?${params.toString()}`, { headers: this.getHeaders() })
       .pipe(
         tap((resoluciones: Resolucion[]) => {
-          console.log('=== DATOS DEL BACKEND ===');
-          console.log('Resoluciones recibidas del backend:', resoluciones);
-          console.log('Total de resoluciones del backend:', resoluciones.length);
+          // console.log removed for production
+          // console.log removed for production
+          // console.log removed for production
 
           // Log detallado de cada resolución del backend
           resoluciones.forEach((r: Resolucion, index: number) => {
-            console.log(`Resolución backend ${index + 1}:`, {
-              id: r.id,
-              nroResolucion: r.nroResolucion,
-              empresaId: r.empresaId,
-              tipoResolucion: r.tipoResolucion,
-              estado: r.estado,
-              estaActivo: r.estaActivo,
-              // Log completo para debugging
-              objetoCompleto: r
-            });
+            // console.log removed for production
           });
-          console.log('=== FIN DATOS DEL BACKEND ===');
+          // console.log removed for production
         }),
         catchError(error => {
-          console.error('Error fetching resoluciones por empresa:', error);
+          console.error('Error fetching resoluciones por empresa::', error);
           return throwError(() => error);
         })
       );
@@ -314,7 +305,7 @@ export class ResolucionService {
     return this.http.post<Resolucion>(url, {}, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error adding resolucion to empresa:', error);
+          console.error('Error adding resolucion to empresa::', error);
           // Error al agregar resolución a empresa
           return throwError(() => new Error('Resolución no encontrada'));
         })
@@ -327,7 +318,7 @@ export class ResolucionService {
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error removing resolucion from empresa:', error);
+          console.error('Error removing resolucion from empresa::', error);
           // Simular éxito en caso de error
           return of(void 0);
         })
@@ -348,15 +339,15 @@ export class ResolucionService {
 
   // Método para debuggear el estado actual de los datos del backend
   debugData(): void {
-    console.log('=== DEBUG DATOS BACKEND ===');
+    // console.log removed for production
     this.getResoluciones().subscribe(resoluciones => {
-      console.log('Total de resoluciones en backend:', resoluciones.length);
+      // console.log removed for production
       const empresas = Array.from(new Set(resoluciones.map(r => r.empresaId)));
       empresas.forEach(empresaId => {
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
-        console.log(`Empresa ${empresaId}:`, resolucionesEmpresa.length);
+        // console.log removed for production
       });
-      console.log('========================');
+      // console.log removed for production
     });
   }
 
@@ -366,7 +357,7 @@ export class ResolucionService {
    * @returns Observable con las resoluciones filtradas
    */
   getResolucionesFiltradas(filtros: ResolucionFiltros): Observable<ResolucionConEmpresa[]> {
-    console.log('=== getResolucionesFiltradas ===');
+    // console.log removed for production
     console.log('Filtros recibidos (frontend):', filtros);
 
     // Iniciar medición de rendimiento
@@ -374,7 +365,7 @@ export class ResolucionService {
 
     // Si hay búsqueda general, usar filtrado local
     if (filtros.busquedaGeneral) {
-      console.log('🔍 Usando filtrado local para búsqueda general');
+      // console.log removed for production
       return this.getResolucionesConEmpresa().pipe(
         map(resoluciones => this.filtrarResolucionesLocal(resoluciones, filtros)),
         tap(resoluciones => {
@@ -400,7 +391,7 @@ export class ResolucionService {
     return this.http.post<Resolucion[]>(url, filtrosBackend, { headers: this.getHeaders() })
       .pipe(
         switchMap((resoluciones: Resolucion[]) => {
-          console.log('Resoluciones del backend:', resoluciones.length);
+          // console.log removed for production
           return this.enrichResolucionesConEmpresa(resoluciones);
         }),
         tap(resoluciones => {
@@ -415,7 +406,7 @@ export class ResolucionService {
           });
         }),
         catchError(error => {
-          console.error('Error fetching filtered resoluciones from backend, usando filtrado local:', error);
+          console.error('Error fetching filtered resoluciones from backend, usando filtrado local::', error);
           // Fallback a filtrado local
           return this.getResolucionesConEmpresa().pipe(
             map(resoluciones => this.filtrarResolucionesLocal(resoluciones, filtros))
@@ -474,7 +465,7 @@ export class ResolucionService {
    * @returns Lista filtrada
    */
   private filtrarResolucionesLocal(resoluciones: ResolucionConEmpresa[], filtros: ResolucionFiltros): ResolucionConEmpresa[] {
-    console.log('🔍 Filtrando localmente:', resoluciones.length, 'resoluciones con filtros:', filtros);
+    // console.log removed for production
     
     const resultados = resoluciones.filter(resolucion => {
       // Búsqueda general (número, razón social o RUC)
@@ -484,14 +475,7 @@ export class ResolucionService {
         const coincideRazonSocial = resolucion.empresa?.razonSocial?.principal?.toLowerCase().includes(busqueda) || false;
         const coincideRUC = resolucion.empresa?.ruc?.includes(busqueda) || false;
         
-        console.log(`Evaluando ${resolucion.nroResolucion}:`, {
-          busqueda,
-          coincideNumero,
-          coincideRazonSocial,
-          coincideRUC,
-          razonSocial: resolucion.empresa?.razonSocial?.principal,
-          ruc: resolucion.empresa?.ruc
-        });
+        // console.log removed for production
         
         if (!coincideNumero && !coincideRazonSocial && !coincideRUC) {
           return false;
@@ -548,7 +532,7 @@ export class ResolucionService {
       return true;
     });
     
-    console.log('✅ Resultados filtrados:', resultados.length);
+    // console.log removed for production
     return resultados;
   }
 
@@ -557,7 +541,7 @@ export class ResolucionService {
    * @returns Observable con las resoluciones enriquecidas con datos de empresa
    */
   getResolucionesConEmpresa(): Observable<ResolucionConEmpresa[]> {
-    console.log('=== getResolucionesConEmpresa ===');
+    // console.log removed for production
 
     return this.getResoluciones().pipe(
       switchMap((resoluciones: Resolucion[]) => {
@@ -611,12 +595,7 @@ export class ResolucionService {
           };
 
           // Log para debuggear
-          console.log(`📊 Resolución ${resolucion.nroResolucion}:`, {
-            rutasAutorizadasIds: resolucion.rutasAutorizadasIds,
-            vehiculosHabilitadosIds: resolucion.vehiculosHabilitadosIds,
-            cantidadRutas: resolucionEnriquecida.cantidadRutas,
-            cantidadVehiculos: resolucionEnriquecida.cantidadVehiculos
-          });
+          // console.log removed for production
 
           if (empresa) {
             resolucionEnriquecida.empresa = {
@@ -632,7 +611,7 @@ export class ResolucionService {
           return resolucionEnriquecida;
         });
 
-        console.log('Resoluciones enriquecidas con empresa y conteos:', resolucionesConEmpresa.length);
+        // console.log removed for production
         return resolucionesConEmpresa;
       })
     );
@@ -645,9 +624,9 @@ export class ResolucionService {
    * @returns Observable con el blob del archivo exportado
    */
   exportarResoluciones(filtros: ResolucionFiltros, formato: 'excel' | 'pdf' = 'excel'): Observable<Blob> {
-    console.log('=== exportarResoluciones ===');
-    console.log('Formato:', formato);
-    console.log('Filtros:', filtros);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     const url = `${this.apiUrl}/resoluciones/exportar`;
     const params = new URLSearchParams();
@@ -662,7 +641,7 @@ export class ResolucionService {
       }
     ).pipe(
       catchError(error => {
-        console.error('Error exporting resoluciones:', error);
+        console.error('Error exporting resoluciones::', error);
 
         // Fallback: generar exportación local simple
         return this.getResolucionesFiltradas(filtros).pipe(
@@ -699,9 +678,9 @@ export class ResolucionService {
     resoluciones: ResolucionConEmpresa[], 
     columnasVisibles: string[]
   ): Observable<Blob> {
-    console.log('=== exportarResolucionesSeleccionadas ===');
-    console.log('Resoluciones a exportar:', resoluciones.length);
-    console.log('Columnas visibles:', columnasVisibles);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     return this.generarExcel(resoluciones, columnasVisibles);
   }
@@ -807,7 +786,7 @@ export class ResolucionService {
           observer.complete();
         });
       } catch (error) {
-        console.error('Error generando Excel:', error);
+        console.error('Error generando Excel::', error);
         observer.error(error);
       }
     });
@@ -819,8 +798,8 @@ export class ResolucionService {
    * @returns Observable con las estadísticas
    */
   getEstadisticasFiltros(filtros: ResolucionFiltros): Observable<EstadisticasResoluciones> {
-    console.log('=== getEstadisticasFiltros ===');
-    console.log('Filtros:', filtros);
+    // console.log removed for production
+    // console.log removed for production
 
     return this.getResolucionesFiltradas(filtros).pipe(
       map(resoluciones => {
@@ -859,7 +838,7 @@ export class ResolucionService {
           }
         });
 
-        console.log('Estadísticas calculadas:', estadisticas);
+        // console.log removed for production
         return estadisticas;
       })
     );
@@ -871,8 +850,8 @@ export class ResolucionService {
    * @returns Observable con la información completa
    */
   getResolucionCompleta(resolucionId: string): Observable<any> {
-    console.log('=== getResolucionCompleta ===');
-    console.log('Resolución ID:', resolucionId);
+    // console.log removed for production
+    // console.log removed for production
 
     return forkJoin({
       resolucion: this.getResolucionById(resolucionId),
@@ -887,7 +866,7 @@ export class ResolucionService {
         cantidadVehiculos: vehiculos.length
       })),
       catchError(error => {
-        console.error('Error obteniendo resolución completa:', error);
+        console.error('Error obteniendo resolución completa::', error);
         return throwError(() => error);
       })
     );
@@ -903,7 +882,7 @@ export class ResolucionService {
     
     return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error obteniendo rutas por resolución:', error);
+        console.error('Error obteniendo rutas por resolución::', error);
         // Fallback: retornar array vacío
         return of([]);
       })
@@ -920,7 +899,7 @@ export class ResolucionService {
     
     return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error obteniendo vehículos por resolución:', error);
+        console.error('Error obteniendo vehículos por resolución::', error);
         // Fallback: retornar array vacío
         return of([]);
       })
@@ -936,7 +915,7 @@ export class ResolucionService {
     
     return this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error obteniendo estadísticas de relaciones:', error);
+        console.error('Error obteniendo estadísticas de relaciones::', error);
         // Fallback: calcular estadísticas localmente
         return this.calcularEstadisticasRelacionesLocal();
       })
@@ -985,7 +964,7 @@ export class ResolucionService {
       responseType: 'blob'
     }).pipe(
       catchError(error => {
-        console.error('Error descargando plantilla de resoluciones:', error);
+        console.error('Error descargando plantilla de resoluciones::', error);
         return throwError(() => new Error('Error al descargar la plantilla'));
       })
     );
@@ -1006,7 +985,7 @@ export class ResolucionService {
 
     return this.http.post(url, formData, { headers }).pipe(
       catchError(error => {
-        console.error('Error validando archivo de resoluciones:', error);
+        console.error('Error validando archivo de resoluciones::', error);
         return throwError(() => new Error('Error al validar el archivo'));
       })
     );
@@ -1035,7 +1014,7 @@ export class ResolucionService {
 
     return this.http.post(finalUrl, formData, { headers }).pipe(
       catchError(error => {
-        console.error('Error procesando carga masiva de resoluciones:', error);
+        console.error('Error procesando carga masiva de resoluciones::', error);
         return throwError(() => new Error('Error al procesar el archivo'));
       })
     );
@@ -1056,7 +1035,7 @@ export class ResolucionService {
       responseType: 'blob'
     }).pipe(
       catchError(error => {
-        console.error('Error descargando plantilla de resoluciones padres:', error);
+        console.error('Error descargando plantilla de resoluciones padres::', error);
         return throwError(() => new Error('Error al descargar la plantilla de resoluciones padres'));
       })
     );
@@ -1077,7 +1056,7 @@ export class ResolucionService {
 
     return this.http.post(url, formData, { headers }).pipe(
       catchError(error => {
-        console.error('Error validando archivo de resoluciones padres:', error);
+        console.error('Error validando archivo de resoluciones padres::', error);
         return throwError(() => new Error('Error al validar el archivo de resoluciones padres'));
       })
     );
@@ -1106,7 +1085,7 @@ export class ResolucionService {
 
     return this.http.post(finalUrl, formData, { headers }).pipe(
       catchError(error => {
-        console.error('Error procesando carga masiva de resoluciones padres:', error);
+        console.error('Error procesando carga masiva de resoluciones padres::', error);
         return throwError(() => new Error('Error al procesar el archivo de resoluciones padres'));
       })
     );
@@ -1122,7 +1101,7 @@ export class ResolucionService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo reporte de estados de resoluciones padres:', error);
+        console.error('Error obteniendo reporte de estados de resoluciones padres::', error);
         return throwError(() => new Error('Error al obtener el reporte de estados'));
       })
     );
@@ -1140,7 +1119,7 @@ export class ResolucionService {
 
     return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error obteniendo resoluciones eliminadas:', error);
+        console.error('Error obteniendo resoluciones eliminadas::', error);
         return throwError(() => new Error('Error al obtener resoluciones eliminadas'));
       })
     );
@@ -1154,7 +1133,7 @@ export class ResolucionService {
 
     return this.http.post(url, {}, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error restaurando resolución:', error);
+        console.error('Error restaurando resolución::', error);
         return throwError(() => new Error('Error al restaurar la resolución'));
       })
     );
@@ -1168,7 +1147,7 @@ export class ResolucionService {
 
     return this.http.post(url, resolucionesIds, { headers: this.getHeaders() }).pipe(
       catchError(error => {
-        console.error('Error restaurando resoluciones múltiples:', error);
+        console.error('Error restaurando resoluciones múltiples::', error);
         return throwError(() => new Error('Error al restaurar las resoluciones'));
       })
     );

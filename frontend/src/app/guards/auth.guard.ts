@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
     } else {
       // Solo redirigir si no estamos ya en login
       if (!currentUrl.includes('/login')) {
-        console.log('Usuario no autenticado, redirigiendo al login...');
+        // console.log removed for production
         this.router.navigate(['/login'], { replaceUrl: true });
       }
       return false;

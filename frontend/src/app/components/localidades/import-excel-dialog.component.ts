@@ -118,13 +118,13 @@ export class ImportExcelDialogComponent {
 
       // Mostrar errores si los hay
       if (result.errores && result.errores.length > 0) {
-        console.log('Errores de importación:', result.errores);
+        // console.log removed for production
       }
 
       this.dialogRef.close(true);
 
     } catch (error: any) {
-      console.error('Error importando archivo:', error);
+      console.error('Error importando archivo::', error);
       this.snackBar.open(
         error.error?.detail || 'Error importando archivo', 
         'Cerrar', 
@@ -146,7 +146,7 @@ export class ImportExcelDialogComponent {
         panelClass: ['snackbar-success']
       });
     } catch (error) {
-      console.error('Error descargando plantilla:', error);
+      console.error('Error descargando plantilla::', error);
       this.snackBar.open('Error descargando plantilla', 'Cerrar', {
         duration: 3000,
         panelClass: ['snackbar-error']
@@ -222,7 +222,7 @@ export class ImportExcelDialogComponent {
     const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     
-    if (link.download !== undefined) {
+    if (typeof link.download !== "undefined") {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
       link.setAttribute('download', nombreArchivo);

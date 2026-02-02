@@ -130,7 +130,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
               <mat-select formControlName="tiposTramite" multiple>
                 <mat-select-trigger>
                   @if (filtrosForm.get('tiposTramite')?.value?.length) {
-                    {{ filtrosForm.get('tiposTramite')?.value?.length }} seleccionado(s)
+                    {{ filtrosForm.get('tiposTramite')?.value?.length || 0 }} seleccionado(s)
                   } @else {
                     Seleccionar tipos
                   }
@@ -149,7 +149,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
               <mat-select formControlName="estados" multiple>
                 <mat-select-trigger>
                   @if (filtrosForm.get('estados')?.value?.length) {
-                    {{ filtrosForm.get('estados')?.value?.length }} seleccionado(s)
+                    {{ filtrosForm.get('estados')?.value?.length || 0 }} seleccionado(s)
                   } @else {
                     Seleccionar estados
                   }
@@ -813,7 +813,7 @@ export class ResolucionesFiltersComponent implements OnInit, OnDestroy {
       });
     }
 
-    if (filtros.activo !== undefined) {
+    if (typeof filtros.activo !== "undefined") {
       const estadoTexto = filtros.activo ? 'Activos' : 'Inactivos';
       activos.push({
         key: 'activo',

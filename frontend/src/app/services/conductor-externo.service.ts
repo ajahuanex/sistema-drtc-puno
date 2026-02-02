@@ -38,7 +38,7 @@ export class ConductorExternoService {
    * Por ahora retorna array vacío hasta que se implemente la integración
    */
   obtenerConductores(solicitud?: SolicitudConductores): Observable<RespuestaConductores> {
-    console.log('🔄 [CONDUCTOR-EXTERNO] Solicitud de conductores:', solicitud);
+    // console.log removed for production
     
     // TODO: Implementar llamada al sistema externo
     // return this.http.post<RespuestaConductores>(`${this.sistemaExternoUrl}/conductores`, solicitud);
@@ -57,7 +57,7 @@ export class ConductorExternoService {
       }
     };
     
-    console.log('ℹ️ [CONDUCTOR-EXTERNO] Sistema externo no configurado, retornando datos vacíos');
+    // console.log removed for production
     return of(respuestaVacia);
   }
 
@@ -65,12 +65,12 @@ export class ConductorExternoService {
    * Obtener conductor específico por DNI
    */
   obtenerConductorPorDni(dni: string): Observable<ConductorExterno | null> {
-    console.log('🔍 [CONDUCTOR-EXTERNO] Buscando conductor por DNI:', dni);
+    // console.log removed for production
     
     // TODO: Implementar búsqueda en sistema externo
     // return this.http.get<ConductorExterno>(`${this.sistemaExternoUrl}/conductores/dni/${dni}`);
     
-    console.log('ℹ️ [CONDUCTOR-EXTERNO] Sistema externo no configurado');
+    // console.log removed for production
     return of(null);
   }
 
@@ -78,7 +78,7 @@ export class ConductorExternoService {
    * Sincronizar conductores con el sistema externo
    */
   sincronizarConductores(forzarCompleta: boolean = false): Observable<EventoSincronizacionConductores> {
-    console.log('🔄 [CONDUCTOR-EXTERNO] Iniciando sincronización:', { forzarCompleta });
+    // console.log removed for production
     
     const inicioSincronizacion = Date.now();
     
@@ -95,7 +95,7 @@ export class ConductorExternoService {
       duracion: Date.now() - inicioSincronizacion
     };
     
-    console.log('ℹ️ [CONDUCTOR-EXTERNO] Sincronización simulada completada');
+    // console.log removed for production
     return of(eventoSimulado);
   }
 
@@ -103,10 +103,10 @@ export class ConductorExternoService {
    * Verificar estado de conexión con el sistema externo
    */
   verificarConexion(): Observable<boolean> {
-    console.log('🔍 [CONDUCTOR-EXTERNO] Verificando conexión con sistema externo');
+    // console.log removed for production
     
     if (!this.sistemaExternoUrl) {
-      console.log('⚠️ [CONDUCTOR-EXTERNO] URL del sistema externo no configurada');
+      // console.log removed for production
       this.estadoConexion$.next('DESCONECTADO');
       return of(false);
     }
@@ -138,7 +138,7 @@ export class ConductorExternoService {
    * Configurar parámetros del sistema externo
    */
   configurarSistemaExterno(config: ConfiguracionSistemaConductores): void {
-    console.log('⚙️ [CONDUCTOR-EXTERNO] Configurando sistema externo:', config);
+    // console.log removed for production
     
     this.sistemaExternoUrl = config.url;
     
@@ -168,7 +168,7 @@ export class ConductorExternoService {
    * Limpiar cache local
    */
   limpiarCache(): void {
-    console.log('🗑️ [CONDUCTOR-EXTERNO] Limpiando cache local');
+    // console.log removed for production
     this.conductoresCache = [];
     this.ultimaActualizacion = null;
   }
@@ -191,7 +191,7 @@ export class ConductorExternoService {
       ultimaActualizacion: this.ultimaActualizacion?.toISOString() || null
     };
     
-    console.log('📊 [CONDUCTOR-EXTERNO] Estadísticas calculadas:', estadisticas);
+    // console.log removed for production
     return of(estadisticas);
   }
 

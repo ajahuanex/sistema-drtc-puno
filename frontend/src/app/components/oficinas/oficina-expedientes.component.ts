@@ -478,7 +478,7 @@ export class OficinaExpedientesComponent implements OnInit {
         this.oficina.set(oficina);
       },
       error: (error) => {
-        console.error('Error al cargar oficina:', error);
+        console.error('Error al cargar oficina::', error);
       }
     });
   }
@@ -496,7 +496,7 @@ export class OficinaExpedientesComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar expedientes:', error);
+        console.error('Error al cargar expedientes::', error);
         this.snackBar.open('Error al cargar los expedientes', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }

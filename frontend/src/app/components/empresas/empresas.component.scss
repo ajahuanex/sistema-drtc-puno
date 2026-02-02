@@ -707,8 +707,33 @@
         transition: background-color 0.2s ease;
     }
 
-    /* Estados de carga para la tabla */
-    .mat-table-loading {
-        opacity: 0.6;
-        pointer-events: none;
+    /* Estilos para chips de estado */
+    .estado-chip-autorizada,
+    .estado-chip-habilitada {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+    }
+
+    .estado-chip-en_tramite {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+    }
+
+    .estado-chip-suspendida {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+    }
+
+    .estado-chip-cancelada {
+        background-color: #e2e3e5 !important;
+        color: #383d41 !important;
+    }
+
+    /* Estilos para chips de contadores */
+    .count-chip {
+        background-color: #e3f2fd !important;
+        color: #1976d2 !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
+        min-height: 24px !important;
     }

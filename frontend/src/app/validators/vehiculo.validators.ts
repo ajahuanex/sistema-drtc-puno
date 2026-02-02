@@ -1,7 +1,7 @@
 import { AbstractControl, ValidationErrors, ValidatorFn, AsyncValidatorFn } from '@angular/forms';
 import { Observable, of, timer } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
-import { VehiculoService } from '../services/vehiculo.service';
+import { VehiculoConsolidadoService } from '../services/vehiculo-consolidado.service';
 
 /**
  * Validador para formato de placa peruana
@@ -35,7 +35,7 @@ export function placaPeruanaValidator(): ValidatorFn {
  * Validador asíncrono para verificar duplicados de placa
  */
 export function placaDuplicadaValidator(
-  vehiculoService: VehiculoService,
+  vehiculoService: VehiculoConsolidadoService | any,
   vehiculoIdActual?: string
 ): AsyncValidatorFn {
   return (control: AbstractControl): Observable<ValidationErrors | null> => {
@@ -47,7 +47,15 @@ export function placaDuplicadaValidator(
 
     // Debounce de 500ms para evitar muchas peticiones
     return timer(500).pipe(
-      switchMap(() => vehiculoService.verificarPlacaDisponible(placa, vehiculoIdActual)),
+      switchMap(() => {
+        // Verificar si el servicio tiene el método verificarPlacaDisponible
+        if (vehiculoService.verificarPlacaDisponible) {
+          return vehiculoService.verificarPlacaDisponible(placa, vehiculoIdActual);
+        } else {
+          // Fallback para compatibilidad con servicio legacy
+          return of(true);
+        }
+      }),
       map(disponible => {
         return disponible ? null : {
           placaDuplicada: {

@@ -1,4 +1,4 @@
-# Sistema SIRRET
+# Sistema Regional de Registros de Transporte (SIRRET)
 
 Sistema de gestión integral para la Dirección Regional de Transportes y Comunicaciones de Puno.
 

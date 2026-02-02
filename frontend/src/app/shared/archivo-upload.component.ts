@@ -63,7 +63,7 @@ import { ArchivoService, ArchivoSubida } from '../services/archivo.service';
       <!-- Lista de archivos seleccionados -->
       @if (archivosSeleccionados().length > 0) {
         <div class="archivos-lista">
-          <h4>ARCHIVOS SELECCIONADOS ({{ archivosSeleccionados().length }})</h4>
+          <h4>ARCHIVOS SELECCIONADOS ({{ (archivosSeleccionados())?.length || 0 }})</h4>
           
           @for (archivo of archivosSeleccionados(); track archivo.file.name) {
             <div class="archivo-item" [class.error]="archivo.error">
@@ -106,7 +106,7 @@ import { ArchivoService, ArchivoSubida } from '../services/archivo.service';
                   </div>
                 }
 
-                @if (archivo.progreso !== undefined) {
+                @if (typeof archivo.progreso !== "undefined") {
                   <div class="archivo-progreso">
                     <mat-progress-bar 
                       [value]="archivo.progreso" 
@@ -181,7 +181,7 @@ import { ArchivoService, ArchivoSubida } from '../services/archivo.service';
       <!-- Lista de archivos ya subidos -->
       @if (archivosSubidos().length > 0) {
         <div class="archivos-subidos">
-          <h4>ARCHIVOS SUBIDOS ({{ archivosSubidos().length }})</h4>
+          <h4>ARCHIVOS SUBIDOS ({{ (archivosSubidos())?.length || 0 }})</h4>
           
           @for (archivo of archivosSubidos(); track archivo.id) {
             <div class="archivo-subido-item">
@@ -344,7 +344,7 @@ export class ArchivoUploadComponent {
         this.subiendo.set(false);
       },
       error: (error: any) => {
-        console.error('Error al subir archivos:', error);
+        console.error('Error al subir archivos::', error);
         this.snackBar.open('Error al subir archivos', 'Cerrar', { duration: 5000 });
         this.subiendo.set(false);
       }
@@ -362,7 +362,7 @@ export class ArchivoUploadComponent {
         window.URL.revokeObjectURL(url);
       },
       error: (error: any) => {
-        console.error('Error al descargar archivo:', error);
+        console.error('Error al descargar archivo::', error);
         this.snackBar.open('Error al descargar archivo', 'Cerrar', { duration: 3000 });
       }
     });
@@ -380,7 +380,7 @@ export class ArchivoUploadComponent {
         this.snackBar.open('Archivo eliminado exitosamente', 'Cerrar', { duration: 3000 });
       },
       error: (error: any) => {
-        console.error('Error al eliminar archivo:', error);
+        console.error('Error al eliminar archivo::', error);
         this.snackBar.open('Error al eliminar archivo', 'Cerrar', { duration: 5000 });
       }
     });

@@ -40,7 +40,7 @@ export class ResolucionValidationService {
     return this.resolucionService.getResoluciones().pipe(
       map(resoluciones => this.validarUnicidadLocal(resoluciones, validacion)),
       catchError(error => {
-        console.error('Error al validar unicidad de resolución:', error);
+        console.error('Error al validar unicidad de resolución::', error);
         return of({
           valido: false,
           mensaje: 'Error al validar la unicidad de la resolución. Intente nuevamente.',

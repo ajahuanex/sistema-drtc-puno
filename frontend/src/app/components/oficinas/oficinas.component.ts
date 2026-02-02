@@ -687,7 +687,7 @@ export class OficinasComponent implements OnInit {
           this.totalItems.set(oficinas.length); // En un caso real, esto vendría del backend
         },
         error: (error) => {
-          console.error('Error al cargar oficinas:', error);
+          console.error('Error al cargar oficinas::', error);
           this.snackBar.open('Error al cargar las oficinas', 'Cerrar', { duration: 3000 });
         }
       });
@@ -928,7 +928,7 @@ export class OficinasComponent implements OnInit {
             this.cargarOficinas();
           },
           error: (error) => {
-            console.error('Error al activar oficina:', error);
+            console.error('Error al activar oficina::', error);
             this.snackBar.open('Error al activar la oficina', 'Cerrar', { duration: 3000 });
           }
         });
@@ -952,7 +952,7 @@ export class OficinasComponent implements OnInit {
             this.cargarOficinas();
           },
           error: (error) => {
-            console.error('Error al desactivar oficina:', error);
+            console.error('Error al desactivar oficina::', error);
             this.snackBar.open('Error al desactivar la oficina', 'Cerrar', { duration: 3000 });
           }
         });
@@ -977,7 +977,7 @@ export class OficinasComponent implements OnInit {
             this.cargarOficinas();
           },
           error: (error) => {
-            console.error('Error al eliminar oficina:', error);
+            console.error('Error al eliminar oficina::', error);
             this.snackBar.open('Error al eliminar la oficina', 'Cerrar', { duration: 3000 });
           }
         });

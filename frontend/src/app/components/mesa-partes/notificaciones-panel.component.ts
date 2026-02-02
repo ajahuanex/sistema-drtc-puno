@@ -383,7 +383,7 @@ export class NotificacionesPanelComponent implements OnInit, OnDestroy {
       this.aplicarFiltro();
       this.updateUnreadCount();
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error('Error loading notifications::', error);
     }
   }
   
@@ -395,7 +395,7 @@ export class NotificacionesPanelComponent implements OnInit, OnDestroy {
       notif.leida = true;
       this.updateUnreadCount();
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error marking notification as read::', error);
     }
   }
   
@@ -411,7 +411,7 @@ export class NotificacionesPanelComponent implements OnInit, OnDestroy {
       this.updateUnreadCount();
       this.aplicarFiltro();
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      console.error('Error marking all as read::', error);
     }
   }
   
@@ -424,7 +424,7 @@ export class NotificacionesPanelComponent implements OnInit, OnDestroy {
       this.aplicarFiltro();
       this.updateUnreadCount();
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('Error deleting notification::', error);
     }
   }
   

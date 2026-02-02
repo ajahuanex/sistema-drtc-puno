@@ -464,7 +464,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                               <mat-card-title>
                                 <mat-icon class="resolucion-icon">gavel</mat-icon>
                                 {{ resolucionPadre.nroResolucion }}
-                                <span class="badge-count">({{ getResolucionesHijas(resolucionPadre.id).length }})</span>
+                                <span class="badge-count">({{ (getResolucionesHijas(resolucionPadre.id))?.length || 0 }})</span>
                               </mat-card-title>
                               <mat-card-subtitle>
                                 <div class="resolucion-meta">
@@ -607,7 +607,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                     <mat-card-title>
                       <mat-icon>directions_car</mat-icon>
                       Vehículos con Resolución Asociada
-                      <span class="badge-count">({{ getVehiculosConResolucion().length }})</span>
+                      <span class="badge-count">({{ (getVehiculosConResolucion())?.length || 0 }})</span>
                     </mat-card-title>
                     <mat-card-subtitle>
                       <div class="header-actions">
@@ -733,7 +733,7 @@ import { CodigoEmpresaInfoComponent } from '../shared/codigo-empresa-info.compon
                       <mat-panel-title>
                         <mat-icon class="warning-icon">warning</mat-icon>
                         Vehículos sin Resolución Asociada
-                        <span class="badge-count warning">({{ getVehiculosSinResolucion().length }})</span>
+                        <span class="badge-count warning">({{ (getVehiculosSinResolucion())?.length || 0 }})</span>
                       </mat-panel-title>
                       <mat-panel-description>
                         Estos vehículos no pueden gestionar rutas hasta ser asociados a una resolución
@@ -2644,11 +2644,11 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   loadEmpresa(id: string): void {
-    console.log('📋 Cargando empresa con ID:', id);
+    // console.log removed for production
     this.isLoading = true;
     this.empresaService.getEmpresa(id).subscribe({
       next: (empresa) => {
-        console.log('📋 Empresa cargada:', empresa);
+        // console.log removed for production
         this.empresa = empresa;
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -2657,7 +2657,7 @@ export class EmpresaDetailComponent implements OnInit {
         this.cargarResolucionesEmpresa(id);
       },
       error: (error) => {
-        console.error('Error cargando empresa:', error);
+        console.error('Error cargando empresa::', error);
         this.snackBar.open('Error al cargar la empresa', 'Cerrar', { duration: 3000 });
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -2701,16 +2701,16 @@ export class EmpresaDetailComponent implements OnInit {
   cargarResolucionesEmpresa(empresaId: string): void {
     this.isLoadingResoluciones = true;
     
-    console.log('📋 === CARGA DE RESOLUCIONES ===');
-    console.log('🏢 Empresa ID:', empresaId);
+    // console.log removed for production
+    // console.log removed for production
     
     this.resolucionService.getResoluciones(0, 100, undefined, empresaId).subscribe({
       next: (resoluciones) => {
-        console.log('📋 Resoluciones cargadas para empresa:', empresaId, resoluciones);
-        console.log('📊 Cantidad de resoluciones:', resoluciones.length);
+        // console.log removed for production
+        // console.log removed for production
         
         if (resoluciones.length > 0) {
-          console.log('🔍 ESTRUCTURA DE LA PRIMERA RESOLUCIÓN:', resoluciones[0]);
+          // console.log removed for production
           console.log('🔍 PROPIEDADES DE RESOLUCIÓN:', Object.keys(resoluciones[0] || {}));
           
           // Analizar propiedades relacionadas con vehículos
@@ -2744,7 +2744,7 @@ export class EmpresaDetailComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error cargando resoluciones de la empresa:', error);
+        console.error('Error cargando resoluciones de la empresa::', error);
         this.isLoadingResoluciones = false;
         this.cdr.detectChanges();
       }
@@ -2755,7 +2755,7 @@ export class EmpresaDetailComponent implements OnInit {
     this.resolucionesPadre.forEach(resolucion => {
       this.rutaService.getRutasPorResolucion(resolucion.id).subscribe({
         next: (rutas) => {
-          console.log(`🚌 Rutas cargadas para resolución ${resolucion.nroResolucion}:`, rutas);
+          // console.log removed for production
           this.rutasPorResolucion.set(resolucion.id, rutas);
           this.rutasCountCache.set(resolucion.id, rutas.length);
           this.cdr.detectChanges();
@@ -2770,10 +2770,10 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   cargarVehiculosEmpresa(empresaId: string): void {
-    console.log('🚨🚨🚨 MÉTODO CARGAR VEHÍCULOS EJECUTÁNDOSE 🚨🚨🚨');
-    console.log('🚗 === CARGA DIRECTA DE VEHÍCULOS ===');
-    console.log('🏢 Empresa ID:', empresaId);
-    console.log('📋 Resoluciones disponibles:', this.resoluciones.length);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     // Limpiar vehículos actuales
     this.vehiculosEmpresa = [];
@@ -2781,16 +2781,16 @@ export class EmpresaDetailComponent implements OnInit {
     
     // ESTRATEGIA CORRECTA: Usar vehiculosHabilitadosIds de la EMPRESA directamente
     if (!this.empresa) {
-      console.log('❌ No hay empresa cargada');
+      // console.log removed for production
       return;
     }
     
-    console.log('🎯 === ESTRATEGIA: VEHICULOS HABILITADOS IDS DE LA EMPRESA ===');
-    console.log('🏢 Empresa:', this.empresa.razonSocial.principal);
-    console.log('📋 vehiculosHabilitadosIds de la empresa:', this.empresa.vehiculosHabilitadosIds);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     if (!this.empresa.vehiculosHabilitadosIds || this.empresa.vehiculosHabilitadosIds.length === 0) {
-      console.log('⚠️ La empresa no tiene vehículos habilitados');
+      // console.log removed for production
       this.vehiculosEmpresa = [];
       this.cdr.detectChanges();
       return;
@@ -2799,14 +2799,14 @@ export class EmpresaDetailComponent implements OnInit {
     // Obtener TODOS los vehículos y filtrar usando vehiculosHabilitadosIds de la empresa
     this.vehiculoService.getVehiculos().subscribe({
       next: (todosLosVehiculos: Vehiculo[]) => {
-        console.log('🚗 TODOS LOS VEHÍCULOS EN EL SISTEMA:', todosLosVehiculos.length);
+        // console.log removed for production
         
         if (todosLosVehiculos.length > 0) {
-          console.log('🔍 ESTRUCTURA DEL PRIMER VEHÍCULO:', todosLosVehiculos[0]);
+          // console.log removed for production
           
           // Crear Set de IDs de vehículos habilitados de la empresa
           const vehiculosHabilitadosIds = new Set(this.empresa!.vehiculosHabilitadosIds);
-          console.log('📊 Total IDs únicos de vehículos habilitados:', vehiculosHabilitadosIds.size);
+          // console.log removed for production
           console.log('📋 IDs de vehículos habilitados:', Array.from(vehiculosHabilitadosIds));
           
           // Filtrar vehículos que estén en la lista de habilitados
@@ -2818,33 +2818,33 @@ export class EmpresaDetailComponent implements OnInit {
             return estaHabilitado;
           });
           
-          console.log('🎉 === RESULTADO FINAL ===');
-          console.log('📊 Total vehículos encontrados:', vehiculosEncontrados.length);
+          // console.log removed for production
+          // console.log removed for production
           if (vehiculosEncontrados.length > 0) {
             console.log('🚗 Placas encontradas:', vehiculosEncontrados.map(v => v.placa));
           }
           
           // ASIGNACIÓN DIRECTA Y FORZADA
-          console.log('🔄 === ASIGNACIÓN FORZADA ===');
+          // console.log removed for production
           this.vehiculosEmpresa = [...vehiculosEncontrados]; // Crear nueva referencia
           
-          console.log('✅ vehiculosEmpresa asignado:', this.vehiculosEmpresa.length);
+          // console.log removed for production
           console.log('✅ Placas en vehiculosEmpresa:', this.vehiculosEmpresa.map(v => v.placa));
           
           // Forzar detección de cambios
           this.cdr.detectChanges();
           this.cdr.markForCheck();
           
-          console.log('✅ Detección de cambios ejecutada');
+          // console.log removed for production
           
         } else {
-          console.log('⚠️ No hay vehículos en el sistema');
+          // console.log removed for production
           this.vehiculosEmpresa = [];
           this.cdr.detectChanges();
         }
       },
       error: (error) => {
-        console.error('❌ Error obteniendo vehículos:', error);
+        console.error('❌ Error obteniendo vehículos::', error);
         this.vehiculosEmpresa = [];
         this.cdr.detectChanges();
       }
@@ -2852,24 +2852,24 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   private buscarVehiculosPorResoluciones(todosVehiculos: Vehiculo[], empresaId: string): void {
-    console.log('🔍 Buscando vehículos por resoluciones...');
-    console.log('📋 Resoluciones disponibles:', this.resoluciones.length);
+    // console.log removed for production
+    // console.log removed for production
     
     if (this.resoluciones.length === 0) {
-      console.log('⚠️ No hay resoluciones cargadas');
+      // console.log removed for production
       this.vehiculosEmpresa = [];
       this.cdr.detectChanges();
       return;
     }
     
     const resolucionesIds = this.resoluciones.map(r => r.id);
-    console.log('📋 IDs de resoluciones:', resolucionesIds);
+    // console.log removed for production
     
     // Buscar vehículos que tengan resolucionId que coincida
     const vehiculosPorResolucionId = todosVehiculos.filter(v => 
       v.resolucionId && resolucionesIds.includes(v.resolucionId)
     );
-    console.log('🚗 Vehículos por resolucionId:', vehiculosPorResolucionId.length);
+    // console.log removed for production
     
     // Buscar vehículos listados en vehiculosHabilitadosIds de las resoluciones
     const vehiculosIdsEnResoluciones = new Set<string>();
@@ -2884,7 +2884,7 @@ export class EmpresaDetailComponent implements OnInit {
     const vehiculosPorIdEnResoluciones = todosVehiculos.filter(v => 
       vehiculosIdsEnResoluciones.has(v.id)
     );
-    console.log('🚗 Vehículos por ID en resoluciones:', vehiculosPorIdEnResoluciones.length);
+    // console.log removed for production
     
     // Combinar ambos métodos sin duplicados
     const vehiculosEncontrados = new Map<string, Vehiculo>();
@@ -2893,7 +2893,7 @@ export class EmpresaDetailComponent implements OnInit {
     vehiculosPorIdEnResoluciones.forEach(v => vehiculosEncontrados.set(v.id, v));
     
     const vehiculosFinales = Array.from(vehiculosEncontrados.values());
-    console.log('🚗 Total vehículos únicos encontrados:', vehiculosFinales.length);
+    // console.log removed for production
     console.log('🚗 Placas encontradas:', vehiculosFinales.map(v => v.placa));
     
     this.vehiculosEmpresa = vehiculosFinales;
@@ -2901,10 +2901,10 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   private cargarVehiculosMetodoAlternativo(empresaId: string): void {
-    console.log('🔄 Método alternativo: Cargando vehículos por resoluciones individuales...');
+    // console.log removed for production
     
     if (this.resoluciones.length === 0) {
-      console.log('⚠️ No hay resoluciones para el método alternativo');
+      // console.log removed for production
       this.vehiculosEmpresa = [];
       this.cdr.detectChanges();
       return;
@@ -2915,11 +2915,11 @@ export class EmpresaDetailComponent implements OnInit {
     const totalResoluciones = this.resoluciones.length;
     
     this.resoluciones.forEach(resolucion => {
-      console.log(`🔍 Cargando vehículos para resolución: ${resolucion.nroResolucion}`);
+      // console.log removed for production
       
       this.vehiculoService.getVehiculosPorResolucion(resolucion.id).subscribe({
         next: (vehiculosResolucion: Vehiculo[]) => {
-          console.log(`✅ Resolución ${resolucion.nroResolucion}: ${vehiculosResolucion.length} vehículos`);
+          // console.log removed for production
           
           // Agregar vehículos únicos
           vehiculosResolucion.forEach(vehiculo => {
@@ -2931,8 +2931,8 @@ export class EmpresaDetailComponent implements OnInit {
           resolucionesProcesadas++;
           
           if (resolucionesProcesadas === totalResoluciones) {
-            console.log('🚗 === RESULTADO MÉTODO ALTERNATIVO ===');
-            console.log('📊 Total vehículos recolectados:', todosVehiculos.length);
+            // console.log removed for production
+            // console.log removed for production
             console.log('🚗 Placas recolectadas:', todosVehiculos.map(v => v.placa));
             
             this.vehiculosEmpresa = todosVehiculos;
@@ -2944,7 +2944,7 @@ export class EmpresaDetailComponent implements OnInit {
           resolucionesProcesadas++;
           
           if (resolucionesProcesadas === totalResoluciones) {
-            console.log('🚗 Finalizando con errores, total recolectado:', todosVehiculos.length);
+            // console.log removed for production
             this.vehiculosEmpresa = todosVehiculos;
             this.cdr.detectChanges();
           }
@@ -3299,7 +3299,7 @@ export class EmpresaDetailComponent implements OnInit {
 
   refrescarVehiculos(): void {
     if (this.empresa) {
-      console.log('🔄 Refrescando lista de vehículos para empresa:', this.empresa.id);
+      // console.log removed for production
       this.cargarVehiculosEmpresa(this.empresa.id);
       
       // Mostrar mensaje de confirmación
@@ -3315,7 +3315,7 @@ export class EmpresaDetailComponent implements OnInit {
   crearNuevoVehiculo(): void {
     if (!this.empresa) return;
     
-    console.log('🚗 Creando nuevo vehículo para empresa:', this.empresa.id);
+    // console.log removed for production
     
     // Navegar al módulo de vehículos con parámetros para crear nuevo vehículo
     this.router.navigate(['/vehiculos'], { 
@@ -3331,7 +3331,7 @@ export class EmpresaDetailComponent implements OnInit {
   agregarVehiculoExistente(): void {
     if (!this.empresa) return;
     
-    console.log('🔍 Buscando vehículo existente para agregar a empresa:', this.empresa.id);
+    // console.log removed for production
     
     // Aquí se podría abrir un modal para buscar y seleccionar vehículos existentes
     // Por ahora, navegar al módulo de vehículos con parámetros específicos
@@ -3350,7 +3350,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   verDetalleVehiculo(vehiculo: Vehiculo): void {
-    console.log('👁️ Ver detalles del vehículo:', vehiculo.placa);
+    // console.log removed for production
     
     // Navegar al detalle del vehículo
     this.router.navigate(['/vehiculos', vehiculo.id], {
@@ -3362,7 +3362,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   editarVehiculo(vehiculo: Vehiculo): void {
-    console.log('✏️ Editar vehículo:', vehiculo.placa);
+    // console.log removed for production
     
     // Navegar al formulario de edición del vehículo
     this.router.navigate(['/vehiculos', vehiculo.id, 'edit'], {
@@ -3374,7 +3374,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   gestionarRutasVehiculo(vehiculo: Vehiculo): void {
-    console.log('🛣️ Gestionar rutas del vehículo:', vehiculo.placa);
+    // console.log removed for production
     
     // Buscar la resolución padre a la que está asociado el vehículo
     const resolucionAsociada = this.resoluciones.find(resolucion => 
@@ -3383,7 +3383,7 @@ export class EmpresaDetailComponent implements OnInit {
     );
     
     if (resolucionAsociada) {
-      console.log('📋 Vehículo asociado a resolución:', resolucionAsociada.nroResolucion);
+      // console.log removed for production
       
       // Navegar al módulo de rutas optimizado filtrado por la resolución específica
       this.router.navigate(['/rutas'], {
@@ -3412,7 +3412,7 @@ export class EmpresaDetailComponent implements OnInit {
         }
       );
     } else {
-      console.log('⚠️ Vehículo no asociado a ninguna resolución');
+      // console.log removed for production
       
       // Mostrar mensaje informativo
       this.snackBar.open(
@@ -3441,7 +3441,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   transferirVehiculo(vehiculo: Vehiculo): void {
-    console.log('🔄 Transferir vehículo:', vehiculo.placa);
+    // console.log removed for production
     
     // Por ahora, mostrar mensaje informativo
     this.snackBar.open(
@@ -3467,7 +3467,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   asociarVehiculoAResolucion(vehiculo: Vehiculo): void {
-    console.log('🔗 Asociar vehículo a resolución:', vehiculo.placa);
+    // console.log removed for production
     
     // Por ahora, mostrar mensaje informativo
     this.snackBar.open(
@@ -3494,7 +3494,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   private ejecutarAsociacionVehiculo(vehiculo: Vehiculo, resolucionId: string): void {
-    console.log('🔗 Ejecutando asociación de vehículo:', vehiculo.placa, 'a resolución:', resolucionId);
+    // console.log removed for production
     
     // Encontrar la resolución
     const resolucion = this.resoluciones.find(r => r.id === resolucionId);
@@ -3517,7 +3517,7 @@ export class EmpresaDetailComponent implements OnInit {
     // Actualizar la resolución en el backend
     this.resolucionService.updateResolucion(resolucionId, resolucionActualizada).subscribe({
       next: (resolucionUpdated) => {
-        console.log('✅ Vehículo asociado exitosamente a resolución:', resolucionUpdated);
+        // console.log removed for production
         
         this.snackBar.open(
           `Vehículo ${vehiculo.placa} asociado a resolución ${resolucion.nroResolucion}`,
@@ -3529,7 +3529,7 @@ export class EmpresaDetailComponent implements OnInit {
         this.loadEmpresa(this.empresa!.id);
       },
       error: (error) => {
-        console.error('❌ Error asociando vehículo a resolución:', error);
+        console.error('❌ Error asociando vehículo a resolución::', error);
         this.snackBar.open(
           'Error al asociar el vehículo a la resolución. Intente nuevamente.',
           'Cerrar',
@@ -3540,7 +3540,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   private ejecutarTransferenciaVehiculo(vehiculo: Vehiculo, empresaDestinoId: string): void {
-    console.log('🚚 Ejecutando transferencia de vehículo:', vehiculo.placa, 'a empresa:', empresaDestinoId);
+    // console.log removed for production
     
     // Actualizar el vehículo con la nueva empresa
     const vehiculoActualizado = {
@@ -3550,7 +3550,7 @@ export class EmpresaDetailComponent implements OnInit {
 
     this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
       next: (vehiculoTransferido) => {
-        console.log('✅ Vehículo transferido exitosamente:', vehiculoTransferido);
+        // console.log removed for production
         
         this.snackBar.open(
           `Vehículo ${vehiculo.placa} transferido exitosamente`,
@@ -3562,7 +3562,7 @@ export class EmpresaDetailComponent implements OnInit {
         this.refrescarVehiculos();
       },
       error: (error) => {
-        console.error('❌ Error transfiriendo vehículo:', error);
+        console.error('❌ Error transfiriendo vehículo::', error);
         this.snackBar.open(
           'Error al transferir el vehículo. Intente nuevamente.',
           'Cerrar',
@@ -3576,7 +3576,7 @@ export class EmpresaDetailComponent implements OnInit {
     const nuevoEstado = vehiculo.estado === 'ACTIVO' ? 'SUSPENDIDO' : 'ACTIVO';
     const accion = nuevoEstado === 'ACTIVO' ? 'activar' : 'suspender';
     
-    console.log(`🔄 Cambiar estado del vehículo ${vehiculo.placa} a:`, nuevoEstado);
+    // console.log removed for production
     
     // Mostrar diálogo de confirmación
     const mensaje = `¿Está seguro que desea ${accion} el vehículo ${vehiculo.placa}?`;
@@ -3589,7 +3589,7 @@ export class EmpresaDetailComponent implements OnInit {
 
       this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
         next: (vehiculoModificado) => {
-          console.log('✅ Estado del vehículo actualizado:', vehiculoModificado);
+          // console.log removed for production
           
           this.snackBar.open(
             `Vehículo ${vehiculo.placa} ${nuevoEstado.toLowerCase()} exitosamente`,
@@ -3601,7 +3601,7 @@ export class EmpresaDetailComponent implements OnInit {
           this.refrescarVehiculos();
         },
         error: (error) => {
-          console.error('❌ Error actualizando estado del vehículo:', error);
+          console.error('❌ Error actualizando estado del vehículo::', error);
           this.snackBar.open(
             'Error al actualizar el estado del vehículo. Intente nuevamente.',
             'Cerrar',
@@ -3613,7 +3613,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   eliminarVehiculoDeEmpresa(vehiculo: Vehiculo): void {
-    console.log('🗑️ Quitar vehículo de empresa:', vehiculo.placa);
+    // console.log removed for production
     
     const mensaje = `¿Está seguro que desea quitar el vehículo ${vehiculo.placa} de esta empresa?\n\nEsto no eliminará el vehículo del sistema, solo lo desasociará de la empresa.`;
     
@@ -3627,7 +3627,7 @@ export class EmpresaDetailComponent implements OnInit {
 
       this.vehiculoService.updateVehiculo(vehiculo.id, vehiculoActualizado).subscribe({
         next: (vehiculoModificado) => {
-          console.log('✅ Vehículo quitado de la empresa exitosamente:', vehiculoModificado);
+          // console.log removed for production
           
           this.snackBar.open(
             `Vehículo ${vehiculo.placa} quitado de la empresa exitosamente`,
@@ -3639,7 +3639,7 @@ export class EmpresaDetailComponent implements OnInit {
           this.refrescarVehiculos();
         },
         error: (error) => {
-          console.error('❌ Error quitando vehículo de la empresa:', error);
+          console.error('❌ Error quitando vehículo de la empresa::', error);
           this.snackBar.open(
             'Error al quitar el vehículo de la empresa. Intente nuevamente.',
             'Cerrar',
@@ -3663,7 +3663,7 @@ export class EmpresaDetailComponent implements OnInit {
   }
 
   editarRuta(rutaId: string): void {
-    console.log('Editar ruta:', rutaId);
+    // console.log removed for production
     
     // Buscar la ruta en los datos cargados
     let rutaEncontrada: Ruta | undefined;
@@ -3795,7 +3795,7 @@ export class ConfirmarTransferenciaVehiculoComponent {
         this.empresasDisponibles = empresas.filter(e => e.id !== this.data.empresaActual?.id);
       },
       error: (error) => {
-        console.error('Error cargando empresas:', error);
+        console.error('Error cargando empresas::', error);
       }
     });
   }

@@ -444,7 +444,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
           this.notificacionesPendientes = resultado.total;
         },
         error: (error) => {
-          console.error('Error al cargar contador de notificaciones:', error);
+          console.error('Error al cargar contador de notificaciones::', error);
         }
       });
   }
@@ -471,7 +471,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
    * Requirements: 8.1, 8.2
    */
   verNotificaciones(): void {
-    console.log('Ver notificaciones - Funcionalidad pendiente de implementar');
+    // console.log removed for production
     // TODO: Implementar modal o panel de notificaciones
     // Por ahora, solo registramos la acción
   }
@@ -481,7 +481,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
    * Requirements: 1.1
    */
   onDocumentoCreado(documento: Documento): void {
-    console.log('Documento creado desde componente principal:', documento);
+    // console.log removed for production
     // Cambiar a la pestaña de documentos para ver el documento creado
     this.selectedTabIndex = 1;
     // TODO: Mostrar notificación de éxito
@@ -492,7 +492,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
    * Requirements: 5.4
    */
   onDocumentoSeleccionado(documento: Documento): void {
-    console.log('Documento seleccionado:', documento);
+    // console.log removed for production
     // TODO: Abrir modal o vista de detalle del documento
   }
 
@@ -501,7 +501,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
    * Requirements: 3.1
    */
   onDerivarDocumento(documento: Documento): void {
-    console.log('Derivar documento:', documento);
+    // console.log removed for production
     // TODO: Abrir modal de derivación
   }
 
@@ -510,7 +510,7 @@ export class MesaPartesComponent implements OnInit, OnDestroy {
    * Requirements: 9.1
    */
   onArchivarDocumento(documento: Documento): void {
-    console.log('Archivar documento:', documento);
+    // console.log removed for production
     // TODO: Confirmar y archivar documento
   }
 }

@@ -1,286 +1,361 @@
+<!-- Componente de Localidades -->
 <div class="localidades-container">
   <!-- Header -->
-  <div class="header-section">
-    <div class="title-section">
-      <h2>Gestión de Localidades</h2>
-      <p class="subtitle">Administrar localidades y sus niveles territoriales</p>
+  <div class="page-header">
+    <div class="header-info">
+      <h1>
+        <mat-icon>place</mat-icon>
+        Localidades
+      </h1>
+      <p>Gestión simplificada de localidades del sistema</p>
     </div>
-    
-    <div class="actions-section">
-      <button mat-raised-button color="primary" (click)="crearLocalidad()">
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="abrirModalNuevaLocalidad()">
         <mat-icon>add</mat-icon>
         Nueva Localidad
       </button>
-      
-      <button mat-stroked-button (click)="importarExcel()">
-        <mat-icon>upload</mat-icon>
-        Importar Excel
+      <button mat-stroked-button (click)="recargarDatos()" [disabled]="cargando()">
+        <mat-icon>refresh</mat-icon>
+        Recargar
       </button>
-      
-      <button mat-stroked-button (click)="exportarExcel()" [disabled]="loading">
-        <mat-icon>download</mat-icon>
-        Exportar Excel
+      <button mat-stroked-button (click)="debugFiltros()" class="btn-debug">
+        <mat-icon>bug_report</mat-icon>
+        Debug
       </button>
     </div>
   </div>
 
-  <!-- Filtros -->
-  <mat-card class="filters-card">
-    <mat-card-header>
-      <mat-card-title>Filtros de Búsqueda</mat-card-title>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div class="filters-grid">
-        <mat-form-field appearance="outline">
-          <mat-label>Buscar por nombre</mat-label>
-          <input matInput [(ngModel)]="filtros.nombre" placeholder="Nombre de localidad">
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
+  <!-- Información de Base de Datos -->
+  <app-info-base-datos></app-info-base-datos>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Departamento</mat-label>
-          <mat-select [(ngModel)]="filtros.departamento" (selectionChange)="onDepartamentoChange()">
-            <mat-option value="">Todos</mat-option>
-            <mat-option *ngFor="let dept of departamentos" [value]="dept">
-              {{ dept }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Provincia</mat-label>
-          <mat-select [(ngModel)]="filtros.provincia" [disabled]="!filtros.departamento">
-            <mat-option value="">Todas</mat-option>
-            <mat-option *ngFor="let prov of provincias" [value]="prov">
-              {{ prov }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Nivel Territorial</mat-label>
-          <mat-select [(ngModel)]="filtros.nivel_territorial">
-            <mat-option value="">Todos</mat-option>
-            <mat-option *ngFor="let nivel of nivelesTerritoriales" [value]="nivel">
-              {{ nivel }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Tipo</mat-label>
-          <mat-select [(ngModel)]="filtros.tipo">
-            <mat-option value="">Todos</mat-option>
-            <mat-option *ngFor="let tipo of tiposLocalidad" [value]="tipo">
-              {{ tipo }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Estado</mat-label>
-          <mat-select [(ngModel)]="filtros.esta_activa">
-            <mat-option value="">Todos</mat-option>
-            <mat-option [value]="true">Activas</mat-option>
-            <mat-option [value]="false">Inactivas</mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
-
-      <div class="filter-actions">
-        <button mat-raised-button color="primary" (click)="aplicarFiltros()">
-          <mat-icon>filter_list</mat-icon>
-          Aplicar Filtros
-        </button>
-        
-        <button mat-button (click)="limpiarFiltros()">
-          <mat-icon>clear</mat-icon>
-          Limpiar
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <!-- Operaciones masivas -->
-  <div class="bulk-operations" *ngIf="selection.selected.length > 0">
-    <mat-card>
+  <!-- Estadísticas -->
+  <div class="stats-grid">
+    <mat-card class="stat-card">
       <mat-card-content>
-        <div class="bulk-info">
-          <span>{{ selection.selected.length }} localidades seleccionadas</span>
+        <div class="stat-content">
+          <mat-icon class="stat-icon provincias">location_city</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ localidadesPorTipo('PROVINCIA').length }}</div>
+            <div class="stat-label">Provincias</div>
+          </div>
         </div>
-        
-        <div class="bulk-actions">
-          <button mat-button color="primary" (click)="operacionMasiva('activar')">
-            <mat-icon>check_circle</mat-icon>
-            Activar
-          </button>
-          
-          <button mat-button color="warn" (click)="operacionMasiva('desactivar')">
-            <mat-icon>cancel</mat-icon>
-            Desactivar
-          </button>
-          
-          <button mat-button color="warn" (click)="operacionMasiva('eliminar')">
-            <mat-icon>delete</mat-icon>
-            Eliminar
-          </button>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <mat-icon class="stat-icon distritos">map</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ localidadesPorTipo('DISTRITO').length }}</div>
+            <div class="stat-label">Distritos</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <mat-icon class="stat-icon pueblos">home</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ localidadesPorTipo('CENTRO_POBLADO').length }}</div>
+            <div class="stat-label">Centros Poblados</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <mat-icon class="stat-icon total">place</mat-icon>
+          <div class="stat-info">
+            <div class="stat-number">{{ localidadesOtros().length }}</div>
+            <div class="stat-label">Otros</div>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>
   </div>
 
-  <!-- Tabla -->
-  <mat-card class="table-card">
-    <mat-card-content>
-      <div class="table-container">
-        <table mat-table [dataSource]="dataSource" matSort class="localidades-table">
-          
-          <!-- Columna de selección -->
-          <ng-container matColumnDef="select">
-            <th mat-header-cell *matHeaderCellDef>
-              <mat-checkbox (change)="$event ? masterToggle() : null"
-                           [checked]="selection.hasValue() && isAllSelected()"
-                           [indeterminate]="selection.hasValue() && !isAllSelected()">
-              </mat-checkbox>
-            </th>
-            <td mat-cell *matCellDef="let row">
-              <mat-checkbox (click)="$event.stopPropagation()"
-                           (change)="$event ? selection.toggle(row) : null"
-                           [checked]="selection.isSelected(row)">
-              </mat-checkbox>
-            </td>
-          </ng-container>
+  <!-- Buscador Compacto -->
+  <div class="search-section">
+    <div class="search-container">
+      <div class="search-input">
+        <mat-form-field appearance="outline">
+          <mat-label>Buscar localidades...</mat-label>
+          <input matInput 
+                 placeholder="Nombre, ubigeo, departamento..." 
+                 [(ngModel)]="terminoBusqueda"
+                 (input)="buscarLocalidades($event)" />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      <div class="search-actions">
+        <button mat-button 
+                [class]="terminoBusqueda ? 'search-btn has-content' : 'search-btn'" 
+                (click)="limpiarBusqueda()"
+                [disabled]="!terminoBusqueda">
+          <mat-icon>clear</mat-icon>
+          Limpiar
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filtros Avanzados Toggle -->
+    <div class="filtros-toggle-section">
+      <button mat-button class="filtros-toggle" (click)="toggleFiltros()">
+        <mat-icon>tune</mat-icon>
+        Filtros Avanzados
+        <mat-icon>{{ filtrosExpandidos ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </button>
+    </div>
+  </div>
 
-          <!-- UBIGEO -->
-          <ng-container matColumnDef="ubigeo">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>UBIGEO</th>
-            <td mat-cell *matCellDef="let localidad">
-              <span class="ubigeo-badge" *ngIf="localidad.ubigeo">{{ localidad.ubigeo }}</span>
-              <span class="no-ubigeo" *ngIf="!localidad.ubigeo">Sin UBIGEO</span>
-            </td>
-          </ng-container>
-
-          <!-- Nombre -->
-          <ng-container matColumnDef="nombre">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Nombre</th>
-            <td mat-cell *matCellDef="let localidad">
-              <div class="localidad-info">
-                <span class="nombre-principal">{{ localidad.nombre || localidad.distrito }}</span>
-                <span class="codigo-secundario" *ngIf="localidad.codigo">{{ localidad.codigo }}</span>
-              </div>
-            </td>
-          </ng-container>
-
-          <!-- Departamento -->
-          <ng-container matColumnDef="departamento">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Departamento</th>
-            <td mat-cell *matCellDef="let localidad">{{ localidad.departamento }}</td>
-          </ng-container>
-
-          <!-- Provincia -->
-          <ng-container matColumnDef="provincia">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Provincia</th>
-            <td mat-cell *matCellDef="let localidad">{{ localidad.provincia }}</td>
-          </ng-container>
-
-          <!-- Distrito -->
-          <ng-container matColumnDef="distrito">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Distrito</th>
-            <td mat-cell *matCellDef="let localidad">{{ localidad.distrito }}</td>
-          </ng-container>
-
-          <!-- Nivel Territorial -->
-          <ng-container matColumnDef="nivel_territorial">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Nivel Territorial</th>
-            <td mat-cell *matCellDef="let localidad">
-              <mat-chip [color]="getNivelTerritorialColor(localidad.nivel_territorial)" selected>
-                {{ localidad.nivel_territorial }}
-              </mat-chip>
-            </td>
-          </ng-container>
-
-          <!-- Municipalidad -->
-          <ng-container matColumnDef="municipalidad_centro_poblado">
-            <th mat-header-cell *matHeaderCellDef>Municipalidad</th>
-            <td mat-cell *matCellDef="let localidad">
-              <span class="municipalidad-text" [title]="localidad.municipalidad_centro_poblado">
-                {{ localidad.municipalidad_centro_poblado | slice:0:30 }}
-                <span *ngIf="localidad.municipalidad_centro_poblado?.length > 30">...</span>
-              </span>
-            </td>
-          </ng-container>
-
-          <!-- Coordenadas -->
-          <ng-container matColumnDef="coordenadas">
-            <th mat-header-cell *matHeaderCellDef>Coordenadas</th>
-            <td mat-cell *matCellDef="let localidad">
-              <span class="coordenadas-info">{{ formatearCoordenadas(localidad.coordenadas) }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Estado -->
-          <ng-container matColumnDef="esta_activa">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
-            <td mat-cell *matCellDef="let localidad">
-              <mat-slide-toggle 
-                [checked]="localidad.esta_activa"
-                (change)="toggleEstadoLocalidad(localidad)"
-                [color]="'primary'">
-              </mat-slide-toggle>
-            </td>
-          </ng-container>
-
-          <!-- Acciones -->
-          <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef>Acciones</th>
-            <td mat-cell *matCellDef="let localidad">
-              <div class="actions-cell">
-                <button mat-icon-button 
-                        (click)="editarLocalidad(localidad)"
-                        matTooltip="Editar localidad">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                
-                <button mat-icon-button 
-                        color="warn"
-                        (click)="eliminarLocalidad(localidad)"
-                        matTooltip="Eliminar localidad">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-
-        <!-- Loading -->
-        <div class="loading-container" *ngIf="loading">
-          <mat-spinner diameter="50"></mat-spinner>
-          <p>Cargando localidades...</p>
-        </div>
-
-        <!-- Sin datos -->
-        <div class="no-data-container" *ngIf="!loading && dataSource.data.length === 0">
-          <mat-icon>location_off</mat-icon>
-          <h3>No se encontraron localidades</h3>
-          <p>No hay localidades que coincidan con los filtros aplicados.</p>
-          <button mat-raised-button color="primary" (click)="crearLocalidad()">
-            Crear Primera Localidad
-          </button>
+  <!-- Filtros Avanzados Colapsables -->
+  <div class="filtros-section" [class.collapsed]="!filtrosExpandidos">
+    <div class="filtros-grid">
+      <div class="filtro-group">
+        <label class="filtro-label">Departamento</label>
+        <div class="filtro-input">
+          <mat-form-field appearance="outline">
+            <mat-select placeholder="Todos" 
+                       [value]="filtrosService.departamento"
+                       (selectionChange)="onFiltroDepartamentoChange($event.value)">
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="PUNO">Puno</mat-option>
+              <mat-option value="OTROS" 
+                         matTooltip="Localidades con datos incompletos: sin departamento, provincia o distrito estándar">
+                Otros (datos incompletos)
+              </mat-option>
+            </mat-select>
+            <mat-hint>Seleccione "Otros" para ver localidades con datos de ubicación incompletos</mat-hint>
+          </mat-form-field>
         </div>
       </div>
 
-      <!-- Paginador -->
-      <mat-paginator 
-        [length]="totalLocalidades"
-        [pageSize]="tamanoPagina"
-        [pageSizeOptions]="[5, 10, 25, 50, 100]"
-        (page)="onPageChange($event)"
-        showFirstLastButtons>
-      </mat-paginator>
+      <div class="filtro-group">
+        <label class="filtro-label">Provincia</label>
+        <div class="filtro-input">
+          <mat-form-field appearance="outline">
+            <mat-select placeholder="Todas"
+                       [value]="filtrosService.provincia"
+                       (selectionChange)="onFiltroProvinciaChange($event.value)">
+              <mat-option value="">Todas</mat-option>
+              @for (provincia of getProvinciasDisponibles(); track provincia) {
+                <mat-option [value]="provincia">{{ provincia }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="filtro-group">
+        <label class="filtro-label">Tipo</label>
+        <div class="filtro-input">
+          <mat-form-field appearance="outline">
+            <mat-select placeholder="Todos"
+                       [value]="filtrosService.tipo"
+                       (selectionChange)="onFiltroTipoChange($event.value)">
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="PROVINCIA">Provincia</mat-option>
+              <mat-option value="DISTRITO">Distrito</mat-option>
+              <mat-option value="CENTRO_POBLADO">Centro Poblado</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="filtro-group">
+        <label class="filtro-label">Nivel Territorial</label>
+        <div class="filtro-input">
+          <mat-form-field appearance="outline">
+            <mat-select placeholder="Todos"
+                       [value]="filtrosService.nivel"
+                       (selectionChange)="onFiltroNivelChange($event.value)">
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="PROVINCIA">Provincia</mat-option>
+              <mat-option value="DISTRITO">Distrito</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="filtro-group">
+        <label class="filtro-label">Estado</label>
+        <div class="filtro-input">
+          <mat-form-field appearance="outline">
+            <mat-select placeholder="Todos">
+              <mat-option value="">Todos</mat-option>
+              <mat-option value="true">Activo</mat-option>
+              <mat-option value="false">Inactivo</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <div class="filtros-actions">
+      <button mat-button class="limpiar-filtros-btn" (click)="limpiarFiltros()">
+        <mat-icon>clear_all</mat-icon>
+        Limpiar Filtros
+      </button>
+      <button mat-raised-button class="aplicar-filtros-btn">
+        <mat-icon>filter_list</mat-icon>
+        Aplicar Filtros
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla de Localidades -->
+  <mat-card class="tabla-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>list</mat-icon>
+        Lista de Localidades
+      </mat-card-title>
+      <mat-card-subtitle>
+        Mostrando {{ resultadosFiltrados }} de {{ localidades().length }} localidades
+        <span *ngIf="terminoBusqueda" class="search-indicator">
+          (filtrado por: "{{ terminoBusqueda }}")
+        </span>
+      </mat-card-subtitle>
+    </mat-card-header>
+    
+    <mat-card-content>
+      @if (cargando()) {
+        <div class="loading-container">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Cargando localidades...</p>
+        </div>
+      } @else if (resultadosFiltrados === 0) {
+        <div class="empty-state">
+          <mat-icon>place_off</mat-icon>
+          <h3>No hay localidades</h3>
+          <p>No se encontraron localidades con los filtros aplicados</p>
+          <button mat-raised-button color="primary" (click)="abrirModalNuevaLocalidad()">
+            <mat-icon>add</mat-icon>
+            Crear Primera Localidad
+          </button>
+        </div>
+      } @else {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="localidades-table">
+            
+            <!-- Nombre -->
+            <ng-container matColumnDef="nombre">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Nombre</th>
+              <td mat-cell *matCellDef="let localidad">
+                <div class="nombre-cell">
+                  <div class="nombre-principal">{{ localidad.nombre || 'Sin nombre' }}</div>
+                  @if (localidad.ubigeo) {
+                    <div class="ubigeo-badge">{{ localidad.ubigeo }}</div>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Tipo -->
+            <ng-container matColumnDef="tipo">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Tipo</th>
+              <td mat-cell *matCellDef="let localidad">
+                <mat-chip [class]="'tipo-' + (localidad.tipo || 'distrito').toLowerCase()">
+                  {{ getTipoLabel(localidad.tipo) }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Ubicación -->
+            <ng-container matColumnDef="ubicacion">
+              <th mat-header-cell *matHeaderCellDef>Ubicación</th>
+              <td mat-cell *matCellDef="let localidad">
+                <div class="ubicacion-cell">
+                  @if (localidad.departamento) {
+                    <div class="departamento">{{ localidad.departamento }}</div>
+                  }
+                  @if (localidad.provincia) {
+                    <div class="provincia">{{ localidad.provincia }}</div>
+                  }
+                  @if (localidad.distrito) {
+                    <div class="distrito">{{ localidad.distrito }}</div>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Nivel Territorial -->
+            <ng-container matColumnDef="nivel">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Nivel</th>
+              <td mat-cell *matCellDef="let localidad">
+                <mat-chip [class]="'nivel-' + (localidad.nivel_territorial || 'distrito').toLowerCase()">
+                  {{ getNivelLabel(localidad.nivel_territorial) }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+              <td mat-cell *matCellDef="let localidad">
+                <mat-chip [class]="localidad.estaActiva ? 'estado-activo' : 'estado-inactivo'">
+                  <mat-icon>{{ localidad.estaActiva ? 'check_circle' : 'cancel' }}</mat-icon>
+                  {{ localidad.estaActiva ? 'Activa' : 'Inactiva' }}
+                </mat-chip>
+              </td>
+            </ng-container>
+
+            <!-- Acciones -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let localidad">
+                <div class="acciones-cell">
+                  <button mat-icon-button color="primary" 
+                          (click)="editarLocalidad(localidad)" 
+                          matTooltip="Editar localidad">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  
+                  <button mat-icon-button 
+                          [color]="localidad.estaActiva ? 'warn' : 'accent'"
+                          (click)="toggleEstado(localidad)" 
+                          [matTooltip]="localidad.estaActiva ? 'Desactivar' : 'Activar'">
+                    <mat-icon>{{ localidad.estaActiva ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  
+                  <button mat-icon-button color="warn" 
+                          (click)="eliminarLocalidad(localidad)" 
+                          matTooltip="Eliminar localidad">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasTabla"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasTabla;" 
+                [class.fila-inactiva]="!row.estaActiva"></tr>
+          </table>
+          
+          <!-- Paginador -->
+          <mat-paginator 
+            [pageSizeOptions]="config.paginacion.tamanosDisponibles" 
+            [pageSize]="config.paginacion.tamanoDefault"
+            showFirstLastButtons
+            aria-label="Seleccionar página de localidades">
+          </mat-paginator>
+        </div>
+      }
     </mat-card-content>
   </mat-card>
 </div>
+
+<!-- Modal de Localidad - FUERA del contenedor principal -->
+@if (mostrarModal()) {
+  <app-localidad-modal
+    [localidad]="localidadSeleccionada()"
+    [esEdicion]="esEdicion()"
+    (guardar)="guardarLocalidad($event)"
+    (cancelar)="cerrarModal()">
+  </app-localidad-modal>
+}

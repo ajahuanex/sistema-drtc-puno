@@ -44,12 +44,12 @@ export class LocalidadIdGeneratorService {
     actualizadas: number;
     errores: string[];
   }> {
-    console.log('🔄 Iniciando procesamiento de localidades para generar IDs únicos...');
+    // console.log removed for production
     
     try {
       // Obtener todas las localidades
       const localidades = await this.localidadService.getLocalidades().toPromise() as Localidad[];
-      console.log(`📊 Total localidades encontradas: ${localidades.length}`);
+      // console.log removed for production
       
       const resultado = {
         procesadas: 0,
@@ -85,22 +85,22 @@ export class LocalidadIdGeneratorService {
             };
             
             await this.localidadService.actualizarLocalidad(localidad.id, actualizacion);
-            console.log(`✅ Localidad actualizada: ${localidad.municipalidad_centro_poblado} -> ID: ${nuevoId}`);
+            // console.log removed for production
             resultado.actualizadas++;
           }
           
         } catch (error: any) {
           const errorMsg = `Error procesando localidad ${localidad.municipalidad_centro_poblado}: ${error.message}`;
-          console.error('❌', errorMsg);
+          console.error('❌:', errorMsg);
           resultado.errores.push(errorMsg);
         }
       }
 
-      console.log('✅ Procesamiento de localidades completado:', resultado);
+      // console.log removed for production
       return resultado;
       
     } catch (error: any) {
-      console.error('❌ Error general en procesamiento de localidades:', error);
+      console.error('❌ Error general en procesamiento de localidades::', error);
       throw error;
     }
   }
@@ -109,7 +109,7 @@ export class LocalidadIdGeneratorService {
    * Crear mapa de localidades por nombre para vinculación con rutas
    */
   async crearMapaLocalidades(): Promise<Map<string, string>> {
-    console.log('🗺️ Creando mapa de localidades...');
+    // console.log removed for production
     
     const localidades = await this.localidadService.getLocalidades().toPromise() as Localidad[];
     const mapa = new Map<string, string>();
@@ -117,12 +117,12 @@ export class LocalidadIdGeneratorService {
     localidades.forEach(localidad => {
       // Crear múltiples claves para facilitar la búsqueda
       const claves = [
-        localidad.municipalidad_centro_poblado.toUpperCase(),
-        localidad.distrito.toUpperCase(),
-        localidad.provincia.toUpperCase(),
-        `${localidad.distrito.toUpperCase()}_${localidad.provincia.toUpperCase()}`,
-        `${localidad.municipalidad_centro_poblado.toUpperCase()}_${localidad.distrito.toUpperCase()}`
-      ];
+        (localidad.municipalidad_centro_poblado || localidad.nombre || '').toUpperCase(),
+        (localidad.distrito || '').toUpperCase(),
+        (localidad.provincia || '').toUpperCase(),
+        `${(localidad.distrito || '').toUpperCase()}_${(localidad.provincia || '').toUpperCase()}`,
+        `${(localidad.municipalidad_centro_poblado || localidad.nombre || '').toUpperCase()}_${(localidad.distrito || '').toUpperCase()}`
+      ].filter(clave => clave.length > 0);
       
       claves.forEach(clave => {
         if (!mapa.has(clave)) {
@@ -131,7 +131,7 @@ export class LocalidadIdGeneratorService {
       });
     });
     
-    console.log(`✅ Mapa de localidades creado con ${mapa.size} entradas`);
+    // console.log removed for production
     return mapa;
   }
 
@@ -143,7 +143,7 @@ export class LocalidadIdGeneratorService {
     actualizadas: number;
     errores: string[];
   }> {
-    console.log('🔄 Iniciando actualización de vinculación de rutas...');
+    // console.log removed for production
     
     try {
       // Obtener mapa de localidades
@@ -152,7 +152,7 @@ export class LocalidadIdGeneratorService {
       // Obtener todas las rutas
       const response = await this.http.get<any[]>(`${this.apiUrl}/rutas`).toPromise();
       const rutas = response || [];
-      console.log(`📊 Total rutas encontradas: ${rutas.length}`);
+      // console.log removed for production
       
       const resultado = {
         procesadas: 0,
@@ -173,7 +173,7 @@ export class LocalidadIdGeneratorService {
             if (origenId) {
               actualizacion.origenId = origenId;
               necesitaActualizacion = true;
-              console.log(`🎯 Origen encontrado: ${ruta.origen} -> ${origenId}`);
+              // console.log removed for production
             }
           }
 
@@ -183,7 +183,7 @@ export class LocalidadIdGeneratorService {
             if (destinoId) {
               actualizacion.destinoId = destinoId;
               necesitaActualizacion = true;
-              console.log(`🎯 Destino encontrado: ${ruta.destino} -> ${destinoId}`);
+              // console.log removed for production
             }
           }
 
@@ -193,29 +193,29 @@ export class LocalidadIdGeneratorService {
             if (itinerarioIds.length > 0) {
               actualizacion.itinerarioIds = itinerarioIds;
               necesitaActualizacion = true;
-              console.log(`🛣️ Itinerario procesado: ${itinerarioIds.length} localidades`);
+              // console.log removed for production
             }
           }
 
           // Actualizar ruta si es necesario
           if (necesitaActualizacion) {
             await this.http.put(`${this.apiUrl}/rutas/${ruta.id}`, actualizacion).toPromise();
-            console.log(`✅ Ruta actualizada: ${ruta.codigoRuta}`);
+            // console.log removed for production
             resultado.actualizadas++;
           }
           
         } catch (error: any) {
           const errorMsg = `Error procesando ruta ${ruta.codigoRuta}: ${error.message}`;
-          console.error('❌', errorMsg);
+          console.error('❌:', errorMsg);
           resultado.errores.push(errorMsg);
         }
       }
 
-      console.log('✅ Actualización de rutas completada:', resultado);
+      // console.log removed for production
       return resultado;
       
     } catch (error: any) {
-      console.error('❌ Error general en actualización de rutas:', error);
+      console.error('❌ Error general en actualización de rutas::', error);
       throw error;
     }
   }
@@ -276,15 +276,15 @@ export class LocalidadIdGeneratorService {
     localidades: { procesadas: number; actualizadas: number; errores: string[] };
     rutas: { procesadas: number; actualizadas: number; errores: string[] };
   }> {
-    console.log('🚀 Iniciando corrección completa del sistema de localidades y rutas...');
+    // console.log removed for production
     
     try {
       // Paso 1: Procesar localidades para generar IDs únicos
-      console.log('📍 Paso 1: Procesando localidades...');
+      // console.log removed for production
       const resultadoLocalidades = await this.procesarLocalidadesParaIds();
       
       // Paso 2: Actualizar vinculación de rutas
-      console.log('🛣️ Paso 2: Actualizando vinculación de rutas...');
+      // console.log removed for production
       const resultadoRutas = await this.actualizarVinculacionRutas();
       
       const resultado = {
@@ -292,11 +292,11 @@ export class LocalidadIdGeneratorService {
         rutas: resultadoRutas
       };
       
-      console.log('🎉 Corrección completa finalizada:', resultado);
+      // console.log removed for production
       return resultado;
       
     } catch (error: any) {
-      console.error('❌ Error en corrección completa:', error);
+      console.error('❌ Error en corrección completa::', error);
       throw error;
     }
   }

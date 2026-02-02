@@ -75,7 +75,7 @@ export class CargaMasivaProcesadorService {
    * Procesar una fila de la carga masiva (solo validación)
    */
   procesarFila(fila: FilaCargaMasiva): Observable<ResultadoProcesamiento> {
-    console.log('[PROCESADOR] 🚀 Validando fila:', fila.placa);
+    // console.log removed for production
     
     const resultado: ResultadoProcesamiento = {
       exito: false,
@@ -267,7 +267,7 @@ export class CargaMasivaProcesadorService {
       return vehiculoData;
 
     } catch (error) {
-      console.error('[PROCESADOR] ❌ Error construyendo datos del vehículo:', error);
+      console.error('[PROCESADOR] ❌ Error construyendo datos del vehículo::', error);
       resultado.errores.push(`Error en datos del vehículo: ${error}`);
       return null;
     }
@@ -348,7 +348,7 @@ export class CargaMasivaProcesadorService {
    * Procesar múltiples filas (solo validación)
    */
   procesarLote(filas: FilaCargaMasiva[]): Observable<ResultadoProcesamiento[]> {
-    console.log('[PROCESADOR] 📦 Validando lote de', filas.length, 'filas');
+    // console.log removed for production
     
     const resultados = filas.map(fila => {
       const resultado = this.procesarFila(fila);
@@ -364,7 +364,7 @@ export class CargaMasivaProcesadorService {
         const exitosos = resultados.filter(r => r.exito).length;
         const errores = resultados.filter(r => !r.exito).length;
         
-        console.log('[PROCESADOR] ✅ Validación completada:', exitosos, 'válidos,', errores, 'con errores');
+        // console.log removed for production
         
         return resultados;
       })

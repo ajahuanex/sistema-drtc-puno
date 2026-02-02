@@ -108,11 +108,11 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         <div class="results-counter">
           <app-smart-icon iconName="filter_list" [size]="20"></app-smart-icon>
           <span class="counter-text">
-            <strong>{{ resolucionesFiltradas().length }}</strong> 
+            <strong>{{ (resolucionesFiltradas())?.length || 0 }}</strong> 
             {{ resolucionesFiltradas().length === 1 ? 'resultado encontrado' : 'resultados encontrados' }}
           </span>
           @if (resolucionesFiltradas().length !== resoluciones().length) {
-            <span class="total-text">de {{ resoluciones().length }} total</span>
+            <span class="total-text">de {{ (resoluciones())?.length || 0 }} total</span>
           }
         </div>
       }
@@ -632,7 +632,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
 
     this.resolucionService.getResolucionesConEmpresa().subscribe({
       next: (resoluciones) => {
-        console.log('📋 Resoluciones con empresa cargadas:', resoluciones.length);
+        // console.log removed for production
         this.resoluciones.set(resoluciones);
         this.aplicarFiltrosYCargarDatos();
         this.cargarEstadisticas();
@@ -645,7 +645,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error loading resoluciones:', error);
+        console.error('❌ Error loading resoluciones::', error);
         this.isLoading.set(false);
         this.tableService.cargando.set(false);
         this.mostrarNotificacion('Error al cargar las resoluciones. Por favor, intenta nuevamente.', 'error');
@@ -655,7 +655,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
 
   private aplicarFiltrosYCargarDatos(): void {
     const filtros = this.filtrosActuales();
-    console.log('🔄 Aplicando filtros:', filtros);
+    // console.log removed for production
     console.log('🔄 Tiene filtros activos:', this.tieneFiltrosActivos());
     
     if (this.tieneFiltrosActivos()) {
@@ -665,7 +665,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
       // Aplicar filtros
       this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
         next: (resolucionesFiltradas) => {
-          console.log('🔍 Resoluciones filtradas recibidas:', resolucionesFiltradas.length);
+          // console.log removed for production
           this.resolucionesFiltradas.set(resolucionesFiltradas);
           this.tableService.totalResultados.set(resolucionesFiltradas.length);
           this.isLoading.set(false);
@@ -676,7 +676,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('❌ Error al filtrar resoluciones:', error);
+          console.error('❌ Error al filtrar resoluciones::', error);
           this.resolucionesFiltradas.set([]);
           this.isLoading.set(false);
           this.mostrarNotificacion('Error al aplicar filtros. Por favor, intenta nuevamente.', 'error');
@@ -695,11 +695,11 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     
     this.resolucionService.getEstadisticasFiltros(filtros).subscribe({
       next: (stats) => {
-        console.log('📊 Estadísticas cargadas:', stats);
+        // console.log removed for production
         this.estadisticas.set(stats);
       },
       error: (error) => {
-        console.error('❌ Error al cargar estadísticas:', error);
+        console.error('❌ Error al cargar estadísticas::', error);
       }
     });
   }
@@ -709,12 +709,12 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   // ========================================
 
   onFiltrosChange(filtros: ResolucionFiltros): void {
-    console.log('🔍 Filtros cambiados en componente principal:', filtros);
+    // console.log removed for production
     this.tableService.actualizarFiltros(filtros);
   }
 
   onLimpiarFiltros(): void {
-    console.log('🧹 Limpiando todos los filtros');
+    // console.log removed for production
     this.tableService.limpiarFiltros();
     // Forzar actualización
     this.filtrosActuales.set({});
@@ -725,12 +725,12 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   // ========================================
 
   onConfiguracionChange(cambios: Partial<ResolucionTableConfig>): void {
-    console.log('⚙️ Configuración de tabla cambiada:', cambios);
+    // console.log removed for production
     this.tableService.actualizarConfiguracion(cambios);
   }
 
   onAccionEjecutada(accion: AccionTabla): void {
-    console.log('🎯 Acción ejecutada:', accion);
+    // console.log removed for production
     
     switch (accion.accion) {
       case 'ver':
@@ -805,7 +805,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
           this.cargarResoluciones();
         },
         error: (error) => {
-          console.error('Error deleting resolucion:', error);
+          console.error('Error deleting resolucion::', error);
           this.mostrarNotificacion('Error al eliminar la resolución. Por favor, intenta nuevamente.', 'error');
         }
       });
@@ -844,7 +844,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
           this.cargarResoluciones();
         },
         error: (error) => {
-          console.error('Error eliminando resoluciones en lote:', error);
+          console.error('Error eliminando resoluciones en lote::', error);
           this.mostrarNotificacion('Error al eliminar algunas resoluciones. Por favor, verifica e intenta nuevamente.', 'error');
           // Recargar para mostrar el estado actual
           this.cargarResoluciones();
@@ -885,7 +885,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         this.cargarResoluciones();
       },
       error: (error) => {
-        console.error('Error restaurando resoluciones:', error);
+        console.error('Error restaurando resoluciones::', error);
         this.mostrarNotificacion('Error al restaurar las resoluciones. Puedes intentar desde el menú de resoluciones eliminadas.', 'error');
       }
     });
@@ -914,7 +914,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error obteniendo resoluciones eliminadas:', error);
+        console.error('Error obteniendo resoluciones eliminadas::', error);
         this.mostrarNotificacion('Error al obtener resoluciones eliminadas', 'error');
       }
     });
@@ -969,7 +969,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         this.cargarResoluciones();
       },
       error: (error) => {
-        console.error('Error restaurando resoluciones:', error);
+        console.error('Error restaurando resoluciones::', error);
         this.mostrarNotificacion('Error al restaurar las resoluciones', 'error');
       }
     });
@@ -1003,7 +1003,7 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         this.mostrarNotificacion('✓ Exportación Excel completada exitosamente', 'success');
       },
       error: (error) => {
-        console.error('Error al exportar:', error);
+        console.error('Error al exportar::', error);
         this.mostrarNotificacion('Error al exportar resoluciones. Por favor, intenta nuevamente.', 'error');
       }
     });

@@ -778,7 +778,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
           this.tiposDocumento = tipos;
         },
         error: (error) => {
-          console.error('Error al cargar tipos de documento:', error);
+          console.error('Error al cargar tipos de documento::', error);
           this.snackBar.open('Error al cargar tipos de documento', 'Cerrar', {
             duration: 3000
           });
@@ -846,7 +846,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) => {
-          console.error('Error en búsqueda:', error);
+          console.error('Error en búsqueda::', error);
           this.loading = false;
           this.snackBar.open('Error al realizar la búsqueda', 'Cerrar', {
             duration: 3000
@@ -878,7 +878,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
           });
         },
         error: (error) => {
-          console.error('Error en búsqueda por QR:', error);
+          console.error('Error en búsqueda por QR::', error);
           this.loading = false;
           this.documentos = [];
           this.totalResultados = 0;
@@ -1069,7 +1069,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
    * Requirements: 5.4
    */
   verDetalle(documento: Documento): void {
-    console.log('Ver detalle del documento:', documento);
+    // console.log removed for production
     // TODO: Abrir modal o navegar a vista de detalle
     this.snackBar.open(`Ver detalle de ${documento.numeroExpediente}`, 'Cerrar', {
       duration: 2000
@@ -1092,7 +1092,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
    * Requirements: 1.6, 5.7
    */
   verQR(documento: Documento): void {
-    console.log('Ver QR del documento:', documento);
+    // console.log removed for production
     // TODO: Mostrar modal con código QR
     this.snackBar.open(`QR de ${documento.numeroExpediente}`, 'Cerrar', {
       duration: 2000
@@ -1126,7 +1126,7 @@ export class BusquedaDocumentosComponent implements OnInit, OnDestroy {
         });
       },
       error: (error) => {
-        console.error('Error al exportar:', error);
+        console.error('Error al exportar::', error);
         this.snackBar.open('Error al exportar resultados', 'Cerrar', {
           duration: 3000
         });

@@ -46,13 +46,16 @@ export class EmpresaService {
 
   // Métodos principales CRUD
   getEmpresas(skip: number = 0, limit: number = 1000): Observable<Empresa[]> {
-    // Aumentar el límite para obtener todas las empresas
     return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`).pipe(
-      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa))),
+      map(empresas => {
+        const transformedEmpresas = empresas.map(empresa => this.transformEmpresaData(empresa));
+        return transformedEmpresas;
+      }),
       catchError(error => {
-        console.error('❌ Error en getEmpresas:', error);
-        console.error('URL:', `${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`);
-        console.error('Headers que se intentaron usar:', this.getHeaders());
+        console.error('❌ Error en getEmpresas::', error);
+        console.error('URL::', `${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`);
+        console.error('Status::', error.status);
+        console.error('Message::', error.message);
         return throwError(() => error);
       })
     );
@@ -71,9 +74,9 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error creando empresa:', error);
-        console.error('Status:', error.status);
-        console.error('Error detail:', error.error);
+        console.error('❌ Error creando empresa::', error);
+        console.error('Status::', error.status);
+        console.error('Error detail::', error.error);
         return throwError(() => error);
       })
     );
@@ -85,7 +88,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error actualizando empresa:', error);
+        console.error('❌ Error actualizando empresa::', error);
         return throwError(() => error);
       })
     );
@@ -96,7 +99,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error eliminando empresa:', error);
+        console.error('❌ Error eliminando empresa::', error);
         return throwError(() => error);
       })
     );
@@ -120,7 +123,7 @@ export class EmpresaService {
     }).pipe(
       map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa))),
       catchError(error => {
-        console.error('❌ Error aplicando filtros:', error);
+        console.error('❌ Error aplicando filtros::', error);
         return throwError(() => error);
       })
     );
@@ -131,7 +134,7 @@ export class EmpresaService {
     // Temporalmente sin headers para debug
     return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo estadísticas:', error);
+        console.error('❌ Error obteniendo estadísticas::', error);
         return throwError(() => error);
       })
     );
@@ -144,7 +147,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error agregando vehículo a empresa:', error);
+        console.error('❌ Error agregando vehículo a empresa::', error);
         return throwError(() => error);
       })
     );
@@ -156,7 +159,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error removiendo vehículo de empresa:', error);
+        console.error('❌ Error removiendo vehículo de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -169,7 +172,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error agregando conductor a empresa:', error);
+        console.error('❌ Error agregando conductor a empresa::', error);
         return throwError(() => error);
       })
     );
@@ -181,7 +184,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error removiendo conductor de empresa:', error);
+        console.error('❌ Error removiendo conductor de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -194,7 +197,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error agregando ruta a empresa:', error);
+        console.error('❌ Error agregando ruta a empresa::', error);
         return throwError(() => error);
       })
     );
@@ -206,7 +209,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error removiendo ruta de empresa:', error);
+        console.error('❌ Error removiendo ruta de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -219,7 +222,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error agregando resolución a empresa:', error);
+        console.error('❌ Error agregando resolución a empresa::', error);
         return throwError(() => error);
       })
     );
@@ -231,7 +234,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error removiendo resolución de empresa:', error);
+        console.error('❌ Error removiendo resolución de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -242,7 +245,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo resoluciones de empresa:', error);
+        console.error('❌ Error obteniendo resoluciones de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -255,7 +258,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo resoluciones simplificadas:', error);
+        console.error('❌ Error obteniendo resoluciones simplificadas::', error);
         return throwError(() => error);
       })
     );
@@ -267,7 +270,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error validando RUC:', error);
+        console.error('❌ Error validando RUC::', error);
         return throwError(() => error);
       })
     );
@@ -297,7 +300,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error exportando empresas:', error);
+        console.error('❌ Error exportando empresas::', error);
         return throwError(() => error);
       })
     );
@@ -326,16 +329,16 @@ export class EmpresaService {
       id: empresa.id || empresa._id || '',
       ruc: empresa.ruc || '',
       razonSocial: empresa.razonSocial || empresa.razon_social || {
-        principal: '',
-        sunat: '',
-        minimo: ''
+        principal: empresa.razonSocial?.principal || empresa.razon_social?.principal || 'Sin razón social',
+        sunat: empresa.razonSocial?.sunat || empresa.razon_social?.sunat || '',
+        minimo: empresa.razonSocial?.minimo || empresa.razon_social?.minimo || ''
       },
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
-      tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || ['PERSONAS'], // AGREGADO
+      tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || ['PERSONAS'],
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : (empresa.esta_activo !== undefined ? empresa.esta_activo : true),
-      fechaRegistro: empresa.fechaRegistro || empresa.fecha_registro || new Date(),
-      fechaActualizacion: empresa.fechaActualizacion || empresa.fecha_actualizacion || undefined,
+      fechaRegistro: empresa.fechaRegistro ? new Date(empresa.fechaRegistro) : (empresa.fecha_registro ? new Date(empresa.fecha_registro) : new Date()),
+      fechaActualizacion: empresa.fechaActualizacion ? new Date(empresa.fechaActualizacion) : (empresa.fecha_actualizacion ? new Date(empresa.fecha_actualizacion) : undefined),
       representanteLegal: empresa.representanteLegal || empresa.representante_legal || {
         dni: '',
         nombres: '',
@@ -349,9 +352,9 @@ export class EmpresaService {
       sitioWeb: empresa.sitioWeb || empresa.sitio_web || '',
       documentos: empresa.documentos || [],
       auditoria: empresa.auditoria || [],
-      historialEventos: empresa.historialEventos || empresa.historial_eventos || [], // AGREGADO
-      historialEstados: empresa.historialEstados || empresa.historial_estados || [], // AGREGADO
-      historialRepresentantes: empresa.historialRepresentantes || empresa.historial_representantes || [], // AGREGADO
+      historialEventos: empresa.historialEventos || empresa.historial_eventos || [],
+      historialEstados: empresa.historialEstados || empresa.historial_estados || [],
+      historialRepresentantes: empresa.historialRepresentantes || empresa.historial_representantes || [],
       resolucionesPrimigeniasIds: empresa.resolucionesPrimigeniasIds || empresa.resoluciones_primigenias_ids || [],
       vehiculosHabilitadosIds: empresa.vehiculosHabilitadosIds || empresa.vehiculos_habilitados_ids || [],
       conductoresHabilitadosIds: empresa.conductoresHabilitadosIds || empresa.conductores_habilitados_ids || [],
@@ -364,7 +367,7 @@ export class EmpresaService {
         direccion: '',
         fechaActualizacion: new Date()
       },
-      ultimaValidacionSunat: empresa.ultimaValidacionSunat || empresa.ultima_validacion_sunat || new Date(),
+      ultimaValidacionSunat: empresa.ultimaValidacionSunat ? new Date(empresa.ultimaValidacionSunat) : (empresa.ultima_validacion_sunat ? new Date(empresa.ultima_validacion_sunat) : new Date()),
       scoreRiesgo: empresa.scoreRiesgo || empresa.score_riesgo || 0,
       observaciones: empresa.observaciones || '',
       codigoEmpresa: empresa.codigoEmpresa || ''
@@ -377,7 +380,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error validando empresa con SUNAT:', error);
+        console.error('❌ Error validando empresa con SUNAT::', error);
         return throwError(() => error);
       })
     );
@@ -397,7 +400,7 @@ export class EmpresaService {
     return this.http.get<{ siguienteCodigo: string, descripcion: string, formato: string }>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error generando código de empresa:', error);
+          console.error('❌ Error generando código de empresa::', error);
           return throwError(() => error);
         })
       );
@@ -424,7 +427,7 @@ export class EmpresaService {
     }>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error validando código de empresa:', error);
+          console.error('❌ Error validando código de empresa::', error);
           return throwError(() => error);
         })
       );
@@ -461,7 +464,7 @@ export class EmpresaService {
       window.URL.revokeObjectURL(url);
 
     } catch (error) {
-      console.error('❌ Error descargando plantilla:', error);
+      console.error('❌ Error descargando plantilla::', error);
       throw error;
     }
   }
@@ -553,7 +556,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error cambiando estado de empresa:', error);
+        console.error('❌ Error cambiando estado de empresa::', error);
         return throwError(() => error);
       })
     );
@@ -564,7 +567,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo historial de estados:', error);
+        console.error('❌ Error obteniendo historial de estados::', error);
         return throwError(() => error);
       })
     );
@@ -580,7 +583,7 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
-        console.error('❌ Error cambiando representante legal:', error);
+        console.error('❌ Error cambiando representante legal::', error);
         return throwError(() => error);
       })
     );
@@ -591,7 +594,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo historial de representantes:', error);
+        console.error('❌ Error obteniendo historial de representantes::', error);
         return throwError(() => error);
       })
     );
@@ -612,7 +615,7 @@ export class EmpresaService {
       params
     }).pipe(
       catchError(error => {
-        console.error('❌ Error obteniendo historial completo:', error);
+        console.error('❌ Error obteniendo historial completo::', error);
         return throwError(() => error);
       })
     );
@@ -623,7 +626,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error registrando operación vehicular:', error);
+        console.error('❌ Error registrando operación vehicular::', error);
         return throwError(() => error);
       })
     );
@@ -634,7 +637,7 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('❌ Error registrando operación de rutas:', error);
+        console.error('❌ Error registrando operación de rutas::', error);
         return throwError(() => error);
       })
     );

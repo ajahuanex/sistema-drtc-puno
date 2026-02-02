@@ -365,7 +365,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
         
         return this.busquedaService.buscarGlobal(termino).pipe(
           catchError(error => {
-            console.error('Error en búsqueda global:', error);
+            console.error('Error en búsqueda global::', error);
             return of(null);
           })
         );
@@ -452,7 +452,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
         this.busquedasRecientes.set(JSON.parse(recientes));
       }
     } catch (error) {
-      console.error('Error cargando búsquedas recientes:', error);
+      console.error('Error cargando búsquedas recientes::', error);
     }
   }
 
@@ -479,7 +479,7 @@ export class VehiculoBusquedaGlobalComponent implements OnInit {
     try {
       localStorage.setItem('vehiculos_busquedas_recientes', JSON.stringify(nuevasRecientes));
     } catch (error) {
-      console.error('Error guardando búsquedas recientes:', error);
+      console.error('Error guardando búsquedas recientes::', error);
     }
   }
 

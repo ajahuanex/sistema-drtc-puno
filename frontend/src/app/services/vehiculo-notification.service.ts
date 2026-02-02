@@ -55,10 +55,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Ver Vehículo'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de transferencia enviada a usuario ${destinatarioId}`);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error enviando notificación de transferencia:', error);
+          console.error('Error enviando notificación de transferencia::', error);
         }
       });
     });
@@ -110,10 +110,10 @@ export class VehiculoNotificationService {
       accionTexto: 'Ver Vehículo'
     }).subscribe({
       next: () => {
-        console.log(`Notificación de transferencia enviada a empresa ${empresa.razonSocial.principal}`);
+        // console.log removed for production
       },
       error: (error) => {
-        console.error('Error enviando notificación a empresa:', error);
+        console.error('Error enviando notificación a empresa::', error);
       }
     });
   }
@@ -160,10 +160,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Revisar Solicitud'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de solicitud de baja enviada a supervisor ${supervisorId}`);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error enviando notificación de solicitud de baja:', error);
+          console.error('Error enviando notificación de solicitud de baja::', error);
         }
       });
     });
@@ -218,10 +218,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Ver Vehículo'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de cambio de estado enviada a usuario ${destinatarioId}`);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error enviando notificación de cambio de estado:', error);
+          console.error('Error enviando notificación de cambio de estado::', error);
         }
       });
     });
@@ -286,10 +286,10 @@ export class VehiculoNotificationService {
           expiraEn: doc.fechaVencimiento
         }).subscribe({
           next: () => {
-            console.log(`Notificación de vencimiento enviada para vehículo ${vehiculo.placa}`);
+            // console.log removed for production
           },
           error: (error) => {
-            console.error('Error enviando notificación de vencimiento:', error);
+            console.error('Error enviando notificación de vencimiento::', error);
           }
         });
       });
@@ -334,10 +334,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Ver Vehículo'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de aprobación de baja enviada a usuario ${destinatarioId}`);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error enviando notificación de aprobación:', error);
+          console.error('Error enviando notificación de aprobación::', error);
         }
       });
     });
@@ -384,10 +384,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Ver Vehículo'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de rechazo de baja enviada a usuario ${destinatarioId}`);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error enviando notificación de rechazo:', error);
+          console.error('Error enviando notificación de rechazo::', error);
         }
       });
     });
@@ -430,10 +430,10 @@ export class VehiculoNotificationService {
         accionTexto: 'Ver Vehículo'
       }).subscribe({
         next: () => {
-          console.log(`Notificación de error crítico enviada a administrador ${adminId}`);
+          // console.log removed for production
         },
         error: (err) => {
-          console.error('Error enviando notificación de error crítico:', err);
+          console.error('Error enviando notificación de error crítico::', err);
         }
       });
     });

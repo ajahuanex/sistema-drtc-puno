@@ -46,7 +46,7 @@ export interface CambiarEstadoBloqueModalData {
           <app-smart-icon [iconName]="'checklist'" [size]="28" class="header-icon"></app-smart-icon>
           <div>
             <h2>Cambiar Estado en Bloque</h2>
-            <p class="header-subtitle">{{ vehiculos.length }} vehículo(s) seleccionado(s)</p>
+            <p class="header-subtitle">{{ (vehiculos)?.length || 0 }} vehículo(s) seleccionado(s)</p>
           </div>
         </div>
         <button mat-icon-button (click)="cancelar()" class="close-button">
@@ -117,7 +117,7 @@ export interface CambiarEstadoBloqueModalData {
             <div class="resumen-info">
               <div class="resumen-item">
                 <span class="resumen-label">Vehículos afectados:</span>
-                <span class="resumen-value">{{ vehiculos.length }}</span>
+                <span class="resumen-value">{{ (vehiculos)?.length || 0 }}</span>
               </div>
               <div class="resumen-item">
                 <span class="resumen-label">Nuevo estado:</span>
@@ -154,10 +154,10 @@ export interface CambiarEstadoBloqueModalData {
                 class="confirm-button">
           @if (procesando()) {
             <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
-            <span>Procesando {{ progreso() }}/{{ vehiculos.length }}...</span>
+            <span>Procesando {{ progreso() }}/{{ (vehiculos)?.length || 0 }}...</span>
           } @else {
             <app-smart-icon [iconName]="'check'" [size]="20"></app-smart-icon>
-            <span>Cambiar Estado ({{ vehiculos.length }} vehículos)</span>
+            <span>Cambiar Estado ({{ (vehiculos)?.length || 0 }} vehículos)</span>
           }
         </button>
       </div>

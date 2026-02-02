@@ -78,7 +78,7 @@ interface VehiculoForm {
                 </div>
                 <div class="info-item">
                   <span class="label">Rutas Autorizadas:</span>
-                  <span class="value">{{ resolucion.rutasAutorizadas.length }} rutas</span>
+                  <span class="value">{{ (resolucion.rutasAutorizadas)?.length || 0 }} rutas</span>
                 </div>
               </div>
             </mat-card-content>
@@ -111,7 +111,7 @@ interface VehiculoForm {
               Vehículos a Agregar
             </mat-card-title>
             <mat-card-subtitle>
-              {{ vehiculosParaAgregar().length }} vehículos configurados
+              {{ (vehiculosParaAgregar())?.length || 0 }} vehículos configurados
             </mat-card-subtitle>
           </mat-card-header>
           <mat-card-content>
@@ -176,7 +176,7 @@ interface VehiculoForm {
                     <th mat-header-cell *matHeaderCellDef>Rutas</th>
                     <td mat-cell *matCellDef="let vehiculo">
                       @if (vehiculo.rutasAsignadasIds.length > 0) {
-                        <span class="rutas-count">{{ vehiculo.rutasAsignadasIds.length }} rutas</span>
+                        <span class="rutas-count">{{ (vehiculo.rutasAsignadasIds)?.length || 0 }} rutas</span>
                       } @else {
                         <span class="sin-rutas">Sin rutas</span>
                       }

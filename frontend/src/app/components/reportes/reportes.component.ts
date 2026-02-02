@@ -80,7 +80,7 @@ interface ReporteRapido {
       <div class="header">
         <div class="title-section">
           <h1>Generador de Reportes</h1>
-          <p>Sistema integral de reportes y análisis del SIRRET</p>
+          <p>Sistema integral de reportes y análisis del Sistema Regional de Registros de Transporte (SIRRET)</p>
         </div>
         <div class="header-actions">
           <button mat-raised-button color="primary" (click)="crearReportePersonalizado()">
@@ -705,7 +705,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     {
       id: 'estadisticas_generales',
       nombre: 'Estadísticas Generales',
-      descripcion: 'Métricas y estadísticas del sistema SIRRET',
+      descripcion: 'Métricas y estadísticas del Sistema Regional de Registros de Transporte (SIRRET)',
       icono: 'analytics',
       color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
       tipo: TipoReporte.ESTADISTICAS_GENERALES,
@@ -775,7 +775,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.loadingReportes.set(false);
       },
       error: (error) => {
-        console.error('Error cargando reportes:', error);
+        console.error('Error cargando reportes::', error);
         this.loadingReportes.set(false);
       }
     });
@@ -789,7 +789,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.loadingProgramados.set(false);
       },
       error: (error) => {
-        console.error('Error cargando reportes programados:', error);
+        console.error('Error cargando reportes programados::', error);
         this.loadingProgramados.set(false);
       }
     });
@@ -822,7 +822,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.cargarReportesGenerados();
       },
       error: (error) => {
-        console.error('Error generando reporte:', error);
+        console.error('Error generando reporte::', error);
         this.snackBar.open('Error al generar el reporte', 'Cerrar', { duration: 3000 });
       }
     });
@@ -854,7 +854,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
           this.generando.set(false);
         },
         error: (error) => {
-          console.error('Error generando reporte:', error);
+          console.error('Error generando reporte::', error);
           this.snackBar.open('Error al generar el reporte', 'Cerrar', { duration: 3000 });
           this.generando.set(false);
         }
@@ -891,7 +891,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.snackBar.open('Reporte descargado exitosamente', 'Cerrar', { duration: 2000 });
       },
       error: (error) => {
-        console.error('Error descargando reporte:', error);
+        console.error('Error descargando reporte::', error);
         this.snackBar.open('Error al descargar el reporte', 'Cerrar', { duration: 3000 });
       }
     });
@@ -908,7 +908,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.cargarReportesGenerados();
       },
       error: (error) => {
-        console.error('Error cancelando reporte:', error);
+        console.error('Error cancelando reporte::', error);
         this.snackBar.open('Error al cancelar el reporte', 'Cerrar', { duration: 3000 });
       }
     });
@@ -933,7 +933,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         this.cargarReportesProgramados();
       },
       error: (error) => {
-        console.error('Error eliminando programación:', error);
+        console.error('Error eliminando programación::', error);
         this.snackBar.open('Error al eliminar la programación', 'Cerrar', { duration: 3000 });
       }
     });

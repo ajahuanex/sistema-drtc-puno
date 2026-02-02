@@ -62,16 +62,13 @@ export interface GestionarLocalidadModalData {
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Código</mat-label>
+            <mat-label>Código (Opcional)</mat-label>
             <input matInput 
                    formControlName="codigo" 
                    placeholder="Ej: PUN001, JUL001"
                    maxlength="10"
                    style="text-transform: uppercase">
-            <mat-hint>Código único de identificación (Ej: PUN001, ASD123)</mat-hint>
-            @if (localidadForm.get('codigo')?.hasError('required') && localidadForm.get('codigo')?.touched) {
-              <mat-error>El código es requerido</mat-error>
-            }
+            <mat-hint>Código único de identificación (Opcional)</mat-hint>
             @if (localidadForm.get('codigo')?.hasError('pattern')) {
               <mat-error>Formato: 3 letras + 3-7 números (Ej: PUN001, ASD123)</mat-error>
             }
@@ -85,27 +82,20 @@ export interface GestionarLocalidadModalData {
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Tipo de Localidad</mat-label>
             <mat-select formControlName="tipo">
-              <mat-option value="CIUDAD">Ciudad</mat-option>
               <mat-option value="PUEBLO">Pueblo</mat-option>
               <mat-option value="DISTRITO">Distrito</mat-option>
               <mat-option value="PROVINCIA">Provincia</mat-option>
               <mat-option value="DEPARTAMENTO">Departamento</mat-option>
               <mat-option value="CENTRO_POBLADO">Centro Poblado</mat-option>
             </mat-select>
-            @if (localidadForm.get('tipo')?.hasError('required') && localidadForm.get('tipo')?.touched) {
-              <mat-error>El tipo es requerido</mat-error>
-            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Departamento</mat-label>
             <input matInput 
                    formControlName="departamento" 
-                   placeholder="Ej: Puno, Lima, Arequipa"
+                   placeholder="Por defecto: PUNO"
                    maxlength="50">
-            @if (localidadForm.get('departamento')?.hasError('required') && localidadForm.get('departamento')?.touched) {
-              <mat-error>El departamento es requerido</mat-error>
-            }
           </mat-form-field>
         </div>
 
@@ -114,18 +104,15 @@ export interface GestionarLocalidadModalData {
             <mat-label>Provincia</mat-label>
             <input matInput 
                    formControlName="provincia" 
-                   placeholder="Ej: Puno, San Román, Lima"
+                   placeholder="Por defecto: PUNO"
                    maxlength="50">
-            @if (localidadForm.get('provincia')?.hasError('required') && localidadForm.get('provincia')?.touched) {
-              <mat-error>La provincia es requerida</mat-error>
-            }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Distrito (Opcional)</mat-label>
+            <mat-label>Distrito</mat-label>
             <input matInput 
                    formControlName="distrito" 
-                   placeholder="Ej: Puno, Juliaca"
+                   placeholder="Por defecto: PUNO"
                    maxlength="50">
           </mat-form-field>
         </div>
@@ -181,7 +168,7 @@ export interface GestionarLocalidadModalData {
       </button>
       <button mat-raised-button 
               color="primary" 
-              [disabled]="!localidadForm.valid || guardando() || codigoExiste()"
+              [disabled]="!localidadForm.valid || guardando()"
               (click)="guardar()">
         @if (guardando()) {
           <mat-spinner diameter="20"></mat-spinner>
@@ -315,11 +302,12 @@ export class GestionarLocalidadModalComponent implements OnInit {
   private createForm(): FormGroup {
     return this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      codigo: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(10), Validators.pattern(/^[A-Z]{3}[0-9]{3,7}$/)]],
-      tipo: ['', Validators.required],
-      departamento: ['PUNO', [Validators.required, Validators.maxLength(50)]], // Valor por defecto PUNO
-      provincia: ['', [Validators.required, Validators.maxLength(50)]],
-      distrito: ['', Validators.maxLength(50)],
+      // Código ya no es obligatorio
+      codigo: [''],
+      tipo: ['PUEBLO'], // Por defecto PUEBLO
+      departamento: ['PUNO'], // Por defecto PUNO
+      provincia: ['PUNO'], // Por defecto PUNO
+      distrito: ['PUNO'], // Por defecto PUNO
       descripcion: ['', Validators.maxLength(500)],
       latitud: ['', [Validators.min(-90), Validators.max(90)]],
       longitud: ['', [Validators.min(-180), Validators.max(180)]]
@@ -344,7 +332,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
 
   private validarCodigoUnico(codigo: string): void {
     // Temporalmente deshabilitado para debugging
-    console.log('🔍 Validación de código deshabilitada temporalmente:', codigo);
+    // console.log removed for production
     this.codigoExiste.set(false);
     return;
     
@@ -376,7 +364,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
 
     const idExcluir = this.data.esEdicion ? this.data.localidad?.id : undefined;
     
-    console.log('🔍 Validando código único:', codigoUpper);
+    // console.log removed for production
     
     // For now, we'll use a simple validation since the service method doesn't exist yet
     this.codigoExiste.set(false);
@@ -384,32 +372,32 @@ export class GestionarLocalidadModalComponent implements OnInit {
     // TODO: Implement proper validation when backend is ready
     // this.localidadService.validarCodigoUnico(codigoUpper, idExcluir).subscribe({
     //   next: (esUnico: boolean) => {
-    //     console.log('✅ Resultado validación:', esUnico);
+    //     // console.log removed for production
     //     this.codigoExiste.set(!esUnico);
     //   },
     //   error: (error: any) => {
-    //     console.error('❌ Error validando código:', error);
+    //     console.error('❌ Error validando código::', error);
     //     this.codigoExiste.set(false);
     //   }
     // });
   }
 
   async guardar(): Promise<void> {
-    console.log('🔍 INICIANDO GUARDADO DE LOCALIDAD');
-    console.log('📋 Formulario válido:', this.localidadForm.valid);
+    // console.log removed for production
+    // console.log removed for production
     console.log('📋 Código existe:', this.codigoExiste());
-    console.log('📋 Errores del formulario:', this.localidadForm.errors);
+    // console.log removed for production
     
     // Mostrar errores de cada campo
     Object.keys(this.localidadForm.controls).forEach(key => {
       const control = this.localidadForm.get(key);
       if (control?.errors) {
-        console.log(`❌ Campo ${key} tiene errores:`, control.errors);
+        // console.log removed for production
       }
     });
 
-    if (!this.localidadForm.valid || this.codigoExiste()) {
-      console.log('❌ GUARDADO CANCELADO - Formulario inválido o código existe');
+    if (!this.localidadForm.valid) {
+      // console.log removed for production
       // Marcar todos los campos como touched para mostrar errores
       Object.keys(this.localidadForm.controls).forEach(key => {
         this.localidadForm.get(key)?.markAsTouched();
@@ -417,10 +405,10 @@ export class GestionarLocalidadModalComponent implements OnInit {
       return;
     }
 
-    console.log('✅ INICIANDO GUARDADO...');
+    // console.log removed for production
     this.guardando.set(true);
     const formValue = this.localidadForm.value;
-    console.log('📤 Datos del formulario:', formValue);
+    // console.log removed for production
 
     // Preparar coordenadas si están completas
     let coordenadas = undefined;
@@ -433,17 +421,17 @@ export class GestionarLocalidadModalComponent implements OnInit {
 
     const localidadData = {
       nombre: formValue.nombre.trim(),
-      codigo: formValue.codigo.toUpperCase(),
       tipo: formValue.tipo as TipoLocalidad,
-      departamento: formValue.departamento.trim(),
-      provincia: formValue.provincia.trim(),
-      distrito: formValue.distrito?.trim() || undefined,
-      descripcion: formValue.descripcion?.trim() || undefined,
-      coordenadas
+      departamento: formValue.departamento?.trim() || 'PUNO',
+      provincia: formValue.provincia?.trim() || 'PUNO',
+      distrito: formValue.distrito?.trim() || 'PUNO',
+      ...(formValue.codigo && { codigo: formValue.codigo.toUpperCase() }),
+      ...(formValue.descripcion && { descripcion: formValue.descripcion.trim() }),
+      ...(coordenadas && { coordenadas })
     };
 
-    console.log('📤 Datos preparados para enviar:', localidadData);
-    console.log('📤 Es edición:', this.data.esEdicion);
+    // console.log removed for production
+    // console.log removed for production
 
     try {
       let localidad: any;
@@ -453,7 +441,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
         localidad = await this.localidadService.actualizarLocalidad(this.data.localidad!.id, localidadData as LocalidadUpdate);
       }
 
-      console.log('✅ LOCALIDAD GUARDADA EXITOSAMENTE:', localidad);
+      // console.log removed for production
       this.guardando.set(false);
       const mensaje = !this.data.esEdicion 
         ? 'Localidad creada exitosamente' 
@@ -462,7 +450,7 @@ export class GestionarLocalidadModalComponent implements OnInit {
       this.snackBar.open(mensaje, 'Cerrar', { duration: 3000 });
       this.dialogRef.close(localidad);
     } catch (error: any) {
-      console.error('❌ ERROR GUARDANDO LOCALIDAD:', error);
+      console.error('❌ ERROR GUARDANDO LOCALIDAD::', error);
       this.guardando.set(false);
       const mensajeError = error?.message || 'Error desconocido al guardar la localidad';
       this.snackBar.open(`Error: ${mensajeError}`, 'Cerrar', { duration: 5000 });

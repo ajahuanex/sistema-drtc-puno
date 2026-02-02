@@ -114,10 +114,7 @@ export class IntercambioCodigosModalComponent {
   data = inject(MAT_DIALOG_DATA) as IntercambioCodigosData;
 
   seleccionarRuta(rutaDestino: Ruta): void {
-    console.log('🔄 RUTA SELECCIONADA PARA INTERCAMBIO:', {
-      origen: { id: this.data.rutaOrigen.id, codigoRuta: this.data.rutaOrigen.codigoRuta, nombre: this.data.rutaOrigen.nombre },
-      destino: { id: rutaDestino.id, codigoRuta: rutaDestino.codigoRuta, nombre: rutaDestino.nombre }
-    });
+    // console.log removed for production
     
     this.dialogRef.close({ rutaDestino });
   }

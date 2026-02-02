@@ -1,4 +1,5 @@
 export enum NivelTerritorial {
+  PUEBLO = 'PUEBLO',
   CENTRO_POBLADO = 'CENTRO_POBLADO',
   DISTRITO = 'DISTRITO',
   PROVINCIA = 'PROVINCIA',
@@ -6,12 +7,13 @@ export enum NivelTerritorial {
 }
 
 export enum TipoLocalidad {
-  CIUDAD = 'CIUDAD',
-  PUEBLO = 'PUEBLO',
-  DISTRITO = 'DISTRITO',
-  PROVINCIA = 'PROVINCIA',
-  DEPARTAMENTO = 'DEPARTAMENTO',
-  CENTRO_POBLADO = 'CENTRO_POBLADO'
+  PUEBLO = "PUEBLO",                 // Tipo por defecto - genérico
+  CENTRO_POBLADO = "CENTRO_POBLADO", // Solo cuando necesite jerarquía específica
+  LOCALIDAD = "LOCALIDAD",
+  DISTRITO = "DISTRITO",
+  PROVINCIA = "PROVINCIA", 
+  DEPARTAMENTO = "DEPARTAMENTO",
+  CIUDAD = "CIUDAD"
 }
 
 export interface Coordenadas {
@@ -21,58 +23,83 @@ export interface Coordenadas {
 
 export interface Localidad {
   id: string;
+  // ÚNICO CAMPO OBLIGATORIO
+  nombre: string;
+  
+  // TIPO QUE DEFINE EL NIVEL TERRITORIAL
+  tipo: TipoLocalidad;
+  
+  // TODOS LOS DEMÁS CAMPOS SON OPCIONALES
   ubigeo?: string;
-  ubigeo_identificador_mcp?: string;
-  departamento: string;
-  provincia: string;
-  distrito: string;
-  municipalidad_centro_poblado: string;
-  nivel_territorial: NivelTerritorial;
-  dispositivo_legal_creacion?: string;
-  coordenadas?: Coordenadas;
-  nombre?: string;
-  codigo?: string;
-  tipo?: TipoLocalidad;
-  descripcion?: string;
-  observaciones?: string;
-  esta_activa: boolean;
-  fecha_creacion: string;
-  fecha_actualizacion: string;
-}
-
-export interface LocalidadCreate {
-  ubigeo?: string;
-  ubigeo_identificador_mcp?: string;
-  departamento: string;
-  provincia: string;
-  distrito: string;
-  municipalidad_centro_poblado: string;
-  nivel_territorial: NivelTerritorial;
-  dispositivo_legal_creacion?: string;
-  coordenadas?: Coordenadas;
-  nombre?: string;
-  codigo?: string;
-  tipo?: TipoLocalidad;
-  descripcion?: string;
-  observaciones?: string;
-}
-
-export interface LocalidadUpdate {
-  ubigeo?: string;
-  ubigeo_identificador_mcp?: string;
   departamento?: string;
   provincia?: string;
   distrito?: string;
-  municipalidad_centro_poblado?: string;
-  nivel_territorial?: NivelTerritorial;
-  dispositivo_legal_creacion?: string;
-  coordenadas?: Coordenadas;
-  nombre?: string;
   codigo?: string;
-  tipo?: TipoLocalidad;
   descripcion?: string;
+  coordenadas?: Coordenadas;
   observaciones?: string;
-  esta_activa?: boolean;
+  
+  // CAMPOS DEL SISTEMA
+  estaActiva: boolean;
+  fechaCreacion: string;
+  fechaActualizacion: string;
+  
+  // Campo calculado automáticamente
+  nivel_territorial: NivelTerritorial;
+  
+  // Campos de compatibilidad (opcionales)
+  ubigeo_identificador_mcp?: string;
+  municipalidad_centro_poblado?: string;
+  dispositivo_legal_creacion?: string;
+  esta_activa?: boolean; // Alias para estaActiva
+  fecha_creacion?: string; // Alias para fechaCreacion
+  fecha_actualizacion?: string; // Alias para fechaActualizacion
+}
+
+export interface LocalidadCreate {
+  // ÚNICO CAMPO OBLIGATORIO
+  nombre: string;
+  
+  // TIPO POR DEFECTO: LOCALIDAD
+  tipo?: TipoLocalidad;
+  
+  // TODOS LOS DEMÁS CAMPOS SON OPCIONALES
+  // Solo se muestran cuando tipo = CENTRO_POBLADO
+  ubigeo?: string;
+  departamento?: string; // Por defecto: PUNO
+  provincia?: string;
+  distrito?: string;
+  codigo?: string;
+  descripcion?: string;
+  coordenadas?: Coordenadas;
+  observaciones?: string;
+  
+  // Campos de compatibilidad (opcionales)
+  ubigeo_identificador_mcp?: string;
+  municipalidad_centro_poblado?: string;
+  dispositivo_legal_creacion?: string;
+  nivel_territorial?: NivelTerritorial;
+}
+
+export interface LocalidadUpdate {
+  nombre?: string;
+  tipo?: TipoLocalidad;
+  ubigeo?: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
+  codigo?: string;
+  descripcion?: string;
+  coordenadas?: Coordenadas;
+  observaciones?: string;
+  estaActiva?: boolean;
+  
+  // Campos de compatibilidad (opcionales)
+  ubigeo_identificador_mcp?: string;
+  municipalidad_centro_poblado?: string;
+  dispositivo_legal_creacion?: string;
+  nivel_territorial?: NivelTerritorial;
+  esta_activa?: boolean; // Alias para estaActiva
 }
 
 export interface FiltroLocalidades {

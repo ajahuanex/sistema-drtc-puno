@@ -142,7 +142,7 @@ export class NotificacionesBadgeComponent implements OnInit, OnDestroy {
       const response = await this.notificacionService.obtenerNotificaciones(usuarioId, false).toPromise();
       this.unreadCount = response?.noLeidas || 0;
     } catch (error) {
-      console.error('Error loading unread count:', error);
+      console.error('Error loading unread count::', error);
     }
   }
   
@@ -152,7 +152,7 @@ export class NotificacionesBadgeComponent implements OnInit, OnDestroy {
       audio.volume = 0.5;
       audio.play().catch(err => console.log('Could not play sound:', err));
     } catch (error) {
-      console.log('Sound not available');
+      // console.log removed for production
     }
   }
   

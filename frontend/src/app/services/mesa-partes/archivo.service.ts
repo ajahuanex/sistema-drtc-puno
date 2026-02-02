@@ -84,7 +84,7 @@ export class ArchivoService {
     if (filtros.activo) {
       params = params.set('activo', filtros.activo);
     }
-    if (filtros.proximos_a_expirar !== undefined) {
+    if (typeof filtros.proximos_a_expirar !== "undefined") {
       params = params.set('proximos_a_expirar', filtros.proximos_a_expirar.toString());
     }
     if (filtros.numero_expediente) {

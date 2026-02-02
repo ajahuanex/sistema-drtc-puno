@@ -189,7 +189,7 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    console.log('🔧 Inicializando filtros component con:', this.filtros);
+    // console.log removed for production
     
     // Cargar valores iniciales
     this.form.patchValue({
@@ -200,7 +200,7 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
       fechaHasta: this.filtros.fechaFin || ''
     });
 
-    console.log('🔧 Valores iniciales del form:', this.form.value);
+    // console.log removed for production
 
     // Mostrar filtros avanzados si hay filtros aplicados
     if (this.tieneFiltrosAvanzadosActivos()) {
@@ -211,21 +211,21 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
     this.form.valueChanges.pipe(
       debounceTime(300)
     ).subscribe((valores) => {
-      console.log('📝 Form values changed:', valores);
+      // console.log removed for production
       this.emitirFiltros();
     });
   }
 
   private emitirFiltros(): void {
     const valores = this.form.value;
-    console.log('📤 Emitiendo filtros con valores del form:', valores);
+    // console.log removed for production
     
     const filtros: any = {};
 
     // Búsqueda inteligente (número, razón social o RUC)
     if (valores.busqueda?.trim()) {
       filtros.busquedaGeneral = valores.busqueda.trim();
-      console.log('🔍 Agregando busquedaGeneral:', filtros.busquedaGeneral);
+      // console.log removed for production
     }
 
     // Filtros avanzados
@@ -245,7 +245,7 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
       filtros.fechaFin = valores.fechaHasta;
     }
 
-    console.log('🔍 Filtros finales a emitir:', filtros);
+    // console.log removed for production
     this.filtrosChange.emit(filtros);
   }
 

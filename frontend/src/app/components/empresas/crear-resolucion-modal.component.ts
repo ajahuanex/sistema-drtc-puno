@@ -1016,7 +1016,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   // Detectar si se está abriendo desde detalles de empresa
   empresaSeleccionada = computed(() => {
     const empresa = this.data?.empresa || null;
-    console.log('🔍 empresaSeleccionada computed:', { data: this.data, empresa });
+    // console.log removed for production
     return empresa;
   });
 
@@ -1065,17 +1065,17 @@ export class CrearResolucionModalComponent implements OnDestroy {
     const numeroBase = this.numeroBaseSignal();
     const anio = this.anioEmision();
 
-    console.log('🔍 Debug numeroResolucionCompleto:', { numeroBase, anio });
+    // console.log removed for production
 
     if (numeroBase) {
       // Asegurar que siempre tenga 4 dígitos con ceros por delante
       const numeroFormateado = numeroBase.toString().padStart(4, '0');
       const resultado = `R-${numeroFormateado}-${anio}`;
-      console.log('✅ Número formateado:', resultado);
+      // console.log removed for production
       return resultado;
     }
     const resultado = `R-0000-${anio}`;
-    console.log('❌ Número por defecto:', resultado);
+    // console.log removed for production
     return resultado;
   });
 
@@ -1105,7 +1105,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         console.log('✅ Fecha calculada (Español):', resultado);
         return resultado;
       } catch (error) {
-        console.error('❌ Error calculando fecha de vigencia fin:', error);
+        console.error('❌ Error calculando fecha de vigencia fin::', error);
         return 'ERROR EN CÁLCULO';
       }
     }
@@ -1167,7 +1167,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       // Asegurar formato español DD/MM/YYYY
       return `${dia}/${mes}/${anio}`;
     } catch (error) {
-      console.error('Error formateando fecha:', error);
+      console.error('Error formateando fecha::', error);
       return 'ERROR EN FECHA';
     }
   }
@@ -1212,7 +1212,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
       return `${dia} de ${mes} de ${anio}`;
     } catch (error) {
-      console.error('Error formateando fecha en español:', error);
+      console.error('Error formateando fecha en español::', error);
       return 'ERROR EN FECHA';
     }
   }
@@ -1223,9 +1223,9 @@ export class CrearResolucionModalComponent implements OnDestroy {
     // Registrar locale español para fechas
     registerLocaleData(localeEs, 'es');
 
-    console.log('🚀 Modal inicializado con datos:', this.data);
-    console.log('🏢 Empresa seleccionada:', this.data?.empresa);
-    console.log('🆔 Empresa ID:', this.data?.empresa?.id);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
 
     this.resolucionForm = this.fb.group({
       empresaId: [this.data?.empresa?.id || '', [Validators.required]],
@@ -1269,10 +1269,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
               this.aniosVigenciaSignal.set(aniosVigencia);
             }
 
-            console.log('🔗 Fechas de vigencia heredadas del padre:', {
-              fechaInicio: resolucionPadre.fechaVigenciaInicio,
-              fechaFin: resolucionPadre.fechaVigenciaFin
-            });
+            // console.log removed for production
           }
         });
       }
@@ -1342,7 +1339,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         this.empresas.set(empresas);
       },
       error: (error) => {
-        console.error('ERROR CARGANDO EMPRESAS:', error);
+        console.error('ERROR CARGANDO EMPRESAS::', error);
         this.snackBar.open('ERROR AL CARGAR EMPRESAS', 'CERRAR', {
           duration: 3000
         });
@@ -1351,18 +1348,18 @@ export class CrearResolucionModalComponent implements OnDestroy {
   }
 
   private cargarExpedientesEmpresa(empresaId: string): void {
-    console.log('📋 Cargando expedientes para empresa:', empresaId);
+    // console.log removed for production
 
     this.expedienteService.getExpedientes().subscribe({
       next: (expedientes) => {
-        console.log('📋 Expedientes cargados:', expedientes);
+        // console.log removed for production
         // Filtrar expedientes de la empresa específica
         const expedientesEmpresa = expedientes.filter(e => e.empresaId === empresaId);
         this.expedientes.set(expedientesEmpresa);
         this.expedientesFiltrados.set(expedientesEmpresa);
       },
       error: (error) => {
-        console.error('ERROR CARGANDO EXPEDIENTES:', error);
+        console.error('ERROR CARGANDO EXPEDIENTES::', error);
         this.snackBar.open('ERROR AL CARGAR EXPEDIENTES', 'CERRAR', {
           duration: 3000
         });
@@ -1394,13 +1391,13 @@ export class CrearResolucionModalComponent implements OnDestroy {
         estado: 'EN_PROCESO'
       };
 
-      console.log('📋 Creando expediente automático:', expedienteData);
+      // console.log removed for production
 
       // Crear el expediente
       const expediente = await this.expedienteService.createExpediente(expedienteData).toPromise();
 
       if (expediente) {
-        console.log('✅ Expediente creado automáticamente:', expediente.id);
+        // console.log removed for production
         // Actualizar la lista de expedientes
         this.expedientes.update(expedientes => [...expedientes, expediente]);
         this.expedientesFiltrados.update(expedientes => [...expedientes, expediente]);
@@ -1413,7 +1410,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
       return null;
     } catch (error) {
-      console.error('❌ Error creando expediente automático:', error);
+      console.error('❌ Error creando expediente automático::', error);
       return null;
     }
   }
@@ -1467,15 +1464,15 @@ export class CrearResolucionModalComponent implements OnDestroy {
       return;
     }
 
-    console.log('🔍 Cargando resoluciones padre para empresa:', empresaId, 'y tipo de trámite:', expediente.tipoTramite);
+    // console.log removed for production
 
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
-        console.log('📋 Todas las resoluciones recibidas:', resoluciones);
+        // console.log removed for production
 
         // Filtrar resoluciones de la empresa actual
         const resolucionesEmpresa = resoluciones.filter(r => r.empresaId === empresaId);
-        console.log('🏢 Resoluciones de la empresa:', resolucionesEmpresa);
+        // console.log removed for production
 
         let resolucionesPadre: Resolucion[] = [];
 
@@ -1486,7 +1483,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
             r.estaActivo &&
             (r.estado === 'VIGENTE' || r.estado === 'VENCIDA') // Permitir renovar VENCIDAS
           );
-          console.log('🔄 Resoluciones padre disponibles para RENOVACIÓN:', resolucionesPadre);
+          // console.log removed for production
 
         } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') {
           // Para tipos HIJO: mostrar solo resoluciones padre vigentes
@@ -1497,7 +1494,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
             r.fechaVigenciaFin &&
             new Date(r.fechaVigenciaFin) > new Date() // Que no hayan vencido
           );
-          console.log('🔗 Resoluciones padre disponibles para resolución HIJA:', resolucionesPadre);
+          // console.log removed for production
         }
 
         this.resolucionesPadre.set(resolucionesPadre);
@@ -1512,7 +1509,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         }
       },
       error: (error) => {
-        console.error('ERROR CARGANDO RESOLUCIONES PADRE:', error);
+        console.error('ERROR CARGANDO RESOLUCIONES PADRE::', error);
         this.snackBar.open('ERROR AL CARGAR RESOLUCIONES PADRE', 'CERRAR', {
           duration: 3000
         });
@@ -1542,19 +1539,14 @@ export class CrearResolucionModalComponent implements OnDestroy {
     // Obtener la fecha de emisión del formulario (no del signal)
     const fechaEmision = this.resolucionForm.get('fechaEmision')?.value;
     if (!fechaEmision) {
-      console.log('⚠️ No se puede validar: fecha de emisión no establecida');
+      // console.log removed for production
       return;
     }
 
     const anio = new Date(fechaEmision).getFullYear();
     const numeroCompleto = `R-${numeroBase.padStart(4, '0')}-${anio}`;
 
-    console.log('🔍 Validando número único:', {
-      numeroBase,
-      fechaEmision,
-      anio,
-      numeroCompleto
-    });
+    // console.log removed for production
 
     // Verificar si ya existe una resolución con este número para el año
     this.resolucionService.getResoluciones().subscribe({
@@ -1565,10 +1557,10 @@ export class CrearResolucionModalComponent implements OnDestroy {
         );
 
         if (existe) {
-          console.log('❌ Número duplicado encontrado:', numeroCompleto);
+          // console.log removed for production
           this.resolucionForm.get('numeroBase')?.setErrors({ duplicate: true });
         } else {
-          console.log('✅ Número único válido:', numeroCompleto);
+          // console.log removed for production
           const control = this.resolucionForm.get('numeroBase');
           if (control?.hasError('duplicate')) {
             control.setErrors(null);
@@ -1577,7 +1569,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ Error validando número único:', error);
+        console.error('❌ Error validando número único::', error);
       }
     });
   }
@@ -1652,7 +1644,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   onEmpresaSeleccionadaModal(empresa: Empresa | null): void {
     if (empresa) {
-      console.log('🏢 Empresa seleccionada en modal:', empresa);
+      // console.log removed for production
 
       // Actualizar el formulario
       this.resolucionForm.patchValue({ empresaId: empresa.id });
@@ -1664,7 +1656,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       // Cargar expedientes para la nueva empresa
       this.cargarExpedientesEmpresa(empresa.id);
     } else {
-      console.log('🏢 Empresa deseleccionada en modal');
+      // console.log removed for production
       this.expedienteSeleccionado.set(null);
       this.resolucionForm.patchValue({
         empresaId: '',
@@ -1675,7 +1667,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
 
   onExpedienteChange(event: any): void {
     const expedienteId = event.value;
-    console.log('📋 Expediente seleccionado:', expedienteId);
+    // console.log removed for production
 
     if (expedienteId) {
       // Buscar el expediente seleccionado
@@ -1687,7 +1679,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         const tipoTramite = expediente.tipoTramite;
         this.tipoTramiteSignal.set(tipoTramite);
 
-        console.log('🔄 Tipo de trámite actualizado desde expediente:', tipoTramite);
+        // console.log removed for production
 
         // Actualizar la lógica del formulario basada en el nuevo tipo de trámite
         this.actualizarFormularioPorTipoTramite(tipoTramite);
@@ -1699,7 +1691,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   }
 
   private actualizarFormularioPorTipoTramite(tipoTramite: string): void {
-    console.log('🔄 Actualizando formulario para tipo de trámite:', tipoTramite);
+    // console.log removed for production
 
     // Determinar si es resolución PADRE o HIJA según el tipo de trámite
     const esResolucionPadre = tipoTramite === 'AUTORIZACION_NUEVA' || tipoTramite === 'RENOVACION';
@@ -1774,7 +1766,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       }
 
     } else {
-      console.log('🔄 Tipo de trámite no reconocido:', tipoTramite);
+      // console.log removed for production
     }
 
     // Actualizar la validación del formulario
@@ -1782,7 +1774,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   }
 
   private configurarFechasHeredadasDelPadre(resolucionPadreId: string): void {
-    console.log('🔗 Configurando fechas heredadas del padre:', resolucionPadreId);
+    // console.log removed for production
 
     this.resolucionService.getResolucionById(resolucionPadreId).subscribe(resolucionPadre => {
       if (resolucionPadre) {
@@ -1801,10 +1793,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
           this.aniosVigenciaSignal.set(aniosVigencia);
         }
 
-        console.log('🔗 Fechas de vigencia heredadas del padre:', {
-          fechaInicio: resolucionPadre.fechaVigenciaInicio,
-          fechaFin: resolucionPadre.fechaVigenciaFin
-        });
+        // console.log removed for production
       }
     });
   }
@@ -1821,7 +1810,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
   }
 
   private configurarFechasParaRenovacion(resolucionPadre: Resolucion): void {
-    console.log('🔄 Configurando fechas para renovación:', resolucionPadre);
+    // console.log removed for production
 
     // Para renovación, las fechas se pueden ajustar manualmente
     // pero sugerimos fechas basadas en la resolución padre
@@ -1909,7 +1898,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       const resolucionPadre = this.resolucionesPadre().find(r => r.id === resolucionPadreId);
 
       if (resolucionPadre) {
-        console.log('🔍 Resolución padre seleccionada:', resolucionPadre);
+        // console.log removed for production
 
         const expediente = this.expedienteSeleccionado();
         if (expediente?.tipoTramite === 'RENOVACION') {
@@ -2062,11 +2051,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         }
       }
 
-      console.log('🔗 Resolución hija - fechas heredadas del padre:', {
-        fechaInicio,
-        fechaVigenciaFin,
-        aniosVigencia
-      });
+      // console.log removed for production
     } else {
       // Para resoluciones padre, usar las fechas del formulario
       fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
@@ -2075,11 +2060,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
         fechaVigenciaFin.setFullYear(fechaVigenciaFin.getFullYear() + aniosVigencia);
       }
 
-      console.log('🔗 Resolución padre - fechas del formulario:', {
-        fechaInicio,
-        fechaVigenciaFin,
-        aniosVigencia
-      });
+      // console.log removed for production
     }
 
     const resolucionData: ResolucionCreate = {
@@ -2102,7 +2083,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     // Si es resolución hija, copiar vehículos y rutas del padre
     if (this.data?.esResolucionHija && this.data?.resolucionPadreId) {
       // TODO: Obtener vehículos y rutas de la resolución padre
-      console.log('🔗 Creando resolución hija para padre:', this.data.resolucionPadreId);
+      // console.log removed for production
     }
 
     this.resolucionService.createResolucion(resolucionData).subscribe({
@@ -2120,7 +2101,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       },
       error: (error) => {
         this.isLoading.set(false);
-        console.error('ERROR CREANDO RESOLUCIÓN:', error);
+        console.error('ERROR CREANDO RESOLUCIÓN::', error);
         this.snackBar.open('ERROR AL CREAR LA RESOLUCIÓN', 'CERRAR', {
           duration: 3000,
           panelClass: ['error-snackbar']
@@ -2154,14 +2135,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
     
     // Campos básicos requeridos
     if (!empresaId || !tieneExpediente || !numeroBase || !fechaEmision) {
-      console.log('❌ Campos básicos faltantes:', { 
-        empresaId, 
-        tieneExpediente, 
-        expedienteId, 
-        numeroExpedienteManual, 
-        numeroBase, 
-        fechaEmision 
-      });
+      // console.log removed for production
       return false;
     }
     
@@ -2178,7 +2152,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
       }
     }
     
-    console.log('✅ Puede crear resolución');
+    // console.log removed for production
     return true;
   }
 
@@ -2289,7 +2263,7 @@ export class CrearResolucionModalComponent implements OnDestroy {
    */
   validarFormatoNumeroResolucion(numero: string): boolean {
     if (!numero) {
-      console.log('🔍 Validando formato: número vacío');
+      // console.log removed for production
       return false;
     }
     

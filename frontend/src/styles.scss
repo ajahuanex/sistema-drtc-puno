@@ -188,7 +188,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden;
+  /* Removido overflow: hidden que impedía que los dropdowns funcionen */
 }
 
 body {
@@ -934,6 +934,96 @@ stilos globales para modales de historial */
   max-width: 300px !important;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ========================================
+   SOLUCIÓN PARA MAT-SELECT Z-INDEX GLOBAL
+   ======================================== */
+
+/* Clase personalizada para paneles de select con z-index alto */
+.select-panel-high-z-index {
+  z-index: 10000 !important;
+}
+
+/* Asegurar que todos los overlays de mat-select tengan z-index alto */
+.cdk-overlay-pane:has(.mat-mdc-select-panel) {
+  z-index: 10000 !important;
+}
+
+/* Alternativa más específica para mat-select panels */
+.mat-mdc-select-panel {
+  z-index: 10000 !important;
+}
+
+/* Asegurar que el backdrop no interfiera */
+.cdk-overlay-backdrop {
+  z-index: 9999 !important;
+}
+
+/* Solución específica para modales que contienen mat-select */
+.modal-overlay .mat-mdc-select-panel,
+.modal-container .mat-mdc-select-panel {
+  z-index: 10001 !important;
+}
+
+/* Asegurar que los overlays dentro de modales tengan prioridad */
+.modal-overlay .cdk-overlay-pane,
+.modal-container .cdk-overlay-pane {
+  z-index: 10001 !important;
+}
+
+/* Forzar z-index para todos los componentes de Material que pueden aparecer en modales */
+.cdk-overlay-container {
+  z-index: 10000 !important;
+}
+
+/* Específico para el problema reportado - mat-select en modales */
+.cdk-global-overlay-wrapper {
+  z-index: 10000 !important;
+}
+
+/* ========================================
+   SOLUCIÓN PARA MAT-SELECT Z-INDEX
+   Enfoque limpio sin !important
+   
+   DOCUMENTACIÓN: frontend/docs/mat-select-z-index-solution.md
+   REFERENCIA RÁPIDA: frontend/docs/quick-reference-z-index.md
+   
+   PRINCIPIOS CLAVE:
+   1. Z-index moderados y ordenados
+   2. Sin !important para mantener cascada CSS
+   3. Overflow visible en contenedores de modales
+   4. Clase personalizada para casos especiales
+   ======================================== */
+
+/* Configuración base para overlays de Angular Material */
+.cdk-overlay-container {
+  z-index: 1000;
+}
+
+/* Panel específico para mat-select */
+.mat-mdc-select-panel {
+  z-index: 1001;
+}
+
+/* Clase personalizada para paneles de select con z-index alto */
+.select-panel-high-z-index {
+  z-index: 1002;
+}
+
+/* Backdrop de overlays */
+.cdk-overlay-backdrop {
+  z-index: 999;
+}
+
+/* Contenedor de overlays globales */
+.cdk-global-overlay-wrapper {
+  z-index: 1000;
+}
+
+/* Pane de overlays */
+.cdk-overlay-pane {
+  z-index: 1001;
 }
 
 /* ========================================
@@ -1763,4 +1853,60 @@ ilos para el modal de cambio de estado individual */
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   }
+}
+/* 
+========================================
+   FIX PARA SELECT EN MODALES DE LOCALIDADES
+   ======================================== */
+
+/* Fix global para mat-select dropdown */
+.cdk-overlay-container {
+  z-index: 1000 !important;
+}
+
+.mat-mdc-select-panel {
+  z-index: 1001 !important;
+  max-height: 256px !important;
+}
+
+.cdk-overlay-backdrop {
+  z-index: 999 !important;
+}
+
+.cdk-overlay-pane {
+  z-index: 1000 !important;
+}
+
+/* Clase específica para el panel del select de localidades */
+.select-panel-high-z-index {
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+/* Asegurar que el select sea clickeable */
+.mat-mdc-select-trigger {
+  pointer-events: all !important;
+  cursor: pointer !important;
+}
+
+.mat-mdc-select-arrow-wrapper {
+  pointer-events: all !important;
+}
+
+/* Fix específico para modales de localidades */
+app-localidad-modal .modal-container {
+  overflow: visible !important;
+}
+
+app-localidad-modal .modal-content {
+  overflow-x: visible !important;
+}
+
+/* Asegurar que los elementos interactivos del modal sean clickeables */
+app-localidad-modal button,
+app-localidad-modal input,
+app-localidad-modal .mat-mdc-select-trigger,
+app-localidad-modal .mat-mdc-checkbox,
+app-localidad-modal .mat-mdc-slide-toggle {
+  pointer-events: auto !important;
 }

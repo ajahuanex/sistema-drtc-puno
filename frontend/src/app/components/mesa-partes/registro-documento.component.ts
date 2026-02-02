@@ -326,7 +326,7 @@ interface ArchivoPreview {
                 <!-- Lista de Archivos -->
                 <div class="files-list" *ngIf="archivosAdjuntos.length > 0">
                   <div class="files-header">
-                    <span>{{ archivosAdjuntos.length }} archivo(s) seleccionado(s)</span>
+                    <span>{{ (archivosAdjuntos)?.length || 0 }} archivo(s) seleccionado(s)</span>
                     <button 
                       mat-button 
                       color="warn"
@@ -919,7 +919,7 @@ export class RegistroDocumentoComponent implements OnInit {
         this.tiposDocumento = tipos;
       },
       error: (error) => {
-        console.error('Error cargando tipos de documento:', error);
+        console.error('Error cargando tipos de documento::', error);
         this.tiposDocumento = [];
       }
     });
@@ -936,7 +936,7 @@ export class RegistroDocumentoComponent implements OnInit {
         this.remitentesHistorico = remitentes;
       },
       error: (error) => {
-        console.error('Error cargando remitentes históricos:', error);
+        console.error('Error cargando remitentes históricos::', error);
         this.remitentesHistorico = [];
       }
     });
@@ -970,7 +970,7 @@ export class RegistroDocumentoComponent implements OnInit {
         this.expedientesHistorico = expedientes;
       },
       error: (error) => {
-        console.error('Error cargando expedientes históricos:', error);
+        console.error('Error cargando expedientes históricos::', error);
         this.expedientesHistorico = [];
       }
     });
@@ -1009,7 +1009,7 @@ export class RegistroDocumentoComponent implements OnInit {
 
     this.documentoService.crearDocumento(documentoData).subscribe({
       next: (documento) => {
-        console.log('Documento creado exitosamente:', documento);
+        // console.log removed for production
         
         // Guardar documento creado y mostrar mensaje de éxito
         this.documentoGuardado = documento;
@@ -1023,7 +1023,7 @@ export class RegistroDocumentoComponent implements OnInit {
         this.guardando = false;
       },
       error: (error) => {
-        console.error('Error al crear documento:', error);
+        console.error('Error al crear documento::', error);
         alert('Error al crear el documento. Por favor, intente nuevamente.');
         this.guardando = false;
       }
@@ -1038,10 +1038,10 @@ export class RegistroDocumentoComponent implements OnInit {
     this.archivosAdjuntos.forEach(archivo => {
       this.documentoService.adjuntarArchivo(documentoId, archivo.file).subscribe({
         next: (archivoAdjunto) => {
-          console.log('Archivo adjuntado:', archivoAdjunto);
+          // console.log removed for production
         },
         error: (error) => {
-          console.error('Error al adjuntar archivo:', error);
+          console.error('Error al adjuntar archivo::', error);
         }
       });
     });
@@ -1088,7 +1088,7 @@ export class RegistroDocumentoComponent implements OnInit {
    */
   verDocumento(): void {
     if (this.documentoGuardado) {
-      console.log('Ver documento:', this.documentoGuardado.id);
+      // console.log removed for production
       // TODO: Navegar a vista de detalle del documento
       alert('Funcionalidad de ver documento pendiente de implementar');
     }
@@ -1100,7 +1100,7 @@ export class RegistroDocumentoComponent implements OnInit {
    */
   derivarDocumento(): void {
     if (this.documentoGuardado) {
-      console.log('Derivar documento:', this.documentoGuardado.id);
+      // console.log removed for production
       // TODO: Abrir modal de derivación
       alert('Funcionalidad de derivación pendiente de implementar');
     }
@@ -1122,7 +1122,7 @@ export class RegistroDocumentoComponent implements OnInit {
           window.URL.revokeObjectURL(url);
         },
         error: (error) => {
-          console.error('Error al descargar comprobante:', error);
+          console.error('Error al descargar comprobante::', error);
           alert('Error al descargar el comprobante');
         }
       });

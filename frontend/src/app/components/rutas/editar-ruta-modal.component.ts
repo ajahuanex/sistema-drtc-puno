@@ -175,16 +175,16 @@ export class EditarRutaModalComponent implements OnInit {
       nombre: `${formValue.origen} - ${formValue.destino}`
     };
 
-    console.log('💾 Actualizando ruta:', rutaActualizada);
+    // console.log removed for production
 
     this.rutaService.updateRuta(this.data.ruta.id, rutaActualizada).subscribe({
       next: (rutaActualizada) => {
-        console.log('✅ Ruta actualizada exitosamente:', rutaActualizada);
+        // console.log removed for production
         this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
         this.dialogRef.close(rutaActualizada);
       },
       error: (error) => {
-        console.error('❌ Error actualizando ruta:', error);
+        console.error('❌ Error actualizando ruta::', error);
         this.snackBar.open('Error al actualizar la ruta', 'Cerrar', { duration: 3000 });
         this.isSubmitting = false;
       }

@@ -156,7 +156,7 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
   }
 
   private handleFile(archivo: File): void {
-    console.log('[CARGA-MASIVA-PADRES] Procesando archivo:', archivo.name, 'Tamaño:', archivo.size);
+    // console.log removed for production
     
     // Validar extensión del archivo
     const fileName = archivo.name.toLowerCase();
@@ -211,7 +211,7 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
           this.mostrarMensaje('Plantilla de resoluciones padres descargada exitosamente', 'success');
         },
         error: (error) => {
-          console.error('Error al descargar plantilla:', error);
+          console.error('Error al descargar plantilla::', error);
           this.mostrarMensaje(`Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
         },
         complete: () => {
@@ -219,7 +219,7 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
         }
       });
     } catch (error: any) {
-      console.error('Error al descargar plantilla:', error);
+      console.error('Error al descargar plantilla::', error);
       this.mostrarMensaje(`Error al descargar plantilla: ${error.message || 'Error desconocido'}`, 'error');
       this.cargando = false;
     }
@@ -235,16 +235,13 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
       this.cargando = true;
       this.limpiarResultados();
 
-      console.log('[CARGA-MASIVA-PADRES] Iniciando procesamiento:', {
-        archivo: this.archivoSeleccionado.name,
-        soloValidar: this.soloValidar
-      });
+      // console.log removed for production
 
       if (this.soloValidar) {
         // Solo validar
         this.resolucionService.validarArchivoResolucionesPadres(this.archivoSeleccionado).subscribe({
           next: (resultado) => {
-            console.log('[CARGA-MASIVA-PADRES] Resultado validación:', resultado);
+            // console.log removed for production
             
             // La respuesta del backend tiene la estructura: { archivo, validacion, mensaje }
             if (resultado && resultado.validacion) {
@@ -266,7 +263,7 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
         // Procesar y crear resoluciones
         this.resolucionService.procesarCargaMasivaResolucionesPadres(this.archivoSeleccionado, false).subscribe({
           next: (resultado) => {
-            console.log('[CARGA-MASIVA-PADRES] Resultado procesamiento:', resultado);
+            // console.log removed for production
             
             // La respuesta del backend tiene la estructura: { archivo, solo_validacion, resultado, mensaje }
             if (resultado && resultado.resultado) {
@@ -298,21 +295,21 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
     try {
       this.resolucionService.obtenerReporteEstadosResolucionesPadres().subscribe({
         next: (reporte) => {
-          console.log('[CARGA-MASIVA-PADRES] Reporte de estados:', reporte);
+          // console.log removed for production
           this.reporteEstados = reporte;
         },
         error: (error) => {
-          console.error('Error al cargar reporte de estados:', error);
+          console.error('Error al cargar reporte de estados::', error);
           // No mostrar error al usuario, es información adicional
         }
       });
     } catch (error) {
-      console.error('Error al cargar reporte de estados:', error);
+      console.error('Error al cargar reporte de estados::', error);
     }
   }
 
   private handleError(error: any): void {
-    console.error('[CARGA-MASIVA-PADRES] Error al procesar archivo:', error);
+    console.error('[CARGA-MASIVA-PADRES] Error al procesar archivo::', error);
     
     let mensajeError = 'Error desconocido';
     

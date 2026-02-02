@@ -329,7 +329,7 @@ interface SugerenciaBusqueda {
       <!-- Resultados de búsqueda rápida -->
       @if (resultadosBusqueda().length > 0) {
         <div class="resultados-rapidos">
-          <h4>Resultados de búsqueda ({{ resultadosBusqueda().length }})</h4>
+          <h4>Resultados de búsqueda ({{ (resultadosBusqueda())?.length || 0 }})</h4>
           <div class="resultados-lista">
             @for (vehiculo of resultadosBusqueda().slice(0, 5); track vehiculo.id) {
               <div class="resultado-item" (click)="seleccionarVehiculo(vehiculo)">
@@ -352,7 +352,7 @@ interface SugerenciaBusqueda {
             @if (resultadosBusqueda().length > 5) {
               <div class="ver-mas-resultados">
                 <button mat-button color="primary" (click)="verTodosLosResultados()">
-                  Ver todos los {{ resultadosBusqueda().length }} resultados
+                  Ver todos los {{ (resultadosBusqueda())?.length || 0 }} resultados
                 </button>
               </div>
             }

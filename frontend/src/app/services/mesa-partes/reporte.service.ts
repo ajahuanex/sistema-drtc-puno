@@ -150,7 +150,7 @@ export class ReporteService {
         window.URL.revokeObjectURL(url);
       },
       error: (error) => {
-        console.error('Error al descargar reporte:', error);
+        console.error('Error al descargar reporte::', error);
       }
     });
   }
@@ -174,10 +174,10 @@ export class ReporteService {
     if (areaId) {
       params = params.set('area_id', areaId);
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 
@@ -212,10 +212,10 @@ export class ReporteService {
     if (areaId) {
       params = params.set('area_id', areaId);
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 
@@ -241,10 +241,10 @@ export class ReporteService {
     if (areaId) {
       params = params.set('area_id', areaId);
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 
@@ -319,10 +319,10 @@ export class ReporteService {
   }> {
     let params = new HttpParams();
 
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 

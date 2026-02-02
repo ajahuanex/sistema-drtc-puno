@@ -42,7 +42,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo historial del vehículo:', error);
+        console.error('Error obteniendo historial del vehículo::', error);
         return of([]);
       })
     );
@@ -69,7 +69,7 @@ export class VehiculoHistorialService {
       params
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo historial:', error);
+        console.error('Error obteniendo historial::', error);
         return of([]);
       })
     );
@@ -83,7 +83,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo registro de historial:', error);
+        console.error('Error obteniendo registro de historial::', error);
         return of(null);
       })
     );
@@ -97,7 +97,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error creando registro de historial:', error);
+        console.error('Error creando registro de historial::', error);
         return throwError(() => error);
       })
     );
@@ -111,7 +111,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error actualizando registro de historial:', error);
+        console.error('Error actualizando registro de historial::', error);
         return throwError(() => error);
       })
     );
@@ -125,7 +125,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error eliminando registro de historial:', error);
+        console.error('Error eliminando registro de historial::', error);
         return throwError(() => error);
       })
     );
@@ -169,7 +169,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error marcando vehículos como actuales:', error);
+        console.error('Error marcando vehículos como actuales::', error);
         return throwError(() => error);
       })
     );
@@ -183,7 +183,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error actualizando historial de todos:', error);
+        console.error('Error actualizando historial de todos::', error);
         return throwError(() => error);
       })
     );
@@ -201,7 +201,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo estadísticas de historial:', error);
+        console.error('Error obteniendo estadísticas de historial::', error);
         return of({
           totalRegistros: 0,
           vehiculosConHistorial: 0,
@@ -222,7 +222,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo resumen de historial:', error);
+        console.error('Error obteniendo resumen de historial::', error);
         return of([]);
       })
     );
@@ -236,7 +236,7 @@ export class VehiculoHistorialService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo historial de empresa:', error);
+        console.error('Error obteniendo historial de empresa::', error);
         return of([]);
       })
     );
@@ -262,7 +262,7 @@ export class VehiculoHistorialService {
       responseType: 'blob'
     }).pipe(
       catchError(error => {
-        console.error('Error exportando historial:', error);
+        console.error('Error exportando historial::', error);
         return throwError(() => error);
       })
     );

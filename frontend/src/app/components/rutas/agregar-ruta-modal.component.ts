@@ -214,15 +214,15 @@ export class AgregarRutaModalComponent implements OnDestroy {
   }
 
   ngOnInit(): void {
-    console.log('🚀 MODAL AGREGAR RUTA INICIALIZADO');
-    console.log('📋 MODO DEL MODAL:', this.data.modo);
+    // console.log removed for production
+    // console.log removed for production
     
     // Configurar validación en tiempo real
     this.configurarValidacionCodigoUnico();
     
     // Si es modo edición de código, cargar solo el código
     if (this.data.modo === 'edicion_codigo' && this.data.ruta) {
-      console.log('✏️ CARGANDO SOLO EL CÓDIGO DE RUTA EXISTENTE:', this.data.ruta.codigoRuta);
+      // console.log removed for production
       
       // Validar que estemos en una resolución válida
       if (!this.data.resolucion || this.data.resolucion.id === 'general') {
@@ -236,7 +236,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
     }
     // Si es modo edición, cargar datos existentes
     else if (this.data.modo === 'edicion' && this.data.ruta) {
-      console.log('✏️ CARGANDO DATOS DE RUTA EXISTENTE:', this.data.ruta);
+      // console.log removed for production
       this.cargarDatosRutaExistente();
     }
     // Si es modo creación y tenemos empresa y resolución seleccionadas, generar código automáticamente
@@ -260,7 +260,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       // En modo edición, deshabilitar la regeneración automática de código
       this.deshabilitarRegeneracionAutomatica();
       
-      console.log('✅ DATOS DE RUTA EXISTENTE CARGADOS EN EL FORMULARIO');
+      // console.log removed for production
     }
   }
 
@@ -273,7 +273,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       // En modo edición de código, deshabilitar la regeneración automática
       this.deshabilitarRegeneracionAutomatica();
       
-      console.log('✅ SOLO EL CÓDIGO DE RUTA CARGADO EN EL FORMULARIO');
+      // console.log removed for production
     }
   }
 
@@ -286,21 +286,18 @@ export class AgregarRutaModalComponent implements OnDestroy {
   private generarCodigoRutaAutomatico(): void {
     // Generar código inicial basado en la resolución
     if (this.data.resolucion && this.data.resolucion.id !== 'general') {
-      console.log('🔧 GENERANDO CÓDIGO AUTOMÁTICO PARA RESOLUCIÓN:', this.data.resolucion.id);
+      // console.log removed for production
       
       this.rutaService.getSiguienteCodigoDisponible(
         this.data.resolucion.id
       ).subscribe({
         next: (codigo) => {
-          console.log('✅ CÓDIGO GENERADO AUTOMÁTICAMENTE:', {
-            resolucionId: this.data.resolucion.id,
-            codigoGenerado: codigo
-          });
+          // console.log removed for production
           this.rutaForm.patchValue({ codigoRuta: codigo });
           this.snackBar.open(`Código generado automáticamente: ${codigo}`, 'Cerrar', { duration: 3000 });
         },
         error: (error) => {
-          console.error('❌ ERROR AL GENERAR CÓDIGO:', error);
+          console.error('❌ ERROR AL GENERAR CÓDIGO::', error);
           this.snackBar.open('Error al generar código automático', 'Cerrar', { duration: 3000 });
         }
       });
@@ -331,21 +328,18 @@ export class AgregarRutaModalComponent implements OnDestroy {
 
   public regenerarCodigoRuta(): void {
     if (this.data.resolucion && this.data.resolucion.id !== 'general') {
-      console.log('🔄 REGENERANDO CÓDIGO PARA RESOLUCIÓN:', this.data.resolucion.id);
+      // console.log removed for production
       
       this.rutaService.getSiguienteCodigoDisponible(
         this.data.resolucion.id
       ).subscribe({
         next: (codigo) => {
-          console.log('✅ CÓDIGO REGENERADO:', {
-            resolucionId: this.data.resolucion.id,
-            codigoGenerado: codigo
-          });
+          // console.log removed for production
           this.rutaForm.patchValue({ codigoRuta: codigo });
           this.snackBar.open(`Nuevo código generado: ${codigo}`, 'Cerrar', { duration: 3000 });
         },
         error: (error) => {
-          console.error('❌ ERROR AL REGENERAR CÓDIGO:', error);
+          console.error('❌ ERROR AL REGENERAR CÓDIGO::', error);
           this.snackBar.open('Error al regenerar código', 'Cerrar', { duration: 3000 });
         }
       });
@@ -353,13 +347,8 @@ export class AgregarRutaModalComponent implements OnDestroy {
   }
 
   onSubmit(): void {
-    console.log('🚀 ONSUBMIT LLAMADO');
-    console.log('📋 ESTADO DEL FORMULARIO:', {
-      valid: this.rutaForm.valid,
-      invalid: this.rutaForm.invalid,
-      values: this.rutaForm.value,
-      errors: this.rutaForm.errors
-    });
+    // console.log removed for production
+    // console.log removed for production
 
     if (this.rutaForm.invalid) {
       console.error('❌ FORMULARIO INVÁLIDO');
@@ -382,11 +371,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       return;
     }
     
-    console.log('🔍 VALIDANDO CÓDIGO DE RUTA:', {
-      codigoRuta,
-      resolucionId,
-      empresaId: this.data.empresa?.id
-    });
+    // console.log removed for production
     
     // Deshabilitar el botón durante la validación
     this.isSubmitting = true;
@@ -397,14 +382,10 @@ export class AgregarRutaModalComponent implements OnDestroy {
       codigoRuta
     ).subscribe({
       next: (esUnico) => {
-        console.log('✅ RESULTADO VALIDACIÓN:', {
-          codigoRuta,
-          resolucionId,
-          esUnico
-        });
+        // console.log removed for production
         
         if (!esUnico) {
-          console.error('❌ CÓDIGO DUPLICADO DETECTADO:', {
+          console.error('❌ CÓDIGO DUPLICADO DETECTADO::', {
             codigoRuta,
             resolucionId
           });
@@ -416,11 +397,11 @@ export class AgregarRutaModalComponent implements OnDestroy {
           return;
         }
 
-        console.log('✅ CÓDIGO VÁLIDO, PROCEDIENDO A GUARDAR');
+        // console.log removed for production
         this.guardarRuta();
       },
       error: (error) => {
-        console.error('❌ ERROR EN VALIDACIÓN:', error);
+        console.error('❌ ERROR EN VALIDACIÓN::', error);
         this.snackBar.open('Error al validar el código de ruta', 'Cerrar', { duration: 3000 });
         this.isSubmitting = false; // Rehabilitar el botón
       }
@@ -441,12 +422,12 @@ export class AgregarRutaModalComponent implements OnDestroy {
 
       this.rutaService.updateRuta(this.data.ruta.id, rutaActualizada).subscribe({
         next: (rutaActualizada) => {
-          console.log('✅ CÓDIGO DE RUTA ACTUALIZADO EXITOSAMENTE:', rutaActualizada);
+          // console.log removed for production
           this.snackBar.open('Código de ruta actualizado exitosamente', 'Cerrar', { duration: 3000 });
           this.dialogRef.close(rutaActualizada);
         },
         error: (error) => {
-          console.error('❌ ERROR AL ACTUALIZAR CÓDIGO DE RUTA:', error);
+          console.error('❌ ERROR AL ACTUALIZAR CÓDIGO DE RUTA::', error);
           this.snackBar.open('Error al actualizar el código de la ruta', 'Cerrar', { duration: 3000 });
           this.isSubmitting = false;
         }
@@ -470,12 +451,12 @@ export class AgregarRutaModalComponent implements OnDestroy {
 
       this.rutaService.updateRuta(this.data.ruta.id, rutaActualizada).subscribe({
         next: (rutaActualizada) => {
-          console.log('✅ RUTA ACTUALIZADA EXITOSAMENTE:', rutaActualizada);
+          // console.log removed for production
           this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
           this.dialogRef.close(rutaActualizada);
         },
         error: (error) => {
-          console.error('❌ ERROR AL ACTUALIZAR RUTA:', error);
+          console.error('❌ ERROR AL ACTUALIZAR RUTA::', error);
           this.snackBar.open('Error al actualizar la ruta', 'Cerrar', { duration: 3000 });
           this.isSubmitting = false;
         }
@@ -484,13 +465,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       // Modo creación: crear nueva ruta usando el backend
       const formValue = this.rutaForm.value;
       
-      console.log('📝 VALORES DEL FORMULARIO:', {
-        formValue,
-        origen: formValue.origen,
-        destino: formValue.destino,
-        codigoRuta: formValue.codigoRuta,
-        frecuencias: formValue.frecuencias
-      });
+      // console.log removed for production
       
       // Mapear nombres de ciudades a IDs de localidades
       const mapeoLocalidades: { [key: string]: string } = {
@@ -533,12 +508,12 @@ export class AgregarRutaModalComponent implements OnDestroy {
       // Usar el método createRuta del servicio que hace petición HTTP al backend
       this.rutaService.createRuta(nuevaRuta).subscribe({
         next: (rutaGuardada) => {
-          console.log('✅ RUTA GUARDADA EXITOSAMENTE:', rutaGuardada);
+          // console.log removed for production
           this.snackBar.open('Ruta guardada exitosamente', 'Cerrar', { duration: 3000 });
           this.dialogRef.close(rutaGuardada);
         },
         error: (error) => {
-          console.error('❌ ERROR AL GUARDAR RUTA:', error);
+          console.error('❌ ERROR AL GUARDAR RUTA::', error);
           this.snackBar.open('Error al guardar la ruta', 'Cerrar', { duration: 3000 });
           this.isSubmitting = false;
         }
@@ -573,7 +548,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
       const codigoControl = this.rutaForm.get('codigoRuta');
       if (!esUnico) {
         codigoControl?.setErrors({ codigoDuplicado: true });
-        console.log('⚠️ CÓDIGO DUPLICADO DETECTADO EN TIEMPO REAL:', codigo);
+        // console.log removed for production
       } else {
         // Remover error de duplicado si existe
         if (codigoControl?.hasError('codigoDuplicado')) {

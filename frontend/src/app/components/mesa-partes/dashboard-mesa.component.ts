@@ -352,7 +352,7 @@ interface DocumentoAlerta {
                 <mat-chip 
                   *ngIf="documentosVencidos.length > 0"
                   class="count-chip vencidos">
-                  {{ documentosVencidos.length }}
+                  {{ (documentosVencidos)?.length || 0 }}
                 </mat-chip>
               </mat-card-title>
             </mat-card-header>
@@ -380,7 +380,7 @@ interface DocumentoAlerta {
               
               <div *ngIf="documentosVencidos.length > 5" class="more-items">
                 <button mat-button color="warn" (click)="verTodosVencidos()">
-                  Ver todos ({{ documentosVencidos.length }})
+                  Ver todos ({{ (documentosVencidos)?.length || 0 }})
                 </button>
               </div>
             </mat-card-content>
@@ -395,7 +395,7 @@ interface DocumentoAlerta {
                 <mat-chip 
                   *ngIf="documentosProximosVencer.length > 0"
                   class="count-chip proximos">
-                  {{ documentosProximosVencer.length }}
+                  {{ (documentosProximosVencer)?.length || 0 }}
                 </mat-chip>
               </mat-card-title>
             </mat-card-header>
@@ -423,7 +423,7 @@ interface DocumentoAlerta {
               
               <div *ngIf="documentosProximosVencer.length > 5" class="more-items">
                 <button mat-button color="accent" (click)="verTodosProximos()">
-                  Ver todos ({{ documentosProximosVencer.length }})
+                  Ver todos ({{ (documentosProximosVencer)?.length || 0 }})
                 </button>
               </div>
             </mat-card-content>
@@ -438,7 +438,7 @@ interface DocumentoAlerta {
                 <mat-chip 
                   *ngIf="documentosUrgentes.length > 0"
                   class="count-chip urgentes">
-                  {{ documentosUrgentes.length }}
+                  {{ (documentosUrgentes)?.length || 0 }}
                 </mat-chip>
               </mat-card-title>
             </mat-card-header>
@@ -466,7 +466,7 @@ interface DocumentoAlerta {
               
               <div *ngIf="documentosUrgentes.length > 5" class="more-items">
                 <button mat-button color="primary" (click)="verTodosUrgentes()">
-                  Ver todos ({{ documentosUrgentes.length }})
+                  Ver todos ({{ (documentosUrgentes)?.length || 0 }})
                 </button>
               </div>
             </mat-card-content>
@@ -1325,7 +1325,7 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
     ]).pipe(
       takeUntil(this.destroy$),
       catchError(error => {
-        console.error('Error cargando datos del dashboard:', error);
+        console.error('Error cargando datos del dashboard::', error);
         this.cargando = false;
         return of([null, { documentos: [] }, { documentos: [] }, [], [], [], [], []]);
       }),
@@ -1355,7 +1355,7 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
         this.cargando = false;
       },
       error: (error: any) => {
-        console.error('Error en carga de datos:', error);
+        console.error('Error en carga de datos::', error);
         this.cargando = false;
       }
     }));
@@ -1510,7 +1510,7 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
    * Requirements: 6.6
    */
   verTodosVencidos(): void {
-    console.log('Navegar a lista de documentos vencidos');
+    // console.log removed for production
     // TODO: Implementar navegación o modal con lista completa
   }
 
@@ -1519,7 +1519,7 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
    * Requirements: 6.6
    */
   verTodosProximos(): void {
-    console.log('Navegar a lista de documentos próximos a vencer');
+    // console.log removed for production
     // TODO: Implementar navegación o modal con lista completa
   }
 
@@ -1528,7 +1528,7 @@ export class DashboardMesaComponent implements OnInit, OnDestroy {
    * Requirements: 8.3
    */
   verTodosUrgentes(): void {
-    console.log('Navegar a lista de documentos urgentes');
+    // console.log removed for production
     // TODO: Implementar navegación o modal con lista completa
   }
 

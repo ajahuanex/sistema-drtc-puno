@@ -108,20 +108,14 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
 
   // Configuración de columnas como signal
   columnConfigs = signal<ColumnConfig[]>([
-    { key: 'select', label: 'SELECCIONAR', visible: true, sortable: false, width: '60px' },
     { key: 'ruc', label: 'RUC', visible: true, sortable: true, width: '120px' },
     { key: 'razonSocial', label: 'RAZÓN SOCIAL', visible: true, sortable: true, width: '250px' },
     { key: 'estado', label: 'ESTADO', visible: true, sortable: true, width: '120px' },
     { key: 'tipoServicio', label: 'TIPO DE SERVICIO', visible: true, sortable: true, width: '150px' },
-    { key: 'direccion', label: 'DIRECCIÓN', visible: false, sortable: true, width: '250px' },
-    { key: 'telefono', label: 'TELÉFONO', visible: false, sortable: false, width: '150px' },
-    { key: 'email', label: 'EMAIL', visible: false, sortable: false, width: '200px' },
-    { key: 'representanteLegal', label: 'REPRESENTANTE LEGAL', visible: false, sortable: true, width: '200px' },
-    { key: 'fechaRegistro', label: 'FECHA REGISTRO', visible: false, sortable: true, width: '150px' },
     { key: 'rutas', label: 'RUTAS', visible: true, sortable: true, width: '100px' },
     { key: 'vehiculos', label: 'VEHÍCULOS', visible: true, sortable: true, width: '100px' },
     { key: 'conductores', label: 'CONDUCTORES', visible: true, sortable: true, width: '120px' },
-    { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '80px' }
+    { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '120px' }
   ]);
 
   // Computed para columnas visibles
@@ -262,7 +256,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   resetColumns(): void {
-    const defaultVisibleColumns = ['select', 'ruc', 'razonSocial', 'estado', 'tipoServicio', 'rutas', 'vehiculos', 'conductores', 'acciones'];
+    const defaultVisibleColumns = ['ruc', 'razonSocial', 'estado', 'tipoServicio', 'rutas', 'vehiculos', 'conductores', 'acciones'];
     
     const updatedConfigs = this.columnConfigs().map(col => ({
       ...col,
@@ -281,8 +275,6 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     this.isLoading.set(true);
     this.empresaService.getEmpresas(0, 1000).subscribe({
       next: (empresas) => {
-        console.log('📊 Empresas cargadas:', empresas.length);
-        
         this.empresasOriginales.set(empresas);
         this.empresas.set(empresas);
         this.dataSource.data = empresas;
@@ -290,21 +282,18 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
         // Reconfigurar el paginador después de cargar datos
         setTimeout(() => {
           this.configurarDataSource();
-          console.log('✅ Paginador configurado:', {
-            paginator: !!this.paginator,
-            sort: !!this.sort,
-            dataLength: this.dataSource.data.length,
-            paginatorConnected: !!this.dataSource.paginator
-          });
         }, 0);
         
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('ERROR CARGANDO EMPRESAS:', error);
+        console.error('❌ ERROR CARGANDO EMPRESAS::', error);
+        console.error('❌ Status::', error.status);
+        console.error('❌ Message::', error.message);
+        console.error('❌ Error completo::', error);
         this.isLoading.set(false);
-        this.snackBar.open('ERROR AL CARGAR LAS EMPRESAS', 'CERRAR', {
-          duration: 3000,
+        this.snackBar.open('ERROR AL CARGAR LAS EMPRESAS: ' + (error.message || 'Error desconocido'), 'CERRAR', {
+          duration: 5000,
           horizontalPosition: 'center',
           verticalPosition: 'top'
         });
@@ -318,7 +307,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
         this.estadisticas.set(estadisticas);
       },
       error: (error) => {
-        console.error('ERROR CARGANDO ESTADÍSTICAS:', error);
+        console.error('ERROR CARGANDO ESTADÍSTICAS::', error);
       }
     });
   }
@@ -360,36 +349,36 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     }
 
     // Filtrar por cantidad de rutas
-    if (filtros.rutasMinimas !== null && filtros.rutasMinimas !== undefined) {
+    if (typeof filtros.rutasMinimas !== "undefined" && filtros.rutasMinimas !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.rutasAutorizadasIds?.length || 0) >= filtros.rutasMinimas!
       );
     }
-    if (filtros.rutasMaximas !== null && filtros.rutasMaximas !== undefined) {
+    if (typeof filtros.rutasMaximas !== "undefined" && filtros.rutasMaximas !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.rutasAutorizadasIds?.length || 0) <= filtros.rutasMaximas!
       );
     }
 
     // Filtrar por cantidad de vehículos
-    if (filtros.vehiculosMinimos !== null && filtros.vehiculosMinimos !== undefined) {
+    if (typeof filtros.vehiculosMinimos !== "undefined" && filtros.vehiculosMinimos !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.vehiculosHabilitadosIds?.length || 0) >= filtros.vehiculosMinimos!
       );
     }
-    if (filtros.vehiculosMaximos !== null && filtros.vehiculosMaximos !== undefined) {
+    if (typeof filtros.vehiculosMaximos !== "undefined" && filtros.vehiculosMaximos !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.vehiculosHabilitadosIds?.length || 0) <= filtros.vehiculosMaximos!
       );
     }
 
     // Filtrar por cantidad de conductores
-    if (filtros.conductoresMinimos !== null && filtros.conductoresMinimos !== undefined) {
+    if (typeof filtros.conductoresMinimos !== "undefined" && filtros.conductoresMinimos !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.conductoresHabilitadosIds?.length || 0) >= filtros.conductoresMinimos!
       );
     }
-    if (filtros.conductoresMaximos !== null && filtros.conductoresMaximos !== undefined) {
+    if (typeof filtros.conductoresMaximos !== "undefined" && filtros.conductoresMaximos !== null) {
       empresasFiltradas = empresasFiltradas.filter(empresa => 
         (empresa.conductoresHabilitadosIds?.length || 0) <= filtros.conductoresMaximos!
       );
@@ -575,7 +564,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     // Llamar al servicio de exportación
     this.empresaService.exportarEmpresas('excel', empresasSeleccionadas, columnasVisibles).subscribe({
       next: (blob) => {
-        console.log('✅ Blob recibido:', blob);
+        // console.log removed for production
         
         // Verificar que el blob sea válido
         if (blob && blob.size > 0) {
@@ -602,7 +591,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
         }
       },
       error: (error) => {
-        console.error('❌ Error exportando empresas:', error);
+        console.error('❌ Error exportando empresas::', error);
         
         // Mostrar información detallada del error
         let mensajeError = 'Error al exportar empresas';
@@ -700,7 +689,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
           this.recargarEmpresas();
         },
         error: (error) => {
-          console.error('Error eliminando empresa:', error);
+          console.error('Error eliminando empresa::', error);
           this.snackBar.open('Error al eliminar empresa', 'Cerrar', { duration: 3000 });
         }
       });

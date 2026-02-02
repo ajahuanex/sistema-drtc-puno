@@ -22,16 +22,12 @@ import {
   CategoriaConfiguracion,
   CONFIGURACIONES_DEFAULT 
 } from '../../models/configuracion.model';
-import { Localidad, TipoLocalidad } from '../../models/localidad.model';
 import { ConfiguracionService } from '../../services/configuracion.service';
-import { LocalidadService } from '../../services/localidad.service';
 import { EditarConfiguracionModalComponent } from './editar-configuracion-modal.component';
 import { EditarConfiguracionConDefaultModalComponent } from './editar-configuracion-con-default-modal.component';
 import { EditarEstadosVehiculosModalComponent } from './editar-estados-vehiculos-modal.component';
-import { GestionarLocalidadModalComponent } from './gestionar-localidad-modal.component';
 import { GestionarTiposRutaModalComponent } from './gestionar-tipos-ruta-modal.component';
 import { GestionarTiposServicioModalComponent } from './gestionar-tipos-servicio-modal.component';
-import { ImportExcelDialogComponent } from '../localidades/import-excel-dialog.component';
 
 export interface TipoRuta {
   id: string;
@@ -393,115 +389,6 @@ export interface TipoRuta {
           </div>
         </mat-tab>
 
-        <!-- Tab de Localidades -->
-        <mat-tab label="Localidades">
-          <div class="tab-content">
-            <div class="tab-header">
-              <div class="header-info">
-                <h2>Gestión de Localidades</h2>
-                <p>Configurar orígenes y destinos disponibles para las rutas</p>
-              </div>
-              <div class="header-actions">
-                <button mat-stroked-button 
-                        color="accent" 
-                        (click)="importarLocalidadesExcel()">
-                  <mat-icon>upload_file</mat-icon>
-                  Importar Excel
-                </button>
-                <button mat-stroked-button 
-                        color="primary" 
-                        (click)="exportarLocalidadesExcel()">
-                  <mat-icon>download</mat-icon>
-                  Exportar Excel
-                </button>
-                <button mat-raised-button 
-                        color="primary" 
-                        (click)="agregarLocalidad()">
-                  <mat-icon>add_location</mat-icon>
-                  Agregar Localidad
-                </button>
-              </div>
-            </div>
-
-            <!-- Filtros -->
-            <div class="filtros-section">
-              <mat-form-field appearance="outline" class="filtro-field">
-                <mat-label>Buscar localidades</mat-label>
-                <input matInput 
-                       placeholder="Nombre, código, departamento..."
-                       (input)="filtrarLocalidades($event)">
-                <mat-icon matSuffix>search</mat-icon>
-              </mat-form-field>
-            </div>
-
-            <!-- Tabla de localidades -->
-            @if (cargandoLocalidades()) {
-              <div class="loading-container">
-                <mat-spinner diameter="50"></mat-spinner>
-                <p>Cargando localidades...</p>
-              </div>
-            } @else {
-              <mat-table [dataSource]="localidadesFiltradas()" class="localidades-table">
-                <ng-container matColumnDef="codigo">
-                  <mat-header-cell *matHeaderCellDef>Código</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">
-                    <span class="codigo-badge">{{ localidad.codigo }}</span>
-                  </mat-cell>
-                </ng-container>
-
-                <ng-container matColumnDef="nombre">
-                  <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">
-                    <div class="localidad-info">
-                      <span class="nombre">{{ localidad.nombre || 'Sin nombre' }}</span>
-                      @if (localidad.descripcion) {
-                        <small class="descripcion">{{ localidad.descripcion }}</small>
-                      }
-                    </div>
-                  </mat-cell>
-                </ng-container>
-
-                <ng-container matColumnDef="municipalidad_centro_poblado">
-                  <mat-header-cell *matHeaderCellDef>Municipalidad</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">
-                    <div class="municipalidad-info">
-                      {{ localidad.municipalidad_centro_poblado }}
-                    </div>
-                  </mat-cell>
-                </ng-container>
-
-                <ng-container matColumnDef="nivel_territorial">
-                  <mat-header-cell *matHeaderCellDef>Nivel</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">
-                    <mat-chip [color]="getNivelTerritorialColor(localidad.nivel_territorial)">
-                      {{ localidad.nivel_territorial }}
-                    </mat-chip>
-                  </mat-cell>
-                </ng-container>
-
-                <ng-container matColumnDef="departamento">
-                  <mat-header-cell *matHeaderCellDef>Departamento</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">{{ localidad.departamento }}</mat-cell>
-                </ng-container>
-
-                <ng-container matColumnDef="acciones">
-                  <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
-                  <mat-cell *matCellDef="let localidad">
-                    <button mat-icon-button 
-                            color="primary" 
-                            (click)="editarLocalidad(localidad)"
-                            matTooltip="Editar localidad">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                  </mat-cell>
-                </ng-container>
-
-                <mat-header-row *matHeaderRowDef="displayedColumnsLocalidades"></mat-header-row>
-                <mat-row *matRowDef="let row; columns: displayedColumnsLocalidades;"></mat-row>
-              </mat-table>
-            }
-          </div>
-        </mat-tab>
       </mat-tab-group>
     </div>
   `,
@@ -511,15 +398,6 @@ export class ConfiguracionComponent implements OnInit {
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private configuracionService = inject(ConfiguracionService);
-  private localidadService = inject(LocalidadService);
-
-  // Signals para localidades
-  localidades = signal<Localidad[]>([]);
-  localidadesFiltradas = signal<Localidad[]>([]);
-  cargandoLocalidades = signal<boolean>(false);
-  filtroLocalidades = signal<string>('');
-
-  displayedColumnsLocalidades = ['codigo', 'nombre', 'municipalidad_centro_poblado', 'nivel_territorial', 'departamento', 'acciones'];
 
   // Signals para las configuraciones
   configuraciones = computed(() => this.configuracionService.configuraciones());
@@ -529,14 +407,11 @@ export class ConfiguracionComponent implements OnInit {
   CategoriaConfiguracion = CategoriaConfiguracion;
 
   ngOnInit(): void {
-    console.log('🔧 Inicializando componente de configuración...');
+    // console.log removed for production
     
     // Las configuraciones ya están cargadas por el servicio
     const configuraciones = this.configuracionService.configuraciones();
-    console.log('📊 Configuraciones disponibles:', configuraciones.length);
-
-    // Cargar localidades
-    this.cargarLocalidades();
+    // console.log removed for production
   }
 
   // Métodos para configuraciones del sistema
@@ -557,7 +432,7 @@ export class ConfiguracionComponent implements OnInit {
 
       dialogRef.afterClosed().subscribe(result => {
         if (result) {
-          console.log('Configuración actualizada');
+          // console.log removed for production
         }
       });
     } else {
@@ -571,7 +446,7 @@ export class ConfiguracionComponent implements OnInit {
 
       dialogRef.afterClosed().subscribe(result => {
         if (result) {
-          console.log('Configuración actualizada');
+          // console.log removed for production
         }
       });
     }
@@ -584,7 +459,7 @@ export class ConfiguracionComponent implements OnInit {
         this.snackBar.open('Configuración restaurada a valor por defecto', 'Cerrar', { duration: 3000 });
       },
       error: (error) => {
-        console.error('Error reseteando configuración:', error);
+        console.error('Error reseteando configuración::', error);
         this.snackBar.open('Error reseteando configuración', 'Cerrar', { duration: 3000 });
       }
     });
@@ -600,7 +475,7 @@ export class ConfiguracionComponent implements OnInit {
           this.snackBar.open('Todas las configuraciones han sido restauradas', 'Cerrar', { duration: 3000 });
         },
         error: (error) => {
-          console.error('Error reseteando configuraciones:', error);
+          console.error('Error reseteando configuraciones::', error);
           this.snackBar.open('Error reseteando configuraciones', 'Cerrar', { duration: 3000 });
         }
       });
@@ -635,155 +510,6 @@ export class ConfiguracionComponent implements OnInit {
     return config.valor;
   }
 
-  // Métodos para localidades
-  async cargarLocalidades(): Promise<void> {
-    this.cargandoLocalidades.set(true);
-    try {
-      const localidades = await this.localidadService.obtenerLocalidades();
-      this.localidades.set(localidades);
-      this.aplicarFiltros();
-    } catch (error) {
-      console.error('Error cargando localidades:', error);
-      this.snackBar.open('Error cargando localidades', 'Cerrar', {
-        duration: 3000,
-        panelClass: ['snackbar-error']
-      });
-      // Fallback a datos mock si hay error
-      const localidadesMock: Localidad[] = [
-        {
-          id: '1',
-          codigo: 'PUNO001',
-          nombre: 'Puno',
-          tipo: 'CIUDAD' as TipoLocalidad,
-          departamento: 'Puno',
-          provincia: 'Puno',
-          distrito: 'Puno',
-          municipalidad_centro_poblado: 'Municipalidad Provincial de Puno',
-          nivel_territorial: 'DISTRITO' as any,
-          esta_activa: true,
-          fecha_creacion: new Date().toISOString(),
-          fecha_actualizacion: new Date().toISOString()
-        },
-        {
-          id: '2',
-          codigo: 'JULI001',
-          nombre: 'Juliaca',
-          tipo: 'CIUDAD' as TipoLocalidad,
-          departamento: 'Puno',
-          provincia: 'San Román',
-          distrito: 'Juliaca',
-          municipalidad_centro_poblado: 'Municipalidad Provincial de San Román',
-          nivel_territorial: 'DISTRITO' as any,
-          esta_activa: true,
-          fecha_creacion: new Date().toISOString(),
-          fecha_actualizacion: new Date().toISOString()
-        }
-      ];
-      this.localidades.set(localidadesMock);
-      this.aplicarFiltros();
-    } finally {
-      this.cargandoLocalidades.set(false);
-    }
-  }
-
-  private aplicarFiltros(): void {
-    let localidadesFiltradas = [...this.localidades()];
-    const filtroNombre = this.filtroLocalidades().toLowerCase();
-    
-    if (filtroNombre) {
-      localidadesFiltradas = localidadesFiltradas.filter(localidad =>
-        (localidad.nombre?.toLowerCase().includes(filtroNombre) || false) ||
-        (localidad.codigo?.toLowerCase().includes(filtroNombre) || false) ||
-        localidad.departamento.toLowerCase().includes(filtroNombre)
-      );
-    }
-    
-    this.localidadesFiltradas.set(localidadesFiltradas);
-  }
-
-  filtrarLocalidades(evento: Event): void {
-    const filtro = (evento.target as HTMLInputElement).value;
-    this.filtroLocalidades.set(filtro);
-    this.aplicarFiltros();
-  }
-
-  agregarLocalidad(): void {
-    const dialogRef = this.dialog.open(GestionarLocalidadModalComponent, {
-      width: '600px',
-      data: { localidad: null, esEdicion: false },
-      disableClose: true
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cargarLocalidades();
-      }
-    });
-  }
-
-  editarLocalidad(localidad: Localidad): void {
-    const dialogRef = this.dialog.open(GestionarLocalidadModalComponent, {
-      width: '600px',
-      data: { localidad: localidad, esEdicion: true },
-      disableClose: true
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cargarLocalidades();
-      }
-    });
-  }
-
-  importarLocalidadesExcel(): void {
-    const dialogRef = this.dialog.open(ImportExcelDialogComponent, {
-      width: '800px',
-      maxHeight: '90vh',
-      disableClose: true
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.cargarLocalidades();
-        this.snackBar.open('Localidades importadas exitosamente', 'Cerrar', {
-          duration: 3000,
-          panelClass: ['snackbar-success']
-        });
-      }
-    });
-  }
-
-  async exportarLocalidadesExcel(): Promise<void> {
-    try {
-      await this.localidadService.exportarExcel();
-      this.snackBar.open('Localidades exportadas exitosamente', 'Cerrar', {
-        duration: 3000,
-        panelClass: ['snackbar-success']
-      });
-    } catch (error) {
-      console.error('Error exportando localidades:', error);
-      this.snackBar.open('Error exportando localidades', 'Cerrar', {
-        duration: 3000,
-        panelClass: ['snackbar-error']
-      });
-    }
-  }
-
-  getNivelTerritorialColor(nivel: string): 'primary' | 'accent' | 'warn' {
-    switch (nivel) {
-      case 'DEPARTAMENTO':
-        return 'warn';
-      case 'PROVINCIA':
-        return 'accent';
-      case 'DISTRITO':
-        return 'primary';
-      case 'CENTRO_POBLADO':
-        return 'primary';
-      default:
-        return 'primary';
-    }
-  }
-
   // Métodos para gestión de tipos
   gestionarTiposRuta(): void {
     const dialogRef = this.dialog.open(GestionarTiposRutaModalComponent, {
@@ -794,7 +520,7 @@ export class ConfiguracionComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Tipos de ruta actualizados');
+        // console.log removed for production
       }
     });
   }
@@ -808,7 +534,7 @@ export class ConfiguracionComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Tipos de servicio actualizados');
+        // console.log removed for production
       }
     });
   }
@@ -820,7 +546,7 @@ export class ConfiguracionComponent implements OnInit {
         const tipos = JSON.parse(config.valor);
         return tipos.filter((t: any) => t.estaActivo).map((t: any) => t.nombre);
       } catch (error) {
-        console.error('Error parseando tipos de ruta:', error);
+        console.error('Error parseando tipos de ruta::', error);
       }
     }
     return ['Urbana', 'Interurbana', 'Interprovincial', 'Interregional', 'Rural'];
@@ -833,7 +559,7 @@ export class ConfiguracionComponent implements OnInit {
         const tipos = JSON.parse(config.valor);
         return tipos.filter((t: any) => t.estaActivo).map((t: any) => t.nombre);
       } catch (error) {
-        console.error('Error parseando tipos de servicio:', error);
+        console.error('Error parseando tipos de servicio::', error);
       }
     }
     return ['Transporte de Pasajeros', 'Transporte de Carga', 'Transporte Mixto'];

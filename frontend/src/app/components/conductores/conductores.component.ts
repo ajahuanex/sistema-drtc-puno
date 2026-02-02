@@ -249,20 +249,20 @@ export class ConductoresComponent implements OnInit, OnDestroy {
   private cargarDatos(): void {
     this.conductorService.getConductores().subscribe({
       next: (conductores) => {
-        console.log('Conductores cargados:', conductores);
+        // console.log removed for production
       },
       error: (error) => {
-        console.error('Error al cargar conductores:', error);
+        console.error('Error al cargar conductores::', error);
         this.error = error.message || 'Error al cargar conductores';
       }
     });
     
     this.conductorService.getEstadisticas().subscribe({
       next: (estadisticas) => {
-        console.log('Estadísticas cargadas:', estadisticas);
+        // console.log removed for production
       },
       error: (error) => {
-        console.error('Error al cargar estadísticas:', error);
+        console.error('Error al cargar estadísticas::', error);
       }
     });
   }
@@ -299,7 +299,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (error) => {
-        console.error('Error al crear conductor:', error);
+        console.error('Error al crear conductor::', error);
       }
     });
   }
@@ -312,7 +312,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (error) => {
-        console.error('Error al actualizar conductor:', error);
+        console.error('Error al actualizar conductor::', error);
       }
     });
   }
@@ -336,7 +336,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
             this.cargarDatos();
           },
           error: (error) => {
-            console.error('Error al eliminar conductor:', error);
+            console.error('Error al eliminar conductor::', error);
           }
         });
       }
@@ -352,7 +352,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (error) => {
-        console.error('Error al cambiar estado:', error);
+        console.error('Error al cambiar estado::', error);
       }
     });
   }
@@ -364,7 +364,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (error) => {
-        console.error('Error al asignar empresa:', error);
+        console.error('Error al asignar empresa::', error);
       }
     });
   }
@@ -388,7 +388,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
             this.cargarDatos();
           },
           error: (error) => {
-            console.error('Error al desasignar empresa:', error);
+            console.error('Error al desasignar empresa::', error);
           }
         });
       }
@@ -402,7 +402,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.cargarDatos();
       },
       error: (error) => {
-        console.error('Error al verificar licencia:', error);
+        console.error('Error al verificar licencia::', error);
       }
     });
   }
@@ -474,7 +474,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
 
   onSortChange(event: any): void {
     // Implementar ordenamiento si es necesario
-    console.log('Ordenamiento cambiado:', event);
+    // console.log removed for production
   }
 
   // ==================== EXPORTACIÓN ====================
@@ -485,7 +485,7 @@ export class ConductoresComponent implements OnInit, OnDestroy {
         this.mostrarExito(`Exportación a ${formato.toUpperCase()} iniciada`);
       },
       error: (error) => {
-        console.error('Error al exportar:', error);
+        console.error('Error al exportar::', error);
         this.mostrarError('Error al exportar conductores');
       }
     });

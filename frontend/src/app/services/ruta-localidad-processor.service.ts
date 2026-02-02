@@ -45,20 +45,20 @@ export class RutaLocalidadProcessorService {
 
     try {
       // 1. Procesar localidad de origen
-      console.log('🔄 Procesando localidad de origen:', rutaData.origen.nombre);
+      // console.log removed for production
       const origenResult = await this.localidadUnicaService.procesarLocalidadDesdeRuta(rutaData.origen);
       resultado.origenId = origenResult.localidadId;
       resultado.localidadesProcesadas.push(origenResult);
 
       // 2. Procesar localidad de destino
-      console.log('🔄 Procesando localidad de destino:', rutaData.destino.nombre);
+      // console.log removed for production
       const destinoResult = await this.localidadUnicaService.procesarLocalidadDesdeRuta(rutaData.destino);
       resultado.destinoId = destinoResult.localidadId;
       resultado.localidadesProcesadas.push(destinoResult);
 
       // 3. Procesar localidades del itinerario (si existen)
       if (rutaData.itinerario && rutaData.itinerario.length > 0) {
-        console.log('🔄 Procesando localidades del itinerario:', rutaData.itinerario.length);
+        // console.log removed for production
         
         for (const localidadItinerario of rutaData.itinerario) {
           try {
@@ -90,7 +90,7 @@ export class RutaLocalidadProcessorService {
       // 5. Crear o actualizar la ruta
       if ('id' in rutaData.ruta && rutaData.ruta.id) {
         // Actualizar ruta existente
-        console.log('🔄 Actualizando ruta existente:', rutaData.ruta.id);
+        // console.log removed for production
         const rutaActualizada = await this.rutaService.updateRuta(
           rutaData.ruta.id as string, 
           rutaData.ruta as RutaUpdate
@@ -98,16 +98,16 @@ export class RutaLocalidadProcessorService {
         resultado.rutaId = rutaActualizada?.id;
       } else {
         // Crear nueva ruta
-        console.log('🔄 Creando nueva ruta');
+        // console.log removed for production
         const rutaCreada = await this.rutaService.createRuta(rutaData.ruta as RutaCreate).toPromise();
         resultado.rutaId = rutaCreada?.id;
       }
 
       resultado.esExitoso = true;
-      console.log('✅ Ruta procesada exitosamente:', resultado.rutaId);
+      // console.log removed for production
 
     } catch (error) {
-      console.error('❌ Error procesando ruta completa:', error);
+      console.error('❌ Error procesando ruta completa::', error);
       resultado.errores.push(`Error general: ${error}`);
       resultado.esExitoso = false;
     }
@@ -121,11 +121,11 @@ export class RutaLocalidadProcessorService {
   async procesarRutasEnLote(rutas: RutaConLocalidades[]): Promise<ResultadoProcesamientoRuta[]> {
     const resultados: ResultadoProcesamientoRuta[] = [];
     
-    console.log(`🔄 Procesando ${rutas.length} rutas en lote`);
+    // console.log removed for production
     
     for (let i = 0; i < rutas.length; i++) {
       const ruta = rutas[i];
-      console.log(`🔄 Procesando ruta ${i + 1}/${rutas.length}: ${ruta.ruta.nombre || ruta.ruta.codigoRuta}`);
+      // console.log removed for production
       
       try {
         const resultado = await this.procesarRutaCompleta(ruta);

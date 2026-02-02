@@ -16,8 +16,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { inject } from '@angular/core';
-import { Subscription, Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { Subscription, Observable, of } from 'rxjs';
+import { map, startWith, debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 
 import { Ruta, TipoRuta, RutaCreate } from '../../models/ruta.model';
 import { Localidad } from '../../models/localidad.model';
@@ -205,7 +205,7 @@ import { ResolucionService } from '../../services/resolucion.service';
                         <mat-spinner diameter="20"></mat-spinner>
                         Cargando...
                       } @else {
-                        {{ rutasExistentes.length }} ruta(s) registrada(s)
+                        {{ (rutasExistentes)?.length || 0 }} ruta(s) registrada(s)
                       }
                     </mat-panel-description>
                   </mat-expansion-panel-header>
@@ -321,8 +321,12 @@ import { ResolucionService } from '../../services/resolucion.service';
                         <mat-option [value]="localidad">
                           <div class="localidad-option">
                             <span class="nombre">{{ localidad.nombre }}</span>
-                            <span class="codigo">{{ localidad.codigo }}</span>
-                            <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                            @if (localidad.codigo) {
+                              <span class="codigo">{{ localidad.codigo }}</span>
+                            }
+                            @if (localidad.departamento && localidad.provincia) {
+                              <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                            }
                           </div>
                         </mat-option>
                       }
@@ -343,8 +347,12 @@ import { ResolucionService } from '../../services/resolucion.service';
                         <mat-option [value]="localidad">
                           <div class="localidad-option">
                             <span class="nombre">{{ localidad.nombre }}</span>
-                            <span class="codigo">{{ localidad.codigo }}</span>
-                            <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                            @if (localidad.codigo) {
+                              <span class="codigo">{{ localidad.codigo }}</span>
+                            }
+                            @if (localidad.departamento && localidad.provincia) {
+                              <small class="ubicacion">{{ localidad.departamento }}, {{ localidad.provincia }}</small>
+                            }
                           </div>
                         </mat-option>
                       }
@@ -708,7 +716,6 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   resolucionesPrimigenias: any[] = [];
   resolucionesEmpresa: any[] = [];
   rutasExistentes: Ruta[] = [];
-  localidades: Localidad[] = [];
   
   // Selecciones actuales
   empresaSeleccionada: Empresa | null = null;
@@ -764,7 +771,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         this.cargandoEmpresas = false;
       },
       error: (error) => {
-        console.error('Error cargando empresas:', error);
+        console.error('Error cargando empresas::', error);
         this.cargandoEmpresas = false;
         this.snackBar.open('Error cargando empresas', 'Cerrar', { duration: 3000 });
       }
@@ -781,7 +788,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         this.cargandoResoluciones = false;
       },
       error: (error) => {
-        console.error('Error cargando resoluciones primigenias:', error);
+        console.error('Error cargando resoluciones primigenias::', error);
         this.cargandoResoluciones = false;
         this.snackBar.open('Error cargando resoluciones', 'Cerrar', { duration: 3000 });
       }
@@ -790,51 +797,51 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   }
 
   private inicializarAutocompleteLocalidades() {
-    // Cargar localidades activas
-    const sub = this.localidadService.getLocalidadesActivas().subscribe({
-      next: (localidades: any[]) => {
-        this.localidades = localidades;
-        this.configurarAutocomplete();
-      },
-      error: (error: any) => {
-        console.error('Error cargando localidades:', error);
-        this.snackBar.open('Error cargando localidades', 'Cerrar', { duration: 3000 });
-      }
-    });
-    this.subscriptions.push(sub);
-  }
-
-  private configurarAutocomplete() {
-    // Configurar autocomplete para origen
+    // Configurar autocomplete para origen usando el nuevo endpoint
     this.localidadesOrigenFiltradas = this.rutaForm.get('origen')!.valueChanges.pipe(
       startWith(''),
-      map(value => this.filtrarLocalidades(value))
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(value => {
+        if (!value || typeof value !== 'string' || value.length < 2) {
+          // Si no hay valor o es muy corto, mostrar localidades populares
+          return this.rutaService.obtenerLocalidadesPopulares(10);
+        }
+        // Buscar localidades por nombre
+        return this.rutaService.buscarLocalidadesParaRutas(value, 10);
+      }),
+      catchError(() => of([]))
     );
 
-    // Configurar autocomplete para destino
+    // Configurar autocomplete para destino usando el nuevo endpoint
     this.localidadesDestinoFiltradas = this.rutaForm.get('destino')!.valueChanges.pipe(
       startWith(''),
-      map(value => this.filtrarLocalidades(value))
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(value => {
+        if (!value || typeof value !== 'string' || value.length < 2) {
+          // Si no hay valor o es muy corto, mostrar localidades populares
+          return this.rutaService.obtenerLocalidadesPopulares(10);
+        }
+        // Buscar localidades por nombre
+        return this.rutaService.buscarLocalidadesParaRutas(value, 10);
+      }),
+      catchError(() => of([]))
     );
   }
 
-  private filtrarLocalidades(value: string | Localidad): Localidad[] {
-    if (!value) {
-      return this.localidades;
-    }
 
-    const filterValue = typeof value === 'string' ? value.toLowerCase() : (value.nombre || '').toLowerCase();
+
+  displayLocalidad(localidad: any): string {
+    if (!localidad) return '';
     
-    return this.localidades.filter(localidad =>
-      (localidad.nombre || '').toLowerCase().includes(filterValue) ||
-      (localidad.codigo || '').toLowerCase().includes(filterValue) ||
-      localidad.departamento.toLowerCase().includes(filterValue) ||
-      localidad.provincia.toLowerCase().includes(filterValue)
-    );
-  }
-
-  displayLocalidad(localidad: Localidad): string {
-    return localidad ? (localidad.nombre || localidad.distrito || '') : '';
+    // Si es un objeto con estructura de LocalidadEmbebida (del nuevo endpoint)
+    if (localidad.nombre && !localidad.distrito) {
+      return localidad.nombre;
+    }
+    
+    // Si es un objeto Localidad completo (del endpoint anterior)
+    return localidad.nombre || localidad.distrito || '';
   }
 
   onModoChange() {
@@ -899,7 +906,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         this.cargandoResolucionesEmpresa = false;
       },
       error: (error) => {
-        console.error('Error cargando resoluciones de empresa:', error);
+        console.error('Error cargando resoluciones de empresa::', error);
         this.cargandoResolucionesEmpresa = false;
         this.snackBar.open('Error cargando resoluciones de la empresa', 'Cerrar', { duration: 3000 });
       }
@@ -908,7 +915,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
   }
 
   private cargarRutasExistentes(resolucionId: string) {
-    console.log('🔍 CARGANDO RUTAS EXISTENTES PARA RESOLUCIÓN:', resolucionId);
+    // console.log removed for production
     
     this.cargandoRutasExistentes = true;
     this.rutasExistentes = [];
@@ -936,7 +943,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('❌ ERROR AL CARGAR RUTAS EXISTENTES:', error);
+        console.error('❌ ERROR AL CARGAR RUTAS EXISTENTES::', error);
         this.cargandoRutasExistentes = false;
         this.rutasExistentes = [];
         
@@ -956,7 +963,7 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
           this.snackBar.open(`Código generado: ${codigo}`, 'Cerrar', { duration: 2000 });
         },
         error: (error) => {
-          console.error('Error generando código:', error);
+          console.error('Error generando código::', error);
           this.snackBar.open('Error generando código automático', 'Cerrar', { duration: 3000 });
         }
       });
@@ -971,8 +978,8 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
       const formValue = this.rutaForm.value;
       
       // Obtener las localidades seleccionadas
-      const origenLocalidad = formValue.origen as Localidad;
-      const destinoLocalidad = formValue.destino as Localidad;
+      const origenLocalidad = formValue.origen;
+      const destinoLocalidad = formValue.destino;
       
       if (!origenLocalidad || !destinoLocalidad) {
         this.snackBar.open('Debe seleccionar origen y destino válidos', 'Cerrar', { duration: 3000 });
@@ -980,32 +987,47 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         return;
       }
       
+      // Validar que las localidades tengan ID y nombre
+      if (!origenLocalidad.id || !origenLocalidad.nombre || !destinoLocalidad.id || !destinoLocalidad.nombre) {
+        this.snackBar.open('Las localidades seleccionadas no son válidas', 'Cerrar', { duration: 3000 });
+        this.isSubmitting = false;
+        return;
+      }
+      
       const nuevaRuta: RutaCreate = {
         codigoRuta: formValue.codigoRuta,
         nombre: `${origenLocalidad.nombre} - ${destinoLocalidad.nombre}`,
-        // origenId removido - usando objeto origen embebido
-        // destinoId removido - usando objeto destino embebido
-        origen: { id: origenLocalidad.id || "", nombre: origenLocalidad.nombre || "" },
-        destino: { id: destinoLocalidad.id || "", nombre: destinoLocalidad.nombre || "" },
+        origen: { id: origenLocalidad.id, nombre: origenLocalidad.nombre },
+        destino: { id: destinoLocalidad.id, nombre: destinoLocalidad.nombre },
         frecuencias: formValue.frecuencias,
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio,
         observaciones: formValue.observaciones || '',
-        empresa: { id: this.empresaSeleccionada?.id || "", ruc: this.empresaSeleccionada?.ruc || "", razonSocial: this.empresaSeleccionada?.razonSocial?.principal || "" },
-        resolucion: { id: formValue.resolucionId, nroResolucion: "", tipoResolucion: "", estado: "VIGENTE" },
+        descripcion: formValue.descripcion || '',
+        empresa: { 
+          id: this.empresaSeleccionada?.id || "", 
+          ruc: this.empresaSeleccionada?.ruc || "", 
+          razonSocial: this.empresaSeleccionada?.razonSocial?.principal || "" 
+        },
+        resolucion: { 
+          id: formValue.resolucionId, 
+          nroResolucion: this.resolucionSeleccionada?.nroResolucion || "", 
+          tipoResolucion: this.resolucionSeleccionada?.tipoResolucion || "", 
+          estado: "VIGENTE" 
+        },
         itinerario: []
       };
 
-      console.log('💾 Creando nueva ruta:', nuevaRuta);
+      // console.log removed for production
 
       const sub = this.rutaService.createRuta(nuevaRuta).subscribe({
         next: (rutaCreada) => {
-          console.log('✅ Ruta creada exitosamente:', rutaCreada);
+          // console.log removed for production
           this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { duration: 3000 });
           this.dialogRef.close(rutaCreada);
         },
         error: (error) => {
-          console.error('❌ Error creando ruta:', error);
+          console.error('❌ Error creando ruta::', error);
           this.isSubmitting = false;
           
           let mensaje = 'Error al crear la ruta';

@@ -20,9 +20,9 @@ export class VehiculoModalService {
    * @returns Observable que emite el vehículo creado
    */
   openCreateModal(empresaId?: string, resolucionId?: string): Observable<VehiculoCreate> {
-    console.log('🔍 ABRIENDO MODAL CREAR VEHÍCULO');
-    console.log('🔍 EmpresaId:', empresaId);
-    console.log('🔍 ResolucionId:', resolucionId);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     try {
       const dialogRef = this.dialog.open(VehiculoModalComponent, {
@@ -36,20 +36,20 @@ export class VehiculoModalService {
         disableClose: true
       });
 
-      console.log('✅ Modal abierto exitosamente:', dialogRef);
+      // console.log removed for production
 
       return dialogRef.afterClosed().pipe(
         map(result => {
-          console.log('🔍 Modal cerrado con resultado:', result);
+          // console.log removed for production
           if (result && result.vehiculo) {
-            console.log('✅ Vehículo creado:', result.vehiculo);
+            // console.log removed for production
             return result.vehiculo;
           }
           throw new Error('Modal cerrado sin crear vehículo');
         })
       );
     } catch (error) {
-      console.error('❌ Error abriendo modal:', error);
+      console.error('❌ Error abriendo modal::', error);
       return new Observable(observer => {
         observer.error(error);
       });

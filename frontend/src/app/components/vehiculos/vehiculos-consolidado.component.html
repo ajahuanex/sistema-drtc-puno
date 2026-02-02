@@ -1,0 +1,628 @@
+<!-- HEADER CON ESTADÍSTICAS Y CONTROLES -->
+<div class="vehiculos-header">
+  <div class="header-content">
+    <div class="title-section">
+      <h1>
+        <mat-icon>directions_car</mat-icon>
+        Gestión de Vehículos
+        <mat-chip-set>
+          <mat-chip [color]="'primary'" selected>
+            {{ estadisticasComputadas().total }} Total
+          </mat-chip>
+          <mat-chip [color]="'accent'" selected>
+            {{ estadisticasComputadas().seleccionados }} Seleccionados
+          </mat-chip>
+        </mat-chip-set>
+      </h1>
+      <p class="subtitle">Sistema consolidado con cache inteligente y búsqueda avanzada</p>
+    </div>
+
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="crearVehiculo()">
+        <mat-icon>add</mat-icon>
+        Nuevo Vehículo
+      </button>
+      
+      <button mat-raised-button color="accent" (click)="abrirCargaMasiva()">
+        <mat-icon>upload</mat-icon>
+        Carga Masiva
+      </button>
+
+      <button mat-icon-button [matMenuTriggerFor]="menuAcciones" matTooltip="Más acciones">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- ESTADÍSTICAS RÁPIDAS -->
+  <div class="stats-bar" *ngIf="!cargandoEstadisticas()">
+    <div class="stat-item" *ngFor="let estado of estadosVehiculo">
+      <span class="stat-label">{{ estado.etiqueta }}</span>
+      <span class="stat-value" [class]="'stat-' + estado.color">
+        {{ estadisticasComputadas().porEstado[estado.valor] || 0 }}
+      </span>
+    </div>
+  </div>
+
+  <!-- INDICADORES DE ESTADO DEL SISTEMA -->
+  <div class="system-status" *ngIf="mostrarDiagnostico()">
+    <mat-chip-set>
+      <mat-chip [color]="infoCache().isValid ? 'primary' : 'warn'" selected>
+        Cache: {{ infoCache().hitRate.toFixed(1) }}% hits
+      </mat-chip>
+      <mat-chip [color]="estadosCarga().vehiculos ? 'accent' : 'primary'" selected>
+        API: {{ estadosCarga().vehiculos ? 'Cargando...' : 'Conectada' }}
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+</div>
+
+<!-- BARRA DE BÚSQUEDA Y FILTROS -->
+<mat-card class="search-filters-card">
+  <mat-card-content>
+    <!-- BÚSQUEDA INTELIGENTE -->
+    <div class="search-section">
+      <form [formGroup]="formBusqueda" class="search-form">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Búsqueda inteligente</mat-label>
+          <input matInput 
+                 formControlName="termino"
+                 placeholder="Buscar por placa, marca, empresa..."
+                 [matAutocomplete]="autoSugerencias">
+          <mat-icon matSuffix>search</mat-icon>
+          
+          <!-- AUTOCOMPLETADO CON SUGERENCIAS -->
+          <mat-autocomplete #autoSugerencias="matAutocomplete" 
+                           (optionSelected)="onSugerenciaSeleccionada($event.option.value)">
+            <mat-option *ngFor="let sugerencia of sugerenciasBusqueda$ | async" 
+                       [value]="sugerencia">
+              <mat-icon>{{ sugerencia.icono }}</mat-icon>
+              <span [innerHTML]="sugerencia.texto"></span>
+              <small class="sugerencia-tipo">{{ sugerencia.tipo }}</small>
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <!-- CAMPOS DE BÚSQUEDA -->
+        <mat-form-field appearance="outline" class="campos-field">
+          <mat-label>Buscar en</mat-label>
+          <mat-select formControlName="campos" multiple>
+            <mat-option value="placa">Placa</mat-option>
+            <mat-option value="marca">Marca</mat-option>
+            <mat-option value="modelo">Modelo</mat-option>
+            <mat-option value="empresa">Empresa</mat-option>
+            <mat-option value="resolucion">Resolución</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- INDICADOR DE BÚSQUEDA -->
+        <div class="search-indicator" *ngIf="cargandoBusqueda()">
+          <mat-spinner diameter="20"></mat-spinner>
+        </div>
+      </form>
+
+      <!-- RESULTADOS DE BÚSQUEDA -->
+      <div class="search-results" *ngIf="terminoBusqueda() && resultadosBusqueda().totalResultados > 0">
+        <mat-chip-set>
+          <mat-chip color="primary" selected>
+            {{ resultadosBusqueda().totalResultados }} resultados para "{{ terminoBusqueda() }}"
+          </mat-chip>
+        </mat-chip-set>
+      </div>
+    </div>
+
+    <!-- CONTROLES DE FILTROS Y VISTA -->
+    <div class="controls-section">
+      <div class="filter-controls">
+          <button mat-stroked-button 
+                (click)="toggleFiltrosAvanzados()"
+                [color]="mostrarFiltrosAvanzados() ? 'primary' : 'basic'"
+                [matBadge]="Object.keys(filtrosActivos()).length > 0 ? Object.keys(filtrosActivos()).length : null"
+                matBadgeColor="accent">
+          <mat-icon>filter_list</mat-icon>
+          Filtros Avanzados
+        </button>
+
+        <button mat-stroked-button (click)="limpiarFiltros()" 
+                *ngIf="Object.keys(filtrosActivos()).length > 0 || terminoBusqueda()">
+          <mat-icon>clear</mat-icon>
+          Limpiar
+        </button>
+      </div>
+
+      <div class="view-controls">
+        <mat-button-toggle-group [value]="vistaActual()" (change)="cambiarVista($event.value)">
+          <mat-button-toggle value="tabla">
+            <mat-icon>table_view</mat-icon>
+            Tabla
+          </mat-button-toggle>
+          <mat-button-toggle value="tarjetas">
+            <mat-icon>view_module</mat-icon>
+            Tarjetas
+          </mat-button-toggle>
+          <mat-button-toggle value="estadisticas">
+            <mat-icon>analytics</mat-icon>
+            Estadísticas
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <button mat-icon-button (click)="refrescarDatos()" matTooltip="Refrescar datos">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- FILTROS AVANZADOS -->
+    <div class="advanced-filters" *ngIf="mostrarFiltrosAvanzados()">
+      <mat-expansion-panel expanded>
+        <mat-expansion-panel-header>
+          <mat-panel-title>Filtros Avanzados</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <form [formGroup]="formFiltros" class="filters-form">
+          <div class="filters-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Placa</mat-label>
+              <input matInput formControlName="placa" placeholder="ABC-123">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Marca</mat-label>
+              <input matInput formControlName="marca" placeholder="Toyota, Mercedes...">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Modelo</mat-label>
+              <input matInput formControlName="modelo" placeholder="Hiace, Sprinter...">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Empresa</mat-label>
+              <mat-select formControlName="empresaId">
+                <mat-option value="">Todas las empresas</mat-option>
+                <mat-option *ngFor="let empresa of empresas()" [value]="empresa.id">
+                  {{ empresa.razonSocial?.principal || 'Sin nombre' }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="filters-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="estado">
+                <mat-option value="">Todos los estados</mat-option>
+                <mat-option *ngFor="let estado of estadosVehiculo" [value]="estado.valor">
+                  {{ estado.etiqueta }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Categoría</mat-label>
+              <mat-select formControlName="categoria">
+                <mat-option value="">Todas las categorías</mat-option>
+                <mat-option *ngFor="let categoria of categoriasVehiculo" [value]="categoria">
+                  {{ categoria }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Año desde</mat-label>
+              <input matInput type="number" formControlName="anioDesde" min="1990" max="2030">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Año hasta</mat-label>
+              <input matInput type="number" formControlName="anioHasta" min="1990" max="2030">
+            </mat-form-field>
+          </div>
+
+          <div class="filters-row">
+            <mat-slide-toggle formControlName="mostrarEliminados">
+              Mostrar eliminados
+            </mat-slide-toggle>
+
+            <mat-slide-toggle formControlName="soloConRutas">
+              Solo con rutas asignadas
+            </mat-slide-toggle>
+
+            <mat-slide-toggle formControlName="soloSinRutas">
+              Solo sin rutas asignadas
+            </mat-slide-toggle>
+          </div>
+        </form>
+      </mat-expansion-panel>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- ACCIONES EN LOTE -->
+<div class="bulk-actions" *ngIf="vehiculosSeleccionados().size > 0">
+  <mat-card>
+    <mat-card-content>
+      <div class="bulk-actions-content">
+        <span class="selection-info">
+          {{ vehiculosSeleccionados().size }} vehículos seleccionados
+        </span>
+
+        <div class="bulk-buttons">
+          <button mat-raised-button color="primary" (click)="cambiarEstadoLote()">
+            <mat-icon>swap_horiz</mat-icon>
+            Cambiar Estado
+          </button>
+
+          <button mat-raised-button color="accent" (click)="exportarDatos()">
+            <mat-icon>download</mat-icon>
+            Exportar
+          </button>
+
+          <button mat-stroked-button (click)="limpiarSeleccion()">
+            <mat-icon>clear</mat-icon>
+            Limpiar Selección
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="main-content">
+  <!-- VISTA DE TABLA -->
+  <mat-card *ngIf="vistaActual() === 'tabla'" class="table-card">
+    <mat-card-content>
+      <div class="table-header">
+        <div class="table-info">
+          <span>{{ vehiculosFiltrados().length }} vehículos</span>
+        </div>
+
+        <div class="table-actions">
+          <button mat-icon-button (click)="seleccionarTodos()" matTooltip="Seleccionar todos">
+            <mat-icon>select_all</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table mat-table [dataSource]="dataSource" matSort class="vehiculos-table">
+          <!-- COLUMNA DE SELECCIÓN -->
+          <ng-container matColumnDef="seleccionar">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox (change)="$event.checked ? seleccionarTodos() : limpiarSeleccion()">
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <mat-checkbox 
+                [checked]="estaSeleccionado(vehiculo.id)"
+                (change)="toggleSeleccionVehiculo(vehiculo.id)">
+              </mat-checkbox>
+            </td>
+          </ng-container>
+
+          <!-- COLUMNA PLACA -->
+          <ng-container matColumnDef="placa">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Placa</th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <div class="placa-cell">
+                <strong>{{ vehiculo.placa }}</strong>
+                <mat-icon *ngIf="!vehiculo.estaActivo" class="inactive-icon" matTooltip="Eliminado">
+                  visibility_off
+                </mat-icon>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- COLUMNA MARCA -->
+          <ng-container matColumnDef="marca">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Marca</th>
+            <td mat-cell *matCellDef="let vehiculo">{{ vehiculo.marca }}</td>
+          </ng-container>
+
+          <!-- COLUMNA MODELO -->
+          <ng-container matColumnDef="modelo">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Modelo</th>
+            <td mat-cell *matCellDef="let vehiculo">{{ vehiculo.modelo || 'N/A' }}</td>
+          </ng-container>
+
+          <!-- COLUMNA EMPRESA -->
+          <ng-container matColumnDef="empresa">
+            <th mat-header-cell *matHeaderCellDef>Empresa</th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <div class="empresa-cell">
+                <span class="empresa-nombre">{{ obtenerNombreEmpresa(vehiculo.empresaActualId) }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- COLUMNA ESTADO -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <mat-chip [color]="obtenerColorEstado(vehiculo.estado)" selected>
+                {{ vehiculo.estado }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- COLUMNA CATEGORÍA -->
+          <ng-container matColumnDef="categoria">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Categoría</th>
+            <td mat-cell *matCellDef="let vehiculo">{{ vehiculo.categoria || 'N/A' }}</td>
+          </ng-container>
+
+          <!-- COLUMNA RUTAS -->
+          <ng-container matColumnDef="rutas">
+            <th mat-header-cell *matHeaderCellDef>Rutas</th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <div class="rutas-cell">
+                <mat-chip-set *ngIf="vehiculo.rutasAsignadasIds && vehiculo.rutasAsignadasIds.length > 0">
+                  <mat-chip *ngFor="let ruta of vehiculo.rutasAsignadasIds.slice(0, 2)" 
+                           color="accent" selected>
+                    {{ ruta }}
+                  </mat-chip>
+                  <mat-chip *ngIf="vehiculo.rutasAsignadasIds.length > 2" 
+                           color="basic" selected>
+                    +{{ vehiculo.rutasAsignadasIds.length - 2 }}
+                  </mat-chip>
+                </mat-chip-set>
+                <span *ngIf="!vehiculo.rutasAsignadasIds || vehiculo.rutasAsignadasIds.length === 0" 
+                      class="no-rutas">Sin rutas</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- COLUMNA FECHA REGISTRO -->
+          <ng-container matColumnDef="fechaRegistro">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha Registro</th>
+            <td mat-cell *matCellDef="let vehiculo">{{ formatearFecha(vehiculo.fechaRegistro) }}</td>
+          </ng-container>
+
+          <!-- COLUMNA ACCIONES -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <td mat-cell *matCellDef="let vehiculo">
+              <div class="acciones-cell">
+                <button mat-icon-button [matMenuTriggerFor]="menuVehiculo" 
+                        matTooltip="Acciones del vehículo">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+
+                <mat-menu #menuVehiculo="matMenu">
+                  <button mat-menu-item (click)="verDetalleVehiculo(vehiculo.id)">
+                    <mat-icon>visibility</mat-icon>
+                    Ver Detalle
+                  </button>
+                  
+                  <button mat-menu-item (click)="editarVehiculo(vehiculo)">
+                    <mat-icon>edit</mat-icon>
+                    Editar
+                  </button>
+                  
+                  <button mat-menu-item (click)="verHistorial(vehiculo)">
+                    <mat-icon>history</mat-icon>
+                    Historial
+                  </button>
+                  
+                  <mat-divider></mat-divider>
+                  
+                  <button mat-menu-item (click)="gestionarRutas(vehiculo)">
+                    <mat-icon>route</mat-icon>
+                    Gestionar Rutas
+                  </button>
+                  
+                  <button mat-menu-item (click)="transferirEmpresa(vehiculo)">
+                    <mat-icon>swap_horiz</mat-icon>
+                    Transferir Empresa
+                  </button>
+                  
+                  <mat-divider></mat-divider>
+                  
+                  <button mat-menu-item (click)="solicitarBaja(vehiculo)">
+                    <mat-icon>remove_circle</mat-icon>
+                    Solicitar Baja
+                  </button>
+                  
+                  <button mat-menu-item (click)="eliminarVehiculo(vehiculo)" class="delete-action">
+                    <mat-icon>delete</mat-icon>
+                    Eliminar
+                  </button>
+                </mat-menu>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columnasTabla"></tr>
+          <tr mat-row *matRowDef="let row; columns: columnasTabla;" 
+              [class.selected-row]="estaSeleccionado(row.id)"></tr>
+        </table>
+
+        <!-- PAGINADOR -->
+        <mat-paginator 
+          [pageSizeOptions]="opcionesPaginacion"
+          [pageSize]="elementosPorPagina()"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- VISTA DE TARJETAS -->
+  <div *ngIf="vistaActual() === 'tarjetas'" class="cards-view">
+    <div class="cards-grid">
+      <mat-card *ngFor="let vehiculo of vehiculosFiltrados()" class="vehiculo-card">
+        <mat-card-header>
+          <div mat-card-avatar class="vehiculo-avatar">
+            <mat-icon>directions_car</mat-icon>
+          </div>
+          <mat-card-title>{{ vehiculo.placa }}</mat-card-title>
+          <mat-card-subtitle>{{ vehiculo.marca }} {{ vehiculo.modelo }}</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="card-info">
+            <div class="info-item">
+              <mat-icon>business</mat-icon>
+              <span>{{ obtenerNombreEmpresa(vehiculo.empresaActualId) }}</span>
+            </div>
+            
+            <div class="info-item">
+              <mat-icon>info</mat-icon>
+              <mat-chip [color]="obtenerColorEstado(vehiculo.estado)" selected>
+                {{ vehiculo.estado }}
+              </mat-chip>
+            </div>
+            
+            <div class="info-item" *ngIf="vehiculo.rutasAsignadasIds && vehiculo.rutasAsignadasIds.length > 0">
+              <mat-icon>route</mat-icon>
+              <span>{{ vehiculo.rutasAsignadasIds.length }} rutas</span>
+            </div>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-button (click)="verDetalleVehiculo(vehiculo.id)">
+            <mat-icon>visibility</mat-icon>
+            Ver
+          </button>
+          <button mat-button (click)="editarVehiculo(vehiculo)">
+            <mat-icon>edit</mat-icon>
+            Editar
+          </button>
+          <button mat-icon-button [matMenuTriggerFor]="menuTarjeta">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+
+          <mat-menu #menuTarjeta="matMenu">
+            <button mat-menu-item (click)="verHistorial(vehiculo)">
+              <mat-icon>history</mat-icon>
+              Historial
+            </button>
+            <button mat-menu-item (click)="gestionarRutas(vehiculo)">
+              <mat-icon>route</mat-icon>
+              Rutas
+            </button>
+          </mat-menu>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- VISTA DE ESTADÍSTICAS -->
+  <div *ngIf="vistaActual() === 'estadisticas'" class="stats-view">
+    <div class="stats-grid">
+      <!-- ESTADÍSTICAS GENERALES -->
+      <mat-card class="stat-card">
+        <mat-card-header>
+          <mat-card-title>Resumen General</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="stat-item-large">
+            <span class="stat-number">{{ estadisticas().total }}</span>
+            <span class="stat-label">Total Vehículos</span>
+          </div>
+          <div class="stat-item-large">
+            <span class="stat-number">{{ estadisticas().activos }}</span>
+            <span class="stat-label">Activos</span>
+          </div>
+          <div class="stat-item-large">
+            <span class="stat-number">{{ estadisticas().inactivos }}</span>
+            <span class="stat-label">Inactivos</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ESTADÍSTICAS POR ESTADO -->
+      <mat-card class="stat-card">
+        <mat-card-header>
+          <mat-card-title>Por Estado</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-placeholder">
+            <div *ngFor="let estado of estadosVehiculo" class="chart-bar">
+              <span class="bar-label">{{ estado.etiqueta }}</span>
+              <div class="bar-container">
+                <div class="bar-fill" 
+                     [style.width.%]="(estadisticas().porEstado[estado.valor] || 0) / estadisticas().total * 100"
+                     [class]="'bar-' + estado.color">
+                </div>
+                <span class="bar-value">{{ estadisticas().porEstado[estado.valor] || 0 }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ESTADÍSTICAS DEL CACHE -->
+      <mat-card class="stat-card" *ngIf="mostrarDiagnostico()">
+        <mat-card-header>
+          <mat-card-title>Estado del Cache</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="cache-stats">
+            <div class="cache-item">
+              <span class="cache-label">Hit Rate</span>
+              <span class="cache-value">{{ infoCache().hitRate.toFixed(1) }}%</span>
+            </div>
+            <div class="cache-item">
+              <span class="cache-label">Hits</span>
+              <span class="cache-value">{{ infoCache().hits }}</span>
+            </div>
+            <div class="cache-item">
+              <span class="cache-label">Misses</span>
+              <span class="cache-value">{{ infoCache().misses }}</span>
+            </div>
+            <div class="cache-item">
+              <span class="cache-label">Tamaño</span>
+              <span class="cache-value">{{ infoCache().cacheSize }}</span>
+            </div>
+          </div>
+          
+          <div class="cache-actions">
+            <button mat-stroked-button (click)="limpiarCache()">
+              <mat-icon>clear</mat-icon>
+              Limpiar Cache
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>
+
+<!-- INDICADOR DE CARGA GLOBAL -->
+<div class="loading-overlay" *ngIf="cargando()">
+  <mat-spinner></mat-spinner>
+  <p>Cargando vehículos...</p>
+</div>
+
+<!-- MENÚ DE ACCIONES GLOBALES -->
+<mat-menu #menuAcciones="matMenu">
+  <button mat-menu-item (click)="refrescarDatos()">
+    <mat-icon>refresh</mat-icon>
+    Refrescar Datos
+  </button>
+  
+  <button mat-menu-item (click)="exportarDatos()">
+    <mat-icon>download</mat-icon>
+    Exportar Datos
+  </button>
+  
+  <mat-divider></mat-divider>
+  
+  <button mat-menu-item (click)="toggleDiagnostico()">
+    <mat-icon>bug_report</mat-icon>
+    {{ mostrarDiagnostico() ? 'Ocultar' : 'Mostrar' }} Diagnóstico
+  </button>
+  
+  <button mat-menu-item (click)="ejecutarDiagnostico()">
+    <mat-icon>health_and_safety</mat-icon>
+    Ejecutar Diagnóstico
+  </button>
+  
+  <button mat-menu-item (click)="limpiarCache()">
+    <mat-icon>clear_all</mat-icon>
+    Limpiar Cache
+  </button>
+</mat-menu>

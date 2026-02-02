@@ -224,7 +224,7 @@ import { SolicitarBajaVehiculoUnifiedComponent } from '../vehiculos/solicitar-ba
         <mat-card-header>
           <mat-card-title>SOLICITUDES DE BAJA</mat-card-title>
           <mat-card-subtitle>
-            {{ bajas().length }} solicitud(es) encontrada(s)
+            {{ (bajas())?.length || 0 }} solicitud(es) encontrada(s)
           </mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
@@ -441,7 +441,7 @@ export class BajasVehiculosComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error: any) => {
-        console.error('Error al cargar bajas:', error);
+        console.error('Error al cargar bajas::', error);
         this.snackBar.open('Error al cargar las solicitudes de baja', 'Cerrar', { duration: 5000 });
         this.loading.set(false);
       }
@@ -456,7 +456,7 @@ export class BajasVehiculosComponent implements OnInit {
         this.resumen.set(resumen);
       },
       error: (error: any) => {
-        console.error('Error al cargar resumen:', error);
+        console.error('Error al cargar resumen::', error);
       }
     });
   }
@@ -513,7 +513,7 @@ export class BajasVehiculosComponent implements OnInit {
         this.cargarResumen();
       },
       error: (error: any) => {
-        console.error('Error al aprobar baja:', error);
+        console.error('Error al aprobar baja::', error);
         this.snackBar.open('Error al aprobar la baja', 'Cerrar', { duration: 5000 });
       }
     });
@@ -532,7 +532,7 @@ export class BajasVehiculosComponent implements OnInit {
         this.cargarResumen();
       },
       error: (error: any) => {
-        console.error('Error al iniciar proceso:', error);
+        console.error('Error al iniciar proceso::', error);
         this.snackBar.open('Error al iniciar el proceso', 'Cerrar', { duration: 5000 });
       }
     });
@@ -546,7 +546,7 @@ export class BajasVehiculosComponent implements OnInit {
         this.cargarResumen();
       },
       error: (error: any) => {
-        console.error('Error al completar baja:', error);
+        console.error('Error al completar baja::', error);
         this.snackBar.open('Error al completar la baja', 'Cerrar', { duration: 5000 });
       }
     });

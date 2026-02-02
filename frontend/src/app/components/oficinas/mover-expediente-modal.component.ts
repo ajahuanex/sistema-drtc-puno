@@ -359,7 +359,7 @@ export class MoverExpedienteModalComponent {
       });
 
     } catch (error) {
-      console.error('Error moviendo expediente:', error);
+      console.error('Error moviendo expediente::', error);
       this.mostrarError('Error al mover el expediente');
     } finally {
       this.procesando.set(false);

@@ -48,7 +48,7 @@ interface RutaEspecificaData {
     <div class="modal-header">
       @if (data.modoBloque) {
         <h2>{{ data.esEdicion ? 'Editar' : 'Crear' }} Rutas Específicas (Modo Bloque)</h2>
-        <h3>{{ data.vehiculos?.length }} vehículos seleccionados</h3>
+        <h3>{{ data.vehiculos?.length || 0 }} vehículos seleccionados</h3>
       } @else {
         <h2>{{ data.esEdicion ? 'Editar' : 'Crear' }} Ruta Específica</h2>
         <h3>Vehículo: {{ data.vehiculo?.placa }}</h3>
@@ -85,7 +85,7 @@ interface RutaEspecificaData {
               <div class="info-item">
                 @if (data.modoBloque) {
                   <span class="label">Vehículos:</span>
-                  <span class="value">{{ data.vehiculos?.length }} vehículos seleccionados</span>
+                  <span class="value">{{ data.vehiculos?.length || 0 }} vehículos seleccionados</span>
                 } @else {
                   <span class="label">Vehículo:</span>
                   <span class="value">{{ data.vehiculo?.placa }} ({{ data.vehiculo?.marca }} {{ data.vehiculo?.modelo }})</span>
@@ -737,7 +737,7 @@ export class CrearRutaEspecificaModalComponent implements OnInit {
       }
       
     } catch (error) {
-      console.error('Error guardando ruta específica:', error);
+      console.error('Error guardando ruta específica::', error);
       this.snackBar.open('Error al guardar la ruta específica', 'Cerrar', { duration: 3000 });
     } finally {
       this.guardando = false;

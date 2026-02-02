@@ -315,7 +315,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // Inicialización del componente
-    console.log('🎯 AppComponent inicializado');
+    // console.log removed for production
   }
 
   private hydrationCompleted = false;

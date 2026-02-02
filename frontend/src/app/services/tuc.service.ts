@@ -64,7 +64,7 @@ export class TucService {
     console.log('AuthService.isAuthenticated():', this.authService.isAuthenticated());
     
     if (this.authService.isAuthenticated()) {
-      console.log('Intentando obtener TUCs desde API...');
+      // console.log removed for production
       const params: any = { skip, limit };
       if (estado) params.estado = estado;
 
@@ -74,7 +74,7 @@ export class TucService {
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
-          console.error('Error obteniendo TUCs desde API:', error);
+          console.error('Error obteniendo TUCs desde API::', error);
           return throwError(() => error);
         })
       );
@@ -92,7 +92,7 @@ export class TucService {
       }).pipe(
         map(tucBackend => this.mapearTucBackend(tucBackend)),
         catchError(error => {
-          console.error('Error obteniendo TUC desde API:', error);
+          console.error('Error obteniendo TUC desde API::', error);
           return throwError(() => error);
         })
       );
@@ -108,7 +108,7 @@ export class TucService {
       }).pipe(
         map(tucBackend => this.mapearTucBackend(tucBackend)),
         catchError(error => {
-          console.error('Error obteniendo TUC por número desde API:', error);
+          console.error('Error obteniendo TUC por número desde API::', error);
           return throwError(() => error);
         })
       );
@@ -124,7 +124,7 @@ export class TucService {
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
-          console.error('Error obteniendo TUCs por empresa desde API:', error);
+          console.error('Error obteniendo TUCs por empresa desde API::', error);
           return of([]);
         })
       );
@@ -140,7 +140,7 @@ export class TucService {
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
-          console.error('Error obteniendo TUCs por vehículo desde API:', error);
+          console.error('Error obteniendo TUCs por vehículo desde API::', error);
           return of([]);
         })
       );
@@ -156,7 +156,7 @@ export class TucService {
       }).pipe(
         map(tucsBackend => tucsBackend.map(tucBackend => this.mapearTucBackend(tucBackend))),
         catchError(error => {
-          console.error('Error obteniendo TUCs por resolución desde API:', error);
+          console.error('Error obteniendo TUCs por resolución desde API::', error);
           return of([]);
         })
       );
@@ -171,7 +171,7 @@ export class TucService {
         headers: this.getHeaders() 
       }).pipe(
         catchError(error => {
-          console.error('Error creando TUC desde API:', error);
+          console.error('Error creando TUC desde API::', error);
           return throwError(() => error);
         })
       );
@@ -186,7 +186,7 @@ export class TucService {
         headers: this.getHeaders() 
       }).pipe(
         catchError(error => {
-          console.error('Error actualizando TUC desde API:', error);
+          console.error('Error actualizando TUC desde API::', error);
           return throwError(() => error);
         })
       );
@@ -201,7 +201,7 @@ export class TucService {
         headers: this.getHeaders() 
       }).pipe(
         catchError(error => {
-          console.error('Error eliminando TUC desde API:', error);
+          console.error('Error eliminando TUC desde API::', error);
           return throwError(() => error);
         })
       );

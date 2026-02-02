@@ -35,7 +35,7 @@ export class ResolucionesTableService {
   public paginaActual = signal(0);
 
   constructor() {
-    console.log('🔧 ResolucionesTableService inicializado');
+    // console.log removed for production
   }
 
   // ========================================
@@ -59,7 +59,7 @@ export class ResolucionesTableService {
     this.configSubject.next(nuevaConfig);
     this.guardarConfiguracion(nuevaConfig);
     
-    console.log('⚙️ Configuración actualizada:', nuevaConfig);
+    // console.log removed for production
   }
 
   /**
@@ -70,7 +70,7 @@ export class ResolucionesTableService {
     this.configSubject.next(configDefecto);
     this.guardarConfiguracion(configDefecto);
     
-    console.log('🔄 Configuración restaurada a valores por defecto');
+    // console.log removed for production
   }
 
   // ========================================
@@ -91,17 +91,17 @@ export class ResolucionesTableService {
     const filtrosActuales = this.filtrosSubject.value;
     const nuevosFiltros = { ...filtrosActuales, ...filtros };
     
-    console.log('🔄 Actualizando filtros:');
-    console.log('  - Filtros actuales:', filtrosActuales);
-    console.log('  - Filtros nuevos:', filtros);
-    console.log('  - Filtros combinados:', nuevosFiltros);
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     this.filtrosSubject.next(nuevosFiltros);
     
     // También actualizar en la configuración
     this.actualizarConfiguracion({ filtros: nuevosFiltros });
     
-    console.log('🔍 Filtros actualizados y emitidos');
+    // console.log removed for production
   }
 
   /**
@@ -112,7 +112,7 @@ export class ResolucionesTableService {
     this.filtrosSubject.next(filtrosVacios);
     this.actualizarConfiguracion({ filtros: filtrosVacios });
     
-    console.log('🧹 Filtros limpiados');
+    // console.log removed for production
   }
 
   /**
@@ -125,7 +125,7 @@ export class ResolucionesTableService {
     this.filtrosSubject.next(filtrosActuales);
     this.actualizarConfiguracion({ filtros: filtrosActuales });
     
-    console.log('🗑️ Filtro removido:', key);
+    // console.log removed for production
   }
 
   /**
@@ -287,7 +287,7 @@ export class ResolucionesTableService {
 
     this.actualizarConfiguracion({ paginacion: nuevaPaginacion });
     
-    if (paginaActual !== undefined) {
+    if (typeof paginaActual !== "undefined") {
       this.paginaActual.set(paginaActual);
     }
   }
@@ -311,15 +311,15 @@ export class ResolucionesTableService {
    */
   tieneFiltrosActivos(): boolean {
     const filtros = this.filtrosSubject.value;
-    console.log('🔍 Verificando filtros activos:', filtros);
+    // console.log removed for production
     const tieneActivos = Object.keys(filtros).some(key => {
       const valor = filtros[key as keyof ResolucionFiltros];
       const esActivo = valor !== undefined && valor !== null && 
              (Array.isArray(valor) ? valor.length > 0 : valor !== '');
-      console.log(`  - ${key}: ${valor} -> ${esActivo}`);
+      // console.log removed for production
       return esActivo;
     });
-    console.log('🔍 Resultado tiene filtros activos:', tieneActivos);
+    // console.log removed for production
     return tieneActivos;
   }
 
@@ -352,14 +352,14 @@ export class ResolucionesTableService {
       const configGuardada = localStorage.getItem(this.STORAGE_KEY);
       if (configGuardada) {
         const config = JSON.parse(configGuardada);
-        console.log('📂 Configuración cargada desde localStorage:', config);
+        // console.log removed for production
         return { ...RESOLUCION_TABLE_CONFIG_DEFAULT, ...config };
       }
     } catch (error) {
       console.warn('⚠️ Error al cargar configuración desde localStorage:', error);
     }
     
-    console.log('🆕 Usando configuración por defecto');
+    // console.log removed for production
     return { ...RESOLUCION_TABLE_CONFIG_DEFAULT };
   }
 
@@ -369,7 +369,7 @@ export class ResolucionesTableService {
   private guardarConfiguracion(config: ResolucionTableConfig): void {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(config));
-      console.log('💾 Configuración guardada en localStorage');
+      // console.log removed for production
     } catch (error) {
       console.warn('⚠️ Error al guardar configuración en localStorage:', error);
     }

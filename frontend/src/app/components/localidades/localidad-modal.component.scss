@@ -1,160 +1,518 @@
-.localidad-modal {
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 0 16px 0;
-    border-bottom: 1px solid #e0e0e0;
+/* Estilos para el modal de localidades */
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  pointer-events: none;
+}
 
-    h2 {
-      margin: 0;
-      color: #1976d2;
+:host(.modal-active) {
+  pointer-events: all;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+  pointer-events: all;
+}
+
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: visible; /* Cambiar a visible para permitir dropdowns */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 101;
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    color: #1976d2;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .close-button {
+    color: #666;
+
+    &:hover {
+      color: #333;
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+/* Form */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* Permitir que el dropdown se muestre */
+  padding: 24px;
+}
+
+/* Secciones */
+.seccion-basica,
+.seccion-ubicacion,
+.seccion-sistema {
+  margin-bottom: 32px;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e3f2fd;
+  }
+}
+
+.seccion-adicional,
+.seccion-coordenadas {
+  margin-bottom: 24px;
+
+  ::ng-deep .mat-expansion-panel-header {
+    padding: 16px 24px;
+
+    .mat-expansion-panel-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-weight: 500;
     }
   }
 
-  .modal-content {
-    max-height: 70vh;
-    overflow-y: auto;
-    padding: 20px 0;
-
-    .section-card {
-      margin-bottom: 20px;
-
-      mat-card-header {
-        margin-bottom: 16px;
-
-        mat-card-title {
-          font-size: 16px;
-          font-weight: 500;
-          color: #333;
-        }
-
-        mat-card-subtitle {
-          font-size: 14px;
-          color: #666;
-          margin-top: 4px;
-        }
-      }
-
-      .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 16px;
-        align-items: start;
-
-        .full-width {
-          grid-column: 1 / -1;
-        }
-
-        mat-form-field {
-          width: 100%;
-
-          mat-hint {
-            font-size: 12px;
-            color: #666;
-          }
-
-          // Botones de sufijo
-          button[matSuffix] {
-            color: #1976d2;
-            
-            &:hover {
-              background-color: rgba(25, 118, 210, 0.1);
-            }
-          }
-        }
-
-        // Campos de texto área
-        textarea {
-          resize: vertical;
-          min-height: 60px;
-        }
-
-        // Campos numéricos
-        input[type="number"] {
-          text-align: right;
-        }
-      }
+  ::ng-deep .mat-expansion-panel-content {
+    .mat-expansion-panel-body {
+      padding: 16px 24px 24px;
     }
+  }
+}
+
+/* Grid de campos */
+.campos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  align-items: start;
+
+  .campo-completo {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+    
+    .campo-completo {
+      grid-column: 1;
+    }
+  }
+}
+
+/* Form fields */
+mat-form-field {
+  width: 100%;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    margin-top: 4px;
+  }
+
+  ::ng-deep .mat-mdc-form-field-hint-wrapper {
+    font-size: 12px;
+  }
+}
+
+/* Selector de tipo personalizado */
+.tipo-selector {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.tipo-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.tipo-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #fafafa;
+}
+
+.tipo-opcion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+}
+
+.tipo-opcion:hover {
+  background-color: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.tipo-opcion.selected {
+  background-color: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+.tipo-radio {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tipo-radio input[type="radio"] {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.radio-custom {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ccc;
+  border-radius: 50%;
+  background-color: white;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.tipo-opcion.selected .radio-custom {
+  border-color: white;
+  background-color: white;
+}
+
+.tipo-opcion.selected .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #1976d2;
+}
+
+.tipo-texto {
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tipo-opcion.selected .tipo-texto {
+  color: white;
+}
+
+.tipo-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+  padding-left: 4px;
+}
+
+/* Contenedor del modal con z-index apropiado 
+   NOTA: Z-index moderado (101) permite que los overlays de Material (1000+) 
+   aparezcan correctamente por encima del modal */
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: visible; /* CRÍTICO: Permitir que los dropdowns se muestren fuera del contenedor */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 101;
+}
+
+/* Contenido del modal 
+   NOTA: overflow-x: visible es esencial para que los mat-select funcionen */
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: visible; /* CRÍTICO: Permitir que los dropdowns se muestren horizontalmente */
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Estilos para autocomplete */
+.mat-mdc-autocomplete-panel {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mat-mdc-option {
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 12px 16px;
+}
+
+.mat-mdc-option:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.mat-mdc-option.mat-mdc-option-active {
+  background-color: rgba(25, 118, 210, 0.12);
+}
+
+/* Información del sistema */
+.info-sistema {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #1976d2;
+
+    mat-icon {
+      color: #1976d2;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+}
+
+/* Actions */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+
+  button {
+    min-width: 120px;
+    height: 40px;
+
+    mat-spinner {
+      margin-right: 8px;
+    }
+
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-container {
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+
+    h2 {
+      font-size: 18px;
+    }
+  }
+
+  .modal-content {
+    padding: 20px;
   }
 
   .modal-actions {
-    display: flex;
-    justify-content: flex-end;
+    padding: 16px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 5px;
+  }
+
+  .campos-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
-    padding: 16px 0 0 0;
-    border-top: 1px solid #e0e0e0;
+  }
 
-    button {
-      min-width: 100px;
-
-      mat-spinner {
-        margin-right: 8px;
-      }
-    }
+  .info-sistema {
+    grid-template-columns: 1fr;
   }
 }
 
-// Estilos específicos para campos
-.mat-form-field {
-  &.mat-form-field-invalid {
-    .mat-form-field-outline-thick {
-      color: #f44336;
-    }
+/* Animaciones */
+.modal-overlay {
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-container {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-// Responsive
-@media (max-width: 768px) {
-  .localidad-modal {
-    .modal-content {
-      .section-card .form-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .modal-actions {
-      flex-direction: column-reverse;
-
-      button {
-        width: 100%;
-      }
-    }
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
-// Animaciones
-.section-card {
-  transition: box-shadow 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-// Estados de validación
-.mat-form-field {
+/* Estados de validación */
+mat-form-field {
   &.ng-invalid.ng-touched {
-    .mat-form-field-outline {
+    ::ng-deep .mat-mdc-form-field-outline {
       color: #f44336;
     }
   }
 
   &.ng-valid.ng-touched {
-    .mat-form-field-outline {
+    ::ng-deep .mat-mdc-form-field-outline {
       color: #4caf50;
     }
   }
 }
 
-// Hints y errores
-.mat-hint {
-  font-size: 12px !important;
-  line-height: 1.3;
+/* Mejoras visuales */
+.seccion-basica {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
 }
 
-.mat-error {
-  font-size: 12px !important;
-  line-height: 1.3;
+.seccion-ubicacion {
+  background-color: #fff8e1;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #ff9800;
+}
+
+.seccion-sistema {
+  background-color: #e8f5e8;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+}
+
+/* Scrollbar personalizado */
+.modal-content {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
 }

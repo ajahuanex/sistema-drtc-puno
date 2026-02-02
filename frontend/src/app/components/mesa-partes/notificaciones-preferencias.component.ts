@@ -265,7 +265,7 @@ export class NotificacionesPreferenciasComponent implements OnInit {
       try {
         this.preferences = JSON.parse(saved);
       } catch (error) {
-        console.error('Error loading preferences:', error);
+        console.error('Error loading preferences::', error);
       }
     }
   }

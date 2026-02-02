@@ -55,16 +55,16 @@ export class VehiculoVencimientoService {
    */
   iniciarJobVencimientos(): void {
     if (!this.configuracion.habilitado) {
-      console.log('⏸️ Job de vencimientos deshabilitado');
+      // console.log removed for production
       return;
     }
 
     if (this.jobSubscription) {
-      console.log('⚠️ Job de vencimientos ya está en ejecución');
+      // console.log removed for production
       return;
     }
 
-    console.log('🚀 Iniciando job de verificación de vencimientos');
+    // console.log removed for production
     
     // Ejecutar inmediatamente al iniciar
     this.verificarVencimientos();
@@ -83,7 +83,7 @@ export class VehiculoVencimientoService {
     if (this.jobSubscription) {
       this.jobSubscription.unsubscribe();
       this.jobSubscription = null;
-      console.log('⏹️ Job de vencimientos detenido');
+      // console.log removed for production
     }
   }
 
@@ -92,7 +92,7 @@ export class VehiculoVencimientoService {
    * Requirements: 9.3
    */
   verificarVencimientos(): void {
-    console.log('🔍 Verificando vencimientos de documentos...');
+    // console.log removed for production
 
     this.vehiculoService.getVehiculos().subscribe({
       next: (vehiculos) => {
@@ -136,11 +136,11 @@ export class VehiculoVencimientoService {
         });
 
         if (vehiculosConVencimientos.length === 0) {
-          console.log('✅ No hay documentos próximos a vencer');
+          // console.log removed for production
         }
       },
       error: (error) => {
-        console.error('Error verificando vencimientos:', error);
+        console.error('Error verificando vencimientos::', error);
       }
     });
   }
@@ -245,7 +245,7 @@ export class VehiculoVencimientoService {
       Math.max(...this.configuracion.diasAnticipacion)
     );
 
-    console.log('✅ Notificaciones de vencimiento enviadas');
+    // console.log removed for production
   }
 
   /**
@@ -266,7 +266,7 @@ export class VehiculoVencimientoService {
       ...nuevaConfiguracion
     };
 
-    console.log('⚙️ Configuración de vencimientos actualizada:', this.configuracion);
+    // console.log removed for production
 
     // Reiniciar job si está habilitado
     if (this.configuracion.habilitado && this.jobSubscription) {
@@ -301,15 +301,15 @@ export class VehiculoVencimientoService {
               }]);
             },
             error: (error) => {
-              console.error('Error obteniendo empresa:', error);
+              console.error('Error obteniendo empresa::', error);
             }
           });
         } else {
-          console.log(`✅ No hay documentos próximos a vencer para el vehículo ${vehiculo.placa}`);
+          // console.log removed for production
         }
       },
       error: (error) => {
-        console.error('Error verificando vencimientos del vehículo:', error);
+        console.error('Error verificando vencimientos del vehículo::', error);
       }
     });
   }
@@ -349,10 +349,10 @@ export class VehiculoVencimientoService {
           }
         });
 
-        console.log('📊 Estadísticas de vencimientos:', estadisticas);
+        // console.log removed for production
       },
       error: (error) => {
-        console.error('Error obteniendo estadísticas de vencimientos:', error);
+        console.error('Error obteniendo estadísticas de vencimientos::', error);
       }
     });
   }

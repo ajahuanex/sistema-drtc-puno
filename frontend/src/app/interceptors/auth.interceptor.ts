@@ -31,7 +31,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
         
         // Si no estamos en login y no es un endpoint de auth, intentar login automático
         if (!isLoginPage && !isAuthEndpoint) {
-          console.log('🔄 Error 401 detectado, intentando login automático...');
+          // console.log removed for production
           
           return from(autoLoginService.performAutoLogin()).pipe(
             switchMap((success) => {
@@ -44,13 +44,13 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
                       Authorization: `Bearer ${newToken}`
                     }
                   });
-                  console.log('🔄 Reintentando petición con nuevo token...');
+                  // console.log removed for production
                   return next(retryRequest);
                 }
               }
               
               // Si el login automático falla, redirigir a login
-              console.log('❌ Login automático falló, redirigiendo a login...');
+              // console.log removed for production
               authService.logout();
               router.navigate(['/login'], { replaceUrl: true });
               return throwError(() => error);

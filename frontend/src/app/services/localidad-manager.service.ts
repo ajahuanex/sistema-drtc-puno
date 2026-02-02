@@ -36,7 +36,7 @@ export class LocalidadManagerService {
    */
   async procesarLocalidadesRuta(localidades: LocalidadRuta[]): Promise<LocalidadProcesada[]> {
     try {
-      console.log('🔄 Procesando localidades de ruta:', localidades);
+      // console.log removed for production
       
       // Asegurar que el cache esté actualizado
       await this.actualizarCache();
@@ -48,11 +48,11 @@ export class LocalidadManagerService {
         resultados.push(resultado);
       }
       
-      console.log('✅ Localidades procesadas:', resultados);
+      // console.log removed for production
       return resultados;
       
     } catch (error) {
-      console.error('❌ Error procesando localidades de ruta:', error);
+      console.error('❌ Error procesando localidades de ruta::', error);
       throw error;
     }
   }
@@ -70,7 +70,7 @@ export class LocalidadManagerService {
     
     if (localidadExistente) {
       // Reutilizar localidad existente
-      console.log(`♻️ Reutilizando localidad existente: ${localidadRuta.nombre} -> ${localidadExistente.id}`);
+      // console.log removed for production
       
       return {
         id: localidadExistente.id,
@@ -80,7 +80,7 @@ export class LocalidadManagerService {
       };
     } else {
       // Crear nueva localidad
-      console.log(`🆕 Creando nueva localidad: ${localidadRuta.nombre}`);
+      // console.log removed for production
       
       const nuevaLocalidad = await this.crearNuevaLocalidad(localidadRuta);
       
@@ -114,7 +114,7 @@ export class LocalidadManagerService {
     };
 
     try {
-      console.log(`🔄 Intentando crear localidad en backend: ${localidadRuta.nombre}`);
+      // console.log removed for production
       
       const localidadCreada = await this.http.post<Localidad>(`${this.apiUrl}/localidades`, nuevaLocalidad).pipe(
         catchError(error => {
@@ -146,14 +146,15 @@ export class LocalidadManagerService {
     const localidadTemporal: Localidad = {
       id: this.generarIdTemporal(),
       nombre: localidadRuta.nombre,
+      tipo: 'DISTRITO' as any,
       departamento: localidadRuta.departamento || 'NO_ESPECIFICADO',
       provincia: localidadRuta.provincia || 'NO_ESPECIFICADO',
       distrito: localidadRuta.distrito || 'NO_ESPECIFICADO',
       municipalidad_centro_poblado: localidadRuta.nombre,
       nivel_territorial: this.determinarNivelTerritorial(localidadRuta),
-      esta_activa: true,
-      fecha_creacion: new Date().toISOString(),
-      fecha_actualizacion: new Date().toISOString()
+      estaActiva: true,
+      fechaCreacion: new Date().toISOString(),
+      fechaActualizacion: new Date().toISOString()
     };
     
     console.log(`🔧 Localidad temporal creada: ${localidadTemporal.nombre} (ID: ${localidadTemporal.id})`);
@@ -172,7 +173,7 @@ export class LocalidadManagerService {
     this.actualizandoCache = true;
 
     try {
-      console.log('🔄 Actualizando cache de localidades...');
+      // console.log removed for production
       
       // Timeout de 10 segundos para evitar cuelgues
       const localidades = await this.http.get<Localidad[]>(`${this.apiUrl}/localidades`).pipe(
@@ -185,9 +186,9 @@ export class LocalidadManagerService {
       this.localidadesCache.next(localidades || []);
       this.cacheActualizado = true;
       
-      console.log(`✅ Cache actualizado con ${localidades?.length || 0} localidades`);
+      // console.log removed for production
     } catch (error) {
-      console.error('❌ Error actualizando cache de localidades:', error);
+      console.error('❌ Error actualizando cache de localidades::', error);
       // Continuar con cache vacío para no bloquear el sistema
       this.localidadesCache.next([]);
       this.cacheActualizado = true;
@@ -200,7 +201,7 @@ export class LocalidadManagerService {
    * Fuerza la actualización del cache
    */
   async refrescarCache(): Promise<void> {
-    console.log('🔄 Forzando actualización del cache...');
+    // console.log removed for production
     this.cacheActualizado = false;
     this.actualizandoCache = false;
     await this.actualizarCache();

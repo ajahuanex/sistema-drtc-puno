@@ -1,299 +1,961 @@
+/* ========================================
+   ESTILOS PARA COMPONENTE DE LOCALIDADES
+   Diseño limpio y moderno que coincide con el sistema existente
+   ======================================== */
+
 .localidades-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-
-  .header-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-
-    .title-section {
-      h2 {
-        margin: 0 0 8px 0;
-        color: #1976d2;
-        font-weight: 500;
-      }
-
-      .subtitle {
-        margin: 0;
-        color: #666;
-        font-size: 14px;
-      }
-    }
-
-    .actions-section {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-
-      button {
-        min-width: 140px;
-      }
-    }
-  }
-
-  .filters-card {
-    margin-bottom: 20px;
-
-    .filters-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-
-      mat-form-field {
-        width: 100%;
-      }
-    }
-
-    .filter-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: flex-end;
-      padding-top: 16px;
-      border-top: 1px solid #e0e0e0;
-    }
-  }
-
-  .bulk-operations {
-    margin-bottom: 20px;
-
-    mat-card-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px !important;
-
-      .bulk-info {
-        font-weight: 500;
-        color: #1976d2;
-      }
-
-      .bulk-actions {
-        display: flex;
-        gap: 8px;
-      }
-    }
-  }
-
-  .table-card {
-    .table-container {
-      overflow-x: auto;
-      min-height: 400px;
-
-      .localidades-table {
-        width: 100%;
-        min-width: 1200px;
-
-        .mat-column-select {
-          width: 50px;
-        }
-
-        .mat-column-ubigeo {
-          width: 100px;
-        }
-
-        .mat-column-nombre {
-          width: 200px;
-        }
-
-        .mat-column-departamento {
-          width: 120px;
-        }
-
-        .mat-column-provincia {
-          width: 120px;
-        }
-
-        .mat-column-distrito {
-          width: 120px;
-        }
-
-        .mat-column-nivel_territorial {
-          width: 140px;
-        }
-
-        .mat-column-municipalidad_centro_poblado {
-          width: 250px;
-        }
-
-        .mat-column-coordenadas {
-          width: 150px;
-        }
-
-        .mat-column-esta_activa {
-          width: 80px;
-        }
-
-        .mat-column-acciones {
-          width: 100px;
-        }
-
-        // Estilos de celdas
-        .ubigeo-badge {
-          background: #e3f2fd;
-          color: #1976d2;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .no-ubigeo {
-          color: #999;
-          font-style: italic;
-          font-size: 12px;
-        }
-
-        .localidad-info {
-          .nombre-principal {
-            display: block;
-            font-weight: 500;
-            color: #333;
-          }
-
-          .codigo-secundario {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-top: 2px;
-          }
-        }
-
-        .municipalidad-text {
-          font-size: 13px;
-          line-height: 1.3;
-        }
-
-        .coordenadas-info {
-          font-size: 12px;
-          color: #666;
-        }
-
-        .actions-cell {
-          display: flex;
-          gap: 4px;
-        }
-      }
-
-      .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 60px 20px;
-        color: #666;
-
-        mat-spinner {
-          margin-bottom: 16px;
-        }
-      }
-
-      .no-data-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 60px 20px;
-        text-align: center;
-        color: #666;
-
-        mat-icon {
-          font-size: 64px;
-          width: 64px;
-          height: 64px;
-          margin-bottom: 16px;
-          color: #ccc;
-        }
-
-        h3 {
-          margin: 0 0 8px 0;
-          color: #333;
-        }
-
-        p {
-          margin: 0 0 24px 0;
-          max-width: 400px;
-        }
-      }
-    }
-  }
+  padding: 24px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
 }
 
-// Chips de nivel territorial
-.mat-chip {
-  &.mat-primary {
-    background-color: #1976d2;
-    color: white;
-  }
-
-  &.mat-accent {
-    background-color: #ff9800;
-    color: white;
-  }
-
-  &.mat-warn {
-    background-color: #f44336;
-    color: white;
-  }
-
-  &.mat-basic {
-    background-color: #9e9e9e;
-    color: white;
-  }
+/* ========================================
+   HEADER Y TÍTULO - Estilo Dashboard SIRRET (Usando clases correctas del HTML)
+   ======================================== */
+.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 32px;
+  margin: -24px -24px 32px -24px;
+  border-radius: 0 0 16px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-// Responsive
+.header-info h1 {
+  color: white !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.header-info p {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  margin: 8px 0 0 0 !important;
+}
+
+.header-info h1 mat-icon {
+  color: white !important;
+  font-size: 36px !important;
+}
+
+.header-actions {
+  display: flex !important;
+  gap: 12px !important;
+}
+
+.header-actions button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  backdrop-filter: blur(10px) !important;
+  transition: all 0.3s ease !important;
+}
+
+.header-actions button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ========================================
+   BUSCADOR COMPACTO CON FILTROS TOGGLE
+   ======================================== */
+.search-section {
+  background-color: white;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.search-input {
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-input .mat-mdc-form-field {
+  width: 100%;
+}
+
+.search-input .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background-color: #f8f9fa !important;
+  border-radius: 8px !important;
+}
+
+.search-input .mat-mdc-form-field .mat-mdc-form-field-infix {
+  padding: 10px 14px !important;
+}
+
+.search-input .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-form-field-outline {
+  color: #e2e8f0 !important;
+}
+
+.search-input .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-form-field-outline {
+  color: #667eea !important;
+}
+
+.search-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-btn {
+  background-color: #f7fafc !important;
+  color: #4a5568 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  min-width: auto !important;
+}
+
+.search-btn:hover {
+  background-color: #edf2f7 !important;
+  border-color: #cbd5e0 !important;
+}
+
+.filtros-toggle-section {
+  flex-shrink: 0;
+}
+
+.filtros-toggle {
+  background-color: #667eea !important;
+  color: white !important;
+  border-radius: 8px !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.filtros-toggle:hover {
+  background-color: #5a67d8 !important;
+}
+
+/* ========================================
+   FILTROS AVANZADOS COLAPSABLES
+   ======================================== */
+.filtros-section {
+  flex: 0 0 auto;
+  min-width: 300px;
+  background-color: white;
+  border: 1px solid #e8eaed;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.filtros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filtros-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3748;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filtros-title mat-icon {
+  font-size: 18px;
+  color: #667eea;
+}
+
+.filtros-toggle {
+  background: none !important;
+  border: none !important;
+  color: #667eea !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.filtros-toggle:hover {
+  background-color: #f0f4ff !important;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  align-items: end;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: 200px;
+}
+
+.filtros-grid.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filtro-label {
+  font-weight: 500;
+  color: #4a5568;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filtro-input {
+  width: 100%;
+}
+
+.filtro-input .mat-mdc-form-field {
+  width: 100%;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background-color: #f8f9fa !important;
+  border-radius: 6px !important;
+  height: 40px !important;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-form-field-infix {
+  padding: 8px 12px !important;
+  min-height: auto !important;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-floating-label {
+  font-size: 12px !important;
+}
+
+.filtro-input .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-form-field-outline {
+  color: #e2e8f0 !important;
+}
+
+.filtro-input .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-form-field-outline {
+  color: #667eea !important;
+}
+
+/* Estilos para el buscador */
+.search-input .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background-color: #f8f9fa !important;
+  border-radius: 8px !important;
+}
+
+.search-input .mat-mdc-form-field .mat-mdc-form-field-infix {
+  padding: 12px 16px !important;
+}
+
+.search-input .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-form-field-outline {
+  color: #e2e8f0 !important;
+}
+
+.search-input .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-form-field-outline {
+  color: #667eea !important;
+}
+
+.filtros-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f3f4;
+}
+
+.limpiar-filtros-btn {
+  background-color: #f7fafc !important;
+  color: #4a5568 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.limpiar-filtros-btn:hover {
+  background-color: #edf2f7 !important;
+  color: #2d3748 !important;
+}
+
+.aplicar-filtros-btn {
+  background-color: #667eea !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 6px 12px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.aplicar-filtros-btn:hover {
+  background-color: #5a67d8 !important;
+}
+
+/* ========================================
+   ESTADÍSTICAS - Estilo Dashboard SIRRET (Usando las clases correctas del HTML)
+   ======================================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background-color: white !important;
+  border: 1px solid #e8eaed !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease !important;
+}
+
+.stat-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px) !important;
+}
+
+.stat-card .mat-mdc-card-content {
+  padding: 16px 12px !important;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.stat-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  color: white !important;
+  margin-bottom: 10px !important;
+}
+
+/* Colores específicos como en el dashboard */
+.stat-icon.provincias {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.stat-icon.distritos {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.stat-icon.pueblos {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.stat-icon.total {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+}
+
+.stat-number {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: #2d3748 !important;
+  margin-bottom: 2px !important;
+  line-height: 1 !important;
+}
+
+.stat-label {
+  font-size: 10px !important;
+  color: #718096 !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin: 0 !important;
+}
+
+/* ========================================
+   TABLA DE LOCALIDADES - Estilo Dashboard SIRRET (Usando clases correctas del HTML)
+   ======================================== */
+.tabla-card {
+  background-color: white !important;
+  border: 1px solid #e8eaed !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.tabla-card .mat-mdc-card-header {
+  background: white !important;
+  color: #2d3748 !important;
+  padding: 24px !important;
+  border-bottom: 1px solid #e8eaed !important;
+}
+
+.tabla-card .mat-mdc-card-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  color: #2d3748 !important;
+}
+
+.tabla-card .mat-mdc-card-title mat-icon {
+  font-size: 20px !important;
+  color: #667eea !important;
+}
+
+.tabla-card .mat-mdc-card-subtitle {
+  color: #718096 !important;
+  font-size: 14px !important;
+  margin-top: 8px !important;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+/* Tabla */
+.localidades-table {
+  width: 100%;
+  background-color: white !important;
+}
+
+.localidades-table .mat-mdc-header-row {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e8eaed !important;
+}
+
+.localidades-table .mat-mdc-header-cell {
+  color: #4a5568 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 16px !important;
+}
+
+.localidades-table .mat-mdc-row {
+  border-bottom: 1px solid #f1f3f4 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.localidades-table .mat-mdc-row:hover {
+  background-color: #f8f9fa !important;
+}
+
+.localidades-table .mat-mdc-cell {
+  color: #2d3748 !important;
+  padding: 16px !important;
+  font-size: 14px !important;
+}
+
+/* Chips de tipo y estado - Más sutiles (usando clases correctas del HTML) */
+.mat-mdc-chip {
+  padding: 4px 8px !important;
+  border-radius: 12px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0.2px !important;
+  min-width: 60px !important;
+  text-align: center !important;
+}
+
+/* Chips de tipo - Colores más sutiles */
+.tipo-provincia {
+  background-color: #e6f3ff !important;
+  color: #1976d2 !important;
+  border: 1px solid #bbdefb !important;
+}
+
+.tipo-distrito {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+  border: 1px solid #f8bbd9 !important;
+}
+
+.tipo-centro_poblado {
+  background-color: #e8f5e8 !important;
+  color: #388e3c !important;
+  border: 1px solid #c8e6c9 !important;
+}
+
+.tipo-otros {
+  background-color: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+  border: 1px solid #e1bee7 !important;
+}
+
+.tipo-otro {
+  background-color: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+  border: 1px solid #e1bee7 !important;
+}
+
+/* Chips de estado - Más sutiles */
+.estado-activo {
+  background-color: #e8f5e8 !important;
+  color: #2e7d32 !important;
+  border: 1px solid #c8e6c9 !important;
+}
+
+.estado-inactivo {
+  background-color: #ffebee !important;
+  color: #d32f2f !important;
+  border: 1px solid #ffcdd2 !important;
+}
+
+/* Chips de nivel territorial */
+.nivel-provincia {
+  background-color: #e6f3ff !important;
+  color: #1976d2 !important;
+  border: 1px solid #bbdefb !important;
+}
+
+.nivel-distrito {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+  border: 1px solid #f8bbd9 !important;
+}
+
+.nivel-centro_poblado {
+  background-color: #e8f5e8 !important;
+  color: #388e3c !important;
+  border: 1px solid #c8e6c9 !important;
+}
+
+.nivel-otros {
+  background-color: #f3e5f5 !important;
+  color: #7b1fa2 !important;
+  border: 1px solid #e1bee7 !important;
+}
+
+/* Columna de acciones - Más sutiles (usando clases correctas del HTML) */
+.acciones-cell {
+  text-align: center !important;
+}
+
+.acciones-cell button {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 6px !important;
+  margin: 0 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.acciones-cell button mat-icon {
+  font-size: 16px !important;
+}
+
+/* Estados específicos para botones de acción */
+.acciones-cell button[color="primary"] {
+  background-color: #fff3e0 !important;
+  color: #f57c00 !important;
+  border: 1px solid #ffcc02 !important;
+}
+
+.acciones-cell button[color="primary"]:hover {
+  background-color: #ffe0b2 !important;
+  color: #ef6c00 !important;
+}
+
+.acciones-cell button[color="accent"] {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  border: 1px solid #90caf9 !important;
+}
+
+.acciones-cell button[color="accent"]:hover {
+  background-color: #bbdefb !important;
+  color: #1565c0 !important;
+}
+
+.acciones-cell button[color="warn"] {
+  background-color: #ffebee !important;
+  color: #d32f2f !important;
+  border: 1px solid #ef9a9a !important;
+}
+
+.acciones-cell button[color="warn"]:hover {
+  background-color: #ffcdd2 !important;
+  color: #c62828 !important;
+}
+
+/* ========================================
+   PAGINACIÓN - Estilo Dashboard SIRRET
+   ======================================== */
+.mat-mdc-paginator {
+  background-color: white !important;
+  border-top: 1px solid #e8eaed !important;
+  color: #4a5568 !important;
+}
+
+/* ========================================
+   ESTADOS VACÍOS Y CARGA
+   ======================================== */
+.estado-vacio {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  color: var(--text-secondary);
+}
+
+.estado-vacio .material-icons {
+  font-size: 64px;
+  color: var(--neutral-400);
+  margin-bottom: var(--spacing-lg);
+}
+
+.estado-vacio h3 {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.estado-carga {
+  text-align: center;
+  padding: var(--spacing-xxl);
+}
+
+.spinner {
+  margin: 0 auto var(--spacing-lg);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
 @media (max-width: 768px) {
   .localidades-container {
     padding: 16px;
+  }
 
-    .header-section {
-      flex-direction: column;
-      align-items: stretch;
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    margin: -16px -16px 24px -16px;
+    padding: 24px 16px;
+  }
 
-      .actions-section {
-        justify-content: stretch;
+  .header-info h1 {
+    font-size: 24px !important;
+    text-align: center !important;
+  }
 
-        button {
-          flex: 1;
-          min-width: auto;
-        }
-      }
-    }
+  .search-section {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
 
-    .filters-card .filters-grid {
-      grid-template-columns: 1fr;
-    }
+  .search-container {
+    flex-direction: column;
+    gap: 12px;
+  }
 
-    .bulk-operations mat-card-content {
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
+  .search-input {
+    max-width: none;
+  }
 
-      .bulk-actions {
-        justify-content: center;
-      }
-    }
+  .filtros-toggle-section {
+    align-self: center;
+  }
+
+  .filtros-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tabla-card .mat-mdc-card-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  /* Ocultar algunas columnas en móvil */
+  .localidades-table .mat-column-ubicacion,
+  .localidades-table .mat-column-nivel {
+    display: none;
+  }
+
+  .acciones-cell button {
+    margin: 2px !important;
   }
 }
 
-// Snackbar styles
-.snackbar-success {
-  background-color: #4caf50;
-  color: white;
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card .mat-mdc-card-content {
+    padding: 12px 8px !important;
+  }
+
+  .stat-number {
+    font-size: 24px !important;
+  }
+
+  .search-section {
+    padding: 12px 16px;
+  }
+
+  .filtros-section {
+    padding: 16px !important;
+  }
+
+  /* Más columnas ocultas en móviles pequeños */
+  .localidades-table .mat-column-estado {
+    display: none;
+  }
 }
 
-.snackbar-error {
-  background-color: #f44336;
-  color: white;
+/* ========================================
+   ANIMACIONES
+   ======================================== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.snackbar-warning {
-  background-color: #ff9800;
-  color: white;
+.localidades-container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.estadistica-card {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.estadistica-card:nth-child(1) { animation-delay: 0.1s; }
+.estadistica-card:nth-child(2) { animation-delay: 0.2s; }
+.estadistica-card:nth-child(3) { animation-delay: 0.3s; }
+.estadistica-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+.accion-btn:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.tipo-chip, .estado-chip {
+  position: relative;
+}
+
+.tipo-chip:focus, .estado-chip:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* Mejorar contraste para lectores de pantalla */
+@media (prefers-contrast: high) {
+  .tipo-chip, .estado-chip {
+    border-width: 2px;
+  }
+  
+  .accion-btn {
+    border-width: 2px !important;
+  }
+}
+
+/* Reducir animaciones si el usuario lo prefiere */
+@media (prefers-reduced-motion: reduce) {
+  .localidades-container,
+  .estadistica-card,
+  .accion-btn,
+  .localidades-table .mat-mdc-row {
+    animation: none;
+    transition: none;
+  }
+}
+/* =====
+===================================
+   FILTROS SECTION CORREGIDA
+   ======================================== */
+.filtros-section {
+  background-color: white !important;
+  border: 1px solid #e8eaed !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.3s ease !important;
+  overflow: hidden !important;
+}
+
+.filtros-section.collapsed {
+  max-height: 0 !important;
+  padding: 0 20px !important;
+  margin-bottom: 0 !important;
+  opacity: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.filtros-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 20px !important;
+  align-items: end !important;
+  margin-bottom: 20px !important;
+}
+
+.filtro-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.filtro-label {
+  font-weight: 500 !important;
+  color: #4a5568 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+}
+
+.filtro-input {
+  width: 100% !important;
+}
+
+.filtro-input .mat-mdc-form-field {
+  width: 100% !important;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-text-field-wrapper {
+  background-color: #f8f9fa !important;
+  border-radius: 6px !important;
+  height: 40px !important;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-form-field-infix {
+  padding: 8px 12px !important;
+  min-height: auto !important;
+}
+
+.filtro-input .mat-mdc-form-field .mat-mdc-floating-label {
+  font-size: 12px !important;
+}
+
+.filtro-input .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-form-field-outline {
+  color: #e2e8f0 !important;
+}
+
+.filtro-input .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-form-field-outline {
+  color: #667eea !important;
+}
+
+.filtros-actions {
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: flex-end !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #f1f3f4 !important;
+}
+
+.limpiar-filtros-btn {
+  background-color: #f7fafc !important;
+  color: #4a5568 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease !important;
+}
+
+.limpiar-filtros-btn:hover {
+  background-color: #edf2f7 !important;
+  color: #2d3748 !important;
+}
+
+.aplicar-filtros-btn {
+  background-color: #667eea !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease !important;
+}
+
+.aplicar-filtros-btn:hover {
+  background-color: #5a67d8 !important;
+}
+
+/* ========================================
+   INDICADOR DE BÚSQUEDA
+   ======================================== */
+.search-indicator {
+  color: #667eea !important;
+  font-style: italic !important;
+  font-weight: 500 !important;
+}
+
+/* Mejorar el estado del input cuando tiene contenido */
+.search-input .mat-mdc-form-field.mat-form-field-has-value .mat-mdc-text-field-wrapper {
+  background-color: #e6f3ff !important;
+  border: 1px solid #667eea !important;
+}
+
+/* Animación para el botón de limpiar cuando hay contenido */
+.search-btn.has-content {
+  background-color: #667eea !important;
+  color: white !important;
+  border-color: #667eea !important;
+}
+
+.search-btn.has-content:hover {
+  background-color: #5a67d8 !important;
 }

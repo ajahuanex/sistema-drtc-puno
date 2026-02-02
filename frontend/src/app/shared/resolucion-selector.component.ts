@@ -72,7 +72,7 @@ import { SmartIconComponent } from './smart-icon.component';
  * ```
  * 
  * @since 1.0.0
- * @author Sistema SIRRET
+ * @author Sistema Regional de Registros de Transporte (SIRRET)
  */
 @Component({
   selector: 'app-resolucion-selector',
@@ -340,7 +340,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
    * ```typescript
    * onResolucionSeleccionada(resolucion: Resolucion | null): void {
    *   if (resolucion) {
-   *     console.log('Resolución seleccionada:', resolucion.nroResolucion);
+   *     // console.log removed for production
    *     this.form.patchValue({ resolucionId: resolucion.id });
    *   }
    * }
@@ -402,7 +402,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resolucionId'] && !changes['resolucionId'].firstChange) {
       const newResolucionId = changes['resolucionId'].currentValue;
-      console.log('🔄 ResolucionSelector: resolucionId cambió a:', newResolucionId);
+      // console.log removed for production
       
       if (newResolucionId) {
         this.setResolucionById(newResolucionId);
@@ -412,7 +412,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
     }
 
     if (changes['empresaId'] && !changes['empresaId'].firstChange) {
-      console.log('🔄 ResolucionSelector: empresaId cambió, recargando resoluciones');
+      // console.log removed for production
       this.cargarResoluciones();
     }
   }
@@ -423,23 +423,23 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
    * @param resolucionId - ID de la resolución a seleccionar
    */
   private setResolucionById(resolucionId: string): void {
-    console.log('🎯 Buscando resolución con ID:', resolucionId);
+    // console.log removed for production
     
     // Si ya tenemos las resoluciones cargadas, buscar inmediatamente
     const resoluciones = this.resoluciones();
     if (resoluciones.length > 0) {
       const resolucion = resoluciones.find(r => r.id === resolucionId);
       if (resolucion) {
-        console.log('✅ Resolución encontrada:', resolucion.nroResolucion);
+        // console.log removed for production
         // En lugar de usar displayFn, establecer el ID directamente
         // El autocompletado mostrará el texto correcto automáticamente
         this.resolucionControl.setValue(resolucionId);
       } else {
-        console.log('❌ Resolución no encontrada con ID:', resolucionId);
+        // console.log removed for production
       }
     } else {
       // Si no tenemos resoluciones aún, esperar a que se carguen
-      console.log('⏳ Esperando a que se carguen las resoluciones...');
+      // console.log removed for production
       setTimeout(() => this.setResolucionById(resolucionId), 100);
     }
   }
@@ -468,7 +468,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
           // Un vehículo puede estar en cualquier resolución, solo cambian las rutas
           const resolucionesActivas = resoluciones.filter(r => r.estaActivo);
           
-          console.log('📋 Resoluciones cargadas en selector:', resolucionesActivas.length);
+          // console.log removed for production
           console.log('   Detalle:', resolucionesActivas.map(r => ({ 
             numero: r.nroResolucion, 
             tipo: r.tipoResolucion,
@@ -478,7 +478,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
           this.resoluciones.set(resolucionesActivas);
         },
         error: (error) => {
-          console.error('Error al cargar resoluciones:', error);
+          console.error('Error al cargar resoluciones::', error);
           this.resoluciones.set([]);
         }
       });
@@ -627,7 +627,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
    * ```typescript
    * const resolucionId = this.resolucionSelector.getValue();
    * if (resolucionId) {
-   *   console.log('Resolución seleccionada:', resolucionId);
+   *   // console.log removed for production
    * }
    * ```
    */
@@ -698,7 +698,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
    * @example
    * ```typescript
    * const estado = this.resolucionSelector.getEstado();
-   * console.log('Estado del selector:', estado);
+   * // console.log removed for production
    * // { loading: false, hasResoluciones: true, hasValue: true }
    * 
    * // Usar en lógica condicional

@@ -604,7 +604,7 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error cargando notificaciones:', error);
+        console.error('Error cargando notificaciones::', error);
         this.snackBar.open('Error al cargar las notificaciones', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }
@@ -616,7 +616,7 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
     effect(() => {
       const notificaciones = this.notificationService.notificaciones();
       this.notificaciones.set(notificaciones);
-    });
+    }, { allowSignalWrites: true });
   }
 
   aplicarFiltros(): void {
@@ -636,7 +636,7 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
         this.snackBar.open('Notificación marcada como leída', 'Cerrar', { duration: 2000 });
       },
       error: (error) => {
-        console.error('Error marcando notificación:', error);
+        console.error('Error marcando notificación::', error);
         this.snackBar.open('Error al marcar la notificación', 'Cerrar', { duration: 3000 });
       }
     });
@@ -649,7 +649,7 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
         this.snackBar.open('Todas las notificaciones marcadas como leídas', 'Cerrar', { duration: 3000 });
       },
       error: (error) => {
-        console.error('Error marcando notificaciones:', error);
+        console.error('Error marcando notificaciones::', error);
         this.snackBar.open('Error al marcar las notificaciones', 'Cerrar', { duration: 3000 });
       }
     });
@@ -662,7 +662,7 @@ export class NotificacionesComponent implements OnInit, OnDestroy {
         this.snackBar.open('Notificación eliminada', 'Cerrar', { duration: 2000 });
       },
       error: (error) => {
-        console.error('Error eliminando notificación:', error);
+        console.error('Error eliminando notificación::', error);
         this.snackBar.open('Error al eliminar la notificación', 'Cerrar', { duration: 3000 });
       }
     });

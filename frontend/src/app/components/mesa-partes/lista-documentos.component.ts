@@ -712,7 +712,7 @@ export class ListaDocumentosComponent implements OnInit, OnDestroy {
           this.cargando.set(false);
         },
         error: (err) => {
-          console.error('Error al cargar documentos:', err);
+          console.error('Error al cargar documentos::', err);
           this.error.set('No se pudieron cargar los documentos. Por favor, intente nuevamente.');
           this.cargando.set(false);
         }
@@ -951,7 +951,7 @@ export class ListaDocumentosComponent implements OnInit, OnDestroy {
           this.exportando.set(false);
         },
         error: (err) => {
-          console.error('Error al exportar a Excel:', err);
+          console.error('Error al exportar a Excel::', err);
           this.error.set('No se pudo exportar a Excel. Por favor, intente nuevamente.');
           this.exportando.set(false);
         }
@@ -980,7 +980,7 @@ export class ListaDocumentosComponent implements OnInit, OnDestroy {
           this.exportando.set(false);
         },
         error: (err) => {
-          console.error('Error al exportar a PDF:', err);
+          console.error('Error al exportar a PDF::', err);
           this.error.set('No se pudo exportar a PDF. Por favor, intente nuevamente.');
           this.exportando.set(false);
         }

@@ -71,13 +71,17 @@ export class VehiculoService {
   // ========================================
 
   getVehiculos(): Observable<Vehiculo[]> {
-    // SOLO API REAL - NO DATAMANAGER
+    // console.log removed for production
+    
     return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos`, {
       headers: this.getHeaders()
     }).pipe(
+      tap(vehiculos => {
+        // console.log removed for production
+      }),
       catchError(error => {
-        console.error('Error obteniendo vehículos:', error);
-        throw error; // Propagar el error en lugar de devolver array vacío
+        console.error('❌ Error obteniendo vehículos de la API::', error);
+        return of([]);
       })
     );
   }
@@ -90,7 +94,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo todos los vehículos:', error);
+        console.error('Error obteniendo todos los vehículos::', error);
         return of([]);
       })
     );
@@ -105,7 +109,7 @@ export class VehiculoService {
     }).pipe(
       map(vehiculos => vehiculos.filter(vehiculo => vehiculo.estaActivo === false)),
       catchError(error => {
-        console.error('Error obteniendo vehículos eliminados:', error);
+        console.error('Error obteniendo vehículos eliminados::', error);
         return of([]);
       })
     );
@@ -147,7 +151,7 @@ export class VehiculoService {
             }).pipe(
               map(() => undefined),
               catchError(error => {
-                console.error('Error registrando restauración:', error);
+                console.error('Error registrando restauración::', error);
                 return of(undefined);
               })
             );
@@ -155,7 +159,7 @@ export class VehiculoService {
         );
       }),
       catchError(error => {
-        console.error('Error restaurando vehículo:', error);
+        console.error('Error restaurando vehículo::', error);
         return throwError(() => error);
       })
     );
@@ -167,7 +171,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo vehículo:', error);
+        console.error('Error obteniendo vehículo::', error);
         return of(null);
       })
     );
@@ -175,7 +179,7 @@ export class VehiculoService {
 
   createVehiculo(vehiculo: VehiculoCreate): Observable<Vehiculo> {
     // SOLO API REAL - NO DATAMANAGER
-    console.log('🔍 Creando vehículo en API real:', vehiculo);
+    // console.log removed for production
     return this.http.post<Vehiculo>(`${this.apiUrl}/vehiculos`, vehiculo, {
       headers: this.getHeaders()
     }).pipe(
@@ -188,14 +192,14 @@ export class VehiculoService {
         ).pipe(
           map(() => vehiculoCreado),
           catchError(error => {
-            console.error('Error registrando historial de creación:', error);
+            console.error('Error registrando historial de creación::', error);
             // No fallar la creación del vehículo por error en historial
             return of(vehiculoCreado);
           })
         );
       }),
       catchError(error => {
-        console.error('Error creando vehículo:', error);
+        console.error('Error creando vehículo::', error);
         return throwError(() => error);
       })
     );
@@ -227,7 +231,7 @@ export class VehiculoService {
                   'Empresa Anterior', // TODO: Obtener nombres reales
                   'Empresa Nueva'
                 ).pipe(catchError(error => {
-                  console.error('Error registrando transferencia:', error);
+                  console.error('Error registrando transferencia::', error);
                   return of(null);
                 }))
               );
@@ -242,7 +246,7 @@ export class VehiculoService {
                   vehiculoAnterior.estado as EstadoVehiculo,
                   vehiculo.estado as EstadoVehiculo
                 ).pipe(catchError(error => {
-                  console.error('Error registrando cambio de estado:', error);
+                  console.error('Error registrando cambio de estado::', error);
                   return of(null);
                 }))
               );
@@ -257,7 +261,7 @@ export class VehiculoService {
                   vehiculoAnterior,
                   vehiculoActualizado
                 ).pipe(catchError(error => {
-                  console.error('Error registrando modificación:', error);
+                  console.error('Error registrando modificación::', error);
                   return of(null);
                 }))
               );
@@ -271,7 +275,7 @@ export class VehiculoService {
         );
       }),
       catchError(error => {
-        console.error('Error actualizando vehículo:', error);
+        console.error('Error actualizando vehículo::', error);
         return throwError(() => error);
       })
     );
@@ -302,7 +306,7 @@ export class VehiculoService {
             }).pipe(
               map(() => undefined),
               catchError(error => {
-                console.error('Error registrando eliminación lógica:', error);
+                console.error('Error registrando eliminación lógica::', error);
                 return of(undefined);
               })
             );
@@ -310,7 +314,7 @@ export class VehiculoService {
         );
       }),
       catchError(error => {
-        console.error('Error eliminando vehículo (borrado lógico):', error);
+        console.error('Error eliminando vehículo (borrado lógico)::', error);
         return throwError(() => error);
       })
     );
@@ -329,7 +333,7 @@ export class VehiculoService {
     motivo: string, 
     observaciones?: string
   ): Observable<Vehiculo> {
-    console.log('[VEHICULO-SERVICE] 🔄 Cambiando estado de vehículo:', { vehiculoId, nuevoEstado, motivo });
+    // console.log removed for production
     
     return this.getVehiculo(vehiculoId).pipe(
       switchMap(vehiculo => {
@@ -355,7 +359,7 @@ export class VehiculoService {
         return this.updateVehiculo(vehiculoId, vehiculoUpdate);
       }),
       catchError(error => {
-        console.error('[VEHICULO-SERVICE] ❌ Error cambiando estado:', error);
+        console.error('[VEHICULO-SERVICE] ❌ Error cambiando estado::', error);
         return throwError(() => error);
       })
     );
@@ -365,13 +369,13 @@ export class VehiculoService {
    * Obtener vehículos por empresa
    */
   getVehiculosPorEmpresa(empresaId: string): Observable<Vehiculo[]> {
-    console.log('[VEHICULO-SERVICE] 🏢 Obteniendo vehículos por empresa:', empresaId);
+    // console.log removed for production
     
     return this.http.get<Vehiculo[]>(`${this.apiUrl}/vehiculos/empresa/${empresaId}`, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo vehículos por empresa:', error);
+        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo vehículos por empresa::', error);
         return of([]);
       })
     );
@@ -381,7 +385,7 @@ export class VehiculoService {
    * Validar si una placa ya existe
    */
   validarPlacaExistente(placa: string, vehiculoIdExcluir?: string): Observable<boolean> {
-    console.log('[VEHICULO-SERVICE] 🔍 Validando placa existente:', placa);
+    // console.log removed for production
     
     let url = `${this.apiUrl}/vehiculos/validar-placa/${encodeURIComponent(placa)}`;
     if (vehiculoIdExcluir) {
@@ -393,7 +397,7 @@ export class VehiculoService {
     }).pipe(
       map(response => response.existe),
       catchError(error => {
-        console.error('[VEHICULO-SERVICE] ❌ Error validando placa:', error);
+        console.error('[VEHICULO-SERVICE] ❌ Error validando placa::', error);
         return of(false);
       })
     );
@@ -403,13 +407,11 @@ export class VehiculoService {
    * Obtener estadísticas de vehículos
    */
   getEstadisticasVehiculos(): Observable<any> {
-    console.log('[VEHICULO-SERVICE] 📊 Obteniendo estadísticas de vehículos');
-    
     return this.http.get<any>(`${this.apiUrl}/vehiculos/estadisticas`, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo estadísticas:', error);
+        console.error('[VEHICULO-SERVICE] ❌ Error obteniendo estadísticas::', error);
         return of({
           total: 0,
           activos: 0,
@@ -436,7 +438,7 @@ export class VehiculoService {
     }).pipe(
       map(response => response.validaciones || []),
       catchError(error => {
-        console.error('Error validando archivo:', error);
+        console.error('Error validando archivo::', error);
         return of([]);
       })
     );
@@ -453,7 +455,7 @@ export class VehiculoService {
       })
     }).pipe(
       catchError(error => {
-        console.error('Error en carga masiva:', error);
+        console.error('Error en carga masiva::', error);
         return throwError(() => error);
       })
     );
@@ -464,7 +466,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo estadísticas:', error);
+        console.error('Error obteniendo estadísticas::', error);
         return of({
           total_cargas: 0,
           vehiculos_cargados_total: 0,
@@ -486,7 +488,7 @@ export class VehiculoService {
       }).toPromise();
       return response;
     } catch (error: any) {
-      console.error('Error marcando vehículos como historial actual:', error);
+      console.error('Error marcando vehículos como historial actual::', error);
       throw error;
     }
   }
@@ -501,7 +503,7 @@ export class VehiculoService {
       }).toPromise();
       return response;
     } catch (error: any) {
-      console.error('Error obteniendo estadísticas filtradas:', error);
+      console.error('Error obteniendo estadísticas filtradas::', error);
       throw error;
     }
   }
@@ -516,7 +518,7 @@ export class VehiculoService {
       }).toPromise();
       return response;
     } catch (error: any) {
-      console.error('Error obteniendo historial detallado:', error);
+      console.error('Error obteniendo historial detallado::', error);
       throw error;
     }
   }
@@ -531,7 +533,7 @@ export class VehiculoService {
       }).toPromise();
       return response;
     } catch (error: any) {
-      console.error('Error obteniendo estadísticas de historial:', error);
+      console.error('Error obteniendo estadísticas de historial::', error);
       throw error;
     }
   }
@@ -546,7 +548,7 @@ export class VehiculoService {
       }).toPromise();
       return response;
     } catch (error: any) {
-      console.error('Error actualizando historial de todos:', error);
+      console.error('Error actualizando historial de todos::', error);
       throw error;
     }
   }
@@ -577,7 +579,7 @@ export class VehiculoService {
       }).toPromise();
       return response || [];
     } catch (error: any) {
-      console.error('Error obteniendo vehículos visibles:', error);
+      console.error('Error obteniendo vehículos visibles::', error);
       return [];
     }
   }
@@ -586,7 +588,7 @@ export class VehiculoService {
    * Descargar plantilla Excel para carga masiva de vehículos
    */
   descargarPlantillaExcel(): Observable<Blob> {
-    console.log('[VEHICULO-SERVICE] 📥 Generando plantilla Excel local con orden correcto...');
+    // console.log removed for production
     
     // Usar directamente la plantilla local actualizada con el orden correcto
     return this.crearPlantillaLocal();
@@ -596,17 +598,17 @@ export class VehiculoService {
    * Descargar plantilla desde el backend (cuando esté actualizado)
    */
   descargarPlantillaExcelBackend(): Observable<Blob> {
-    console.log('[VEHICULO-SERVICE] 📥 Descargando plantilla Excel desde backend...');
+    // console.log removed for production
     
     return this.http.get(`${this.apiUrl}/vehiculos/carga-masiva/plantilla`, {
       headers: this.getHeaders(),
       responseType: 'blob'
     }).pipe(
       tap(() => {
-        console.log('[VEHICULO-SERVICE] ✅ Plantilla Excel descargada exitosamente desde backend');
+        // console.log removed for production
       }),
       catchError(error => {
-        console.error('[VEHICULO-SERVICE] ❌ Error descargando plantilla Excel desde backend:', error);
+        console.error('[VEHICULO-SERVICE] ❌ Error descargando plantilla Excel desde backend::', error);
         
         // Fallback: crear plantilla local si el backend no está disponible
         return this.crearPlantillaLocal();
@@ -618,7 +620,7 @@ export class VehiculoService {
    * Crear plantilla Excel local como fallback
    */
   private crearPlantillaLocal(): Observable<Blob> {
-    console.log('[VEHICULO-SERVICE] 🔄 Creando plantilla Excel local como fallback...');
+    // console.log removed for production
     
     try {
       // Crear un nuevo libro de trabajo
@@ -667,7 +669,7 @@ export class VehiculoService {
       // Hoja 1: Instrucciones
       const instrucciones = [
         ['PLANTILLA DE CARGA MASIVA DE VEHÍCULOS - SIRRET'],
-        ['Sistema Integral de Registros y Regulación de Empresas de Transporte'],
+        ['Sistema Regional de Registros de Transporte (SIRRET)'],
         [''],
         ['INSTRUCCIONES DE USO:'],
         ['1. Complete los datos en la hoja "DATOS" usando las columnas correspondientes'],
@@ -731,7 +733,7 @@ export class VehiculoService {
         ['• Expediente: Se relaciona con las resoluciones'],
         [''],
         ['Fecha de creación: ' + new Date().toLocaleDateString('es-PE')],
-        ['Versión del sistema: SIRRET v1.0.0'],
+        ['Versión del sistema: Sistema Regional de Registros de Transporte (SIRRET) v1.0.0'],
         ['Total de campos: 36 (2 obligatorios, 34 opcionales)']
       ];
 
@@ -757,7 +759,7 @@ export class VehiculoService {
       const headers = columnas.map(col => col.campo);
       
       // Crear filas vacías con el número correcto de columnas (36)
-      const filaVacia = new Array(36).fill('');
+      const filaVacia = Array.from({length: 10}, () => "");
       
       const datosPlanilla = [
         headers,
@@ -822,11 +824,11 @@ export class VehiculoService {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
       
-      console.log('[VEHICULO-SERVICE] ✅ Plantilla Excel creada exitosamente');
+      // console.log removed for production
       return of(blob);
       
     } catch (error) {
-      console.error('[VEHICULO-SERVICE] ❌ Error creando plantilla Excel:', error);
+      console.error('[VEHICULO-SERVICE] ❌ Error creando plantilla Excel::', error);
       
       // Fallback a CSV si falla la generación de Excel
       return this.crearPlantillaCSVFallback();
@@ -883,7 +885,7 @@ export class VehiculoService {
    * Procesar carga masiva de vehículos (crear o actualizar)
    */
   cargaMasivaVehiculos(archivo: File): Observable<any> {
-    console.log('[CARGA-MASIVA] 🚀 Iniciando procesamiento de carga masiva');
+    // console.log removed for production
     
     // Usar directamente el endpoint de carga masiva del backend
     const formData = new FormData();
@@ -895,10 +897,10 @@ export class VehiculoService {
       })
     }).pipe(
       tap(resultado => {
-        console.log('[CARGA-MASIVA] ✅ Resultado del backend:', resultado);
+        // console.log removed for production
       }),
       catchError(error => {
-        console.error('[CARGA-MASIVA] ❌ Error:', error);
+        console.error('[CARGA-MASIVA] ❌ Error::', error);
         return throwError(() => error);
       })
     );
@@ -1128,7 +1130,7 @@ export class VehiculoService {
     );
   }
   private crearPlantillaCSVFallback(): Observable<Blob> {
-    console.log('[VEHICULO-SERVICE] 🔄 Creando plantilla CSV como último recurso...');
+    // console.log removed for production
     
     const headers = [
       'RUC Empresa', 'Resolución Primigenia', 'DNI', 'Resolución Hija', 'Fecha Resolución',
@@ -1168,9 +1170,9 @@ export class VehiculoService {
   }
 
   validarExcel(archivo: File): Observable<any[]> {
-    console.log('[CARGA-MASIVA] 🔍 Iniciando validación de archivo:', archivo.name);
-    console.log('[CARGA-MASIVA] 📊 Tipo de archivo:', archivo.type);
-    console.log('[CARGA-MASIVA] 📏 Tamaño:', archivo.size, 'bytes');
+    // console.log removed for production
+    // console.log removed for production
+    // console.log removed for production
     
     return new Observable(observer => {
       const reader = new FileReader();
@@ -1184,13 +1186,13 @@ export class VehiculoService {
 
           // Determinar si es Excel o CSV
           if (archivo.name.toLowerCase().endsWith('.csv')) {
-            console.log('[CARGA-MASIVA] 📄 Procesando como archivo CSV');
+            // console.log removed for production
             // Procesar CSV
             const content = data as string;
             const lines = content.split('\n').filter(line => line.trim() && !line.startsWith('#'));
             
             if (lines.length < 2) {
-              console.log('[CARGA-MASIVA] ⚠️ Archivo CSV vacío o sin datos');
+              // console.log removed for production
               observer.next([]);
               observer.complete();
               return;
@@ -1198,28 +1200,28 @@ export class VehiculoService {
 
             jsonData = lines.map(line => line.split(',').map(cell => cell.trim()));
           } else {
-            console.log('[CARGA-MASIVA] 📊 Procesando como archivo Excel');
+            // console.log removed for production
             // Procesar Excel
             try {
-              console.log('[CARGA-MASIVA] 📊 Procesando archivo Excel...');
+              // console.log removed for production
               workbook = XLSX.read(data, { type: 'array' });
               
-              console.log('[CARGA-MASIVA] 📋 Hojas disponibles:', workbook.SheetNames);
+              // console.log removed for production
               
               // Buscar la hoja "DATOS" primero, luego la primera hoja disponible
               let sheetName = 'DATOS';
               if (!workbook.Sheets[sheetName]) {
                 sheetName = workbook.SheetNames[0];
-                console.log('[CARGA-MASIVA] ⚠️ Hoja "DATOS" no encontrada, usando:', sheetName);
+                // console.log removed for production
               } else {
-                console.log('[CARGA-MASIVA] ✅ Usando hoja "DATOS" correctamente');
+                // console.log removed for production
               }
               
               worksheet = workbook.Sheets[sheetName];
               
               // Verificar que la hoja existe
               if (!worksheet) {
-                console.error('[CARGA-MASIVA] ❌ No se pudo acceder a la hoja:', sheetName);
+                console.error('[CARGA-MASIVA] ❌ No se pudo acceder a la hoja::', sheetName);
                 observer.error('No se pudo leer la hoja del archivo Excel.');
                 return;
               }
@@ -1231,11 +1233,11 @@ export class VehiculoService {
                 raw: false 
               }) as any[][];
               
-              console.log('[CARGA-MASIVA] 📊 Datos extraídos de Excel:', jsonData.length, 'filas');
+              // console.log removed for production
               console.log('[CARGA-MASIVA] 🔍 Primeras 3 filas:', jsonData.slice(0, 3));
               
             } catch (excelError) {
-              console.error('[CARGA-MASIVA] ❌ Error procesando Excel:', excelError);
+              console.error('[CARGA-MASIVA] ❌ Error procesando Excel::', excelError);
               observer.error('Error al procesar archivo Excel. Verifique que el archivo no esté corrupto.');
               return;
             }
@@ -1247,7 +1249,7 @@ export class VehiculoService {
           );
 
           if (jsonData.length < 2) {
-            console.log('[CARGA-MASIVA] No hay datos suficientes para validar');
+            // console.log removed for production
             observer.next([]);
             observer.complete();
             return;
@@ -1256,8 +1258,8 @@ export class VehiculoService {
           const headers = jsonData[0];
           const validaciones: any[] = [];
 
-          console.log('[CARGA-MASIVA] Headers encontrados:', headers);
-          console.log('[CARGA-MASIVA] Filas de datos a procesar:', jsonData.length - 1);
+          // console.log removed for production
+          // console.log removed for production
 
           // Validar cada fila de datos (saltando el header)
           for (let i = 1; i < jsonData.length; i++) {
@@ -1265,7 +1267,7 @@ export class VehiculoService {
             
             // Saltar filas completamente vacías
             if (!row.some(cell => cell && cell.toString().trim())) {
-              console.log('[CARGA-MASIVA] 🚫 Saltando fila vacía:', i + 1);
+              // console.log removed for production
               continue;
             }
             
@@ -1319,7 +1321,7 @@ export class VehiculoService {
                               placa.includes('✅');
             
             if (esSeparador) {
-              console.log('[CARGA-MASIVA] 🚫 Saltando fila de separador:', placa);
+              // console.log removed for production
               continue;
             }
             
@@ -1329,12 +1331,12 @@ export class VehiculoService {
                                       placa === 'GHI-789';
             
             if (esEjemploEspecifico) {
-              console.log('[CARGA-MASIVA] 🚫 Saltando fila de ejemplo específico:', placa);
+              // console.log removed for production
               continue;
             }
             
             // Si llegamos aquí, es una fila que debemos procesar
-            console.log('[CARGA-MASIVA] ✅ Procesando fila:', i + 1, 'Placa:', placa);
+            // console.log removed for production
             
             const validacion = {
               fila: i + 1,
@@ -1476,12 +1478,12 @@ export class VehiculoService {
             validaciones.push(validacion);
           }
 
-          console.log('[CARGA-MASIVA] Validaciones completadas:', validaciones.length, 'registros procesados');
+          // console.log removed for production
           observer.next(validaciones);
           observer.complete();
           
         } catch (error) {
-          console.error('[CARGA-MASIVA] Error procesando archivo:', error);
+          console.error('[CARGA-MASIVA] Error procesando archivo::', error);
           observer.error('Error al procesar el archivo. Verifique que el formato sea correcto.');
         }
       };
@@ -1512,7 +1514,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo rutas específicas:', error);
+        console.error('Error obteniendo rutas específicas::', error);
         return of([]);
       })
     );
@@ -1526,7 +1528,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo rutas generales disponibles:', error);
+        console.error('Error obteniendo rutas generales disponibles::', error);
         return of([]);
       })
     );
@@ -1540,7 +1542,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error creando ruta específica:', error);
+        console.error('Error creando ruta específica::', error);
         return throwError(() => error);
       })
     );
@@ -1554,7 +1556,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error actualizando ruta específica:', error);
+        console.error('Error actualizando ruta específica::', error);
         return throwError(() => error);
       })
     );
@@ -1568,7 +1570,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error eliminando ruta específica:', error);
+        console.error('Error eliminando ruta específica::', error);
         return throwError(() => error);
       })
     );
@@ -1582,7 +1584,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo ruta específica:', error);
+        console.error('Error obteniendo ruta específica::', error);
         return of(null);
       })
     );
@@ -1596,7 +1598,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error validando ruta específica:', error);
+        console.error('Error validando ruta específica::', error);
         return of({ valida: false, errores: ['Error de validación'] });
       })
     );
@@ -1610,7 +1612,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo plantilla de ruta específica:', error);
+        console.error('Error obteniendo plantilla de ruta específica::', error);
         return of(null);
       })
     );
@@ -1624,7 +1626,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
-        console.error('Error obteniendo estadísticas de rutas específicas:', error);
+        console.error('Error obteniendo estadísticas de rutas específicas::', error);
         return of({
           totalRutasEspecificas: 0,
           rutasActivas: 0,
@@ -1710,7 +1712,7 @@ export class VehiculoService {
       responseType: 'blob'
     }).pipe(
       catchError(error => {
-        console.error('Error exportando vehículos:', error);
+        console.error('Error exportando vehículos::', error);
         return throwError(() => error);
       })
     );

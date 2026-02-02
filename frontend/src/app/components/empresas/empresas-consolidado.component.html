@@ -1,0 +1,159 @@
+<div class="empresas-consolidado-container">
+  <!-- Header -->
+  <div class="header-section">
+    <div class="title-section">
+      <h2>
+        <mat-icon>business</mat-icon>
+        Gestión de Empresas
+        <span class="badge badge-info">{{ totalEmpresas() }}</span>
+      </h2>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-section">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Buscar empresas</mat-label>
+        <input matInput 
+               [(ngModel)]="searchTerm" 
+               (input)="onSearchChange()"
+               placeholder="RUC, razón social, representante...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Acciones -->
+    <div class="actions-section">
+      <button mat-raised-button color="primary" (click)="openCreateModal()">
+        <mat-icon>add</mat-icon>
+        Nueva Empresa
+      </button>
+      <button mat-button (click)="loadInitialData()">
+        <mat-icon>refresh</mat-icon>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="isLoading()">
+    <mat-spinner diameter="60"></mat-spinner>
+    <h3>Cargando empresas...</h3>
+    <p>Por favor espere un momento</p>
+  </div>
+
+  <!-- Tabla de empresas -->
+  <div class="table-container" *ngIf="!isLoading() && filteredEmpresas().length > 0">
+    <div class="table-wrapper">
+      <table mat-table [dataSource]="filteredEmpresas()" class="empresas-table">
+        
+        <!-- Columna RUC -->
+        <ng-container matColumnDef="ruc">
+          <th mat-header-cell *matHeaderCellDef>RUC</th>
+          <td mat-cell *matCellDef="let empresa">
+            <strong>{{ empresa.ruc }}</strong>
+          </td>
+        </ng-container>
+
+        <!-- Columna Razón Social -->
+        <ng-container matColumnDef="razonSocial">
+          <th mat-header-cell *matHeaderCellDef>Razón Social</th>
+          <td mat-cell *matCellDef="let empresa">
+            <div class="empresa-info">
+              <strong>{{ empresa.razonSocial.principal }}</strong>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Columna Representante -->
+        <ng-container matColumnDef="representante">
+          <th mat-header-cell *matHeaderCellDef>Representante Legal</th>
+          <td mat-cell *matCellDef="let empresa">
+            {{ empresa.representanteLegal.nombres }} {{ empresa.representanteLegal.apellidos }}
+          </td>
+        </ng-container>
+
+        <!-- Columna Estado -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let empresa">
+            <span class="badge" [ngClass]="getEstadoBadgeClass(empresa.estado)">
+              {{ empresa.estado }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Columna Acciones -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let empresa">
+            <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Más opciones">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="viewDetails(empresa)">
+                <mat-icon>visibility</mat-icon>
+                <span>Ver detalles</span>
+              </button>
+              <button mat-menu-item (click)="editEmpresa(empresa)">
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="viewVehiculos(empresa)">
+                <mat-icon>directions_car</mat-icon>
+                <span>Ver vehículos</span>
+              </button>
+              <button mat-menu-item (click)="viewTransferencias(empresa)">
+                <mat-icon>swap_horiz</mat-icon>
+                <span>Transferencias</span>
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <!-- Definir filas -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+            class="empresa-row"
+            (click)="viewDetails(row)"></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="!isLoading() && filteredEmpresas().length === 0">
+    <div class="empty-content">
+      <mat-icon class="empty-icon">business</mat-icon>
+      <h3>No se encontraron empresas</h3>
+      <p *ngIf="searchTerm">
+        No hay empresas que coincidan con "{{ searchTerm }}". 
+        Intenta con otros términos de búsqueda.
+      </p>
+      <p *ngIf="!searchTerm">
+        Aún no hay empresas registradas en el sistema.
+        Comienza agregando tu primera empresa.
+      </p>
+      <div class="empty-actions">
+        <button mat-raised-button color="primary" (click)="openCreateModal()">
+          <mat-icon>add</mat-icon>
+          {{ searchTerm ? 'Nueva Empresa' : 'Crear Primera Empresa' }}
+        </button>
+        <button mat-button *ngIf="searchTerm" (click)="clearSearch()">
+          <mat-icon>clear</mat-icon>
+          Limpiar búsqueda
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Información adicional -->
+  <div class="info-section" *ngIf="!isLoading() && filteredEmpresas().length > 0">
+    <div class="info-card">
+      <mat-icon>info</mat-icon>
+      <span>
+        Mostrando {{ filteredEmpresas().length }} empresa(s)
+        {{ searchTerm ? ' que coinciden con "' + searchTerm + '"' : ' en total' }}
+      </span>
+    </div>
+  </div>
+</div>

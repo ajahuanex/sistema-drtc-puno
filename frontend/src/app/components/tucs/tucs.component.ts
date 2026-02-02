@@ -707,20 +707,15 @@ export class TucsComponent implements OnInit {
     // Cargar TUCs con información completa
     this.tucService.getTucs().subscribe({
       next: (tucs) => {
-        console.log('TUCs recibidos del servicio:', tucs);
-        console.log('Primer TUC completo:', tucs[0]);
-        console.log('Propiedades del primer TUC:', {
-          id: tucs[0]?.id,
-          vehiculo: tucs[0]?.vehiculo,
-          empresa: tucs[0]?.empresa,
-          resolucion: tucs[0]?.resolucion
-        });
+        // console.log removed for production
+        // console.log removed for production
+        // console.log removed for production
         // Los datos mock ya incluyen la información relacionada
         this.tucs.set(tucs);
         this.cargando.set(false);
       },
       error: (error) => {
-        console.error('Error cargando TUCs:', error);
+        console.error('Error cargando TUCs::', error);
         this.notificationService.showError('Error al cargar los TUCs');
         this.cargando.set(false);
       }

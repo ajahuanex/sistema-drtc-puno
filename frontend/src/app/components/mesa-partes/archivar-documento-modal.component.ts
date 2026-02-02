@@ -226,7 +226,7 @@ export class ArchivarDocumentoModalComponent implements OnInit {
         this.documento = documento;
       },
       error: (error) => {
-        console.error('Error loading documento:', error);
+        console.error('Error loading documento::', error);
       }
     });
   }
@@ -250,7 +250,7 @@ export class ArchivarDocumentoModalComponent implements OnInit {
         },
         error: (error) => {
           this.loading = false;
-          console.error('Error archiving document:', error);
+          console.error('Error archiving document::', error);
           const errorMessage = error.error?.detail || 'Error al archivar el documento. Por favor, intente nuevamente.';
           alert(errorMessage);
         }

@@ -233,7 +233,7 @@ export class PerformanceMonitor {
     this.marks.clear();
     performance.clearMarks();
     performance.clearMeasures();
-    console.log('🧹 Métricas de rendimiento limpiadas');
+    // console.log removed for production
   }
 
   /**

@@ -475,7 +475,7 @@ export class SolicitudesBajaComponent implements OnInit {
         this.cargando.set(false);
       },
       error: (error: any) => {
-        console.error('Error cargando solicitudes:', error);
+        console.error('Error cargando solicitudes::', error);
         this.snackBar.open('Error al cargar las solicitudes de baja', 'Cerrar', { duration: 3000 });
         this.cargando.set(false);
       }
@@ -517,7 +517,7 @@ export class SolicitudesBajaComponent implements OnInit {
           this.cargarSolicitudes();
         },
         error: (error: unknown) => {
-          console.error('Error aprobando solicitud:', error);
+          console.error('Error aprobando solicitud::', error);
           this.snackBar.open('Error al aprobar la solicitud', 'Cerrar', { 
             duration: 3000, 
             panelClass: ['snackbar-error'] 
@@ -543,7 +543,7 @@ export class SolicitudesBajaComponent implements OnInit {
           this.cargarSolicitudes();
         },
         error: (error: unknown) => {
-          console.error('Error rechazando solicitud:', error);
+          console.error('Error rechazando solicitud::', error);
           this.snackBar.open('Error al rechazar la solicitud', 'Cerrar', { 
             duration: 3000, 
             panelClass: ['snackbar-error'] 
@@ -569,7 +569,7 @@ export class SolicitudesBajaComponent implements OnInit {
           this.cargarSolicitudes();
         },
         error: (error: unknown) => {
-          console.error('Error cancelando solicitud:', error);
+          console.error('Error cancelando solicitud::', error);
           this.snackBar.open('Error al cancelar la solicitud', 'Cerrar', { 
             duration: 3000, 
             panelClass: ['snackbar-error'] 

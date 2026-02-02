@@ -89,10 +89,10 @@ export class DocumentoService {
       if (filtros.areaActualId) {
         params = params.set('area_actual_id', filtros.areaActualId);
       }
-      if (filtros.page !== undefined) {
+      if (typeof filtros.page !== "undefined") {
         params = params.set('page', filtros.page.toString());
       }
-      if (filtros.pageSize !== undefined) {
+      if (typeof filtros.pageSize !== "undefined") {
         params = params.set('page_size', filtros.pageSize.toString());
       }
     }
@@ -170,7 +170,7 @@ export class DocumentoService {
         window.URL.revokeObjectURL(url);
       },
       error: (error) => {
-        console.error('Error al descargar comprobante:', error);
+        console.error('Error al descargar comprobante::', error);
       }
     });
   }

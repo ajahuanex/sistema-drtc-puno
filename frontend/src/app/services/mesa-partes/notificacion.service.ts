@@ -52,16 +52,16 @@ export class NotificacionService {
   }> {
     let params = new HttpParams();
 
-    if (leida !== undefined) {
+    if (typeof leida !== "undefined") {
       params = params.set('leida', leida.toString());
     }
     if (tipo) {
       params = params.set('tipo', tipo);
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 
@@ -125,7 +125,7 @@ export class NotificacionService {
    */
   conectarWebSocket(usuarioId: string, token: string): void {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      console.log('WebSocket ya está conectado');
+      // console.log removed for production
       return;
     }
 
@@ -135,7 +135,7 @@ export class NotificacionService {
       this.socket = new WebSocket(wsUrlWithParams);
 
       this.socket.onopen = () => {
-        console.log('WebSocket conectado');
+        // console.log removed for production
         this.conexionSubject.next(true);
         this.reconnectAttempts = 0;
       };
@@ -153,22 +153,22 @@ export class NotificacionService {
             this.eventosSubject.next(evento);
           }
         } catch (error) {
-          console.error('Error procesando mensaje WebSocket:', error);
+          console.error('Error procesando mensaje WebSocket::', error);
         }
       };
 
       this.socket.onerror = (error) => {
-        console.error('Error en WebSocket:', error);
+        console.error('Error en WebSocket::', error);
         this.conexionSubject.next(false);
       };
 
       this.socket.onclose = () => {
-        console.log('WebSocket desconectado');
+        // console.log removed for production
         this.conexionSubject.next(false);
         this.intentarReconexion(usuarioId, token);
       };
     } catch (error) {
-      console.error('Error al conectar WebSocket:', error);
+      console.error('Error al conectar WebSocket::', error);
       this.conexionSubject.next(false);
     }
   }
@@ -274,10 +274,10 @@ export class NotificacionService {
     if (fechaHasta) {
       params = params.set('fecha_hasta', fechaHasta.toISOString());
     }
-    if (page !== undefined) {
+    if (typeof page !== "undefined") {
       params = params.set('page', page.toString());
     }
-    if (pageSize !== undefined) {
+    if (typeof pageSize !== "undefined") {
       params = params.set('page_size', pageSize.toString());
     }
 
@@ -320,7 +320,7 @@ export class NotificacionService {
       // Reproducir sonido de notificación
       const audio = new Audio('/assets/sounds/notification-urgent.mp3');
       audio.play().catch((error) => {
-        console.log('No se pudo reproducir el sonido:', error);
+        // console.log removed for production
       });
     }
   }
@@ -347,7 +347,7 @@ export class NotificacionService {
    */
   async solicitarPermisoNotificaciones(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.log('Este navegador no soporta notificaciones');
+      // console.log removed for production
       return false;
     }
 

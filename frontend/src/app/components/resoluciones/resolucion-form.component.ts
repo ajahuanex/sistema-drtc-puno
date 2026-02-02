@@ -929,9 +929,9 @@ export class ResolucionFormComponent {
       fechaFinExacta.setFullYear(fechaInicio.getFullYear() + años);
 
       // Log para debugging
-      console.log('=== CÁLCULO FECHA VIGENCIA ===');
+      // console.log removed for production
       console.log('Fecha inicio:', fechaInicio.toLocaleDateString('es-ES'));
-      console.log('Años de vigencia:', años);
+      // console.log removed for production
       console.log('Fecha fin calculada:', fechaFinExacta.toLocaleDateString('es-ES'));
 
       // Calcular diferencia exacta
@@ -939,9 +939,9 @@ export class ResolucionFormComponent {
       const diferenciaDias = Math.round(diferenciaMs / (1000 * 60 * 60 * 24));
       const diferenciaAños = diferenciaDias / 365.25;
 
-      console.log('Diferencia en días:', diferenciaDias);
+      // console.log removed for production
       console.log('Diferencia en años (aproximada):', diferenciaAños.toFixed(2));
-      console.log('=== FIN CÁLCULO ===');
+      // console.log removed for production
 
       this.resolucionForm.patchValue({
         fechaVigenciaFin: fechaFinExacta
@@ -1081,7 +1081,7 @@ export class ResolucionFormComponent {
         this.resolucionesPadre.set(resolucionesPadre);
       },
       error: (error) => {
-        console.error('Error al cargar resoluciones padre:', error);
+        console.error('Error al cargar resoluciones padre::', error);
         this.resolucionesEmpresa.set([]);
         this.resolucionesPadre.set([]);
       }
@@ -1091,7 +1091,7 @@ export class ResolucionFormComponent {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas autorizadas
-      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADO);
 
       const empresaSearchControl = this.resolucionForm.get('empresaSearch');
       if (empresaSearchControl) {
@@ -1164,7 +1164,7 @@ export class ResolucionFormComponent {
         }
       },
       error: (error) => {
-        console.error('Error al validar unicidad global:', error);
+        console.error('Error al validar unicidad global::', error);
         // En caso de error, no bloquear la validación pero mostrar advertencia
         this.snackBar.open('Advertencia: No se pudo verificar la unicidad global del número', 'Cerrar', { duration: 3000 });
       }
@@ -1189,7 +1189,7 @@ export class ResolucionFormComponent {
         }
       },
       error: (error) => {
-        console.error('Error al validar número de resolución:', error);
+        console.error('Error al validar número de resolución::', error);
         this.resolucionExistente.set(false);
         this.numeroValido.set(false);
       }
@@ -1272,7 +1272,7 @@ export class ResolucionFormComponent {
 
       if (this.isEditing()) {
         // TODO: Implementar actualización
-        console.log('Actualizando resolución:', resolucionData);
+        // console.log removed for production
         setTimeout(() => {
           this.isSubmitting.set(false);
           this.snackBar.open('Resolución actualizada exitosamente', 'Cerrar', { duration: 3000 });
@@ -1286,7 +1286,7 @@ export class ResolucionFormComponent {
             this.router.navigate(['/resoluciones', resolucion.id]);
           },
           error: (error) => {
-            console.error('Error creating resolucion:', error);
+            console.error('Error creating resolucion::', error);
             this.isSubmitting.set(false);
 
             // Manejar errores específicos de validación

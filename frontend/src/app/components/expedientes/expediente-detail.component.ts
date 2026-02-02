@@ -440,7 +440,7 @@ export class ExpedienteDetailComponent {
           this.loading.set(false);
         },
         error: (error) => {
-          console.error('Error al cargar expediente:', error);
+          console.error('Error al cargar expediente::', error);
           this.snackBar.open('Error al cargar expediente', 'Cerrar', { duration: 3000 });
           this.loading.set(false);
         }
@@ -470,7 +470,7 @@ export class ExpedienteDetailComponent {
           this.router.navigate(['/expedientes']);
         },
         error: (error) => {
-          console.error('Error al eliminar expediente:', error);
+          console.error('Error al eliminar expediente::', error);
           this.snackBar.open('Error al eliminar expediente', 'Cerrar', { duration: 3000 });
         }
       });
@@ -496,7 +496,7 @@ export class ExpedienteDetailComponent {
       error: (error) => {
         this.verificandoIntegridad.set(false);
         this.snackBar.open('❌ Error al verificar integridad', 'Cerrar', { duration: 3000 });
-        console.error('Error verificando integridad:', error);
+        console.error('Error verificando integridad::', error);
       }
     });
   }

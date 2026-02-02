@@ -8,7 +8,6 @@ from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router, localidades_router
 from app.routers.configuraciones import router as configuraciones_router
 from app.routers.data_manager_router import router as data_manager_router
-from app.routers.ruta_especifica_router import router as ruta_especifica_router
 from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 from app.routers.historial_vehicular_router import router as historial_vehicular_router
@@ -64,6 +63,10 @@ app.add_middleware(
     allowed_hosts=["*"]
 )
 
+# Middleware de manejo de errores de base de datos
+from app.middleware.database_middleware import add_database_error_handler
+add_database_error_handler(app)
+
 # Middleware de logging
 @app.middleware("http")
 async def log_requests(request, call_next):
@@ -87,8 +90,8 @@ app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
 app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
+app.include_router(rutas_router, prefix=settings.API_V1_STR)  # Router principal de rutas
 app.include_router(rutas_simples_router, prefix=settings.API_V1_STR)
-app.include_router(ruta_especifica_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
 app.include_router(expedientes_router, prefix=settings.API_V1_STR)
 app.include_router(tucs_router, prefix=settings.API_V1_STR)
@@ -105,19 +108,24 @@ app.include_router(qr_consulta_router, tags=["Mesa de Partes - Consulta Pública
 @app.get("/health")
 async def health_check():
     """Endpoint de verificación de salud del sistema SIRRET"""
-    from app.dependencies.db import db
+    from app.dependencies.db import health_check_mongo
     
-    db_status = "connected" if db.client else "disconnected"
-    mode = "database" if db.client else "no_database"
+    # Verificar estado de MongoDB
+    mongo_health = await health_check_mongo()
+    
+    # Determinar estado general del sistema
+    overall_status = "healthy" if mongo_health["status"] == "connected" else "degraded"
     
     return {
-        "status": "healthy",
+        "status": overall_status,
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "timestamp": time.time(),
-        "mode": mode,
-        "database_status": db_status,
-        "database_name": settings.DATABASE_NAME
+        "database": {
+            "mongodb": mongo_health
+        },
+        "database_name": settings.DATABASE_NAME,
+        "message": "Sistema funcionando" if overall_status == "healthy" else "Sistema funcionando con limitaciones (MongoDB desconectado)"
     }
 
 # Endpoint raíz

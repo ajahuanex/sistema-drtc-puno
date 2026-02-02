@@ -12,7 +12,7 @@ export interface LocalidadItinerario extends LocalidadEmbebida {
 export interface EmpresaEmbebida {
   id: string;
   ruc: string;
-  razonSocial: string;
+  razonSocial: string | { principal: string };
 }
 
 export interface ResolucionEmbebida {
@@ -37,6 +37,12 @@ export interface Ruta {
   
   // Datos operativos
   frecuencias: string;
+  frecuencia?: {
+    tipo: string;
+    cantidad: number;
+    dias: string[];
+    descripcion: string;
+  };
   tipoRuta: TipoRuta;
   tipoServicio: TipoServicio;
   estado: EstadoRuta;

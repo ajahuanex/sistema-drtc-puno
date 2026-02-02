@@ -11,7 +11,7 @@ export class AuthMockService {
    * Simular login con credenciales de prueba
    */
   mockLogin(credentials: LoginRequest): Observable<LoginResponse> {
-    console.log('🎭 Usando AuthMockService para login');
+    // console.log removed for production
     
     // Credenciales válidas para desarrollo
     const validCredentials = [
@@ -50,7 +50,7 @@ export class AuthMockService {
       user: mockUser
     };
     
-    console.log('✅ Mock login exitoso:', mockResponse);
+    // console.log removed for production
     
     return of(mockResponse).pipe(delay(1500)); // Simular latencia de red
   }

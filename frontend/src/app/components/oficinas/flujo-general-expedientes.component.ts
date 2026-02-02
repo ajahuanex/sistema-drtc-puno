@@ -695,7 +695,7 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
         this.oficinas.set(oficinas);
       },
       error: (error) => {
-        console.error('Error al cargar oficinas:', error);
+        console.error('Error al cargar oficinas::', error);
       }
     });
 
@@ -706,7 +706,7 @@ export class FlujoGeneralExpedientesComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar flujos:', error);
+        console.error('Error al cargar flujos::', error);
         this.snackBar.open('Error al cargar los flujos de expedientes', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }

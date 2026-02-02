@@ -363,7 +363,7 @@ export class ArchivoDocumentalComponent implements OnInit {
         this.totalArchivos = response.total;
       },
       error: (error) => {
-        console.error('Error loading archivos:', error);
+        console.error('Error loading archivos::', error);
       }
     });
   }
@@ -374,7 +374,7 @@ export class ArchivoDocumentalComponent implements OnInit {
         this.proximosAExpirar = archivos.length;
       },
       error: (error) => {
-        console.error('Error loading expiring archivos:', error);
+        console.error('Error loading expiring archivos::', error);
       }
     });
   }
@@ -445,12 +445,12 @@ export class ArchivoDocumentalComponent implements OnInit {
 
   verDetalle(archivo: Archivo): void {
     // Navigate to detail view or open modal
-    console.log('Ver detalle:', archivo);
+    // console.log removed for production
   }
 
   editarUbicacion(archivo: Archivo): void {
     // Open modal to edit ubicacion_fisica
-    console.log('Editar ubicación:', archivo);
+    // console.log removed for production
   }
 
   restaurarDocumento(archivo: Archivo): void {

@@ -590,7 +590,7 @@ export class FlujoExpedientesComponent implements OnInit, OnDestroy {
       if (empresas) this.empresas.set(empresas);
       this.cargando.set(false);
     }).catch(error => {
-      console.error('Error cargando datos iniciales:', error);
+      console.error('Error cargando datos iniciales::', error);
       this.cargando.set(false);
       this.mostrarError('Error cargando datos iniciales');
     });
@@ -637,7 +637,7 @@ export class FlujoExpedientesComponent implements OnInit, OnDestroy {
           resolve();
         },
         error: (error) => {
-          console.error('Error cargando expedientes:', error);
+          console.error('Error cargando expedientes::', error);
           this.mostrarError('Error cargando expedientes');
           resolve();
         }

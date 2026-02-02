@@ -610,7 +610,7 @@ export class DataManagerDashboardComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error refreshing stats:', error);
+        console.error('Error refreshing stats::', error);
         this.snackBar.open('Error al actualizar estadísticas', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }
@@ -628,7 +628,7 @@ export class DataManagerDashboardComponent implements OnInit {
           }
         },
         error: (error) => {
-          console.error('Error resetting system:', error);
+          console.error('Error resetting system::', error);
           this.snackBar.open('Error al resetear sistema', 'Cerrar', { duration: 3000 });
           this.loading.set(false);
         }
@@ -645,7 +645,7 @@ export class DataManagerDashboardComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error loading stats:', error);
+        console.error('Error loading stats::', error);
         this.loading.set(false);
       }
     });

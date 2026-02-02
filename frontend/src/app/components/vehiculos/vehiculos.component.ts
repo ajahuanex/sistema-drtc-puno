@@ -243,7 +243,7 @@ export class VehiculosComponent implements OnInit {
     effect(() => {
       const columnas = (this as any).columnasVisiblesState();
       (this as any).cdr.markForCheck();
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void {
@@ -277,9 +277,8 @@ export class VehiculosComponent implements OnInit {
       if (!vehiculos?.length && !empresas?.length && !rutas?.length) {
         }
     }).catch((error: unknown) => {
-      (console as any).error('❌ Error cargando datos:', error);
-      (this as any).snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
-      (this as any).cargando.set(false);
+      this.snackBar.open('Error al cargar datos', 'Cerrar', { duration: 3000 });
+      this.cargando.set(false);
     });
   }
 

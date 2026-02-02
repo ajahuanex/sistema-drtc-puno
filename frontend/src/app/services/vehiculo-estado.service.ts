@@ -64,12 +64,12 @@ export class VehiculoEstadoService {
                     destinatariosIds
                   );
 
-                  console.log(`✅ Estado de vehículo ${vehiculoActualizado.placa} cambiado de ${estadoAnterior} a ${nuevoEstado}`);
+                  // console.log removed for production
                   observer.next(vehiculoActualizado);
                   observer.complete();
                 },
                 error: (error) => {
-                  console.error('Error obteniendo empresa para notificación:', error);
+                  console.error('Error obteniendo empresa para notificación::', error);
                   // Aún así devolver el vehículo actualizado
                   observer.next(vehiculoActualizado);
                   observer.complete();
@@ -77,13 +77,13 @@ export class VehiculoEstadoService {
               });
             },
             error: (error) => {
-              console.error('Error actualizando estado del vehículo:', error);
+              console.error('Error actualizando estado del vehículo::', error);
               observer.error(error);
             }
           });
         },
         error: (error) => {
-          console.error('Error obteniendo vehículo actual:', error);
+          console.error('Error obteniendo vehículo actual::', error);
           observer.error(error);
         }
       });

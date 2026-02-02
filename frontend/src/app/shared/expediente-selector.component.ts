@@ -263,7 +263,7 @@ export class ExpedienteSelectorComponent implements OnInit {
           this.expedientes.set(expedientesFiltrados);
         },
         error: (error: any) => {
-          console.error('Error al cargar expedientes:', error);
+          console.error('Error al cargar expedientes::', error);
           this.expedientes.set([]);
         }
       });

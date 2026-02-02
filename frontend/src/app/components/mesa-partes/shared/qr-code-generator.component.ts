@@ -600,7 +600,7 @@ export class QRCodeGeneratorComponent implements OnInit, OnChanges {
       this.qrGenerated.emit(this.qrDataUrl);
       
     } catch (error) {
-      console.error('Error generando QR:', error);
+      console.error('Error generando QR::', error);
       this.error = 'Error al generar el código QR';
       this.loading = false;
       this.qrError.emit(this.error);
@@ -723,7 +723,7 @@ export class QRCodeGeneratorComponent implements OnInit, OnChanges {
       this.snackBar.open('Código QR descargado', 'Cerrar', { duration: 2000 });
 
     } catch (error) {
-      console.error('Error descargando QR:', error);
+      console.error('Error descargando QR::', error);
       this.snackBar.open('Error al descargar QR', 'Cerrar', { duration: 3000 });
     } finally {
       this.downloading = false;
@@ -777,7 +777,7 @@ export class QRCodeGeneratorComponent implements OnInit, OnChanges {
       this.snackBar.open('Código QR enviado a imprimir', 'Cerrar', { duration: 2000 });
 
     } catch (error) {
-      console.error('Error imprimiendo QR:', error);
+      console.error('Error imprimiendo QR::', error);
       this.snackBar.open('Error al imprimir QR', 'Cerrar', { duration: 3000 });
     } finally {
       this.printing = false;
@@ -805,7 +805,7 @@ export class QRCodeGeneratorComponent implements OnInit, OnChanges {
       }
 
     } catch (error) {
-      console.error('Error copiando QR:', error);
+      console.error('Error copiando QR::', error);
       
       // Fallback: copiar URL
       try {
@@ -843,7 +843,7 @@ export class QRCodeGeneratorComponent implements OnInit, OnChanges {
 
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        console.error('Error compartiendo QR:', error);
+        console.error('Error compartiendo QR::', error);
         this.snackBar.open('Error al compartir QR', 'Cerrar', { duration: 3000 });
       }
     } finally {

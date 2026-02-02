@@ -52,7 +52,7 @@ export interface IconFallback {
  * 
  * // Verificar si Material Icons está cargado
  * if (this.iconService.materialIconsLoaded()) {
- *   console.log('Material Icons disponible');
+ *   // console.log removed for production
  * }
  * 
  * // Obtener icono apropiado (Material Icons o emoji)
@@ -60,7 +60,7 @@ export interface IconFallback {
  * 
  * // Obtener información completa del icono
  * const iconInfo = this.iconService.getIconInfo('home');
- * console.log(iconInfo?.description); // 'Inicio'
+ * // console.log removed for production // 'Inicio'
  * ```
  * 
  * ## Uso con SmartIconComponent
@@ -201,7 +201,7 @@ export class IconService {
     // Effect para detectar cambios en el estado de carga
     effect(() => {
       if (this._materialIconsLoaded()) {
-        console.log('✅ Material Icons cargados correctamente');
+        // console.log removed for production
       } else {
         console.warn('⚠️ Material Icons no disponibles, usando fallbacks');
       }
@@ -347,10 +347,10 @@ export class IconService {
    * ```typescript
    * const iconInfo = this.iconService.getIconInfo('home');
    * if (iconInfo) {
-   *   console.log(iconInfo.name);        // 'home'
-   *   console.log(iconInfo.unicode);     // 'e88a'
-   *   console.log(iconInfo.fallback);    // '🏠'
-   *   console.log(iconInfo.description); // 'Inicio'
+   *   // console.log removed for production        // 'home'
+   *   // console.log removed for production     // 'e88a'
+   *   // console.log removed for production    // '🏠'
+   *   // console.log removed for production // 'Inicio'
    * }
    * 
    * // Usar para tooltips
@@ -374,10 +374,10 @@ export class IconService {
    * ```typescript
    * if (this.iconService.hasFallback('home')) {
    *   // El icono 'home' tiene fallback '🏠'
-   *   console.log('Icono soportado');
+   *   // console.log removed for production
    * } else {
    *   // El icono no tiene fallback, se mostrará '•'
-   *   console.log('Icono no soportado, considerar agregar fallback');
+   *   // console.log removed for production
    * }
    * ```
    */
@@ -396,7 +396,7 @@ export class IconService {
    * @example
    * ```typescript
    * const allIcons = this.iconService.getAllFallbacks();
-   * console.log(`Total de iconos disponibles: ${allIcons.length}`);
+   * // console.log removed for production
    * 
    * // Mostrar lista de iconos en consola
    * allIcons.forEach(icon => {
@@ -463,7 +463,7 @@ export class IconService {
    * // Verificar si existe antes de remover
    * if (this.iconService.hasFallback('custom_icon')) {
    *   const removed = this.iconService.removeFallback('custom_icon');
-   *   console.log(removed ? 'Fallback removido' : 'Error al remover');
+   *   // console.log removed for production
    * }
    * 
    * // Remover múltiples fallbacks
@@ -488,7 +488,7 @@ export class IconService {
    * ```typescript
    * // En caso de problemas de carga
    * if (!this.iconService.materialIconsLoaded()) {
-   *   console.log('Reintentando carga de Material Icons...');
+   *   // console.log removed for production
    *   this.iconService.forceReload();
    * }
    * 
@@ -497,7 +497,7 @@ export class IconService {
    *   this.iconService.forceReload();
    *   setTimeout(() => {
    *     const status = this.iconService.getIconStatus();
-   *     console.log('Estado después de recarga:', status);
+   *     // console.log removed for production
    *   }, 200);
    * }
    * ```
@@ -524,9 +524,9 @@ export class IconService {
    * ```typescript
    * const status = this.iconService.getIconStatus();
    * 
-   * console.log(`Material Icons: ${status.loaded ? 'Cargado' : 'No disponible'}`);
-   * console.log(`Modo fallback: ${status.fallbackMode ? 'Activo' : 'Inactivo'}`);
-   * console.log(`Fallbacks disponibles: ${status.totalFallbacks}`);
+   * // console.log removed for production
+   * // console.log removed for production
+   * // console.log removed for production
    * 
    * // En un componente de debug
    * @Component({

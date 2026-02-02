@@ -562,7 +562,7 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas autorizadas
-      const empresasAutorizadas = empresas.filter(emp => emp.estado === 'AUTORIZADA');
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === 'AUTORIZADO');
 
       const empresaSearchControl = this.expedienteForm.get('empresaSearch');
       if (empresaSearchControl) {
@@ -641,7 +641,7 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarResolucionesPadre(empresaId: string): void {
     this.resolucionService.getResolucionesPorEmpresa(empresaId).subscribe({
       next: (resoluciones) => {
-        console.log('ð Resoluciones de la empresa:', resoluciones);
+        // console.log removed for production
 
         // Filtrar resoluciones que pueden ser padre
         const resolucionesPadre = resoluciones.filter(r => {
@@ -658,13 +658,13 @@ export class ExpedienteFormComponent implements OnInit {
           return (esPadre || esPrimigeniaORenovacion || noTienePadre) && estaVigente;
         });
 
-        console.log('â Resoluciones padre filtradas:', resolucionesPadre);
+        // console.log removed for production
 
         // Actualizar el signal
         this.resolucionesPadre.set(of(resolucionesPadre));
       },
       error: (error) => {
-        console.error('â Error al cargar resoluciones padre:', error);
+        console.error('â Error al cargar resoluciones padre::', error);
         this.resolucionesPadre.set(of([]));
       }
     });
@@ -715,7 +715,7 @@ export class ExpedienteFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error al cargar expediente:', error);
+        console.error('Error al cargar expediente::', error);
         this.snackBar.open('Error al cargar expediente', 'Cerrar', { duration: 3000 });
       }
     });
@@ -782,11 +782,11 @@ export class ExpedienteFormComponent implements OnInit {
       expedienteIdExcluir: this.isEditMode() ? this.expedienteId() || undefined : undefined
     };
 
-    console.log('ð Validando nÃºmero de expediente:', validacion);
+    // console.log removed for production
 
     this.expedienteService.validarExpedienteUnico(validacion).subscribe({
       next: (respuesta) => {
-        console.log('â Respuesta de validaciÃ³n:', respuesta);
+        // console.log removed for production
 
         if (!respuesta.valido) {
           // NÃºmero duplicado
@@ -804,7 +804,7 @@ export class ExpedienteFormComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('â Error en validaciÃ³n:', error);
+        console.error('â Error en validaciÃ³n::', error);
         // En caso de error, permitir el nÃºmero pero mostrar advertencia corta
         this.snackBar.open('Error al validar', 'Cerrar', { duration: 2000 });
       }
@@ -921,7 +921,7 @@ export class ExpedienteFormComponent implements OnInit {
       };
 
       // TODO: Implementar actualizaciÃ³n en el servicio
-      console.log('Actualizando expediente:', expedienteUpdate);
+      // console.log removed for production
 
       setTimeout(() => {
         this.isSubmitting.set(false);
@@ -957,7 +957,7 @@ export class ExpedienteFormComponent implements OnInit {
         },
         error: (error) => {
           this.isSubmitting.set(false);
-          console.error('Error al crear expediente:', error);
+          console.error('Error al crear expediente::', error);
           this.snackBar.open('Error al crear expediente', 'Cerrar', { duration: 3000 });
         }
       });

@@ -269,7 +269,7 @@ export class CambiarEstadoVehiculoModalComponent {
       },
       error: (error: any) => {
         this.procesando.set(false);
-        console.error('Error cambiando estado:', error);
+        console.error('Error cambiando estado::', error);
         
         this.snackBar.open(
           'Error al cambiar el estado del vehículo',

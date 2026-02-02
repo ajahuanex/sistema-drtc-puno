@@ -777,7 +777,7 @@ export class ConsultaPublicaQRComponent implements OnInit {
       error: (error) => {
         this.cargando = false;
         this.mensajeError = 'Error al consultar el documento. Por favor intente nuevamente.';
-        console.error('Error:', error);
+        console.error('Error::', error);
       }
     });
   }
@@ -803,7 +803,7 @@ export class ConsultaPublicaQRComponent implements OnInit {
       error: (error) => {
         this.cargando = false;
         this.mensajeError = 'Error al consultar el documento. Por favor intente nuevamente.';
-        console.error('Error:', error);
+        console.error('Error::', error);
       }
     });
   }

@@ -434,7 +434,7 @@ export class RutaFormSharedComponent {
     // Configurar búsqueda de empresas
     this.empresasFiltradas.set(
       this.empresaService.getEmpresas().pipe(
-        map(empresas => empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA)),
+        map(empresas => empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADO)),
         startWith([])
       )
     );

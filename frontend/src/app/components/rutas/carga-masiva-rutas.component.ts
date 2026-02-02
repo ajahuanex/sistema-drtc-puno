@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -12,39 +12,84 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRadioModule } from '@angular/material/radio';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { RutaService } from '../../services/ruta.service';
 
-interface ResultadoValidacion {
+// Interfaces unificadas
+interface ResultadoCargaMasiva {
+  // Datos de validación
   total_filas?: number;
   validos?: number;
   invalidos?: number;
   con_advertencias?: number;
-  errores?: Array<{
-    fila: number;
-    codigo_ruta: string;
-    errores: string[];
-  }>;
-  advertencias?: Array<{
-    fila: number;
-    codigo_ruta: string;
-    advertencias: string[];
-  }>;
-}
-
-interface ResultadoProcesamiento extends ResultadoValidacion {
-  rutas_creadas?: Array<{
-    codigo_ruta: string;
-    nombre: string;
-    tipo_ruta: string;
-    estado: string;
-    id: string;
-  }>;
-  errores_creacion?: Array<{
-    codigo_ruta: string;
-    error: string;
-  }>;
+  
+  // Datos de procesamiento
+  total_procesadas?: number;
+  exitosas?: number;
+  fallidas?: number;
   total_creadas?: number;
+  
+  // Rutas creadas
+  rutas_creadas?: Array<{
+    codigo?: string;
+    codigo_ruta?: string;
+    nombre: string;
+    id: string;
+    tipo_ruta?: string;
+    estado?: string;
+  }>;
+  
+  // Errores y advertencias
+  errores?: Array<{
+    fila?: number;
+    codigo_ruta?: string;
+    codigo?: string;
+    error?: string;
+    errores?: string[];
+  }>;
+  
+  advertencias?: Array<{
+    fila?: number;
+    codigo_ruta?: string;
+    advertencias?: string[];
+  }>;
+  
+  errores_procesamiento?: Array<{
+    codigo_ruta?: string;
+    error?: string;
+  }>;
+  
+  errores_creacion?: Array<{
+    codigo_ruta?: string;
+    error?: string;
+  }>;
+  
+  // Resultado anidado (para compatibilidad)
+  resultado?: {
+    total_procesadas?: number;
+    exitosas?: number;
+    fallidas?: number;
+    rutas_creadas?: Array<any>;
+    errores_procesamiento?: Array<any>;
+    errores_creacion?: Array<any>;
+  };
+  
+  // NUEVO: Estructura de respuesta del backend
+  validacion?: {
+    total_filas?: number;
+    validos?: number;
+    invalidos?: number;
+    con_advertencias?: number;
+    errores?: Array<any>;
+    advertencias?: Array<any>;
+    rutas_validas?: Array<any>;
+  };
+  
+  // Metadatos de respuesta
+  archivo?: string;
+  mensaje?: string;
 }
 
 @Component({
@@ -53,7 +98,6 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
   imports: [
     CommonModule, 
     FormsModule, 
-    ReactiveFormsModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
@@ -63,7 +107,10 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
     MatStepperModule,
     MatChipsModule,
     MatTooltipModule,
-    MatRadioModule
+    MatRadioModule,
+    MatSlideToggleModule,
+    MatSelectModule,
+    MatFormFieldModule
   ],
   template: `
     <div class="carga-masiva-container">
@@ -87,12 +134,21 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
               <div class="step-content">
                 <mat-icon class="step-icon">download</mat-icon>
                 <h3>Paso 1: Descargar la plantilla Excel</h3>
-                <p>Descarga la plantilla oficial para cargar rutas. La plantilla incluye:</p>
-                <ul>
-                  <li>Instrucciones detalladas</li>
-                  <li>Ejemplos de datos válidos</li>
-                  <li>Hoja de datos para completar</li>
-                </ul>
+                <p>Descarga la plantilla oficial para cargar rutas con validaciones automáticas.</p>
+                
+                <!-- Información importante sobre localidades -->
+                <div class="info-section localidades-info">
+                  <mat-icon class="info-icon">info</mat-icon>
+                  <div class="info-content">
+                    <h5>📍 Información Importante sobre Localidades</h5>
+                    <p>Las localidades que incluyas en tu archivo Excel serán procesadas automáticamente:</p>
+                    <ul>
+                      <li><strong>Localidades existentes:</strong> Se vincularán con la base de datos principal</li>
+                      <li><strong>Localidades nuevas:</strong> Se crearán automáticamente como tipo "OTROS"</li>
+                    </ul>
+                    <p class="info-note">No necesitas preocuparte por crear las localidades previamente.</p>
+                  </div>
+                </div>
                 
                 <div class="action-buttons">
                   <button mat-raised-button 
@@ -101,14 +157,6 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                           [disabled]="cargando">
                     <mat-icon>download</mat-icon>
                     Descargar Plantilla Excel
-                  </button>
-                  
-                  <button mat-button 
-                          color="accent" 
-                          (click)="mostrarAyuda()"
-                          matTooltip="Ver información de ayuda">
-                    <mat-icon>help</mat-icon>
-                    Ayuda
                   </button>
                 </div>
               </div>
@@ -123,7 +171,6 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
               <div class="step-content">
                 <mat-icon class="step-icon">upload</mat-icon>
                 <h3>Paso 2: Subir archivo Excel</h3>
-                <p>Selecciona el archivo Excel con los datos de las rutas completados.</p>
                 
                 <!-- Zona de arrastrar y soltar -->
                 <div class="upload-zone" 
@@ -168,36 +215,97 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
           </mat-card>
         </mat-step>
 
-        <!-- Paso 3: Validar -->
-        <mat-step label="Validar Datos" [completed]="resultadoValidacion !== null">
+        <!-- Paso 3: Configurar y Procesar -->
+        <mat-step label="Configurar y Procesar" [completed]="resultado !== null">
           <mat-card class="step-card">
             <mat-card-content>
               <div class="step-content">
-                <mat-icon class="step-icon">verified</mat-icon>
-                <h3>Paso 3: Validar datos</h3>
-                <p>Valida los datos antes de procesarlos para detectar errores.</p>
+                <mat-icon class="step-icon">settings</mat-icon>
+                <h3>Paso 3: Configurar procesamiento</h3>
                 
-                <div class="validation-options">
+                <!-- Opciones de procesamiento -->
+                <div class="processing-options">
+                  <h4>Modo de Procesamiento</h4>
                   <mat-radio-group [(ngModel)]="soloValidar" class="radio-group">
-                    <mat-radio-button [value]="true">Solo validar (recomendado)</mat-radio-button>
-                    <mat-radio-button [value]="false">Validar y procesar directamente</mat-radio-button>
+                    <mat-radio-button [value]="true">
+                      Solo validar archivo (recomendado primero)
+                    </mat-radio-button>
+                    <mat-radio-button [value]="false">
+                      Validar y procesar rutas
+                    </mat-radio-button>
                   </mat-radio-group>
+                  
+                  <!-- Información sobre localidades -->
+                  <div class="info-section localidades-info">
+                    <mat-icon class="info-icon">info</mat-icon>
+                    <div class="info-content">
+                      <h5>📍 Manejo de Localidades</h5>
+                      <p>Las localidades que no se encuentren en la base de datos principal serán automáticamente clasificadas como:</p>
+                      <ul>
+                        <li><strong>Tipo:</strong> OTROS</li>
+                        <li><strong>Nivel:</strong> OTROS</li>
+                      </ul>
+                      <p class="info-note">Esto permite importar rutas con localidades nuevas sin errores de validación.</p>
+                    </div>
+                  </div>
+                  
+                  <!-- Configuración de lotes -->
+                  @if (!soloValidar) {
+                    <div class="batch-config">
+                      <h5>⚡ Configuración de Procesamiento</h5>
+                      <mat-slide-toggle [(ngModel)]="procesarEnLotes" color="primary">
+                        Procesar en lotes (recomendado para archivos grandes)
+                      </mat-slide-toggle>
+                      
+                      @if (procesarEnLotes) {
+                        <div class="batch-size-config">
+                          <mat-form-field appearance="outline">
+                            <mat-label>Tamaño del lote</mat-label>
+                            <mat-select [(ngModel)]="tamanoLote">
+                              <mat-option [value]="25">25 rutas por lote (más seguro)</mat-option>
+                              <mat-option [value]="50">50 rutas por lote (recomendado)</mat-option>
+                              <mat-option [value]="100">100 rutas por lote (más rápido)</mat-option>
+                            </mat-select>
+                            <mat-hint>Lotes más pequeños son más seguros pero más lentos</mat-hint>
+                          </mat-form-field>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
                 
                 <div class="action-buttons">
                   <button mat-raised-button 
                           color="accent" 
-                          (click)="validarArchivo()"
+                          (click)="procesarArchivo()"
                           [disabled]="!archivoSeleccionado || cargando">
-                    <mat-icon>verified</mat-icon>
-                    {{ soloValidar ? 'Validar Archivo' : 'Validar y Procesar' }}
+                    <mat-icon>{{ soloValidar ? 'verified' : 'play_arrow' }}</mat-icon>
+                    {{ soloValidar ? 'Validar Archivo' : 'Procesar Rutas' }}
                   </button>
                 </div>
                 
+                <!-- Indicador de progreso -->
                 @if (cargando) {
                   <div class="loading-section">
-                    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                    <p>{{ soloValidar ? 'Validando archivo...' : 'Procesando rutas...' }}</p>
+                    @if (procesarEnLotes && !soloValidar && totalLotes > 0) {
+                      <div class="batch-progress">
+                        <h5>🔄 Procesando en lotes...</h5>
+                        <mat-progress-bar 
+                          mode="determinate" 
+                          [value]="progresoPorLotes">
+                        </mat-progress-bar>
+                        <div class="batch-info">
+                          <span>Lote {{ loteActual }} de {{ totalLotes }}</span>
+                          <span>{{ progresoPorLotes.toFixed(1) }}% completado</span>
+                        </div>
+                        <p class="batch-description">
+                          Procesando {{ tamanoLote }} rutas por lote para mayor estabilidad...
+                        </p>
+                      </div>
+                    } @else {
+                      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                      <p>{{ soloValidar ? 'Validando archivo...' : 'Procesando rutas...' }}</p>
+                    }
                   </div>
                 }
               </div>
@@ -213,39 +321,53 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                 <mat-icon class="step-icon">assessment</mat-icon>
                 <h3>Paso 4: Resultados</h3>
                 
-                @if (resultadoValidacion && !soloValidar && resultadoProcesamiento) {
-                  <!-- Resultados de procesamiento -->
-                  <div class="results-summary processing">
-                    <h4>Procesamiento Completado</h4>
+                @if (resultado) {
+                  <!-- Resumen de estadísticas -->
+                  <div class="results-summary" [class]="soloValidar ? 'validation' : 'processing'">
+                    <h4>{{ soloValidar ? 'Validación Completada' : 'Procesamiento Completado' }}</h4>
                     <div class="summary-stats">
+                      <div class="stat-item total">
+                        <mat-icon>description</mat-icon>
+                        <span class="stat-number">{{ getEstadistica('total') }}</span>
+                        <span class="stat-label">{{ soloValidar ? 'Total filas' : 'Total procesadas' }}</span>
+                      </div>
                       <div class="stat-item success">
                         <mat-icon>check_circle</mat-icon>
-                        <span class="stat-number">{{ resultadoProcesamiento.total_creadas || 0 }}</span>
-                        <span class="stat-label">Rutas creadas</span>
+                        <span class="stat-number">{{ getEstadistica('exitosas') }}</span>
+                        <span class="stat-label">{{ soloValidar ? 'Válidos' : 'Rutas creadas' }}</span>
                       </div>
-                      <div class="stat-item error" *ngIf="(resultadoProcesamiento.errores_creacion?.length || 0) > 0">
-                        <mat-icon>error</mat-icon>
-                        <span class="stat-number">{{ resultadoProcesamiento.errores_creacion?.length || 0 }}</span>
-                        <span class="stat-label">Errores de creación</span>
-                      </div>
+                      @if (getEstadistica('errores') > 0) {
+                        <div class="stat-item error">
+                          <mat-icon>error</mat-icon>
+                          <span class="stat-number">{{ getEstadistica('errores') }}</span>
+                          <span class="stat-label">{{ soloValidar ? 'Inválidos' : 'Fallidas' }}</span>
+                        </div>
+                      }
+                      @if (getEstadistica('advertencias') > 0) {
+                        <div class="stat-item warning">
+                          <mat-icon>warning</mat-icon>
+                          <span class="stat-number">{{ getEstadistica('advertencias') }}</span>
+                          <span class="stat-label">Con advertencias</span>
+                        </div>
+                      }
                     </div>
                   </div>
                   
                   <!-- Rutas creadas exitosamente -->
-                  @if (resultadoProcesamiento.rutas_creadas && resultadoProcesamiento.rutas_creadas.length > 0) {
+                  @if (!soloValidar && getRutasCreadas().length > 0) {
                     <mat-card class="results-card success">
                       <mat-card-header>
                         <mat-card-title>
                           <mat-icon>check_circle</mat-icon>
-                          Rutas Creadas ({{ resultadoProcesamiento.rutas_creadas.length }})
+                          Rutas Creadas Exitosamente ({{ (getRutasCreadas())?.length || 0 }})
                         </mat-card-title>
                       </mat-card-header>
                       <mat-card-content>
                         <div class="table-container">
-                          <table mat-table [dataSource]="resultadoProcesamiento.rutas_creadas" class="results-table">
+                          <table mat-table [dataSource]="getRutasCreadas().slice(0, 10)" class="results-table">
                             <ng-container matColumnDef="codigo">
                               <th mat-header-cell *matHeaderCellDef>Código</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.codigo_ruta }}</td>
+                              <td mat-cell *matCellDef="let ruta">{{ ruta.codigo || ruta.codigo_ruta }}</td>
                             </ng-container>
                             
                             <ng-container matColumnDef="nombre">
@@ -253,41 +375,25 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                               <td mat-cell *matCellDef="let ruta">{{ ruta.nombre }}</td>
                             </ng-container>
                             
-                            <ng-container matColumnDef="tipo">
-                              <th mat-header-cell *matHeaderCellDef>Tipo</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.tipo_ruta }}</td>
+                            <ng-container matColumnDef="id">
+                              <th mat-header-cell *matHeaderCellDef>ID</th>
+                              <td mat-cell *matCellDef="let ruta">{{ ruta.id }}</td>
                             </ng-container>
                             
                             <ng-container matColumnDef="estado">
                               <th mat-header-cell *matHeaderCellDef>Estado</th>
                               <td mat-cell *matCellDef="let ruta">
-                                <mat-chip class="status-chip success">{{ ruta.estado }}</mat-chip>
+                                <mat-chip class="status-chip success">CREADA</mat-chip>
                               </td>
                             </ng-container>
                             
-                            <tr mat-header-row *matHeaderRowDef="['codigo', 'nombre', 'tipo', 'estado']"></tr>
-                            <tr mat-row *matRowDef="let row; columns: ['codigo', 'nombre', 'tipo', 'estado'];"></tr>
+                            <tr mat-header-row *matHeaderRowDef="['codigo', 'nombre', 'id', 'estado']"></tr>
+                            <tr mat-row *matRowDef="let row; columns: ['codigo', 'nombre', 'id', 'estado'];"></tr>
                           </table>
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
-                  }
-                  
-                  <!-- Errores de creación -->
-                  @if (resultadoProcesamiento.errores_creacion && resultadoProcesamiento.errores_creacion.length > 0) {
-                    <mat-card class="results-card error">
-                      <mat-card-header>
-                        <mat-card-title>
-                          <mat-icon>error</mat-icon>
-                          Errores de Creación ({{ resultadoProcesamiento.errores_creacion.length }})
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="error-list">
-                          @for (error of resultadoProcesamiento.errores_creacion; track error.codigo_ruta) {
-                            <div class="error-item">
-                              <strong>Ruta {{ error.codigo_ruta }}:</strong>
-                              <span>{{ error.error }}</span>
+                          
+                          @if (getRutasCreadas().length > 10) {
+                            <div class="more-results">
+                              <p><strong>... y {{ getRutasCreadas().length - 10 }} rutas más creadas exitosamente</strong></p>
                             </div>
                           }
                         </div>
@@ -295,55 +401,53 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                     </mat-card>
                   }
                   
-                } @else if (resultadoValidacion) {
-                  <!-- Resultados de validación -->
-                  <div class="results-summary validation">
-                    <h4>Validación Completada</h4>
-                    <div class="summary-stats">
-                      <div class="stat-item total">
-                        <mat-icon>description</mat-icon>
-                        <span class="stat-number">{{ resultadoValidacion.total_filas || 0 }}</span>
-                        <span class="stat-label">Total filas</span>
-                      </div>
-                      <div class="stat-item success">
-                        <mat-icon>check_circle</mat-icon>
-                        <span class="stat-number">{{ resultadoValidacion.validos || 0 }}</span>
-                        <span class="stat-label">Válidos</span>
-                      </div>
-                      <div class="stat-item error" *ngIf="(resultadoValidacion.invalidos || 0) > 0">
-                        <mat-icon>error</mat-icon>
-                        <span class="stat-number">{{ resultadoValidacion.invalidos || 0 }}</span>
-                        <span class="stat-label">Inválidos</span>
-                      </div>
-                      <div class="stat-item warning" *ngIf="(resultadoValidacion.con_advertencias || 0) > 0">
-                        <mat-icon>warning</mat-icon>
-                        <span class="stat-number">{{ resultadoValidacion.con_advertencias || 0 }}</span>
-                        <span class="stat-label">Con advertencias</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Errores de validación -->
-                  @if (resultadoValidacion.errores && resultadoValidacion.errores.length > 0) {
+                  <!-- Errores encontrados -->
+                  @if (getErrores().length > 0) {
                     <mat-card class="results-card error">
                       <mat-card-header>
                         <mat-card-title>
                           <mat-icon>error</mat-icon>
-                          Errores de Validación ({{ resultadoValidacion.errores.length }})
+                          {{ soloValidar ? 'Errores de Validación' : 'Rutas Fallidas' }} ({{ (getErrores())?.length || 0 }})
                         </mat-card-title>
                       </mat-card-header>
                       <mat-card-content>
-                        <div class="error-list">
-                          @for (error of resultadoValidacion.errores; track error.fila) {
-                            <div class="error-item">
-                              <div class="error-header">
-                                <strong>Fila {{ error.fila }} - Ruta {{ error.codigo_ruta }}:</strong>
-                              </div>
-                              <ul class="error-details">
-                                @for (detalle of error.errores; track detalle) {
-                                  <li>{{ detalle }}</li>
-                                }
-                              </ul>
+                        <div class="error-table">
+                          <table mat-table [dataSource]="getErrores().slice(0, 20)" class="results-table error-table">
+                            <ng-container matColumnDef="fila">
+                              <th mat-header-cell *matHeaderCellDef>Fila</th>
+                              <td mat-cell *matCellDef="let error">{{ error.fila || 'N/A' }}</td>
+                            </ng-container>
+                            
+                            <ng-container matColumnDef="codigo">
+                              <th mat-header-cell *matHeaderCellDef>Código</th>
+                              <td mat-cell *matCellDef="let error">{{ error.codigo_ruta || error.codigo || 'N/A' }}</td>
+                            </ng-container>
+                            
+                            <ng-container matColumnDef="error">
+                              <th mat-header-cell *matHeaderCellDef>Error</th>
+                              <td mat-cell *matCellDef="let error" class="error-cell">
+                                <div class="error-details">
+                                  @if (error.error) {
+                                    <span class="error-message">{{ error.error }}</span>
+                                  }
+                                  @if (error.errores && error.errores.length > 0) {
+                                    <ul class="error-list">
+                                      @for (detalle of error.errores; track $index) {
+                                        <li>{{ detalle }}</li>
+                                      }
+                                    </ul>
+                                  }
+                                </div>
+                              </td>
+                            </ng-container>
+                            
+                            <tr mat-header-row *matHeaderRowDef="['fila', 'codigo', 'error']"></tr>
+                            <tr mat-row *matRowDef="let row; columns: ['fila', 'codigo', 'error'];"></tr>
+                          </table>
+                          
+                          @if (getErrores().length > 20) {
+                            <div class="more-results">
+                              <p><strong>... y {{ getErrores().length - 20 }} errores más</strong></p>
                             </div>
                           }
                         </div>
@@ -352,26 +456,31 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                   }
                   
                   <!-- Advertencias -->
-                  @if (resultadoValidacion.advertencias && resultadoValidacion.advertencias.length > 0) {
+                  @if (getAdvertencias().length > 0) {
                     <mat-card class="results-card warning">
                       <mat-card-header>
                         <mat-card-title>
                           <mat-icon>warning</mat-icon>
-                          Advertencias ({{ resultadoValidacion.advertencias.length }})
+                          Advertencias ({{ (getAdvertencias())?.length || 0 }})
                         </mat-card-title>
                       </mat-card-header>
                       <mat-card-content>
                         <div class="warning-list">
-                          @for (advertencia of resultadoValidacion.advertencias; track advertencia.fila) {
+                          @for (advertencia of getAdvertencias().slice(0, 10); track $index) {
                             <div class="warning-item">
-                              <div class="warning-header">
-                                <strong>Fila {{ advertencia.fila }} - Ruta {{ advertencia.codigo_ruta }}:</strong>
-                              </div>
-                              <ul class="warning-details">
-                                @for (detalle of advertencia.advertencias; track detalle) {
-                                  <li>{{ detalle }}</li>
-                                }
-                              </ul>
+                              <strong>Fila {{ advertencia.fila }} - {{ advertencia.codigo_ruta }}:</strong>
+                              @if (advertencia.advertencias) {
+                                <ul>
+                                  @for (adv of advertencia.advertencias; track $index) {
+                                    <li>{{ adv }}</li>
+                                  }
+                                </ul>
+                              }
+                            </div>
+                          }
+                          @if (getAdvertencias().length > 10) {
+                            <div class="warning-item">
+                              <strong>... y {{ getAdvertencias().length - 10 }} advertencias más</strong>
                             </div>
                           }
                         </div>
@@ -379,37 +488,28 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
                     </mat-card>
                   }
                   
-                  <!-- Botón para procesar si la validación fue exitosa -->
-                  @if ((resultadoValidacion.validos || 0) > 0 && soloValidar) {
-                    <div class="process-section">
-                      <h4>¿Proceder con la creación?</h4>
-                      <p>Se crearán {{ resultadoValidacion.validos }} rutas válidas.</p>
-                      <button mat-raised-button 
-                              color="primary" 
-                              (click)="procesarRutas()"
-                              [disabled]="cargando">
-                        <mat-icon>play_arrow</mat-icon>
-                        Crear Rutas
+                  <!-- Acciones finales -->
+                  <div class="final-actions">
+                    @if (!soloValidar && getRutasCreadas().length > 0) {
+                      <button mat-raised-button color="primary" (click)="irAListaRutas()">
+                        <mat-icon>list</mat-icon>
+                        Ver Rutas Creadas
                       </button>
-                    </div>
-                  }
+                    }
+                    
+                    @if (soloValidar && getEstadistica('exitosas') > 0) {
+                      <button mat-raised-button color="accent" (click)="procesarDespuesDeValidar()">
+                        <mat-icon>play_arrow</mat-icon>
+                        Procesar Rutas Válidas
+                      </button>
+                    }
+                    
+                    <button mat-button (click)="reiniciarProceso()">
+                      <mat-icon>refresh</mat-icon>
+                      Nuevo Proceso
+                    </button>
+                  </div>
                 }
-                
-                <!-- Acciones finales -->
-                <div class="final-actions">
-                  <button mat-button 
-                          (click)="reiniciar()">
-                    <mat-icon>refresh</mat-icon>
-                    Procesar otro archivo
-                  </button>
-                  
-                  <button mat-raised-button 
-                          color="primary" 
-                          routerLink="/rutas">
-                    <mat-icon>list</mat-icon>
-                    Ver todas las rutas
-                  </button>
-                </div>
               </div>
             </mat-card-content>
           </mat-card>
@@ -426,71 +526,81 @@ export class CargaMasivaRutasComponent implements OnInit {
   cargando = false;
   mostrarResultados = false;
   soloValidar = true;
-  isDragOver = false;
+  
+  // Configuración de procesamiento
+  procesarEnLotes = true;
+  tamanoLote = 50;
+  loteActual = 0;
+  totalLotes = 0;
+  progresoPorLotes = 0;
+  
+  // Resultado unificado
+  resultado: ResultadoCargaMasiva | null = null;
+  
+  // Control de UI
   plantillaDescargada = false;
-  
-  // Resultados
-  resultadoValidacion: ResultadoValidacion | null = null;
-  resultadoProcesamiento: ResultadoProcesamiento | null = null;
-  
+  isDragOver = false;
+
   constructor(
     private rutaService: RutaService,
     private snackBar: MatSnackBar
   ) {}
-  
+
   ngOnInit() {
-    // Inicialización si es necesaria
+    // console.log removed for production
   }
-  
+
+  // ========================================
+  // MÉTODOS DE DESCARGA DE PLANTILLA
+  // ========================================
+
   async descargarPlantilla() {
     try {
       this.cargando = true;
+      // console.log removed for production
+      
       const blob = await this.rutaService.descargarPlantillaCargaMasiva();
       
       // Crear enlace de descarga
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'plantilla_rutas.xlsx';
+      link.download = 'plantilla_carga_masiva_rutas.xlsx';
+      document.body.appendChild(link);
       link.click();
-      
-      // Limpiar
+      document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
       this.plantillaDescargada = true;
       this.snackBar.open('Plantilla descargada exitosamente', 'Cerrar', { duration: 3000 });
       
-    } catch (error) {
-      console.error('Error al descargar plantilla:', error);
+    } catch (error: any) {
+      console.error('❌ Error descargando plantilla::', error);
       this.snackBar.open('Error al descargar la plantilla', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando = false;
     }
   }
-  
-  async mostrarAyuda() {
-    try {
-      const ayuda = await this.rutaService.obtenerAyudaCargaMasiva();
-      // Aquí podrías mostrar un modal con la información de ayuda
-      console.log('Ayuda:', ayuda);
-      this.snackBar.open('Información de ayuda mostrada en consola', 'Cerrar', { duration: 3000 });
-    } catch (error) {
-      console.error('Error al obtener ayuda:', error);
-    }
-  }
-  
+
+  // ========================================
+  // MÉTODOS DE MANEJO DE ARCHIVOS
+  // ========================================
+
   onDragOver(event: DragEvent) {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragOver = true;
   }
-  
+
   onDragLeave(event: DragEvent) {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragOver = false;
   }
-  
+
   onDrop(event: DragEvent) {
     event.preventDefault();
+    event.stopPropagation();
     this.isDragOver = false;
     
     const files = event.dataTransfer?.files;
@@ -498,123 +608,337 @@ export class CargaMasivaRutasComponent implements OnInit {
       this.procesarArchivoSeleccionado(files[0]);
     }
   }
-  
+
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
       this.procesarArchivoSeleccionado(file);
     }
   }
-  
+
   private procesarArchivoSeleccionado(file: File) {
     // Validar tipo de archivo
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
       this.snackBar.open('Por favor selecciona un archivo Excel (.xlsx o .xls)', 'Cerrar', { duration: 5000 });
       return;
     }
     
     // Validar tamaño (máximo 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      this.snackBar.open('El archivo es demasiado grande (máximo 10MB)', 'Cerrar', { duration: 5000 });
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      this.snackBar.open('El archivo es demasiado grande. Máximo 10MB permitido.', 'Cerrar', { duration: 5000 });
       return;
     }
     
     this.archivoSeleccionado = file;
     this.limpiarResultados();
-    this.snackBar.open(`Archivo "${file.name}" seleccionado`, 'Cerrar', { duration: 3000 });
+    console.log('📁 Archivo seleccionado:', file.name, this.formatFileSize(file.size));
   }
-  
+
   limpiarArchivo() {
     this.archivoSeleccionado = null;
     this.limpiarResultados();
   }
-  
+
   private limpiarResultados() {
-    this.resultadoValidacion = null;
-    this.resultadoProcesamiento = null;
+    this.resultado = null;
     this.mostrarResultados = false;
+    this.loteActual = 0;
+    this.totalLotes = 0;
+    this.progresoPorLotes = 0;
   }
-  
-  async validarArchivo() {
-    if (!this.archivoSeleccionado) {
-      this.snackBar.open('Por favor selecciona un archivo', 'Cerrar', { duration: 3000 });
-      return;
-    }
-    
-    try {
-      this.cargando = true;
-      this.limpiarResultados();
-      
-      if (this.soloValidar) {
-        // Solo validar
-        const resultado = await this.rutaService.validarCargaMasiva(this.archivoSeleccionado);
-        this.resultadoValidacion = resultado.validacion;
-        this.snackBar.open('Validación completada', 'Cerrar', { duration: 3000 });
-      } else {
-        // Validar y procesar
-        const resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado, false);
-        this.resultadoValidacion = resultado.resultado;
-        this.resultadoProcesamiento = resultado.resultado;
-        this.snackBar.open('Procesamiento completado', 'Cerrar', { duration: 3000 });
-      }
-      
-      this.mostrarResultados = true;
-      
-    } catch (error: any) {
-      console.error('Error en validación/procesamiento:', error);
-      this.snackBar.open(
-        error.error?.detail || 'Error al procesar el archivo', 
-        'Cerrar', 
-        { duration: 5000 }
-      );
-    } finally {
-      this.cargando = false;
-    }
-  }
-  
-  async procesarRutas() {
-    if (!this.archivoSeleccionado) {
-      return;
-    }
-    
-    try {
-      this.cargando = true;
-      
-      const resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado, false);
-      this.resultadoProcesamiento = resultado.resultado;
-      this.soloValidar = false; // Cambiar vista a procesamiento
-      
-      this.snackBar.open(
-        `Procesamiento completado: ${resultado.resultado.total_creadas || 0} rutas creadas`, 
-        'Cerrar', 
-        { duration: 5000 }
-      );
-      
-    } catch (error: any) {
-      console.error('Error en procesamiento:', error);
-      this.snackBar.open(
-        error.error?.detail || 'Error al procesar las rutas', 
-        'Cerrar', 
-        { duration: 5000 }
-      );
-    } finally {
-      this.cargando = false;
-    }
-  }
-  
-  reiniciar() {
-    this.archivoSeleccionado = null;
-    this.limpiarResultados();
-    this.soloValidar = true;
-    this.cargando = false;
-    this.plantillaDescargada = false;
-  }
-  
+
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // ========================================
+  // MÉTODO PRINCIPAL DE PROCESAMIENTO
+  // ========================================
+
+  async procesarArchivo() {
+    if (!this.archivoSeleccionado) {
+      this.snackBar.open('Por favor selecciona un archivo', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.cargando = true;
+    this.limpiarResultados();
+
+    // console.log removed for production
+
+    try {
+      if (this.soloValidar) {
+        await this.ejecutarValidacion();
+      } else {
+        await this.ejecutarProcesamiento();
+      }
+      
+      this.mostrarResultados = true;
+      
+    } catch (error: any) {
+      console.error('❌ ERROR EN PROCESAMIENTO::', error);
+      this.snackBar.open(
+        `Error: ${error.error?.mensaje || error.message || 'Error desconocido'}`, 
+        'Cerrar', 
+        { duration: 5000 }
+      );
+    } finally {
+      this.cargando = false;
+    }
+  }
+
+  private async ejecutarValidacion() {
+    // console.log removed for production
+    this.resultado = await this.rutaService.validarCargaMasiva(this.archivoSeleccionado!);
+    // console.log removed for production
+    
+    // Debug: Mostrar la estructura de datos para verificar
+    if (this.resultado) {
+      const datos: any = (this.resultado as any).validacion || this.resultado;
+      console.log('🔍 DEBUG - Estructura de resultado:', {
+        tieneValidacion: !!(this.resultado as any).validacion,
+        datos: datos,
+        estadisticas: {
+          total: this.getEstadistica('total'),
+          exitosas: this.getEstadistica('exitosas'),
+          errores: this.getEstadistica('errores'),
+          advertencias: this.getEstadistica('advertencias')
+        }
+      });
+    }
+  }
+
+  private async ejecutarProcesamiento() {
+    const opciones = {
+      soloValidar: false,
+      procesarEnLotes: this.procesarEnLotes,
+      tamanoLote: this.tamanoLote
+    };
+    
+    this.resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado!, opciones);
+    
+    // Debug: Mostrar la estructura de datos para verificar
+    if (this.resultado) {
+      const resultado: any = this.resultado as any;
+      
+      // Información específica sobre RUCs y normalización
+      const rutasCreadas = resultado.rutas_creadas || resultado.resultado?.rutas_creadas || [];
+      const rutasValidas = resultado.validacion?.rutas_validas || [];
+      
+      console.log('🔍 DEBUG - Estructura de procesamiento:', {
+        tieneValidacion: !!resultado.validacion,
+        tieneResultado: !!resultado.resultado,
+        datosValidacion: resultado.validacion,
+        datosProcesamiento: resultado.resultado,
+        estadisticas: {
+          total: this.getEstadistica('total'),
+          exitosas: this.getEstadistica('exitosas'),
+          errores: this.getEstadistica('errores'),
+          advertencias: this.getEstadistica('advertencias')
+        }
+      });
+      
+      // Debug específico para RUCs
+      console.log('🔍 DEBUG - Análisis de RUCs:', {
+        rutasCreadas: rutasCreadas.length,
+        rutasValidas: rutasValidas.length,
+        muestraRutasCreadas: rutasCreadas.slice(0, 3),
+        muestraRutasValidas: rutasValidas.slice(0, 3)
+      });
+      
+      // Verificar si las rutas creadas tienen información de empresa
+      if (rutasCreadas.length > 0) {
+        console.log('🔍 DEBUG - Verificando información de empresa en rutas creadas:');
+        rutasCreadas.forEach((ruta: any, index: number) => {
+          console.log(`  Ruta ${index + 1}:`, {
+            id: ruta.id,
+            codigo: ruta.codigo || ruta.codigo_ruta,
+            nombre: ruta.nombre,
+            tieneEmpresa: !!ruta.empresa,
+            empresaInfo: ruta.empresa ? {
+              id: ruta.empresa.id,
+              ruc: ruta.empresa.ruc,
+              razonSocial: ruta.empresa.razonSocial
+            } : 'No tiene empresa',
+            rucDirecto: ruta.ruc || 'No tiene RUC directo'
+          });
+        });
+      }
+      
+      // Verificar RUCs en rutas válidas
+      if (rutasValidas.length > 0) {
+        console.log('🔍 DEBUG - RUCs en rutas válidas:');
+        const rucsEncontrados = new Set<string>();
+        rutasValidas.forEach((ruta: any, index: number) => {
+          if (ruta.ruc) {
+            rucsEncontrados.add(ruta.ruc);
+            if (index < 5) { // Solo mostrar los primeros 5
+              console.log(`  Ruta válida ${index + 1}: RUC ${ruta.ruc}, Código: ${ruta.codigoRuta}`);
+            }
+          }
+        });
+        console.log(`📊 Total RUCs únicos encontrados: ${rucsEncontrados.size}`, Array.from(rucsEncontrados));
+      }
+    }
+  }
+
+  // ========================================
+  // MÉTODOS DE OBTENCIÓN DE DATOS UNIFICADOS
+  // ========================================
+
+  getEstadistica(tipo: 'total' | 'exitosas' | 'errores' | 'advertencias'): number {
+    if (!this.resultado) return 0;
+    
+    // Manejar diferentes estructuras de respuesta del backend
+    const resultado: any = this.resultado as any;
+    
+    // Para validación: { validacion: {...} }
+    // Para procesamiento: { resultado: {...} }
+    const datosValidacion = resultado.validacion;
+    const datosProcesamiento = resultado.resultado;
+    const datosDirect = resultado;
+    
+    switch (tipo) {
+      case 'total':
+        if (this.soloValidar) {
+          return datosValidacion?.total_filas || datosDirect.total_filas || 0;
+        } else {
+          return datosProcesamiento?.total_procesadas || 
+                 datosDirect.total_procesadas || 
+                 datosValidacion?.total_filas || 
+                 datosDirect.total_filas || 0;
+        }
+               
+      case 'exitosas':
+        if (this.soloValidar) {
+          return datosValidacion?.validos || datosDirect.validos || 0;
+        } else {
+          return datosProcesamiento?.exitosas || 
+                 datosProcesamiento?.total_creadas ||
+                 datosDirect.exitosas || 
+                 datosDirect.total_creadas || 0;
+        }
+        
+      case 'errores':
+        if (this.soloValidar) {
+          return datosValidacion?.invalidos || datosDirect.invalidos || 0;
+        } else {
+          return datosProcesamiento?.fallidas || 
+                 datosDirect.fallidas || 0;
+        }
+        
+      case 'advertencias':
+        return datosValidacion?.con_advertencias || 
+               datosDirect.con_advertencias || 0;
+        
+      default:
+        return 0;
+    }
+  }
+
+  getRutasCreadas(): any[] {
+    if (!this.resultado || this.soloValidar) return [];
+    
+    const resultado: any = this.resultado as any;
+    const datosProcesamiento = resultado.resultado;
+    
+    const rutasOriginales = datosProcesamiento?.rutas_creadas || 
+                           resultado.rutas_creadas || 
+                           [];
+    
+    // Transformar las rutas para mostrar nombre como "ORIGEN - DESTINO"
+    return rutasOriginales.map((ruta: any) => {
+      // Intentar extraer origen y destino del nombre o itinerario
+      let nombreTransformado = ruta.nombre;
+      
+      if (ruta.nombre && ruta.nombre.includes(' - ')) {
+        // Si ya tiene el formato correcto, mantenerlo
+        const partes = ruta.nombre.split(' - ');
+        if (partes.length >= 2) {
+          nombreTransformado = `${partes[0]} - ${partes[partes.length - 1]}`;
+        }
+      } else if (ruta.origen && ruta.destino) {
+        // Si tiene origen y destino separados
+        const origen = typeof ruta.origen === 'string' ? ruta.origen : ruta.origen.nombre;
+        const destino = typeof ruta.destino === 'string' ? ruta.destino : ruta.destino.nombre;
+        nombreTransformado = `${origen} - ${destino}`;
+      } else if (ruta.nombre) {
+        // Intentar extraer origen y destino del itinerario completo
+        const itinerario = ruta.nombre.replace(/\s*-\s*/g, ' - ');
+        const localidades = itinerario.split(' - ').map((loc: string) => loc.trim());
+        
+        if (localidades.length >= 2) {
+          nombreTransformado = `${localidades[0]} - ${localidades[localidades.length - 1]}`;
+        }
+      }
+      
+      return {
+        ...ruta,
+        nombre: nombreTransformado
+      };
+    });
+  }
+
+  getErrores(): any[] {
+    if (!this.resultado) return [];
+    
+    const resultado: any = this.resultado as any;
+    const datosValidacion = resultado.validacion;
+    const datosProcesamiento = resultado.resultado;
+    
+    // Errores de validación
+    const erroresValidacion = datosValidacion?.errores || resultado.errores || [];
+    
+    // Errores de procesamiento
+    const erroresProcesamiento = datosProcesamiento?.errores_procesamiento || 
+                                resultado.errores_procesamiento || 
+                                [];
+    const erroresCreacion = datosProcesamiento?.errores_creacion || 
+                           resultado.errores_creacion || 
+                           [];
+    
+    return [...erroresValidacion, ...erroresProcesamiento, ...erroresCreacion];
+  }
+
+  getAdvertencias(): any[] {
+    if (!this.resultado) return [];
+    
+    const resultado: any = this.resultado as any;
+    const datosValidacion = resultado.validacion;
+    
+    return datosValidacion?.advertencias || resultado.advertencias || [];
+  }
+
+  // ========================================
+  // MÉTODOS DE ACCIONES FINALES
+  // ========================================
+
+  procesarDespuesDeValidar() {
+    this.soloValidar = false;
+    this.procesarArchivo();
+  }
+
+  irAListaRutas() {
+    // Navegar a la lista de rutas
+    window.location.href = '/rutas';
+  }
+
+  reiniciarProceso() {
+    this.archivoSeleccionado = null;
+    this.limpiarResultados();
+    this.soloValidar = true;
+    this.procesarEnLotes = true;
+    this.tamanoLote = 50;
+    this.plantillaDescargada = false;
   }
 }

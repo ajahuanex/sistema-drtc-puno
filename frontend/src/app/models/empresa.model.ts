@@ -9,6 +9,13 @@ export interface RepresentanteLegal {
   nombres: string;
 }
 
+export enum EstadoEmpresa {
+  AUTORIZADO = 'AUTORIZADO',
+  SUSPENDIDO = 'SUSPENDIDO', 
+  CANCELADO = 'CANCELADO',
+  EN_TRAMITE = 'EN_TRAMITE'
+}
+
 export enum TipoEmpresa {
   PERSONAS = 'P',
   REGIONAL = 'R',
@@ -224,14 +231,6 @@ export interface Empresa {
   ultimaValidacionSunat?: Date;
   scoreRiesgo?: number;
   observaciones?: string;
-}
-
-export enum EstadoEmpresa {
-  AUTORIZADA = 'AUTORIZADA',
-  EN_TRAMITE = 'EN_TRAMITE',
-  SUSPENDIDA = 'SUSPENDIDA',
-  CANCELADA = 'CANCELADA',
-  DADA_DE_BAJA = 'DADA_DE_BAJA'
 }
 
 export enum TipoDocumento {

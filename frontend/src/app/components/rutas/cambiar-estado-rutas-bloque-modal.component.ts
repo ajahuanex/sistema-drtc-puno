@@ -41,7 +41,7 @@ export interface CambiarEstadoRutasBloqueData {
 
     <mat-dialog-content class="modal-content">
       <div class="info-message">
-        <p>Cambiar el estado de <strong>{{ data.rutas.length }}</strong> ruta(s) seleccionada(s).</p>
+        <p>Cambiar el estado de <strong>{{ (data.rutas)?.length || 0 }}</strong> ruta(s) seleccionada(s).</p>
       </div>
 
       <form [formGroup]="form" class="estado-form">
@@ -101,7 +101,7 @@ export interface CambiarEstadoRutasBloqueData {
       </div>
 
       <div class="rutas-resumen" *ngIf="data.rutas.length > 5">
-        <h4>Rutas a modificar ({{ data.rutas.length }}):</h4>
+        <h4>Rutas a modificar ({{ (data.rutas)?.length || 0 }}):</h4>
         <p>Primeras 3 rutas:</p>
         <mat-list>
           <mat-list-item *ngFor="let ruta of data.rutas.slice(0, 3)">
@@ -307,7 +307,7 @@ export class CambiarEstadoRutasBloqueModalComponent {
       },
       error: (error) => {
         this.procesando.set(false);
-        console.error('Error al actualizar estados:', error);
+        console.error('Error al actualizar estados::', error);
         this.snackBar.open(
           'Error al actualizar algunos estados', 
           'Cerrar', 

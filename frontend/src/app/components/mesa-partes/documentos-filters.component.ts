@@ -201,7 +201,7 @@ import { DocumentoService } from '../../services/mesa-partes/documento.service';
           <mat-chip-set class="filters-chips">
             @if (filtrosAplicados.estado && filtrosAplicados.estado.length > 0) {
               <mat-chip (removed)="removerFiltro('estado')">
-                Estado: {{ filtrosAplicados.estado.length }} seleccionado(s)
+                Estado: {{ (filtrosAplicados.estado)?.length || 0 }} seleccionado(s)
                 <button matChipRemove>
                   <mat-icon>cancel</mat-icon>
                 </button>
@@ -219,7 +219,7 @@ import { DocumentoService } from '../../services/mesa-partes/documento.service';
             
             @if (filtrosAplicados.prioridad && filtrosAplicados.prioridad.length > 0) {
               <mat-chip (removed)="removerFiltro('prioridad')">
-                Prioridad: {{ filtrosAplicados.prioridad.length }} seleccionada(s)
+                Prioridad: {{ (filtrosAplicados.prioridad)?.length || 0 }} seleccionada(s)
                 <button matChipRemove>
                   <mat-icon>cancel</mat-icon>
                 </button>
@@ -469,7 +469,7 @@ export class DocumentosFiltrosComponent implements OnInit {
         this.tiposDocumento.set(tipos);
       },
       error: (error) => {
-        console.error('Error al cargar tipos de documento:', error);
+        console.error('Error al cargar tipos de documento::', error);
       }
     });
   }

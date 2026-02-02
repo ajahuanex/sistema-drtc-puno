@@ -85,10 +85,10 @@ export class EagerInitService {
       
       this._initializationStatus$.next(true);
       
-      console.log('🚀 Aplicación inicializada eager con Signals');
+      // console.log removed for production
       
     } catch (error) {
-      console.error('❌ Error en inicialización eager:', error);
+      console.error('❌ Error en inicialización eager::', error);
       // Fallback a configuración por defecto
       this.setDefaultConfig();
     }
@@ -355,7 +355,7 @@ export class EagerInitService {
    * Callback cuando la hidratación se completa
    */
   private onHydrationComplete(): void {
-    console.log('💧 Hidratación completada - Aplicación lista para uso');
+    // console.log removed for production
     
     // Ejecutar tareas post-hidratación
     this.executePostHydrationTasks();

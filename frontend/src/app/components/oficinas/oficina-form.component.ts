@@ -501,7 +501,7 @@ export class OficinaFormComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error) => {
-        console.error('Error al cargar oficina:', error);
+        console.error('Error al cargar oficina::', error);
         this.snackBar.open('Error al cargar la oficina', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }
@@ -574,7 +574,7 @@ export class OficinaFormComponent implements OnInit {
         this.router.navigate(['/oficinas']);
       },
       error: (error) => {
-        console.error('Error al crear oficina:', error);
+        console.error('Error al crear oficina::', error);
         this.snackBar.open('Error al crear la oficina', 'Cerrar', { duration: 3000 });
         this.submitting.set(false);
       }
@@ -591,7 +591,7 @@ export class OficinaFormComponent implements OnInit {
         this.router.navigate(['/oficinas']);
       },
       error: (error) => {
-        console.error('Error al actualizar oficina:', error);
+        console.error('Error al actualizar oficina::', error);
         this.snackBar.open('Error al actualizar la oficina', 'Cerrar', { duration: 3000 });
         this.submitting.set(false);
       }

@@ -138,7 +138,7 @@ export class OficinaService {
       if (filtros.ubicacion) params = params.set('ubicacion', filtros.ubicacion);
       if (filtros.estado) params = params.set('estado', filtros.estado);
       if (filtros.prioridad) params = params.set('prioridad', filtros.prioridad);
-      if (filtros.estaActiva !== undefined) params = params.set('estaActiva', filtros.estaActiva.toString());
+      if (typeof filtros.estaActiva !== "undefined") params = params.set('estaActiva', filtros.estaActiva.toString());
     }
 
     return this.http.get<Oficina[]>(this.apiUrl, { params });

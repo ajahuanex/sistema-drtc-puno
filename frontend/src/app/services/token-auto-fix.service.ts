@@ -15,13 +15,13 @@ export class TokenAutoFixService {
     
     // Si el token está corrupto, corregirlo automáticamente
     if (token === 'undefined' || token === 'null') {
-      console.log('🔧 TokenAutoFixService: Token corrupto detectado al iniciar, corrigiendo...');
+      // console.log removed for production
       
       try {
         await this.obtenerTokenFresco();
-        console.log('✅ TokenAutoFixService: Token corregido automáticamente');
+        // console.log removed for production
       } catch (error) {
-        console.log('⚠️ TokenAutoFixService: No se pudo corregir token, limpiando...');
+        // console.log removed for production
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }

@@ -5,6 +5,7 @@ import { MainLayoutComponent } from './components/layout/main-layout.component';
 import { AuthGuard } from './guards/auth.guard';
 import { EmpresaVehiculosBatchComponent } from './components/empresas/empresa-vehiculos-batch.component';
 import { VehiculosComponent } from './components/vehiculos/vehiculos.component';
+import { VehiculosConsolidadoComponent } from './components/vehiculos/vehiculos-consolidado.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -15,17 +16,23 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
+      // RUTAS DE EMPRESAS - CONSOLIDADAS
       { path: 'empresas', loadComponent: () => import('./components/empresas/empresas.component').then(m => m.EmpresasComponent) },
+      { path: 'empresas/consolidado', loadComponent: () => import('./components/empresas/empresas-consolidado.component').then(m => m.EmpresasConsolidadoComponent) },
+      { path: 'empresas/legacy', loadComponent: () => import('./components/empresas/empresas.component').then(m => m.EmpresasComponent) }, // Mantener versión anterior temporalmente
       { path: 'empresas/carga-masiva', loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent) },
       { path: 'empresas/nueva', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
       { path: 'empresas/:id/editar', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
       { path: 'empresas/:id', loadComponent: () => import('./components/empresas/empresa-detail.component').then(m => m.EmpresaDetailComponent) },
       { path: 'empresas/:id/transferencias', loadComponent: () => import('./components/empresas/historial-transferencias-empresa.component').then(m => m.HistorialTransferenciasEmpresaComponent) },
-  { path: 'empresas/:id/bajas-vehiculos', loadComponent: () => import('./components/bajas-vehiculos/bajas-vehiculos.component').then(m => m.BajasVehiculosComponent) },
-  { path: 'bajas-vehiculos', loadComponent: () => import('./components/bajas-vehiculos/bajas-vehiculos.component').then(m => m.BajasVehiculosComponent) },
+      { path: 'empresas/:id/bajas-vehiculos', loadComponent: () => import('./components/bajas-vehiculos/bajas-vehiculos.component').then(m => m.BajasVehiculosComponent) },
+      { path: 'bajas-vehiculos', loadComponent: () => import('./components/bajas-vehiculos/bajas-vehiculos.component').then(m => m.BajasVehiculosComponent) },
       { path: 'empresas/:id/vehiculos/batch', component: EmpresaVehiculosBatchComponent, canActivate: [AuthGuard] },
       { path: 'empresas/dashboard', loadComponent: () => import('./components/empresas/dashboard-empresas.component').then(m => m.DashboardEmpresasComponent) },
-      { path: 'vehiculos', component: VehiculosComponent },
+      
+      // RUTAS DE VEHÍCULOS - CONSOLIDADAS
+      { path: 'vehiculos', component: VehiculosConsolidadoComponent },
+      { path: 'vehiculos/legacy', component: VehiculosComponent }, // Mantener versión anterior temporalmente
       { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
       { path: 'vehiculos/nuevo', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/solicitudes-baja', loadComponent: () => import('./components/vehiculos/solicitudes-baja.component').then(m => m.SolicitudesBajaComponent) },
@@ -42,6 +49,7 @@ export const routes: Routes = [
       { path: 'rutas/nuevo', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'rutas/:id', loadComponent: () => import('./components/rutas/ruta-detail.component').then(m => m.RutaDetailComponent) },
       { path: 'rutas/:id/editar', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
+      { path: 'localidades', loadComponent: () => import('./components/localidades/localidades.component').then(m => m.LocalidadesComponent) },
       { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones-minimal.component').then(m => m.ResolucionesMinimalComponent) },
       { path: 'resoluciones/carga-masiva', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones.component').then(m => m.CargaMasivaResolucionesComponent) },
       { path: 'resoluciones/carga-masiva-padres', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones-padres.component').then(m => m.CargaMasivaResolucionesPadresComponent) },

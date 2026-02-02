@@ -405,7 +405,7 @@ export class ListaDocumentosVirtualComponent implements OnInit, OnDestroy {
           loading.set(false);
         },
         error: (error) => {
-          console.error('Error al cargar documentos:', error);
+          console.error('Error al cargar documentos::', error);
           loading.set(false);
         }
       });
@@ -440,12 +440,12 @@ export class ListaDocumentosVirtualComponent implements OnInit, OnDestroy {
 
   derivar(documento: Documento): void {
     // Implementar derivación
-    console.log('Derivar documento:', documento);
+    // console.log removed for production
   }
 
   archivar(documento: Documento): void {
     // Implementar archivado
-    console.log('Archivar documento:', documento);
+    // console.log removed for production
   }
 
   descargarComprobante(documento: Documento): void {
@@ -463,7 +463,7 @@ export class ListaDocumentosVirtualComponent implements OnInit, OnDestroy {
         window.URL.revokeObjectURL(url);
       },
       error: (error) => {
-        console.error('Error al exportar a Excel:', error);
+        console.error('Error al exportar a Excel::', error);
       }
     });
   }
@@ -479,7 +479,7 @@ export class ListaDocumentosVirtualComponent implements OnInit, OnDestroy {
         window.URL.revokeObjectURL(url);
       },
       error: (error) => {
-        console.error('Error al exportar a PDF:', error);
+        console.error('Error al exportar a PDF::', error);
       }
     });
   }

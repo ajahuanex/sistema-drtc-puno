@@ -492,7 +492,7 @@ export class EditarConfiguracionConDefaultModalComponent implements OnInit {
     try {
       this.estados = JSON.parse(this.data.configuracion.valor);
     } catch (error) {
-      console.error('Error parseando estados:', error);
+      console.error('Error parseando estados::', error);
       this.estados = [
         { codigo: 'HABILITADO', nombre: 'Habilitado', color: '#4CAF50', descripcion: 'Vehículo operativo', esDefault: true }
       ];
@@ -613,7 +613,7 @@ export class EditarConfiguracionConDefaultModalComponent implements OnInit {
       }
     } catch (error) {
       this.guardando = false;
-      console.error('Error actualizando configuración:', error);
+      console.error('Error actualizando configuración::', error);
       this.snackBar.open('Error actualizando configuración', 'Cerrar', { duration: 3000 });
     }
   }

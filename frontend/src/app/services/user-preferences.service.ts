@@ -82,13 +82,13 @@ export class UserPreferencesService {
       if (stored) {
         const preferences: Partial<UserPreferences> = JSON.parse(stored);
         
-        if (preferences.reducedMotion !== undefined) {
+        if (typeof preferences.reducedMotion !== "undefined") {
           this.reducedMotion.set(preferences.reducedMotion);
         }
-        if (preferences.highContrast !== undefined) {
+        if (typeof preferences.highContrast !== "undefined") {
           this.highContrast.set(preferences.highContrast);
         }
-        if (preferences.darkMode !== undefined) {
+        if (typeof preferences.darkMode !== "undefined") {
           this.darkMode.set(preferences.darkMode);
         }
         if (preferences.fontSize) {
@@ -99,7 +99,7 @@ export class UserPreferencesService {
         }
       }
     } catch (error) {
-      console.error('Error loading user preferences:', error);
+      console.error('Error loading user preferences::', error);
     }
   }
 
@@ -117,7 +117,7 @@ export class UserPreferencesService {
       };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(preferences));
     } catch (error) {
-      console.error('Error saving user preferences:', error);
+      console.error('Error saving user preferences::', error);
     }
   }
 

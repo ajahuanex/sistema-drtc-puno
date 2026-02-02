@@ -374,7 +374,7 @@ export class EditarEstadosVehiculosModalComponent {
         this.estadosFormArray.push(this.crearEstadoFormGroup(estado));
       });
     } catch (error) {
-      console.error('Error parseando estados existentes:', error);
+      console.error('Error parseando estados existentes::', error);
       // Cargar estados por defecto
       this.cargarEstadosPorDefecto();
     }
@@ -460,7 +460,7 @@ export class EditarEstadosVehiculosModalComponent {
       }
     }).catch((error: any) => {
       this.guardando = false;
-      console.error('Error actualizando estados:', error);
+      console.error('Error actualizando estados::', error);
       this.snackBar.open('Error actualizando estados de vehículos', 'Cerrar', { duration: 3000 });
     });
   }

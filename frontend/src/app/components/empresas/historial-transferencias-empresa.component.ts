@@ -233,7 +233,7 @@ import { EmpresaService } from '../../services/empresa.service';
                     @if (transferencia.archivosSustentatorios?.length) {
                       <div class="archivos-info">
                         <mat-icon class="archivo-icon">attach_file</mat-icon>
-                        <span class="archivo-count">{{ transferencia.archivosSustentatorios.length }} archivo(s)</span>
+                        <span class="archivo-count">{{ transferencia.archivosSustentatorios?.length || 0 }} archivo(s)</span>
                         <button mat-icon-button 
                                 (click)="verArchivos(transferencia)"
                                 color="primary"
@@ -343,7 +343,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
         this.filtros.empresaId = empresaId;
       },
       error: (error: any) => {
-        console.error('Error al cargar empresa:', error);
+        console.error('Error al cargar empresa::', error);
         this.snackBar.open('Error al cargar empresa', 'Cerrar', { duration: 3000 });
       }
     });
@@ -358,7 +358,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
         this.loading.set(false);
       },
       error: (error: any) => {
-        console.error('Error al cargar historial:', error);
+        console.error('Error al cargar historial::', error);
         this.snackBar.open('Error al cargar historial', 'Cerrar', { duration: 3000 });
         this.loading.set(false);
       }
@@ -371,7 +371,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
         this.resumen.set(resumen);
       },
       error: (error: any) => {
-        console.error('Error al cargar resumen:', error);
+        console.error('Error al cargar resumen::', error);
       }
     });
   }
@@ -410,7 +410,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
 
   private mostrarModalArchivos(transferencia: HistorialTransferenciaEmpresa): void {
     // TODO: Implementar modal para mostrar archivos
-    console.log('Archivos de la transferencia:', transferencia.archivosSustentatorios);
+    // console.log removed for production
     this.snackBar.open(
       `${transferencia.archivosSustentatorios?.length} archivo(s) disponibles`, 
       'Cerrar', 
@@ -426,7 +426,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
         this.cargarResumen();
       },
       error: (error: any) => {
-        console.error('Error al aprobar transferencia:', error);
+        console.error('Error al aprobar transferencia::', error);
         this.snackBar.open('Error al aprobar transferencia', 'Cerrar', { duration: 3000 });
       }
     });
@@ -442,7 +442,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
           this.cargarResumen();
         },
         error: (error: any) => {
-          console.error('Error al rechazar transferencia:', error);
+          console.error('Error al rechazar transferencia::', error);
           this.snackBar.open('Error al rechazar transferencia', 'Cerrar', { duration: 3000 });
         }
       });
@@ -457,7 +457,7 @@ export class HistorialTransferenciasEmpresaComponent implements OnInit {
         this.cargarResumen();
       },
       error: (error: any) => {
-        console.error('Error al completar transferencia:', error);
+        console.error('Error al completar transferencia::', error);
         this.snackBar.open('Error al completar transferencia', 'Cerrar', { duration: 3000 });
       }
     });

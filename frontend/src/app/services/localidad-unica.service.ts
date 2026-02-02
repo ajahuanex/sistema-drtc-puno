@@ -47,7 +47,7 @@ export class LocalidadUnicaService {
       
       if (localidadExistente) {
         // La localidad ya existe, la reutilizamos
-        console.log(`✅ Localidad "${data.nombre}" ya existe, reutilizando ID: ${localidadExistente.id}`);
+        // console.log removed for production
         
         return {
           localidadId: localidadExistente.id,
@@ -58,7 +58,7 @@ export class LocalidadUnicaService {
         };
       } else {
         // La localidad no existe, crear una nueva
-        console.log(`🆕 Creando nueva localidad: "${data.nombre}"`);
+        // console.log removed for production
         
         const nuevaLocalidad = await this.crearNuevaLocalidad(data);
         
@@ -71,7 +71,7 @@ export class LocalidadUnicaService {
         };
       }
     } catch (error) {
-      console.error('❌ Error procesando localidad desde ruta:', error);
+      console.error('❌ Error procesando localidad desde ruta::', error);
       throw error;
     }
   }
@@ -109,7 +109,7 @@ export class LocalidadUnicaService {
       
       return coincidenciaExacta || null;
     } catch (error) {
-      console.error('Error buscando localidad por nombre:', error);
+      console.error('Error buscando localidad por nombre::', error);
       return null;
     }
   }
@@ -176,7 +176,7 @@ export class LocalidadUnicaService {
     try {
       return await this.http.get(`${this.apiUrl}/localidades/estadisticas-rutas`).toPromise();
     } catch (error) {
-      console.error('Error obteniendo estadísticas:', error);
+      console.error('Error obteniendo estadísticas::', error);
       return {
         total_localidades: 0,
         creadas_desde_rutas: 0,
@@ -193,7 +193,7 @@ export class LocalidadUnicaService {
     try {
       return await this.http.get(`${this.apiUrl}/localidades/validar-unicidad`).toPromise();
     } catch (error) {
-      console.error('Error validando unicidad:', error);
+      console.error('Error validando unicidad::', error);
       return {
         valido: false,
         duplicados: [],
@@ -211,7 +211,7 @@ export class LocalidadUnicaService {
         localidades_ids: duplicados
       }).toPromise();
     } catch (error) {
-      console.error('Error consolidando duplicados:', error);
+      console.error('Error consolidando duplicados::', error);
       throw error;
     }
   }

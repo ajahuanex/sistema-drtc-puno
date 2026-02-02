@@ -489,7 +489,7 @@ export class EditarConfiguracionModalComponent {
       }
     } catch (error) {
       this.guardando = false;
-      console.error('Error actualizando configuración:', error);
+      console.error('Error actualizando configuración::', error);
       this.snackBar.open('Error actualizando configuración', 'Cerrar', { duration: 3000 });
     }
   }
