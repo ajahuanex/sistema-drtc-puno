@@ -45,6 +45,7 @@ export const routes: Routes = [
       { path: 'conductores/:id', loadComponent: () => import('./components/conductores/conductor-detail.component').then(m => m.ConductorDetailComponent) },
       { path: 'conductores/:id/editar', loadComponent: () => import('./components/conductores/conductor-form.component').then(m => m.ConductorFormComponent) },
       { path: 'rutas', loadComponent: () => import('./components/rutas/rutas.component').then(m => m.RutasComponent) },
+      { path: 'rutas/estadisticas', loadComponent: () => import('./components/rutas/rutas-estadisticas.component').then(m => m.RutasEstadisticasComponent) },
       { path: 'rutas/carga-masiva', loadComponent: () => import('./components/rutas/carga-masiva-rutas.component').then(m => m.CargaMasivaRutasComponent) },
       { path: 'rutas/nuevo', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'rutas/:id', loadComponent: () => import('./components/rutas/ruta-detail.component').then(m => m.RutaDetailComponent) },

@@ -24,13 +24,13 @@ interface ResultadoCargaMasiva {
   validos?: number;
   invalidos?: number;
   con_advertencias?: number;
-  
+
   // Datos de procesamiento
   total_procesadas?: number;
   exitosas?: number;
   fallidas?: number;
   total_creadas?: number;
-  
+
   // Rutas creadas
   rutas_creadas?: Array<{
     codigo?: string;
@@ -40,7 +40,7 @@ interface ResultadoCargaMasiva {
     tipo_ruta?: string;
     estado?: string;
   }>;
-  
+
   // Errores y advertencias
   errores?: Array<{
     fila?: number;
@@ -49,23 +49,23 @@ interface ResultadoCargaMasiva {
     error?: string;
     errores?: string[];
   }>;
-  
+
   advertencias?: Array<{
     fila?: number;
     codigo_ruta?: string;
     advertencias?: string[];
   }>;
-  
+
   errores_procesamiento?: Array<{
     codigo_ruta?: string;
     error?: string;
   }>;
-  
+
   errores_creacion?: Array<{
     codigo_ruta?: string;
     error?: string;
   }>;
-  
+
   // Resultado anidado (para compatibilidad)
   resultado?: {
     total_procesadas?: number;
@@ -75,7 +75,7 @@ interface ResultadoCargaMasiva {
     errores_procesamiento?: Array<any>;
     errores_creacion?: Array<any>;
   };
-  
+
   // NUEVO: Estructura de respuesta del backend
   validacion?: {
     total_filas?: number;
@@ -86,7 +86,7 @@ interface ResultadoCargaMasiva {
     advertencias?: Array<any>;
     rutas_validas?: Array<any>;
   };
-  
+
   // Metadatos de respuesta
   archivo?: string;
   mensaje?: string;
@@ -96,8 +96,8 @@ interface ResultadoCargaMasiva {
   selector: 'app-carga-masiva-rutas',
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
+    CommonModule,
+    FormsModule,
     RouterModule,
     MatCardModule,
     MatButtonModule,
@@ -520,23 +520,23 @@ interface ResultadoCargaMasiva {
   styleUrls: ['./carga-masiva-rutas.component.scss']
 })
 export class CargaMasivaRutasComponent implements OnInit {
-  
+
   // Estado del componente
   archivoSeleccionado: File | null = null;
   cargando = false;
   mostrarResultados = false;
   soloValidar = true;
-  
+
   // Configuración de procesamiento
   procesarEnLotes = true;
   tamanoLote = 50;
   loteActual = 0;
   totalLotes = 0;
   progresoPorLotes = 0;
-  
+
   // Resultado unificado
   resultado: ResultadoCargaMasiva | null = null;
-  
+
   // Control de UI
   plantillaDescargada = false;
   isDragOver = false;
@@ -544,7 +544,7 @@ export class CargaMasivaRutasComponent implements OnInit {
   constructor(
     private rutaService: RutaService,
     private snackBar: MatSnackBar
-  ) {}
+  ) { }
 
   ngOnInit() {
     // console.log removed for production
@@ -558,9 +558,9 @@ export class CargaMasivaRutasComponent implements OnInit {
     try {
       this.cargando = true;
       // console.log removed for production
-      
+
       const blob = await this.rutaService.descargarPlantillaCargaMasiva();
-      
+
       // Crear enlace de descarga
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -570,10 +570,10 @@ export class CargaMasivaRutasComponent implements OnInit {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       this.plantillaDescargada = true;
       this.snackBar.open('Plantilla descargada exitosamente', 'Cerrar', { duration: 3000 });
-      
+
     } catch (error: any) {
       console.error('❌ Error descargando plantilla::', error);
       this.snackBar.open('Error al descargar la plantilla', 'Cerrar', { duration: 5000 });
@@ -602,7 +602,7 @@ export class CargaMasivaRutasComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
     this.isDragOver = false;
-    
+
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       this.procesarArchivoSeleccionado(files[0]);
@@ -622,19 +622,19 @@ export class CargaMasivaRutasComponent implements OnInit {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel'
     ];
-    
+
     if (!allowedTypes.includes(file.type)) {
       this.snackBar.open('Por favor selecciona un archivo Excel (.xlsx o .xls)', 'Cerrar', { duration: 5000 });
       return;
     }
-    
+
     // Validar tamaño (máximo 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       this.snackBar.open('El archivo es demasiado grande. Máximo 10MB permitido.', 'Cerrar', { duration: 5000 });
       return;
     }
-    
+
     this.archivoSeleccionado = file;
     this.limpiarResultados();
     console.log('📁 Archivo seleccionado:', file.name, this.formatFileSize(file.size));
@@ -682,14 +682,14 @@ export class CargaMasivaRutasComponent implements OnInit {
       } else {
         await this.ejecutarProcesamiento();
       }
-      
+
       this.mostrarResultados = true;
-      
+
     } catch (error: any) {
       console.error('❌ ERROR EN PROCESAMIENTO::', error);
       this.snackBar.open(
-        `Error: ${error.error?.mensaje || error.message || 'Error desconocido'}`, 
-        'Cerrar', 
+        `Error: ${error.error?.mensaje || error.message || 'Error desconocido'}`,
+        'Cerrar',
         { duration: 5000 }
       );
     } finally {
@@ -701,7 +701,7 @@ export class CargaMasivaRutasComponent implements OnInit {
     // console.log removed for production
     this.resultado = await this.rutaService.validarCargaMasiva(this.archivoSeleccionado!);
     // console.log removed for production
-    
+
     // Debug: Mostrar la estructura de datos para verificar
     if (this.resultado) {
       const datos: any = (this.resultado as any).validacion || this.resultado;
@@ -724,17 +724,17 @@ export class CargaMasivaRutasComponent implements OnInit {
       procesarEnLotes: this.procesarEnLotes,
       tamanoLote: this.tamanoLote
     };
-    
+
     this.resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado!, opciones);
-    
+
     // Debug: Mostrar la estructura de datos para verificar
     if (this.resultado) {
       const resultado: any = this.resultado as any;
-      
+
       // Información específica sobre RUCs y normalización
       const rutasCreadas = resultado.rutas_creadas || resultado.resultado?.rutas_creadas || [];
       const rutasValidas = resultado.validacion?.rutas_validas || [];
-      
+
       console.log('🔍 DEBUG - Estructura de procesamiento:', {
         tieneValidacion: !!resultado.validacion,
         tieneResultado: !!resultado.resultado,
@@ -747,7 +747,7 @@ export class CargaMasivaRutasComponent implements OnInit {
           advertencias: this.getEstadistica('advertencias')
         }
       });
-      
+
       // Debug específico para RUCs
       console.log('🔍 DEBUG - Análisis de RUCs:', {
         rutasCreadas: rutasCreadas.length,
@@ -755,7 +755,7 @@ export class CargaMasivaRutasComponent implements OnInit {
         muestraRutasCreadas: rutasCreadas.slice(0, 3),
         muestraRutasValidas: rutasValidas.slice(0, 3)
       });
-      
+
       // Verificar si las rutas creadas tienen información de empresa
       if (rutasCreadas.length > 0) {
         console.log('🔍 DEBUG - Verificando información de empresa en rutas creadas:');
@@ -774,7 +774,7 @@ export class CargaMasivaRutasComponent implements OnInit {
           });
         });
       }
-      
+
       // Verificar RUCs en rutas válidas
       if (rutasValidas.length > 0) {
         console.log('🔍 DEBUG - RUCs en rutas válidas:');
@@ -798,49 +798,49 @@ export class CargaMasivaRutasComponent implements OnInit {
 
   getEstadistica(tipo: 'total' | 'exitosas' | 'errores' | 'advertencias'): number {
     if (!this.resultado) return 0;
-    
+
     // Manejar diferentes estructuras de respuesta del backend
     const resultado: any = this.resultado as any;
-    
+
     // Para validación: { validacion: {...} }
     // Para procesamiento: { resultado: {...} }
     const datosValidacion = resultado.validacion;
     const datosProcesamiento = resultado.resultado;
     const datosDirect = resultado;
-    
+
     switch (tipo) {
       case 'total':
         if (this.soloValidar) {
           return datosValidacion?.total_filas || datosDirect.total_filas || 0;
         } else {
-          return datosProcesamiento?.total_procesadas || 
-                 datosDirect.total_procesadas || 
-                 datosValidacion?.total_filas || 
-                 datosDirect.total_filas || 0;
+          return datosProcesamiento?.total_procesadas ||
+            datosDirect.total_procesadas ||
+            datosValidacion?.total_filas ||
+            datosDirect.total_filas || 0;
         }
-               
+
       case 'exitosas':
         if (this.soloValidar) {
           return datosValidacion?.validos || datosDirect.validos || 0;
         } else {
-          return datosProcesamiento?.exitosas || 
-                 datosProcesamiento?.total_creadas ||
-                 datosDirect.exitosas || 
-                 datosDirect.total_creadas || 0;
+          return datosProcesamiento?.exitosas ||
+            datosProcesamiento?.total_creadas ||
+            datosDirect.exitosas ||
+            datosDirect.total_creadas || 0;
         }
-        
+
       case 'errores':
         if (this.soloValidar) {
           return datosValidacion?.invalidos || datosDirect.invalidos || 0;
         } else {
-          return datosProcesamiento?.fallidas || 
-                 datosDirect.fallidas || 0;
+          return datosProcesamiento?.fallidas ||
+            datosDirect.fallidas || 0;
         }
-        
+
       case 'advertencias':
-        return datosValidacion?.con_advertencias || 
-               datosDirect.con_advertencias || 0;
-        
+        return datosValidacion?.con_advertencias ||
+          datosDirect.con_advertencias || 0;
+
       default:
         return 0;
     }
@@ -848,19 +848,19 @@ export class CargaMasivaRutasComponent implements OnInit {
 
   getRutasCreadas(): any[] {
     if (!this.resultado || this.soloValidar) return [];
-    
+
     const resultado: any = this.resultado as any;
     const datosProcesamiento = resultado.resultado;
-    
-    const rutasOriginales = datosProcesamiento?.rutas_creadas || 
-                           resultado.rutas_creadas || 
-                           [];
-    
+
+    const rutasOriginales = datosProcesamiento?.rutas_creadas ||
+      resultado.rutas_creadas ||
+      [];
+
     // Transformar las rutas para mostrar nombre como "ORIGEN - DESTINO"
     return rutasOriginales.map((ruta: any) => {
       // Intentar extraer origen y destino del nombre o itinerario
       let nombreTransformado = ruta.nombre;
-      
+
       if (ruta.nombre && ruta.nombre.includes(' - ')) {
         // Si ya tiene el formato correcto, mantenerlo
         const partes = ruta.nombre.split(' - ');
@@ -876,12 +876,12 @@ export class CargaMasivaRutasComponent implements OnInit {
         // Intentar extraer origen y destino del itinerario completo
         const itinerario = ruta.nombre.replace(/\s*-\s*/g, ' - ');
         const localidades = itinerario.split(' - ').map((loc: string) => loc.trim());
-        
+
         if (localidades.length >= 2) {
           nombreTransformado = `${localidades[0]} - ${localidades[localidades.length - 1]}`;
         }
       }
-      
+
       return {
         ...ruta,
         nombre: nombreTransformado
@@ -891,31 +891,31 @@ export class CargaMasivaRutasComponent implements OnInit {
 
   getErrores(): any[] {
     if (!this.resultado) return [];
-    
+
     const resultado: any = this.resultado as any;
     const datosValidacion = resultado.validacion;
     const datosProcesamiento = resultado.resultado;
-    
+
     // Errores de validación
     const erroresValidacion = datosValidacion?.errores || resultado.errores || [];
-    
+
     // Errores de procesamiento
-    const erroresProcesamiento = datosProcesamiento?.errores_procesamiento || 
-                                resultado.errores_procesamiento || 
-                                [];
-    const erroresCreacion = datosProcesamiento?.errores_creacion || 
-                           resultado.errores_creacion || 
-                           [];
-    
+    const erroresProcesamiento = datosProcesamiento?.errores_procesamiento ||
+      resultado.errores_procesamiento ||
+      [];
+    const erroresCreacion = datosProcesamiento?.errores_creacion ||
+      resultado.errores_creacion ||
+      [];
+
     return [...erroresValidacion, ...erroresProcesamiento, ...erroresCreacion];
   }
 
   getAdvertencias(): any[] {
     if (!this.resultado) return [];
-    
+
     const resultado: any = this.resultado as any;
     const datosValidacion = resultado.validacion;
-    
+
     return datosValidacion?.advertencias || resultado.advertencias || [];
   }
 

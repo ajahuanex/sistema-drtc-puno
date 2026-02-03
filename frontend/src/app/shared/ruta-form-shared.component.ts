@@ -31,7 +31,7 @@ export interface RutaFormData {
 }
 
 @Component({
-  selector: 'app-ruta-form-shared',
+  selector: 'app-ruta-wizard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -351,7 +351,7 @@ export interface RutaFormData {
   `,
   styleUrls: ['./ruta-form-shared.component.scss']
 })
-export class RutaFormSharedComponent {
+export class RutaWizardComponent {
   @Input() formData: RutaFormData = {};
   @Output() rutaCreada = new EventEmitter<Ruta>();
   @Output() rutaActualizada = new EventEmitter<Ruta>();

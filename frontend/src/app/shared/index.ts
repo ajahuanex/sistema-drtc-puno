@@ -1,4 +1,6 @@
-export * from './ruta-form-shared.component';
+export * from './ruta-form.component';
+export * from './ruta-modal.component';
+export * from './ruta-form-shared.component'; // Mantener para compatibilidad (ahora es RutaWizardComponent)
 export * from './mat-confirm-dialog.component';
 export * from './smart-icon.component';
 export * from './empresa-selector.component';

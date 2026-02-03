@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { RutaFormSharedComponent, RutaFormData } from '../../shared/ruta-form-shared.component';
+import { RutaWizardComponent, RutaFormData } from '../../shared/ruta-form-shared.component';
 import { Ruta } from '../../models/ruta.model';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
@@ -15,7 +15,7 @@ import { Resolucion } from '../../models/resolucion.model';
     CommonModule,
     MatButtonModule,
     MatIconModule,
-    RutaFormSharedComponent
+    RutaWizardComponent
   ],
   template: `
     <div class="page-header">
@@ -33,12 +33,12 @@ import { Resolucion } from '../../models/resolucion.model';
       </div>
     </div>
 
-    <app-ruta-form-shared 
+    <app-ruta-wizard 
       [formData]="formData"
       (rutaCreada)="onRutaCreada($event)"
       (rutaActualizada)="onRutaActualizada($event)"
       (cancelado)="onCancelado()">
-    </app-ruta-form-shared>
+    </app-ruta-wizard>
   `,
   styles: [`
     .page-header {
