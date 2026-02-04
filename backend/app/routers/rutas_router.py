@@ -206,7 +206,7 @@ async def get_todas_resoluciones_primigenias(
 @router.get("/", response_model=List[Ruta])
 async def get_rutas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
+    limit: int = Query(1000, ge=1, le=1000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
     db = Depends(get_database)
 ) -> List[Ruta]:
@@ -218,7 +218,7 @@ async def get_rutas(
 @router.get("/filtros", response_model=List[Ruta])
 async def get_rutas_con_filtros(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(1000, ge=1, le=1000),
     estado: Optional[str] = Query(None),
     codigo: Optional[str] = Query(None),
     nombre: Optional[str] = Query(None),

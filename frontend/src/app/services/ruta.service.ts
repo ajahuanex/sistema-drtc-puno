@@ -36,6 +36,8 @@ export class RutaService {
       .pipe(
         switchMap(rutasRaw => {
           console.log('✅ RUTAS RECIBIDAS DEL BACKEND:', rutasRaw.length);
+          console.log('🔍 URL CONSULTADA:', url);
+          console.log('📊 PRIMERAS 3 RUTAS:', rutasRaw.slice(0, 3).map(r => ({ id: r.id, codigo: r.codigoRuta })));
           
           // Obtener todos los RUCs únicos que necesitan normalización usando el método de utilidad
           const rucsParaNormalizar = this.obtenerRucsParaNormalizar(rutasRaw);
@@ -70,7 +72,9 @@ export class RutaService {
               });
 
               // Transformar rutas con empresas normalizadas
-              return rutasRaw.map(ruta => this.transformRutaDataConEmpresas(ruta, empresasPorRuc));
+              const rutasTransformadas = rutasRaw.map(ruta => this.transformRutaDataConEmpresas(ruta, empresasPorRuc));
+              console.log('✅ RUTAS TRANSFORMADAS FINALES:', rutasTransformadas.length);
+              return rutasTransformadas;
             })
           );
         }),

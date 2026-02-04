@@ -87,7 +87,7 @@ export class RutasComponent implements OnInit, OnDestroy {
   // Configuración de columnas
   columnasDisponibles = [
     { key: 'select', label: 'Seleccionar', visible: true, fixed: true },
-    { key: 'empresa', label: 'Empresa', visible: true },
+    { key: 'empresa', label: 'Empresa', visible: false }, // No visible por defecto
     { key: 'ruc', label: 'RUC', visible: true },
     { key: 'resolucion', label: 'Resolución', visible: true },
     { key: 'codigoRuta', label: 'Código Ruta', visible: true },
@@ -505,15 +505,30 @@ export class RutasComponent implements OnInit, OnDestroy {
   }
 
   exportarSeleccionadas(): void {
-    const seleccionadas = Array.from(this.rutasSeleccionadas());
-    if (seleccionadas.length === 0) return;
+    const idsSeleccionados = Array.from(this.rutasSeleccionadas());
+    
+    if (idsSeleccionados.length === 0) {
+      this.snackBar.open('No hay rutas seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
 
-    const rutasSeleccionadas = this.rutas().filter(ruta => seleccionadas.includes(ruta.id));
-    this.exportService.exportToExcel(rutasSeleccionadas, {
-      filename: 'rutas_seleccionadas'
+    // Usar rutasFiltradas() que incluye TODAS las rutas después de aplicar filtros
+    const rutasDisponibles = this.rutasFiltradas();
+    const rutasParaExportar = rutasDisponibles.filter(ruta => idsSeleccionados.includes(ruta.id));
+    
+    if (rutasParaExportar.length === 0) {
+      this.snackBar.open('Error: No se encontraron las rutas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const columnasVisibles = this.getColumnasVisiblesParaExportacion();
+    
+    this.exportService.exportToExcel(rutasParaExportar, {
+      filename: 'rutas_seleccionadas',
+      customColumns: columnasVisibles
     });
     
-    this.snackBar.open(`${rutasSeleccionadas.length} rutas exportadas`, 'Cerrar', { duration: 3000 });
+    this.snackBar.open(`${rutasParaExportar.length} rutas exportadas con ${columnasVisibles.length} columnas`, 'Cerrar', { duration: 3000 });
   }
 
   // ========================================
@@ -531,7 +546,7 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   resetearColumnas(): void {
     this.columnasDisponibles.forEach(col => {
-      col.visible = ['select', 'empresa', 'ruc', 'resolucion', 'codigoRuta', 'origen', 'destino', 'itinerario', 'frecuencias', 'estado', 'acciones'].includes(col.key);
+      col.visible = ['select', 'ruc', 'resolucion', 'codigoRuta', 'origen', 'destino', 'itinerario', 'frecuencias', 'estado', 'acciones'].includes(col.key);
     });
     this.actualizarColumnasVisibles();
     this.guardarConfiguracionColumnas();
@@ -574,7 +589,7 @@ export class RutasComponent implements OnInit, OnDestroy {
   // MÉTODOS DE EXPORTACIÓN
   // ========================================
 
-  exportarTodas(formato: 'excel' | 'csv' | 'pdf'): void {
+  exportarTodas(formato: 'excel' | 'csv'): void {
     const rutas = this.rutasFiltradas();
     
     if (rutas.length === 0) {
@@ -582,20 +597,48 @@ export class RutasComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const columnasVisibles = this.getColumnasVisiblesParaExportacion();
     const filename = `rutas_${new Date().toISOString().slice(0, 10)}`;
 
     switch (formato) {
       case 'excel':
-        this.exportService.exportToExcel(rutas, { filename });
+        this.exportService.exportToExcel(rutas, { 
+          filename,
+          customColumns: columnasVisibles
+        });
         break;
       case 'csv':
-        this.exportService.exportToCSV(rutas, { filename });
-        break;
-      case 'pdf':
-        this.exportService.exportToPDF(rutas, { filename });
+        this.exportService.exportToCSV(rutas, { 
+          filename,
+          customColumns: columnasVisibles
+        });
         break;
     }
 
-    this.snackBar.open(`${rutas.length} rutas exportadas a ${formato.toUpperCase()}`, 'Cerrar', { duration: 3000 });
+    this.snackBar.open(`${rutas.length} rutas exportadas a ${formato.toUpperCase()} con ${columnasVisibles.length} columnas`, 'Cerrar', { duration: 3000 });
+  }
+
+  /**
+   * Obtiene las columnas visibles para exportación
+   */
+  private getColumnasVisiblesParaExportacion(): string[] {
+    const mapeoColumnas: { [key: string]: string } = {
+      'empresa': 'Empresa',
+      'ruc': 'RUC',
+      'resolucion': 'Resolución',
+      'codigoRuta': 'Código Ruta',
+      'origen': 'Origen',
+      'destino': 'Destino',
+      'itinerario': 'Itinerario',
+      'frecuencias': 'Frecuencias',
+      'tipoRuta': 'Tipo Ruta',
+      'tipoServicio': 'Tipo Servicio',
+      'estado': 'Estado'
+    };
+
+    return this.columnasVisibles()
+      .filter(col => col.key !== 'select' && col.key !== 'acciones') // Excluir columnas de UI
+      .map(col => mapeoColumnas[col.key])
+      .filter(col => col !== undefined); // Solo columnas que tienen mapeo
   }
 }
