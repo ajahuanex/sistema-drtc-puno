@@ -13,6 +13,7 @@ export interface RutaModalData {
   empresa?: Empresa;
   resolucion?: Resolucion;
   ruta?: Ruta; // Para edición
+  rutasExistentes?: Ruta[]; // Rutas existentes de la resolución
   titulo?: string;
   modoSimple?: boolean;
 }
@@ -55,6 +56,8 @@ export interface RutaModalData {
       padding: 16px 24px;
       border-bottom: 1px solid #e0e0e0;
       margin: -24px -24px 0 -24px;
+      position: relative;
+      z-index: 1;
     }
 
     .modal-header h2 {
@@ -87,6 +90,7 @@ export class RutaModalComponent {
       empresa: data.empresa,
       resolucion: data.resolucion,
       ruta: data.ruta,
+      rutasExistentes: data.rutasExistentes || [],
       modoSimple: data.modoSimple ?? false,
       mostrarBotones: true
     };

@@ -1,17 +1,17 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-
 import { RutaService } from '../../services/ruta.service';
 import { Ruta, RutaUpdate } from '../../models/ruta.model';
+import { Localidad } from '../../models/localidad.model';
+import { BuscarLocalidadDialogComponent } from '../../shared/buscar-localidad-dialog.component';
 
 export interface EditarRutaModalData {
   ruta: Ruta;
@@ -22,180 +22,244 @@ export interface EditarRutaModalData {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatIconModule,
-    MatProgressSpinnerModule
+    MatIconModule
   ],
   template: `
-    <div class="modal-header">
-      <h2 mat-dialog-title>
-        <mat-icon>edit_road</mat-icon>
-        Editar Ruta
-      </h2>
-      <button mat-icon-button mat-dialog-close>
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-
-    <mat-dialog-content class="modal-content">
-      <div class="ruta-info">
-        <div class="info-card">
-          <div class="info-label">Código de Ruta:</div>
-          <div class="info-value">{{ data.ruta.codigoRuta }}</div>
-        </div>
-      </div>
-
-      <form [formGroup]="rutaForm" class="ruta-form">
-        <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Origen</mat-label>
-            <input matInput formControlName="origen" placeholder="Ciudad de origen">
-            <mat-icon matSuffix>place</mat-icon>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Destino</mat-label>
-            <input matInput formControlName="destino" placeholder="Ciudad de destino">
-            <mat-icon matSuffix>flag</mat-icon>
-          </mat-form-field>
+    <h2 mat-dialog-title>Editar Ruta - {{ data.ruta.codigoRuta }}</h2>
+    
+    <mat-dialog-content>
+      <form [formGroup]="form">
+        <div class="campo-seleccion">
+          <label>Origen *</label>
+          <div class="seleccion-display" [class.has-value]="origenSeleccionado" [class.error]="!origenSeleccionado">
+            <span *ngIf="origenSeleccionado" class="value">{{ origenSeleccionado.nombre }}</span>
+            <span *ngIf="!origenSeleccionado" class="placeholder">Seleccionar origen...</span>
+            <button mat-icon-button type="button" (click)="buscarOrigen()">
+              <mat-icon>search</mat-icon>
+            </button>
+          </div>
         </div>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Frecuencias</mat-label>
-            <input matInput formControlName="frecuencias" placeholder="Ej: Diaria, Lunes a Viernes">
-            <mat-icon matSuffix>schedule</mat-icon>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Tipo de Ruta</mat-label>
-            <mat-select formControlName="tipoRuta">
-              <mat-option value="URBANA">Urbana</mat-option>
-              <mat-option value="INTERURBANA">Interurbana</mat-option>
-              <mat-option value="INTERPROVINCIAL">Interprovincial</mat-option>
-              <mat-option value="INTERREGIONAL">Interregional</mat-option>
-              <mat-option value="RURAL">Rural</mat-option>
-            </mat-select>
-          </mat-form-field>
+        <div class="campo-seleccion">
+          <label>Destino *</label>
+          <div class="seleccion-display" [class.has-value]="destinoSeleccionado" [class.error]="!destinoSeleccionado">
+            <span *ngIf="destinoSeleccionado" class="value">{{ destinoSeleccionado.nombre }}</span>
+            <span *ngIf="!destinoSeleccionado" class="placeholder">Seleccionar destino...</span>
+            <button mat-icon-button type="button" (click)="buscarDestino()">
+              <mat-icon>search</mat-icon>
+            </button>
+          </div>
         </div>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline">
-            <mat-label>Estado</mat-label>
-            <mat-select formControlName="estado">
-              <mat-option value="ACTIVA">Activa</mat-option>
-              <mat-option value="INACTIVA">Inactiva</mat-option>
-              <mat-option value="SUSPENDIDA">Suspendida</mat-option>
-              <mat-option value="EN_MANTENIMIENTO">En Mantenimiento</mat-option>
-            </mat-select>
-            <mat-icon matSuffix>toggle_on</mat-icon>
-          </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Frecuencias</mat-label>
+          <input matInput formControlName="frecuencias">
+        </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Distancia (km)</mat-label>
-            <input matInput type="number" formControlName="distancia" placeholder="0">
-            <mat-icon matSuffix>straighten</mat-icon>
-          </mat-form-field>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo Ruta</mat-label>
+          <mat-select formControlName="tipoRuta">
+            <mat-option [value]="null">Sin especificar</mat-option>
+            <mat-option value="URBANA">Urbana</mat-option>
+            <mat-option value="INTERURBANA">Interurbana</mat-option>
+            <mat-option value="INTERPROVINCIAL">Interprovincial</mat-option>
+            <mat-option value="INTERREGIONAL">Interregional</mat-option>
+            <mat-option value="RURAL">Rural</mat-option>
+          </mat-select>
+        </mat-form-field>
 
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Observaciones</mat-label>
-            <textarea matInput 
-                      formControlName="observaciones" 
-                      rows="3" 
-                      placeholder="Observaciones adicionales..."></textarea>
-            <mat-icon matSuffix>note</mat-icon>
-          </mat-form-field>
-        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="estado">
+            <mat-option value="ACTIVA">Activa</mat-option>
+            <mat-option value="INACTIVA">Inactiva</mat-option>
+            <mat-option value="SUSPENDIDA">Suspendida</mat-option>
+            <mat-option value="EN_MANTENIMIENTO">En Mantenimiento</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Distancia (km)</mat-label>
+          <input matInput type="number" formControlName="distancia">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Observaciones</mat-label>
+          <textarea matInput formControlName="observaciones" rows="3"></textarea>
+        </mat-form-field>
       </form>
     </mat-dialog-content>
 
-    <mat-dialog-actions class="modal-actions">
-      <button mat-button mat-dialog-close type="button">
-        <mat-icon>cancel</mat-icon>
-        Cancelar
-      </button>
-      
-      <button mat-raised-button 
-              color="primary" 
-              (click)="guardarCambios()"
-              [disabled]="rutaForm.invalid || isSubmitting">
-        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-        <mat-icon *ngIf="!isSubmitting">save</mat-icon>
-        {{ isSubmitting ? 'Guardando...' : 'Guardar Cambios' }}
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancelar</button>
+      <button mat-raised-button color="primary" (click)="guardar()" [disabled]="!valido()">
+        Guardar
       </button>
     </mat-dialog-actions>
   `,
-  styleUrls: ['./crear-ruta-modal.component.scss']
+  styles: [`
+    mat-dialog-content {
+      min-width: 500px;
+      padding: 20px;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    mat-form-field {
+      width: 100%;
+    }
+    
+    .campo-seleccion {
+      margin-bottom: 16px;
+    }
+    
+    .campo-seleccion label {
+      display: block;
+      font-size: 12px;
+      color: rgba(0,0,0,0.6);
+      margin-bottom: 4px;
+    }
+    
+    .seleccion-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 4px;
+      min-height: 56px;
+    }
+    
+    .seleccion-display .placeholder {
+      color: rgba(0,0,0,0.38);
+    }
+
+    .seleccion-display.has-value {
+      border-color: #1976d2;
+      background-color: #e3f2fd;
+    }
+
+    .seleccion-display .value {
+      font-weight: 500;
+      color: #1976d2;
+    }
+
+    .seleccion-display.error {
+      border-color: #f44336;
+      background-color: #ffebee;
+    }
+  `]
 })
 export class EditarRutaModalComponent implements OnInit {
-  rutaForm: FormGroup;
-  isSubmitting = false;
+  form: FormGroup;
+  origenSeleccionado: Localidad | null = null;
+  destinoSeleccionado: Localidad | null = null;
 
   constructor(
     private fb: FormBuilder,
     private rutaService: RutaService,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
     private dialogRef: MatDialogRef<EditarRutaModalComponent>,
     @Inject(MAT_DIALOG_DATA) public data: EditarRutaModalData
   ) {
-    this.rutaForm = this.fb.group({
-      origen: [data.ruta.origen?.nombre || data.ruta.origen, Validators.required],
-      destino: [data.ruta.destino?.nombre || data.ruta.destino, Validators.required],
+    this.form = this.fb.group({
       frecuencias: [data.ruta.frecuencias, Validators.required],
-      tipoRuta: [data.ruta.tipoRuta, Validators.required],
+      tipoRuta: [data.ruta.tipoRuta],
       estado: [data.ruta.estado, Validators.required],
       distancia: [data.ruta.distancia],
-      observaciones: [data.ruta.observaciones || '']
+      observaciones: [data.ruta.observaciones]
     });
+
+    if (typeof data.ruta.origen === 'object') {
+      this.origenSeleccionado = data.ruta.origen as any;
+    }
+    if (typeof data.ruta.destino === 'object') {
+      this.destinoSeleccionado = data.ruta.destino as any;
+    }
   }
 
-  ngOnInit() {}
+  ngOnInit() { }
 
-  guardarCambios() {
-    if (this.rutaForm.invalid) {
-      this.marcarCamposComoTocados();
-      return;
-    }
+  buscarOrigen() {
+    const dialogRef = this.dialog.open(BuscarLocalidadDialogComponent, {
+      width: '600px',
+      data: { titulo: 'Seleccionar Origen' }
+    });
 
-    this.isSubmitting = true;
-    const formValue = this.rutaForm.value;
-
-    const rutaActualizada: RutaUpdate = {
-      frecuencias: formValue.frecuencias,
-      tipoRuta: formValue.tipoRuta,
-      estado: formValue.estado,
-      observaciones: formValue.observaciones,
-      nombre: `${formValue.origen} - ${formValue.destino}`
-    };
-
-    // console.log removed for production
-
-    this.rutaService.updateRuta(this.data.ruta.id, rutaActualizada).subscribe({
-      next: (rutaActualizada) => {
-        // console.log removed for production
-        this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
-        this.dialogRef.close(rutaActualizada);
-      },
-      error: (error) => {
-        console.error('❌ Error actualizando ruta::', error);
-        this.snackBar.open('Error al actualizar la ruta', 'Cerrar', { duration: 3000 });
-        this.isSubmitting = false;
+    dialogRef.afterClosed().subscribe(localidad => {
+      if (localidad) {
+        this.origenSeleccionado = localidad;
+        this.validarOrigenDestinoDiferentes();
       }
     });
   }
 
-  private marcarCamposComoTocados() {
-    Object.keys(this.rutaForm.controls).forEach(key => {
-      const control = this.rutaForm.get(key);
-      if (control) {
-        control.markAsTouched();
+  buscarDestino() {
+    const dialogRef = this.dialog.open(BuscarLocalidadDialogComponent, {
+      width: '600px',
+      data: { titulo: 'Seleccionar Destino' }
+    });
+
+    dialogRef.afterClosed().subscribe(localidad => {
+      if (localidad) {
+        this.destinoSeleccionado = localidad;
+        this.validarOrigenDestinoDiferentes();
+      }
+    });
+  }
+
+  private validarOrigenDestinoDiferentes() {
+    if (this.origenSeleccionado && this.destinoSeleccionado) {
+      if (this.origenSeleccionado.id === this.destinoSeleccionado.id) {
+        this.snackBar.open('El origen y destino deben ser diferentes', 'Cerrar', {
+          duration: 3000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    }
+  }
+
+  valido(): boolean {
+    const formValido = this.form.valid;
+    const localidadesSeleccionadas = !!this.origenSeleccionado && !!this.destinoSeleccionado;
+    const localidadesDiferentes = this.origenSeleccionado?.id !== this.destinoSeleccionado?.id;
+
+    return formValido && localidadesSeleccionadas && localidadesDiferentes;
+  }
+
+  guardar() {
+    if (!this.valido()) return;
+
+    const update: RutaUpdate = {
+      origen: { id: this.origenSeleccionado!.id, nombre: this.origenSeleccionado!.nombre },
+      destino: { id: this.destinoSeleccionado!.id, nombre: this.destinoSeleccionado!.nombre },
+      frecuencias: this.form.value.frecuencias,
+      tipoRuta: this.form.value.tipoRuta,
+      estado: this.form.value.estado,
+      distancia: this.form.value.distancia,
+      observaciones: this.form.value.observaciones,
+      nombre: `${this.origenSeleccionado!.nombre} - ${this.destinoSeleccionado!.nombre}`
+    };
+
+    this.rutaService.updateRuta(this.data.ruta.id, update).subscribe({
+      next: (ruta) => {
+        this.snackBar.open('Ruta actualizada', 'OK', { duration: 2000 });
+        this.dialogRef.close(ruta);
+      },
+      error: () => {
+        this.snackBar.open('Error al actualizar', 'OK', { duration: 2000 });
       }
     });
   }
