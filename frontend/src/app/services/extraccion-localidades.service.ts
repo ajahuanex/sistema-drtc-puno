@@ -178,7 +178,7 @@ export class ExtraccionLocalidadesService {
       // console.log removed for production
       
       const extraccion = await this.extraerLocalidadesDeRutas();
-      const localidadesExistentes = await this.localidadService.getLocalidades().toPromise() as Localidad[];
+      const localidadesExistentes = await this.localidadService.obtenerLocalidades();
       
       const nombresExistentes = new Set(
         localidadesExistentes.map(l => l.municipalidad_centro_poblado?.toUpperCase() || l.nombre?.toUpperCase() || '')
@@ -275,7 +275,7 @@ export class ExtraccionLocalidadesService {
       
       const [extraccion, localidadesExistentes] = await Promise.all([
         this.extraerLocalidadesDeRutas(),
-        this.localidadService.getLocalidades().toPromise() as Promise<Localidad[]>
+        this.localidadService.obtenerLocalidades()
       ]);
 
       const nombresEnRutas = new Set(extraccion.localidadesUnicas);

@@ -10,9 +10,9 @@ export interface RepresentanteLegal {
 }
 
 export enum EstadoEmpresa {
-  AUTORIZADO = 'AUTORIZADO',
-  SUSPENDIDO = 'SUSPENDIDO', 
-  CANCELADO = 'CANCELADO',
+  AUTORIZADO = 'AUTORIZADA',
+  SUSPENDIDO = 'SUSPENDIDA', 
+  CANCELADO = 'CANCELADA',
   EN_TRAMITE = 'EN_TRAMITE'
 }
 

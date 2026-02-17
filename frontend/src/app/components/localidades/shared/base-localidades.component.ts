@@ -217,27 +217,67 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   }
 
   async eliminarLocalidad(localidad: Localidad) {
-    const confirmacion = confirm(
-      `⚠️ ATENCIÓN: Esta acción eliminará permanentemente la localidad "${localidad.nombre || 'Sin nombre'}".\n\n` +
-      `Esta acción NO se puede deshacer.\n\n` +
-      `¿Estás completamente seguro de continuar?`
-    );
-    
-    if (!confirmacion) return;
-
-    const segundaConfirmacion = confirm(
-      `Última confirmación: ¿Eliminar "${localidad.nombre || 'Sin nombre'}"?`
-    );
-    
-    if (!segundaConfirmacion) return;
-
     try {
+      // 1️⃣ Primero verificar si está en uso
+      const verificacion = await this.localidadService.verificarUsoLocalidad(localidad.id);
+      
+      if (verificacion.en_uso) {
+        // 🚫 Mostrar mensaje detallado de por qué no se puede eliminar
+        let mensaje = `❌ NO SE PUEDE ELIMINAR\n\n`;
+        mensaje += `La localidad "${localidad.nombre}" está siendo utilizada en:\n\n`;
+        
+        if (verificacion.rutas_como_origen > 0) {
+          mensaje += `• ${verificacion.rutas_como_origen} ruta(s) como ORIGEN\n`;
+        }
+        if (verificacion.rutas_como_destino > 0) {
+          mensaje += `• ${verificacion.rutas_como_destino} ruta(s) como DESTINO\n`;
+        }
+        if (verificacion.rutas_en_itinerario > 0) {
+          mensaje += `• ${verificacion.rutas_en_itinerario} ruta(s) en ITINERARIO\n`;
+        }
+        
+        mensaje += `\n📋 Rutas afectadas:\n`;
+        verificacion.rutas_afectadas.forEach((ruta: any) => {
+          mensaje += `   - ${ruta.nombre}\n`;
+        });
+        
+        mensaje += `\n💡 Primero debes actualizar o eliminar estas rutas.`;
+        
+        alert(mensaje);
+        return;
+      }
+
+      // 2️⃣ Si no está en uso, proceder con confirmación
+      const confirmacion = confirm(
+        `⚠️ ATENCIÓN: Esta acción eliminará permanentemente la localidad "${localidad.nombre || 'Sin nombre'}".\n\n` +
+        `Esta acción NO se puede deshacer.\n\n` +
+        `¿Estás completamente seguro de continuar?`
+      );
+      
+      if (!confirmacion) return;
+
+      const segundaConfirmacion = confirm(
+        `Última confirmación: ¿Eliminar "${localidad.nombre || 'Sin nombre'}"?`
+      );
+      
+      if (!segundaConfirmacion) return;
+
+      // 3️⃣ Eliminar
       await this.localidadService.eliminarLocalidad(localidad.id);
-      this.mostrarMensaje('Localidad eliminada exitosamente', 'success');
+      this.mostrarMensaje('✅ Localidad eliminada exitosamente', 'success');
       await this.cargarLocalidades();
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Error eliminando localidad:', error);
-      this.mostrarMensaje('Error eliminando localidad. Puede que esté siendo utilizada en rutas.', 'error');
+      
+      let mensajeError = 'Error eliminando localidad';
+      if (error?.error?.detail) {
+        mensajeError = error.error.detail;
+      } else if (error?.message) {
+        mensajeError = error.message;
+      }
+      
+      this.mostrarMensaje(mensajeError, 'error');
     }
   }
 

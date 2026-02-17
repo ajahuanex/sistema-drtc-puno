@@ -8,12 +8,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { HistorialVehiculoService } from '../../services/historial-vehiculo.service';
+import { HistorialVehicularService } from '../../services/historial-vehicular.service';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { 
   HistorialVehiculo, 
   ResumenHistorialVehiculo 
-} from '../../models/historial-vehiculo.model';
+} from '../../models/historial-vehicular.model';
 import { Vehiculo } from '../../models/vehiculo.model';
 
 @Component({
@@ -105,15 +105,15 @@ import { Vehiculo } from '../../models/vehiculo.model';
 
           <div *ngIf="!loading() && historial().length > 0" class="historial-timeline">
             <div *ngFor="let item of historial(); trackBy: trackByHistorial" class="timeline-item">
-              <div class="timeline-marker" [class]="'marker-' + obtenerClaseTipoCambio(item.tipoCambio)">
-                <mat-icon>{{ obtenerIconoTipoCambio(item.tipoCambio) }}</mat-icon>
+              <div class="timeline-marker" [class]="'marker-' + obtenerClaseTipoCambio(item.tipoCambio || item.tipoEvento || '')">
+                <mat-icon>{{ obtenerIconoTipoCambio(item.tipoCambio || item.tipoEvento || '') }}</mat-icon>
               </div>
               <div class="timeline-content">
                 <div class="timeline-header">
                   <span class="timeline-date">{{ item.fechaCambio | date:'dd/MM/yyyy HH:mm' }}</span>
                   <mat-chip-set>
-                    <mat-chip [color]="obtenerColorTipoCambio(item.tipoCambio)" selected>
-                      {{ item.tipoCambio | titlecase }}
+                    <mat-chip [color]="obtenerColorTipoCambio(item.tipoCambio || item.tipoEvento || '')" selected>
+                      {{ (item.tipoCambio || item.tipoEvento) | titlecase }}
                     </mat-chip>
                   </mat-chip-set>
                 </div>
@@ -159,7 +159,7 @@ import { Vehiculo } from '../../models/vehiculo.model';
 export class HistorialVehiculoDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private historialService = inject(HistorialVehiculoService);
+  private historialService = inject(HistorialVehicularService);
   private vehiculoService = inject(VehiculoService);
   private snackBar = inject(MatSnackBar);
 

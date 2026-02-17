@@ -739,19 +739,36 @@ export class ResolucionDetailComponent implements OnInit {
 
     const fechaInicio = new Date(resolucion.fechaVigenciaInicio);
     const fechaFin = new Date(resolucion.fechaVigenciaFin);
-    const diffTime = fechaFin.getTime() - fechaInicio.getTime();
-    const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
     
-    if (diffYears >= 1) {
-      const years = Math.floor(diffYears);
-      const months = Math.floor((diffYears - years) * 12);
-      if (months > 0) {
-        return `${years} año(s) y ${months} mes(es)`;
+    // Calcular diferencia en años y meses
+    let years = fechaFin.getFullYear() - fechaInicio.getFullYear();
+    let months = fechaFin.getMonth() - fechaInicio.getMonth();
+    
+    // Ajustar si los meses son negativos
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    
+    // Ajustar si el día final es menor que el día inicial
+    if (fechaFin.getDate() < fechaInicio.getDate()) {
+      months--;
+      if (months < 0) {
+        years--;
+        months += 12;
       }
+    }
+    
+    // Formatear resultado
+    if (years > 0 && months > 0) {
+      return `${years} año(s) y ${months} mes(es)`;
+    } else if (years > 0) {
       return `${years} año(s)`;
-    } else {
-      const months = Math.floor(diffYears * 12);
+    } else if (months > 0) {
       return `${months} mes(es)`;
+    } else {
+      const diffDays = Math.floor((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24));
+      return `${diffDays} día(s)`;
     }
   }
 

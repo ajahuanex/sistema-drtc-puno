@@ -104,7 +104,7 @@ class Ruta(BaseModel):
     horarios: List[HorarioServicio] = Field(default_factory=list, description="Horarios específicos")
     
     # Datos operativos
-    tipoRuta: TipoRuta = Field(..., description="Tipo de ruta")
+    tipoRuta: Optional[TipoRuta] = Field(None, description="Tipo de ruta")
     tipoServicio: TipoServicio = Field(..., description="Tipo de servicio")
     estado: EstadoRuta = Field(default=EstadoRuta.ACTIVA, description="Estado de la ruta")
     
@@ -143,7 +143,7 @@ class RutaCreate(BaseModel):
     horarios: List[HorarioServicio] = Field(default_factory=list, description="Horarios específicos")
     
     # Datos operativos
-    tipoRuta: TipoRuta = Field(..., description="Tipo de ruta")
+    tipoRuta: Optional[TipoRuta] = Field(None, description="Tipo de ruta")
     tipoServicio: TipoServicio = Field(..., description="Tipo de servicio")
     
     # Datos técnicos opcionales

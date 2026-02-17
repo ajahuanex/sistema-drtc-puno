@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -171,12 +171,13 @@ import { debounceTime } from 'rxjs';
     }
   `]
 })
-export class ResolucionesFiltersMinimalComponent implements OnInit {
+export class ResolucionesFiltersMinimalComponent implements OnInit, OnChanges {
   @Input() filtros: any = {};
   @Output() filtrosChange = new EventEmitter<any>();
 
   form: FormGroup;
   mostrarFiltrosAvanzados = false;
+  private previousFiltros: any = {};
 
   constructor(private fb: FormBuilder) {
     this.form = this.fb.group({
@@ -192,13 +193,7 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
     // console.log removed for production
     
     // Cargar valores iniciales
-    this.form.patchValue({
-      busqueda: this.filtros.busquedaGeneral || this.filtros.numeroResolucion || '',
-      estado: this.filtros.estados?.[0] || '',
-      tipoTramite: this.filtros.tiposTramite?.[0] || '',
-      fechaDesde: this.filtros.fechaInicio || '',
-      fechaHasta: this.filtros.fechaFin || ''
-    });
+    this.cargarFiltrosEnFormulario();
 
     // console.log removed for production
 
@@ -216,16 +211,60 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
     });
   }
 
+  ngOnChanges(changes: any): void {
+    // Detectar cuando los filtros cambian externamente (ej: al limpiar)
+    if (changes['filtros'] && !changes['filtros'].firstChange) {
+      const newFiltros = changes['filtros'].currentValue;
+      const oldFiltros = changes['filtros'].previousValue;
+      
+      // Solo actuar si realmente cambió
+      if (JSON.stringify(newFiltros) !== JSON.stringify(oldFiltros)) {
+        // Si los filtros están vacíos, resetear el formulario
+        if (Object.keys(newFiltros).length === 0) {
+          console.log('🔄 Filtros vacíos detectados, reseteando formulario');
+          this.form.reset({
+            busqueda: '',
+            estado: '',
+            tipoTramite: '',
+            fechaDesde: '',
+            fechaHasta: ''
+          }, { emitEvent: false }); // No emitir evento para evitar loop
+          this.mostrarFiltrosAvanzados = false;
+        } else {
+          this.cargarFiltrosEnFormulario();
+        }
+      }
+    }
+  }
+
+  private cargarFiltrosEnFormulario(): void {
+    this.form.patchValue({
+      busqueda: this.filtros.busquedaGeneral || this.filtros.numeroResolucion || '',
+      estado: this.filtros.estados?.[0] || '',
+      tipoTramite: this.filtros.tiposTramite?.[0] || '',
+      fechaDesde: this.filtros.fechaInicio || '',
+      fechaHasta: this.filtros.fechaFin || ''
+    }, { emitEvent: false }); // No emitir evento al cargar
+  }
+
   private emitirFiltros(): void {
     const valores = this.form.value;
-    // console.log removed for production
+    console.log('📤 Emitiendo filtros desde formulario:', valores);
     
     const filtros: any = {};
 
     // Búsqueda inteligente (número, razón social o RUC)
-    if (valores.busqueda?.trim()) {
-      filtros.busquedaGeneral = valores.busqueda.trim();
-      // console.log removed for production
+    // IMPORTANTE: Siempre incluir busquedaGeneral, incluso si está vacío
+    // Esto permite limpiar el filtro cuando se borra el texto
+    if (valores.busqueda !== null && valores.busqueda !== undefined) {
+      const busquedaTrimmed = String(valores.busqueda || '').trim();
+      if (busquedaTrimmed) {
+        filtros.busquedaGeneral = busquedaTrimmed;
+        console.log('✅ Agregando busquedaGeneral:', busquedaTrimmed);
+      } else {
+        console.log('🧹 Búsqueda vacía, no se agrega al filtro');
+      }
+      // Si está vacío, no agregamos el campo, lo que limpiará el filtro
     }
 
     // Filtros avanzados
@@ -245,13 +284,23 @@ export class ResolucionesFiltersMinimalComponent implements OnInit {
       filtros.fechaFin = valores.fechaHasta;
     }
 
-    // console.log removed for production
+    console.log('📤 Filtros finales a emitir:', filtros);
     this.filtrosChange.emit(filtros);
   }
 
   limpiar(): void {
-    this.form.reset();
+    // Resetear el formulario
+    this.form.reset({
+      busqueda: '',
+      estado: '',
+      tipoTramite: '',
+      fechaDesde: '',
+      fechaHasta: ''
+    });
     this.mostrarFiltrosAvanzados = false;
+    
+    // Emitir filtros vacíos inmediatamente
+    // No esperar al valueChanges para que sea instantáneo
     this.filtrosChange.emit({});
   }
 

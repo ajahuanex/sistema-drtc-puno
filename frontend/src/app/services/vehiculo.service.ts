@@ -77,7 +77,7 @@ export class VehiculoService {
       headers: this.getHeaders()
     }).pipe(
       tap(vehiculos => {
-        // console.log removed for production
+        console.log('✅ Vehículos recibidos:', vehiculos.length);
       }),
       catchError(error => {
         console.error('❌ Error obteniendo vehículos de la API::', error);
@@ -1714,6 +1714,23 @@ export class VehiculoService {
       catchError(error => {
         console.error('Error exportando vehículos::', error);
         return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Buscar vehículo en VehiculoSolo por placa
+   */
+  buscarVehiculoSoloPorPlaca(placa: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/vehiculos-solo/placa/${placa}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        if (error.status === 404) {
+          return of(null);
+        }
+        console.error('Error buscando vehículo solo por placa:', error);
+        return of(null);
       })
     );
   }

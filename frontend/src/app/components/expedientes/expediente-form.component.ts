@@ -23,7 +23,7 @@ import { ExpedienteService } from '../../services/expediente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
 import { Expediente, ExpedienteCreate, ExpedienteUpdate, ValidacionExpediente, RespuestaValidacion, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
-import { Empresa } from '../../models/empresa.model';
+import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 
 @Component({
@@ -562,7 +562,7 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas autorizadas
-      const empresasAutorizadas = empresas.filter(emp => emp.estado === 'AUTORIZADO');
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADO);
 
       const empresaSearchControl = this.expedienteForm.get('empresaSearch');
       if (empresaSearchControl) {

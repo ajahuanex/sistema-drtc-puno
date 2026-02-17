@@ -17,6 +17,7 @@ import { RutaService } from '../services/ruta.service';
 import { LocalidadService } from '../services/localidad.service';
 import { EmpresaService } from '../services/empresa.service';
 import { ResolucionService } from '../services/resolucion.service';
+import { ConfiguracionService } from '../services/configuracion.service'; // ✅ NUEVO
 import { Ruta, RutaCreate, RutaUpdate, EstadoRuta, TipoRuta, ValidacionRuta } from '../models/ruta.model';
 import { Localidad } from '../models/localidad.model';
 import { Empresa, EstadoEmpresa } from '../models/empresa.model';
@@ -171,14 +172,13 @@ export interface RutaFormData {
 
                       <mat-form-field appearance="outline" class="form-field">
                         <mat-label>TIPO DE RUTA</mat-label>
-                        <mat-select formControlName="tipo" required>
-                          @for (tipo of tiposRuta; track tipo) {
+                        <mat-select formControlName="tipo">
+                          <mat-option [value]="null">Sin especificar</mat-option>
+                          @for (tipo of tiposRuta(); track tipo.value) {
                             <mat-option [value]="tipo.value">{{ tipo.label }}</mat-option>
                           }
                         </mat-select>
-                        <mat-error *ngIf="rutaForm.get('tipo')?.hasError('required')">
-                          El tipo de ruta es requerido
-                        </mat-error>
+                        <mat-hint>Opcional - Puedes dejarlo sin especificar</mat-hint>
                       </mat-form-field>
 
                       <mat-form-field appearance="outline" class="form-field">
@@ -203,7 +203,7 @@ export interface RutaFormData {
                   </div>
                   <div class="step-actions">
                     <button mat-button matStepperNext type="button" 
-                            [disabled]="!rutaForm.get('nombre')?.valid || !rutaForm.get('tipo')?.valid || !rutaForm.get('estado')?.valid">
+                            [disabled]="!rutaForm.get('nombre')?.valid || !rutaForm.get('estado')?.valid">
                       SIGUIENTE
                     </button>
                   </div>
@@ -363,6 +363,7 @@ export class RutaWizardComponent {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
   private snackBar = inject(MatSnackBar);
+  private configuracionService = inject(ConfiguracionService); // ✅ NUEVO
 
   // Signals
   isLoading = signal(false);
@@ -384,14 +385,14 @@ export class RutaWizardComponent {
   // Formulario
   rutaForm!: FormGroup;
 
-  // Opciones
-  tiposRuta = [
-    { value: 'INTERPROVINCIAL', label: 'INTERPROVINCIAL' },
-    { value: 'INTERURBANA', label: 'INTERURBANA' },
-    { value: 'URBANA', label: 'URBANA' },
-    { value: 'NACIONAL', label: 'NACIONAL' },
-    { value: 'INTERNACIONAL', label: 'INTERNACIONAL' }
-  ];
+  // ✅ Opciones desde configuración
+  tiposRuta = computed(() => {
+    const config = this.configuracionService.tiposRutaConfig();
+    return config.filter((t: any) => t.estaActivo).map((t: any) => ({
+      value: t.codigo,
+      label: t.nombre
+    }));
+  });
 
   estadosRuta = [
     { value: 'ACTIVA', label: 'ACTIVA' },
@@ -410,7 +411,7 @@ export class RutaWizardComponent {
   private inicializarFormulario() {
     this.rutaForm = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(3)]],
-      tipo: ['INTERPROVINCIAL', Validators.required],
+      tipo: [''], // ✅ OPCIONAL - sin valor por defecto ni validación
       descripcion: [''],
       estado: ['ACTIVA', Validators.required],
       distanciaTotal: [0, [Validators.min(0)]],
@@ -448,7 +449,8 @@ export class RutaWizardComponent {
 
     // Configurar búsqueda de localidades
     this.localidadesFiltradas.set(
-      this.localidadService.getLocalidadesActivas().pipe(
+      this.localidadService.getLocalidadesObservable().pipe(
+        map(localidades => localidades.filter(l => l.esta_activa)),
         startWith([])
       )
     );

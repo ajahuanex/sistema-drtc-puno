@@ -132,7 +132,7 @@ export class ExportService {
       ruta.codigoRuta,
       ruta.origen?.nombre || ruta.origen || 'Sin origen',
       ruta.destino?.nombre || ruta.destino || 'Sin destino',
-      ruta.frecuencias || 'Sin frecuencias',
+      ruta.frecuencia?.descripcion || 'Sin frecuencias',
       ruta.tipoRuta || 'Sin tipo',
       ruta.estado || 'Sin estado'
     ]);
@@ -254,7 +254,7 @@ export class ExportService {
         'Origen': ruta.origen?.nombre || ruta.origen || 'Sin origen',
         'Destino': ruta.destino?.nombre || ruta.destino || 'Sin destino',
         'Itinerario': ruta.descripcion || ruta.nombre || `${ruta.origen?.nombre || ruta.origen} - ${ruta.destino?.nombre || ruta.destino}`,
-        'Frecuencias': ruta.frecuencias || 'Sin frecuencias',
+        'Frecuencias': ruta.frecuencia?.descripcion || 'Sin frecuencias',
         'Tipo Ruta': ruta.tipoRuta || 'Sin tipo',
         'Tipo Servicio': ruta.tipoServicio || 'Sin tipo servicio',
         'Estado': ruta.estado || 'Sin estado',

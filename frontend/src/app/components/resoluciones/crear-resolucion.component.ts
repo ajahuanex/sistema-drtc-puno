@@ -1260,9 +1260,12 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       next: (resolucion) => {
         // console.log removed for production
 
-        // Calcular años de vigencia basándose en las fechas
-        let aniosVigencia = this.configuracionService.aniosVigenciaDefault();
-        if (resolucion.fechaVigenciaInicio && resolucion.fechaVigenciaFin) {
+        // Calcular años de vigencia
+        // IMPORTANTE: Usar el campo aniosVigencia de la BD si existe
+        let aniosVigencia = resolucion.aniosVigencia || this.configuracionService.aniosVigenciaDefault();
+        
+        // Solo calcular desde fechas si aniosVigencia no está definido
+        if (!resolucion.aniosVigencia && resolucion.fechaVigenciaInicio && resolucion.fechaVigenciaFin) {
           const fechaInicio = new Date(resolucion.fechaVigenciaInicio);
           const fechaFin = new Date(resolucion.fechaVigenciaFin);
           const diffTime = fechaFin.getTime() - fechaInicio.getTime();

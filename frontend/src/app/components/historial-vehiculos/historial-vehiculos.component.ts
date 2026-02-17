@@ -17,13 +17,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { HistorialVehiculoService } from '../../services/historial-vehiculo.service';
+import { HistorialVehicularService } from '../../services/historial-vehicular.service';
 import { 
   HistorialVehiculo, 
   FiltroHistorialVehiculo, 
   TipoCambioVehiculo,
+  TipoEventoHistorial,
   ResumenHistorialVehiculo 
-} from '../../models/historial-vehiculo.model';
+} from '../../models/historial-vehicular.model';
 
 @Component({
   selector: 'app-historial-vehiculos',
@@ -51,7 +52,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HistorialVehiculosComponent implements OnInit {
-  private historialService = inject(HistorialVehiculoService);
+  private historialService = inject(HistorialVehicularService);
   private snackBar = inject(MatSnackBar);
 
   // Signals
@@ -80,7 +81,7 @@ export class HistorialVehiculosComponent implements OnInit {
   ];
 
   // Tipos de cambio disponibles
-  tiposCambio = Object.values(TipoCambioVehiculo);
+  tiposCambio = Object.values(TipoEventoHistorial);
 
   ngOnInit(): void {
     this.cargarHistorial();
@@ -150,21 +151,27 @@ export class HistorialVehiculosComponent implements OnInit {
     // console.log removed for production
   }
 
-  obtenerColorTipoCambio(tipo: TipoCambioVehiculo): string {
-    const colores: Record<TipoCambioVehiculo, string> = {
-      [TipoCambioVehiculo.TRANSFERENCIA_EMPRESA]: 'accent',
-      [TipoCambioVehiculo.CAMBIO_ESTADO]: 'primary',
-      [TipoCambioVehiculo.ASIGNACION_RUTA]: 'warn',
-      [TipoCambioVehiculo.REMOCION_RUTA]: 'warn',
-      [TipoCambioVehiculo.CAMBIO_RESOLUCION]: 'primary',
-      [TipoCambioVehiculo.ACTIVACION]: 'accent',
-      [TipoCambioVehiculo.DESACTIVACION]: 'warn',
-      [TipoCambioVehiculo.RENOVACION_TUC]: 'primary',
-      [TipoCambioVehiculo.MODIFICACION_DATOS]: 'primary',
-      [TipoCambioVehiculo.INSPECCION_TECNICA]: 'accent',
-      [TipoCambioVehiculo.MANTENIMIENTO]: 'accent',
-      [TipoCambioVehiculo.SANCION]: 'warn',
-      [TipoCambioVehiculo.REHABILITACION]: 'accent'
+  obtenerColorTipoCambio(tipo: TipoEventoHistorial): string {
+    const colores: Partial<Record<TipoEventoHistorial, string>> = {
+      [TipoEventoHistorial.TRANSFERENCIA_EMPRESA]: 'accent',
+      [TipoEventoHistorial.CAMBIO_ESTADO]: 'primary',
+      [TipoEventoHistorial.ASIGNACION_RUTA]: 'warn',
+      [TipoEventoHistorial.DESASIGNACION_RUTA]: 'warn',
+      [TipoEventoHistorial.REMOCION_RUTA]: 'warn',
+      [TipoEventoHistorial.CAMBIO_RESOLUCION]: 'primary',
+      [TipoEventoHistorial.ACTIVACION]: 'accent',
+      [TipoEventoHistorial.REACTIVACION]: 'accent',
+      [TipoEventoHistorial.DESACTIVACION]: 'warn',
+      [TipoEventoHistorial.SUSPENSION]: 'warn',
+      [TipoEventoHistorial.RENOVACION_TUC]: 'primary',
+      [TipoEventoHistorial.MODIFICACION]: 'primary',
+      [TipoEventoHistorial.MODIFICACION_DATOS]: 'primary',
+      [TipoEventoHistorial.INSPECCION]: 'accent',
+      [TipoEventoHistorial.INSPECCION_TECNICA]: 'accent',
+      [TipoEventoHistorial.MANTENIMIENTO]: 'accent',
+      [TipoEventoHistorial.MULTA]: 'warn',
+      [TipoEventoHistorial.SANCION]: 'warn',
+      [TipoEventoHistorial.REHABILITACION]: 'accent'
     };
     
     return colores[tipo] || 'primary';

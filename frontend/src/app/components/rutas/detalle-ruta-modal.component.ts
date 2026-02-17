@@ -76,36 +76,30 @@ export interface DetalleRutaModalData {
 
           <div class="info-item">
             <div class="info-label">
-              <mat-icon>straighten</mat-icon>
-              Distancia
-            </div>
-            <div class="info-value">{{ data.ruta.distancia || 'N/A' }} km</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">
-              <mat-icon>schedule</mat-icon>
-              Tiempo Estimado
-            </div>
-            <div class="info-value">{{ data.ruta.tiempoEstimado || 'N/A' }} horas</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">
-              <mat-icon>category</mat-icon>
-              Tipo de Ruta
-            </div>
-            <div class="info-value">{{ getTipoRutaLabel(data.ruta.tipoRuta) }}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">
               <mat-icon>event_repeat</mat-icon>
               Frecuencias
             </div>
-            <div class="info-value">{{ data.ruta.frecuencias }}</div>
+            <div class="info-value">{{ data.ruta.frecuencia?.descripcion || 'Sin frecuencia' }}</div>
           </div>
         </div>
+
+        <!-- Itinerario (si existe) -->
+        @if (data.ruta.itinerario && data.ruta.itinerario.length > 0) {
+          <div class="itinerario-section">
+            <h5 class="itinerario-title">
+              <mat-icon>route</mat-icon>
+              Itinerario (Recorrido)
+            </h5>
+            <div class="itinerario-list">
+              @for (localidad of data.ruta.itinerario; track localidad.orden) {
+                <div class="itinerario-item">
+                  <span class="orden-badge">{{ localidad.orden }}</span>
+                  <span class="localidad-nombre">{{ localidad.nombre }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <mat-divider></mat-divider>
@@ -319,6 +313,65 @@ export interface DetalleRutaModalData {
         color: #212121;
         line-height: 1.6;
         white-space: pre-wrap;
+      }
+
+      .itinerario-section {
+        margin-top: 16px;
+        padding: 16px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+
+        .itinerario-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 500;
+          color: #212121;
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            color: #1976d2;
+          }
+        }
+
+        .itinerario-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .itinerario-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 12px;
+          background-color: white;
+          border-radius: 6px;
+          border-left: 3px solid #1976d2;
+
+          .orden-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 28px;
+            height: 28px;
+            background-color: #1976d2;
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 600;
+          }
+
+          .localidad-nombre {
+            font-size: 14px;
+            color: #212121;
+            font-weight: 500;
+          }
+        }
       }
     }
 

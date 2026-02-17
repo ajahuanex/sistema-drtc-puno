@@ -505,7 +505,7 @@ export class HistorialDetalleModalComponent {
   }
 
   getIconoTipoEvento(tipo: TipoEventoHistorial): string {
-    const iconos: { [key in TipoEventoHistorial]: string } = {
+    const iconos: Partial<{ [key in TipoEventoHistorial]: string }> = {
       [TipoEventoHistorial.CREACION]: 'add_circle',
       [TipoEventoHistorial.MODIFICACION]: 'edit',
       [TipoEventoHistorial.TRANSFERENCIA_EMPRESA]: 'swap_horiz',
@@ -513,18 +513,25 @@ export class HistorialDetalleModalComponent {
       [TipoEventoHistorial.CAMBIO_ESTADO]: 'toggle_on',
       [TipoEventoHistorial.ASIGNACION_RUTA]: 'add_road',
       [TipoEventoHistorial.DESASIGNACION_RUTA]: 'remove_road',
+      [TipoEventoHistorial.REMOCION_RUTA]: 'remove_road',
       [TipoEventoHistorial.ACTUALIZACION_TUC]: 'receipt',
       [TipoEventoHistorial.RENOVACION_TUC]: 'refresh',
       [TipoEventoHistorial.SUSPENSION]: 'pause_circle',
       [TipoEventoHistorial.REACTIVACION]: 'play_circle',
+      [TipoEventoHistorial.ACTIVACION]: 'play_circle',
+      [TipoEventoHistorial.DESACTIVACION]: 'pause_circle',
       [TipoEventoHistorial.BAJA_DEFINITIVA]: 'cancel',
       [TipoEventoHistorial.MANTENIMIENTO]: 'build',
       [TipoEventoHistorial.INSPECCION]: 'search',
+      [TipoEventoHistorial.INSPECCION_TECNICA]: 'search',
       [TipoEventoHistorial.ACCIDENTE]: 'warning',
       [TipoEventoHistorial.MULTA]: 'gavel',
+      [TipoEventoHistorial.SANCION]: 'gavel',
       [TipoEventoHistorial.REVISION_TECNICA]: 'verified',
       [TipoEventoHistorial.CAMBIO_PROPIETARIO]: 'person_add',
       [TipoEventoHistorial.ACTUALIZACION_DATOS_TECNICOS]: 'settings',
+      [TipoEventoHistorial.MODIFICACION_DATOS]: 'settings',
+      [TipoEventoHistorial.REHABILITACION]: 'restore',
       [TipoEventoHistorial.OTROS]: 'more_horiz'
     };
 

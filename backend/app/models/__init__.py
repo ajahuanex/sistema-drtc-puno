@@ -1,6 +1,6 @@
 from .usuario import UsuarioCreate, UsuarioUpdate, UsuarioInDB, UsuarioResponse
 from .empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse
-from .vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse, DatosTecnicos
+from .vehiculo import VehiculoCreate, VehiculoUpdate, VehiculoInDB, VehiculoResponse
 from .ruta import RutaCreate, RutaUpdate, RutaInDB, RutaResponse
 from .resolucion import ResolucionCreate, ResolucionUpdate, ResolucionInDB, ResolucionResponse
 from .tuc import TucCreate, TucUpdate, TucInDB, TucResponse, Tuc
@@ -18,7 +18,6 @@ __all__ = [
     "VehiculoUpdate",
     "VehiculoInDB", 
     "VehiculoResponse",
-    "DatosTecnicos",
     "RutaCreate",
     "RutaUpdate",
     "RutaInDB", 

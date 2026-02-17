@@ -28,13 +28,15 @@ class ResolucionExcelService:
         """Generar plantilla Excel para carga masiva de resoluciones"""
         
         # Crear DataFrame con datos de ejemplo actualizados
+        # IMPORTANTE: Usar nombres con guión bajo para consistencia
         datos_ejemplo = {
             'Resolución Padre': ['', 'R-1005-2024'],  # Nueva columna al inicio
             'Número Resolución': ['1005-2024', '1006-2024'],  # Sin R- en plantilla
             'RUC Empresa': ['20123456789', '20234567890'],
             'Fecha Emisión': ['15/01/2024', '20/01/2024'],  # Formato español dd/mm/yyyy
             'Fecha Vigencia Inicio': ['15/01/2024', ''],  # Solo para resoluciones padre
-            'Fecha Vigencia Fin': ['15/01/2029', ''],  # Solo para resoluciones padre
+            'Años Vigencia': ['4', ''],  # Años de vigencia (4 o 10) - solo para PADRE
+            'Fecha Vigencia Fin': ['14/01/2028', ''],  # Calculada automáticamente (inicio + años - 1 día)
             'Tipo Resolución': ['PADRE', 'HIJO'],
             'Tipo Trámite': ['PRIMIGENIA', 'RENOVACION'],
             'Descripción': ['Autorización para operar rutas interprovinciales', 'Renovación de autorización de transporte'],
@@ -75,17 +77,73 @@ class ResolucionExcelService:
             worksheet['B1'].comment = Comment("Número sin prefijo R-. Ejemplo: 1005-2024 (el sistema agregará R-)", "Sistema")
             worksheet['D1'].comment = Comment("Formato: dd/mm/yyyy. Ejemplo: 15/01/2024", "Sistema")
             worksheet['E1'].comment = Comment("Solo para resoluciones PADRE. Dejar vacío para resoluciones HIJO.", "Sistema")
-            worksheet['F1'].comment = Comment("Solo para resoluciones PADRE. Dejar vacío para resoluciones HIJO.", "Sistema")
-            worksheet['J1'].comment = Comment("OPCIONAL. Formatos aceptados: 123-2024, E-123-2024, 123-2024-E (se convertirá a E-0123-2024)", "Sistema")
+            worksheet['F1'].comment = Comment("Años de vigencia (4 o 10). Solo para resoluciones PADRE.", "Sistema")
+            worksheet['G1'].comment = Comment("Se calcula automáticamente: Fecha Inicio + Años Vigencia - 1 día. Puede dejarse vacío.", "Sistema")
+            worksheet['K1'].comment = Comment("OPCIONAL. Formatos aceptados: 123-2024, E-123-2024, 123-2024-E (se convertirá a E-0123-2024)", "Sistema")
         
         buffer.seek(0)
         return buffer
+    
+    def _normalizar_nombres_columnas(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalizar nombres de columnas para soportar múltiples formatos
+        Convierte tanto 'ANIOS_VIGENCIA' como 'Años Vigencia' a un formato estándar
+        """
+        # Mapeo de nombres alternativos a nombres estándar
+        mapeo_columnas = {
+            # Formatos con guión bajo (mayúsculas)
+            'RUC_EMPRESA_ASOCIADA': 'RUC Empresa',
+            'RESOLUCION_NUMERO': 'Número Resolución',
+            'RESOLUCION_ASOCIADA': 'Resolución Padre',
+            'TIPO_RESOLUCION': 'Tipo Resolución',
+            'FECHA_RESOLUCION': 'Fecha Emisión',
+            'FECHA_INICIO_VIGENCIA': 'Fecha Vigencia Inicio',
+            'ANIOS_VIGENCIA': 'Años Vigencia',
+            'FECHA_FIN_VIGENCIA': 'Fecha Vigencia Fin',
+            'ESTADO': 'Estado',
+            'DESCRIPCION': 'Descripción',
+            'ID_EXPEDIENTE': 'ID Expediente',
+            'USUARIO_EMISION': 'Usuario Emisión',
+            'OBSERVACIONES': 'Observaciones',
+            'TIPO_TRAMITE': 'Tipo Trámite',
+            # Formatos con espacios (ya estándar)
+            'RUC Empresa': 'RUC Empresa',
+            'Número Resolución': 'Número Resolución',
+            'Resolución Padre': 'Resolución Padre',
+            'Tipo Resolución': 'Tipo Resolución',
+            'Fecha Emisión': 'Fecha Emisión',
+            'Fecha Vigencia Inicio': 'Fecha Vigencia Inicio',
+            'Años Vigencia': 'Años Vigencia',
+            'Fecha Vigencia Fin': 'Fecha Vigencia Fin',
+            'Estado': 'Estado',
+            'Descripción': 'Descripción',
+            'ID Expediente': 'ID Expediente',
+            'Usuario Emisión': 'Usuario Emisión',
+            'Observaciones': 'Observaciones',
+            'Tipo Trámite': 'Tipo Trámite'
+        }
+        
+        # Renombrar columnas según el mapeo
+        columnas_renombradas = {}
+        for col in df.columns:
+            col_limpio = col.strip()
+            if col_limpio in mapeo_columnas:
+                columnas_renombradas[col] = mapeo_columnas[col_limpio]
+            else:
+                # Mantener el nombre original si no está en el mapeo
+                columnas_renombradas[col] = col
+        
+        df = df.rename(columns=columnas_renombradas)
+        return df
     
     async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Validar archivo Excel de resoluciones"""
         try:
             # Leer Excel manteniendo las fechas como texto para evitar conversión automática
             df = pd.read_excel(archivo_excel, dtype=str, keep_default_na=False)
+            
+            # Normalizar nombres de columnas para soportar múltiples formatos
+            df = self._normalizar_nombres_columnas(df)
             
             # Reemplazar valores NaN y vacíos con cadenas vacías
             df = df.fillna('')
@@ -201,6 +259,7 @@ class ResolucionExcelService:
         # Validar fechas de vigencia según tipo de resolución
         fecha_vigencia_inicio = str(row.get('Fecha Vigencia Inicio', '')).strip() if row.get('Fecha Vigencia Inicio') and str(row.get('Fecha Vigencia Inicio')).strip() else ''
         fecha_vigencia_fin = str(row.get('Fecha Vigencia Fin', '')).strip() if row.get('Fecha Vigencia Fin') and str(row.get('Fecha Vigencia Fin')).strip() else ''
+        anios_vigencia = str(row.get('Años Vigencia', '')).strip() if row.get('Años Vigencia') and str(row.get('Años Vigencia')).strip() else ''
         
         if tipo_resolucion == 'PADRE':
             # Las resoluciones padre deben tener fechas de vigencia
@@ -208,10 +267,22 @@ class ResolucionExcelService:
                 errores.append("Las resoluciones PADRE deben tener fecha de vigencia inicio")
             elif not self._validar_formato_fecha_espanol(fecha_vigencia_inicio):
                 errores.append(f"Formato de fecha de vigencia inicio inválido: {fecha_vigencia_inicio} (formatos aceptados: dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy)")
-                
-            if not fecha_vigencia_fin:
-                errores.append("Las resoluciones PADRE deben tener fecha de vigencia fin")
-            elif not self._validar_formato_fecha_espanol(fecha_vigencia_fin):
+            
+            # Validar años de vigencia
+            if not anios_vigencia:
+                errores.append("Las resoluciones PADRE deben tener años de vigencia (4 o 10)")
+            else:
+                try:
+                    anios = int(anios_vigencia)
+                    if anios not in [4, 10]:
+                        advertencias.append(f"Años de vigencia inusual: {anios}. Normalmente son 4 o 10 años")
+                    if anios < 1 or anios > 50:
+                        errores.append(f"Años de vigencia fuera de rango válido (1-50): {anios}")
+                except ValueError:
+                    errores.append(f"Años de vigencia debe ser un número entero: {anios_vigencia}")
+            
+            # La fecha fin es opcional, se calculará automáticamente
+            if fecha_vigencia_fin and not self._validar_formato_fecha_espanol(fecha_vigencia_fin):
                 errores.append(f"Formato de fecha de vigencia fin inválido: {fecha_vigencia_fin} (formatos aceptados: dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy)")
         elif tipo_resolucion == 'HIJO':
             # Las resoluciones hijo no deben tener fechas de vigencia
@@ -219,6 +290,8 @@ class ResolucionExcelService:
                 advertencias.append("Las resoluciones HIJO no necesitan fecha de vigencia inicio (se hereda del padre)")
             if fecha_vigencia_fin:
                 advertencias.append("Las resoluciones HIJO no necesitan fecha de vigencia fin (se hereda del padre)")
+            if anios_vigencia:
+                advertencias.append("Las resoluciones HIJO no necesitan años de vigencia (se hereda del padre)")
         
         # Validar RUC empresa (requerido)
         ruc_empresa = str(row.get('RUC Empresa', '')).strip() if row.get('RUC Empresa') and str(row.get('RUC Empresa')).strip() else ''
@@ -406,6 +479,8 @@ class ResolucionExcelService:
     
     def _convertir_fila_a_resolucion(self, row: pd.Series) -> Dict[str, Any]:
         """Convertir fila de Excel a datos de resolución"""
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
         
         # Resolución padre (opcional)
         resolucion_padre = str(row.get('Resolución Padre', '')).strip() if row.get('Resolución Padre') and str(row.get('Resolución Padre')).strip() else None
@@ -427,17 +502,75 @@ class ResolucionExcelService:
         tipo_resolucion = str(row.get('Tipo Resolución', 'PADRE')).strip().upper()
         fecha_vigencia_inicio = None
         fecha_vigencia_fin = None
+        anios_vigencia = None
+        advertencia_fecha_fin = None
         
         if tipo_resolucion == 'PADRE':
+            # Leer fecha de inicio de vigencia
             fecha_vigencia_inicio_str = str(row.get('Fecha Vigencia Inicio', '')).strip() if row.get('Fecha Vigencia Inicio') and str(row.get('Fecha Vigencia Inicio')).strip() else ''
+            
+            # Leer años de vigencia del Excel
+            anios_vigencia_raw = row.get('Años Vigencia', '')
+            anios_vigencia_str = str(anios_vigencia_raw).strip() if anios_vigencia_raw is not None and str(anios_vigencia_raw).strip() else ''
+            
+            # Debug: Mostrar valor leído
+            print(f"[DEBUG] Resolución {numero_resolucion}: Años Vigencia leído del Excel = '{anios_vigencia_str}' (tipo original: {type(anios_vigencia_raw).__name__})")
+            
+            # Filtrar valores NaN, 'nan', vacíos
+            if anios_vigencia_str and anios_vigencia_str.lower() not in ['nan', 'none', '', 'null']:
+                try:
+                    # Convertir a float primero por si viene como decimal, luego a int
+                    anios_vigencia = int(float(anios_vigencia_str))
+                    print(f"[DEBUG] Resolución {numero_resolucion}: Años Vigencia convertido = {anios_vigencia}")
+                except (ValueError, TypeError) as e:
+                    print(f"⚠️ Advertencia: No se pudo convertir años de vigencia '{anios_vigencia_str}' a número. Error: {e}. Usando 4 por defecto.")
+                    anios_vigencia = 4
+            else:
+                # Si no viene o es NaN, usar 4 por defecto
+                print(f"[DEBUG] Resolución {numero_resolucion}: Años Vigencia vacío o NaN, usando 4 por defecto")
+                anios_vigencia = 4
+            
+            # Leer fecha fin de vigencia del Excel (opcional, solo para validación)
             fecha_vigencia_fin_str = str(row.get('Fecha Vigencia Fin', '')).strip() if row.get('Fecha Vigencia Fin') and str(row.get('Fecha Vigencia Fin')).strip() else ''
             
             if fecha_vigencia_inicio_str:
                 valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_vigencia_inicio_str)
                 fecha_vigencia_inicio = fecha_normalizada if valida else fecha_vigencia_inicio_str
-            if fecha_vigencia_fin_str:
-                valida, fecha_normalizada = self._validar_y_normalizar_fecha(fecha_vigencia_fin_str)
-                fecha_vigencia_fin = fecha_normalizada if valida else fecha_vigencia_fin_str
+                
+                # CALCULAR fecha fin de vigencia: inicio + años - 1 día
+                try:
+                    # Parsear fecha de inicio (puede venir en formato ISO o con timezone)
+                    if 'T' in fecha_vigencia_inicio:
+                        fecha_inicio_dt = datetime.fromisoformat(fecha_vigencia_inicio.replace('Z', '+00:00'))
+                    else:
+                        fecha_inicio_dt = datetime.strptime(fecha_vigencia_inicio, '%Y-%m-%d')
+                    
+                    # Calcular fecha fin: inicio + años - 1 día
+                    fecha_fin_calculada_dt = fecha_inicio_dt + relativedelta(years=anios_vigencia) - relativedelta(days=1)
+                    
+                    # Guardar solo la fecha sin hora (formato YYYY-MM-DD)
+                    fecha_vigencia_fin = fecha_fin_calculada_dt.strftime('%Y-%m-%d')
+                    
+                    # Si viene fecha fin en el Excel, validar que coincida
+                    if fecha_vigencia_fin_str:
+                        valida_fin, fecha_fin_excel = self._validar_y_normalizar_fecha(fecha_vigencia_fin_str)
+                        if valida_fin:
+                            fecha_fin_excel_dt = datetime.fromisoformat(fecha_fin_excel.replace('Z', '+00:00'))
+                            
+                            # Calcular diferencia en días
+                            diferencia_dias = abs((fecha_fin_excel_dt - fecha_fin_calculada_dt).days)
+                            
+                            if diferencia_dias > 2:  # Tolerancia de 2 días
+                                advertencia_fecha_fin = (
+                                    f"Fecha fin del Excel ({fecha_fin_excel_dt.strftime('%d/%m/%Y')}) "
+                                    f"no coincide con el cálculo ({fecha_fin_calculada_dt.strftime('%d/%m/%Y')}). "
+                                    f"Diferencia: {diferencia_dias} días. Se usará la fecha calculada."
+                                )
+                    
+                except Exception as e:
+                    print(f"Error calculando fechas de vigencia: {e}")
+                    # Valores por defecto
+                    anios_vigencia = 4
         
         # Otros campos
         tipo_tramite = str(row.get('Tipo Trámite', 'PRIMIGENIA')).strip().upper()
@@ -453,13 +586,14 @@ class ResolucionExcelService:
         else:
             expediente_id = None
         
-        return {
+        resultado = {
             'resolucionPadreId': resolucion_padre,
             'nroResolucion': numero_resolucion,
             'empresaRuc': ruc_empresa,
             'fechaEmision': fecha_emision,
             'fechaVigenciaInicio': fecha_vigencia_inicio,
             'fechaVigenciaFin': fecha_vigencia_fin,
+            'aniosVigencia': anios_vigencia,
             'tipoResolucion': tipo_resolucion,
             'tipoTramite': tipo_tramite,
             'descripcion': descripcion,
@@ -468,9 +602,17 @@ class ResolucionExcelService:
             'estado': estado,
             'observaciones': observaciones
         }
+        
+        # Agregar advertencia si existe
+        if advertencia_fecha_fin:
+            resultado['advertencia_fecha_fin'] = advertencia_fecha_fin
+        
+        return resultado
     
     async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Procesar carga masiva de resoluciones desde Excel"""
+        from bson import ObjectId
+        from datetime import datetime
         
         # Primero validar el archivo
         resultado_validacion = await self.validar_archivo_excel(archivo_excel)
@@ -483,36 +625,139 @@ class ResolucionExcelService:
         resoluciones_actualizadas = []
         errores_creacion = []
         
+        # Estadísticas de años de vigencia
+        estadisticas_vigencia = {
+            'con_4_anios': 0,
+            'con_10_anios': 0,
+            'otros_anios': 0,
+            'sin_vigencia': 0  # Resoluciones HIJO
+        }
+        
+        db = await self._get_database()
+        resoluciones_collection = db["resoluciones"]
+        empresas_collection = db["empresas"]
+        
         for resolucion_data in resultado_validacion['resoluciones_validas']:
             try:
+                # Obtener empresa por RUC
+                empresa = await empresas_collection.find_one({
+                    "ruc": resolucion_data['empresaRuc'],
+                    "estaActivo": True
+                })
+                
+                if not empresa:
+                    errores_creacion.append({
+                        'numero_resolucion': resolucion_data['nroResolucion'],
+                        'error': f"Empresa con RUC {resolucion_data['empresaRuc']} no encontrada"
+                    })
+                    continue
+                
+                empresa_id = str(empresa['_id'])
+                
                 # Verificar si la resolución ya existe
-                existe = await self._existe_resolucion(resolucion_data['nroResolucion'])
+                resolucion_existente = await resoluciones_collection.find_one({
+                    "nroResolucion": resolucion_data['nroResolucion']
+                })
                 
-                # Obtener datos de la empresa
-                empresa_info = await self._obtener_info_empresa(resolucion_data['empresaRuc'])
+                # Preparar datos de la resolución
+                resolucion_doc = {
+                    "nroResolucion": resolucion_data['nroResolucion'],
+                    "empresaId": empresa_id,
+                    "fechaEmision": resolucion_data['fechaEmision'],
+                    "tipoResolucion": resolucion_data['tipoResolucion'],
+                    "tipoTramite": resolucion_data['tipoTramite'],
+                    "descripcion": resolucion_data['descripcion'],
+                    "estado": resolucion_data['estado'],
+                    "estaActivo": True,
+                    "resolucionesHijasIds": [],
+                    "vehiculosHabilitadosIds": [],
+                    "rutasAutorizadasIds": []
+                }
                 
-                if existe:
+                # Agregar campos opcionales
+                if resolucion_data.get('resolucionPadreId'):
+                    resolucion_doc['resolucionPadreId'] = resolucion_data['resolucionPadreId']
+                
+                if resolucion_data.get('expedienteId'):
+                    resolucion_doc['expedienteId'] = resolucion_data['expedienteId']
+                
+                if resolucion_data.get('observaciones'):
+                    resolucion_doc['observaciones'] = resolucion_data['observaciones']
+                
+                if resolucion_data.get('usuarioEmisionId'):
+                    resolucion_doc['usuarioEmisionId'] = resolucion_data['usuarioEmisionId']
+                
+                # Campos de vigencia (solo para resoluciones PADRE)
+                if resolucion_data['tipoResolucion'] == 'PADRE':
+                    if resolucion_data.get('fechaVigenciaInicio'):
+                        resolucion_doc['fechaVigenciaInicio'] = resolucion_data['fechaVigenciaInicio']
+                    if resolucion_data.get('fechaVigenciaFin'):
+                        resolucion_doc['fechaVigenciaFin'] = resolucion_data['fechaVigenciaFin']
+                    # Siempre guardar aniosVigencia, incluso si es None (se usará el default del modelo)
+                    resolucion_doc['aniosVigencia'] = resolucion_data.get('aniosVigencia', 4)
+                    
+                    # Debug: Mostrar qué se va a guardar
+                    print(f"[DEBUG] Guardando resolución {resolucion_data['nroResolucion']}: aniosVigencia = {resolucion_doc['aniosVigencia']}")
+                
+                if resolucion_existente:
                     # Actualizar resolución existente
-                    resolucion_actualizada = {
+                    resolucion_doc['fechaActualizacion'] = datetime.utcnow().isoformat()
+                    
+                    await resoluciones_collection.update_one(
+                        {"_id": resolucion_existente['_id']},
+                        {"$set": resolucion_doc}
+                    )
+                    
+                    resoluciones_actualizadas.append({
                         'numero_resolucion': resolucion_data['nroResolucion'],
                         'empresa_ruc': resolucion_data['empresaRuc'],
-                        'empresa_razon_social': empresa_info.get('razon_social', f"Empresa con RUC {resolucion_data['empresaRuc']}"),
+                        'empresa_razon_social': empresa.get('razonSocial', {}).get('principal', 'N/A'),
                         'tipo_resolucion': resolucion_data['tipoResolucion'],
+                        'anios_vigencia': resolucion_data.get('aniosVigencia'),
                         'estado': 'ACTUALIZADA',
                         'accion': 'ACTUALIZADA'
-                    }
-                    resoluciones_actualizadas.append(resolucion_actualizada)
+                    })
+                    
+                    # Actualizar estadísticas
+                    if resolucion_data['tipoResolucion'] == 'PADRE':
+                        anios = resolucion_data.get('aniosVigencia', 4)
+                        if anios == 4:
+                            estadisticas_vigencia['con_4_anios'] += 1
+                        elif anios == 10:
+                            estadisticas_vigencia['con_10_anios'] += 1
+                        else:
+                            estadisticas_vigencia['otros_anios'] += 1
+                    else:
+                        estadisticas_vigencia['sin_vigencia'] += 1
                 else:
                     # Crear nueva resolución
-                    resolucion_creada = {
+                    resolucion_doc['fechaRegistro'] = datetime.utcnow().isoformat()
+                    resolucion_doc['fechaActualizacion'] = None
+                    
+                    resultado_insert = await resoluciones_collection.insert_one(resolucion_doc)
+                    
+                    resoluciones_creadas.append({
                         'numero_resolucion': resolucion_data['nroResolucion'],
                         'empresa_ruc': resolucion_data['empresaRuc'],
-                        'empresa_razon_social': empresa_info.get('razon_social', f"Empresa con RUC {resolucion_data['empresaRuc']}"),
+                        'empresa_razon_social': empresa.get('razonSocial', {}).get('principal', 'N/A'),
                         'tipo_resolucion': resolucion_data['tipoResolucion'],
+                        'anios_vigencia': resolucion_data.get('aniosVigencia'),
                         'estado': 'CREADA',
-                        'accion': 'CREADA'
-                    }
-                    resoluciones_creadas.append(resolucion_creada)
+                        'accion': 'CREADA',
+                        'id': str(resultado_insert.inserted_id)
+                    })
+                    
+                    # Actualizar estadísticas
+                    if resolucion_data['tipoResolucion'] == 'PADRE':
+                        anios = resolucion_data.get('aniosVigencia', 4)
+                        if anios == 4:
+                            estadisticas_vigencia['con_4_anios'] += 1
+                        elif anios == 10:
+                            estadisticas_vigencia['con_10_anios'] += 1
+                        else:
+                            estadisticas_vigencia['otros_anios'] += 1
+                    else:
+                        estadisticas_vigencia['sin_vigencia'] += 1
                 
             except Exception as e:
                 errores_creacion.append({
@@ -531,7 +776,9 @@ class ResolucionExcelService:
             'errores_creacion': errores_creacion,
             'total_creadas': len(resoluciones_creadas),
             'total_actualizadas': len(resoluciones_actualizadas),
-            'total_procesadas': len(todas_resoluciones)
+            'total_procesadas': len(todas_resoluciones),
+            'total_errores_creacion': len(errores_creacion),
+            'estadisticas_vigencia': estadisticas_vigencia
         }
     
     async def _obtener_info_empresa(self, ruc: str) -> Dict[str, Any]:

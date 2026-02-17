@@ -246,22 +246,22 @@
       <!-- Resumen de procesamiento -->
       <div *ngIf="resultadoProcesamiento" class="processing-summary">
         <h3>Resumen de Procesamiento</h3>
-        <div class="summary-grid" *ngIf="resultadoProcesamiento.estadisticas">
+        <div class="summary-grid">
           <div class="summary-item">
             <div class="summary-label">Total Procesadas</div>
-            <div class="summary-value">{{ resultadoProcesamiento.estadisticas.total_procesadas }}</div>
+            <div class="summary-value">{{ totalProcesadas }}</div>
           </div>
           <div class="summary-item">
             <div class="summary-label">Creadas</div>
-            <mat-chip color="primary" selected>{{ resultadoProcesamiento.estadisticas.creadas }}</mat-chip>
+            <mat-chip color="primary" selected>{{ totalCreadas }}</mat-chip>
           </div>
           <div class="summary-item">
             <div class="summary-label">Actualizadas</div>
-            <mat-chip color="accent" selected>{{ resultadoProcesamiento.estadisticas.actualizadas }}</mat-chip>
+            <mat-chip color="accent" selected>{{ totalActualizadas }}</mat-chip>
           </div>
           <div class="summary-item">
             <div class="summary-label">Errores</div>
-            <mat-chip color="warn" selected>{{ resultadoProcesamiento.estadisticas.errores }}</mat-chip>
+            <mat-chip color="warn" selected>{{ totalErrores }}</mat-chip>
           </div>
         </div>
       </div>

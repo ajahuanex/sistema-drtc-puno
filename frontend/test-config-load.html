@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Configuración</title>
+</head>
+<body>
+    <h1>Test de Carga de Configuración</h1>
+    <button onclick="testConfig()">Probar Configuración</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testConfig() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Cargando...';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/configuraciones');
+                const data = await response.json();
+                
+                const tiposRutaConfig = data.find(c => c.nombre === 'TIPOS_RUTA_CONFIG');
+                
+                if (tiposRutaConfig) {
+                    const tipos = JSON.parse(tiposRutaConfig.valor);
+                    resultEl.textContent = JSON.stringify({
+                        encontrado: true,
+                        total: tipos.length,
+                        tipos: tipos
+                    }, null, 2);
+                } else {
+                    resultEl.textContent = 'TIPOS_RUTA_CONFIG no encontrado';
+                }
+            } catch (error) {
+                resultEl.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

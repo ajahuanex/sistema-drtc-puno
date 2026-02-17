@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, computed, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -52,9 +52,7 @@ export interface EventoOrdenamiento {
       [attr.aria-describedby]="columna + '-sort-description'"
       role="columnheader"
       tabindex="0"
-      (click)="onHeaderClick($event)"
-      (keydown.enter)="onHeaderClick($event)"
-      (keydown.space)="onHeaderClick($event)">
+      (click)="onHeaderClick($event)">
       
       <div class="header-content">
         <!-- Etiqueta de la columna -->
@@ -288,7 +286,7 @@ export interface EventoOrdenamiento {
     }
   `]
 })
-export class SortableHeaderComponent {
+export class SortableHeaderComponent implements OnChanges {
   /** Clave única de la columna */
   @Input() columna: string = '';
   
@@ -307,9 +305,16 @@ export class SortableHeaderComponent {
   /** Evento emitido cuando cambia el ordenamiento */
   @Output() ordenamientoChange = new EventEmitter<EventoOrdenamiento>();
 
+  // Timestamp del último click para evitar duplicados
+  private ultimoClickTimestamp = 0;
+  private DEBOUNCE_CLICK_MS = 500; // Aumentado a 500ms para ser más agresivo
+
+  // Signal interno para el ordenamiento (se actualiza en ngOnChanges)
+  private ordenamientoSignal = signal<OrdenamientoColumna[]>([]);
+
   // Computed signals para el estado del ordenamiento
   ordenamientoActual = computed(() => {
-    return this.ordenamiento.find(o => o.columna === this.columna) || null;
+    return this.ordenamientoSignal().find(o => o.columna === this.columna) || null;
   });
 
   direccionActual = computed(() => {
@@ -331,6 +336,18 @@ export class SortableHeaderComponent {
   });
 
   // ========================================
+  // LIFECYCLE HOOKS
+  // ========================================
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Actualizar el signal interno cuando cambia el @Input ordenamiento
+    if (changes['ordenamiento']) {
+      this.ordenamientoSignal.set(this.ordenamiento || []);
+      // console.log(`🔄 Header ${this.columna}: ordenamiento actualizado`, this.ordenamiento);
+    }
+  }
+
+  // ========================================
   // EVENT HANDLERS
   // ========================================
 
@@ -340,15 +357,29 @@ export class SortableHeaderComponent {
   onHeaderClick(event: Event): void {
     if (!this.sortable) return;
     
+    // Debounce: Ignorar clicks duplicados que ocurren muy rápido
+    const ahora = Date.now();
+    const tiempoDesdeUltimoClick = ahora - this.ultimoClickTimestamp;
+    
+    if (tiempoDesdeUltimoClick < this.DEBOUNCE_CLICK_MS) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    
+    this.ultimoClickTimestamp = ahora;
+    
     event.preventDefault();
     event.stopPropagation();
     
     const esMultiple = this.permitirMultiple && (event as KeyboardEvent | MouseEvent).ctrlKey;
     const direccionActual = this.direccionActual();
     
+    console.log(`📍 Header click: columna=${this.columna}, direccionActual=${direccionActual}`);
+    
     let nuevaDireccion: DireccionOrdenamiento;
     
-    // Ciclo de ordenamiento: null -> asc -> desc -> null
+    // Ciclo de ordenamiento: null -> asc -> desc -> asc (sin volver a null)
     switch (direccionActual) {
       case null:
         nuevaDireccion = 'asc';
@@ -357,11 +388,13 @@ export class SortableHeaderComponent {
         nuevaDireccion = 'desc';
         break;
       case 'desc':
-        nuevaDireccion = null;
+        nuevaDireccion = 'asc';
         break;
       default:
         nuevaDireccion = 'asc';
     }
+    
+    console.log(`➡️ Emitiendo: ${direccionActual} → ${nuevaDireccion}`);
     
     this.ordenamientoChange.emit({
       columna: this.columna,
@@ -396,9 +429,9 @@ export class SortableHeaderComponent {
         return `Cambiar a descendente${ctrlText}`;
       case 'desc':
         if (esMultiple) {
-          return `Quitar ordenamiento (prioridad ${this.prioridadOrdenamiento()})${ctrlText}`;
+          return `Cambiar a ascendente (prioridad ${this.prioridadOrdenamiento()})${ctrlText}`;
         }
-        return `Quitar ordenamiento${ctrlText}`;
+        return `Cambiar a ascendente${ctrlText}`;
       default:
         return `Ordenar por ${this.label}${ctrlText}`;
     }
@@ -477,7 +510,7 @@ export class SortableHeaderComponent {
     switch (direccionActual) {
       case null: return 'asc';
       case 'asc': return 'desc';
-      case 'desc': return null;
+      case 'desc': return 'asc'; // Cambiado: vuelve a 'asc' en lugar de 'null'
       default: return 'asc';
     }
   }

@@ -1021,3 +1021,372 @@ class RutaExcelService:
             'observaciones': observaciones,
             'esCancelada': es_ruta_cancelada
         }
+  
+  # ========================================
+    # MÉTODOS PARA MODO UPSERT
+    # ========================================
+    
+    async def _buscar_ruta_existente(
+        self, 
+        ruc: str, 
+        numero_resolucion: str, 
+        codigo_ruta: str
+    ) -> Optional[Dict]:
+        """
+        Buscar ruta existente por la clave única:
+        RUC + Resolución + Código de Ruta
+        
+        Args:
+            ruc: RUC de la empresa
+            numero_resolucion: Número de resolución normalizado
+            codigo_ruta: Código de ruta normalizado
+            
+        Returns:
+            Documento de ruta si existe, None si no existe
+        """
+        try:
+            # Buscar empresa por RUC
+            empresa = await self.empresas_collection.find_one({
+                "ruc": ruc,
+                "estaActivo": True
+            })
+            
+            if not empresa:
+                print(f"🔍 UPSERT: Empresa con RUC {ruc} no encontrada")
+                return None
+            
+            # Buscar resolución por número
+            resolucion = await self.resoluciones_collection.find_one({
+                "nroResolucion": numero_resolucion,
+                "tipoResolucion": "PADRE",
+                "estado": "VIGENTE"
+            })
+            
+            if not resolucion:
+                print(f"🔍 UPSERT: Resolución {numero_resolucion} no encontrada")
+                return None
+            
+            # Buscar ruta por código, empresa y resolución
+            ruta = await self.rutas_collection.find_one({
+                "codigoRuta": codigo_ruta,
+                "empresa.id": str(empresa["_id"]),
+                "resolucion.id": str(resolucion["_id"])
+            })
+            
+            if ruta:
+                print(f"✅ UPSERT: Ruta encontrada - Código: {codigo_ruta}, ID: {ruta.get('_id')}")
+            else:
+                print(f"🔍 UPSERT: Ruta no encontrada - Código: {codigo_ruta}")
+            
+            return ruta
+            
+        except Exception as e:
+            print(f"❌ ERROR en _buscar_ruta_existente: {str(e)}")
+            return None
+    
+    async def _upsert_ruta_desde_datos(
+        self, 
+        ruta_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Crear o actualizar ruta según exista o no (UPSERT)
+        
+        Args:
+            ruta_data: Datos de la ruta del Excel
+            
+        Returns:
+            {
+                'accion': 'creada' | 'actualizada',
+                'ruta': Ruta,
+                'cambios': List[str]
+            }
+        """
+        try:
+            # Buscar ruta existente por clave única
+            ruta_existente = await self._buscar_ruta_existente(
+                ruc=ruta_data['ruc'],
+                numero_resolucion=ruta_data['resolucionNormalizada'],
+                codigo_ruta=ruta_data['codigoRuta']
+            )
+            
+            if ruta_existente:
+                # ACTUALIZAR ruta existente
+                print(f"🔄 UPSERT: Actualizando ruta existente - Código: {ruta_data['codigoRuta']}")
+                
+                # Preparar datos de actualización
+                ruta_update = await self._preparar_datos_actualizacion(
+                    ruta_data, 
+                    ruta_existente
+                )
+                
+                # Actualizar en la base de datos
+                from app.services.ruta_service import RutaService
+                from app.models.ruta import RutaUpdate
+                
+                ruta_service = RutaService(self.db)
+                ruta_actualizada = await ruta_service.update_ruta(
+                    str(ruta_existente["_id"]),
+                    ruta_update
+                )
+                
+                # Detectar qué campos cambiaron
+                cambios = self._detectar_cambios(ruta_existente, ruta_update)
+                
+                print(f"✅ UPSERT: Ruta actualizada - Cambios: {len(cambios)}")
+                
+                return {
+                    'accion': 'actualizada',
+                    'ruta': ruta_actualizada,
+                    'cambios': cambios
+                }
+            else:
+                # CREAR ruta nueva
+                print(f"✨ UPSERT: Creando ruta nueva - Código: {ruta_data['codigoRuta']}")
+                
+                ruta_creada = await self._crear_ruta_desde_datos(ruta_data)
+                
+                return {
+                    'accion': 'creada',
+                    'ruta': ruta_creada,
+                    'cambios': []
+                }
+                
+        except Exception as e:
+            print(f"❌ ERROR en _upsert_ruta_desde_datos: {str(e)}")
+            raise e
+    
+    async def _preparar_datos_actualizacion(
+        self,
+        ruta_data: Dict[str, Any],
+        ruta_existente: Dict[str, Any]
+    ):
+        """
+        Preparar objeto RutaUpdate con los nuevos datos
+        
+        Args:
+            ruta_data: Datos nuevos del Excel
+            ruta_existente: Ruta existente en la BD
+            
+        Returns:
+            RutaUpdate con los datos a actualizar
+        """
+        from app.models.ruta import RutaUpdate
+        
+        # Buscar o crear localidades
+        origen_localidad = await self._buscar_o_crear_localidad(ruta_data['origen'])
+        destino_localidad = await self._buscar_o_crear_localidad(ruta_data['destino'])
+        
+        # Crear objetos embebidos
+        origen_embebido = LocalidadEmbebida(
+            id=str(origen_localidad["_id"]),
+            nombre=origen_localidad["nombre"]
+        )
+        
+        destino_embebido = LocalidadEmbebida(
+            id=str(destino_localidad["_id"]),
+            nombre=destino_localidad["nombre"]
+        )
+        
+        # Crear frecuencia
+        frecuencia = FrecuenciaServicio(
+            tipo=TipoFrecuencia.DIARIO,
+            cantidad=1,
+            dias=[],
+            descripcion=ruta_data['frecuencia']
+        )
+        
+        # Crear objeto de actualización
+        ruta_update = RutaUpdate(
+            nombre=f"{ruta_data['origen']} - {ruta_data['destino']}",
+            origen=origen_embebido,
+            destino=destino_embebido,
+            frecuencia=frecuencia,
+            tipoRuta=TipoRuta(ruta_data.get('tipoRuta', 'INTERREGIONAL')) if ruta_data.get('tipoRuta') else None,
+            tipoServicio=TipoServicio(ruta_data.get('tipoServicio', 'PASAJEROS')) if ruta_data.get('tipoServicio') else None,
+            distancia=ruta_data.get('distancia'),
+            tiempoEstimado=ruta_data.get('tiempoEstimado'),
+            tarifaBase=ruta_data.get('tarifaBase'),
+            observaciones=ruta_data.get('observaciones'),
+            descripcion=ruta_data.get('itinerario', 'SIN ITINERARIO')
+        )
+        
+        return ruta_update
+    
+    def _detectar_cambios(
+        self,
+        ruta_anterior: Dict[str, Any],
+        ruta_nueva
+    ) -> List[str]:
+        """
+        Detectar qué campos cambiaron entre la ruta anterior y la nueva
+        
+        Args:
+            ruta_anterior: Ruta existente en la BD
+            ruta_nueva: RutaUpdate con los nuevos datos
+            
+        Returns:
+            Lista de descripciones de cambios
+        """
+        cambios = []
+        
+        try:
+            # Comparar origen
+            if ruta_nueva.origen:
+                origen_anterior = ruta_anterior.get('origen', {}).get('nombre', '')
+                if ruta_nueva.origen.nombre != origen_anterior:
+                    cambios.append(f"Origen: {origen_anterior} → {ruta_nueva.origen.nombre}")
+            
+            # Comparar destino
+            if ruta_nueva.destino:
+                destino_anterior = ruta_anterior.get('destino', {}).get('nombre', '')
+                if ruta_nueva.destino.nombre != destino_anterior:
+                    cambios.append(f"Destino: {destino_anterior} → {ruta_nueva.destino.nombre}")
+            
+            # Comparar frecuencia
+            if ruta_nueva.frecuencia:
+                frecuencia_anterior = ruta_anterior.get('frecuencia', {}).get('descripcion', '')
+                if ruta_nueva.frecuencia.descripcion != frecuencia_anterior:
+                    cambios.append(f"Frecuencia: {frecuencia_anterior} → {ruta_nueva.frecuencia.descripcion}")
+            
+            # Comparar tipo de ruta
+            if ruta_nueva.tipoRuta:
+                tipo_anterior = ruta_anterior.get('tipoRuta', '')
+                if str(ruta_nueva.tipoRuta) != tipo_anterior:
+                    cambios.append(f"Tipo: {tipo_anterior} → {ruta_nueva.tipoRuta}")
+            
+            # Comparar tipo de servicio
+            if ruta_nueva.tipoServicio:
+                servicio_anterior = ruta_anterior.get('tipoServicio', '')
+                if str(ruta_nueva.tipoServicio) != servicio_anterior:
+                    cambios.append(f"Servicio: {servicio_anterior} → {ruta_nueva.tipoServicio}")
+            
+            # Comparar distancia
+            if ruta_nueva.distancia is not None:
+                distancia_anterior = ruta_anterior.get('distancia')
+                if distancia_anterior != ruta_nueva.distancia:
+                    cambios.append(f"Distancia: {distancia_anterior} km → {ruta_nueva.distancia} km")
+            
+            # Comparar observaciones
+            if ruta_nueva.observaciones:
+                obs_anterior = ruta_anterior.get('observaciones', '')
+                if ruta_nueva.observaciones != obs_anterior:
+                    cambios.append("Observaciones actualizadas")
+            
+            # Comparar descripción/itinerario
+            if ruta_nueva.descripcion:
+                desc_anterior = ruta_anterior.get('descripcion', '')
+                if ruta_nueva.descripcion != desc_anterior:
+                    cambios.append("Itinerario actualizado")
+            
+        except Exception as e:
+            print(f"⚠️ Error detectando cambios: {str(e)}")
+        
+        return cambios
+    
+    async def procesar_carga_masiva_con_modo(
+        self, 
+        archivo_excel: BytesIO, 
+        modo: str = "crear"
+    ) -> Dict[str, Any]:
+        """
+        Procesar carga masiva de rutas con modo específico
+        
+        Args:
+            archivo_excel: Archivo Excel con las rutas
+            modo: Modo de procesamiento ("crear", "actualizar", "upsert")
+            
+        Returns:
+            Resultados del procesamiento con estadísticas
+        """
+        print(f"🔍 DEBUG PROCESAMIENTO: Iniciando en modo '{modo}'")
+        
+        try:
+            # Validar archivo primero
+            validacion = await self.validar_archivo_excel(archivo_excel)
+            
+            if 'error' in validacion:
+                return validacion
+            
+            if validacion['validos'] == 0:
+                return {
+                    'error': 'No hay rutas válidas para procesar',
+                    'validacion': validacion
+                }
+            
+            # Procesar rutas válidas
+            resultados = {
+                'modo': modo,
+                'total_procesadas': 0,
+                'exitosas': 0,
+                'fallidas': 0,
+                'creadas': 0,
+                'actualizadas': 0,
+                'rutas_creadas': [],
+                'rutas_actualizadas': [],
+                'errores_procesamiento': [],
+                'validacion': validacion
+            }
+            
+            for ruta_data in validacion['rutas_validas']:
+                print(f"🔍 Procesando ruta: RUC {ruta_data.get('ruc')}, Código {ruta_data.get('codigoRuta')}")
+                
+                try:
+                    if modo == "upsert":
+                        # Modo UPSERT: Crear o actualizar
+                        resultado = await self._upsert_ruta_desde_datos(ruta_data)
+                        
+                        if resultado['accion'] == 'creada':
+                            resultados['creadas'] += 1
+                            resultados['rutas_creadas'].append({
+                                'codigo': resultado['ruta'].codigoRuta,
+                                'nombre': resultado['ruta'].nombre,
+                                'id': resultado['ruta'].id
+                            })
+                        else:
+                            resultados['actualizadas'] += 1
+                            resultados['rutas_actualizadas'].append({
+                                'codigo': resultado['ruta'].codigoRuta,
+                                'nombre': resultado['ruta'].nombre,
+                                'id': resultado['ruta'].id,
+                                'cambios': resultado['cambios']
+                            })
+                        
+                        resultados['exitosas'] += 1
+                        
+                    else:
+                        # Modo CREAR (comportamiento original)
+                        ruta_creada = await self._crear_ruta_desde_datos(ruta_data)
+                        
+                        resultados['exitosas'] += 1
+                        resultados['creadas'] += 1
+                        resultados['rutas_creadas'].append({
+                            'codigo': ruta_creada.codigoRuta,
+                            'nombre': ruta_creada.nombre,
+                            'id': ruta_creada.id
+                        })
+                    
+                except Exception as e:
+                    resultados['fallidas'] += 1
+                    resultados['errores_procesamiento'].append({
+                        'codigo_ruta': ruta_data.get('codigoRuta', 'N/A'),
+                        'error': str(e)
+                    })
+                    print(f"❌ ERROR: {str(e)}")
+                
+                resultados['total_procesadas'] += 1
+            
+            return resultados
+            
+        except Exception as e:
+            return {
+                'error': f"Error al procesar carga masiva: {str(e)}",
+                'modo': modo,
+                'total_procesadas': 0,
+                'exitosas': 0,
+                'fallidas': 0,
+                'creadas': 0,
+                'actualizadas': 0,
+                'rutas_creadas': [],
+                'rutas_actualizadas': [],
+                'errores_procesamiento': []
+            }

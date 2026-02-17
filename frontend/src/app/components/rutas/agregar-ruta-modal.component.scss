@@ -58,6 +58,33 @@
   grid-column: 1 / -1;
 }
 
+.frecuencia-section {
+  grid-column: 1 / -1;
+  margin: 16px 0;
+  padding: 16px;
+  background: #f0f8ff;
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.section-title {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.section-title mat-icon {
+  color: #4caf50;
+}
+
 .codigo-ruta-container {
   display: flex;
   align-items: center;

@@ -131,6 +131,7 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'fechaVigenciaInicio',
     'fechaVigenciaFin',
     'aniosVigencia',
+    'eficaciaAnticipada',
     'estado',
     'rutasAutorizadas',
     'vehiculosHabilitados',
@@ -144,6 +145,7 @@ export const RESOLUCION_TABLE_CONFIG_DEFAULT: ResolucionTableConfig = {
     'fechaVigenciaInicio',
     'fechaVigenciaFin',
     'aniosVigencia',
+    'eficaciaAnticipada',
     'estado',
     'rutasAutorizadas',
     'vehiculosHabilitados',
@@ -229,6 +231,15 @@ export const COLUMNAS_DEFINICIONES: ColumnaDefinicion[] = [
     width: '100px',
     align: 'center',
     tipo: 'text'
+  },
+  {
+    key: 'eficaciaAnticipada',
+    label: 'Eficacia Anticipada',
+    sortable: true,
+    required: false,
+    width: '140px',
+    align: 'center',
+    tipo: 'badge'
   },
   {
     key: 'estado',

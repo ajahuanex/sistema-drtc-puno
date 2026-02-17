@@ -432,10 +432,14 @@ export class CrearRutaModalComponent implements OnInit {
     });
   }
 
-  private cargarLocalidades(): void {
-    this.localidadService.getLocalidadesActivas().subscribe((localidades: Localidad[]) => {
-      this.localidades = localidades;
-    });
+  private async cargarLocalidades(): Promise<void> {
+    try {
+      const todasLocalidades = await this.localidadService.obtenerLocalidades();
+      this.localidades = todasLocalidades.filter(l => l.esta_activa);
+    } catch (error) {
+      console.error('Error cargando localidades:', error);
+      this.localidades = [];
+    }
   }
 
   onTipoAsignacionChange(event: any): void {
@@ -538,7 +542,12 @@ export class CrearRutaModalComponent implements OnInit {
           tipoResolucion: this.resolucionSeleccionada?.tipoResolucion || 'PADRE',
           estado: this.resolucionSeleccionada?.estado || 'VIGENTE'
         },
-        frecuencias: formValue.frecuencias,
+        frecuencia: {
+          tipo: 'DIARIO',
+          cantidad: 1,
+          dias: [],
+          descripcion: formValue.frecuencias || '01 DIARIA'
+        },
         tipoRuta: formValue.tipoRuta as TipoRuta,
         tipoServicio: formValue.tipoServicio as TipoServicio,
         distancia: formValue.distancia || 0,

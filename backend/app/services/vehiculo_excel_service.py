@@ -4,7 +4,7 @@ from datetime import datetime
 import re
 from app.models.vehiculo import (
     VehiculoExcel, VehiculoCargaMasivaResponse, VehiculoValidacionExcel,
-    VehiculoCreate, VehiculoUpdate, DatosTecnicos, CategoriaVehiculo, EstadoVehiculo, TipoCombustible, SedeRegistro, MotivoSustitucion
+    VehiculoCreate, VehiculoUpdate, EstadoVehiculo, SedeRegistro, MotivoSustitucion
 )
 from app.services.vehiculo_service import VehiculoService
 from app.services.empresa_service import EmpresaService
@@ -447,7 +447,7 @@ class VehiculoExcelService:
                 'valor': tipo_combustible_raw,
                 'mensaje': "Tipo de combustible no especificado, se usará GASOLINA por defecto"
             })
-        elif tipo_combustible_str not in [tc.value for tc in TipoCombustible]:
+        elif tipo_combustible_str not in ['GASOLINA', 'DIESEL', 'GLP', 'GNV', 'ELECTRICO']:
             # Intentar mapear tipos comunes
             mapeo_combustibles = {
                 'GASOLINA': 'GASOLINA', 'GAS': 'GASOLINA',
@@ -467,7 +467,7 @@ class VehiculoExcelService:
                 errores.append({
                     'columna': 'Tipo Combustible',
                     'valor': tipo_combustible_raw,
-                    'mensaje': f"Tipo de combustible inválido (válidos: {[tc.value for tc in TipoCombustible]})"
+                    'mensaje': f"Tipo de combustible inválido (válidos: GASOLINA, DIESEL, GLP, GNV, ELECTRICO)"
                 })
         
         # Validar sede de registro (más flexible)
@@ -705,19 +705,19 @@ class VehiculoExcelService:
         
         # Mapear tipos de combustible comunes
         mapeo_combustibles = {
-            'GASOLINA': TipoCombustible.GASOLINA,
-            'GAS': TipoCombustible.GASOLINA,
-            'DIESEL': TipoCombustible.DIESEL,
-            'PETROLEO': TipoCombustible.DIESEL,
-            'GLP': TipoCombustible.GLP,
-            'GAS_LICUADO': TipoCombustible.GLP,
-            'GNV': TipoCombustible.GNV,
-            'GAS_NATURAL': TipoCombustible.GNV,
-            'ELECTRICO': TipoCombustible.ELECTRICO,
-            'ELECTRIC': TipoCombustible.ELECTRICO
+            'GASOLINA': 'GASOLINA',
+            'GAS': 'GASOLINA',
+            'DIESEL': 'DIESEL',
+            'PETROLEO': 'DIESEL',
+            'GLP': 'GLP',
+            'GAS_LICUADO': 'GLP',
+            'GNV': 'GNV',
+            'GAS_NATURAL': 'GNV',
+            'ELECTRICO': 'ELECTRICO',
+            'ELECTRIC': 'ELECTRICO'
         }
         
-        tipo_combustible = mapeo_combustibles.get(tipo_combustible_str, TipoCombustible.GASOLINA)
+        tipo_combustible = mapeo_combustibles.get(tipo_combustible_str, 'GASOLINA')
         
         # Normalizar sede de registro
         sede_raw = row.get('Sede de Registro', 'PUNO')
@@ -751,20 +751,21 @@ class VehiculoExcelService:
             ancho = normalizar_numero(row.get('Ancho (m)'), 1.8)
             alto = normalizar_numero(row.get('Alto (m)'), 1.5)
             
-            datos_tecnicos = DatosTecnicos(
-                motor=str(row.get('Motor', 'MOTOR_PENDIENTE')).strip() or 'MOTOR_PENDIENTE',
-                chasis=str(row.get('Chasis', f'CHASIS_{placa}')).strip() or f'CHASIS_{placa}',
-                ejes=ejes,
-                asientos=asientos,
-                pesoNeto=peso_neto,
-                pesoBruto=peso_bruto,
-                tipoCombustible=tipo_combustible,
-                medidas={
+            # Crear datos técnicos como diccionario (ya no existe la clase DatosTecnicos)
+            datos_tecnicos = {
+                'motor': str(row.get('Motor', 'MOTOR_PENDIENTE')).strip() or 'MOTOR_PENDIENTE',
+                'chasis': str(row.get('Chasis', f'CHASIS_{placa}')).strip() or f'CHASIS_{placa}',
+                'ejes': ejes,
+                'asientos': asientos,
+                'pesoNeto': peso_neto,
+                'pesoBruto': peso_bruto,
+                'tipoCombustible': tipo_combustible,
+                'medidas': {
                     'largo': largo,
                     'ancho': ancho,
                     'alto': alto
                 }
-            )
+            }
         except Exception as e:
             raise ValueError(f"Error creando datos técnicos: {e}")
         
@@ -777,7 +778,7 @@ class VehiculoExcelService:
         return VehiculoCreate(
             placa=placa,
             empresaActualId=empresa_id,
-            categoria=CategoriaVehiculo(categoria_str),
+            categoria=categoria_str,  # Pasar como string directamente
             marca=marca,
             modelo=modelo,
             anioFabricacion=anio_fabricacion,
@@ -884,7 +885,7 @@ class VehiculoExcelService:
         
         if pd.notna(row.get('Tipo Combustible')) and str(row.get('Tipo Combustible')).strip():
             tipo_combustible_str = str(row.get('Tipo Combustible')).strip().upper()
-            if tipo_combustible_str in [tc.value for tc in TipoCombustible]:
+            if tipo_combustible_str in ['GASOLINA', 'DIESEL', 'GLP', 'GNV', 'ELECTRICO']:
                 datos_tecnicos_update['tipoCombustible'] = tipo_combustible_str
         
         # Agregar más campos de datos técnicos según sea necesario...

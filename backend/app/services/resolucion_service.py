@@ -167,6 +167,13 @@ class ResolucionService:
 
         cursor = self.collection.find(query)
         docs = await cursor.to_list(length=None)
+        
+        # Convertir _id a id para cada documento
+        for doc in docs:
+            if "_id" in doc:
+                if "id" not in doc or not doc.get("id"):
+                    doc["id"] = str(doc["_id"])
+        
         return [ResolucionInDB(**doc) for doc in docs]
 
     async def update_resolucion(self, resolucion_id: str, resolucion_data: ResolucionUpdate) -> Optional[ResolucionInDB]:

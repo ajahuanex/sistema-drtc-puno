@@ -133,7 +133,7 @@ export class VehiculoBusquedaService {
     }
 
     // Búsqueda en marca (peso: 7)
-    if (campos.includes('marca')) {
+    if (campos.includes('marca') && vehiculo.marca) {
       const marca = this.normalizarTermino(vehiculo.marca);
       if (marca === termino) {
         score += 70;

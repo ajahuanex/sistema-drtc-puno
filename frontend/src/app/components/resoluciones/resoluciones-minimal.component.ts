@@ -529,7 +529,8 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.inicializarComponente();
     this.configurarSuscripciones();
-    this.cargarDatosIniciales();
+    // Cargar filtros desde URL (esto disparará la carga de datos a través de filtros$)
+    this.cargarFiltrosDesdeURL();
   }
 
   ngOnDestroy(): void {
@@ -549,52 +550,54 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     const configInicial = this.tableService.getConfiguracion();
     this.configuracionTabla.set(configInicial);
     
-    // Cargar filtros desde URL params si existen
-    this.cargarFiltrosDesdeURL();
+    // NO cargar filtros desde URL aquí, se hará en configurarSuscripciones
   }
 
   private cargarFiltrosDesdeURL(): void {
-    this.route.queryParams.pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(params => {
-      const filtrosURL: ResolucionFiltros = {};
-      
-      // Usar formato del frontend (numeroResolucion, estados)
-      if (params['numeroResolucion']) {
-        filtrosURL.numeroResolucion = params['numeroResolucion'];
-      }
-      if (params['estados']) {
-        filtrosURL.estados = Array.isArray(params['estados']) 
-          ? params['estados'] 
-          : [params['estados']];
-      }
-      
-      // Si hay filtros en la URL, aplicarlos
-      if (Object.keys(filtrosURL).length > 0) {
-        this.filtrosActuales.set(filtrosURL);
-        this.tableService.actualizarFiltros(filtrosURL);
-      } else {
-        this.filtrosActuales.set(this.tableService.getConfiguracion().filtros);
-      }
-    });
+    // Leer los parámetros de la URL UNA SOLA VEZ (no suscribirse)
+    const params = this.route.snapshot.queryParams;
+    const filtrosURL: ResolucionFiltros = {};
+    
+    // Usar formato del frontend (numeroResolucion, estados)
+    if (params['numeroResolucion']) {
+      filtrosURL.numeroResolucion = params['numeroResolucion'];
+    }
+    if (params['estados']) {
+      filtrosURL.estados = Array.isArray(params['estados']) 
+        ? params['estados'] 
+        : [params['estados']];
+    }
+    
+    // Si hay filtros en la URL, aplicarlos
+    if (Object.keys(filtrosURL).length > 0) {
+      this.filtrosActuales.set(filtrosURL);
+      this.tableService.actualizarFiltros(filtrosURL);
+    } else {
+      // Si no hay filtros en URL, disparar la carga inicial con filtros vacíos
+      this.tableService.actualizarFiltros({});
+    }
   }
 
   private configurarSuscripciones(): void {
-    // Suscribirse a cambios en filtros con debounce
-    combineLatest([
-      this.tableService.filtros$,
-      this.tableService.config$
-    ]).pipe(
+    // Suscribirse SOLO a cambios en filtros (no en toda la config)
+    // IMPORTANTE: Esta es la ÚNICA suscripción que carga datos
+    this.tableService.filtros$.pipe(
       debounceTime(300),
-      distinctUntilChanged((prev, curr) => 
-        JSON.stringify(prev) === JSON.stringify(curr)
-      ),
+      // REMOVIDO distinctUntilChanged para permitir recargas con filtros vacíos
       takeUntil(this.destroy$)
-    ).subscribe(([filtros, config]) => {
+    ).subscribe(filtros => {
+      console.log('🔄 Filtros cambiaron, recargando datos:', filtros);
       this.filtrosActuales.set(filtros);
-      this.configuracionTabla.set(config);
       this.actualizarURLParams(filtros);
-      this.aplicarFiltrosYCargarDatos();
+      this.cargarResoluciones();
+    });
+    
+    // Suscribirse a cambios en config SOLO para actualizar el signal local
+    // NO recargar datos cuando cambia el ordenamiento
+    this.tableService.config$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(config => {
+      this.configuracionTabla.set(config);
     });
   }
 
@@ -618,10 +621,6 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     });
   }
 
-  private cargarDatosIniciales(): void {
-    this.cargarResoluciones();
-  }
-
   // ========================================
   // CARGA DE DATOS
   // ========================================
@@ -630,12 +629,22 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.tableService.cargando.set(true);
 
-    this.resolucionService.getResolucionesConEmpresa().subscribe({
+    // Usar siempre getResolucionesFiltradas para tener datos consistentes
+    const filtros = this.filtrosActuales();
+    
+    this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
       next: (resoluciones) => {
-        // console.log removed for production
+        console.log('📥 Resoluciones cargadas:', resoluciones.length);
+        console.log('📊 Primeras 3 con años:', resoluciones.slice(0, 3).map(r => ({
+          numero: r.nroResolucion,
+          anios: r.aniosVigencia
+        })));
+        
         this.resoluciones.set(resoluciones);
-        this.aplicarFiltrosYCargarDatos();
-        this.cargarEstadisticas();
+        this.resolucionesFiltradas.set(resoluciones);
+        this.tableService.totalResultados.set(resoluciones.length);
+        // TODO: Optimizar cargarEstadisticas para que no haga otra petición al servidor
+        // this.cargarEstadisticas();
         this.isLoading.set(false);
         this.tableService.cargando.set(false);
         
@@ -651,43 +660,6 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
         this.mostrarNotificacion('Error al cargar las resoluciones. Por favor, intenta nuevamente.', 'error');
       }
     });
-  }
-
-  private aplicarFiltrosYCargarDatos(): void {
-    const filtros = this.filtrosActuales();
-    // console.log removed for production
-    console.log('🔄 Tiene filtros activos:', this.tieneFiltrosActivos());
-    
-    if (this.tieneFiltrosActivos()) {
-      // Mostrar loading durante filtrado
-      this.isLoading.set(true);
-      
-      // Aplicar filtros
-      this.resolucionService.getResolucionesFiltradas(filtros).subscribe({
-        next: (resolucionesFiltradas) => {
-          // console.log removed for production
-          this.resolucionesFiltradas.set(resolucionesFiltradas);
-          this.tableService.totalResultados.set(resolucionesFiltradas.length);
-          this.isLoading.set(false);
-          
-          // Feedback visual de filtrado
-          if (resolucionesFiltradas.length === 0) {
-            this.mostrarNotificacion('No se encontraron resultados con los filtros aplicados', 'info');
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error al filtrar resoluciones::', error);
-          this.resolucionesFiltradas.set([]);
-          this.isLoading.set(false);
-          this.mostrarNotificacion('Error al aplicar filtros. Por favor, intenta nuevamente.', 'error');
-        }
-      });
-    } else {
-      // Sin filtros, mostrar todas
-      console.log('📋 Sin filtros activos, mostrando todas las resoluciones:', this.resoluciones().length);
-      this.resolucionesFiltradas.set(this.resoluciones());
-      this.tableService.totalResultados.set(this.resoluciones().length);
-    }
   }
 
   private cargarEstadisticas(): void {
@@ -709,15 +681,17 @@ export class ResolucionesMinimalComponent implements OnInit, OnDestroy {
   // ========================================
 
   onFiltrosChange(filtros: ResolucionFiltros): void {
-    // console.log removed for production
+    console.log('🔄 onFiltrosChange recibido:', filtros);
+    // Actualizar filtros en el servicio
     this.tableService.actualizarFiltros(filtros);
   }
 
   onLimpiarFiltros(): void {
-    // console.log removed for production
-    this.tableService.limpiarFiltros();
-    // Forzar actualización
+    console.log('🧹 Limpiando filtros...');
+    // Actualizar el signal local primero para que el componente de filtros lo detecte
     this.filtrosActuales.set({});
+    // Limpiar filtros en el servicio - esto disparará la suscripción
+    this.tableService.limpiarFiltros();
   }
 
   // ========================================

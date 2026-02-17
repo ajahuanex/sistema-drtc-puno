@@ -59,24 +59,20 @@ export class LocalidadService {
    */
   async buscarLocalidades(termino: string, limite: number = 10): Promise<Localidad[]> {
     try {
-      // Si el término es muy corto, buscar en cache
-      if (termino.length < 3) {
-        await this.actualizarCache();
-        const terminoNormalizado = this.normalizarTexto(termino);
-        return this.localidadesCache.value
-          .filter(loc => this.normalizarTexto(loc.nombre || '').includes(terminoNormalizado))
-          .slice(0, limite);
+      if (!termino || termino.length < 2) {
+        return [];
       }
 
-      // Para términos más largos, consultar backend
+      // Usar el endpoint correcto: GET /localidades?nombre=xxx&limit=10
       const params = new HttpParams()
-        .set('q', termino)
-        .set('limite', limite.toString());
+        .set('nombre', termino)
+        .set('limit', limite.toString());
       
-      const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}/buscar`, { params }).toPromise();
+      const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}`, { params }).toPromise();
+      console.log('✅ Resultados de búsqueda:', resultado);
       return resultado || [];
     } catch (error) {
-      console.error('❌ Error buscando localidades::', error);
+      console.error('❌ Error buscando localidades:', error);
       return [];
     }
   }
@@ -318,6 +314,37 @@ export class LocalidadService {
 
   async calcularDistancia(origenId: string, destinoId: string): Promise<{ distancia: number; unidad: string }> {
     return this.http.get<{ distancia: number; unidad: string }>(`${this.apiUrl}/${origenId}/distancia/${destinoId}`).toPromise() as Promise<{ distancia: number; unidad: string }>;
+  }
+
+  /**
+   * Verificar si una localidad está en uso en rutas
+   */
+  async verificarUsoLocalidad(id: string): Promise<{
+    en_uso: boolean;
+    rutas_como_origen: number;
+    rutas_como_destino: number;
+    rutas_en_itinerario: number;
+    rutas_afectadas: any[];
+  }> {
+    try {
+      const resultado = await this.http.get<any>(`${this.apiUrl}/${id}/verificar-uso`).toPromise();
+      return resultado || {
+        en_uso: false,
+        rutas_como_origen: 0,
+        rutas_como_destino: 0,
+        rutas_en_itinerario: 0,
+        rutas_afectadas: []
+      };
+    } catch (error) {
+      console.error('Error verificando uso de localidad:', error);
+      return {
+        en_uso: false,
+        rutas_como_origen: 0,
+        rutas_como_destino: 0,
+        rutas_en_itinerario: 0,
+        rutas_afectadas: []
+      };
+    }
   }
 
   async inicializarLocalidadesDefault(): Promise<any> {

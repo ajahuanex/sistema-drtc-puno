@@ -96,9 +96,18 @@ class Localidad(LocalidadBase):
 
     class Config:
         from_attributes = True
+        populate_by_name = True
         json_encoders = {
             datetime: lambda v: v.isoformat()
         }
+    
+    def model_dump(self, **kwargs):
+        """Override para asegurar que estaActiva se serialice correctamente"""
+        data = super().model_dump(**kwargs)
+        # Asegurar que estaActiva esté presente
+        if 'estaActiva' not in data and 'esta_activa' in data:
+            data['estaActiva'] = data['esta_activa']
+        return data
 
 class LocalidadResponse(Localidad):
     pass

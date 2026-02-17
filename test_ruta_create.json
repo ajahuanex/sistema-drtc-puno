@@ -1,0 +1,45 @@
+{
+  "codigoRuta": "99",
+  "nombre": "PUNO - JULIACA TEST",
+  "origen": {
+    "id": "test-id-1",
+    "nombre": "PUNO"
+  },
+  "destino": {
+    "id": "test-id-2",
+    "nombre": "JULIACA"
+  },
+  "tipoRuta": "INTERREGIONAL",
+  "tipoServicio": "PASAJEROS",
+  "frecuencia": {
+    "tipo": "SEMANAL",
+    "cantidad": 3,
+    "dias": ["LUNES", "MIERCOLES", "VIERNES"],
+    "descripcion": "03 SEMANALES (LUNES MIERCOLES VIERNES)"
+  },
+  "estado": "ACTIVA",
+  "descripcion": "Ruta de prueba para validar frecuencias estructuradas",
+  "empresa": {
+    "id": "695a4f016d7224c405d694e2",
+    "ruc": "20123456789",
+    "razonSocial": "EMPRESA TEST"
+  },
+  "resolucion": {
+    "id": "695e36b615f0704220feaf17",
+    "nroResolucion": "R-0856-2023",
+    "tipoResolucion": "PADRE",
+    "estado": "VIGENTE"
+  },
+  "itinerario": [
+    {
+      "id": "test-id-1",
+      "nombre": "PUNO",
+      "orden": 1
+    },
+    {
+      "id": "test-id-2",
+      "nombre": "JULIACA",
+      "orden": 2
+    }
+  ]
+}

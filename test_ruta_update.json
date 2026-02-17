@@ -1,0 +1,9 @@
+{
+  "frecuencia": {
+    "tipo": "DIARIO",
+    "cantidad": 2,
+    "dias": [],
+    "descripcion": "02 DIARIAS"
+  },
+  "observaciones": "Frecuencia actualizada mediante API de prueba"
+}

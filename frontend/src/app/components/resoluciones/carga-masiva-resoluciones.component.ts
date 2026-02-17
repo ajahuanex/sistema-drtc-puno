@@ -38,6 +38,7 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
     empresa_ruc: string;
     empresa_razon_social: string;
     tipo_resolucion: string;
+    anios_vigencia?: number;
     estado: string;
     accion?: string;
   }>;
@@ -46,6 +47,7 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
     empresa_ruc: string;
     empresa_razon_social: string;
     tipo_resolucion: string;
+    anios_vigencia?: number;
     estado: string;
   }>;
   resoluciones_actualizadas?: Array<{
@@ -53,6 +55,7 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
     empresa_ruc: string;
     empresa_razon_social: string;
     tipo_resolucion: string;
+    anios_vigencia?: number;
     estado: string;
   }>;
   errores_creacion?: Array<{
@@ -62,6 +65,12 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
   total_creadas?: number;
   total_actualizadas?: number;
   total_procesadas?: number;
+  estadisticas_vigencia?: {
+    con_4_anios: number;
+    con_10_anios: number;
+    otros_anios: number;
+    sin_vigencia: number;
+  };
 }
 
 @Component({
@@ -260,10 +269,13 @@ export class CargaMasivaResolucionesComponent implements OnInit {
         // console.log removed for production
         this.resolucionService.procesarCargaMasiva(this.archivoSeleccionado, false).subscribe({
           next: (resultado) => {
-            // console.log removed for production
+            console.log('📊 Resultado del procesamiento:', resultado);
+            console.log('📊 Estadísticas de vigencia:', resultado?.resultado?.estadisticas_vigencia);
             
             if (resultado && resultado.resultado) {
               this.resultadoProcesamiento = resultado.resultado;
+              console.log('✅ resultadoProcesamiento asignado:', this.resultadoProcesamiento);
+              console.log('✅ estadisticas_vigencia:', this.resultadoProcesamiento?.estadisticas_vigencia);
               this.mostrarMensaje('Procesamiento completado', 'success');
             } else {
               throw new Error('Respuesta de procesamiento inválida');
@@ -385,6 +397,39 @@ export class CargaMasivaResolucionesComponent implements OnInit {
   get tieneResolucionesCreadas(): boolean {
     return this.esResultadoProcesamiento && 
            (this.resultadoProcesamiento?.resoluciones_creadas?.length || 0) > 0;
+  }
+
+  // Getters para estadísticas de vigencia
+  get estadisticasVigencia() {
+    return this.resultadoProcesamiento?.estadisticas_vigencia || null;
+  }
+
+  get tieneEstadisticasVigencia(): boolean {
+    return this.estadisticasVigencia !== null;
+  }
+
+  get totalCon4Anios(): number {
+    return this.estadisticasVigencia?.con_4_anios || 0;
+  }
+
+  get totalCon10Anios(): number {
+    return this.estadisticasVigencia?.con_10_anios || 0;
+  }
+
+  get totalOtrosAnios(): number {
+    return this.estadisticasVigencia?.otros_anios || 0;
+  }
+
+  get totalSinVigencia(): number {
+    return this.estadisticasVigencia?.sin_vigencia || 0;
+  }
+
+  get totalCreadas(): number {
+    return this.resultadoProcesamiento?.total_creadas || 0;
+  }
+
+  get totalActualizadas(): number {
+    return this.resultadoProcesamiento?.total_actualizadas || 0;
   }
 
   // Métodos de utilidad

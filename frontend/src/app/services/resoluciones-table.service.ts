@@ -59,6 +59,17 @@ export class ResolucionesTableService {
     this.configSubject.next(nuevaConfig);
     this.guardarConfiguracion(nuevaConfig);
     
+    // Si se actualizaron los filtros, emitir cambio en filtrosSubject
+    // PERO solo si realmente cambiaron
+    if (config.filtros !== undefined) {
+      const filtrosActualesStr = JSON.stringify(this.filtrosSubject.value);
+      const nuevosFiltrosStr = JSON.stringify(config.filtros);
+      
+      if (filtrosActualesStr !== nuevosFiltrosStr) {
+        this.filtrosSubject.next(config.filtros);
+      }
+    }
+    
     // console.log removed for production
   }
 
@@ -88,31 +99,47 @@ export class ResolucionesTableService {
    * Actualiza los filtros
    */
   actualizarFiltros(filtros: Partial<ResolucionFiltros>): void {
+    // Si los filtros están completamente vacíos, limpiar todo
+    if (Object.keys(filtros).length === 0) {
+      console.log('🧹 Filtros vacíos recibidos, limpiando todo');
+      this.limpiarFiltros();
+      return;
+    }
+    
     const filtrosActuales = this.filtrosSubject.value;
     const nuevosFiltros = { ...filtrosActuales, ...filtros };
     
-    // console.log removed for production
-    // console.log removed for production
-    // console.log removed for production
-    // console.log removed for production
+    console.log('🔄 actualizarFiltros llamado');
+    console.log('   Filtros actuales:', filtrosActuales);
+    console.log('   Filtros nuevos:', filtros);
+    console.log('   Filtros mezclados:', nuevosFiltros);
     
     this.filtrosSubject.next(nuevosFiltros);
     
-    // También actualizar en la configuración
-    this.actualizarConfiguracion({ filtros: nuevosFiltros });
+    // Actualizar en la configuración SIN disparar cambio en filtrosSubject
+    const configActual = this.configSubject.value;
+    const nuevaConfig = { ...configActual, filtros: nuevosFiltros };
+    this.configSubject.next(nuevaConfig);
+    this.guardarConfiguracion(nuevaConfig);
     
-    // console.log removed for production
+    console.log('✅ Filtros actualizados en servicio');
   }
 
   /**
    * Limpia todos los filtros
    */
   limpiarFiltros(): void {
+    console.log('🧹 limpiarFiltros llamado en servicio');
     const filtrosVacios: ResolucionFiltros = {};
     this.filtrosSubject.next(filtrosVacios);
-    this.actualizarConfiguracion({ filtros: filtrosVacios });
     
-    // console.log removed for production
+    // Actualizar en la configuración SIN disparar cambio en filtrosSubject
+    const configActual = this.configSubject.value;
+    const nuevaConfig = { ...configActual, filtros: filtrosVacios };
+    this.configSubject.next(nuevaConfig);
+    this.guardarConfiguracion(nuevaConfig);
+    
+    console.log('✅ Filtros limpiados en servicio');
   }
 
   /**
@@ -123,7 +150,12 @@ export class ResolucionesTableService {
     delete filtrosActuales[key];
     
     this.filtrosSubject.next(filtrosActuales);
-    this.actualizarConfiguracion({ filtros: filtrosActuales });
+    
+    // Actualizar en la configuración SIN disparar cambio en filtrosSubject
+    const configActual = this.configSubject.value;
+    const nuevaConfig = { ...configActual, filtros: filtrosActuales };
+    this.configSubject.next(nuevaConfig);
+    this.guardarConfiguracion(nuevaConfig);
     
     // console.log removed for production
   }
@@ -352,14 +384,36 @@ export class ResolucionesTableService {
       const configGuardada = localStorage.getItem(this.STORAGE_KEY);
       if (configGuardada) {
         const config = JSON.parse(configGuardada);
-        // console.log removed for production
+        
+        // Migrar configuración: agregar eficaciaAnticipada si no existe
+        if (config.columnasVisibles && !config.columnasVisibles.includes('eficaciaAnticipada')) {
+          // Insertar eficaciaAnticipada después de aniosVigencia
+          const indiceAnios = config.columnasVisibles.indexOf('aniosVigencia');
+          if (indiceAnios >= 0) {
+            config.columnasVisibles.splice(indiceAnios + 1, 0, 'eficaciaAnticipada');
+          } else {
+            // Si no existe aniosVigencia, agregar antes de estado
+            const indiceEstado = config.columnasVisibles.indexOf('estado');
+            if (indiceEstado >= 0) {
+              config.columnasVisibles.splice(indiceEstado, 0, 'eficaciaAnticipada');
+            }
+          }
+        }
+        
+        // Migrar ordenColumnas también
+        if (config.ordenColumnas && !config.ordenColumnas.includes('eficaciaAnticipada')) {
+          const indiceAnios = config.ordenColumnas.indexOf('aniosVigencia');
+          if (indiceAnios >= 0) {
+            config.ordenColumnas.splice(indiceAnios + 1, 0, 'eficaciaAnticipada');
+          }
+        }
+        
         return { ...RESOLUCION_TABLE_CONFIG_DEFAULT, ...config };
       }
     } catch (error) {
       console.warn('⚠️ Error al cargar configuración desde localStorage:', error);
     }
     
-    // console.log removed for production
     return { ...RESOLUCION_TABLE_CONFIG_DEFAULT };
   }
 

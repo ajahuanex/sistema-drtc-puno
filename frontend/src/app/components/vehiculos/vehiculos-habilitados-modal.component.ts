@@ -140,7 +140,7 @@ export interface VehiculosHabilitadosModalData {
                     @if (vehiculo.datosTecnicos?.asientos) {
                       <div class="detail-item">
                         <app-smart-icon iconName="airline_seat_recline_normal" [size]="14"></app-smart-icon>
-                        <span>{{ vehiculo.datosTecnicos.asientos }} asientos</span>
+                        <span>{{ vehiculo.datosTecnicos?.asientos }} asientos</span>
                       </div>
                     }
                     

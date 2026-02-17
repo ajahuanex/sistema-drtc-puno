@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, of, catchError, throwError } from 'rxjs';
+import { Observable, of, catchError, throwError, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import {
@@ -557,6 +557,57 @@ export class EmpresaService {
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => {
         console.error('❌ Error cambiando estado de empresa::', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  cambiarEstadoBloque(empresaIds: string[], nuevoEstado: EstadoEmpresa, observaciones?: string): Observable<{success: boolean, empresasActualizadas: number, errores?: any[]}> {
+    console.log('🔄 SERVICIO: Cambiando estado en bloque');
+    console.log('📋 IDs:', empresaIds);
+    console.log('🏷️ Nuevo estado:', nuevoEstado);
+
+    // Ya no necesitamos conversión - los valores coinciden directamente
+    const estadoBackend = nuevoEstado;
+
+    // Crear observables para cada empresa
+    const cambiosIndividuales = empresaIds.map(empresaId => {
+      const cambioEstado: EmpresaCambioEstado = {
+        estadoNuevo: estadoBackend as EstadoEmpresa,
+        motivo: observaciones || `Cambio masivo de estado de empresa a ${estadoBackend} mediante operación en bloque desde el sistema administrativo`
+      };
+
+      console.log(`📤 Enviando cambio para empresa ${empresaId}:`, cambioEstado);
+
+      return this.cambiarEstadoEmpresa(empresaId, cambioEstado).pipe(
+        map(empresa => ({ success: true, empresaId, empresa })),
+        catchError(error => {
+          console.error(`❌ Error cambiando estado de empresa ${empresaId}:`, error);
+          console.error('📋 Detalle del error:', error.error);
+          console.error('📋 Status:', error.status);
+          console.error('📋 Datos enviados:', cambioEstado);
+          return of({ success: false, empresaId, error });
+        })
+      );
+    });
+
+    // Ejecutar todos los cambios en paralelo
+    return forkJoin(cambiosIndividuales).pipe(
+      map(resultados => {
+        const exitosos = resultados.filter(r => r.success);
+        const errores = resultados.filter(r => !r.success);
+        
+        console.log('✅ Cambios exitosos:', exitosos.length);
+        console.log('❌ Cambios con error:', errores.length);
+
+        return {
+          success: errores.length === 0,
+          empresasActualizadas: exitosos.length,
+          errores: errores.length > 0 ? errores : undefined
+        };
+      }),
+      catchError(error => {
+        console.error('❌ Error general en cambio de estado en bloque:', error);
         return throwError(() => error);
       })
     );

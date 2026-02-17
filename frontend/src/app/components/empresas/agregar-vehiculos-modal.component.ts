@@ -42,8 +42,8 @@ interface VehiculoForm {
     MatTableModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    MatDialogModule,
-    VehiculoFormComponent
+    MatDialogModule
+    // VehiculoFormComponent - Temporalmente deshabilitado
   ],
   template: `
     <div class="modal-container">
@@ -94,12 +94,15 @@ interface VehiculoForm {
             </mat-card-title>
           </mat-card-header>
           <mat-card-content>
+            <p>Formulario de vehículos temporalmente deshabilitado. Use la página principal de vehículos.</p>
+            <!--
             <app-vehiculo-form 
               [modalMode]="true"
               [empresaId]="empresaId"
               [resolucionId]="resolucion.id"
               (vehiculoCreated)="onVehiculoCreated($event)">
             </app-vehiculo-form>
+            -->
           </mat-card-content>
         </mat-card>
 
@@ -461,10 +464,10 @@ export class AgregarVehiculosModalComponent {
     const nuevoVehiculo: VehiculoForm = {
       id: Date.now().toString(),
       placa: vehiculoCreate.placa,
-      marca: vehiculoCreate.marca,
-      modelo: vehiculoCreate.modelo,
-      categoria: vehiculoCreate.categoria,
-      anioFabricacion: vehiculoCreate.anioFabricacion,
+      marca: vehiculoCreate.marca || '',
+      modelo: vehiculoCreate.modelo || '',
+      categoria: vehiculoCreate.categoria || '',
+      anioFabricacion: vehiculoCreate.anioFabricacion || new Date().getFullYear(),
       numeroTuc: vehiculoCreate.tuc?.nroTuc || '',
       rutasAsignadasIds: vehiculoCreate.rutasAsignadasIds || [],
       datosTecnicos: vehiculoCreate.datosTecnicos

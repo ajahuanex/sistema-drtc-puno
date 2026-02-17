@@ -600,8 +600,10 @@ class EmpresaService:
         
         # Preparar actualización
         update_data = {
-            "estado": nuevo_estado.value,
-            "fechaActualizacion": datetime.utcnow(),
+            "$set": {
+                "estado": nuevo_estado.value,
+                "fechaActualizacion": datetime.utcnow()
+            },
             "$push": {
                 "historialEstados": cambio_estado.dict(),
                 "auditoria": auditoria.dict()
@@ -699,8 +701,10 @@ class EmpresaService:
         
         # Preparar actualización
         update_data = {
-            "representanteLegal": representante_nuevo.dict(),
-            "fechaActualizacion": datetime.utcnow(),
+            "$set": {
+                "representanteLegal": representante_nuevo.dict(),
+                "fechaActualizacion": datetime.utcnow()
+            },
             "$push": {
                 "historialRepresentantes": cambio_representante.dict(),
                 "auditoria": auditoria.dict()

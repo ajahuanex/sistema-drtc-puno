@@ -48,7 +48,7 @@ export class LocalidadIdGeneratorService {
     
     try {
       // Obtener todas las localidades
-      const localidades = await this.localidadService.getLocalidades().toPromise() as Localidad[];
+      const localidades = await this.localidadService.obtenerLocalidades();
       // console.log removed for production
       
       const resultado = {
@@ -111,7 +111,7 @@ export class LocalidadIdGeneratorService {
   async crearMapaLocalidades(): Promise<Map<string, string>> {
     // console.log removed for production
     
-    const localidades = await this.localidadService.getLocalidades().toPromise() as Localidad[];
+    const localidades = await this.localidadService.obtenerLocalidades();
     const mapa = new Map<string, string>();
     
     localidades.forEach(localidad => {

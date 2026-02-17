@@ -58,10 +58,43 @@ export interface EditarRutaModalData {
           </div>
         </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Frecuencias</mat-label>
-          <input matInput formControlName="frecuencias">
-        </mat-form-field>
+        <div class="frecuencia-section">
+          <h4>Frecuencia de Servicio</h4>
+          
+          <mat-form-field appearance="outline">
+            <mat-label>Tipo de Frecuencia *</mat-label>
+            <mat-select formControlName="tipoFrecuencia" (selectionChange)="onTipoFrecuenciaChange()">
+              <mat-option value="DIARIO">Diario</mat-option>
+              <mat-option value="SEMANAL">Semanal</mat-option>
+              <mat-option value="QUINCENAL">Quincenal</mat-option>
+              <mat-option value="MENSUAL">Mensual</mat-option>
+              <mat-option value="ESPECIAL">Especial</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad *</mat-label>
+            <input matInput type="number" formControlName="cantidadFrecuencia" min="1">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="form.get('tipoFrecuencia')?.value === 'SEMANAL'">
+            <mat-label>Días de Servicio</mat-label>
+            <mat-select formControlName="diasSemana" multiple>
+              <mat-option value="LUNES">Lunes</mat-option>
+              <mat-option value="MARTES">Martes</mat-option>
+              <mat-option value="MIERCOLES">Miércoles</mat-option>
+              <mat-option value="JUEVES">Jueves</mat-option>
+              <mat-option value="VIERNES">Viernes</mat-option>
+              <mat-option value="SABADO">Sábado</mat-option>
+              <mat-option value="DOMINGO">Domingo</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Descripción de Frecuencia *</mat-label>
+            <input matInput formControlName="descripcionFrecuencia">
+          </mat-form-field>
+        </div>
 
         <mat-form-field appearance="outline">
           <mat-label>Tipo Ruta</mat-label>
@@ -159,6 +192,21 @@ export interface EditarRutaModalData {
       border-color: #f44336;
       background-color: #ffebee;
     }
+
+    .frecuencia-section {
+      margin: 16px 0;
+      padding: 16px;
+      background: #f0f8ff;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+
+    .frecuencia-section h4 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+    }
   `]
 })
 export class EditarRutaModalComponent implements OnInit {
@@ -175,7 +223,10 @@ export class EditarRutaModalComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: EditarRutaModalData
   ) {
     this.form = this.fb.group({
-      frecuencias: [data.ruta.frecuencias, Validators.required],
+      tipoFrecuencia: [data.ruta.frecuencia?.tipo || 'DIARIO', Validators.required],
+      cantidadFrecuencia: [data.ruta.frecuencia?.cantidad || 1, [Validators.required, Validators.min(1)]],
+      diasSemana: [data.ruta.frecuencia?.dias || []],
+      descripcionFrecuencia: [data.ruta.frecuencia?.descripcion || '01 DIARIA', Validators.required],
       tipoRuta: [data.ruta.tipoRuta],
       estado: [data.ruta.estado, Validators.required],
       distancia: [data.ruta.distancia],
@@ -190,7 +241,57 @@ export class EditarRutaModalComponent implements OnInit {
     }
   }
 
-  ngOnInit() { }
+  ngOnInit() {
+    // Configurar listeners para actualización automática de la descripción de frecuencia
+    this.form.get('cantidadFrecuencia')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
+    });
+
+    this.form.get('diasSemana')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
+    });
+  }
+
+  onTipoFrecuenciaChange() {
+    const tipoFrecuencia = this.form.get('tipoFrecuencia')?.value;
+    const diasControl = this.form.get('diasSemana');
+
+    // Limpiar días si no es semanal
+    if (tipoFrecuencia !== 'SEMANAL') {
+      diasControl?.setValue([]);
+    }
+
+    // Actualizar descripción automáticamente
+    this.actualizarDescripcionFrecuencia();
+  }
+
+  actualizarDescripcionFrecuencia() {
+    const tipoFrecuencia = this.form.get('tipoFrecuencia')?.value;
+    const cantidad = this.form.get('cantidadFrecuencia')?.value || 1;
+    const dias = this.form.get('diasSemana')?.value || [];
+
+    let descripcion = '';
+
+    if (tipoFrecuencia === 'DIARIO') {
+      descripcion = cantidad === 1 ? '01 DIARIA' : `${cantidad.toString().padStart(2, '0')} DIARIAS`;
+    } else if (tipoFrecuencia === 'SEMANAL') {
+      const cantidadTexto = cantidad === 1 ? '01 SEMANAL' : `${cantidad.toString().padStart(2, '0')} SEMANALES`;
+      if (dias.length > 0) {
+        const diasTexto = dias.join(' ');
+        descripcion = `${cantidadTexto} (${diasTexto})`;
+      } else {
+        descripcion = cantidadTexto;
+      }
+    } else if (tipoFrecuencia === 'QUINCENAL') {
+      descripcion = cantidad === 1 ? '01 QUINCENAL' : `${cantidad.toString().padStart(2, '0')} QUINCENALES`;
+    } else if (tipoFrecuencia === 'MENSUAL') {
+      descripcion = cantidad === 1 ? '01 MENSUAL' : `${cantidad.toString().padStart(2, '0')} MENSUALES`;
+    } else {
+      descripcion = 'ESPECIAL';
+    }
+
+    this.form.get('descripcionFrecuencia')?.setValue(descripcion, { emitEvent: false });
+  }
 
   buscarOrigen() {
     const dialogRef = this.dialog.open(BuscarLocalidadDialogComponent, {
@@ -245,12 +346,19 @@ export class EditarRutaModalComponent implements OnInit {
     const update: RutaUpdate = {
       origen: { id: this.origenSeleccionado!.id, nombre: this.origenSeleccionado!.nombre },
       destino: { id: this.destinoSeleccionado!.id, nombre: this.destinoSeleccionado!.nombre },
-      frecuencias: this.form.value.frecuencias,
+      frecuencia: {
+        tipo: this.form.value.tipoFrecuencia || 'DIARIO',
+        cantidad: this.form.value.cantidadFrecuencia || 1,
+        dias: this.form.value.diasSemana || [],
+        descripcion: this.form.value.descripcionFrecuencia || '01 DIARIA'
+      },
       tipoRuta: this.form.value.tipoRuta,
       estado: this.form.value.estado,
       distancia: this.form.value.distancia,
       observaciones: this.form.value.observaciones,
-      nombre: `${this.origenSeleccionado!.nombre} - ${this.destinoSeleccionado!.nombre}`
+      nombre: `${this.origenSeleccionado!.nombre} - ${this.destinoSeleccionado!.nombre}`,
+      // ✅ Mantener el itinerario existente si lo hay
+      itinerario: this.data.ruta.itinerario || []
     };
 
     this.rutaService.updateRuta(this.data.ruta.id, update).subscribe({

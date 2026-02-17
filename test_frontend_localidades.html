@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Localidades</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Localidades</h1>
+    
+    <div id="status"></div>
+    
+    <h2>Acciones:</h2>
+    <button onclick="testBackend()">1. Probar Backend</button>
+    <button onclick="testLocalidades()">2. Obtener Localidades</button>
+    <button onclick="checkLocalStorage()">3. Ver LocalStorage</button>
+    <button onclick="testWithToken()">4. Probar con Token</button>
+    
+    <h2>Resultados:</h2>
+    <div id="results"></div>
+    
+    <script>
+        const API_URL = 'http://localhost:8000/api/v1';
+        
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function showResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+        
+        async function testBackend() {
+            showStatus('Probando backend...', 'warning');
+            try {
+                const response = await fetch(`${API_URL}/localidades`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Backend OK - ${data.length} localidades encontradas`, 'success');
+                    showResults({
+                        total: data.length,
+                        primera: data[0],
+                        muestra: data.slice(0, 5)
+                    });
+                } else {
+                    showStatus(`❌ Error: ${response.status}`, 'error');
+                    showResults(data);
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                showResults({ error: error.message });
+            }
+        }
+        
+        async function testLocalidades() {
+            showStatus('Obteniendo localidades...', 'warning');
+            try {
+                const response = await fetch(`${API_URL}/localidades`);
+                const data = await response.json();
+                
+                showStatus(`✅ ${data.length} localidades obtenidas`, 'success');
+                showResults({
+                    total: data.length,
+                    porTipo: data.reduce((acc, loc) => {
+                        acc[loc.tipo] = (acc[loc.tipo] || 0) + 1;
+                        return acc;
+                    }, {}),
+                    muestra: data.slice(0, 10).map(l => ({
+                        nombre: l.nombre,
+                        tipo: l.tipo,
+                        departamento: l.departamento,
+                        provincia: l.provincia
+                    }))
+                });
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                showResults({ error: error.message });
+            }
+        }
+        
+        function checkLocalStorage() {
+            showStatus('Verificando LocalStorage...', 'warning');
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            showResults({
+                token: token ? `${token.substring(0, 50)}...` : 'No hay token',
+                tokenLength: token ? token.length : 0,
+                user: user ? JSON.parse(user) : 'No hay usuario',
+                allKeys: Object.keys(localStorage)
+            });
+            
+            if (token) {
+                showStatus('✅ Token encontrado en LocalStorage', 'success');
+            } else {
+                showStatus('⚠️ No hay token en LocalStorage', 'warning');
+            }
+        }
+        
+        async function testWithToken() {
+            showStatus('Probando con token...', 'warning');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                showStatus('❌ No hay token. Haz login primero.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/localidades`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Con token OK - ${data.length} localidades`, 'success');
+                    showResults({
+                        total: data.length,
+                        muestra: data.slice(0, 5)
+                    });
+                } else {
+                    showStatus(`❌ Error con token: ${response.status}`, 'error');
+                    showResults(data);
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                showResults({ error: error.message });
+            }
+        }
+        
+        // Auto-test al cargar
+        window.onload = () => {
+            testBackend();
+        };
+    </script>
+</body>
+</html>

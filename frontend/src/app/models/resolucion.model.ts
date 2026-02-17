@@ -1,4 +1,4 @@
-export type EstadoResolucion = 'VIGENTE' | 'VENCIDA' | 'SUSPENDIDA' | 'REVOCADA' | 'DADA_DE_BAJA';
+export type EstadoResolucion = 'VIGENTE' | 'VENCIDA' | 'SUSPENDIDA' | 'REVOCADA' | 'DADA_DE_BAJA' | 'RENOVADA' | 'ANULADA';
 
 export type TipoResolucion = 'PADRE' | 'HIJO';
 
@@ -53,6 +53,20 @@ export interface Resolucion {
   fechaVencimiento?: Date; // Para compatibilidad con el frontend
   documentos?: any[]; // Para compatibilidad con el servicio mock
   auditoria?: any[]; // Para compatibilidad con el servicio mock
+
+  // Campos para eficacia anticipada
+  tieneEficaciaAnticipada?: boolean | null; // true si fecha emisión > fecha inicio vigencia
+  diasEficaciaAnticipada?: number | null; // Días de diferencia entre emisión e inicio vigencia
+
+  // Campos para renovación
+  resolucionAsociada?: string; // Número de resolución anterior (para renovaciones)
+  renovadaPor?: string; // Número de resolución que renovó a esta (si fue renovada)
+
+  // Campos para protocolo de renovación
+  vehiculosPendientesIds?: string[]; // Vehículos transferidos pendientes de confirmación
+  rutasPendientesIds?: string[]; // Rutas transferidas pendientes de actualización
+  protocoloRenovacionEjecutado?: boolean; // Indica si se ejecutó el protocolo
+  fechaProtocoloRenovacion?: Date; // Fecha de ejecución del protocolo
 
   // Nuevos campos para integración con bajas vehiculares
   bajasVehiculos?: BajaVehiculoResolucion[];

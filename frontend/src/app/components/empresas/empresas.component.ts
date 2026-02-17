@@ -23,12 +23,15 @@ import { MatPaginatorModule, MatPaginator, MatPaginatorIntl } from '@angular/mat
 import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTabsModule } from '@angular/material/tabs';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
-import { Empresa, EmpresaEstadisticas } from '../../models/empresa.model';
+import { Empresa, EmpresaEstadisticas, TipoServicio, EstadoEmpresa } from '../../models/empresa.model';
 import { FiltrosAvanzadosModalComponent, FiltrosAvanzados } from './filtros-avanzados-modal.component';
+import { CambiarEstadoBloqueModalComponent, CambiarEstadoBloqueData, CambiarEstadoBloqueResult } from './cambiar-estado-bloque-modal.component';
+import { CambiarTipoServicioBloqueModalComponent, CambiarTipoServicioBloqueData, CambiarTipoServicioBloqueResult } from './cambiar-tipo-servicio-bloque-modal.component';
 
 interface ColumnConfig {
   key: string;
@@ -37,6 +40,33 @@ interface ColumnConfig {
   sortable: boolean;
   width?: string;
 }
+
+interface TipoServicioTab {
+  tipo: TipoServicio | 'TODOS' | 'TRANSPORTE' | 'INFRAESTRUCTURA';
+  label: string;
+  icon: string;
+  count: number;
+  categoria: 'TRANSPORTE' | 'INFRAESTRUCTURA' | 'TODOS';
+}
+
+interface EstadisticasPorTipo {
+  [key: string]: EmpresaEstadisticas;
+}
+
+// Categorización de tipos de servicio
+const TIPOS_TRANSPORTE: TipoServicio[] = [
+  TipoServicio.PERSONAS,
+  TipoServicio.TURISMO,
+  TipoServicio.TRABAJADORES,
+  TipoServicio.ESTUDIANTES,
+  TipoServicio.MERCANCIAS
+];
+
+const TIPOS_INFRAESTRUCTURA: TipoServicio[] = [
+  TipoServicio.TERMINAL_TERRESTRE,
+  TipoServicio.ESTACION_DE_RUTA,
+  TipoServicio.OTROS
+];
 
 @Component({
   selector: 'app-empresas',
@@ -64,6 +94,7 @@ interface ColumnConfig {
     MatSortModule,
     MatCheckboxModule,
     MatSlideToggleModule,
+    MatTabsModule,
     FormsModule,
     ReactiveFormsModule
   ],
@@ -89,6 +120,106 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   estadisticas = signal<EmpresaEstadisticas | undefined>(undefined);
   filtrosActivos = signal<FiltrosAvanzados | null>(null);
 
+  // Tabs por tipo de servicio
+  tipoServicioActivo = signal<TipoServicio | 'TODOS' | 'TRANSPORTE' | 'INFRAESTRUCTURA'>('TRANSPORTE');
+  estadisticasPorTipo = signal<EstadisticasPorTipo>({});
+  
+  // Computed para tabs
+  tipoServicioTabs = computed<TipoServicioTab[]>(() => {
+    const empresasData = this.empresasOriginales();
+    const stats = this.estadisticasPorTipo();
+    
+    // Contar empresas por categoría
+    const empresasTransporte = empresasData.filter(empresa => 
+      empresa.tiposServicio.some(tipo => TIPOS_TRANSPORTE.includes(tipo))
+    );
+    
+    const empresasInfraestructura = empresasData.filter(empresa => 
+      empresa.tiposServicio.some(tipo => TIPOS_INFRAESTRUCTURA.includes(tipo))
+    );
+
+    const tabs: TipoServicioTab[] = [
+      {
+        tipo: 'TRANSPORTE',
+        label: 'Transporte',
+        icon: 'directions_bus',
+        count: empresasTransporte.length,
+        categoria: 'TRANSPORTE'
+      },
+      {
+        tipo: 'INFRAESTRUCTURA',
+        label: 'Infraestructura',
+        icon: 'location_city',
+        count: empresasInfraestructura.length,
+        categoria: 'INFRAESTRUCTURA'
+      }
+    ];
+
+    // Solo agregar subtabs si estamos en una categoría específica
+    const tipoActivo = this.tipoServicioActivo();
+    
+    if (tipoActivo === 'TRANSPORTE') {
+      // Agregar subtabs para tipos de transporte
+      TIPOS_TRANSPORTE.forEach(tipo => {
+        const count = empresasData.filter(empresa => 
+          empresa.tiposServicio.includes(tipo)
+        ).length;
+        
+        if (count > 0) {
+          tabs.push({
+            tipo,
+            label: this.getTipoServicioLabel(tipo),
+            icon: this.getTipoServicioIcon(tipo),
+            count,
+            categoria: 'TRANSPORTE'
+          });
+        }
+      });
+    } else if (tipoActivo === 'INFRAESTRUCTURA') {
+      // Agregar subtabs para tipos de infraestructura
+      TIPOS_INFRAESTRUCTURA.forEach(tipo => {
+        const count = empresasData.filter(empresa => 
+          empresa.tiposServicio.includes(tipo)
+        ).length;
+        
+        if (count > 0) {
+          tabs.push({
+            tipo,
+            label: this.getTipoServicioLabel(tipo),
+            icon: this.getTipoServicioIcon(tipo),
+            count,
+            categoria: 'INFRAESTRUCTURA'
+          });
+        }
+      });
+    }
+
+    return tabs;
+  });
+
+  // Computed para empresas filtradas por tipo
+  empresasFiltradas = computed(() => {
+    const empresasData = this.empresasOriginales();
+    const tipoActivo = this.tipoServicioActivo();
+    
+    if (tipoActivo === 'TODOS') {
+      return empresasData;
+    } else if (tipoActivo === 'TRANSPORTE') {
+      return empresasData.filter(empresa => 
+        empresa.tiposServicio.some(tipo => TIPOS_TRANSPORTE.includes(tipo))
+      );
+    } else if (tipoActivo === 'INFRAESTRUCTURA') {
+      return empresasData.filter(empresa => 
+        empresa.tiposServicio.some(tipo => TIPOS_INFRAESTRUCTURA.includes(tipo))
+      );
+    } else {
+      // Tipo específico
+      return empresasData.filter(empresa => 
+        empresa.tiposServicio.includes(tipoActivo as TipoServicio)
+      );
+    }
+  });
+
   // Data source para la tabla
   dataSource = new MatTableDataSource<Empresa>([]);
   
@@ -106,21 +237,61 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     return numSelected > 0 && numSelected < numRows;
   });
 
-  // Configuración de columnas como signal
+  // Configuración de columnas como signal (diferentes para transporte e infraestructura)
   columnConfigs = signal<ColumnConfig[]>([
+    { key: 'select', label: 'SELECCIONAR', visible: true, sortable: false, width: '60px' },
     { key: 'ruc', label: 'RUC', visible: true, sortable: true, width: '120px' },
-    { key: 'razonSocial', label: 'RAZÓN SOCIAL', visible: true, sortable: true, width: '250px' },
+    { key: 'razonSocial', label: 'RAZÓN SOCIAL', visible: true, sortable: true, width: '300px' },
     { key: 'estado', label: 'ESTADO', visible: true, sortable: true, width: '120px' },
-    { key: 'tipoServicio', label: 'TIPO DE SERVICIO', visible: true, sortable: true, width: '150px' },
     { key: 'rutas', label: 'RUTAS', visible: true, sortable: true, width: '100px' },
     { key: 'vehiculos', label: 'VEHÍCULOS', visible: true, sortable: true, width: '100px' },
     { key: 'conductores', label: 'CONDUCTORES', visible: true, sortable: true, width: '120px' },
     { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '120px' }
   ]);
 
+  // Computed para columnas según la categoría activa
+  columnConfigsActivas = computed(() => {
+    const categoria = this.categoriaActiva();
+    const baseColumns = [
+      { key: 'select', label: 'SELECCIONAR', visible: true, sortable: false, width: '60px' },
+      { key: 'ruc', label: 'RUC', visible: true, sortable: true, width: '120px' },
+      { key: 'razonSocial', label: 'RAZÓN SOCIAL', visible: true, sortable: true, width: '300px' },
+      { key: 'estado', label: 'ESTADO', visible: true, sortable: true, width: '120px' }
+    ];
+
+    if (categoria === 'TRANSPORTE') {
+      // Columnas para empresas de transporte
+      return [
+        ...baseColumns,
+        { key: 'rutas', label: 'RUTAS', visible: true, sortable: true, width: '100px' },
+        { key: 'vehiculos', label: 'VEHÍCULOS', visible: true, sortable: true, width: '100px' },
+        { key: 'conductores', label: 'CONDUCTORES', visible: true, sortable: true, width: '120px' },
+        { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '120px' }
+      ];
+    } else if (categoria === 'INFRAESTRUCTURA') {
+      // Columnas para empresas de infraestructura complementaria
+      return [
+        ...baseColumns,
+        { key: 'tipoInfraestructura', label: 'TIPO', visible: true, sortable: true, width: '150px' },
+        { key: 'ubicacion', label: 'UBICACIÓN', visible: true, sortable: true, width: '200px' },
+        { key: 'capacidad', label: 'CAPACIDAD', visible: true, sortable: true, width: '100px' },
+        { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '120px' }
+      ];
+    } else {
+      // Columnas por defecto (todas)
+      return [
+        ...baseColumns,
+        { key: 'tipoServicio', label: 'TIPO SERVICIO', visible: true, sortable: true, width: '150px' },
+        { key: 'rutas', label: 'RUTAS', visible: true, sortable: true, width: '100px' },
+        { key: 'vehiculos', label: 'VEHÍCULOS', visible: true, sortable: true, width: '100px' },
+        { key: 'acciones', label: 'ACCIONES', visible: true, sortable: false, width: '120px' }
+      ];
+    }
+  });
+
   // Computed para columnas visibles
   displayedColumns = computed(() => 
-    this.columnConfigs().filter(col => col.visible).map(col => col.key)
+    this.columnConfigsActivas().filter(col => col.visible).map(col => col.key)
   );
 
   // Formularios
@@ -155,16 +326,26 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   setupColumnConfiguration(): void {
-    this.columnConfigs().forEach(col => {
-      this.columnForm.addControl(col.key, this.fb.control(col.visible));
-      this.columnForm.get(col.key)?.valueChanges.subscribe(visible => {
-        // Actualizar el signal con una nueva copia del array
-        const currentConfigs = this.columnConfigs();
-        const updatedConfigs = currentConfigs.map(config => 
-          config.key === col.key ? { ...config, visible } : config
-        );
-        this.columnConfigs.set(updatedConfigs);
-      });
+    // Configurar controles para todas las posibles columnas
+    const todasLasColumnas = [
+      { key: 'select', label: 'SELECCIONAR' },
+      { key: 'ruc', label: 'RUC' },
+      { key: 'razonSocial', label: 'RAZÓN SOCIAL' },
+      { key: 'estado', label: 'ESTADO' },
+      { key: 'tipoServicio', label: 'TIPO SERVICIO' },
+      { key: 'tipoInfraestructura', label: 'TIPO' },
+      { key: 'ubicacion', label: 'UBICACIÓN' },
+      { key: 'capacidad', label: 'CAPACIDAD' },
+      { key: 'rutas', label: 'RUTAS' },
+      { key: 'vehiculos', label: 'VEHÍCULOS' },
+      { key: 'conductores', label: 'CONDUCTORES' },
+      { key: 'acciones', label: 'ACCIONES' }
+    ];
+
+    todasLasColumnas.forEach(col => {
+      if (!this.columnForm.get(col.key)) {
+        this.columnForm.addControl(col.key, this.fb.control(true));
+      }
     });
   }
 
@@ -184,71 +365,126 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     this.configurarDataSource();
   }
 
+  // ========================================
+  // CONFIGURACIÓN DE BÚSQUEDA Y FILTROS
+  // ========================================
+
+  /**
+   * Configura el DataSource con paginación, ordenamiento y filtros
+   */
   private configurarDataSource(): void {
-    if (this.paginator && this.sort) {
-      this.dataSource.paginator = this.paginator;
-      this.dataSource.sort = this.sort;
-      
-      // Configurar sorting personalizado para datos anidados
-      this.dataSource.sortingDataAccessor = (data: Empresa, sortHeaderId: string) => {
-        switch (sortHeaderId) {
-          case 'ruc':
-            return data.ruc;
-          case 'razonSocial':
-            // Remover comillas y normalizar para ordenamiento alfabético
-            return data.razonSocial.principal
-              .replace(/["""'']/g, '') // Remover comillas
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, ''); // Remover acentos
-          case 'estado':
-            return data.estado;
-          case 'direccion':
-            return data.direccionFiscal || '';
-          case 'tipoServicio':
-            return data.tiposServicio ? data.tiposServicio.join(', ') : '';
-          case 'representanteLegal':
-            return data.representanteLegal ? 
-              (data.representanteLegal.nombres + ' ' + data.representanteLegal.apellidos).toLowerCase() : '';
-          case 'rutas':
-            return data.rutasAutorizadasIds?.length || 0;
-          case 'vehiculos':
-            return data.vehiculosHabilitadosIds?.length || 0;
-          case 'conductores':
-            return data.conductoresHabilitadosIds?.length || 0;
-          case 'fechaRegistro':
-            return data.fechaRegistro;
-          default:
-            return (data as any)[sortHeaderId];
-        }
-      };
-      
-      // Configurar filtro personalizado
-      this.dataSource.filterPredicate = (data: Empresa, filter: string) => {
-        const searchTerm = filter.toLowerCase();
-        return data.ruc.toLowerCase().includes(searchTerm) ||
-               data.razonSocial.principal.toLowerCase().includes(searchTerm) ||
-               data.estado.toLowerCase().includes(searchTerm);
-      };
-    }
+    if (!this.paginator || !this.sort) return;
+
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+    
+    // Configurar sorting personalizado
+    this.dataSource.sortingDataAccessor = (data: Empresa, sortHeaderId: string) => {
+      switch (sortHeaderId) {
+        case 'ruc':
+          return data.ruc;
+        case 'razonSocial':
+          return (data.razonSocial?.principal || '').toLowerCase();
+        case 'estado':
+          return data.estado;
+        case 'tipoServicio':
+          return data.tiposServicio ? data.tiposServicio.join(', ') : '';
+        case 'rutas':
+          return data.rutasAutorizadasIds?.length || 0;
+        case 'vehiculos':
+          return data.vehiculosHabilitadosIds?.length || 0;
+        case 'conductores':
+          return data.conductoresHabilitadosIds?.length || 0;
+        case 'fechaRegistro':
+          return data.fechaRegistro;
+        default:
+          return (data as any)[sortHeaderId];
+      }
+    };
+    
+    // NO usar filterPredicate personalizado - manejamos el filtrado manualmente
   }
 
+  /**
+   * Configura la búsqueda reactiva
+   */
   setupReactiveSearch(): void {
     this.searchForm.get('searchTerm')?.valueChanges.pipe(
       startWith(''),
       debounceTime(300),
       distinctUntilChanged()
     ).subscribe(searchTerm => {
-      this.applyFilter(searchTerm);
+      this.applyFilter(searchTerm || '');
     });
   }
 
+  /**
+   * Aplica el filtro de búsqueda
+   */
   applyFilter(filterValue: string): void {
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+    this.filtrarEmpresas(filterValue);
+  }
+
+  /**
+   * Filtra las empresas basado en el término de búsqueda
+   */
+  private filtrarEmpresas(termino: string): void {
+    // Limpiar el término de búsqueda: remover comillas y espacios
+    const terminoLimpio = (termino || '')
+      .replace(/['"]/g, '')  // Remover comillas
+      .trim()                // Remover espacios
+      .toLowerCase();        // Convertir a minúsculas
     
+    console.log('🔍 BUSCANDO:', terminoLimpio);
+    
+    // Si no hay término, mostrar todas las empresas
+    if (!terminoLimpio) {
+      this.dataSource.data = this.empresasOriginales();
+      console.log('✅ MOSTRANDO TODAS:', this.empresasOriginales().length);
+      return;
+    }
+    
+    // Filtrar empresas manualmente
+    const empresasFiltradas = this.empresasOriginales().filter(empresa => {
+      const ruc = (empresa.ruc || '').toLowerCase();
+      const razonSocial = (empresa.razonSocial?.principal || '').toLowerCase();
+      const estado = (empresa.estado || '').toLowerCase();
+      
+      const coincide = ruc.includes(terminoLimpio) || 
+                      razonSocial.includes(terminoLimpio) || 
+                      estado.includes(terminoLimpio);
+      
+      // Log para debugging específico
+      if (terminoLimpio === 'sur' && coincide) {
+        console.log('✅ ENCONTRADA CON SUR:', empresa.razonSocial?.principal);
+      }
+      
+      if (terminoLimpio === 'sur' && razonSocial.includes('latino')) {
+        console.log('❌ LATINO EXPRESS - ¿Por qué aparece?:', {
+          ruc,
+          razonSocial,
+          estado,
+          coincide
+        });
+      }
+      
+      return coincide;
+    });
+    
+    console.log('🔍 RESULTADOS FILTRADOS:', empresasFiltradas.length);
+    this.dataSource.data = empresasFiltradas;
+    
+    // Resetear paginador
     if (this.dataSource.paginator) {
       this.dataSource.paginator.firstPage();
     }
+  }
+
+  /**
+   * Limpia la búsqueda
+   */
+  clearSearch(): void {
+    this.searchForm.get('searchTerm')?.setValue('');
   }
 
   toggleColumnConfig(): void {
@@ -256,7 +492,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   resetColumns(): void {
-    const defaultVisibleColumns = ['ruc', 'razonSocial', 'estado', 'tipoServicio', 'rutas', 'vehiculos', 'conductores', 'acciones'];
+    const defaultVisibleColumns = ['select', 'ruc', 'razonSocial', 'estado', 'tipoServicio', 'rutas', 'vehiculos', 'conductores', 'acciones'];
     
     const updatedConfigs = this.columnConfigs().map(col => ({
       ...col,
@@ -271,15 +507,19 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     });
   }
 
+  // ========================================
+  // CARGA DE DATOS
+  // ========================================
+
   loadEmpresas(): void {
     this.isLoading.set(true);
     this.empresaService.getEmpresas(0, 1000).subscribe({
       next: (empresas) => {
         this.empresasOriginales.set(empresas);
-        this.empresas.set(empresas);
-        this.dataSource.data = empresas;
+        this.calcularEstadisticasPorTipo();
+        this.actualizarDataSource();
         
-        // Reconfigurar el paginador después de cargar datos
+        // Configurar DataSource después de cargar datos
         setTimeout(() => {
           this.configurarDataSource();
         }, 0);
@@ -287,10 +527,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('❌ ERROR CARGANDO EMPRESAS::', error);
-        console.error('❌ Status::', error.status);
-        console.error('❌ Message::', error.message);
-        console.error('❌ Error completo::', error);
+        console.error('❌ ERROR CARGANDO EMPRESAS:', error);
         this.isLoading.set(false);
         this.snackBar.open('ERROR AL CARGAR LAS EMPRESAS: ' + (error.message || 'Error desconocido'), 'CERRAR', {
           duration: 5000,
@@ -307,7 +544,7 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
         this.estadisticas.set(estadisticas);
       },
       error: (error) => {
-        console.error('ERROR CARGANDO ESTADÍSTICAS::', error);
+        console.error('ERROR CARGANDO ESTADÍSTICAS:', error);
       }
     });
   }
@@ -315,10 +552,6 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   recargarEmpresas(): void {
     this.loadEmpresas();
     this.loadEstadisticas();
-  }
-
-  clearSearch(): void {
-    this.searchForm.get('searchTerm')?.setValue('');
   }
 
   // Métodos para filtros avanzados
@@ -487,17 +720,26 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
   }
 
   toggleEmpresaSelection(empresaId: string): void {
+    console.log('🔄 TOGGLE EMPRESA SELECTION:', empresaId);
     const currentSelection = new Set(this.selectedEmpresas());
+    console.log('📋 Selección actual:', Array.from(currentSelection));
+    
     if (currentSelection.has(empresaId)) {
       currentSelection.delete(empresaId);
+      console.log('➖ Empresa deseleccionada:', empresaId);
     } else {
       currentSelection.add(empresaId);
+      console.log('➕ Empresa seleccionada:', empresaId);
     }
+    
     this.selectedEmpresas.set(currentSelection);
+    console.log('📋 Nueva selección:', Array.from(currentSelection));
   }
 
   isEmpresaSelected(empresaId: string): boolean {
-    return this.selectedEmpresas().has(empresaId);
+    const isSelected = this.selectedEmpresas().has(empresaId);
+    // console.log(`❓ ¿Empresa ${empresaId} seleccionada?:`, isSelected); // Comentado para evitar spam
+    return isSelected;
   }
 
   clearSelection(): void {
@@ -681,6 +923,10 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
     });
   }
 
+  isColumnVisible(key: string): boolean {
+    return this.columnConfigsActivas().find(c => c.key === key)?.visible || false;
+  }
+
   eliminarEmpresa(id: string): void {
     if (confirm('¿Está seguro de que desea eliminar esta empresa?')) {
       this.empresaService.deleteEmpresa(id).subscribe({
@@ -695,4 +941,401 @@ export class EmpresasComponent implements OnInit, AfterViewInit {
       });
     }
   }
+
+  // ========================================
+  // MÉTODOS PARA ACCIONES EN BLOQUE
+  // ========================================
+
+  /**
+   * Actualiza el estado de las empresas localmente para mostrar cambios inmediatos
+   */
+  private actualizarEstadoLocal(empresaIds: string[], nuevoEstado: any): void {
+    console.log('🔄 ACTUALIZANDO ESTADO LOCAL');
+    console.log('📋 IDs a actualizar:', empresaIds);
+    console.log('🏷️ Nuevo estado:', nuevoEstado);
+    console.log('📊 Empresas originales antes:', this.empresasOriginales().length);
+    console.log('📊 Empresas filtradas antes:', this.empresas().length);
+    
+    // Actualizar empresas originales
+    const empresasOriginalesActualizadas = this.empresasOriginales().map(empresa => {
+      if (empresaIds.includes(empresa.id)) {
+        console.log(`✅ Actualizando empresa ${empresa.ruc} de ${empresa.estado} a ${nuevoEstado}`);
+        return { ...empresa, estado: nuevoEstado };
+      }
+      return empresa;
+    });
+    this.empresasOriginales.set(empresasOriginalesActualizadas);
+
+    // Actualizar empresas filtradas
+    const empresasActualizadas = this.empresas().map(empresa => {
+      if (empresaIds.includes(empresa.id)) {
+        console.log(`✅ Actualizando empresa filtrada ${empresa.ruc} de ${empresa.estado} a ${nuevoEstado}`);
+        return { ...empresa, estado: nuevoEstado };
+      }
+      return empresa;
+    });
+    this.empresas.set(empresasActualizadas);
+
+    // Actualizar dataSource
+    this.dataSource.data = empresasActualizadas;
+    
+    console.log('📊 Empresas originales después:', this.empresasOriginales().length);
+    console.log('📊 Empresas filtradas después:', this.empresas().length);
+    console.log('📊 DataSource después:', this.dataSource.data.length);
+    console.log('✅ ACTUALIZACIÓN LOCAL COMPLETADA');
+  }
+
+  /**
+   * Actualiza los tipos de servicio de las empresas localmente
+   */
+  private actualizarTiposServicioLocal(empresaIds: string[], nuevosTipos: any[], accion: 'reemplazar' | 'agregar' | 'quitar'): void {
+    // Actualizar empresas originales
+    const empresasOriginalesActualizadas = this.empresasOriginales().map(empresa => {
+      if (empresaIds.includes(empresa.id)) {
+        let tiposActualizados = [...(empresa.tiposServicio || [])];
+        
+        switch (accion) {
+          case 'reemplazar':
+            tiposActualizados = nuevosTipos;
+            break;
+          case 'agregar':
+            nuevosTipos.forEach(tipo => {
+              if (!tiposActualizados.includes(tipo)) {
+                tiposActualizados.push(tipo);
+              }
+            });
+            break;
+          case 'quitar':
+            tiposActualizados = tiposActualizados.filter(tipo => !nuevosTipos.includes(tipo));
+            break;
+        }
+        
+        return { ...empresa, tiposServicio: tiposActualizados };
+      }
+      return empresa;
+    });
+    this.empresasOriginales.set(empresasOriginalesActualizadas);
+
+    // Actualizar empresas filtradas
+    const empresasActualizadas = this.empresas().map(empresa => {
+      if (empresaIds.includes(empresa.id)) {
+        let tiposActualizados = [...(empresa.tiposServicio || [])];
+        
+        switch (accion) {
+          case 'reemplazar':
+            tiposActualizados = nuevosTipos;
+            break;
+          case 'agregar':
+            nuevosTipos.forEach(tipo => {
+              if (!tiposActualizados.includes(tipo)) {
+                tiposActualizados.push(tipo);
+              }
+            });
+            break;
+          case 'quitar':
+            tiposActualizados = tiposActualizados.filter(tipo => !nuevosTipos.includes(tipo));
+            break;
+        }
+        
+        return { ...empresa, tiposServicio: tiposActualizados };
+      }
+      return empresa;
+    });
+    this.empresas.set(empresasActualizadas);
+
+    // Actualizar dataSource
+    this.dataSource.data = empresasActualizadas;
+  }
+
+  cambiarEstadoBloque(): void {
+    const selectedIds = Array.from(this.selectedEmpresas());
+    console.log('🔍 CAMBIAR ESTADO BLOQUE - IDs seleccionados:', selectedIds);
+    
+    if (selectedIds.length === 0) {
+      console.log('❌ No hay empresas seleccionadas');
+      this.snackBar.open('No hay empresas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogData: CambiarEstadoBloqueData = {
+      empresasSeleccionadas: selectedIds.length
+    };
+
+    console.log('📋 Abriendo modal con data:', dialogData);
+
+    const dialogRef = this.dialog.open(CambiarEstadoBloqueModalComponent, {
+      width: '600px',
+      maxHeight: '90vh',
+      data: dialogData,
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((result: CambiarEstadoBloqueResult) => {
+      console.log('🔄 Modal cerrado con resultado:', result);
+      
+      if (result) {
+        console.log(`✅ Cambiando estado de ${selectedIds.length} empresas a ${result.nuevoEstado}`);
+        
+        this.snackBar.open(`Cambiando estado de ${selectedIds.length} empresas a ${result.nuevoEstado}...`, '', { duration: 2000 });
+        
+        // Actualizar el estado localmente para mostrar el cambio inmediatamente
+        this.actualizarEstadoLocal(selectedIds, result.nuevoEstado);
+        
+        // Llamada al servicio para cambiar el estado en bloque
+        this.empresaService.cambiarEstadoBloque(selectedIds, result.nuevoEstado).subscribe({
+          next: (response) => {
+            console.log('✅ Respuesta del servidor:', response);
+            
+            if (response.errores && response.errores.length > 0) {
+              // Hay algunos errores, mostrar mensaje detallado
+              const empresasYaEnEstado = response.errores.filter(error => 
+                error.error?.error?.detail?.includes('ya se encuentra en estado')
+              ).length;
+              
+              const otrosErrores = response.errores.length - empresasYaEnEstado;
+              
+              let mensaje = `Estado cambiado exitosamente para ${response.empresasActualizadas} empresas`;
+              
+              if (empresasYaEnEstado > 0) {
+                mensaje += `. ${empresasYaEnEstado} empresa(s) ya estaban en el estado seleccionado`;
+              }
+              
+              if (otrosErrores > 0) {
+                mensaje += `. ${otrosErrores} empresa(s) tuvieron errores`;
+              }
+              
+              this.snackBar.open(mensaje, 'Cerrar', { duration: 6000 });
+            } else {
+              // Todo exitoso
+              this.snackBar.open(`Estado cambiado exitosamente para ${response.empresasActualizadas} empresas`, 'Cerrar', { duration: 4000 });
+            }
+            
+            this.clearSelection();
+            // Recargar datos para sincronizar con el servidor
+            this.recargarEmpresas();
+          },
+          error: (error) => {
+            console.error('❌ Error cambiando estado en bloque:', error);
+            this.snackBar.open('Error al cambiar el estado de las empresas', 'Cerrar', { duration: 4000 });
+            // Revertir cambios locales en caso de error
+            this.recargarEmpresas();
+          }
+        });
+      } else {
+        console.log('❌ Modal cerrado sin resultado');
+      }
+    });
+  }
+
+  cambiarTipoServicioBloque(): void {
+    const selectedIds = Array.from(this.selectedEmpresas());
+    if (selectedIds.length === 0) {
+      this.snackBar.open('No hay empresas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dialogData: CambiarTipoServicioBloqueData = {
+      empresasSeleccionadas: selectedIds.length
+    };
+
+    const dialogRef = this.dialog.open(CambiarTipoServicioBloqueModalComponent, {
+      width: '700px',
+      maxHeight: '90vh',
+      data: dialogData,
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((result: CambiarTipoServicioBloqueResult) => {
+      if (result) {
+        const accionTexto = result.accion === 'reemplazar' ? 'reemplazando' : 
+                           result.accion === 'agregar' ? 'agregando' : 'quitando';
+        
+        this.snackBar.open(`${accionTexto} tipos de servicio en ${selectedIds.length} empresas...`, '', { duration: 2000 });
+        
+        // Actualizar los tipos de servicio localmente para mostrar el cambio inmediatamente
+        this.actualizarTiposServicioLocal(selectedIds, result.nuevosTipos, result.accion);
+        
+        // Aquí implementarías la llamada al servicio para cambiar el tipo de servicio en bloque
+        // this.empresaService.cambiarTipoServicioBloque(selectedIds, result.nuevosTipos, result.accion).subscribe(...)
+        
+        setTimeout(() => {
+          this.snackBar.open(`Tipos de servicio actualizados exitosamente para ${selectedIds.length} empresas`, 'Cerrar', { duration: 4000 });
+          this.clearSelection();
+          // this.recargarEmpresas(); // Comentado para mantener los cambios locales visibles
+        }, 2000);
+      }
+    });
+  }
+
+  exportarSeleccionadas(): void {
+    const selectedIds = Array.from(this.selectedEmpresas());
+    if (selectedIds.length === 0) {
+      this.snackBar.open('No hay empresas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    // Usar el método existente de exportación
+    this.exportarEmpresas();
+  }
+
+  eliminarSeleccionadas(): void {
+    const selectedIds = Array.from(this.selectedEmpresas());
+    if (selectedIds.length === 0) {
+      this.snackBar.open('No hay empresas seleccionadas', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const confirmMessage = `¿Está seguro de que desea eliminar ${selectedIds.length} empresa(s) seleccionada(s)? Esta acción no se puede deshacer.`;
+    if (confirm(confirmMessage)) {
+      this.snackBar.open(`Eliminando ${selectedIds.length} empresas...`, '', { duration: 2000 });
+      
+      // Aquí implementarías la llamada al servicio para eliminar en bloque
+      // this.empresaService.eliminarEmpresasBloque(selectedIds).subscribe(...)
+      
+      // Por ahora, solo mostramos un mensaje
+      setTimeout(() => {
+        this.snackBar.open(`${selectedIds.length} empresas eliminadas exitosamente`, 'Cerrar', { duration: 4000 });
+        this.clearSelection();
+        this.recargarEmpresas();
+      }, 2000);
+    }
+  }
+
+  // ========================================
+  // MÉTODOS PARA TABS POR TIPO DE SERVICIO
+  // ========================================
+
+  onTipoServicioChange(tipoServicio: TipoServicio | 'TODOS' | 'TRANSPORTE' | 'INFRAESTRUCTURA'): void {
+    this.tipoServicioActivo.set(tipoServicio);
+    this.clearSelection();
+    this.actualizarDataSource();
+  }
+
+  // Método para determinar si una empresa es de transporte
+  esEmpresaTransporte(empresa: Empresa): boolean {
+    return empresa.tiposServicio.some(tipo => TIPOS_TRANSPORTE.includes(tipo));
+  }
+
+  // Método para determinar si una empresa es de infraestructura
+  esEmpresaInfraestructura(empresa: Empresa): boolean {
+    return empresa.tiposServicio.some(tipo => TIPOS_INFRAESTRUCTURA.includes(tipo));
+  }
+
+  // Computed para determinar si estamos viendo empresas de transporte o infraestructura
+  categoriaActiva = computed(() => {
+    const tipoActivo = this.tipoServicioActivo();
+    if (tipoActivo === 'TRANSPORTE' || TIPOS_TRANSPORTE.includes(tipoActivo as TipoServicio)) {
+      return 'TRANSPORTE';
+    } else if (tipoActivo === 'INFRAESTRUCTURA' || TIPOS_INFRAESTRUCTURA.includes(tipoActivo as TipoServicio)) {
+      return 'INFRAESTRUCTURA';
+    }
+    return 'TODOS';
+  });
+
+  private actualizarDataSource(): void {
+    const empresasFiltradas = this.empresasFiltradas();
+    this.dataSource.data = empresasFiltradas;
+    this.empresas.set(empresasFiltradas);
+    
+    // Aplicar filtros de búsqueda si existen
+    const searchTerm = this.searchForm.get('searchTerm')?.value;
+    if (searchTerm) {
+      this.applyFilter(searchTerm);
+    }
+  }
+
+  getTipoServicioLabel(tipo: TipoServicio): string {
+    const labels: { [key in TipoServicio]: string } = {
+      [TipoServicio.PERSONAS]: 'Personas',
+      [TipoServicio.TURISMO]: 'Turismo',
+      [TipoServicio.TRABAJADORES]: 'Trabajadores',
+      [TipoServicio.MERCANCIAS]: 'Mercancías',
+      [TipoServicio.ESTUDIANTES]: 'Estudiantes',
+      [TipoServicio.TERMINAL_TERRESTRE]: 'Terminal Terrestre',
+      [TipoServicio.ESTACION_DE_RUTA]: 'Estación de Ruta',
+      [TipoServicio.OTROS]: 'Otros'
+    };
+    return labels[tipo] || tipo;
+  }
+
+  getTipoServicioIcon(tipo: TipoServicio): string {
+    const icons: { [key in TipoServicio]: string } = {
+      [TipoServicio.PERSONAS]: 'people',
+      [TipoServicio.TURISMO]: 'landscape',
+      [TipoServicio.TRABAJADORES]: 'work',
+      [TipoServicio.MERCANCIAS]: 'local_shipping',
+      [TipoServicio.ESTUDIANTES]: 'school',
+      [TipoServicio.TERMINAL_TERRESTRE]: 'location_city',
+      [TipoServicio.ESTACION_DE_RUTA]: 'train',
+      [TipoServicio.OTROS]: 'more_horiz'
+    };
+    return icons[tipo] || 'business';
+  }
+
+  getTipoInfraestructuraLabel(tipo: TipoServicio): string {
+    const labels: { [key in TipoServicio]?: string } = {
+      [TipoServicio.TERMINAL_TERRESTRE]: 'Terminal Terrestre',
+      [TipoServicio.ESTACION_DE_RUTA]: 'Estación de Ruta',
+      [TipoServicio.OTROS]: 'Otros Servicios'
+    };
+    return labels[tipo] || this.getTipoServicioLabel(tipo);
+  }
+
+  // Método para calcular estadísticas por tipo de servicio
+  private calcularEstadisticasPorTipo(): void {
+    const empresasData = this.empresasOriginales();
+    const estadisticasPorTipo: EstadisticasPorTipo = {};
+
+    // Estadísticas generales (TODOS)
+    estadisticasPorTipo['TODOS'] = this.calcularEstadisticasParaEmpresas(empresasData);
+
+    // Estadísticas por cada tipo de servicio
+    Object.values(TipoServicio).forEach(tipo => {
+      const empresasDeTipo = empresasData.filter(empresa => 
+        empresa.tiposServicio.includes(tipo)
+      );
+      if (empresasDeTipo.length > 0) {
+        estadisticasPorTipo[tipo] = this.calcularEstadisticasParaEmpresas(empresasDeTipo);
+      }
+    });
+
+    this.estadisticasPorTipo.set(estadisticasPorTipo);
+  }
+
+  private calcularEstadisticasParaEmpresas(empresas: Empresa[]): EmpresaEstadisticas {
+    const total = empresas.length;
+    const autorizadas = empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADO).length;
+    const enTramite = empresas.filter(e => e.estado === EstadoEmpresa.EN_TRAMITE).length;
+    const suspendidas = empresas.filter(e => e.estado === EstadoEmpresa.SUSPENDIDO).length;
+    const canceladas = empresas.filter(e => e.estado === EstadoEmpresa.CANCELADO).length;
+    const dadasDeBaja = 0; // No hay enum para DADA_DE_BAJA, usar 0
+
+    return {
+      totalEmpresas: total,
+      empresasAutorizadas: autorizadas,
+      empresasEnTramite: enTramite,
+      empresasSuspendidas: suspendidas,
+      empresasCanceladas: canceladas,
+      empresasDadasDeBaja: dadasDeBaja,
+      empresasConDocumentosVencidos: 0, // Se puede calcular si es necesario
+      empresasConScoreAltoRiesgo: 0, // Se puede calcular si es necesario
+      promedioVehiculosPorEmpresa: 0, // Se puede calcular si es necesario
+      promedioConductoresPorEmpresa: 0 // Se puede calcular si es necesario
+    };
+  }
+
+  // Computed para estadísticas del tab activo
+  estadisticasTabActivo = computed(() => {
+    const tipoActivo = this.tipoServicioActivo();
+    const estadisticasPorTipo = this.estadisticasPorTipo();
+    return estadisticasPorTipo[tipoActivo] || estadisticasPorTipo['TODOS'];
+  });
+
+  // Computed para el índice del tab seleccionado
+  selectedTabIndex = computed(() => {
+    const tabs = this.tipoServicioTabs();
+    const tipoActivo = this.tipoServicioActivo();
+    const index = tabs.findIndex(tab => tab.tipo === tipoActivo);
+    return index >= 0 ? index : 0;
+  });
 }

@@ -78,6 +78,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
+        <!-- Infraestructura -->
+        <a mat-list-item 
+           routerLink="/infraestructura" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Infraestructura' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'location_city'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Infraestructura</span>
+          }
+        </a>
+
         <!-- Vehículos -->
         <a mat-list-item 
            routerLink="/vehiculos" 
@@ -90,6 +103,49 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
             <span matListItemTitle class="nav-text">Vehículos</span>
           }
         </a>
+
+        <!-- Carga Masiva Vehículos -->
+        @if (isExpanded()) {
+          <a mat-list-item 
+             routerLink="/vehiculos/carga-masiva" 
+             routerLinkActive="active-link" 
+             class="nav-item sub-item"
+             [matTooltip]="!isExpanded() ? 'Carga Masiva Vehículos' : ''" 
+             matTooltipPosition="right">
+            <app-smart-icon matListItemIcon [iconName]="'upload_file'" [size]="24" class="nav-icon"></app-smart-icon>
+            @if (isExpanded()) {
+              <span matListItemTitle class="nav-text">Carga Masiva Vehículos</span>
+            }
+          </a>
+        }
+
+        <!-- Vehículos Solo (Datos Técnicos) -->
+        <a mat-list-item 
+           routerLink="/vehiculos-solo" 
+           routerLinkActive="active-link" 
+           class="nav-item"
+           [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" 
+           matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'build'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) {
+            <span matListItemTitle class="nav-text">Datos Técnicos Vehiculares</span>
+          }
+        </a>
+
+        <!-- Carga Masiva Datos Técnicos -->
+        @if (isExpanded()) {
+          <a mat-list-item 
+             routerLink="/vehiculos-solo/carga-masiva" 
+             routerLinkActive="active-link" 
+             class="nav-item sub-item"
+             [matTooltip]="!isExpanded() ? 'Carga Masiva Datos Técnicos' : ''" 
+             matTooltipPosition="right">
+            <app-smart-icon matListItemIcon [iconName]="'upload_file'" [size]="24" class="nav-icon"></app-smart-icon>
+            @if (isExpanded()) {
+              <span matListItemTitle class="nav-text">Carga Masiva Datos Técnicos</span>
+            }
+          </a>
+        }
 
         <!-- Historial Vehicular -->
         <a mat-list-item 
@@ -447,6 +503,22 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 
     .nav-item.active-link .nav-text {
       color: white;
+    }
+
+    /* Sub-items (elementos anidados) */
+    .nav-item.sub-item {
+      margin-left: 24px;
+      padding-left: 16px;
+      border-left: 2px solid #e9ecef;
+      font-size: 0.9em;
+    }
+
+    .nav-item.sub-item:hover {
+      border-left-color: #667eea;
+    }
+
+    .nav-item.sub-item.active-link {
+      border-left-color: #667eea;
     }
 
 

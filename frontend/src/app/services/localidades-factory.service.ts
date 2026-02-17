@@ -222,6 +222,30 @@ export class LocalidadesFactoryService {
   }
 
   /**
+   * Verificar si una localidad está en uso en rutas
+   */
+  verificarUsoLocalidad(id: string): Promise<{
+    en_uso: boolean;
+    rutas_como_origen: number;
+    rutas_como_destino: number;
+    rutas_en_itinerario: number;
+    rutas_afectadas: any[];
+  }> {
+    if (LOCALIDADES_CONFIG.modo === 'local') {
+      // En modo local, simular que no está en uso
+      return Promise.resolve({
+        en_uso: false,
+        rutas_como_origen: 0,
+        rutas_como_destino: 0,
+        rutas_en_itinerario: 0,
+        rutas_afectadas: []
+      });
+    } else {
+      return this.localidadService.verificarUsoLocalidad(id);
+    }
+  }
+
+  /**
    * Obtener información del servicio activo
    */
   getInfoServicio(): { modo: string; descripcion: string } {

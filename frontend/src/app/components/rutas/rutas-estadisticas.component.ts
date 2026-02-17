@@ -10,6 +10,7 @@ import { RutaService } from '../../services/ruta.service';
 import { Ruta } from '../../models/ruta.model';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+import { MapaRutasPunoComponent } from './mapa-rutas-puno.component';
 
 interface EstadisticaRuta {
   total: number;
@@ -38,7 +39,8 @@ interface LocalidadEstadistica {
     MatButtonModule,
     MatProgressBarModule,
     MatDividerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MapaRutasPunoComponent
   ],
   template: `
     <div class="estadisticas-container">
@@ -116,6 +118,9 @@ interface LocalidadEstadistica {
             </mat-card-content>
           </mat-card>
         </div>
+
+        <!-- Mapa de Rutas de Puno -->
+        <app-mapa-rutas-puno [rutas]="rutas()"></app-mapa-rutas-puno>
 
         <!-- Gráficos y análisis -->
         <div class="charts-container">
@@ -1711,7 +1716,7 @@ export class RutasEstadisticasComponent implements OnInit {
 
   getRutasConFrecuencias(): {conFrecuencias: number, sinFrecuencias: number} {
     const rutasData = this.rutas();
-    const conFrecuencias = rutasData.filter(r => r.frecuencias && r.frecuencias.trim() !== '' && r.frecuencias !== 'Sin frecuencias').length;
+    const conFrecuencias = rutasData.filter(r => r.frecuencia && r.frecuencia.descripcion && r.frecuencia.descripcion.trim() !== '' && r.frecuencia.descripcion !== 'Sin frecuencias').length;
     const sinFrecuencias = rutasData.length - conFrecuencias;
     
     return { conFrecuencias, sinFrecuencias };
@@ -1721,12 +1726,12 @@ export class RutasEstadisticasComponent implements OnInit {
     const rutasData = this.rutas();
     
     return rutasData
-      .filter(r => r.frecuencias && r.frecuencias.trim() !== '' && r.frecuencias !== 'Sin frecuencias')
+      .filter(r => r.frecuencia && r.frecuencia.descripcion && r.frecuencia.descripcion.trim() !== '' && r.frecuencia.descripcion !== 'Sin frecuencias')
       .map(r => ({
         codigoRuta: r.codigoRuta,
         origen: r.origen?.nombre || 'Sin origen',
         destino: r.destino?.nombre || 'Sin destino',
-        frecuencias: r.frecuencias || ''
+        frecuencias: r.frecuencia?.descripcion || ''
       }))
       .sort((a, b) => {
         // Intentar extraer números de las frecuencias para ordenar

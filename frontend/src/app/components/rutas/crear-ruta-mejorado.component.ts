@@ -999,7 +999,12 @@ export class CrearRutaMejoradoComponent implements OnInit, OnDestroy {
         nombre: `${origenLocalidad.nombre} - ${destinoLocalidad.nombre}`,
         origen: { id: origenLocalidad.id, nombre: origenLocalidad.nombre },
         destino: { id: destinoLocalidad.id, nombre: destinoLocalidad.nombre },
-        frecuencias: formValue.frecuencias,
+        frecuencia: {
+          tipo: 'DIARIO',
+          cantidad: 1,
+          dias: [],
+          descripcion: formValue.frecuencias || 'Diaria'
+        },
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio,
         observaciones: formValue.observaciones || '',

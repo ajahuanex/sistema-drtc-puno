@@ -22,6 +22,18 @@ export interface ResolucionEmbebida {
   estado: string;
 }
 
+export interface FrecuenciaServicio {
+  tipo: string;
+  cantidad: number;
+  dias: string[];
+  descripcion: string;
+}
+
+export interface HorarioServicio {
+  hora: string;
+  tipo?: string;
+}
+
 // ✅ MODELO PRINCIPAL OPTIMIZADO
 export interface Ruta {
   id: string;
@@ -36,14 +48,9 @@ export interface Ruta {
   resolucion: ResolucionEmbebida;
   
   // Datos operativos
-  frecuencias: string;
-  frecuencia?: {
-    tipo: string;
-    cantidad: number;
-    dias: string[];
-    descripcion: string;
-  };
-  tipoRuta: TipoRuta;
+  frecuencia?: FrecuenciaServicio;
+  horarios?: HorarioServicio[];
+  tipoRuta?: TipoRuta; // Opcional
   tipoServicio: TipoServicio;
   estado: EstadoRuta;
   
@@ -54,7 +61,6 @@ export interface Ruta {
   capacidadMaxima?: number;
   
   // Datos adicionales
-  horarios?: any[];
   restricciones?: string[];
   observaciones?: string;
   descripcion?: string;
@@ -77,8 +83,13 @@ export interface RutaCreate {
   resolucion: ResolucionEmbebida;
   
   // Datos operativos
-  frecuencias: string;
-  tipoRuta: TipoRuta;
+  frecuencia: {
+    tipo: string;
+    cantidad: number;
+    dias: string[];
+    descripcion: string;
+  };
+  tipoRuta?: TipoRuta; // Opcional
   tipoServicio: TipoServicio;
   
   // Datos técnicos opcionales
@@ -106,7 +117,7 @@ export interface RutaUpdate {
   resolucion?: ResolucionEmbebida;
   
   // Datos operativos
-  frecuencias?: string;
+  frecuencia?: FrecuenciaServicio;
   tipoRuta?: TipoRuta;
   tipoServicio?: TipoServicio;
   estado?: EstadoRuta;
@@ -127,7 +138,7 @@ export interface RutaUpdate {
 }
 
 // Enums para el estado y tipo de ruta
-export type EstadoRuta = 'ACTIVA' | 'INACTIVA' | 'SUSPENDIDA' | 'EN_MANTENIMIENTO' | 'ARCHIVADA' | 'DADA_DE_BAJA';
+export type EstadoRuta = 'ACTIVA' | 'INACTIVA' | 'SUSPENDIDA' | 'EN_MANTENIMIENTO' | 'ARCHIVADA' | 'DADA_DE_BAJA' | 'CANCELADA';
 
 export type TipoRuta = 'URBANA' | 'INTERURBANA' | 'INTERPROVINCIAL' | 'INTERREGIONAL' | 'RURAL';
 

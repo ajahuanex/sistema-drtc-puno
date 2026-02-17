@@ -156,17 +156,67 @@ export interface RutaFormConfig {
 
       <!-- Campos adicionales (solo si no es modo simple) -->
       @if (!config.modoSimple) {
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Frecuencias *</mat-label>
-            <input matInput 
-                   formControlName="frecuencias" 
-                   placeholder="Ej: Diaria, cada 30 minutos">
-            <mat-error *ngIf="rutaForm.get('frecuencias')?.hasError('required')">
-              Las frecuencias son obligatorias
-            </mat-error>
-          </mat-form-field>
+        <!-- Sección de Frecuencia -->
+        <div class="frecuencia-section">
+          <h4 class="section-title">
+            <mat-icon>schedule</mat-icon>
+            Frecuencia de Servicio
+          </h4>
+          
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Tipo de Frecuencia *</mat-label>
+              <mat-select formControlName="tipoFrecuencia" (selectionChange)="onTipoFrecuenciaChange()">
+                <mat-option value="DIARIO">Diario</mat-option>
+                <mat-option value="SEMANAL">Semanal</mat-option>
+                <mat-option value="QUINCENAL">Quincenal</mat-option>
+                <mat-option value="MENSUAL">Mensual</mat-option>
+                <mat-option value="ESPECIAL">Especial</mat-option>
+              </mat-select>
+            </mat-form-field>
 
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Cantidad *</mat-label>
+              <input matInput 
+                     type="number" 
+                     formControlName="cantidadFrecuencia" 
+                     min="1"
+                     placeholder="Ej: 1, 2, 3">
+              <mat-hint>Número de servicios</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Días de la semana (solo si es SEMANAL) -->
+          @if (rutaForm.get('tipoFrecuencia')?.value === 'SEMANAL') {
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field full-width">
+                <mat-label>Días de Servicio</mat-label>
+                <mat-select formControlName="diasSemana" multiple>
+                  <mat-option value="LUNES">Lunes</mat-option>
+                  <mat-option value="MARTES">Martes</mat-option>
+                  <mat-option value="MIERCOLES">Miércoles</mat-option>
+                  <mat-option value="JUEVES">Jueves</mat-option>
+                  <mat-option value="VIERNES">Viernes</mat-option>
+                  <mat-option value="SABADO">Sábado</mat-option>
+                  <mat-option value="DOMINGO">Domingo</mat-option>
+                </mat-select>
+                <mat-hint>Selecciona los días específicos</mat-hint>
+              </mat-form-field>
+            </div>
+          }
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field full-width">
+              <mat-label>Descripción de Frecuencia *</mat-label>
+              <input matInput 
+                     formControlName="descripcionFrecuencia" 
+                     placeholder="Ej: 2 DIARIOS, 3 SEMANALES (LUN MIE VIE)">
+              <mat-hint>Descripción legible de la frecuencia</mat-hint>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-row">
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Estado</mat-label>
             <mat-select formControlName="estado">
@@ -573,6 +623,28 @@ export interface RutaFormConfig {
       font-size: 16px;
     }
 
+    .frecuencia-section {
+      margin: 24px 0;
+      padding: 16px;
+      background: #f0f8ff;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
     .itinerario-section {
       margin-top: 24px;
       padding: 16px;
@@ -743,6 +815,14 @@ export class RutaFormComponent implements OnInit {
   ];
 
   ngOnInit() {
+    console.log('🔍 [RUTA-FORM] Inicializando formulario');
+    console.log('📋 [RUTA-FORM] Config recibida:', {
+      empresa: this.config.empresa?.ruc,
+      resolucion: this.config.resolucion?.nroResolucion,
+      rutasExistentes: this.config.rutasExistentes?.length || 0,
+      modoSimple: this.config.modoSimple,
+      esEdicion: !!this.config.ruta
+    });
     console.log('🔍 Tipos de ruta disponibles:', this.tiposRuta);
     this.inicializarFormulario();
     this.cargarDatosIniciales();
@@ -754,23 +834,29 @@ export class RutaFormComponent implements OnInit {
       ? this.getSiguienteCorrelativo() 
       : '';
 
-    console.log('🔢 Código sugerido:', codigoSugerido);
-    console.log('📋 Rutas existentes:', this.config.rutasExistentes?.length || 0);
+    console.log('🔢 [RUTA-FORM] Código sugerido:', codigoSugerido);
+    console.log('📋 [RUTA-FORM] Rutas existentes:', this.config.rutasExistentes?.length || 0);
+    if (this.config.rutasExistentes && this.config.rutasExistentes.length > 0) {
+      console.log('📋 [RUTA-FORM] Códigos existentes:', this.config.rutasExistentes.map(r => r.codigoRuta));
+    }
 
     this.rutaForm = this.fb.group({
       codigoRuta: [codigoSugerido, [Validators.required, Validators.pattern(/^\d{2}$/)]],
       tipoRuta: ['INTERREGIONAL'],
       origenId: ['', Validators.required],
       destinoId: ['', Validators.required],
-      frecuencias: [''],
+      tipoFrecuencia: ['DIARIO', Validators.required],
+      cantidadFrecuencia: [1, [Validators.required, Validators.min(1)]],
+      diasSemana: [[]],
+      descripcionFrecuencia: ['01 DIARIA', Validators.required],
       estado: ['ACTIVA'],
       descripcion: [''],
       observaciones: ['']
     });
 
-    // Agregar validación de frecuencias si no es modo simple
+    // Agregar validaciones adicionales si no es modo simple
     if (!this.config.modoSimple) {
-      this.rutaForm.get('frecuencias')?.setValidators([Validators.required]);
+      this.rutaForm.get('descripcionFrecuencia')?.setValidators([Validators.required]);
     }
 
     // Validación en tiempo real del código duplicado
@@ -784,6 +870,15 @@ export class RutaFormComponent implements OnInit {
     });
     this.rutaForm.get('destinoId')?.valueChanges.subscribe(() => {
       this.validarOrigenDestinoDiferentes();
+    });
+
+    // Configurar listeners para actualización automática de la descripción de frecuencia
+    this.rutaForm.get('cantidadFrecuencia')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
+    });
+    
+    this.rutaForm.get('diasSemana')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
     });
   }
 
@@ -856,7 +951,10 @@ export class RutaFormComponent implements OnInit {
         tipoRuta: this.config.ruta.tipoRuta,
         origenId: origenId,
         destinoId: destinoId,
-        frecuencias: this.config.ruta.frecuencias,
+        tipoFrecuencia: this.config.ruta.frecuencia?.tipo || 'DIARIO',
+        cantidadFrecuencia: this.config.ruta.frecuencia?.cantidad || 1,
+        diasSemana: this.config.ruta.frecuencia?.dias || [],
+        descripcionFrecuencia: this.config.ruta.frecuencia?.descripcion || '01 DIARIA',
         estado: this.config.ruta.estado,
         descripcion: this.config.ruta.descripcion,
         observaciones: this.config.ruta.observaciones
@@ -1025,7 +1123,11 @@ export class RutaFormComponent implements OnInit {
   private async crearRuta() {
     const formValue = this.rutaForm.value;
     
+    console.log('💾 [RUTA-FORM] Creando nueva ruta');
+    console.log('📝 [RUTA-FORM] Valores del formulario:', formValue);
+    
     if (!formValue.origenId || !formValue.destinoId) {
+      console.error('❌ [RUTA-FORM] Faltan origen o destino');
       this.snackBar.open('Debes seleccionar origen y destino', 'Cerrar', { duration: 3000 });
       this.isSubmitting.set(false);
       return;
@@ -1033,6 +1135,7 @@ export class RutaFormComponent implements OnInit {
 
     // Usar las localidades ya seleccionadas en lugar de buscarlas de nuevo
     if (!this.origenSeleccionado || !this.destinoSeleccionado) {
+      console.error('❌ [RUTA-FORM] Localidades no seleccionadas correctamente');
       this.snackBar.open('Error: localidades no seleccionadas correctamente', 'Cerrar', { duration: 3000 });
       this.isSubmitting.set(false);
       return;
@@ -1040,6 +1143,9 @@ export class RutaFormComponent implements OnInit {
 
     const origenLocalidad = this.origenSeleccionado;
     const destinoLocalidad = this.destinoSeleccionado;
+
+    console.log('📍 [RUTA-FORM] Origen:', origenLocalidad.nombre);
+    console.log('📍 [RUTA-FORM] Destino:', destinoLocalidad.nombre);
 
     // Si el itinerario está vacío, agregar origen y destino
     let itinerarioFinal = this.itinerario;
@@ -1064,7 +1170,12 @@ export class RutaFormComponent implements OnInit {
       },
       tipoRuta: formValue.tipoRuta,
       tipoServicio: 'PASAJEROS',
-      frecuencias: formValue.frecuencias || 'Por definir',
+      frecuencia: {
+        tipo: formValue.tipoFrecuencia || 'DIARIO',
+        cantidad: formValue.cantidadFrecuencia || 1,
+        dias: formValue.diasSemana || [],
+        descripcion: formValue.descripcionFrecuencia || '01 DIARIA'
+      },
       descripcion: formValue.descripcion,
       observaciones: formValue.observaciones,
       empresa: {
@@ -1074,17 +1185,23 @@ export class RutaFormComponent implements OnInit {
       },
       resolucion: {
         id: this.config.resolucion!.id,
-        nroResolucion: this.config.resolucion!.nroResolucion,
-        tipoResolucion: this.config.resolucion!.tipoResolucion,
+        nroResolucion: this.config.resolucion!.nroResolucion || (this.config.resolucion as any).numero || 'Sin número',
+        tipoResolucion: this.config.resolucion!.tipoResolucion || 'PADRE',
         estado: this.config.resolucion!.estado || 'VIGENTE'
       },
       itinerario: itinerarioFinal
     };
 
     try {
-      console.log('📤 Enviando ruta al backend:', rutaData);
+      console.log('📤 [RUTA-FORM] Enviando ruta al backend:', JSON.stringify(rutaData, null, 2));
       const ruta = await this.rutaService.createRuta(rutaData).toPromise();
-      console.log('✅ Ruta creada exitosamente:', ruta);
+      console.log('✅ [RUTA-FORM] Ruta creada exitosamente:', ruta);
+      
+      // Actualizar la lista de rutas existentes con la nueva ruta
+      if (this.config.rutasExistentes && ruta) {
+        this.config.rutasExistentes.push(ruta);
+      }
+      
       this.snackBar.open('Ruta creada exitosamente', 'Cerrar', { duration: 3000 });
       this.rutaCreada.emit(ruta!);
     } catch (error: any) {
@@ -1125,16 +1242,30 @@ export class RutaFormComponent implements OnInit {
   private async actualizarRuta() {
     const formValue = this.rutaForm.value;
     
+    console.log('✏️ [RUTA-FORM] Actualizando ruta');
+    console.log('📝 [RUTA-FORM] Valores del formulario:', formValue);
+    console.log('🆔 [RUTA-FORM] ID de ruta a actualizar:', this.config.ruta?.id);
+    
     const rutaUpdate: RutaUpdate = {
       tipoRuta: formValue.tipoRuta,
-      frecuencias: formValue.frecuencias,
+      frecuencia: {
+        tipo: formValue.tipoFrecuencia || 'DIARIO',
+        cantidad: formValue.cantidadFrecuencia || 1,
+        dias: formValue.diasSemana || [],
+        descripcion: formValue.descripcionFrecuencia || '01 DIARIA'
+      },
       descripcion: formValue.descripcion,
-      observaciones: formValue.observaciones
+      observaciones: formValue.observaciones,
+      // ✅ AGREGAR ITINERARIO
+      itinerario: this.itinerario
     };
+
+    console.log('📤 [RUTA-FORM] Objeto de actualización:', JSON.stringify(rutaUpdate, null, 2));
+    console.log('📋 [RUTA-FORM] Itinerario a actualizar:', this.itinerario);
 
     // Si se cambió el origen o destino, actualizar
     if (formValue.origenId || formValue.destinoId) {
-      const todasLocalidades = await this.localidadService.getLocalidades().toPromise();
+      const todasLocalidades = await this.localidadService.obtenerLocalidades();
       
       if (formValue.origenId) {
         const origenLocalidad = todasLocalidades?.find(l => l.id === formValue.origenId);
@@ -1163,11 +1294,14 @@ export class RutaFormComponent implements OnInit {
     }
 
     try {
+      console.log('🚀 [RUTA-FORM] Enviando actualización al backend...');
       const ruta = await this.rutaService.updateRuta(this.config.ruta!.id, rutaUpdate).toPromise();
+      console.log('✅ [RUTA-FORM] Ruta actualizada exitosamente:', ruta);
       this.snackBar.open('Ruta actualizada exitosamente', 'Cerrar', { duration: 3000 });
       this.rutaActualizada.emit(ruta!);
     } catch (error: any) {
-      console.error('Error actualizando ruta:', error);
+      console.error('❌ [RUTA-FORM] Error actualizando ruta:', error);
+      console.error('❌ [RUTA-FORM] Detalles del error:', error.error);
       this.snackBar.open('Error al actualizar la ruta', 'Cerrar', { duration: 3000 });
     } finally {
       this.isSubmitting.set(false);
@@ -1281,6 +1415,47 @@ export class RutaFormComponent implements OnInit {
       return 'El destino debe ser diferente al origen';
     }
     return '';
+  }
+
+  onTipoFrecuenciaChange() {
+    const tipoFrecuencia = this.rutaForm.get('tipoFrecuencia')?.value;
+    const diasControl = this.rutaForm.get('diasSemana');
+    
+    // Limpiar días si no es semanal
+    if (tipoFrecuencia !== 'SEMANAL') {
+      diasControl?.setValue([]);
+    }
+    
+    // Actualizar descripción automáticamente
+    this.actualizarDescripcionFrecuencia();
+  }
+
+  actualizarDescripcionFrecuencia() {
+    const tipoFrecuencia = this.rutaForm.get('tipoFrecuencia')?.value;
+    const cantidad = this.rutaForm.get('cantidadFrecuencia')?.value || 1;
+    const dias = this.rutaForm.get('diasSemana')?.value || [];
+    
+    let descripcion = '';
+    
+    if (tipoFrecuencia === 'DIARIO') {
+      descripcion = cantidad === 1 ? '01 DIARIA' : `${cantidad.toString().padStart(2, '0')} DIARIAS`;
+    } else if (tipoFrecuencia === 'SEMANAL') {
+      const cantidadTexto = cantidad === 1 ? '01 SEMANAL' : `${cantidad.toString().padStart(2, '0')} SEMANALES`;
+      if (dias.length > 0) {
+        const diasTexto = dias.join(' ');
+        descripcion = `${cantidadTexto} (${diasTexto})`;
+      } else {
+        descripcion = cantidadTexto;
+      }
+    } else if (tipoFrecuencia === 'QUINCENAL') {
+      descripcion = cantidad === 1 ? '01 QUINCENAL' : `${cantidad.toString().padStart(2, '0')} QUINCENALES`;
+    } else if (tipoFrecuencia === 'MENSUAL') {
+      descripcion = cantidad === 1 ? '01 MENSUAL' : `${cantidad.toString().padStart(2, '0')} MENSUALES`;
+    } else {
+      descripcion = 'ESPECIAL';
+    }
+    
+    this.rutaForm.get('descripcionFrecuencia')?.setValue(descripcion, { emitEvent: false });
   }
 
   getRutaNombre(ruta: Ruta): string {

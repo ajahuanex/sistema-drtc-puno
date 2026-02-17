@@ -23,6 +23,44 @@ async def get_resolucion_service():
     db = await get_database()
     return ResolucionService(db)
 
+def resolucion_to_response(resolucion) -> ResolucionResponse:
+    """Convertir modelo Resolucion a ResolucionResponse"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Log para debugging
+    anios = getattr(resolucion, 'aniosVigencia', None)
+    logger.info(f"🔍 Convirtiendo resolución {resolucion.nroResolucion}: aniosVigencia={anios}")
+    
+    return ResolucionResponse(
+        id=resolucion.id,
+        nroResolucion=resolucion.nroResolucion,
+        fechaEmision=resolucion.fechaEmision,
+        fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
+        fechaVigenciaFin=resolucion.fechaVigenciaFin,
+        aniosVigencia=resolucion.aniosVigencia,
+        tieneEficaciaAnticipada=getattr(resolucion, 'tieneEficaciaAnticipada', None),
+        diasEficaciaAnticipada=getattr(resolucion, 'diasEficaciaAnticipada', None),
+        tipoResolucion=resolucion.tipoResolucion,
+        resolucionPadreId=resolucion.resolucionPadreId,
+        tipoTramite=resolucion.tipoTramite,
+        descripcion=resolucion.descripcion,
+        empresaId=resolucion.empresaId,
+        expedienteId=resolucion.expedienteId,
+        vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
+        rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
+        estado=resolucion.estado,
+        observaciones=resolucion.observaciones,
+        estaActivo=resolucion.estaActivo,
+        fechaRegistro=resolucion.fechaRegistro,
+        fechaActualizacion=resolucion.fechaActualizacion,
+        resolucionesHijasIds=resolucion.resolucionesHijasIds,
+        documentoId=resolucion.documentoId,
+        usuarioEmisionId=resolucion.usuarioEmisionId,
+        motivoSuspension=resolucion.motivoSuspension,
+        fechaSuspension=resolucion.fechaSuspension
+    )
+
 @router.post("", response_model=ResolucionResponse, status_code=201)
 @router.post("/", response_model=ResolucionResponse, status_code=201)
 async def create_resolucion(
@@ -47,6 +85,7 @@ async def create_resolucion(
             fechaEmision=resolucion.fechaEmision,
             fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
             fechaVigenciaFin=resolucion.fechaVigenciaFin,
+            aniosVigencia=resolucion.aniosVigencia,  # ← AGREGADO
             tipoResolucion=resolucion.tipoResolucion,
             resolucionPadreId=resolucion.resolucionPadreId,
             tipoTramite=resolucion.tipoTramite,
@@ -112,6 +151,7 @@ async def get_resoluciones(
                 fechaEmision=r.fechaEmision,
                 fechaVigenciaInicio=r.fechaVigenciaInicio,
                 fechaVigenciaFin=r.fechaVigenciaFin,
+                aniosVigencia=r.aniosVigencia,  # ← AGREGADO
                 tipoResolucion=r.tipoResolucion,
                 resolucionPadreId=r.resolucionPadreId,
                 tipoTramite=r.tipoTramite,
@@ -169,31 +209,7 @@ async def get_resoluciones_con_filtros(
     resoluciones = resoluciones[skip:skip + limit]
     
     return [
-        ResolucionResponse(
-            id=resolucion.id,
-            nroResolucion=resolucion.nroResolucion,
-            fechaEmision=resolucion.fechaEmision,
-            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
-            fechaVigenciaFin=resolucion.fechaVigenciaFin,
-            tipoResolucion=resolucion.tipoResolucion,
-            resolucionPadreId=resolucion.resolucionPadreId,
-            tipoTramite=resolucion.tipoTramite,
-            descripcion=resolucion.descripcion,
-            empresaId=resolucion.empresaId,
-            expedienteId=resolucion.expedienteId,
-            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
-            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
-            estado=resolucion.estado,
-            observaciones=resolucion.observaciones,
-            estaActivo=resolucion.estaActivo,
-            fechaRegistro=resolucion.fechaRegistro,
-            fechaActualizacion=resolucion.fechaActualizacion,
-            resolucionesHijasIds=resolucion.resolucionesHijasIds,
-            documentoId=resolucion.documentoId,
-            usuarioEmisionId=resolucion.usuarioEmisionId,
-            motivoSuspension=resolucion.motivoSuspension,
-            fechaSuspension=resolucion.fechaSuspension
-        )
+        resolucion_to_response(resolucion)
         for resolucion in resoluciones
     ]
 
@@ -203,6 +219,8 @@ async def get_resoluciones_filtradas_post(
     resolucion_service: ResolucionService = Depends(get_resolucion_service)
 ):
     """Obtener resoluciones filtradas (POST)"""
+    import logging
+    logger = logging.getLogger(__name__)
     
     filtros_servicio = {}
     if filtros.estado: filtros_servicio["estado"] = filtros.estado
@@ -215,34 +233,21 @@ async def get_resoluciones_filtradas_post(
     
     resoluciones = await resolucion_service.get_resoluciones_con_filtros(filtros_servicio)
     
-    return [
-        ResolucionResponse(
-            id=resolucion.id,
-            nroResolucion=resolucion.nroResolucion,
-            fechaEmision=resolucion.fechaEmision,
-            fechaVigenciaInicio=resolucion.fechaVigenciaInicio,
-            fechaVigenciaFin=resolucion.fechaVigenciaFin,
-            tipoResolucion=resolucion.tipoResolucion,
-            resolucionPadreId=resolucion.resolucionPadreId,
-            tipoTramite=resolucion.tipoTramite,
-            descripcion=resolucion.descripcion,
-            empresaId=resolucion.empresaId,
-            expedienteId=resolucion.expedienteId,
-            vehiculosHabilitadosIds=resolucion.vehiculosHabilitadosIds,
-            rutasAutorizadasIds=resolucion.rutasAutorizadasIds,
-            estado=resolucion.estado,
-            observaciones=resolucion.observaciones,
-            estaActivo=resolucion.estaActivo,
-            fechaRegistro=resolucion.fechaRegistro,
-            fechaActualizacion=resolucion.fechaActualizacion,
-            resolucionesHijasIds=resolucion.resolucionesHijasIds,
-            documentoId=resolucion.documentoId,
-            usuarioEmisionId=resolucion.usuarioEmisionId,
-            motivoSuspension=resolucion.motivoSuspension,
-            fechaSuspension=resolucion.fechaSuspension
-        )
-        for resolucion in resoluciones
-    ]
+    logger.info(f"📊 Total resoluciones obtenidas: {len(resoluciones)}")
+    
+    # Log de las primeras 10 resoluciones con sus años de vigencia
+    for i, res in enumerate(resoluciones[:10]):
+        anios = getattr(res, 'aniosVigencia', 'NO EXISTE')
+        logger.info(f"  [{i+1}] {res.nroResolucion}: aniosVigencia={anios}")
+    
+    respuestas = [resolucion_to_response(resolucion) for resolucion in resoluciones]
+    
+    # Log de las respuestas convertidas
+    logger.info(f"📤 Enviando {len(respuestas)} respuestas al frontend")
+    for i, resp in enumerate(respuestas[:10]):
+        logger.info(f"  [{i+1}] {resp.nroResolucion}: aniosVigencia={resp.aniosVigencia}")
+    
+    return respuestas
 
 @router.get("/estadisticas")
 async def get_estadisticas_resoluciones(
@@ -886,8 +891,10 @@ async def procesar_carga_masiva_resoluciones_padres(
         df = df.fillna('')
         
         if solo_validar:
-            # Solo validar usando el método estático
-            resultado = ResolucionPadresService.validar_plantilla_padres(df)
+            # Validar con base de datos para verificar empresas y resoluciones asociadas
+            db = await get_database()
+            servicio = ResolucionPadresService(db)
+            resultado = await servicio.validar_plantilla_padres_con_db(df)
             mensaje = f"Validación completada: {'Válido' if resultado['valido'] else 'Inválido'}"
         else:
             # Procesar completamente con MongoDB

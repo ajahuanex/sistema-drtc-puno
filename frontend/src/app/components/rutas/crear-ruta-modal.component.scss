@@ -273,3 +273,177 @@ $text-secondary: #757575;
     }
   }
 }
+
+
+// Localidad autocomplete options
+.localidad-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  .nombre {
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-primary;
+  }
+
+  .ubicacion {
+    font-size: 12px;
+    color: $text-secondary;
+  }
+}
+
+// Autocomplete panel
+.mat-mdc-autocomplete-panel {
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  max-height: 300px;
+
+  .mat-mdc-option {
+    min-height: 56px;
+    padding: 8px 16px;
+
+    &:hover {
+      background-color: $light-gray;
+    }
+
+    &.mat-mdc-option-active {
+      background-color: rgba($primary-color, 0.08);
+    }
+  }
+}
+
+// Custom localidad search field
+.localidad-search-field {
+  flex: 1;
+  position: relative;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+// Custom dropdown for localidades
+.localidad-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 1000;
+  margin-top: 4px;
+
+  .localidad-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid rgba($border-color, 0.5);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: $light-gray;
+    }
+
+    .localidad-nombre {
+      font-size: 14px;
+      font-weight: 500;
+      color: $text-primary;
+      margin-bottom: 4px;
+    }
+
+    .localidad-ubicacion {
+      font-size: 12px;
+      color: $text-secondary;
+    }
+  }
+
+  .no-results-message {
+    padding: 16px;
+    text-align: center;
+    color: $text-secondary;
+    font-style: italic;
+  }
+}
+
+// Select search container
+.select-search-container {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border-color;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .search-icon {
+    color: $text-secondary;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .select-search-input {
+    flex: 1;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: $primary-color;
+    }
+
+    &::placeholder {
+      color: $text-secondary;
+    }
+  }
+}
+
+// Select trigger icon
+.trigger-icon {
+  margin-right: 8px;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+// No results message
+.no-results {
+  color: $text-secondary;
+  font-style: italic;
+  font-size: 14px;
+}
+
+// Select panel customization
+::ng-deep {
+  .mat-mdc-select-panel {
+    max-height: 400px !important;
+    
+    .mat-mdc-option {
+      min-height: 56px;
+      padding: 8px 16px;
+
+      &:hover {
+        background-color: $light-gray;
+      }
+
+      &.mat-mdc-option-active {
+        background-color: rgba($primary-color, 0.08);
+      }
+    }
+  }
+}

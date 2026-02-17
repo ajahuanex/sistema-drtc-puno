@@ -335,7 +335,7 @@
                     </th>
                     <td mat-cell *matCellDef="let vehiculo" class="table-cell">
                         <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.marca }} {{ vehiculo.modelo || '' }}</span>
+                            <span class="cell-text">{{ vehiculo.marca || 'N/A' }} {{ vehiculo.modelo || '' }}</span>
                         </div>
                     </td>
                 </ng-container>
@@ -363,7 +363,7 @@
                     </th>
                     <td mat-cell *matCellDef="let vehiculo" class="table-cell">
                         <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.categoria }}</span>
+                            <span class="cell-text">{{ vehiculo.categoria || 'N/A' }}</span>
                         </div>
                     </td>
                 </ng-container>

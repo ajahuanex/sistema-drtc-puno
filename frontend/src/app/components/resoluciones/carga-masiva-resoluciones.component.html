@@ -169,6 +169,64 @@
           </div>
         </div>
 
+        <!-- Estadísticas de Años de Vigencia -->
+        <div *ngIf="esResultadoProcesamiento" class="vigencia-stats">
+          <h4>
+            <app-smart-icon iconName="schedule" [size]="18"></app-smart-icon>
+            Estadísticas de Vigencia
+          </h4>
+          
+          <!-- Debug: Mostrar si hay estadísticas -->
+          <div *ngIf="!tieneEstadisticasVigencia" style="padding: 10px; background: #fee; border-radius: 4px; margin-bottom: 10px;">
+            ⚠️ No se recibieron estadísticas de vigencia del backend
+          </div>
+          
+          <div class="vigencia-grid" *ngIf="tieneEstadisticasVigencia">
+            <div class="vigencia-item" *ngIf="totalCon4Anios > 0">
+              <div class="vigencia-icon">
+                <app-smart-icon iconName="event" [size]="24"></app-smart-icon>
+              </div>
+              <div class="vigencia-info">
+                <strong>{{ totalCon4Anios }}</strong>
+                <span>Con 4 años de vigencia</span>
+              </div>
+            </div>
+            <div class="vigencia-item highlight" *ngIf="totalCon10Anios > 0">
+              <div class="vigencia-icon">
+                <app-smart-icon iconName="event_available" [size]="24"></app-smart-icon>
+              </div>
+              <div class="vigencia-info">
+                <strong>{{ totalCon10Anios }}</strong>
+                <span>Con 10 años de vigencia</span>
+              </div>
+            </div>
+            <div class="vigencia-item" *ngIf="totalOtrosAnios > 0">
+              <div class="vigencia-icon">
+                <app-smart-icon iconName="event_note" [size]="24"></app-smart-icon>
+              </div>
+              <div class="vigencia-info">
+                <strong>{{ totalOtrosAnios }}</strong>
+                <span>Otros períodos</span>
+              </div>
+            </div>
+            <div class="vigencia-item secondary" *ngIf="totalSinVigencia > 0">
+              <div class="vigencia-icon">
+                <app-smart-icon iconName="link" [size]="24"></app-smart-icon>
+              </div>
+              <div class="vigencia-info">
+                <strong>{{ totalSinVigencia }}</strong>
+                <span>Resoluciones HIJO (heredan vigencia)</span>
+              </div>
+            </div>
+          </div>
+          <div class="vigencia-summary" *ngIf="totalCreadas > 0 || totalActualizadas > 0">
+            <small>
+              <app-smart-icon iconName="info" [size]="14"></app-smart-icon>
+              {{ totalCreadas }} nuevas, {{ totalActualizadas }} actualizadas
+            </small>
+          </div>
+        </div>
+
         <!-- Resoluciones Creadas (Compacto) -->
         <div *ngIf="tieneResolucionesCreadas" class="section-compact">
           <div class="section-header" (click)="mostrarResolucionesCreadas = !mostrarResolucionesCreadas">
@@ -190,7 +248,12 @@
                 <div class="resolucion-number">{{ resolucion.numero_resolucion }}</div>
                 <div class="resolucion-details">
                   <strong>{{ resolucion.empresa_razon_social }}</strong>
-                  <small>RUC: {{ resolucion.empresa_ruc }} | Tipo: {{ resolucion.tipo_resolucion }}</small>
+                  <small>
+                    RUC: {{ resolucion.empresa_ruc }} | Tipo: {{ resolucion.tipo_resolucion }}
+                    <span *ngIf="resolucion.anios_vigencia && resolucion.tipo_resolucion === 'PADRE'">
+                      | Vigencia: {{ resolucion.anios_vigencia }} años
+                    </span>
+                  </small>
                 </div>
                 <span class="badge" [ngClass]="resolucion.accion === 'ACTUALIZADA' ? 'updated' : 'success'">
                   {{ resolucion.accion || resolucion.estado }}

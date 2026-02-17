@@ -1,0 +1,507 @@
+// ========================================
+// INFRAESTRUCTURA DETAIL COMPONENT STYLES
+// ========================================
+
+.infraestructura-detail-container {
+  padding: 24px;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 64px);
+
+  // Loading State
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+    
+    h3 {
+      margin: 16px 0 0 0;
+      color: #333;
+      font-weight: 500;
+    }
+  }
+
+  // Error State
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+    text-align: center;
+
+    .error-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #f44336;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    p {
+      margin: 0 0 24px 0;
+      color: #666;
+      max-width: 400px;
+    }
+  }
+
+  // Header Section
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 24px;
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .header-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      button {
+        color: #666;
+
+        &:hover {
+          color: #333;
+          background-color: #f5f5f5;
+        }
+      }
+    }
+
+    .header-info {
+      flex: 1;
+
+      .infraestructura-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 8px;
+
+        .title-icon {
+          font-size: 32px;
+          width: 32px;
+          height: 32px;
+          color: #4caf50;
+        }
+
+        h1 {
+          margin: 0;
+          font-size: 28px;
+          font-weight: 600;
+          color: #2e7d32;
+          flex: 1;
+        }
+
+        mat-chip-set {
+          mat-chip {
+            font-weight: 600;
+            
+            &.estado-autorizada {
+              background-color: #e8f5e8;
+              color: #2e7d32;
+            }
+
+            &.estado-en_tramite {
+              background-color: #e3f2fd;
+              color: #1976d2;
+            }
+
+            &.estado-suspendida {
+              background-color: #fff3e0;
+              color: #f57c00;
+            }
+
+            &.estado-cancelada {
+              background-color: #ffebee;
+              color: #d32f2f;
+            }
+          }
+        }
+      }
+
+      .infraestructura-subtitle {
+        display: flex;
+        gap: 24px;
+        color: #666;
+        font-size: 14px;
+
+        .ruc {
+          font-family: 'Courier New', monospace;
+          font-weight: 600;
+        }
+
+        .tipo {
+          font-weight: 500;
+        }
+      }
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 16px;
+
+      .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        min-width: 120px;
+
+        mat-icon {
+          color: #4caf50;
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+
+        .stat-info {
+          display: flex;
+          flex-direction: column;
+
+          .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2e7d32;
+            line-height: 1;
+          }
+
+          .stat-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+
+  // Tabs
+  .detail-tabs {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    .mat-mdc-tab-header {
+      border-bottom: 1px solid #e0e0e0;
+      background-color: #fafafa;
+    }
+
+    .tab-content {
+      padding: 24px;
+    }
+  }
+
+  // Info Grid
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+
+    .info-card {
+      .mat-mdc-card-header {
+        .mat-mdc-card-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+
+          mat-icon {
+            color: #4caf50;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+
+      .mat-mdc-card-content {
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #f0f0f0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .label {
+            font-weight: 500;
+            color: #666;
+            min-width: 120px;
+          }
+
+          .value {
+            color: #333;
+            text-align: right;
+            flex: 1;
+          }
+
+          mat-chip {
+            &.estado-autorizada {
+              background-color: #e8f5e8;
+              color: #2e7d32;
+            }
+
+            &.estado-en_tramite {
+              background-color: #e3f2fd;
+              color: #1976d2;
+            }
+
+            &.estado-suspendida {
+              background-color: #fff3e0;
+              color: #f57c00;
+            }
+
+            &.estado-cancelada {
+              background-color: #ffebee;
+              color: #d32f2f;
+            }
+
+            &.estado-valido {
+              background-color: #e8f5e8;
+              color: #2e7d32;
+            }
+
+            &.estado-invalido {
+              background-color: #ffebee;
+              color: #d32f2f;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Documentos Grid
+  .documentos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+
+    .documento-card {
+      .mat-mdc-card-header {
+        .mat-mdc-card-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .mat-mdc-card-subtitle {
+          font-family: 'Courier New', monospace;
+          color: #666;
+        }
+      }
+
+      .documento-info {
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 0;
+          border-bottom: 1px solid #f0f0f0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .label {
+            font-weight: 500;
+            color: #666;
+            font-size: 14px;
+          }
+
+          .value {
+            color: #333;
+            font-size: 14px;
+
+            &.vencido {
+              color: #f44336;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+
+      .mat-mdc-card-actions {
+        padding: 16px;
+        border-top: 1px solid #f0f0f0;
+      }
+    }
+  }
+
+  // Historial List
+  .historial-list {
+    .historial-item {
+      padding: 16px 0;
+
+      .mat-mdc-list-item-icon {
+        mat-icon {
+          &.estado-autorizada {
+            color: #4caf50;
+          }
+
+          &.estado-en_tramite {
+            color: #2196f3;
+          }
+
+          &.estado-suspendida {
+            color: #ff9800;
+          }
+
+          &.estado-cancelada {
+            color: #f44336;
+          }
+        }
+      }
+
+      .historial-title {
+        font-weight: 500;
+        color: #333;
+      }
+
+      .historial-subtitle {
+        color: #666;
+        font-size: 14px;
+      }
+    }
+  }
+
+  // Empty State
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    text-align: center;
+
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #ccc;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    p {
+      margin: 0;
+      color: #666;
+      max-width: 400px;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .infraestructura-detail-container {
+    padding: 16px;
+
+    .detail-header {
+      flex-direction: column;
+      gap: 16px;
+
+      .header-actions {
+        flex-direction: row;
+        align-self: flex-start;
+      }
+
+      .header-info {
+        .infraestructura-title {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+
+          h1 {
+            font-size: 24px;
+          }
+        }
+
+        .infraestructura-subtitle {
+          flex-direction: column;
+          gap: 8px;
+          align-items: flex-start;
+        }
+      }
+
+      .header-stats {
+        flex-direction: column;
+        width: 100%;
+
+        .stat-card {
+          min-width: auto;
+        }
+      }
+    }
+
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .documentos-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .tab-content {
+      padding: 16px;
+    }
+  }
+}
+
+// Animaciones
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detail-header,
+.detail-tabs {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.info-card,
+.documento-card {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.info-card:nth-child(1) { animation-delay: 0.1s; }
+.info-card:nth-child(2) { animation-delay: 0.2s; }
+.info-card:nth-child(3) { animation-delay: 0.3s; }
+.info-card:nth-child(4) { animation-delay: 0.4s; }
+
+.documento-card:nth-child(1) { animation-delay: 0.1s; }
+.documento-card:nth-child(2) { animation-delay: 0.2s; }
+.documento-card:nth-child(3) { animation-delay: 0.3s; }
+.documento-card:nth-child(4) { animation-delay: 0.4s; }
+.documento-card:nth-child(5) { animation-delay: 0.5s; }
+.documento-card:nth-child(6) { animation-delay: 0.6s; }

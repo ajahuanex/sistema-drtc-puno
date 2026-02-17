@@ -30,6 +30,10 @@ export const routes: Routes = [
       { path: 'empresas/:id/vehiculos/batch', component: EmpresaVehiculosBatchComponent, canActivate: [AuthGuard] },
       { path: 'empresas/dashboard', loadComponent: () => import('./components/empresas/dashboard-empresas.component').then(m => m.DashboardEmpresasComponent) },
       
+      // RUTAS DE INFRAESTRUCTURA COMPLEMENTARIA
+      { path: 'infraestructura', loadComponent: () => import('./components/infraestructura/infraestructura.component').then(m => m.InfraestructuraComponent) },
+      { path: 'infraestructura/:id', loadComponent: () => import('./components/infraestructura/infraestructura-detail.component').then(m => m.InfraestructuraDetailComponent) },
+      
       // RUTAS DE VEHÍCULOS - CONSOLIDADAS
       { path: 'vehiculos', component: VehiculosConsolidadoComponent },
       { path: 'vehiculos/legacy', component: VehiculosComponent }, // Mantener versión anterior temporalmente
@@ -40,6 +44,13 @@ export const routes: Routes = [
       { path: 'vehiculos/:id/editar', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
       { path: 'vehiculos/:id/historial', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },
       { path: 'historial-vehiculos', loadComponent: () => import('./components/vehiculos/historial-vehicular.component').then(m => m.HistorialVehicularComponent) },
+      
+      // RUTAS DE VEHÍCULOS SOLO (Datos Técnicos Puros)
+      { path: 'vehiculos-solo', loadComponent: () => import('./components/vehiculos-solo/vehiculos-solo.component').then(m => m.VehiculosSoloComponent) },
+      { path: 'vehiculos-solo/carga-masiva', loadComponent: () => import('./components/vehiculos-solo/carga-masiva-vehiculos-solo.component').then(m => m.CargaMasivaVehiculosSoloComponent) },
+      { path: 'vehiculos-solo/nuevo', loadComponent: () => import('./components/vehiculos-solo/vehiculo-solo-form.component').then(m => m.VehiculoSoloFormComponent) },
+      { path: 'vehiculos-solo/editar/:id', loadComponent: () => import('./components/vehiculos-solo/vehiculo-solo-form.component').then(m => m.VehiculoSoloFormComponent) },
+      { path: 'vehiculos-solo/:id', loadComponent: () => import('./components/vehiculos-solo/vehiculo-solo-detalle.component').then(m => m.VehiculoSoloDetalleComponent) },
       { path: 'conductores', loadComponent: () => import('./components/conductores/conductores.component').then(m => m.ConductoresComponent) },
       { path: 'conductores/nuevo', loadComponent: () => import('./components/conductores/conductor-form.component').then(m => m.ConductorFormComponent) },
       { path: 'conductores/:id', loadComponent: () => import('./components/conductores/conductor-detail.component').then(m => m.ConductorDetailComponent) },
@@ -47,9 +58,9 @@ export const routes: Routes = [
       { path: 'rutas', loadComponent: () => import('./components/rutas/rutas.component').then(m => m.RutasComponent) },
       { path: 'rutas/estadisticas', loadComponent: () => import('./components/rutas/rutas-estadisticas.component').then(m => m.RutasEstadisticasComponent) },
       { path: 'rutas/carga-masiva', loadComponent: () => import('./components/rutas/carga-masiva-rutas.component').then(m => m.CargaMasivaRutasComponent) },
-      { path: 'rutas/nuevo', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
+      { path: 'rutas/nuevo', loadComponent: () => import('./shared/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'rutas/:id', loadComponent: () => import('./components/rutas/ruta-detail.component').then(m => m.RutaDetailComponent) },
-      { path: 'rutas/:id/editar', loadComponent: () => import('./components/rutas/ruta-form.component').then(m => m.RutaFormComponent) },
+      { path: 'rutas/:id/editar', loadComponent: () => import('./shared/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'localidades', loadComponent: () => import('./components/localidades/localidades.component').then(m => m.LocalidadesComponent) },
       { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones-minimal.component').then(m => m.ResolucionesMinimalComponent) },
       { path: 'resoluciones/carga-masiva', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones.component').then(m => m.CargaMasivaResolucionesComponent) },

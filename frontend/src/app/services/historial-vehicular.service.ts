@@ -8,7 +8,13 @@ import {
   ResumenHistorialVehicular,
   TipoEventoHistorial,
   EstadoVehiculo,
-  ConfiguracionHistorial
+  ConfiguracionHistorial,
+  // Alias para compatibilidad
+  HistorialVehiculo,
+  HistorialVehiculoCreate,
+  FiltroHistorialVehiculo,
+  ResumenHistorialVehiculo,
+  TipoCambioVehiculo
 } from '../models/historial-vehicular.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -298,5 +304,156 @@ export class HistorialVehicularService {
    */
   getHistorialCache(): Observable<HistorialVehicular[]> {
     return this.historialCache.asObservable();
+  }
+
+  // ========================================
+  // MÉTODOS ADICIONALES PARA COMPATIBILIDAD CON HistorialVehiculoService
+  // ========================================
+
+  /**
+   * Obtener historial con filtros (alias compatible)
+   */
+  obtenerHistorial(filtros?: FiltrosHistorialVehicular): Observable<HistorialVehicular[]> {
+    const filtrosCompletos: FiltrosHistorialVehicular = {
+      ...filtros,
+      page: filtros?.page || 1,
+      limit: filtros?.limit || 100
+    };
+
+    return new Observable(observer => {
+      this.getHistorialVehicular(filtrosCompletos).subscribe({
+        next: (response) => {
+          observer.next(response.historial);
+          observer.complete();
+        },
+        error: (error) => {
+          observer.error(error);
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtener historial de un vehículo específico (alias compatible)
+   */
+  obtenerHistorialVehiculo(vehiculoId: string): Observable<HistorialVehicular[]> {
+    return this.obtenerHistorial({ vehiculoId });
+  }
+
+  /**
+   * Obtener historial por placa (alias compatible)
+   */
+  obtenerHistorialPorPlaca(placa: string): Observable<HistorialVehicular[]> {
+    return this.obtenerHistorial({ placa: placa.toUpperCase() });
+  }
+
+  /**
+   * Obtener historial de una empresa (alias compatible)
+   */
+  obtenerHistorialEmpresa(empresaId: string): Observable<HistorialVehicular[]> {
+    return this.obtenerHistorial({ empresaId });
+  }
+
+  /**
+   * Obtener resumen del historial (alias compatible)
+   */
+  obtenerResumenHistorial(vehiculoId: string): Observable<ResumenHistorialVehicular> {
+    return this.getResumenHistorialVehiculo(vehiculoId);
+  }
+
+  /**
+   * Crear nuevo registro de historial (alias compatible)
+   */
+  crearHistorial(historial: HistorialVehicularCreate): Observable<HistorialVehicular> {
+    return this.crearRegistroHistorial(historial);
+  }
+
+  /**
+   * Actualizar registro de historial
+   */
+  actualizarHistorial(id: string, actualizacion: any): Observable<HistorialVehicular> {
+    return this.http.put<HistorialVehicular>(`${this.apiUrl}/historial-vehicular/${id}`, actualizacion, {
+      headers: this.getHeaders()
+    }).pipe(
+      tap(() => {
+        // Limpiar caché al actualizar
+        this.resumenCache.clear();
+      }),
+      catchError(error => {
+        console.error('Error actualizando registro de historial::', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Eliminar registro de historial
+   */
+  eliminarHistorial(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/historial-vehicular/${id}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      tap(() => {
+        // Limpiar caché al eliminar
+        this.resumenCache.clear();
+      }),
+      catchError(error => {
+        console.error('Error eliminando registro de historial::', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Registrar asignación de ruta
+   */
+  registrarAsignacionRuta(
+    vehiculoId: string,
+    placa: string,
+    rutaId: string,
+    motivo: string,
+    observaciones?: string
+  ): Observable<HistorialVehicular> {
+    const registro: HistorialVehicularCreate = {
+      vehiculoId,
+      placa,
+      tipoEvento: TipoEventoHistorial.ASIGNACION_RUTA,
+      descripcion: motivo,
+      fechaEvento: new Date().toISOString(),
+      rutaId,
+      observaciones
+    };
+
+    return this.crearRegistroHistorial(registro);
+  }
+
+  /**
+   * Registrar cambio de resolución
+   */
+  registrarCambioResolucion(
+    vehiculoId: string,
+    placa: string,
+    resolucionId: string,
+    motivo: string,
+    observaciones?: string
+  ): Observable<HistorialVehicular> {
+    const registro: HistorialVehicularCreate = {
+      vehiculoId,
+      placa,
+      tipoEvento: TipoEventoHistorial.CAMBIO_RESOLUCION,
+      descripcion: motivo,
+      fechaEvento: new Date().toISOString(),
+      resolucionId,
+      observaciones
+    };
+
+    return this.crearRegistroHistorial(registro);
+  }
+
+  /**
+   * Limpiar estado (alias compatible)
+   */
+  limpiarEstado(): void {
+    this.limpiarCache();
   }
 }

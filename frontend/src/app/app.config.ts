@@ -1,5 +1,5 @@
 import { GlobalErrorHandler } from './services/global-error-handler.service';
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, APP_INITIALIZER } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -14,6 +14,7 @@ import { authInterceptor } from './interceptors/auth.interceptor';
 import { TokenAutoFixInterceptor } from './interceptors/token-auto-fix.interceptor';
 import { TokenAutoFixService } from './services/token-auto-fix.service';
 import { IconService } from './services/icon.service';
+import { ConfiguracionService } from './services/configuracion.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -56,13 +57,16 @@ export const appConfig: ApplicationConfig = {
     
     // Configuración de inicialización eager
     {
-      provide: 'APP_INITIALIZER',
-      useValue: () => {
-        // Registrar locale español para fechas
-        registerLocaleData(localeEs, 'es');
-        // Inicialización eager de servicios críticos
-        return Promise.resolve();
+      provide: APP_INITIALIZER,
+      useFactory: (configuracionService: ConfiguracionService) => {
+        return () => {
+          // Registrar locale español para fechas
+          registerLocaleData(localeEs, 'es');
+          // Cargar configuraciones al inicio
+          return configuracionService.cargarConfiguraciones();
+        };
       },
+      deps: [ConfiguracionService],
       multi: true
     }
   ]

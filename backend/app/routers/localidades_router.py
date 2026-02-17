@@ -144,21 +144,50 @@ async def actualizar_localidad(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error actualizando localidad")
 
+@router.get("/{localidad_id}/verificar-uso")
+async def verificar_uso_localidad(
+    localidad_id: str,
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """Verificar si una localidad está siendo usada en rutas"""
+    try:
+        uso = await service._verificar_localidad_en_uso(localidad_id)
+        rutas = await service.obtener_rutas_que_usan_localidad(localidad_id)
+        
+        return {
+            "localidad_id": localidad_id,
+            "esta_en_uso": uso['esta_en_uso'],
+            "total_rutas": uso['total'],
+            "detalle": {
+                "como_origen": uso['como_origen'],
+                "como_destino": uso['como_destino'],
+                "en_itinerario": uso['en_itinerario']
+            },
+            "rutas": rutas,
+            "puede_eliminar": not uso['esta_en_uso'],
+            "mensaje": "La localidad está siendo usada en rutas y no puede ser eliminada" if uso['esta_en_uso'] else "La localidad puede ser eliminada"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verificando uso de localidad: {str(e)}")
+
 @router.delete("/{localidad_id}")
 async def eliminar_localidad(
     localidad_id: str,
     service: LocalidadService = Depends(get_localidad_service)
 ) -> dict:
-    """Eliminar (desactivar) localidad"""
+    """Eliminar (desactivar) localidad - Solo si no está en uso"""
     try:
         success = await service.delete_localidad(localidad_id)
         if not success:
             raise HTTPException(status_code=404, detail="Localidad no encontrada")
         return {"message": "Localidad eliminada exitosamente"}
+    except ValueError as e:
+        # Error de validación (localidad en uso)
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error eliminando localidad")
+        raise HTTPException(status_code=500, detail=f"Error eliminando localidad: {str(e)}")
 
 @router.patch("/{localidad_id}/toggle-estado", response_model=LocalidadResponse)
 async def toggle_estado_localidad(

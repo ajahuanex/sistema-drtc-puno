@@ -276,7 +276,8 @@ export class CambiarEstadoRutasBloqueModalComponent {
       'SUSPENDIDA': 'Suspendida',
       'EN_MANTENIMIENTO': 'En Mantenimiento',
       'ARCHIVADA': 'Archivada',
-      'DADA_DE_BAJA': 'Dada de Baja'
+      'DADA_DE_BAJA': 'Dada de Baja',
+      'CANCELADA': 'Cancelada'
     };
     return estados[estado] || estado;
   }

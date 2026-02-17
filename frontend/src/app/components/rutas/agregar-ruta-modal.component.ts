@@ -110,16 +110,57 @@ export interface AgregarRutaData {
                   </mat-error>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Frecuencias *</mat-label>
-                  <input matInput 
-                         formControlName="frecuencias" 
-                         placeholder="Ej: Diaria, Lunes a Viernes"
-                         required>
-                  <mat-error *ngIf="rutaForm.get('frecuencias')?.hasError('required')">
-                    Las frecuencias son obligatorias
-                  </mat-error>
-                </mat-form-field>
+                <div class="frecuencia-section">
+                  <h4 class="section-title">
+                    <mat-icon>schedule</mat-icon>
+                    Frecuencia de Servicio
+                  </h4>
+                  
+                  <mat-form-field appearance="outline" class="form-field">
+                    <mat-label>Tipo de Frecuencia *</mat-label>
+                    <mat-select formControlName="tipoFrecuencia" (selectionChange)="onTipoFrecuenciaChange()">
+                      <mat-option value="DIARIO">Diario</mat-option>
+                      <mat-option value="SEMANAL">Semanal</mat-option>
+                      <mat-option value="QUINCENAL">Quincenal</mat-option>
+                      <mat-option value="MENSUAL">Mensual</mat-option>
+                      <mat-option value="ESPECIAL">Especial</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="form-field">
+                    <mat-label>Cantidad *</mat-label>
+                    <input matInput 
+                           type="number" 
+                           formControlName="cantidadFrecuencia" 
+                           min="1"
+                           placeholder="Ej: 1, 2, 3">
+                    <mat-hint>Número de servicios</mat-hint>
+                  </mat-form-field>
+
+                  @if (rutaForm.get('tipoFrecuencia')?.value === 'SEMANAL') {
+                    <mat-form-field appearance="outline" class="form-field full-width">
+                      <mat-label>Días de Servicio</mat-label>
+                      <mat-select formControlName="diasSemana" multiple>
+                        <mat-option value="LUNES">Lunes</mat-option>
+                        <mat-option value="MARTES">Martes</mat-option>
+                        <mat-option value="MIERCOLES">Miércoles</mat-option>
+                        <mat-option value="JUEVES">Jueves</mat-option>
+                        <mat-option value="VIERNES">Viernes</mat-option>
+                        <mat-option value="SABADO">Sábado</mat-option>
+                        <mat-option value="DOMINGO">Domingo</mat-option>
+                      </mat-select>
+                      <mat-hint>Selecciona los días específicos</mat-hint>
+                    </mat-form-field>
+                  }
+
+                  <mat-form-field appearance="outline" class="form-field full-width">
+                    <mat-label>Descripción de Frecuencia *</mat-label>
+                    <input matInput 
+                           formControlName="descripcionFrecuencia" 
+                           placeholder="Ej: 2 DIARIOS, 3 SEMANALES (LUN MIE VIE)">
+                    <mat-hint>Descripción legible de la frecuencia</mat-hint>
+                  </mat-form-field>
+                </div>
 
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Tipo de Ruta</mat-label>
@@ -199,7 +240,10 @@ export class AgregarRutaModalComponent implements OnDestroy {
       codigoRuta: ['', [Validators.required]],
       origen: ['', [Validators.required]],
       destino: ['', [Validators.required]],
-      frecuencias: ['', [Validators.required]],
+      tipoFrecuencia: ['DIARIO', Validators.required],
+      cantidadFrecuencia: [1, [Validators.required, Validators.min(1)]],
+      diasSemana: [[]],
+      descripcionFrecuencia: ['01 DIARIA', Validators.required],
       tipoRuta: ['INTERPROVINCIAL'],
       tipoServicio: ['PASAJEROS'], // Campo requerido por el backend
       itinerario: [''],
@@ -211,6 +255,15 @@ export class AgregarRutaModalComponent implements OnDestroy {
 
     // Agregar validación en tiempo real del código de ruta
     this.configurarValidacionCodigoUnico();
+
+    // Configurar listeners para actualización automática de la descripción de frecuencia
+    this.rutaForm.get('cantidadFrecuencia')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
+    });
+    
+    this.rutaForm.get('diasSemana')?.valueChanges.subscribe(() => {
+      this.actualizarDescripcionFrecuencia();
+    });
   }
 
   ngOnInit(): void {
@@ -251,7 +304,10 @@ export class AgregarRutaModalComponent implements OnDestroy {
         codigoRuta: this.data.ruta.codigoRuta,
         origen: this.data.ruta.origen,
         destino: this.data.ruta.destino,
-        frecuencias: this.data.ruta.frecuencias,
+        tipoFrecuencia: this.data.ruta.frecuencia?.tipo || 'DIARIO',
+        cantidadFrecuencia: this.data.ruta.frecuencia?.cantidad || 1,
+        diasSemana: this.data.ruta.frecuencia?.dias || [],
+        descripcionFrecuencia: this.data.ruta.frecuencia?.descripcion || '01 DIARIA',
         itinerario: this.data.ruta.descripcion || '',
         observaciones: this.data.ruta.observaciones,
         tipoRuta: this.data.ruta.tipoRuta
@@ -439,7 +495,7 @@ export class AgregarRutaModalComponent implements OnDestroy {
         codigoRuta: formValue.codigoRuta,
         origen: formValue.origen,
         destino: formValue.destino,
-        frecuencias: formValue.frecuencias,
+        frecuencia: formValue.frecuencia,
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio,
         descripcion: formValue.itinerario,
@@ -497,7 +553,12 @@ export class AgregarRutaModalComponent implements OnDestroy {
           tipoResolucion: this.data.resolucion?.tipoResolucion || 'PADRE',
           estado: this.data.resolucion?.estado || 'VIGENTE'
         },
-        frecuencias: formValue.frecuencias,
+        frecuencia: {
+          tipo: formValue.tipoFrecuencia || 'DIARIO',
+          cantidad: formValue.cantidadFrecuencia || 1,
+          dias: formValue.diasSemana || [],
+          descripcion: formValue.descripcionFrecuencia || '01 DIARIA'
+        },
         tipoRuta: formValue.tipoRuta,
         tipoServicio: formValue.tipoServicio || 'PASAJEROS',
         observaciones: formValue.observaciones || ''
@@ -558,6 +619,47 @@ export class AgregarRutaModalComponent implements OnDestroy {
         }
       }
     });
+  }
+
+  onTipoFrecuenciaChange() {
+    const tipoFrecuencia = this.rutaForm.get('tipoFrecuencia')?.value;
+    const diasControl = this.rutaForm.get('diasSemana');
+    
+    // Limpiar días si no es semanal
+    if (tipoFrecuencia !== 'SEMANAL') {
+      diasControl?.setValue([]);
+    }
+    
+    // Actualizar descripción automáticamente
+    this.actualizarDescripcionFrecuencia();
+  }
+
+  actualizarDescripcionFrecuencia() {
+    const tipoFrecuencia = this.rutaForm.get('tipoFrecuencia')?.value;
+    const cantidad = this.rutaForm.get('cantidadFrecuencia')?.value || 1;
+    const dias = this.rutaForm.get('diasSemana')?.value || [];
+    
+    let descripcion = '';
+    
+    if (tipoFrecuencia === 'DIARIO') {
+      descripcion = cantidad === 1 ? '01 DIARIA' : `${cantidad.toString().padStart(2, '0')} DIARIAS`;
+    } else if (tipoFrecuencia === 'SEMANAL') {
+      const cantidadTexto = cantidad === 1 ? '01 SEMANAL' : `${cantidad.toString().padStart(2, '0')} SEMANALES`;
+      if (dias.length > 0) {
+        const diasTexto = dias.join(' ');
+        descripcion = `${cantidadTexto} (${diasTexto})`;
+      } else {
+        descripcion = cantidadTexto;
+      }
+    } else if (tipoFrecuencia === 'QUINCENAL') {
+      descripcion = cantidad === 1 ? '01 QUINCENAL' : `${cantidad.toString().padStart(2, '0')} QUINCENALES`;
+    } else if (tipoFrecuencia === 'MENSUAL') {
+      descripcion = cantidad === 1 ? '01 MENSUAL' : `${cantidad.toString().padStart(2, '0')} MENSUALES`;
+    } else {
+      descripcion = 'ESPECIAL';
+    }
+    
+    this.rutaForm.get('descripcionFrecuencia')?.setValue(descripcion, { emitEvent: false });
   }
 
   ngOnDestroy(): void {

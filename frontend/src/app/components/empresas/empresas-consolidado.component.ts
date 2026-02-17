@@ -182,9 +182,9 @@ export class EmpresasConsolidadoComponent implements OnInit {
 
   getEstadoBadgeClass(estado: EstadoEmpresa): string {
     switch (estado) {
-      case 'AUTORIZADO': return 'badge-success';
-      case 'SUSPENDIDO': return 'badge-warning';
-      case 'CANCELADO': return 'badge-danger';
+      case EstadoEmpresa.AUTORIZADO: return 'badge-success';
+      case EstadoEmpresa.SUSPENDIDO: return 'badge-warning';
+      case EstadoEmpresa.CANCELADO: return 'badge-danger';
       default: return 'badge-secondary';
     }
   }

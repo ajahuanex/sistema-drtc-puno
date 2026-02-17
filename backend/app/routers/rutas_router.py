@@ -26,26 +26,92 @@ async def create_ruta(
     ruta_data: RutaCreate,
     db = Depends(get_database)
 ) -> Ruta:
-    """Crear nueva ruta con validaciones completas"""
-    # Guard clauses al inicio
+    """Crear nueva ruta - Simple y directo"""
+    
+    # Validación básica
     if not ruta_data.codigoRuta.strip():
-        raise ValidationErrorException("Código de Ruta", "El código de ruta no puede estar vacío")
+        raise HTTPException(status_code=400, detail="El código de ruta no puede estar vacío")
     
-    if not ruta_data.empresaId:
-        raise ValidationErrorException("Empresa", "La empresa es obligatoria")
+    # Validar que no exista código duplicado en la misma resolución
+    rutas_collection = db["rutas"]
+    ruta_existente = await rutas_collection.find_one({
+        "codigoRuta": ruta_data.codigoRuta,
+        "resolucion.id": ruta_data.resolucion.id
+    })
     
-    if not ruta_data.resolucionId:
-        raise ValidationErrorException("Resolución", "La resolución es obligatoria")
+    if ruta_existente:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Ya existe una ruta con código '{ruta_data.codigoRuta}' en esta resolución"
+        )
     
-    ruta_service = RutaService(db)
+    # Preparar documento para insertar
+    ruta_dict = ruta_data.model_dump()
+    ruta_dict["fechaRegistro"] = datetime.utcnow()
+    ruta_dict["fechaActualizacion"] = datetime.utcnow()
+    ruta_dict["estaActivo"] = True
+    ruta_dict["estado"] = "ACTIVA"
     
-    try:
-        ruta = await ruta_service.create_ruta(ruta_data)
-        return build_ruta_response(ruta)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al crear ruta: {str(e)}")
+    # Insertar en la base de datos
+    result = await rutas_collection.insert_one(ruta_dict)
+    
+    # Obtener la ruta creada
+    ruta_creada = await rutas_collection.find_one({"_id": result.inserted_id})
+    ruta_id = str(result.inserted_id)
+    ruta_creada["id"] = ruta_id
+    ruta_creada.pop("_id")
+    
+    # Agregar el ID de la ruta al array rutasAutorizadasIds de la resolución
+    if ruta_data.resolucion and ruta_data.resolucion.id:
+        resoluciones_collection = db["resoluciones"]
+        await resoluciones_collection.update_one(
+            {"$or": [
+                {"id": ruta_data.resolucion.id},
+                {"_id": ObjectId(ruta_data.resolucion.id) if ObjectId.is_valid(ruta_data.resolucion.id) else None}
+            ]},
+            {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
+        )
+    
+    return Ruta(**ruta_creada)
+
+@router.post("/sincronizar-rutas-resoluciones")
+async def sincronizar_rutas_resoluciones(db = Depends(get_database)):
+    """Sincronizar todas las rutas con sus resoluciones - Agregar IDs faltantes"""
+    rutas_collection = db["rutas"]
+    resoluciones_collection = db["resoluciones"]
+    
+    # Obtener todas las rutas
+    rutas = await rutas_collection.find({}).to_list(length=None)
+    
+    actualizadas = 0
+    errores = []
+    
+    for ruta in rutas:
+        try:
+            ruta_id = str(ruta.get("_id", ruta.get("id")))
+            resolucion_id = ruta.get("resolucion", {}).get("id")
+            
+            if resolucion_id:
+                # Agregar el ID de la ruta al array de la resolución
+                result = await resoluciones_collection.update_one(
+                    {"$or": [
+                        {"id": resolucion_id},
+                        {"_id": ObjectId(resolucion_id) if ObjectId.is_valid(resolucion_id) else None}
+                    ]},
+                    {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
+                )
+                
+                if result.modified_count > 0:
+                    actualizadas += 1
+        except Exception as e:
+            errores.append(f"Error con ruta {ruta_id}: {str(e)}")
+    
+    return {
+        "mensaje": "Sincronización completada",
+        "total_rutas": len(rutas),
+        "resoluciones_actualizadas": actualizadas,
+        "errores": errores
+    }
 
 @router.get("/empresa/{empresa_id}/resolucion/{resolucion_id}", response_model=List[Ruta])
 async def get_rutas_por_empresa_y_resolucion(
@@ -878,15 +944,30 @@ async def validar_archivo_rutas(
 async def procesar_carga_masiva_rutas(
     archivo: UploadFile = File(..., description="Archivo Excel con rutas"),
     solo_validar: bool = Query(False, description="Solo validar sin crear rutas"),
+    modo: str = Query("crear", description="Modo de procesamiento: crear, actualizar, upsert"),
     db = Depends(get_database)
 ):
-    """Procesar carga masiva de rutas desde Excel"""
+    """
+    Procesar carga masiva de rutas desde Excel
+    
+    Modos disponibles:
+    - crear: Solo crear rutas nuevas (error si existe)
+    - actualizar: Solo actualizar rutas existentes (error si no existe)  
+    - upsert: Crear si no existe, actualizar si existe (recomendado)
+    """
     
     # Validar tipo de archivo
     if not archivo.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(
             status_code=400, 
             detail="El archivo debe ser un Excel (.xlsx o .xls)"
+        )
+    
+    # Validar modo
+    if modo not in ["crear", "actualizar", "upsert"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Modo inválido. Use: crear, actualizar o upsert"
         )
     
     try:
@@ -901,12 +982,19 @@ async def procesar_carga_masiva_rutas(
             resultado = await excel_service.validar_archivo_excel(archivo_buffer)
             mensaje = f"Validación completada: {resultado['validos']} válidos, {resultado['invalidos']} inválidos"
         else:
-            resultado = await excel_service.procesar_carga_masiva(archivo_buffer)
-            mensaje = f"Procesamiento completado: {resultado.get('exitosas', 0)} rutas creadas"
+            # Usar el nuevo método con modo
+            if modo == "upsert":
+                resultado = await excel_service.procesar_carga_masiva_con_modo(archivo_buffer, modo)
+                mensaje = f"Procesamiento completado: {resultado.get('creadas', 0)} creadas, {resultado.get('actualizadas', 0)} actualizadas"
+            else:
+                # Modo crear (comportamiento original)
+                resultado = await excel_service.procesar_carga_masiva(archivo_buffer)
+                mensaje = f"Procesamiento completado: {resultado.get('exitosas', 0)} rutas creadas"
         
         return {
             "archivo": archivo.filename,
             "solo_validacion": solo_validar,
+            "modo": modo if not solo_validar else None,
             "resultado": resultado,
             "mensaje": mensaje
         }

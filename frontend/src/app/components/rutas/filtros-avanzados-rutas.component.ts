@@ -690,7 +690,7 @@ export class FiltrosAvanzadosRutasComponent implements OnInit, OnDestroy {
   private async cargarDatos(): Promise<void> {
     try {
       const [localidades, empresas, resoluciones] = await Promise.all([
-        this.localidadService.getLocalidades().pipe(takeUntil(this.destroy$)).toPromise(),
+        this.localidadService.obtenerLocalidades(),
         this.empresaService.getEmpresas().pipe(takeUntil(this.destroy$)).toPromise(),
         this.resolucionService.getResoluciones().pipe(takeUntil(this.destroy$)).toPromise()
       ]);

@@ -16,6 +16,7 @@ class CategoriaConfiguracion(str, Enum):
     REPORTES = 'REPORTES'
     GENERAL = 'GENERAL'
     VEHICULOS = 'VEHICULOS'
+    RUTAS = 'RUTAS'
 
 class ConfiguracionResponse(BaseModel):
     """Modelo de respuesta para configuración"""
@@ -57,6 +58,7 @@ class TipoConfiguracion(str, Enum):
     ESTADOS_EMPRESA = "ESTADOS_EMPRESA"
     TIPOS_DOCUMENTO = "TIPOS_DOCUMENTO"
     PARAMETROS_SISTEMA = "PARAMETROS_SISTEMA"
+    TIPOS_RUTA = "TIPOS_RUTA"  # ✅ NUEVO
 
 class ConfiguracionItem(BaseModel):
     """Item individual de configuración"""
@@ -133,6 +135,42 @@ CONFIGURACIONES_PREDEFINIDAS = {
                 "nombre": "Otros Servicios",
                 "descripcion": "Otros tipos de servicio de transporte",
                 "orden": 8
+            }
+        ]
+    },
+    "TIPOS_RUTA": {
+        "nombre": "Tipos de Ruta de Transporte",
+        "descripcion": "Clasificación de rutas según su ámbito territorial",
+        "items": [
+            {
+                "codigo": "URBANA",
+                "nombre": "Urbana",
+                "descripcion": "Ruta dentro de una misma ciudad o distrito",
+                "orden": 1
+            },
+            {
+                "codigo": "INTERURBANA",
+                "nombre": "Interurbana",
+                "descripcion": "Ruta entre ciudades cercanas de la misma provincia",
+                "orden": 2
+            },
+            {
+                "codigo": "INTERPROVINCIAL",
+                "nombre": "Interprovincial",
+                "descripcion": "Ruta entre provincias del mismo departamento",
+                "orden": 3
+            },
+            {
+                "codigo": "INTERREGIONAL",
+                "nombre": "Interregional",
+                "descripcion": "Ruta entre diferentes departamentos o regiones",
+                "orden": 4
+            },
+            {
+                "codigo": "RURAL",
+                "nombre": "Rural",
+                "descripcion": "Ruta en zonas rurales con características especiales",
+                "orden": 5
             }
         ]
     }

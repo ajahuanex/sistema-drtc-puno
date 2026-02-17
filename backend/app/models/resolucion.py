@@ -9,6 +9,7 @@ class EstadoResolucion(str, Enum):
     EMITIDA = "EMITIDA"
     VIGENTE = "VIGENTE"
     VENCIDA = "VENCIDA"
+    RENOVADA = "RENOVADA"  # Estado para resoluciones que fueron renovadas
     SUSPENDIDA = "SUSPENDIDA"
     ANULADA = "ANULADA"
     DADA_DE_BAJA = "DADA_DE_BAJA"
@@ -32,7 +33,9 @@ class Resolucion(BaseModel):
     fechaEmision: Optional[datetime] = None
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
-    aniosVigencia: Optional[int] = Field(default=4, description="Años de vigencia de la resolución (4 o 10)")
+    aniosVigencia: Optional[int] = Field(default=None, description="Años de vigencia de la resolución (4 o 10)")
+    tieneEficaciaAnticipada: Optional[bool] = Field(default=None, description="Indica si la resolución tiene eficacia anticipada")
+    diasEficaciaAnticipada: Optional[int] = Field(default=None, description="Días de eficacia anticipada")
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str] = []
@@ -61,7 +64,7 @@ class ResolucionCreate(BaseModel):
     fechaEmision: Optional[datetime] = None
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
-    aniosVigencia: Optional[int] = Field(default=4, description="Años de vigencia de la resolución (4 o 10)")
+    aniosVigencia: Optional[int] = Field(default=None, description="Años de vigencia de la resolución (4 o 10)")
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     vehiculosHabilitadosIds: List[str] = []
@@ -109,7 +112,9 @@ class ResolucionResponse(BaseModel):
     fechaEmision: Optional[datetime] = None
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
-    aniosVigencia: Optional[int] = 4
+    aniosVigencia: Optional[int] = None
+    tieneEficaciaAnticipada: Optional[bool] = None
+    diasEficaciaAnticipada: Optional[int] = None
     tipoResolucion: TipoResolucion
     resolucionPadreId: Optional[str] = None
     resolucionesHijasIds: List[str]

@@ -357,15 +357,11 @@ export class ResolucionService {
    * @returns Observable con las resoluciones filtradas
    */
   getResolucionesFiltradas(filtros: ResolucionFiltros): Observable<ResolucionConEmpresa[]> {
-    // console.log removed for production
-    console.log('Filtros recibidos (frontend):', filtros);
-
     // Iniciar medición de rendimiento
     PerformanceMonitor.startMeasure('getResolucionesFiltradas');
 
     // Si hay búsqueda general, usar filtrado local
     if (filtros.busquedaGeneral) {
-      // console.log removed for production
       return this.getResolucionesConEmpresa().pipe(
         map(resoluciones => this.filtrarResolucionesLocal(resoluciones, filtros)),
         tap(resoluciones => {
@@ -383,7 +379,6 @@ export class ResolucionService {
 
     // CONVERTIR filtros del formato frontend al formato backend
     const filtrosBackend: any = this.convertirFiltrosFrontendABackend(filtros);
-    console.log('Filtros convertidos (backend):', filtrosBackend);
 
     // Intentar obtener del backend primero
     const url = `${this.apiUrl}/resoluciones/filtradas`;
@@ -391,7 +386,6 @@ export class ResolucionService {
     return this.http.post<Resolucion[]>(url, filtrosBackend, { headers: this.getHeaders() })
       .pipe(
         switchMap((resoluciones: Resolucion[]) => {
-          // console.log removed for production
           return this.enrichResolucionesConEmpresa(resoluciones);
         }),
         tap(resoluciones => {
@@ -584,18 +578,102 @@ export class ResolucionService {
         });
 
         // Enriquecer resoluciones con datos de empresa y conteos
-        const resolucionesConEmpresa: ResolucionConEmpresa[] = resoluciones.map(resolucion => {
+        const resolucionesConEmpresa: ResolucionConEmpresa[] = resoluciones.map((resolucion, index) => {
           const empresa = empresaMap.get(resolucion.empresaId);
+
+          // Log para las primeras 5 resoluciones
+          if (index < 5) {
+            console.log(`🔍 [${index + 1}] ${resolucion.nroResolucion}:`, {
+              aniosVigencia: resolucion.aniosVigencia,
+              tieneAnios: 'aniosVigencia' in resolucion,
+              valorAnios: resolucion.aniosVigencia,
+              fechaEmision: resolucion.fechaEmision,
+              fechaVigenciaInicio: resolucion.fechaVigenciaInicio,
+              fechaVigenciaFin: resolucion.fechaVigenciaFin,
+              tieneEficaciaBackend: resolucion.tieneEficaciaAnticipada,
+              diasEficaciaBackend: resolucion.diasEficaciaAnticipada,
+              todasLasFechas: {
+                fechaEmision: resolucion.fechaEmision,
+                fechaRegistro: (resolucion as any).fechaRegistro,
+                fechaAprobacion: (resolucion as any).fechaAprobacion,
+                fechaCreacion: (resolucion as any).fechaCreacion
+              }
+            });
+            
+            // Log del objeto completo para debug
+            if (index === 0) {
+              console.log('📦 Objeto completo de la primera resolución:', resolucion);
+            }
+          }
+
+          // Calcular eficacia anticipada
+          // Eficacia anticipada = cuando la vigencia inicia ANTES de la fecha de emisión
+          let tieneEficaciaAnticipada: boolean | null = null;
+          let diasEficaciaAnticipada: number | null = null;
+
+          if (resolucion.fechaEmision && resolucion.fechaVigenciaInicio) {
+            // Parsear fechas de forma segura
+            const fechaEmisionStr = String(resolucion.fechaEmision);
+            const fechaVigenciaInicioStr = String(resolucion.fechaVigenciaInicio);
+            
+            const fechaEmision = new Date(fechaEmisionStr);
+            const fechaVigenciaInicio = new Date(fechaVigenciaInicioStr);
+            
+            // Normalizar fechas a medianoche UTC para evitar problemas de zona horaria
+            const fechaEmisionUTC = Date.UTC(
+              fechaEmision.getFullYear(),
+              fechaEmision.getMonth(),
+              fechaEmision.getDate()
+            );
+            const fechaVigenciaInicioUTC = Date.UTC(
+              fechaVigenciaInicio.getFullYear(),
+              fechaVigenciaInicio.getMonth(),
+              fechaVigenciaInicio.getDate()
+            );
+            
+            // Calcular diferencia: fechaEmision - fechaVigenciaInicio
+            // Si es positivo, la emisión es posterior (hay eficacia anticipada)
+            const diferenciaMilisegundos = fechaEmisionUTC - fechaVigenciaInicioUTC;
+            const diferenciaDias = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+            
+            // Debug para las primeras 3 resoluciones
+            if (index < 3) {
+              console.log(`📅 ${resolucion.nroResolucion}:`, {
+                fechaEmisionOriginal: fechaEmisionStr,
+                fechaVigenciaInicioOriginal: fechaVigenciaInicioStr,
+                fechaEmisionParsed: fechaEmision.toISOString().split('T')[0],
+                fechaVigenciaInicioParsed: fechaVigenciaInicio.toISOString().split('T')[0],
+                diferenciaDias,
+                tieneEficacia: diferenciaDias > 0
+              });
+            }
+            
+            if (diferenciaDias > 0) {
+              // Fecha de emisión es posterior a fecha de inicio de vigencia
+              // Esto indica eficacia anticipada (la vigencia empezó antes de emitirse)
+              tieneEficaciaAnticipada = true;
+              diasEficaciaAnticipada = diferenciaDias;
+            } else if (diferenciaDias === 0) {
+              // Fechas son iguales, no hay eficacia anticipada
+              tieneEficaciaAnticipada = false;
+              diasEficaciaAnticipada = 0;
+            } else {
+              // Fecha de emisión es anterior a fecha de inicio de vigencia
+              // No hay eficacia anticipada (caso normal: se emite y luego entra en vigencia)
+              tieneEficaciaAnticipada = false;
+              diasEficaciaAnticipada = 0;
+            }
+          }
 
           const resolucionEnriquecida: ResolucionConEmpresa = {
             ...resolucion,
             // Agregar conteos directos de los arrays existentes
             cantidadRutas: resolucion.rutasAutorizadasIds?.length || 0,
-            cantidadVehiculos: resolucion.vehiculosHabilitadosIds?.length || 0
+            cantidadVehiculos: resolucion.vehiculosHabilitadosIds?.length || 0,
+            // Agregar datos de eficacia anticipada calculados
+            tieneEficaciaAnticipada,
+            diasEficaciaAnticipada
           };
-
-          // Log para debuggear
-          // console.log removed for production
 
           if (empresa) {
             resolucionEnriquecida.empresa = {
@@ -611,7 +689,6 @@ export class ResolucionService {
           return resolucionEnriquecida;
         });
 
-        // console.log removed for production
         return resolucionesConEmpresa;
       })
     );

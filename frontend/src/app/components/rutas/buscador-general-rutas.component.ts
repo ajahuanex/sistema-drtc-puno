@@ -504,7 +504,7 @@ export class BuscadorGeneralRutasComponent implements OnInit, OnDestroy {
     try {
       const [empresas, localidades] = await Promise.all([
         this.empresaService.getEmpresas().pipe(takeUntil(this.destroy$)).toPromise(),
-        this.localidadService.getLocalidades().pipe(takeUntil(this.destroy$)).toPromise()
+        this.localidadService.obtenerLocalidades()
       ]);
 
       const sugerencias: SugerenciaBusqueda[] = [];
@@ -646,7 +646,7 @@ export class BuscadorGeneralRutasComponent implements OnInit, OnDestroy {
         break;
       case 'sin_frecuencias':
         termino = 'Sin Frecuencias';
-        resultados = this.rutas.filter(r => !r.frecuencias || r.frecuencias.trim() === '');
+        resultados = this.rutas.filter(r => !r.frecuencia || !r.frecuencia.descripcion || r.frecuencia.descripcion.trim() === '');
         break;
     }
 
@@ -717,7 +717,7 @@ export class BuscadorGeneralRutasComponent implements OnInit, OnDestroy {
         (ruta.destino?.nombre && ruta.destino.nombre.toLowerCase().includes(terminoLower)) ||
         (typeof ruta.destino === 'string' && (ruta.destino as string).toLowerCase().includes(terminoLower)) ||
         // Frecuencias
-        (ruta.frecuencias && ruta.frecuencias.toLowerCase().includes(terminoLower)) ||
+        (ruta.frecuencia?.descripcion && ruta.frecuencia.descripcion.toLowerCase().includes(terminoLower)) ||
         // Resolución
         (ruta.resolucion?.nroResolucion && ruta.resolucion.nroResolucion.toLowerCase().includes(terminoLower))
       );

@@ -235,6 +235,38 @@ interface ResultadoCargaMasiva {
                     </mat-radio-button>
                   </mat-radio-group>
                   
+                  <!-- ✅ NUEVO: Selector de modo UPSERT -->
+                  @if (!soloValidar) {
+                    <div class="modo-upsert-section">
+                      <h5>🔄 Modo de Actualización</h5>
+                      <mat-radio-group [(ngModel)]="modoProcesamiento" class="radio-group-vertical">
+                        <mat-radio-button value="crear">
+                          <div class="radio-content">
+                            <strong>Solo Crear</strong>
+                            <p>Crear solo rutas nuevas (error si ya existe)</p>
+                          </div>
+                        </mat-radio-button>
+                        
+                        <mat-radio-button value="upsert">
+                          <div class="radio-content">
+                            <strong>Crear o Actualizar (Recomendado)</strong>
+                            <p>Crear si no existe, actualizar si existe</p>
+                          </div>
+                        </mat-radio-button>
+                      </mat-radio-group>
+                      
+                      <!-- Información sobre la clave única -->
+                      <div class="info-box upsert-info">
+                        <mat-icon>key</mat-icon>
+                        <div>
+                          <h6>Identificación Única de Rutas</h6>
+                          <p>Las rutas se identifican por: <strong>RUC + Resolución + Código</strong></p>
+                          <p class="example">Ejemplo: 20448048242 + R-0921-2023 + 01</p>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  
                   <!-- Información sobre localidades -->
                   <div class="info-section localidades-info">
                     <mat-icon class="info-icon">info</mat-icon>
@@ -331,11 +363,28 @@ interface ResultadoCargaMasiva {
                         <span class="stat-number">{{ getEstadistica('total') }}</span>
                         <span class="stat-label">{{ soloValidar ? 'Total filas' : 'Total procesadas' }}</span>
                       </div>
-                      <div class="stat-item success">
-                        <mat-icon>check_circle</mat-icon>
-                        <span class="stat-number">{{ getEstadistica('exitosas') }}</span>
-                        <span class="stat-label">{{ soloValidar ? 'Válidos' : 'Rutas creadas' }}</span>
-                      </div>
+                      
+                      @if (!soloValidar && modoProcesamiento === 'upsert') {
+                        <!-- Mostrar creadas y actualizadas por separado en modo UPSERT -->
+                        <div class="stat-item success">
+                          <mat-icon>add_circle</mat-icon>
+                          <span class="stat-number">{{ getRutasCreadas().length }}</span>
+                          <span class="stat-label">Creadas</span>
+                        </div>
+                        <div class="stat-item info">
+                          <mat-icon>update</mat-icon>
+                          <span class="stat-number">{{ getRutasActualizadas().length }}</span>
+                          <span class="stat-label">Actualizadas</span>
+                        </div>
+                      } @else {
+                        <!-- Mostrar solo exitosas en otros modos -->
+                        <div class="stat-item success">
+                          <mat-icon>check_circle</mat-icon>
+                          <span class="stat-number">{{ getEstadistica('exitosas') }}</span>
+                          <span class="stat-label">{{ soloValidar ? 'Válidos' : 'Rutas creadas' }}</span>
+                        </div>
+                      }
+                      
                       @if (getEstadistica('errores') > 0) {
                         <div class="stat-item error">
                           <mat-icon>error</mat-icon>
@@ -394,6 +443,64 @@ interface ResultadoCargaMasiva {
                           @if (getRutasCreadas().length > 10) {
                             <div class="more-results">
                               <p><strong>... y {{ getRutasCreadas().length - 10 }} rutas más creadas exitosamente</strong></p>
+                            </div>
+                          }
+                        </div>
+                      </mat-card-content>
+                    </mat-card>
+                  }
+                  
+                  <!-- ✅ NUEVO: Rutas actualizadas exitosamente -->
+                  @if (!soloValidar && getRutasActualizadas().length > 0) {
+                    <mat-card class="results-card info">
+                      <mat-card-header>
+                        <mat-card-title>
+                          <mat-icon>update</mat-icon>
+                          Rutas Actualizadas Exitosamente ({{ (getRutasActualizadas())?.length || 0 }})
+                        </mat-card-title>
+                      </mat-card-header>
+                      <mat-card-content>
+                        <div class="table-container">
+                          <table mat-table [dataSource]="getRutasActualizadas().slice(0, 10)" class="results-table">
+                            <ng-container matColumnDef="codigo">
+                              <th mat-header-cell *matHeaderCellDef>Código</th>
+                              <td mat-cell *matCellDef="let ruta">{{ ruta.codigo || ruta.codigo_ruta }}</td>
+                            </ng-container>
+                            
+                            <ng-container matColumnDef="nombre">
+                              <th mat-header-cell *matHeaderCellDef>Nombre</th>
+                              <td mat-cell *matCellDef="let ruta">{{ ruta.nombre }}</td>
+                            </ng-container>
+                            
+                            <ng-container matColumnDef="cambios">
+                              <th mat-header-cell *matHeaderCellDef>Cambios</th>
+                              <td mat-cell *matCellDef="let ruta">
+                                @if (ruta.cambios && ruta.cambios.length > 0) {
+                                  <ul class="cambios-list">
+                                    @for (cambio of ruta.cambios; track $index) {
+                                      <li>{{ cambio }}</li>
+                                    }
+                                  </ul>
+                                } @else {
+                                  <span class="no-cambios">Sin cambios detectados</span>
+                                }
+                              </td>
+                            </ng-container>
+                            
+                            <ng-container matColumnDef="estado">
+                              <th mat-header-cell *matHeaderCellDef>Estado</th>
+                              <td mat-cell *matCellDef="let ruta">
+                                <mat-chip class="status-chip info">ACTUALIZADA</mat-chip>
+                              </td>
+                            </ng-container>
+                            
+                            <tr mat-header-row *matHeaderRowDef="['codigo', 'nombre', 'cambios', 'estado']"></tr>
+                            <tr mat-row *matRowDef="let row; columns: ['codigo', 'nombre', 'cambios', 'estado'];"></tr>
+                          </table>
+                          
+                          @if (getRutasActualizadas().length > 10) {
+                            <div class="more-results">
+                              <p><strong>... y {{ getRutasActualizadas().length - 10 }} rutas más actualizadas exitosamente</strong></p>
                             </div>
                           }
                         </div>
@@ -528,6 +635,7 @@ export class CargaMasivaRutasComponent implements OnInit {
   soloValidar = true;
 
   // Configuración de procesamiento
+  modoProcesamiento: 'crear' | 'actualizar' | 'upsert' = 'upsert';  // ✅ NUEVO
   procesarEnLotes = true;
   tamanoLote = 50;
   loteActual = 0;
@@ -721,6 +829,7 @@ export class CargaMasivaRutasComponent implements OnInit {
   private async ejecutarProcesamiento() {
     const opciones = {
       soloValidar: false,
+      modo: this.modoProcesamiento,  // ✅ NUEVO: Enviar modo
       procesarEnLotes: this.procesarEnLotes,
       tamanoLote: this.tamanoLote
     };
@@ -940,5 +1049,16 @@ export class CargaMasivaRutasComponent implements OnInit {
     this.procesarEnLotes = true;
     this.tamanoLote = 50;
     this.plantillaDescargada = false;
+  }
+
+  getRutasActualizadas(): any[] {
+    if (!this.resultado || this.soloValidar) return [];
+
+    const resultado: any = this.resultado as any;
+    
+    // Intentar obtener de diferentes estructuras posibles
+    return resultado.rutas_actualizadas || 
+           resultado.resultado?.rutas_actualizadas || 
+           [];
   }
 }

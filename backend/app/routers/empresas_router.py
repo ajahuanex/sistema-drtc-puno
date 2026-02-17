@@ -139,7 +139,7 @@ async def cambiar_estado_empresa(
             cambio_estado.estadoNuevo,
             cambio_estado.motivo,
             usuario_id,
-            cambio_estado.documentoSustentatorio,
+            cambio_estado.numeroDocumentoSustentatorio,
             cambio_estado.tipoDocumentoSustentatorio,
             cambio_estado.urlDocumentoSustentatorio,
             cambio_estado.observaciones

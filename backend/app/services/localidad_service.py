@@ -120,7 +120,7 @@ class LocalidadService:
             return None
 
     async def update_localidad(self, localidad_id: str, localidad_data: LocalidadUpdate) -> Optional[Localidad]:
-        """Actualizar localidad"""
+        """Actualizar localidad y sincronizar en rutas"""
         try:
             # Verificar que existe
             existing = await self.collection.find_one({"_id": ObjectId(localidad_id)})
@@ -157,22 +157,187 @@ class LocalidadService:
 
             # Obtener documento actualizado
             updated_doc = await self.collection.find_one({"_id": ObjectId(localidad_id)})
-            return self._document_to_localidad(updated_doc)
+            localidad_actualizada = self._document_to_localidad(updated_doc)
+            
+            # 🔄 SINCRONIZAR EN RUTAS si cambió el nombre
+            if "nombre" in update_data:
+                await self._sincronizar_localidad_en_rutas(localidad_id, update_data["nombre"])
+            
+            return localidad_actualizada
         except Exception as e:
             if "Ya existe una localidad" in str(e):
                 raise e
             return None
+    
+    async def _sincronizar_localidad_en_rutas(self, localidad_id: str, nuevo_nombre: str):
+        """Sincronizar nombre de localidad en todas las rutas que la usan"""
+        try:
+            rutas_collection = self.db.rutas
+            
+            # Actualizar en origen
+            await rutas_collection.update_many(
+                {"origen.id": localidad_id},
+                {"$set": {
+                    "origen.nombre": nuevo_nombre,
+                    "fechaActualizacion": datetime.utcnow()
+                }}
+            )
+            
+            # Actualizar en destino
+            await rutas_collection.update_many(
+                {"destino.id": localidad_id},
+                {"$set": {
+                    "destino.nombre": nuevo_nombre,
+                    "fechaActualizacion": datetime.utcnow()
+                }}
+            )
+            
+            # Actualizar en itinerario (más complejo)
+            rutas_con_localidad = await rutas_collection.find({
+                "itinerario.id": localidad_id
+            }).to_list(None)
+            
+            for ruta in rutas_con_localidad:
+                # Actualizar cada ocurrencia en el itinerario
+                itinerario_actualizado = []
+                for loc in ruta.get('itinerario', []):
+                    if loc.get('id') == localidad_id:
+                        loc['nombre'] = nuevo_nombre
+                    itinerario_actualizado.append(loc)
+                
+                await rutas_collection.update_one(
+                    {"_id": ruta['_id']},
+                    {"$set": {
+                        "itinerario": itinerario_actualizado,
+                        "fechaActualizacion": datetime.utcnow()
+                    }}
+                )
+            
+            print(f"✅ Localidad '{nuevo_nombre}' sincronizada en rutas")
+            
+        except Exception as e:
+            print(f"⚠️ Error sincronizando localidad en rutas: {e}")
+            # No lanzar error para no bloquear la actualización de la localidad
 
     async def delete_localidad(self, localidad_id: str) -> bool:
-        """Eliminar (desactivar) localidad"""
+        """Eliminar (desactivar) localidad con validación de uso en rutas"""
         try:
+            # 🔒 VALIDAR: Verificar si la localidad está siendo usada en rutas
+            rutas_usando_localidad = await self._verificar_localidad_en_uso(localidad_id)
+            
+            if rutas_usando_localidad['total'] > 0:
+                # No permitir eliminar si está en uso
+                raise ValueError(
+                    f"No se puede eliminar la localidad porque está siendo usada en {rutas_usando_localidad['total']} ruta(s). "
+                    f"Origen: {rutas_usando_localidad['como_origen']}, "
+                    f"Destino: {rutas_usando_localidad['como_destino']}, "
+                    f"Itinerario: {rutas_usando_localidad['en_itinerario']}"
+                )
+            
+            # Si no está en uso, desactivar (soft delete)
             result = await self.collection.update_one(
                 {"_id": ObjectId(localidad_id)},
                 {"$set": {"estaActiva": False, "fechaActualizacion": datetime.utcnow()}}
             )
             return result.modified_count > 0
-        except:
+        except ValueError as e:
+            # Re-lanzar errores de validación
+            raise e
+        except Exception as e:
+            print(f"Error eliminando localidad: {e}")
             return False
+    
+    async def _verificar_localidad_en_uso(self, localidad_id: str) -> dict:
+        """Verificar si una localidad está siendo usada en rutas"""
+        try:
+            rutas_collection = self.db.rutas
+            
+            # Contar rutas donde es origen
+            como_origen = await rutas_collection.count_documents({"origen.id": localidad_id})
+            
+            # Contar rutas donde es destino
+            como_destino = await rutas_collection.count_documents({"destino.id": localidad_id})
+            
+            # Contar rutas donde está en itinerario
+            en_itinerario = await rutas_collection.count_documents({"itinerario.id": localidad_id})
+            
+            total = como_origen + como_destino + en_itinerario
+            
+            return {
+                'total': total,
+                'como_origen': como_origen,
+                'como_destino': como_destino,
+                'en_itinerario': en_itinerario,
+                'esta_en_uso': total > 0
+            }
+        except Exception as e:
+            print(f"Error verificando uso de localidad: {e}")
+            return {
+                'total': 0,
+                'como_origen': 0,
+                'como_destino': 0,
+                'en_itinerario': 0,
+                'esta_en_uso': False
+            }
+    
+    async def obtener_rutas_que_usan_localidad(self, localidad_id: str) -> dict:
+        """Obtener lista de rutas que usan una localidad específica"""
+        try:
+            rutas_collection = self.db.rutas
+            
+            # Rutas donde es origen
+            rutas_origen = await rutas_collection.find(
+                {"origen.id": localidad_id},
+                {"codigoRuta": 1, "nombre": 1, "origen": 1, "destino": 1}
+            ).to_list(None)
+            
+            # Rutas donde es destino
+            rutas_destino = await rutas_collection.find(
+                {"destino.id": localidad_id},
+                {"codigoRuta": 1, "nombre": 1, "origen": 1, "destino": 1}
+            ).to_list(None)
+            
+            # Rutas donde está en itinerario
+            rutas_itinerario = await rutas_collection.find(
+                {"itinerario.id": localidad_id},
+                {"codigoRuta": 1, "nombre": 1, "origen": 1, "destino": 1}
+            ).to_list(None)
+            
+            return {
+                'rutas_origen': [
+                    {
+                        'codigo': r.get('codigoRuta'),
+                        'nombre': r.get('nombre'),
+                        'ruta': f"{r.get('origen', {}).get('nombre')} → {r.get('destino', {}).get('nombre')}"
+                    }
+                    for r in rutas_origen
+                ],
+                'rutas_destino': [
+                    {
+                        'codigo': r.get('codigoRuta'),
+                        'nombre': r.get('nombre'),
+                        'ruta': f"{r.get('origen', {}).get('nombre')} → {r.get('destino', {}).get('nombre')}"
+                    }
+                    for r in rutas_destino
+                ],
+                'rutas_itinerario': [
+                    {
+                        'codigo': r.get('codigoRuta'),
+                        'nombre': r.get('nombre'),
+                        'ruta': f"{r.get('origen', {}).get('nombre')} → {r.get('destino', {}).get('nombre')}"
+                    }
+                    for r in rutas_itinerario
+                ],
+                'total': len(rutas_origen) + len(rutas_destino) + len(rutas_itinerario)
+            }
+        except Exception as e:
+            print(f"Error obteniendo rutas que usan localidad: {e}")
+            return {
+                'rutas_origen': [],
+                'rutas_destino': [],
+                'rutas_itinerario': [],
+                'total': 0
+            }
 
     async def toggle_estado_localidad(self, localidad_id: str) -> Optional[Localidad]:
         """Cambiar estado activo/inactivo de localidad"""
@@ -334,9 +499,13 @@ class LocalidadService:
             }
             doc["nivel_territorial"] = mapping.get(tipo, "DISTRITO")
         
-        # Asegurar que esta_activa esté definido
-        if "esta_activa" not in doc:
-            doc["esta_activa"] = doc.get("estaActiva", True)
+        # Asegurar que estaActiva esté definido (el modelo usa camelCase)
+        if "estaActiva" not in doc:
+            doc["estaActiva"] = doc.get("esta_activa", True)
+        
+        # Eliminar esta_activa si existe (para evitar conflictos con Pydantic)
+        if "esta_activa" in doc:
+            del doc["esta_activa"]
         
         try:
             return Localidad(**doc)

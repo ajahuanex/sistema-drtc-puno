@@ -502,7 +502,7 @@ export class VehiculosConsolidadoComponent implements OnInit {
       case 'placa':
         return vehiculo.placa.toLowerCase().includes(valor.toLowerCase());
       case 'marca':
-        return vehiculo.marca.toLowerCase().includes(valor.toLowerCase());
+        return vehiculo.marca?.toLowerCase().includes(valor.toLowerCase()) || false;
       case 'modelo':
         return !vehiculo.modelo || vehiculo.modelo.toLowerCase().includes(valor.toLowerCase());
       case 'empresaId':
@@ -527,9 +527,14 @@ export class VehiculosConsolidadoComponent implements OnInit {
   }
 
   private aplicarFiltroTexto(vehiculo: Vehiculo, filtro: string): boolean {
-    const termino = filtro.toLowerCase();
+    // Limpiar el término de búsqueda: remover comillas y espacios extra
+    const termino = filtro.replace(/['"]/g, '').trim().toLowerCase();
+    
+    // Si no hay término de búsqueda, mostrar todo
+    if (!termino) return true;
+    
     return vehiculo.placa.toLowerCase().includes(termino) ||
-           vehiculo.marca.toLowerCase().includes(termino) ||
+           (vehiculo.marca?.toLowerCase().includes(termino) || false) ||
            (vehiculo.modelo && vehiculo.modelo.toLowerCase().includes(termino)) ||
            vehiculo.estado.toLowerCase().includes(termino);
   }
@@ -699,7 +704,8 @@ export class VehiculosConsolidadoComponent implements OnInit {
 
   private contarPorMarca(vehiculos: Vehiculo[]): { [key: string]: number } {
     return vehiculos.reduce((acc, vehiculo) => {
-      acc[vehiculo.marca] = (acc[vehiculo.marca] || 0) + 1;
+      const marca = vehiculo.marca || 'Sin marca';
+      acc[marca] = (acc[marca] || 0) + 1;
       return acc;
     }, {} as { [key: string]: number });
   }

@@ -119,7 +119,7 @@ interface RutaSeleccionable {
                       }
                     </span>
                     <span class="descripcion">{{ rutaItem.ruta.descripcion || 'Sin itinerario' }}</span>
-                    <span class="frecuencia">{{ rutaItem.ruta.frecuencias || 'Sin frecuencia' }}</span>
+                    <span class="frecuencia">{{ rutaItem.ruta.frecuencia?.descripcion || 'Sin frecuencia' }}</span>
                   </div>
                 </div>
               }

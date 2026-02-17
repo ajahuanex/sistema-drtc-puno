@@ -160,7 +160,7 @@ export class ImportacionMunicipalidadesService {
     let existentes: Set<string> = new Set();
     if (!sobreescribir) {
       try {
-        const localidadesExistentes = await this.localidadService.getLocalidades().toPromise();
+        const localidadesExistentes = await this.localidadService.obtenerLocalidades();
         existentes = new Set(
           localidadesExistentes?.map(l => 
             `${l.departamento}-${l.provincia}-${l.distrito}-${l.municipalidad_centro_poblado}`.toUpperCase()

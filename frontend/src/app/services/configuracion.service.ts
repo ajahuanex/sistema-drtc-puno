@@ -176,6 +176,42 @@ export class ConfiguracionService {
     return config ? config.valor.toLowerCase() === 'true' : false;
   });
 
+  // ✅ Configuraciones de tipos de ruta
+  tiposRutaConfig = computed(() => {
+    const allConfigs = this.configuraciones();
+    console.log('🔍 Todas las configuraciones disponibles:', allConfigs.map(c => c.nombre));
+    
+    const config = allConfigs.find(c => c.nombre === 'TIPOS_RUTA_CONFIG');
+    console.log('🔍 Configuración TIPOS_RUTA_CONFIG encontrada:', config);
+    
+    if (config && config.valor) {
+      try {
+        const parsed = JSON.parse(config.valor);
+        console.log('✅ Tipos de ruta parseados:', parsed);
+        return parsed;
+      } catch (error) {
+        console.error('Error parseando configuración de tipos de ruta::', error);
+        return this.getTiposRutaDefault();
+      }
+    }
+    console.warn('⚠️ Usando tipos de ruta por defecto');
+    return this.getTiposRutaDefault();
+  });
+
+  // ✅ Configuraciones de tipos de servicio
+  tiposServicioConfig = computed(() => {
+    const config = this.configuraciones().find(c => c.nombre === 'TIPOS_SERVICIO_CONFIG');
+    if (config && config.valor) {
+      try {
+        return JSON.parse(config.valor);
+      } catch (error) {
+        console.error('Error parseando configuración de tipos de servicio::', error);
+        return this.getTiposServicioDefault();
+      }
+    }
+    return this.getTiposServicioDefault();
+  });
+
   constructor() {
     // console.log removed for production
     // Cargar configuraciones automáticamente al inicializar el servicio
@@ -199,24 +235,37 @@ export class ConfiguracionService {
    */
   async cargarConfiguraciones(): Promise<void> {
     try {
+      console.log('🔄 Cargando configuraciones desde API:', this.apiUrl);
       this.configuracionesCargadasSignal.set(false);
       
       // Intentar cargar desde la API (sin autenticación para pruebas)
       const response = await this.http.get<ConfiguracionSistema[]>(`${this.apiUrl}`).toPromise();
       
+      console.log('📦 Respuesta de API:', response);
+      
       if (response && response.length > 0) {
-        // console.log removed for production
+        console.log('✅ Configuraciones cargadas desde API:', response.length);
         this.configuracionesSignal.set(response);
         this.configuracionesCargadasSignal.set(true);
         this.actualizarBehaviorSubjects(response);
+        
+        // Verificar TIPOS_RUTA_CONFIG
+        const tiposRuta = response.find(c => c.nombre === 'TIPOS_RUTA_CONFIG');
+        if (tiposRuta) {
+          console.log('✅ TIPOS_RUTA_CONFIG encontrado en respuesta:', tiposRuta);
+        } else {
+          console.warn('⚠️ TIPOS_RUTA_CONFIG NO encontrado en respuesta');
+        }
+        
         return;
       }
       
       throw new Error('No se recibieron configuraciones de la API');
       
     } catch (error) {
-      console.warn('⚠️ Error cargando configuraciones desde la API:', error);
-      // console.log removed for production
+      console.error('❌ Error cargando configuraciones desde API:', error);
+      // Usar configuraciones por defecto silenciosamente
+      console.log('ℹ️ Usando configuraciones por defecto (API no disponible)');
       
       // Usar configuraciones por defecto directamente
       const configuracionesDefault = this.getConfiguracionesDefault();
@@ -865,5 +914,29 @@ export class ConfiguracionService {
   getColorEstadoVehiculo(codigo: string): string {
     const estado = this.getEstadoVehiculo(codigo);
     return estado ? estado.color : '#757575';
+  }
+
+  /**
+   * Obtiene los tipos de ruta por defecto
+   */
+  private getTiposRutaDefault() {
+    return [
+      { codigo: 'URBANA', nombre: 'Urbana', descripcion: 'Transporte dentro de la ciudad', estaActivo: true },
+      { codigo: 'INTERURBANA', nombre: 'Interurbana', descripcion: 'Transporte entre ciudades cercanas', estaActivo: true },
+      { codigo: 'INTERPROVINCIAL', nombre: 'Interprovincial', descripcion: 'Transporte entre provincias', estaActivo: true },
+      { codigo: 'INTERREGIONAL', nombre: 'Interregional', descripcion: 'Transporte entre regiones', estaActivo: true },
+      { codigo: 'RURAL', nombre: 'Rural', descripcion: 'Transporte en zonas rurales', estaActivo: true }
+    ];
+  }
+
+  /**
+   * Obtiene los tipos de servicio por defecto
+   */
+  private getTiposServicioDefault() {
+    return [
+      { codigo: 'PASAJEROS', nombre: 'Transporte de Pasajeros', descripcion: 'Servicio de transporte público de personas', estaActivo: true },
+      { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de mercancías y productos', estaActivo: true },
+      { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de pasajeros y carga', estaActivo: true }
+    ];
   }
 }

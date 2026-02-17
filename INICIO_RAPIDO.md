@@ -1,117 +1,89 @@
-# ⚡ Inicio Rápido - 3 Pasos
+# ⚡ INICIO RÁPIDO - 5 Minutos
 
 ## 🎯 Objetivo
-Tener el sistema funcionando en menos de 5 minutos.
+Hacer que las tablas funcionen en 5 minutos.
 
 ---
 
-## 📋 Requisitos Previos
+## 📋 PASOS
 
-✅ Docker Desktop instalado y **CORRIENDO**  
-✅ Python 3.8+ instalado  
-✅ Node.js 18+ instalado  
+### 1️⃣ Abrir MongoDB Compass (1 min)
 
----
-
-## 🚀 3 Pasos para Iniciar
-
-### Paso 1️⃣: Inicia Docker Desktop
-
-1. Abre **Docker Desktop**
-2. Espera a que el ícono esté verde
-3. Verifica que diga "Docker Desktop is running"
-
-### Paso 2️⃣: Inicia MongoDB
-
-Abre una terminal y ejecuta:
-
-```bash
-docker-compose -f docker-compose.db-only.yml up -d
+```
+1. Abrir MongoDB Compass
+2. Conectar a: mongodb://localhost:27017
+3. Seleccionar base de datos: sirret_db
+4. Click en colección: vehiculos
+5. Click en pestaña: >_MONGOSH (abajo)
 ```
 
-Espera 10 segundos y verifica:
+### 2️⃣ Ejecutar Migración (2 min)
 
-```bash
-docker ps
+Copiar y pegar en la consola MONGOSH:
+
+```javascript
+db.vehiculos.updateMany({ tipoServicio: { $exists: false } }, { $set: { tipoServicio: "NO_ESPECIFICADO" } })
 ```
 
-Debes ver: `sirret-mongodb-local`
+Presionar `Enter`. Esperar resultado.
 
-### Paso 3️⃣: Inicia Backend y Frontend
+Luego ejecutar:
 
-**Terminal 1 (Backend):**
-```bash
-start-backend.bat
+```javascript
+db.vehiculos.updateMany({ vehiculoSoloId: { $exists: true }, vehiculoDataId: { $exists: false } }, [{ $set: { vehiculoDataId: "$vehiculoSoloId" } }])
 ```
 
-Espera a ver: `✅ Conectado a MongoDB exitosamente`
+Presionar `Enter`. Esperar resultado.
 
-**Terminal 2 (Frontend):**
+### 3️⃣ Reiniciar Backend (1 min)
+
 ```bash
-start-frontend.bat
+# En terminal del backend
+Ctrl + C
+
+# Luego
+cd backend
+uvicorn app.main:app --reload
 ```
 
-Espera a ver: `✓ Compiled successfully`
+### 4️⃣ Refrescar Navegador (30 seg)
 
----
+```
+En el navegador:
+Ctrl + Shift + R
+```
 
-## ✅ Verificación
+### 5️⃣ Verificar (30 seg)
 
-Abre tu navegador:
-
-- Frontend: http://localhost:4200
-- Backend API: http://localhost:8000/docs
-
----
-
-## 📝 Crear Datos
-
-1. Ve a http://localhost:4200
-2. Navega a "Empresas"
-3. Click en "Nueva Empresa"
-4. Llena el formulario
-5. Guarda
-
-¡Listo! Ya tienes datos en tu base de datos real.
-
----
-
-## 🛑 Detener Todo
-
-```bash
-# Detener MongoDB
-docker-compose -f docker-compose.db-only.yml down
-
-# Detener Backend y Frontend
-# Presiona Ctrl+C en cada terminal
+```
+1. Ir a: http://localhost:4200/vehiculos
+2. ✅ Tabla debe cargar
+3. ✅ Vehículos deben aparecer
 ```
 
 ---
 
-## ❓ ¿Problemas?
+## ✅ LISTO
 
-### "Docker no está corriendo"
-→ Abre Docker Desktop y espera a que inicie
+Si ves la tabla con vehículos: **¡ÉXITO!** 🎉
 
-### "No se encuentran datos"
-→ Normal, la DB está vacía. Crea datos desde el frontend
-
-### "Backend no inicia"
-→ Verifica que MongoDB esté corriendo: `docker ps`
-
-### "Frontend no carga"
-→ Verifica que el backend esté corriendo: http://localhost:8000/health
+Si no funciona: Abrir `SOLUCION_FINAL_TABLAS.md` para diagnóstico completo.
 
 ---
 
-## 📚 Más Información
+## 🆘 AYUDA RÁPIDA
 
-- Guía completa: `GUIA_DESPLIEGUE_LOCAL.md`
-- DB vacía: `SOLUCION_DB_VACIA.md`
-- Resumen: `RESUMEN_DESPLIEGUE.md`
+### Tabla vacía pero sin errores
+→ No hay vehículos en la BD. Crear uno en `/vehiculos-solo/nuevo`
+
+### Error en consola (F12)
+→ Copiar el error y revisar `DIAGNOSTICO_COMPLETO.md`
+
+### Backend no responde
+→ Verificar que esté corriendo en puerto 8000
 
 ---
 
-**¡Eso es todo!** 🎉
-
-Sistema funcionando con base de datos real en 3 pasos.
+**Tiempo total:** ~5 minutos  
+**Dificultad:** Fácil  
+**Requisitos:** MongoDB Compass instalado  

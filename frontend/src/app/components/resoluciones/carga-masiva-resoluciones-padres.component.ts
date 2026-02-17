@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -85,6 +86,9 @@ interface ReporteEstados {
 })
 export class CargaMasivaResolucionesPadresComponent implements OnInit {
   
+  // Output para notificar al componente padre
+  @Output() procesamientoCompletado = new EventEmitter<void>();
+  
   // Estado del componente
   archivoSeleccionado: File | null = null;
   cargando = false;
@@ -114,7 +118,8 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
 
   constructor(
     private resolucionService: ResolucionService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -261,16 +266,63 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
         });
       } else {
         // Procesar y crear resoluciones
+        console.log('📤 Enviando archivo para procesamiento:', this.archivoSeleccionado.name);
+        
         this.resolucionService.procesarCargaMasivaResolucionesPadres(this.archivoSeleccionado, false).subscribe({
           next: (resultado) => {
-            // console.log removed for production
+            console.log('📊 Resultado completo del backend:', resultado);
+            console.log('📊 resultado.resultado:', resultado.resultado);
             
             // La respuesta del backend tiene la estructura: { archivo, solo_validacion, resultado, mensaje }
             if (resultado && resultado.resultado) {
               this.resultadoProcesamiento = resultado.resultado;
+              
+              console.log('✅ Procesamiento exitoso');
+              console.log('📊 Estadísticas:', this.resultadoProcesamiento?.estadisticas);
+              console.log('📊 Total creadas:', this.resultadoProcesamiento?.resoluciones_creadas?.length);
+              console.log('📊 Total actualizadas:', this.resultadoProcesamiento?.resoluciones_actualizadas?.length);
+              
+              // Log de las primeras 3 resoluciones actualizadas para ver los datos
+              if (this.resultadoProcesamiento?.resoluciones_actualizadas && 
+                  this.resultadoProcesamiento.resoluciones_actualizadas.length > 0) {
+                console.log('📋 Primeras 3 resoluciones actualizadas:');
+                this.resultadoProcesamiento.resoluciones_actualizadas.slice(0, 3).forEach((res, index) => {
+                  console.log(`  [${index + 1}] ${res.numero}:`, {
+                    ...res,
+                    todasLasClaves: Object.keys(res)
+                  });
+                });
+                
+                // Log completo del primer objeto
+                console.log('📦 Objeto completo de la primera resolución actualizada:', 
+                  this.resultadoProcesamiento.resoluciones_actualizadas[0]);
+              }
+              
+              if (this.resultadoProcesamiento) {
+                console.log('🔑 Claves disponibles en resultado:', Object.keys(this.resultadoProcesamiento));
+              }
+              
               this.mostrarMensaje(resultado.mensaje || 'Procesamiento completado', 'success');
               // Recargar reporte después del procesamiento
               this.cargarReporteEstados();
+              // Emitir evento para que el componente padre recargue los datos
+              this.procesamientoCompletado.emit();
+              
+              // Mostrar mensaje de éxito con opción de ir a resoluciones
+              const totalProcesadas = (resultado.resultado.resoluciones_creadas?.length || 0) + 
+                                     (resultado.resultado.resoluciones_actualizadas?.length || 0);
+              this.snackBar.open(
+                `✅ ${totalProcesadas} resoluciones procesadas exitosamente`,
+                'Ver Resoluciones',
+                {
+                  duration: 10000, // 10 segundos para que el usuario pueda hacer clic
+                  horizontalPosition: 'end',
+                  verticalPosition: 'top',
+                  panelClass: ['snackbar-success']
+                }
+              ).onAction().subscribe(() => {
+                this.router.navigate(['/dashboard/resoluciones']);
+              });
             } else {
               throw new Error('Respuesta de procesamiento inválida');
             }
@@ -476,4 +528,22 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
       cantidad
     }));
   }
+
+  // Getters para estadísticas calculadas del procesamiento
+  get totalCreadas(): number {
+    return this.resultadoProcesamiento?.resoluciones_creadas?.length || 0;
+  }
+
+  get totalActualizadas(): number {
+    return this.resultadoProcesamiento?.resoluciones_actualizadas?.length || 0;
+  }
+
+  get totalProcesadas(): number {
+    return this.totalCreadas + this.totalActualizadas;
+  }
+
+  get totalErrores(): number {
+    return this.resultadoProcesamiento?.errores?.length || 0;
+  }
 }
+

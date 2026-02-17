@@ -627,39 +627,45 @@ export class ColumnSelectorModalComponent implements OnInit {
    * Maneja el toggle de visibilidad de una columna
    */
   onColumnToggle(key: string, visible: boolean): void {
-    const columnas = this.columnasOrdenadas();
-    const columnaIndex = columnas.findIndex(c => c.key === key);
-    
-    if (columnaIndex >= 0) {
-      const nuevasColumnas = [...columnas];
-      nuevasColumnas[columnaIndex] = { ...nuevasColumnas[columnaIndex], visible };
+    this.columnasOrdenadas.update(columnas => {
+      const columnaIndex = columnas.findIndex(c => c.key === key);
       
-      this.columnasOrdenadas.set(nuevasColumnas);
-      this.actualizarContador();
-    }
+      if (columnaIndex >= 0) {
+        const nuevasColumnas = [...columnas];
+        nuevasColumnas[columnaIndex] = { ...nuevasColumnas[columnaIndex], visible };
+        return nuevasColumnas;
+      }
+      
+      return columnas;
+    });
+    
+    this.actualizarContador();
   }
 
   /**
    * Maneja el reordenamiento por drag & drop
    */
   onColumnDrop(event: CdkDragDrop<ColumnaSeleccionable[]>): void {
-    const columnas = [...this.columnasOrdenadas()];
-    moveItemInArray(columnas, event.previousIndex, event.currentIndex);
-    
-    // Actualizar el orden
-    columnas.forEach((columna, index) => {
-      columna.orden = index;
+    this.columnasOrdenadas.update(columnas => {
+      const nuevasColumnas = [...columnas];
+      moveItemInArray(nuevasColumnas, event.previousIndex, event.currentIndex);
+      
+      // Actualizar el orden
+      nuevasColumnas.forEach((columna, index) => {
+        columna.orden = index;
+      });
+      
+      return nuevasColumnas;
     });
-    
-    this.columnasOrdenadas.set(columnas);
   }
 
   /**
    * Muestra todas las columnas
    */
   mostrarTodas(): void {
-    const columnas = this.columnasOrdenadas().map(c => ({ ...c, visible: true }));
-    this.columnasOrdenadas.set(columnas);
+    this.columnasOrdenadas.update(columnas => 
+      columnas.map(c => ({ ...c, visible: true }))
+    );
     this.actualizarContador();
   }
 
@@ -667,11 +673,9 @@ export class ColumnSelectorModalComponent implements OnInit {
    * Muestra solo las columnas esenciales (requeridas)
    */
   mostrarMinimas(): void {
-    const columnas = this.columnasOrdenadas().map(c => ({ 
-      ...c, 
-      visible: c.required 
-    }));
-    this.columnasOrdenadas.set(columnas);
+    this.columnasOrdenadas.update(columnas => 
+      columnas.map(c => ({ ...c, visible: c.required }))
+    );
     this.actualizarContador();
   }
 

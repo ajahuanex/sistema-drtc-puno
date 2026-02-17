@@ -11,8 +11,10 @@ from app.routers.data_manager_router import router as data_manager_router
 from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 from app.routers.historial_vehicular_router import router as historial_vehicular_router
+from app.routers.vehiculos_solo_router import router as vehiculos_solo_router
 from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_router
 from app.routers.nivel_territorial_router import router as nivel_territorial_router
+from app.routers.infraestructura import router as infraestructura_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -86,7 +88,9 @@ async def log_requests(request, call_next):
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(configuraciones_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
+app.include_router(infraestructura_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
+app.include_router(vehiculos_solo_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
 app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)

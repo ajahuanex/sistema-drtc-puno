@@ -255,7 +255,7 @@ export class CambiarEstadoVehiculoModalComponent {
     ).subscribe({
       next: (vehiculoActualizado: any) => {
         this.procesando.set(false);
-        
+
         this.snackBar.open(
           `Estado del vehículo ${this.data.vehiculo.placa} cambiado a ${this.getLabelEstado(nuevoEstado)}`,
           'Cerrar',
@@ -270,7 +270,7 @@ export class CambiarEstadoVehiculoModalComponent {
       error: (error: any) => {
         this.procesando.set(false);
         console.error('Error cambiando estado::', error);
-        
+
         this.snackBar.open(
           'Error al cambiar el estado del vehículo',
           'Cerrar',

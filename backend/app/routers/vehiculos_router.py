@@ -30,49 +30,93 @@ router = APIRouter(prefix="/vehiculos", tags=["vehiculos"])
 def vehiculo_to_response(vehiculo: VehiculoInDB) -> VehiculoResponse:
     """Convertir VehiculoInDB a VehiculoResponse manejando campos faltantes"""
     
-    # Convertir datosTecnicos si es necesario
-    datos_tecnicos = vehiculo.datosTecnicos
-    if hasattr(datos_tecnicos, 'model_dump'):
-        datos_tecnicos = datos_tecnicos.model_dump()
-    elif hasattr(datos_tecnicos, 'dict'):
-        datos_tecnicos = datos_tecnicos.dict()
-    
-    return VehiculoResponse(
-        id=vehiculo.id,
-        placa=vehiculo.placa,
-        empresaActualId=vehiculo.empresaActualId,
-        resolucionId=vehiculo.resolucionId,
-        rutasAsignadasIds=vehiculo.rutasAsignadasIds or [],
-        categoria=vehiculo.categoria,
-        marca=vehiculo.marca,
-        modelo=vehiculo.modelo,
-        anioFabricacion=vehiculo.anioFabricacion,
-        estado=vehiculo.estado,
-        sedeRegistro=getattr(vehiculo, 'sedeRegistro', 'PUNO'),
-        placaSustituida=getattr(vehiculo, 'placaSustituida', None),
-        fechaSustitucion=getattr(vehiculo, 'fechaSustitucion', None),
-        motivoSustitucion=getattr(vehiculo, 'motivoSustitucion', None),
-        resolucionSustitucion=getattr(vehiculo, 'resolucionSustitucion', None),
-        numeroTuc=getattr(vehiculo, 'numeroTuc', None),
-        estaActivo=vehiculo.estaActivo,
-        fechaRegistro=vehiculo.fechaRegistro,
-        fechaActualizacion=vehiculo.fechaActualizacion,
-        datosTecnicos=datos_tecnicos,
-        color=vehiculo.color,
-        numeroSerie=vehiculo.numeroSerie,
-        observaciones=vehiculo.observaciones,
-        documentosIds=vehiculo.documentosIds or [],
-        historialIds=vehiculo.historialIds or [],
-        numeroHistorialValidacion=getattr(vehiculo, 'numeroHistorialValidacion', None),
-        esHistorialActual=getattr(vehiculo, 'esHistorialActual', True),
-        vehiculoHistorialActualId=getattr(vehiculo, 'vehiculoHistorialActualId', None),
-        tuc=vehiculo.tuc
-    )
+    try:
+        # Convertir datosTecnicos si es necesario
+        datos_tecnicos = getattr(vehiculo, 'datosTecnicos', None)
+        if datos_tecnicos:
+            if hasattr(datos_tecnicos, 'model_dump'):
+                datos_tecnicos = datos_tecnicos.model_dump()
+            elif hasattr(datos_tecnicos, 'dict'):
+                datos_tecnicos = datos_tecnicos.dict()
+        
+        # Campos requeridos con valores por defecto
+        vehiculo_data_id = getattr(vehiculo, 'vehiculoDataId', None) or getattr(vehiculo, 'vehiculoSoloId', None) or ""
+        tipo_servicio = getattr(vehiculo, 'tipoServicio', None) or "NO_ESPECIFICADO"
+        
+        return VehiculoResponse(
+            id=vehiculo.id,
+            placa=vehiculo.placa,
+            vehiculoDataId=vehiculo_data_id,
+            empresaActualId=getattr(vehiculo, 'empresaActualId', ''),
+            tipoServicio=tipo_servicio,
+            resolucionId=getattr(vehiculo, 'resolucionId', None),
+            rutasAsignadasIds=getattr(vehiculo, 'rutasAsignadasIds', []) or [],
+            rutasEspecificas=getattr(vehiculo, 'rutasEspecificas', []) or [],
+            categoria=getattr(vehiculo, 'categoria', None),
+            marca=getattr(vehiculo, 'marca', None),
+            modelo=getattr(vehiculo, 'modelo', None),
+            anioFabricacion=getattr(vehiculo, 'anioFabricacion', None),
+            estado=getattr(vehiculo, 'estado', 'ACTIVO'),
+            sedeRegistro=getattr(vehiculo, 'sedeRegistro', 'PUNO'),
+            placaSustituida=getattr(vehiculo, 'placaSustituida', None),
+            fechaSustitucion=getattr(vehiculo, 'fechaSustitucion', None),
+            motivoSustitucion=getattr(vehiculo, 'motivoSustitucion', None),
+            resolucionSustitucion=getattr(vehiculo, 'resolucionSustitucion', None),
+            numeroTuc=getattr(vehiculo, 'numeroTuc', None),
+            estaActivo=getattr(vehiculo, 'estaActivo', True),
+            fechaRegistro=getattr(vehiculo, 'fechaRegistro', datetime.now()),
+            fechaActualizacion=getattr(vehiculo, 'fechaActualizacion', datetime.now()),
+            datosTecnicos=datos_tecnicos,
+            color=getattr(vehiculo, 'color', None),
+            numeroSerie=getattr(vehiculo, 'numeroSerie', None),
+            observaciones=getattr(vehiculo, 'observaciones', None),
+            documentosIds=getattr(vehiculo, 'documentosIds', []) or [],
+            historialIds=getattr(vehiculo, 'historialIds', []) or [],
+            numeroHistorialValidacion=getattr(vehiculo, 'numeroHistorialValidacion', None),
+            esHistorialActual=getattr(vehiculo, 'esHistorialActual', True),
+            vehiculoHistorialActualId=getattr(vehiculo, 'vehiculoHistorialActualId', None),
+            tuc=getattr(vehiculo, 'tuc', None)
+        )
+    except Exception as e:
+        print(f"❌ Error en vehiculo_to_response para vehículo {getattr(vehiculo, 'id', 'unknown')}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 async def get_vehiculo_service():
     """Dependency para obtener el servicio de vehículos"""
     db = await get_database()
     return VehiculoService(db)
+
+@router.get("/raw")
+async def get_vehiculos_raw(
+    vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
+):
+    """Obtener vehículos sin conversión para debug"""
+    try:
+        vehiculos = await vehiculo_service.get_vehiculos(skip=0, limit=10)
+        print(f"📊 Total vehículos obtenidos: {len(vehiculos)}")
+        
+        # Convertir a dict simple
+        result = []
+        for v in vehiculos:
+            try:
+                if hasattr(v, 'model_dump'):
+                    result.append(v.model_dump())
+                elif hasattr(v, 'dict'):
+                    result.append(v.dict())
+                else:
+                    result.append(str(v))
+            except Exception as e:
+                print(f"Error convirtiendo: {e}")
+                result.append({"error": str(e), "placa": getattr(v, 'placa', 'unknown')})
+        
+        return {"total": len(result), "vehiculos": result}
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
 
 @router.get("/debug")
 async def debug_vehiculos(
@@ -189,6 +233,7 @@ async def test_vehiculos():
     }
 
 @router.get("/", response_model=List[VehiculoResponse])
+@router.get("", response_model=List[VehiculoResponse])
 async def get_vehiculos(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
@@ -197,16 +242,37 @@ async def get_vehiculos(
     vehiculo_service: VehiculoService = Depends(get_vehiculo_service)
 ) -> List[VehiculoResponse]:
     """Obtener lista de vehículos con filtros opcionales"""
-    
-    # Usar solo el método básico disponible en VehiculoService
-    vehiculos = await vehiculo_service.get_vehiculos(
-        skip=skip,
-        limit=limit,
-        empresa_id=empresa_id,
-        estado=estado
-    )
-    
-    return [vehiculo_to_response(vehiculo) for vehiculo in vehiculos]
+    try:
+        # Usar solo el método básico disponible en VehiculoService
+        vehiculos = await vehiculo_service.get_vehiculos(
+            skip=skip,
+            limit=limit,
+            empresa_id=empresa_id,
+            estado=estado
+        )
+        
+        print(f"📊 Vehículos obtenidos del servicio: {len(vehiculos)}")
+        
+        # Convertir cada vehículo manejando errores individuales
+        result = []
+        for vehiculo in vehiculos:
+            try:
+                converted = vehiculo_to_response(vehiculo)
+                result.append(converted)
+            except Exception as e:
+                print(f"⚠️ Error convirtiendo vehículo {vehiculo.id}: {str(e)}")
+                # Continuar con el siguiente vehículo
+                continue
+        
+        print(f"✅ Vehículos convertidos exitosamente: {len(result)}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error en get_vehiculos: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Retornar lista vacía en caso de error para evitar 500
+        return []
 
 @router.get("/estadisticas")
 async def get_estadisticas_vehiculos(
@@ -418,7 +484,7 @@ async def test_create_from_excel(
             }
         }
         
-        from app.models.vehiculo import VehiculoCreate, DatosTecnicos, CategoriaVehiculo, SedeRegistro
+        from app.models.vehiculo import VehiculoCreate, SedeRegistro
         
         # Usar una empresa existente de la base de datos
         empresas_response = await vehiculo_service.db["empresas"].find_one({})
@@ -430,7 +496,7 @@ async def test_create_from_excel(
         vehiculo_data = VehiculoCreate(
             placa="ABC-124",  # La placa que está fallando
             empresaActualId=empresa_id,  # Usar empresa real
-            categoria=CategoriaVehiculo.M1,
+            categoria="M1",  # Pasar como string
             marca="TOYOTA",
             modelo="HIACE",
             anioFabricacion=2020,
@@ -472,17 +538,17 @@ async def test_create_vehiculo(
             }
         }
         
-        from app.models.vehiculo import VehiculoCreate, DatosTecnicos, CategoriaVehiculo, SedeRegistro
+        from app.models.vehiculo import VehiculoCreate, SedeRegistro
         
         vehiculo_data = VehiculoCreate(
             placa="TEST-123",
             empresaActualId="test-empresa-id",
-            categoria=CategoriaVehiculo.M1,
+            categoria="M1",  # Pasar como string
             marca="Toyota",
             modelo="Corolla",
             anioFabricacion=2020,
             sedeRegistro=SedeRegistro.PUNO,
-            datosTecnicos=DatosTecnicos(**datos_tecnicos)
+            datosTecnicos=datos_tecnicos  # Pasar como dict directamente
         )
         
         print(f"🔍 Datos de prueba: {vehiculo_data.model_dump()}")
@@ -675,7 +741,7 @@ async def carga_masiva_vehiculos(
                             print(f"⚠️ Algunas rutas no fueron encontradas. Solicitadas: {codigos_lista}, Encontradas: {len(rutas_asignadas)}")
                     
                     # Crear datos técnicos completos usando nombres de columnas correctos
-                    from app.models.vehiculo import VehiculoCreate, DatosTecnicos, CategoriaVehiculo, SedeRegistro, TipoCombustible
+                    from app.models.vehiculo import VehiculoCreate, SedeRegistro
                     
                     # Procesar pesos en toneladas (convertir a kg para almacenamiento interno)
                     peso_neto_ton = float(row.get('Peso Neto (t)', 1.2)) if pd.notna(row.get('Peso Neto (t)')) else 1.2

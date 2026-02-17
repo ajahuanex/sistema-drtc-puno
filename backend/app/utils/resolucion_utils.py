@@ -166,6 +166,9 @@ def validar_coherencia_fechas(
     """
     Valida la coherencia entre las fechas de una resolución
     
+    IMPORTANTE: Respeta la figura legal de EFICACIA ANTICIPADA
+    Una resolución puede tener vigencia desde una fecha anterior a su emisión.
+    
     Args:
         fecha_inicio: Fecha de inicio de vigencia (OBLIGATORIA)
         fecha_fin: Fecha de fin de vigencia (OBLIGATORIA)
@@ -176,9 +179,9 @@ def validar_coherencia_fechas(
         Tupla con (es_valido, mensaje_error)
     """
     try:
-        # Validar fecha de emisión solo si se proporciona
-        if fecha_emision and fecha_emision > fecha_inicio:
-            return False, "La fecha de emisión no puede ser posterior a la fecha de inicio de vigencia"
+        # NO validar fecha de emisión vs fecha de inicio
+        # Es LEGAL que fecha_emision > fecha_inicio (EFICACIA ANTICIPADA)
+        # Ejemplo: Resolución emitida en marzo 2024 con vigencia desde enero 2023
         
         # La fecha de inicio debe ser anterior a la fecha de fin
         if fecha_inicio >= fecha_fin:

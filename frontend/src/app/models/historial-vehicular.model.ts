@@ -29,6 +29,22 @@ export interface HistorialVehicular {
   userAgent?: string;
   fechaCreacion: string;
   fechaActualizacion?: string;
+  
+  // Campos adicionales para compatibilidad con HistorialVehiculo
+  fechaCambio?: string; // Alias de fechaEvento
+  tipoCambio?: TipoEventoHistorial; // Alias de tipoEvento
+  empresaOrigenId?: string; // Alias de empresaAnteriorId
+  empresaDestinoId?: string; // Alias de empresaNuevaId
+  empresaOrigenNombre?: string; // Alias de empresaAnteriorNombre
+  empresaDestinoNombre?: string; // Alias de empresaNuevaNombre
+  resolucionId?: string; // Para cambios de resolución
+  resolucionNumero?: string;
+  rutaId?: string;
+  rutaNombre?: string;
+  motivo?: string; // Alias de descripcion
+  oficinaId?: string;
+  oficinaNombre?: string;
+  documentos?: DocumentoSoporte[]; // Alias de documentosSoporte
 }
 
 export interface HistorialVehicularCreate {
@@ -48,13 +64,34 @@ export interface HistorialVehicularCreate {
   datosNuevos?: any;
   observaciones?: string;
   documentosSoporte?: DocumentoSoporte[];
+  
+  // Campos adicionales para compatibilidad
+  fechaCambio?: string;
+  tipoCambio?: TipoEventoHistorial;
+  empresaOrigenId?: string;
+  empresaDestinoId?: string;
+  resolucionId?: string;
+  rutaId?: string;
+  motivo?: string;
+  oficinaId?: string;
+  documentos?: DocumentoSoporte[];
 }
 
 export interface HistorialVehicularUpdate {
   descripcion?: string;
   observaciones?: string;
   documentosSoporte?: DocumentoSoporte[];
+  
+  // Campos adicionales para compatibilidad
+  fechaCambio?: string;
+  motivo?: string;
+  documentos?: DocumentoSoporte[];
 }
+
+// Alias para compatibilidad con HistorialVehiculo
+export type HistorialVehiculoCreate = HistorialVehicularCreate;
+export type HistorialVehiculoUpdate = HistorialVehicularUpdate;
+export type HistorialVehiculo = HistorialVehicular;
 
 export enum TipoEventoHistorial {
   CREACION = 'CREACION',
@@ -64,20 +101,30 @@ export enum TipoEventoHistorial {
   CAMBIO_ESTADO = 'CAMBIO_ESTADO',
   ASIGNACION_RUTA = 'ASIGNACION_RUTA',
   DESASIGNACION_RUTA = 'DESASIGNACION_RUTA',
+  REMOCION_RUTA = 'REMOCION_RUTA', // Alias de DESASIGNACION_RUTA
   ACTUALIZACION_TUC = 'ACTUALIZACION_TUC',
   RENOVACION_TUC = 'RENOVACION_TUC',
   SUSPENSION = 'SUSPENSION',
   REACTIVACION = 'REACTIVACION',
+  ACTIVACION = 'ACTIVACION', // Alias de REACTIVACION
+  DESACTIVACION = 'DESACTIVACION', // Alias de SUSPENSION
   BAJA_DEFINITIVA = 'BAJA_DEFINITIVA',
   MANTENIMIENTO = 'MANTENIMIENTO',
   INSPECCION = 'INSPECCION',
+  INSPECCION_TECNICA = 'INSPECCION_TECNICA', // Alias de INSPECCION
   ACCIDENTE = 'ACCIDENTE',
   MULTA = 'MULTA',
+  SANCION = 'SANCION', // Alias de MULTA
   REVISION_TECNICA = 'REVISION_TECNICA',
   CAMBIO_PROPIETARIO = 'CAMBIO_PROPIETARIO',
   ACTUALIZACION_DATOS_TECNICOS = 'ACTUALIZACION_DATOS_TECNICOS',
+  MODIFICACION_DATOS = 'MODIFICACION_DATOS', // Alias de ACTUALIZACION_DATOS_TECNICOS
+  REHABILITACION = 'REHABILITACION',
   OTROS = 'OTROS'
 }
+
+// Alias de tipo para compatibilidad con HistorialVehiculo
+export type TipoCambioVehiculo = TipoEventoHistorial;
 
 export interface DocumentoSoporte {
   id?: string;
@@ -87,6 +134,9 @@ export interface DocumentoSoporte {
   tamaño?: number;
   fechaSubida: string;
 }
+
+// Alias para compatibilidad - DocumentoHistorial es el mismo que DocumentoSoporte
+export type DocumentoHistorial = DocumentoSoporte;
 
 export interface FiltrosHistorialVehicular {
   vehiculoId?: string;
@@ -103,7 +153,15 @@ export interface FiltrosHistorialVehicular {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  
+  // Campos adicionales para compatibilidad
+  tipoCambio?: TipoEventoHistorial;
+  estado?: string;
+  oficinaId?: string;
 }
+
+// Alias para compatibilidad con HistorialVehiculo
+export type FiltroHistorialVehiculo = FiltrosHistorialVehicular;
 
 export interface HistorialVehicularResponse {
   historial: HistorialVehicular[];
@@ -139,7 +197,20 @@ export interface ResumenHistorialVehicular {
     fechaFin?: string;
     duracionDias?: number;
   }[];
+  
+  // Campos adicionales para compatibilidad con HistorialVehiculo
+  totalCambios?: number; // Alias de totalEventos
+  ultimoCambio?: string;
+  empresaActual?: string;
+  estadoActual?: string;
+  resolucionActual?: string;
+  rutaActual?: string;
+  tiposCambio?: TipoEventoHistorial[];
+  empresasInvolucradas?: string[];
 }
+
+// Alias para compatibilidad
+export type ResumenHistorialVehiculo = ResumenHistorialVehicular;
 
 // Tipos para reportes y estadísticas
 export interface EstadisticasHistorialVehicular {

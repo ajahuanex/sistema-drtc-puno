@@ -135,7 +135,12 @@ export class RutaProcessorService {
         })),
         empresa: rutaData.empresa,
         resolucion: rutaData.resolucionId ? { id: rutaData.resolucionId } as any : undefined as any,
-        frecuencias: rutaData.frecuencias || '',
+        frecuencia: {
+          tipo: 'DIARIO',
+          cantidad: 1,
+          dias: [],
+          descripcion: rutaData.frecuencias || 'Diaria'
+        },
         tipoRuta: rutaData.tipoRuta as any,
         tipoServicio: rutaData.tipoServicio as any,
         descripcion: rutaData.descripcion,

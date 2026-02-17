@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { RutaService } from '../../services/ruta.service';
+import { ConfiguracionService } from '../../services/configuracion.service';
 import { Empresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { RutaCreate, TipoRuta } from '../../models/ruta.model';
@@ -90,12 +91,12 @@ export interface CrearRutaModalData {
           <mat-form-field appearance="outline">
             <mat-label>Tipo de Ruta</mat-label>
             <mat-select formControlName="tipoRuta">
-              <mat-option value="URBANA">Urbana</mat-option>
-              <mat-option value="INTERURBANA">Interurbana</mat-option>
-              <mat-option value="INTERPROVINCIAL">Interprovincial</mat-option>
-              <mat-option value="INTERREGIONAL">Interregional</mat-option>
-              <mat-option value="RURAL">Rural</mat-option>
+              <mat-option [value]="null">Sin especificar</mat-option>
+              @for (tipo of tiposRuta; track tipo.value) {
+                <mat-option [value]="tipo.value">{{ tipo.label }}</mat-option>
+              }
             </mat-select>
+            <mat-hint>Opcional - Puedes dejarlo sin especificar</mat-hint>
           </mat-form-field>
         </div>
 
@@ -142,9 +143,22 @@ export interface CrearRutaModalData {
   styleUrls: ['./crear-ruta-modal.component.scss']
 })
 export class CrearRutaModalComponent implements OnInit {
+  private configuracionService = inject(ConfiguracionService);
+  
   rutaForm: FormGroup;
   isSubmitting = false;
   siguienteCodigo = '01';
+
+  // ✅ Tipos de ruta desde configuración usando getter
+  get tiposRuta() {
+    const config = this.configuracionService.tiposRutaConfig();
+    const tipos = config.filter((t: any) => t.estaActivo).map((t: any) => ({
+      value: t.codigo,
+      label: t.nombre
+    }));
+    console.log('🔍 Tipos de ruta en crear (getter):', tipos);
+    return tipos;
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -158,7 +172,7 @@ export class CrearRutaModalComponent implements OnInit {
       origen: ['', Validators.required],
       destino: ['', Validators.required],
       frecuencias: ['', Validators.required],
-      tipoRuta: ['INTERPROVINCIAL', Validators.required],
+      tipoRuta: [''], // ✅ OPCIONAL - sin valor por defecto ni validación
       itinerario: [''],
       observaciones: ['']
     });
@@ -166,6 +180,10 @@ export class CrearRutaModalComponent implements OnInit {
 
   ngOnInit() {
     this.generarSiguienteCodigo();
+    // Debug: Verificar que los tipos se están cargando
+    console.log('🔍 Tipos de ruta disponibles en crear:', this.tiposRuta);
+    console.log('🔍 Configuración cargada:', this.configuracionService.configuracionesCargadas());
+    console.log('🔍 Config raw:', this.configuracionService.tiposRutaConfig());
   }
 
   generarSiguienteCodigo() {
@@ -195,7 +213,12 @@ export class CrearRutaModalComponent implements OnInit {
       nombre: `${formValue.origen} - ${formValue.destino}`,
       origen: { id: formValue.origen, nombre: "" },
       destino: { id: formValue.destino, nombre: "" },
-      frecuencias: formValue.frecuencias,
+      frecuencia: {
+        tipo: 'DIARIO',
+        cantidad: 1,
+        dias: [],
+        descripcion: formValue.frecuencias || 'Diaria'
+      },
       tipoRuta: formValue.tipoRuta,
       tipoServicio: 'PASAJEROS',
       observaciones: formValue.observaciones || '',

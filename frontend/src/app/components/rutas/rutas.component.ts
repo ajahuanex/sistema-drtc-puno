@@ -28,6 +28,7 @@ import { takeUntil } from 'rxjs/operators';
 import { RutaModalComponent, RutaModalData } from '../../shared/ruta-modal.component';
 import { DetalleRutaModalComponent } from './detalle-ruta-modal.component';
 import { FiltrosAvanzadosModalComponent, FiltrosAvanzados } from './filtros-avanzados-modal.component';
+import { SeleccionarEmpresaResolucionDialogComponent } from '../../shared/seleccionar-empresa-resolucion-dialog.component';
 
 @Component({
   selector: 'app-rutas',
@@ -66,24 +67,24 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   // Estados principales
   isLoading = signal(false);
-  
+
   // Datos principales
   rutas = signal<Ruta[]>([]);
   empresas = signal<Empresa[]>([]);
-  
+
   // Búsqueda simple
   terminoBusqueda = signal('');
-  
+
   // Filtros avanzados
   filtrosAvanzados = signal<FiltrosAvanzados>({});
-  
+
   // Paginación
   pageSize = signal(25);
   pageIndex = signal(0);
-  
+
   // Selección múltiple
   rutasSeleccionadas = signal<Set<string>>(new Set());
-  
+
   // Configuración de columnas
   columnasDisponibles = [
     { key: 'select', label: 'Seleccionar', visible: true, fixed: true },
@@ -100,11 +101,11 @@ export class RutasComponent implements OnInit, OnDestroy {
     { key: 'estado', label: 'Estado', visible: true },
     { key: 'acciones', label: 'Acciones', visible: true, fixed: true }
   ];
-  
+
   columnasVisibles = signal(this.columnasDisponibles.filter(col => col.visible));
-  
+
   // Computed properties
-  displayedColumns = computed(() => 
+  displayedColumns = computed(() =>
     this.columnasVisibles().map(col => col.key)
   );
 
@@ -112,7 +113,7 @@ export class RutasComponent implements OnInit, OnDestroy {
     const busqueda = this.terminoBusqueda();
     const filtros = this.filtrosAvanzados();
     const tieneFiltrosAvanzados = !!(filtros.origen || filtros.destino);
-    
+
     if (busqueda && tieneFiltrosAvanzados) {
       return {
         tipo: 'busqueda-filtros',
@@ -145,23 +146,26 @@ export class RutasComponent implements OnInit, OnDestroy {
     let rutas = this.rutas();
     const busqueda = this.terminoBusqueda();
     const filtros = this.filtrosAvanzados();
-    
-    console.log('🔍 Filtrando rutas:', {
+
+    console.log('🔍 [RUTAS-FILTRADAS] Iniciando filtrado:', {
       totalRutas: rutas.length,
       terminoBusqueda: busqueda,
       filtrosAvanzados: filtros
     });
-    
+
     // Aplicar filtros avanzados primero (más específicos)
     if (filtros.origen || filtros.destino) {
+      const rutasAntes = rutas.length;
       rutas = this.aplicarFiltrosBidireccionales(rutas, filtros);
+      console.log('  📊 Después de filtros avanzados:', rutasAntes, '→', rutas.length);
     }
-    
+
     // Aplicar búsqueda de texto después
     if (busqueda && busqueda.trim().length > 0) {
-      const terminoLower = busqueda.toLowerCase();
+      // Limpiar el término de búsqueda: remover comillas y espacios extra
+      const terminoLower = busqueda.replace(/['"]/g, '').trim().toLowerCase();
       const rutasAntes = rutas.length;
-      rutas = rutas.filter(ruta => 
+      rutas = rutas.filter(ruta =>
         ruta.codigoRuta.toLowerCase().includes(terminoLower) ||
         (ruta.nombre && ruta.nombre.toLowerCase().includes(terminoLower)) ||
         (ruta.descripcion && ruta.descripcion.toLowerCase().includes(terminoLower)) ||
@@ -169,12 +173,15 @@ export class RutasComponent implements OnInit, OnDestroy {
         this.getEmpresaNombre(ruta).toLowerCase().includes(terminoLower) ||
         (ruta.origen?.nombre && ruta.origen.nombre.toLowerCase().includes(terminoLower)) ||
         (ruta.destino?.nombre && ruta.destino.nombre.toLowerCase().includes(terminoLower)) ||
-        (ruta.frecuencias && ruta.frecuencias.toLowerCase().includes(terminoLower)) ||
+        this.getItinerarioFormateado(ruta).toLowerCase().includes(terminoLower) ||
+        (ruta.frecuencia?.descripcion && ruta.frecuencia.descripcion.toLowerCase().includes(terminoLower)) ||
         (ruta.resolucion?.nroResolucion && ruta.resolucion.nroResolucion.toLowerCase().includes(terminoLower))
       );
-      console.log('🔍 Después de búsqueda:', rutasAntes, '→', rutas.length);
+      console.log('  📊 Después de búsqueda de texto:', rutasAntes, '→', rutas.length);
     }
-    
+
+    console.log('✅ [RUTAS-FILTRADAS] Total rutas filtradas:', rutas.length);
+
     return rutas;
   });
 
@@ -184,14 +191,14 @@ export class RutasComponent implements OnInit, OnDestroy {
     const pageIndex = this.pageIndex();
     const startIndex = pageIndex * pageSize;
     const endIndex = startIndex + pageSize;
-    
+
     return rutas.slice(startIndex, endIndex);
   });
 
   todasSeleccionadas = computed(() => {
     const rutasPagina = this.rutasPaginadas();
     const seleccionadas = this.rutasSeleccionadas();
-    
+
     if (rutasPagina.length === 0) return false;
     return rutasPagina.every(ruta => seleccionadas.has(ruta.id));
   });
@@ -208,18 +215,47 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   private async cargarDatos(): Promise<void> {
     this.isLoading.set(true);
-    
+
+    console.log('🔄 [RUTAS] Cargando datos...');
+
     try {
       const [empresas, rutas] = await Promise.all([
         this.empresaService.getEmpresas().pipe(takeUntil(this.destroy$)).toPromise(),
         this.rutaService.getRutas().pipe(takeUntil(this.destroy$)).toPromise()
       ]);
-      
+
+      console.log('✅ [RUTAS] Datos cargados del backend:');
+      console.log('  📊 Total empresas:', empresas?.length || 0);
+      console.log('  📊 Total rutas:', rutas?.length || 0);
+
+      if (rutas && rutas.length > 0) {
+        console.log('  📋 Rutas por empresa:');
+        const rutasPorEmpresa = rutas.reduce((acc: any, ruta) => {
+          const empresaRuc = ruta.empresa?.ruc || 'Sin RUC';
+          acc[empresaRuc] = (acc[empresaRuc] || 0) + 1;
+          return acc;
+        }, {});
+        console.table(rutasPorEmpresa);
+
+        // Buscar específicamente San Francisco
+        const rutasSanFrancisco = rutas.filter(r => {
+          const razonSocial = typeof r.empresa?.razonSocial === 'string'
+            ? r.empresa.razonSocial
+            : r.empresa?.razonSocial?.principal || '';
+          return razonSocial.toLowerCase().includes('san francisco') ||
+            razonSocial.toLowerCase().includes('sanfrancisco');
+        });
+        console.log('  🔍 Rutas de San Francisco encontradas:', rutasSanFrancisco.length);
+        if (rutasSanFrancisco.length > 0) {
+          console.log('  📋 Códigos de rutas San Francisco:', rutasSanFrancisco.map(r => r.codigoRuta));
+        }
+      }
+
       this.empresas.set(empresas || []);
       this.rutas.set(rutas || []);
-      
+
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      console.error('❌ [RUTAS] Error al cargar datos:', error);
       this.snackBar.open('Error al cargar los datos', 'Cerrar', { duration: 3000 });
     } finally {
       this.isLoading.set(false);
@@ -236,6 +272,19 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   getEmpresaNombre(ruta: Ruta): string {
     return this.rutaUtilsService.getEmpresaNombre(ruta);
+  }
+
+  getItinerarioFormateado(ruta: Ruta): string {
+    if (!ruta.itinerario || ruta.itinerario.length === 0) {
+      return 'Sin itinerario';
+    }
+
+    // Ordenar por el campo 'orden' y extraer los nombres
+    const localidades = [...ruta.itinerario]
+      .sort((a, b) => a.orden - b.orden)
+      .map(loc => loc.nombre);
+
+    return localidades.join(' - ');
   }
 
   // ========================================
@@ -274,7 +323,7 @@ export class RutasComponent implements OnInit, OnDestroy {
       if (result !== undefined) {
         this.filtrosAvanzados.set(result || {});
         this.pageIndex.set(0);
-        
+
         if (result && Object.keys(result).length > 0) {
           this.snackBar.open('Filtros avanzados aplicados', 'Cerrar', { duration: 3000 });
         } else {
@@ -298,54 +347,54 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   private aplicarFiltrosBidireccionales(rutas: Ruta[], filtros: FiltrosAvanzados): Ruta[] {
     const { origen, destino } = filtros;
-    
+
     if (!origen && !destino) {
       return rutas;
     }
-    
+
     const rutasAntes = rutas.length;
-    
+
     const rutasFiltradas = rutas.filter(ruta => {
       const origenRuta = ruta.origen?.nombre?.toLowerCase() || '';
       const destinoRuta = ruta.destino?.nombre?.toLowerCase() || '';
-      
+
       // Si solo hay origen, buscar en origen O destino
       if (origen && !destino) {
         const origenBusqueda = origen.toLowerCase();
         return origenRuta.includes(origenBusqueda) || destinoRuta.includes(origenBusqueda);
       }
-      
+
       // Si solo hay destino, buscar en origen O destino
       if (destino && !origen) {
         const destinoBusqueda = destino.toLowerCase();
         return origenRuta.includes(destinoBusqueda) || destinoRuta.includes(destinoBusqueda);
       }
-      
+
       // Si hay ambos, buscar bidireccional
       if (origen && destino) {
         const origenBusqueda = origen.toLowerCase();
         const destinoBusqueda = destino.toLowerCase();
-        
+
         // Dirección normal: origen → destino
         const direccionNormal = origenRuta.includes(origenBusqueda) && destinoRuta.includes(destinoBusqueda);
-        
+
         // Dirección inversa: destino → origen
         const direccionInversa = origenRuta.includes(destinoBusqueda) && destinoRuta.includes(origenBusqueda);
-        
+
         return direccionNormal || direccionInversa;
       }
-      
+
       return false;
     });
-    
+
     console.log('🔍 Filtros bidireccionales aplicados:', rutasAntes, '→', rutasFiltradas.length, filtros);
-    
+
     return rutasFiltradas;
   }
 
   private getDescripcionFiltrosAvanzados(filtros: FiltrosAvanzados): string {
     const partes: string[] = [];
-    
+
     if (filtros.origen && filtros.destino) {
       partes.push(`${filtros.origen} ↔ ${filtros.destino}`);
     } else if (filtros.origen) {
@@ -353,14 +402,14 @@ export class RutasComponent implements OnInit, OnDestroy {
     } else if (filtros.destino) {
       partes.push(`Origen/Destino: ${filtros.destino}`);
     }
-    
+
     return partes.length > 0 ? `Filtros: ${partes.join(', ')}` : 'Filtros avanzados';
   }
 
-  getFiltrosActivosChips(): Array<{key: string, label: string, value: string}> {
+  getFiltrosActivosChips(): Array<{ key: string, label: string, value: string }> {
     const filtros = this.filtrosAvanzados();
-    const chips: Array<{key: string, label: string, value: string}> = [];
-    
+    const chips: Array<{ key: string, label: string, value: string }> = [];
+
     if (filtros.origen) {
       chips.push({
         key: 'origen',
@@ -368,7 +417,7 @@ export class RutasComponent implements OnInit, OnDestroy {
         value: filtros.origen
       });
     }
-    
+
     if (filtros.destino) {
       chips.push({
         key: 'destino',
@@ -376,7 +425,7 @@ export class RutasComponent implements OnInit, OnDestroy {
         value: filtros.destino
       });
     }
-    
+
     return chips;
   }
 
@@ -405,26 +454,78 @@ export class RutasComponent implements OnInit, OnDestroy {
   }
 
   nuevaRuta(): void {
-    const dialogRef = this.dialog.open(RutaModalComponent, {
-      width: '800px',
-      disableClose: true,
-      data: {
-        titulo: 'Nueva Ruta',
-        modoSimple: false
-      } as RutaModalData
+    // Primero abrir diálogo para seleccionar empresa y resolución
+    const dialogRef = this.dialog.open(SeleccionarEmpresaResolucionDialogComponent, {
+      width: '600px',
+      disableClose: true
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.recargarRutas();
+      if (result && result.empresa && result.resolucion) {
+        // Cargar las rutas existentes de esta resolución
+        this.rutaService.getRutasPorResolucion(result.resolucion.id).subscribe({
+          next: (rutasExistentes) => {
+            // Ahora abrir el modal de crear ruta con la empresa, resolución y rutas existentes
+            const rutaDialogRef = this.dialog.open(RutaModalComponent, {
+              width: '900px',
+              data: {
+                titulo: 'Nueva Ruta',
+                empresa: result.empresa,
+                resolucion: result.resolucion,
+                rutasExistentes: rutasExistentes || [],
+                modoSimple: false
+              } as RutaModalData
+            });
+
+            rutaDialogRef.afterClosed().subscribe(ruta => {
+              if (ruta) {
+                this.recargarRutas();
+              }
+            });
+          },
+          error: (error) => {
+            console.error('Error cargando rutas de la resolución:', error);
+            // Continuar sin rutas existentes
+            const rutaDialogRef = this.dialog.open(RutaModalComponent, {
+              width: '900px',
+              data: {
+                titulo: 'Nueva Ruta',
+                empresa: result.empresa,
+                resolucion: result.resolucion,
+                rutasExistentes: [],
+                modoSimple: false
+              } as RutaModalData
+            });
+
+            rutaDialogRef.afterClosed().subscribe(ruta => {
+              if (ruta) {
+                this.recargarRutas();
+              }
+            });
+          }
+        });
       }
     });
   }
 
   verDetalleRuta(ruta: Ruta): void {
+    // Obtener el nombre de la empresa correctamente
+    let empresaNombre = 'N/A';
+    if (ruta.empresa?.razonSocial) {
+      if (typeof ruta.empresa.razonSocial === 'string') {
+        empresaNombre = ruta.empresa.razonSocial;
+      } else if (typeof ruta.empresa.razonSocial === 'object' && ruta.empresa.razonSocial.principal) {
+        empresaNombre = ruta.empresa.razonSocial.principal;
+      }
+    }
+
     this.dialog.open(DetalleRutaModalComponent, {
       width: '600px',
-      data: { ruta }
+      data: {
+        ruta,
+        empresaNombre,
+        resolucionNumero: ruta.resolucion?.nroResolucion || 'N/A'
+      }
     });
   }
 
@@ -434,9 +535,10 @@ export class RutasComponent implements OnInit, OnDestroy {
       data: {
         titulo: 'Editar Ruta',
         ruta: ruta,
+        empresa: ruta.empresa,
+        resolucion: ruta.resolucion,
         modoSimple: false
-      } as RutaModalData,
-      disableClose: true
+      } as RutaModalData
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -467,23 +569,23 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   toggleRutaSeleccionada(rutaId: string, seleccionada: boolean): void {
     const seleccionadas = new Set(this.rutasSeleccionadas());
-    
+
     if (seleccionada) {
       seleccionadas.add(rutaId);
     } else {
       seleccionadas.delete(rutaId);
     }
-    
+
     this.rutasSeleccionadas.set(seleccionadas);
   }
 
   toggleTodasSeleccionadas(seleccionar: boolean): void {
     const seleccionadas = new Set<string>();
-    
+
     if (seleccionar) {
       this.rutasPaginadas().forEach(ruta => seleccionadas.add(ruta.id));
     }
-    
+
     this.rutasSeleccionadas.set(seleccionadas);
   }
 
@@ -506,7 +608,7 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   exportarSeleccionadas(): void {
     const idsSeleccionados = Array.from(this.rutasSeleccionadas());
-    
+
     if (idsSeleccionados.length === 0) {
       this.snackBar.open('No hay rutas seleccionadas para exportar', 'Cerrar', { duration: 3000 });
       return;
@@ -515,19 +617,19 @@ export class RutasComponent implements OnInit, OnDestroy {
     // Usar rutasFiltradas() que incluye TODAS las rutas después de aplicar filtros
     const rutasDisponibles = this.rutasFiltradas();
     const rutasParaExportar = rutasDisponibles.filter(ruta => idsSeleccionados.includes(ruta.id));
-    
+
     if (rutasParaExportar.length === 0) {
       this.snackBar.open('Error: No se encontraron las rutas seleccionadas', 'Cerrar', { duration: 3000 });
       return;
     }
 
     const columnasVisibles = this.getColumnasVisiblesParaExportacion();
-    
+
     this.exportService.exportToExcel(rutasParaExportar, {
       filename: 'rutas_seleccionadas',
       customColumns: columnasVisibles
     });
-    
+
     this.snackBar.open(`${rutasParaExportar.length} rutas exportadas con ${columnasVisibles.length} columnas`, 'Cerrar', { duration: 3000 });
   }
 
@@ -591,7 +693,7 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   exportarTodas(formato: 'excel' | 'csv'): void {
     const rutas = this.rutasFiltradas();
-    
+
     if (rutas.length === 0) {
       this.snackBar.open('No hay rutas para exportar', 'Cerrar', { duration: 3000 });
       return;
@@ -602,13 +704,13 @@ export class RutasComponent implements OnInit, OnDestroy {
 
     switch (formato) {
       case 'excel':
-        this.exportService.exportToExcel(rutas, { 
+        this.exportService.exportToExcel(rutas, {
           filename,
           customColumns: columnasVisibles
         });
         break;
       case 'csv':
-        this.exportService.exportToCSV(rutas, { 
+        this.exportService.exportToCSV(rutas, {
           filename,
           customColumns: columnasVisibles
         });
@@ -640,5 +742,15 @@ export class RutasComponent implements OnInit, OnDestroy {
       .filter(col => col.key !== 'select' && col.key !== 'acciones') // Excluir columnas de UI
       .map(col => mapeoColumnas[col.key])
       .filter(col => col !== undefined); // Solo columnas que tienen mapeo
+  }
+
+  /**
+   * Prepara los datos de rutas para exportación con formato correcto
+   */
+  private prepararDatosParaExportacion(rutas: Ruta[]): any[] {
+    return rutas.map(ruta => ({
+      ...ruta,
+      itinerarioFormateado: this.getItinerarioFormateado(ruta)
+    }));
   }
 }

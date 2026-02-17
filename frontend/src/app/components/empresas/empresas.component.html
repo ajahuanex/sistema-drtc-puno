@@ -1,20 +1,6 @@
-<!-- Template simplificado para empresas.component.html -->
+<!-- Módulo de Empresas con Estilo Moderno -->
 <div class="empresas-container">
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-title">
-        <h1>EMPRESAS REGISTRADAS</h1>
-      </div>
-      <p class="header-subtitle">GESTIÓN INTEGRAL DE EMPRESAS DE TRANSPORTE</p>
-    </div>
-    <div class="header-actions">
-      <button mat-raised-button color="primary" (click)="nuevaEmpresa()" class="action-button">
-        <mat-icon>add</mat-icon>
-        NUEVA EMPRESA
-      </button>
-    </div>
-  </div>
-
+  
   <!-- Loading State -->
   @if (isLoading()) {
     <div class="loading-container">
@@ -28,147 +14,424 @@
 
   <!-- Content -->
   @if (!isLoading()) {
-    <div class="content-section">
-      <!-- Estadísticas -->
-      @if (estadisticas()) {
-        <div class="stats-section">
-          <div class="stats-grid">
-            <div class="stat-card total">
-              <div class="stat-icon">
-                <mat-icon>business</mat-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ estadisticas()?.totalEmpresas }}</div>
-                <div class="stat-label">TOTAL EMPRESAS</div>
-              </div>
-            </div>
-            <div class="stat-card habilitadas">
-              <div class="stat-icon">
-                <mat-icon>check_circle</mat-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ estadisticas()?.empresasHabilitadas || 0 }}</div>
-                <div class="stat-label">AUTORIZADAS</div>
-              </div>
-            </div>
+    <!-- Header con estadísticas -->
+    <div class="header-section">
+      <div class="header-info">
+        <h1 class="page-title">
+          <mat-icon>business</mat-icon>
+          @if (categoriaActiva() === 'TRANSPORTE') {
+            Empresas de Transporte
+          } @else if (categoriaActiva() === 'INFRAESTRUCTURA') {
+            Infraestructura Complementaria
+          } @else {
+            Lista de Empresas
+          }
+        </h1>
+        <p class="page-subtitle">
+          @if (categoriaActiva() === 'TRANSPORTE') {
+            Empresas de transporte de pasajeros y mercancías - Mostrando {{ dataSource.data.length }} de {{ empresasFiltradas().length }} empresas
+          } @else if (categoriaActiva() === 'INFRAESTRUCTURA') {
+            Terminales terrestres, estaciones de ruta y otros servicios complementarios - Mostrando {{ dataSource.data.length }} de {{ empresasFiltradas().length }} empresas
+          } @else {
+            Mostrando {{ dataSource.data.length }} de {{ empresasOriginales().length }} empresas
+          }
+        </p>
+      </div>
+      
+      @if (estadisticasTabActivo()) {
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticasTabActivo()?.totalEmpresas || 0 }}</span>
+            <span class="stat-label">
+              @if (categoriaActiva() === 'INFRAESTRUCTURA') {
+                INFRAESTRUCTURA
+              } @else {
+                EMPRESAS
+              }
+            </span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticasTabActivo()?.empresasAutorizadas || 0 }}</span>
+            <span class="stat-label">AUTORIZADAS</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticasTabActivo()?.empresasEnTramite || 0 }}</span>
+            <span class="stat-label">EN TRÁMITE</span>
           </div>
         </div>
       }
+    </div>
 
-      <!-- Búsqueda -->
-      <div class="search-section">
-        <form [formGroup]="searchForm" class="search-form">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>BUSCAR EMPRESAS</mat-label>
-            <input matInput formControlName="searchTerm" placeholder="Buscar por RUC o Razón Social...">
-            <mat-icon matPrefix>search</mat-icon>
-          </mat-form-field>
-        </form>
+    <!-- Tabs por Tipo de Servicio -->
+    <div class="tabs-section">
+      <mat-tab-group 
+        [selectedIndex]="selectedTabIndex()"
+        (selectedTabChange)="onTipoServicioChange(tipoServicioTabs()[$event.index].tipo)"
+        class="tipo-servicio-tabs">
+        
+        @for (tab of tipoServicioTabs(); track tab.tipo) {
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <div class="tab-label">
+                <mat-icon>{{ tab.icon }}</mat-icon>
+                <span>{{ tab.label }}</span>
+                <mat-chip class="tab-count">{{ tab.count }}</mat-chip>
+              </div>
+            </ng-template>
+          </mat-tab>
+        }
+      </mat-tab-group>
+    </div>
+
+    <!-- Barra de herramientas -->
+    <div class="toolbar-section">
+      <div class="search-container" [formGroup]="searchForm">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Buscar empresas..."
+          formControlName="searchTerm"
+        >
+        @if (searchForm.get('searchTerm')?.value) {
+          <button class="clear-button" (click)="clearSearch()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
       </div>
+      
+      <div class="toolbar-actions">
+        <button class="toolbar-btn" (click)="abrirFiltrosAvanzados()" type="button">
+          <mat-icon>tune</mat-icon>
+          Filtros
+        </button>
+        
+        <button class="toolbar-btn" (click)="toggleColumnConfig()" type="button">
+          <mat-icon>view_column</mat-icon>
+          Columnas
+        </button>
+        
+        <button class="toolbar-btn primary" (click)="nuevaEmpresa()" type="button">
+          <mat-icon>add</mat-icon>
+          Nueva Empresa
+        </button>
+      </div>
+    </div>
 
-      <!-- Tabla de Empresas -->
-      @if (empresas().length > 0) {
+    <!-- Configuración de Columnas -->
+    @if (showColumnConfig()) {
+      <div class="column-config-panel">
+        <div class="config-header">
+          <h3>Configurar Columnas</h3>
+          <button class="reset-button" (click)="resetColumns()">
+            <mat-icon>refresh</mat-icon>
+            Restablecer
+          </button>
+        </div>
+        <div class="config-content">
+          <form [formGroup]="columnForm" class="column-form">
+            @for (col of columnConfigs(); track col.key) {
+              <div class="column-item">
+                <mat-checkbox [formControlName]="col.key">
+                  {{ col.label }}
+                </mat-checkbox>
+              </div>
+            }
+          </form>
+        </div>
+      </div>
+    }
+
+    <!-- Tabla de empresas -->
+    @if (showColumnConfig()) {
+      <div class="column-config-panel">
+        <div class="config-header">
+          <h3>Configurar Columnas</h3>
+          <button class="reset-button" (click)="resetColumns()">
+            <mat-icon>refresh</mat-icon>
+            Restablecer
+          </button>
+        </div>
+        <div class="config-content">
+          <form [formGroup]="columnForm" class="column-form">
+            @for (col of columnConfigs(); track col.key) {
+              <div class="column-item">
+                <mat-checkbox [formControlName]="col.key">
+                  {{ col.label }}
+                </mat-checkbox>
+              </div>
+            }
+          </form>
+        </div>
+      </div>
+    }
+
+    <!-- Barra de acciones en bloque -->
+    @if (selectedEmpresas().size > 0) {
+      <div class="bulk-actions-bar">
+        <div class="bulk-info">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ selectedEmpresas().size }} empresa(s) seleccionada(s)</span>
+        </div>
+        
+        <div class="bulk-actions">
+          <button class="bulk-btn" (click)="cambiarEstadoBloque()" type="button">
+            <mat-icon>edit</mat-icon>
+            Cambiar Estado
+          </button>
+          
+          <button class="bulk-btn" (click)="cambiarTipoServicioBloque()" type="button">
+            <mat-icon>business</mat-icon>
+            Cambiar Tipo de Servicio
+          </button>
+          
+          <button class="bulk-btn" (click)="exportarSeleccionadas()" type="button">
+            <mat-icon>download</mat-icon>
+            Exportar
+          </button>
+          
+          <button class="bulk-btn danger" (click)="eliminarSeleccionadas()" type="button">
+            <mat-icon>delete</mat-icon>
+            Eliminar
+          </button>
+          
+          <button class="bulk-btn-clear" (click)="clearSelection()" type="button">
+            <mat-icon>close</mat-icon>
+            Limpiar selección
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Tabla de empresas -->
+    <div class="table-section">
+      @if (dataSource.data.length > 0) {
         <div class="table-container">
-          <table mat-table [dataSource]="dataSource" class="empresas-table">
-            <!-- RUC Column -->
-            <ng-container matColumnDef="ruc">
-              <th mat-header-cell *matHeaderCellDef>RUC</th>
-              <td mat-cell *matCellDef="let empresa">{{ empresa.ruc }}</td>
+          <table mat-table [dataSource]="dataSource" matSort class="empresas-table">
+            
+            <!-- Checkbox Column -->
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox 
+                  [checked]="isAllSelected()"
+                  [indeterminate]="isIndeterminate()"
+                  (change)="toggleAllSelection()">
+                </mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef="let empresa" class="select-cell">
+                <mat-checkbox 
+                  [checked]="isEmpresaSelected(empresa.id)"
+                  (change)="toggleEmpresaSelection(empresa.id)"
+                  (click)="$event.stopPropagation()">
+                </mat-checkbox>
+              </td>
             </ng-container>
+            
+            <!-- RUC Column -->
+            @if (isColumnVisible('ruc')) {
+              <ng-container matColumnDef="ruc">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>RUC</th>
+                <td mat-cell *matCellDef="let empresa" class="ruc-cell">
+                  {{ empresa.ruc }}
+                </td>
+              </ng-container>
+            }
 
             <!-- Razón Social Column -->
-            <ng-container matColumnDef="razonSocial">
-              <th mat-header-cell *matHeaderCellDef>RAZÓN SOCIAL</th>
-              <td mat-cell *matCellDef="let empresa">{{ empresa.razonSocial?.principal }}</td>
-            </ng-container>
+            @if (isColumnVisible('razonSocial')) {
+              <ng-container matColumnDef="razonSocial">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>RAZÓN SOCIAL</th>
+                <td mat-cell *matCellDef="let empresa" class="razon-social-cell">
+                  <div class="empresa-info">
+                    <div class="empresa-nombre">{{ empresa.razonSocial?.principal }}</div>
+                    <div class="empresa-ruc">RUC: {{ empresa.ruc }}</div>
+                  </div>
+                </td>
+              </ng-container>
+            }
 
             <!-- Estado Column -->
-            <ng-container matColumnDef="estado">
-              <th mat-header-cell *matHeaderCellDef>ESTADO</th>
-              <td mat-cell *matCellDef="let empresa">
-                <mat-chip [class]="'estado-chip-' + empresa.estado?.toLowerCase()">
-                  {{ empresa.estado }}
-                </mat-chip>
-              </td>
-            </ng-container>
-
-            <!-- Tipo de Servicio Column -->
-            <ng-container matColumnDef="tipoServicio">
-              <th mat-header-cell *matHeaderCellDef>TIPO DE SERVICIO</th>
-              <td mat-cell *matCellDef="let empresa">
-                {{ empresa.tiposServicio?.join(', ') || 'PERSONAS' }}
-              </td>
-            </ng-container>
+            @if (isColumnVisible('estado')) {
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>ESTADO</th>
+                <td mat-cell *matCellDef="let empresa" class="estado-cell">
+                  <span class="estado-badge" [class]="'estado-' + empresa.estado?.toLowerCase()">
+                    @if (empresa.estado === 'AUTORIZADA') { 
+                      <mat-icon>check_circle</mat-icon>
+                      AUTORIZADA
+                    }
+                    @else if (empresa.estado === 'SUSPENDIDA') { 
+                      <mat-icon>pause_circle</mat-icon>
+                      SUSPENDIDA
+                    }
+                    @else if (empresa.estado === 'CANCELADA') { 
+                      <mat-icon>cancel</mat-icon>
+                      CANCELADA
+                    }
+                    @else { 
+                      <mat-icon>help</mat-icon>
+                      EN_TRAMITE
+                    }
+                  </span>
+                </td>
+              </ng-container>
+            }
 
             <!-- Rutas Column -->
-            <ng-container matColumnDef="rutas">
-              <th mat-header-cell *matHeaderCellDef>RUTAS</th>
-              <td mat-cell *matCellDef="let empresa">
-                <mat-chip class="count-chip">
-                  {{ empresa.rutasAutorizadasIds?.length || 0 }}
-                </mat-chip>
-              </td>
-            </ng-container>
+            @if (isColumnVisible('rutas')) {
+              <ng-container matColumnDef="rutas">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>RUTAS</th>
+                <td mat-cell *matCellDef="let empresa" class="count-cell">
+                  <span class="count-badge">
+                    {{ empresa.rutasAutorizadasIds?.length || 0 }}
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Tipo de Infraestructura Column (solo para infraestructura) -->
+            @if (isColumnVisible('tipoInfraestructura')) {
+              <ng-container matColumnDef="tipoInfraestructura">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>TIPO</th>
+                <td mat-cell *matCellDef="let empresa" class="tipo-cell">
+                  <span class="tipo-badge infraestructura">
+                    {{ getTipoInfraestructuraLabel(empresa.tiposServicio[0]) }}
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Ubicación Column (solo para infraestructura) -->
+            @if (isColumnVisible('ubicacion')) {
+              <ng-container matColumnDef="ubicacion">
+                <th mat-header-cell *matHeaderCellDef>UBICACIÓN</th>
+                <td mat-cell *matCellDef="let empresa" class="ubicacion-cell">
+                  {{ empresa.direccionFiscal || 'No especificada' }}
+                </td>
+              </ng-container>
+            }
+
+            <!-- Capacidad Column (solo para infraestructura) -->
+            @if (isColumnVisible('capacidad')) {
+              <ng-container matColumnDef="capacidad">
+                <th mat-header-cell *matHeaderCellDef>CAPACIDAD</th>
+                <td mat-cell *matCellDef="let empresa" class="capacidad-cell">
+                  <span class="capacidad-info">
+                    <!-- Aquí se podría mostrar información específica de capacidad -->
+                    N/A
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Tipo de Servicio Column (solo para vista general) -->
+            @if (isColumnVisible('tipoServicio')) {
+              <ng-container matColumnDef="tipoServicio">
+                <th mat-header-cell *matHeaderCellDef>TIPO SERVICIO</th>
+                <td mat-cell *matCellDef="let empresa" class="servicio-cell">
+                  <div class="tipos-servicio">
+                    @for (tipo of empresa.tiposServicio; track tipo) {
+                      <span class="tipo-chip" [class.transporte]="esEmpresaTransporte(empresa)" [class.infraestructura]="esEmpresaInfraestructura(empresa)">
+                        {{ getTipoServicioLabel(tipo) }}
+                      </span>
+                    }
+                  </div>
+                </td>
+              </ng-container>
+            }
 
             <!-- Vehículos Column -->
-            <ng-container matColumnDef="vehiculos">
-              <th mat-header-cell *matHeaderCellDef>VEHÍCULOS</th>
-              <td mat-cell *matCellDef="let empresa">
-                <mat-chip class="count-chip">
-                  {{ empresa.vehiculosHabilitadosIds?.length || 0 }}
-                </mat-chip>
-              </td>
-            </ng-container>
+            @if (isColumnVisible('vehiculos')) {
+              <ng-container matColumnDef="vehiculos">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>VEHÍCULOS</th>
+                <td mat-cell *matCellDef="let empresa" class="count-cell">
+                  <span class="count-badge">
+                    {{ empresa.vehiculosHabilitadosIds?.length || 0 }}
+                  </span>
+                </td>
+              </ng-container>
+            }
 
             <!-- Conductores Column -->
-            <ng-container matColumnDef="conductores">
-              <th mat-header-cell *matHeaderCellDef>CONDUCTORES</th>
-              <td mat-cell *matCellDef="let empresa">
-                <mat-chip class="count-chip">
-                  {{ empresa.conductoresHabilitadosIds?.length || 0 }}
-                </mat-chip>
-              </td>
-            </ng-container>
+            @if (isColumnVisible('conductores')) {
+              <ng-container matColumnDef="conductores">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>CONDUCTORES</th>
+                <td mat-cell *matCellDef="let empresa" class="count-cell">
+                  <span class="count-badge">
+                    {{ empresa.conductoresHabilitadosIds?.length || 0 }}
+                  </span>
+                </td>
+              </ng-container>
+            }
 
             <!-- Acciones Column -->
-            <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef>ACCIONES</th>
-              <td mat-cell *matCellDef="let empresa">
-                <button mat-icon-button (click)="verEmpresa(empresa.id)" matTooltip="Ver detalles">
-                  <mat-icon>visibility</mat-icon>
-                </button>
-                <button mat-icon-button (click)="editarEmpresa(empresa.id)" matTooltip="Editar">
-                  <mat-icon>edit</mat-icon>
-                </button>
-              </td>
-            </ng-container>
+            @if (isColumnVisible('acciones')) {
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef>ACCIONES</th>
+                <td mat-cell *matCellDef="let empresa; let i = index" class="actions-cell">
+                  <button mat-icon-button 
+                          [matMenuTriggerFor]="actionsMenu"
+                          class="actions-menu-trigger"
+                          (click)="$event.stopPropagation()">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  
+                  <mat-menu #actionsMenu="matMenu">
+                    <button mat-menu-item (click)="verEmpresa(empresa.id); $event.stopPropagation()">
+                      <mat-icon>visibility</mat-icon>
+                      <span>Ver detalles</span>
+                    </button>
+                    <button mat-menu-item (click)="editarEmpresa(empresa.id); $event.stopPropagation()">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button mat-menu-item (click)="verRutasEmpresa(empresa); $event.stopPropagation()">
+                      <mat-icon>route</mat-icon>
+                      <span>Ver rutas</span>
+                    </button>
+                    <button mat-menu-item (click)="gestionarVehiculos(empresa.id); $event.stopPropagation()">
+                      <mat-icon>directions_bus</mat-icon>
+                      <span>Gestionar vehículos</span>
+                    </button>
+                    <button mat-menu-item (click)="gestionarConductores(empresa.id); $event.stopPropagation()">
+                      <mat-icon>person</mat-icon>
+                      <span>Gestionar conductores</span>
+                    </button>
+                    <mat-divider></mat-divider>
+                    <button mat-menu-item (click)="eliminarEmpresa(empresa.id); $event.stopPropagation()" class="delete-action">
+                      <mat-icon>delete</mat-icon>
+                      <span>Eliminar</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+            }
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns();" 
+                class="table-row"
+                (click)="verEmpresa(row.id)"></tr>
           </table>
 
           <!-- Paginador -->
           <mat-paginator 
-            [pageSizeOptions]="[10, 25, 50, 100]" 
+            [pageSizeOptions]="[10, 25, 50, 100]"
             [pageSize]="25"
-            showFirstLastButtons
-            class="table-paginator">
+            showFirstLastButtons>
           </mat-paginator>
         </div>
       }
 
-      <!-- Sin datos -->
-      @if (empresas().length === 0 && !isLoading()) {
+      <!-- Estado vacío -->
+      @if (dataSource.data.length === 0 && !isLoading()) {
         <div class="empty-state">
           <div class="empty-content">
-            <div class="empty-icon-container">
-              <mat-icon class="empty-icon">business</mat-icon>
-            </div>
-            <h2>NO HAY EMPRESAS REGISTRADAS</h2>
-            <p>COMIENZA AGREGANDO LA PRIMERA EMPRESA DE TRANSPORTE AL SISTEMA.</p>
-            <button mat-raised-button color="primary" (click)="nuevaEmpresa()">
-              <mat-icon>add</mat-icon>
-              AGREGAR PRIMERA EMPRESA
+            <mat-icon class="empty-icon">business</mat-icon>
+            <h3>No se encontraron empresas</h3>
+            <p>No hay empresas que coincidan con los criterios de búsqueda</p>
+            <button mat-raised-button color="primary" (click)="clearSearch()">
+              <mat-icon>refresh</mat-icon>
+              Limpiar Búsqueda
             </button>
           </div>
         </div>

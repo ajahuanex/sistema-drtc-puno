@@ -30,7 +30,7 @@ export class RutaService {
   }
 
   getRutas(): Observable<Ruta[]> {
-    const url = `${this.apiUrl}/rutas`;
+    const url = `${this.apiUrl}/rutas/`;
     
     return this.http.get<any[]>(url, { headers: this.getHeaders() })
       .pipe(
@@ -98,7 +98,7 @@ export class RutaService {
   }
 
   createRuta(ruta: RutaCreate): Observable<Ruta> {
-    const url = `${this.apiUrl}/rutas`;
+    const url = `${this.apiUrl}/rutas/`;
     // console.log removed for production
     
     return this.http.post<Ruta>(url, ruta, { headers: this.getHeaders() })
@@ -165,7 +165,12 @@ export class RutaService {
       resolucion: this.extractResolucion(ruta),
       
       // Datos operativos - simplificados
-      frecuencias: ruta.frecuencia?.descripcion || ruta.frecuencias || ruta.horarios || '',
+      frecuencia: ruta.frecuencia || {
+        tipo: 'DIARIO',
+        cantidad: 1,
+        dias: [],
+        descripcion: 'Sin frecuencia'
+      },
       tipoRuta: ruta.tipoRuta || ruta.tipo_ruta || 'INTERPROVINCIAL',
       tipoServicio: ruta.tipoServicio || ruta.tipo_servicio || 'PASAJEROS',
       estado: ruta.estado || 'ACTIVA',
@@ -350,7 +355,7 @@ export class RutaService {
   /**
    * Procesa un archivo Excel de carga masiva de rutas
    * @param archivo - Archivo Excel a procesar
-   * @param opciones - Opciones de procesamiento (validación, lotes, etc.)
+   * @param opciones - Opciones de procesamiento (validación, modo, lotes, etc.)
    * @returns Resultado del procesamiento con rutas creadas y errores
    * 
    * NOTA: Las localidades no encontradas en la base de datos principal
@@ -358,16 +363,17 @@ export class RutaService {
    */
   async procesarCargaMasiva(archivo: File, opciones: {
     soloValidar?: boolean;
+    modo?: 'crear' | 'actualizar' | 'upsert';  // ✅ NUEVO
     procesarEnLotes?: boolean;
     tamanoLote?: number;
   } = {}): Promise<any> {
-    const { soloValidar = false } = opciones;
+    const { soloValidar = false, modo = 'upsert' } = opciones;  // ✅ Por defecto upsert
     
     if (soloValidar) {
       return await this.validarCargaMasiva(archivo);
     }
 
-    const resultado = await this.procesarCargaMasivaBasico(archivo, false);
+    const resultado = await this.procesarCargaMasivaBasico(archivo, false, modo);  // ✅ Pasar modo
     
     // Después del procesamiento, forzar normalización de todas las rutas
     if (resultado && resultado.rutas_creadas) {
@@ -410,7 +416,7 @@ export class RutaService {
     return resultado;
   }
 
-  private async procesarCargaMasivaBasico(archivo: File, soloValidar: boolean): Promise<any> {
+  private async procesarCargaMasivaBasico(archivo: File, soloValidar: boolean, modo: string = 'crear'): Promise<any> {
     const url = `${this.apiUrl}/rutas/carga-masiva/procesar`;
     const formData = new FormData();
     formData.append('archivo', archivo);
@@ -427,6 +433,7 @@ export class RutaService {
     if (soloValidar) {
       params.append('solo_validar', 'true');
     }
+    params.append('modo', modo);  // ✅ NUEVO: Agregar modo
 
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.authService.getToken()}`
@@ -586,13 +593,20 @@ export class RutaService {
   }
 
   getRutasPorResolucion(resolucionId: string): Observable<Ruta[]> {
-    // console.log removed for production
     const url = `${this.apiUrl}/resoluciones/${resolucionId}/rutas`;
+    
+    console.log('🔍 [RUTA-SERVICE] Obteniendo rutas de resolución:', resolucionId);
+    console.log('🔍 [RUTA-SERVICE] URL:', url);
     
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
+        map(rutas => {
+          console.log('✅ [RUTA-SERVICE] Rutas recibidas de resolución:', rutas.length);
+          console.log('📋 [RUTA-SERVICE] Códigos:', rutas.map(r => r.codigoRuta));
+          return rutas;
+        }),
         catchError(error => {
-          console.error('❌ Error obteniendo rutas por resolución::', error);
+          console.error('❌ [RUTA-SERVICE] Error obteniendo rutas por resolución:', error);
           return of([]);
         })
       );
@@ -1018,5 +1032,12 @@ export class RutaService {
     } catch (error) {
       console.error('❌ ERROR EN NORMALIZACIÓN COMPLETA:', error);
     }
+  }
+
+  /**
+   * Helper para obtener la descripción de frecuencia de una ruta
+   */
+  getFrecuenciaDescripcion(ruta: Ruta): string {
+    return ruta.frecuencia?.descripcion || 'Sin frecuencia';
   }
 }

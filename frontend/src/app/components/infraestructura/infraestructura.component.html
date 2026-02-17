@@ -1,0 +1,307 @@
+<!-- Módulo de Infraestructura Complementaria -->
+<div class="infraestructura-container">
+  
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-container">
+      <div class="loading-content">
+        <mat-spinner diameter="50"></mat-spinner>
+        <h3>CARGANDO INFRAESTRUCTURA...</h3>
+        <p>OBTENIENDO INFORMACIÓN DE LA INFRAESTRUCTURA COMPLEMENTARIA</p>
+      </div>
+    </div>
+  }
+
+  <!-- Content -->
+  @if (!isLoading()) {
+    <!-- Header con estadísticas -->
+    <div class="header-section">
+      <div class="header-info">
+        <h1 class="page-title">
+          <mat-icon>location_city</mat-icon>
+          Infraestructura Complementaria
+        </h1>
+        <p class="page-subtitle">
+          Terminales terrestres, estaciones de ruta y otros servicios complementarios
+        </p>
+      </div>
+      
+      @if (estadisticas()) {
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticas()?.totalInfraestructuras || 0 }}</span>
+            <span class="stat-label">INFRAESTRUCTURAS</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticas()?.autorizadas || 0 }}</span>
+            <span class="stat-label">AUTORIZADAS</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">{{ estadisticas()?.enTramite || 0 }}</span>
+            <span class="stat-label">EN TRÁMITE</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Tabs por Tipo de Infraestructura -->
+    <div class="tabs-section">
+      <mat-tab-group class="tipo-infraestructura-tabs">
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <div class="tab-label">
+              <mat-icon>business</mat-icon>
+              <span>Todas</span>
+              <mat-chip class="tab-count">{{ infraestructuras().length }}</mat-chip>
+            </div>
+          </ng-template>
+        </mat-tab>
+        
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <div class="tab-label">
+              <mat-icon>location_city</mat-icon>
+              <span>Terminales</span>
+              <mat-chip class="tab-count">0</mat-chip>
+            </div>
+          </ng-template>
+        </mat-tab>
+        
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <div class="tab-label">
+              <mat-icon>train</mat-icon>
+              <span>Estaciones</span>
+              <mat-chip class="tab-count">0</mat-chip>
+            </div>
+          </ng-template>
+        </mat-tab>
+        
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <div class="tab-label">
+              <mat-icon>more_horiz</mat-icon>
+              <span>Otros</span>
+              <mat-chip class="tab-count">0</mat-chip>
+            </div>
+          </ng-template>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <!-- Barra de herramientas -->
+    <div class="toolbar-section">
+      <div class="search-container">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Buscar infraestructura..."
+          [value]="searchText()"
+          (input)="onSearchChange($any($event.target).value)"
+        >
+        @if (searchText()) {
+          <button class="clear-button" (click)="limpiarBusqueda()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+      
+      <div class="toolbar-actions">
+        <button class="toolbar-btn" (click)="toggleColumnConfig()" type="button">
+          <mat-icon>view_column</mat-icon>
+          Columnas
+        </button>
+        
+        <button class="toolbar-btn primary" (click)="abrirModalCrear()" type="button">
+          <mat-icon>add</mat-icon>
+          Nueva Infraestructura
+        </button>
+      </div>
+    </div>
+
+    <!-- Configuración de Columnas -->
+    @if (showColumnConfig()) {
+      <div class="column-config-panel">
+        <div class="config-header">
+          <h3>Configurar Columnas</h3>
+          <button class="reset-button" (click)="resetColumns()">
+            <mat-icon>refresh</mat-icon>
+            Restablecer
+          </button>
+          <button class="reset-button" (click)="showColumnConfig.set(false)">
+            <mat-icon>close</mat-icon>
+            Cerrar
+          </button>
+        </div>
+        <div class="config-content">
+          <div class="column-form">
+            @for (col of availableColumns; track col.key) {
+              <div class="column-item">
+                <mat-checkbox 
+                  [checked]="col.enabled"
+                  (change)="onColumnToggle(col)">
+                  {{ col.label }}
+                </mat-checkbox>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Tabla de infraestructura -->
+    <div class="table-section">
+      @if (dataSource.data.length > 0) {
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="infraestructura-table">
+            
+            <!-- Checkbox Column -->
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox></mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef="let infraestructura" class="select-cell">
+                <mat-checkbox></mat-checkbox>
+              </td>
+            </ng-container>
+            
+            <!-- RUC Column -->
+            @if (isColumnVisible('ruc')) {
+              <ng-container matColumnDef="ruc">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>RUC</th>
+                <td mat-cell *matCellDef="let infraestructura" class="ruc-cell">
+                  {{ infraestructura.ruc }}
+                </td>
+              </ng-container>
+            }
+
+            <!-- Razón Social Column -->
+            @if (isColumnVisible('razonSocial')) {
+              <ng-container matColumnDef="razonSocial">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>RAZÓN SOCIAL</th>
+                <td mat-cell *matCellDef="let infraestructura" class="razon-social-cell">
+                  <div class="infraestructura-info">
+                    <div class="infraestructura-nombre">{{ infraestructura.razonSocial?.principal }}</div>
+                    <div class="infraestructura-ruc">RUC: {{ infraestructura.ruc }}</div>
+                  </div>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Tipo de Infraestructura Column -->
+            @if (isColumnVisible('tipoInfraestructura')) {
+              <ng-container matColumnDef="tipoInfraestructura">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>TIPO</th>
+                <td mat-cell *matCellDef="let infraestructura" class="tipo-cell">
+                  <span class="tipo-badge infraestructura">
+                    <mat-icon>{{ getTipoInfraestructuraIcon(infraestructura.tipoInfraestructura) }}</mat-icon>
+                    {{ getTipoInfraestructuraLabel(infraestructura.tipoInfraestructura) }}
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Ubicación Column -->
+            @if (isColumnVisible('ubicacion')) {
+              <ng-container matColumnDef="ubicacion">
+                <th mat-header-cell *matHeaderCellDef>UBICACIÓN</th>
+                <td mat-cell *matCellDef="let infraestructura" class="ubicacion-cell">
+                  {{ infraestructura.direccionFiscal || 'No especificada' }}
+                </td>
+              </ng-container>
+            }
+
+            <!-- Capacidad Column -->
+            @if (isColumnVisible('capacidad')) {
+              <ng-container matColumnDef="capacidad">
+                <th mat-header-cell *matHeaderCellDef>CAPACIDAD</th>
+                <td mat-cell *matCellDef="let infraestructura" class="capacidad-cell">
+                  <span class="capacidad-info">
+                    {{ infraestructura.capacidadMaxima || 'N/A' }}
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Estado Column -->
+            @if (isColumnVisible('estado')) {
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef mat-sort-header>ESTADO</th>
+                <td mat-cell *matCellDef="let infraestructura" class="estado-cell">
+                  <span class="estado-badge" [class]="'estado-' + infraestructura.estado?.toLowerCase()">
+                    @if (infraestructura.estado === 'AUTORIZADA') { 
+                      <mat-icon>check_circle</mat-icon>
+                      AUTORIZADA
+                    }
+                    @else if (infraestructura.estado === 'SUSPENDIDA') { 
+                      <mat-icon>pause_circle</mat-icon>
+                      SUSPENDIDA
+                    }
+                    @else if (infraestructura.estado === 'CANCELADA') { 
+                      <mat-icon>cancel</mat-icon>
+                      CANCELADA
+                    }
+                    @else { 
+                      <mat-icon>help</mat-icon>
+                      EN_TRAMITE
+                    }
+                  </span>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Acciones Column -->
+            @if (isColumnVisible('acciones')) {
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef>ACCIONES</th>
+                <td mat-cell *matCellDef="let infraestructura" class="actions-cell">
+                  <button mat-icon-button 
+                          [matMenuTriggerFor]="actionsMenu"
+                          class="actions-menu-trigger">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  
+                  <mat-menu #actionsMenu="matMenu">
+                    <button mat-menu-item (click)="verInfraestructura(infraestructura.id)">
+                      <mat-icon>visibility</mat-icon>
+                      <span>Ver detalles</span>
+                    </button>
+                    
+                    <button mat-menu-item (click)="editarInfraestructura(infraestructura)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    
+                    <mat-divider></mat-divider>
+                    
+                    <button mat-menu-item (click)="eliminarInfraestructura(infraestructura)" class="delete-action">
+                      <mat-icon>delete</mat-icon>
+                      <span>Eliminar</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+            }
+
+            <!-- Header y filas de la tabla -->
+            <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns();" 
+                class="table-row"
+                (click)="verInfraestructura(row.id)"></tr>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">location_city</mat-icon>
+          <h3>No hay infraestructura registrada</h3>
+          <p>Comience agregando terminales terrestres, estaciones de ruta u otros servicios complementarios</p>
+          <button mat-raised-button color="primary" (click)="nuevaInfraestructura()">
+            <mat-icon>add</mat-icon>
+            Agregar Infraestructura
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

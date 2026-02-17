@@ -1,8 +1,20 @@
+"""
+Modelo SIMPLIFICADO de Vehículo - Solo campos administrativos
+Los datos técnicos están en VehiculoData (vehiculo_solo collection)
+
+ARQUITECTURA:
+- Vehiculo: Asignación administrativa (empresa, resolución, rutas, estado)
+- VehiculoData: Datos técnicos puros (marca, modelo, motor, chasis, etc.)
+"""
+
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
-# from bson import ObjectId
 from enum import Enum
+
+# ========================================
+# ENUMS
+# ========================================
 
 class EstadoVehiculo(str, Enum):
     ACTIVO = "ACTIVO"
@@ -11,21 +23,6 @@ class EstadoVehiculo(str, Enum):
     SUSPENDIDO = "SUSPENDIDO"
     FUERA_DE_SERVICIO = "FUERA_DE_SERVICIO"
     DADO_DE_BAJA = "DADO_DE_BAJA"
-
-class CategoriaVehiculo(str, Enum):
-    M1 = "M1"  # Vehículos de pasajeros hasta 8 asientos
-    M2 = "M2"  # Vehículos de pasajeros de 9 a 16 asientos
-    M3 = "M3"  # Vehículos de pasajeros de más de 16 asientos
-    N1 = "N1"  # Vehículos de carga hasta 3.5 toneladas
-    N2 = "N2"  # Vehículos de carga de 3.5 a 12 toneladas
-    N3 = "N3"  # Vehículos de carga de más de 12 toneladas
-
-class TipoCombustible(str, Enum):
-    GASOLINA = "GASOLINA"
-    DIESEL = "DIESEL"
-    GAS_NATURAL = "GAS_NATURAL"
-    ELECTRICO = "ELECTRICO"
-    HIBRIDO = "HIBRIDO"
 
 class SedeRegistro(str, Enum):
     LIMA = "LIMA"
@@ -42,153 +39,288 @@ class SedeRegistro(str, Enum):
     PIURA = "PIURA"
 
 class MotivoSustitucion(str, Enum):
-    ANTIGUEDAD = "ANTIGÜEDAD"  # Por año de fabricación
-    ACCIDENTE = "ACCIDENTE"  # Por accidente o siniestro
-    CAMBIO_TITULARIDAD = "CAMBIO_TITULARIDAD"  # Por cambio de propietario
-    SUSTITUCION_VOLUNTARIA = "SUSTITUCIÓN_VOLUNTARIA"  # Sustitución por mejora
-    MANTENIMIENTO_MAYOR = "MANTENIMIENTO_MAYOR"  # Por mantenimiento extenso
-    NORMATIVA = "NORMATIVA"  # Por cambios normativos
-    OTROS = "OTROS"  # Otros motivos
+    ANTIGUEDAD = "ANTIGÜEDAD"
+    ACCIDENTE = "ACCIDENTE"
+    CAMBIO_TITULARIDAD = "CAMBIO_TITULARIDAD"
+    SUSTITUCION_VOLUNTARIA = "SUSTITUCIÓN_VOLUNTARIA"
+    MANTENIMIENTO_MAYOR = "MANTENIMIENTO_MAYOR"
+    NORMATIVA = "NORMATIVA"
+    OTROS = "OTROS"
 
-class DatosTecnicos(BaseModel):
-    motor: str
-    chasis: str
-    ejes: int
-    cilindros: Optional[int] = None  # Número de cilindros del motor
-    ruedas: Optional[int] = None  # Número de llantas/ruedas
-    asientos: int
-    pesoNeto: float  # en kg
-    pesoBruto: float  # en kg
-    cargaUtil: Optional[float] = None  # en kg (pesoBruto - pesoNeto)
-    medidas: dict  # {largo, ancho, alto} en metros
-    tipoCombustible: TipoCombustible
-    cilindrada: Optional[float] = None
-    potencia: Optional[float] = None  # en HP
+# ========================================
+# MODELOS AUXILIARES
+# ========================================
+
+class RutaEspecifica(BaseModel):
+    """Rutas específicas del vehículo"""
+    id: Optional[str] = None
+    nombre: str
+    origen: str
+    destino: str
+    distancia: Optional[float] = None
+    tiempoEstimado: Optional[str] = None
+    horarios: Optional[List[str]] = []
+    tarifaBase: Optional[float] = None
+    observaciones: Optional[str] = None
+    estaActiva: bool = True
+    fechaCreacion: datetime = Field(default_factory=datetime.utcnow)
+
+# ========================================
+# MODELO PRINCIPAL - VEHICULO SIMPLIFICADO
+# ========================================
 
 class Vehiculo(BaseModel):
+    """
+    Modelo SIMPLIFICADO de Vehículo - Solo campos administrativos
+    Los datos técnicos se obtienen de VehiculoData mediante vehiculoDataId
+    """
+    # ========================================
+    # IDENTIFICACIÓN
+    # ========================================
     id: Optional[str] = None
-    placa: str
-    empresaActualId: str
-    resolucionId: Optional[str] = None
-    rutasAsignadasIds: List[str] = []
-    categoria: CategoriaVehiculo
-    marca: str
-    modelo: str
-    anioFabricacion: int
-    estado: EstadoVehiculo
-    sedeRegistro: SedeRegistro = SedeRegistro.PUNO  # Sede donde se registró el vehículo
-    # Campos de sustitución
-    placaSustituida: Optional[str] = None  # Placa del vehículo que sustituyó (si aplica)
-    fechaSustitucion: Optional[datetime] = None  # Fecha cuando sustituyó a otro vehículo
-    motivoSustitucion: Optional[MotivoSustitucion] = None  # Motivo de la sustitución
-    resolucionSustitucion: Optional[str] = None  # Resolución que autoriza la sustitución
+    placa: str  # Placa actual del vehículo
+    
+    # ========================================
+    # REFERENCIA A DATOS TÉCNICOS
+    # ========================================
+    vehiculoDataId: Optional[str] = None  # ID del registro en VehiculoData
+    
+    # ========================================
+    # ASIGNACIÓN ADMINISTRATIVA
+    # ========================================
+    empresaActualId: str  # Empresa a la que está asignado
+    resolucionId: Optional[str] = None  # Resolución asociada
+    tipoServicio: Optional[str] = None  # UN solo tipo de servicio por vehículo
+    
+    # ========================================
+    # RUTAS
+    # ========================================
+    rutasAsignadasIds: List[str] = []  # Rutas generales (de resoluciones)
+    rutasEspecificas: Optional[List[RutaEspecifica]] = []  # Rutas propias del vehículo
+    
+    # ========================================
+    # ESTADO ADMINISTRATIVO
+    # ========================================
+    estado: EstadoVehiculo = EstadoVehiculo.ACTIVO
     estaActivo: bool = True
-    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
-    fechaActualizacion: Optional[datetime] = None
-    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
-    tuc: Optional[dict] = None  # Referencia al TUC del vehículo (datos completos)
-    datosTecnicos: DatosTecnicos
-    color: Optional[str] = None
-    numeroSerie: Optional[str] = None
+    
+    # ========================================
+    # INFORMACIÓN ADICIONAL
+    # ========================================
+    sedeRegistro: SedeRegistro = SedeRegistro.PUNO
     observaciones: Optional[str] = None
+    
+    # ========================================
+    # CAMPOS DE SUSTITUCIÓN (OPCIONAL)
+    # ========================================
+    placaSustituida: Optional[str] = None
+    fechaSustitucion: Optional[datetime] = None
+    motivoSustitucion: Optional[MotivoSustitucion] = None
+    resolucionSustitucion: Optional[str] = None
+    
+    # ========================================
+    # CAMPOS DE BAJA
+    # ========================================
+    fechaBaja: Optional[datetime] = None
+    motivoBaja: Optional[str] = None
+    observacionesBaja: Optional[str] = None
+    
+    # ========================================
+    # TUC (OPCIONAL)
+    # ========================================
+    numeroTuc: Optional[str] = None
+    tuc: Optional[dict] = None
+    
+    # ========================================
+    # HISTORIAL Y DOCUMENTOS
+    # ========================================
     documentosIds: List[str] = []
     historialIds: List[str] = []
-    numeroHistorialValidacion: Optional[int] = None  # Número secuencial basado en orden de resoluciones
-    esHistorialActual: bool = True  # Si es el registro actual del vehículo (historial más alto)
-    vehiculoHistorialActualId: Optional[str] = None  # ID del vehículo con el historial más actual
+    numeroHistorialValidacion: Optional[int] = None
+    esHistorialActual: bool = True
+    vehiculoHistorialActualId: Optional[str] = None
+    
+    # ========================================
+    # METADATOS
+    # ========================================
+    fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
+    fechaActualizacion: Optional[datetime] = None
+    
+    # ========================================
+    # COMPATIBILIDAD LEGACY (Temporal)
+    # ========================================
+    vehiculoSoloId: Optional[str] = None  # DEPRECATED: usar vehiculoDataId
+    categoria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    marca: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    modelo: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    anioFabricacion: Optional[int] = None  # DEPRECATED: obtener de VehiculoData
+    datosTecnicos: Optional[dict] = None  # DEPRECATED: obtener de VehiculoData
+    color: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    numeroSerie: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    carroceria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    placaBaja: Optional[str] = None  # DEPRECATED: usar placaSustituida
+
+# ========================================
+# SCHEMAS DE CREACIÓN Y ACTUALIZACIÓN
+# ========================================
 
 class VehiculoCreate(BaseModel):
+    """Schema para crear un vehículo - Solo campos administrativos"""
     placa: str
+    vehiculoDataId: Optional[str] = None  # Referencia a VehiculoData (nuevo sistema)
     empresaActualId: str
-    resolucionId: Optional[str] = None  # Agregar resolucionId
-    categoria: CategoriaVehiculo
-    marca: str
-    modelo: str
-    anioFabricacion: int
+    tipoServicio: str
+    resolucionId: Optional[str] = None
+    rutasAsignadasIds: Optional[List[str]] = []
+    rutasEspecificas: Optional[List[RutaEspecifica]] = []
+    estado: EstadoVehiculo = EstadoVehiculo.ACTIVO
     sedeRegistro: SedeRegistro = SedeRegistro.PUNO
+    observaciones: Optional[str] = None
+    
     # Campos de sustitución opcionales
     placaSustituida: Optional[str] = None
     fechaSustitucion: Optional[datetime] = None
     motivoSustitucion: Optional[MotivoSustitucion] = None
     resolucionSustitucion: Optional[str] = None
-    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
-    datosTecnicos: DatosTecnicos
-    color: Optional[str] = None
-    numeroSerie: Optional[str] = None
-    observaciones: Optional[str] = None
+    numeroTuc: Optional[str] = None
+    
+    # ========================================
+    # COMPATIBILIDAD LEGACY (Temporal)
+    # ========================================
+    vehiculoSoloId: Optional[str] = None  # DEPRECATED: usar vehiculoDataId
+    categoria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    marca: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    modelo: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    anioFabricacion: Optional[int] = None  # DEPRECATED: obtener de VehiculoData
+    datosTecnicos: Optional[dict] = None  # DEPRECATED: obtener de VehiculoData
+    color: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    numeroSerie: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    carroceria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    placaBaja: Optional[str] = None  # DEPRECATED: usar placaSustituida
+    tuc: Optional[dict] = None
 
 class VehiculoUpdate(BaseModel):
+    """Schema para actualizar un vehículo"""
     placa: Optional[str] = None
+    vehiculoDataId: Optional[str] = None
     empresaActualId: Optional[str] = None
+    tipoServicio: Optional[str] = None
     resolucionId: Optional[str] = None
     rutasAsignadasIds: Optional[List[str]] = None
-    categoria: Optional[CategoriaVehiculo] = None
-    marca: Optional[str] = None
-    modelo: Optional[str] = None
-    anioFabricacion: Optional[int] = None
+    rutasEspecificas: Optional[List[RutaEspecifica]] = None
     estado: Optional[EstadoVehiculo] = None
+    estaActivo: Optional[bool] = None
     sedeRegistro: Optional[SedeRegistro] = None
+    observaciones: Optional[str] = None
+    
     # Campos de sustitución
     placaSustituida: Optional[str] = None
     fechaSustitucion: Optional[datetime] = None
     motivoSustitucion: Optional[MotivoSustitucion] = None
     resolucionSustitucion: Optional[str] = None
-    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
+    
+    # Campos de baja
+    fechaBaja: Optional[datetime] = None
+    motivoBaja: Optional[str] = None
+    observacionesBaja: Optional[str] = None
+    
+    # TUC
+    numeroTuc: Optional[str] = None
     tuc: Optional[dict] = None
-    datosTecnicos: Optional[DatosTecnicos] = None
-    color: Optional[str] = None
-    numeroSerie: Optional[str] = None
-    observaciones: Optional[str] = None
     documentosIds: Optional[List[str]] = None
+    
+    # ========================================
+    # COMPATIBILIDAD LEGACY (Temporal)
+    # ========================================
+    vehiculoSoloId: Optional[str] = None  # DEPRECATED: usar vehiculoDataId
+    categoria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    marca: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    modelo: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    anioFabricacion: Optional[int] = None  # DEPRECATED: obtener de VehiculoData
+    datosTecnicos: Optional[dict] = None  # DEPRECATED: obtener de VehiculoData
+    color: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    numeroSerie: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    carroceria: Optional[str] = None  # DEPRECATED: obtener de VehiculoData
+    placaBaja: Optional[str] = None  # DEPRECATED: usar placaSustituida
 
 class VehiculoInDB(Vehiculo):
-    """Modelo para vehículo en base de datos con campos adicionales de seguridad"""
+    """Modelo para vehículo en base de datos"""
     pass
 
-class VehiculoFiltros(BaseModel):
-    placa: Optional[str] = None
-    empresaId: Optional[str] = None
-    categoria: Optional[CategoriaVehiculo] = None
-    marca: Optional[str] = None
-    estado: Optional[EstadoVehiculo] = None
-    anioFabricacionMin: Optional[int] = None
-    anioFabricacionMax: Optional[int] = None
-    tieneTucVigente: Optional[bool] = None
-    tieneResolucion: Optional[bool] = None
+# ========================================
+# SCHEMAS DE RESPUESTA
+# ========================================
 
 class VehiculoResponse(BaseModel):
+    """
+    Schema de respuesta con datos completos
+    Incluye datos técnicos obtenidos de VehiculoData
+    """
+    # Campos administrativos
+    id: str
+    placa: str
+    vehiculoDataId: str
+    empresaActualId: str
+    tipoServicio: str
+    resolucionId: Optional[str] = None
+    rutasAsignadasIds: List[str]
+    rutasEspecificas: Optional[List[RutaEspecifica]] = []
+    estado: EstadoVehiculo
+    estaActivo: bool
+    sedeRegistro: SedeRegistro
+    observaciones: Optional[str] = None
+    
+    # Campos de sustitución
+    placaSustituida: Optional[str] = None
+    fechaSustitucion: Optional[datetime] = None
+    motivoSustitucion: Optional[MotivoSustitucion] = None
+    resolucionSustitucion: Optional[str] = None
+    
+    # TUC
+    numeroTuc: Optional[str] = None
+    tuc: Optional[dict] = None
+    
+    # Historial
+    documentosIds: List[str]
+    historialIds: List[str]
+    numeroHistorialValidacion: Optional[int] = None
+    esHistorialActual: bool = True
+    vehiculoHistorialActualId: Optional[str] = None
+    
+    # Metadatos
+    fechaRegistro: datetime
+    fechaActualizacion: Optional[datetime] = None
+    
+    # Datos técnicos (obtenidos de VehiculoData)
+    datosTecnicos: Optional[dict] = None  # Se llena desde VehiculoData
+
+class VehiculoResumen(BaseModel):
+    """Schema resumido para listados"""
     id: str
     placa: str
     empresaActualId: str
-    resolucionId: Optional[str] = None
-    rutasAsignadasIds: List[str]
-    categoria: CategoriaVehiculo
-    marca: str
-    modelo: str
-    anioFabricacion: int
+    tipoServicio: str
     estado: EstadoVehiculo
-    sedeRegistro: SedeRegistro
-    # Campos de sustitución
-    placaSustituida: Optional[str] = None
-    fechaSustitucion: Optional[datetime] = None
-    motivoSustitucion: Optional[MotivoSustitucion] = None
-    resolucionSustitucion: Optional[str] = None
-    numeroTuc: Optional[str] = None  # Número de TUC formato T-001122-2025
-    estaActivo: bool
-    fechaRegistro: datetime
-    fechaActualizacion: Optional[datetime] = None
-    tuc: Optional[dict] = None
-    datosTecnicos: DatosTecnicos
-    color: Optional[str] = None
-    numeroSerie: Optional[str] = None
-    observaciones: Optional[str] = None
-    documentosIds: List[str]
-    historialIds: List[str]
-    numeroHistorialValidacion: Optional[int] = None  # Número secuencial basado en orden de resoluciones
-    esHistorialActual: bool = True  # Si es el registro actual del vehículo (historial más alto)
-    vehiculoHistorialActualId: Optional[str] = None  # ID del vehículo con el historial más actual
+    # Datos técnicos básicos (de VehiculoData)
+    marca: Optional[str] = None
+    modelo: Optional[str] = None
+    categoria: Optional[str] = None
+
+# ========================================
+# FILTROS Y ESTADÍSTICAS
+# ========================================
+
+class VehiculoFiltros(BaseModel):
+    """Filtros para búsqueda de vehículos"""
+    placa: Optional[str] = None
+    empresaId: Optional[str] = None
+    tipoServicio: Optional[str] = None
+    estado: Optional[EstadoVehiculo] = None
+    tieneTucVigente: Optional[bool] = None
+    tieneResolucion: Optional[bool] = None
 
 class VehiculoEstadisticas(BaseModel):
+    """Estadísticas de vehículos"""
     totalVehiculos: int
     vehiculosActivos: int
     vehiculosInactivos: int
@@ -198,53 +330,26 @@ class VehiculoEstadisticas(BaseModel):
     vehiculosConTucVigente: int
     vehiculosSinResolucion: int
     promedioVehiculosPorEmpresa: float
-    distribucionPorCategoria: dict
+    distribucionPorTipoServicio: dict
 
-class VehiculoResumen(BaseModel):
-    id: str
-    placa: str
-    empresaActualId: str
-    categoria: CategoriaVehiculo
-    marca: str
-    modelo: str
-    estado: EstadoVehiculo
-    tieneTucVigente: bool
-    tieneResolucion: bool
-    ultimaActualizacion: datetime
+# ========================================
+# CARGA MASIVA (LEGACY - Mantener por compatibilidad)
+# ========================================
 
 class VehiculoExcel(BaseModel):
-    """Modelo para importación desde Excel"""
+    """Modelo para importación desde Excel - LEGACY"""
     placa: str
-    empresa_ruc: str  # RUC de la empresa
-    resolucion_primigenia: Optional[str] = None  # Número de resolución primigenia (padre)
-    resolucion_hija: Optional[str] = None  # Número de resolución hija (derivada)
-    rutas_asignadas: Optional[str] = None  # Códigos de rutas separados por comas
-    sede_registro: str = "PUNO"  # Sede donde se registra el vehículo
-    # Campos de sustitución
-    placa_sustituida: Optional[str] = None  # Placa del vehículo sustituido
-    motivo_sustitucion: Optional[str] = None  # Motivo de sustitución
-    resolucion_sustitucion: Optional[str] = None  # Resolución de sustitución
-    numero_tuc: Optional[str] = None  # Número de TUC formato T-001122-2025
-    categoria: str
-    marca: str
-    modelo: str
-    anio_fabricacion: int
-    color: Optional[str] = None
-    numero_serie: Optional[str] = None
-    motor: str
-    chasis: str
-    ejes: int
-    cilindros: Optional[int] = None  # Número de cilindros del motor
-    ruedas: Optional[int] = None  # Número de llantas/ruedas
-    asientos: int
-    peso_neto: float
-    peso_bruto: float
-    largo: float
-    ancho: float
-    alto: float
-    tipo_combustible: str
-    cilindrada: Optional[float] = None
-    potencia: Optional[float] = None
+    empresa_ruc: str
+    vehiculo_data_id: Optional[str] = None  # Si ya existe en VehiculoData
+    tipo_servicio: str
+    resolucion_primigenia: Optional[str] = None
+    resolucion_hija: Optional[str] = None
+    rutas_asignadas: Optional[str] = None
+    sede_registro: str = "PUNO"
+    placa_sustituida: Optional[str] = None
+    motivo_sustitucion: Optional[str] = None
+    resolucion_sustitucion: Optional[str] = None
+    numero_tuc: Optional[str] = None
     estado: str = "ACTIVO"
     observaciones: Optional[str] = None
 
@@ -253,9 +358,9 @@ class VehiculoCargaMasivaResponse(BaseModel):
     total_procesados: int
     exitosos: int
     errores: int
-    vehiculos_creados: List[str]  # IDs de vehículos creados
-    vehiculos_actualizados: List[str] = []  # IDs de vehículos actualizados
-    errores_detalle: List[dict]  # Detalles de errores por fila
+    vehiculos_creados: List[str]
+    vehiculos_actualizados: List[str] = []
+    errores_detalle: List[dict]
 
 class VehiculoValidacionExcel(BaseModel):
     """Validación de datos de Excel"""
@@ -263,4 +368,4 @@ class VehiculoValidacionExcel(BaseModel):
     placa: str
     valido: bool
     errores: List[str]
-    advertencias: List[str] 
+    advertencias: List[str]

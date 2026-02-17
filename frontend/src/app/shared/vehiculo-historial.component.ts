@@ -10,7 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { SmartIconComponent } from './smart-icon.component';
 import { VehiculoService } from '../services/vehiculo.service';
-import { HistorialVehiculoService } from '../services/historial-vehiculo.service';
+import { HistorialVehicularService } from '../services/historial-vehicular.service';
 import { Vehiculo } from '../models/vehiculo.model';
 
 export interface HistorialDetallado {
@@ -484,7 +484,7 @@ export class VehiculoHistorialComponent implements OnInit {
 
   constructor(
     private vehiculoService: VehiculoService,
-    private historialVehiculoService: HistorialVehiculoService,
+    private historialVehiculoService: HistorialVehicularService,
     private dialog: MatDialog
   ) {
     // Agregar columna de acciones si está habilitada

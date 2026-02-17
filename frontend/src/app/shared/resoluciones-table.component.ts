@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, AfterViewInit, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ViewChild, AfterViewInit, signal, computed, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, MatSort, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -55,6 +56,7 @@ export interface AccionTabla {
     CommonModule,
     MatTableModule,
     MatPaginatorModule,
+    MatSortModule,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
@@ -241,7 +243,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="nroResolucion"
                 label="N° Resolución"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -263,7 +265,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="empresa"
                 label="Empresa"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -285,14 +287,16 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="tipoTramite"
                 label="Tipo de Trámite"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
             <mat-cell *matCellDef="let resolucion" class="tipo-column">
-              <mat-chip class="tipo-chip" [class]="'tipo-' + resolucion.tipoTramite.toLowerCase()">
-                {{ resolucion.tipoTramite }}
-              </mat-chip>
+              <mat-chip-set>
+                <mat-chip class="tipo-chip" [class]="'tipo-' + resolucion.tipoTramite.toLowerCase()">
+                  {{ resolucion.tipoTramite }}
+                </mat-chip>
+              </mat-chip-set>
             </mat-cell>
           </ng-container>
 
@@ -302,7 +306,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaEmision"
                 label="Fecha de Emisión"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -327,7 +331,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaVigenciaInicio"
                 label="Vigencia Inicio"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -348,7 +352,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaVigenciaFin"
                 label="Vigencia Fin"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -372,7 +376,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="aniosVigencia"
                 label="Años Vigencia"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -388,20 +392,54 @@ export interface AccionTabla {
             </mat-cell>
           </ng-container>
 
+          <!-- Columna: Eficacia Anticipada -->
+          <ng-container matColumnDef="eficaciaAnticipada">
+            <mat-header-cell *matHeaderCellDef class="eficacia-column">
+              <app-sortable-header
+                columna="eficaciaAnticipada"
+                label="Eficacia Ant."
+                [ordenamiento]="configuracionInterna().ordenamiento"
+                (ordenamientoChange)="onOrdenamientoChange($event)">
+              </app-sortable-header>
+            </mat-header-cell>
+            <mat-cell *matCellDef="let resolucion" class="eficacia-column">
+              @if (resolucion.tieneEficaciaAnticipada === true) {
+                <mat-chip-set>
+                  <mat-chip class="eficacia-chip anticipada" 
+                            [matTooltip]="'⚠️ Eficacia anticipada: La resolución entró en vigor ' + (resolucion.diasEficaciaAnticipada || 0) + ' días antes de su emisión'">
+                    <app-smart-icon iconName="warning" [size]="12"></app-smart-icon>
+                    {{ resolucion.diasEficaciaAnticipada }} días
+                  </mat-chip>
+                </mat-chip-set>
+              } @else if (resolucion.tieneEficaciaAnticipada === false) {
+                <mat-chip-set>
+                  <mat-chip class="eficacia-chip normal" matTooltip="✓ Sin eficacia anticipada - Emisión y vigencia coinciden">
+                    <app-smart-icon iconName="check" [size]="12"></app-smart-icon>
+                    Normal
+                  </mat-chip>
+                </mat-chip-set>
+              } @else {
+                <span class="no-data">-</span>
+              }
+            </mat-cell>
+          </ng-container>
+
           <!-- Columna: Estado -->
           <ng-container matColumnDef="estado">
             <mat-header-cell *matHeaderCellDef class="estado-column">
               <app-sortable-header
                 columna="estado"
                 label="Estado"
-                [ordenamiento]="configuracion.ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
             <mat-cell *matCellDef="let resolucion" class="estado-column">
-              <mat-chip class="estado-chip" [class]="'estado-' + resolucion.estado.toLowerCase().replace('_', '-')">
-                {{ getEstadoTexto(resolucion.estado) }}
-              </mat-chip>
+              <mat-chip-set>
+                <mat-chip class="estado-chip" [class]="'estado-' + resolucion.estado.toLowerCase().replace('_', '-')">
+                  {{ getEstadoTexto(resolucion.estado) }}
+                </mat-chip>
+              </mat-chip-set>
             </mat-cell>
           </ng-container>
 
@@ -549,19 +587,18 @@ export interface AccionTabla {
       }
 
       <!-- Paginador -->
-      @if (dataSource.data.length > 0 || configuracion.paginacion.paginaActual > 0) {
-        <mat-paginator 
-          [length]="totalResultados()"
-          [pageSize]="configuracion.paginacion.tamanoPagina"
-          [pageIndex]="configuracion.paginacion.paginaActual"
-          [pageSizeOptions]="[10, 25, 50, 100]"
-          [showFirstLastButtons]="true"
-          [disabled]="cargando"
-          (page)="onPaginaChange($event)"
-          class="table-paginator"
-          aria-label="Paginación de tabla de resoluciones">
-        </mat-paginator>
-      }
+      <mat-paginator 
+        [length]="totalResultados()"
+        [pageSize]="configuracion.paginacion.tamanoPagina"
+        [pageIndex]="configuracion.paginacion.paginaActual"
+        [pageSizeOptions]="[10, 25, 50, 100]"
+        [showFirstLastButtons]="true"
+        [disabled]="cargando"
+        [style.display]="totalResultados() > 0 ? 'block' : 'none'"
+        (page)="onPaginaChange($event)"
+        class="table-paginator"
+        aria-label="Paginación de tabla de resoluciones">
+      </mat-paginator>
     </div>
   `,
   styles: [`
@@ -569,9 +606,10 @@ export interface AccionTabla {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(135deg, #fff5e6 0%, #ffe6f0 100%);
+      border: 4px solid #ff6b9d;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(255, 107, 157, 0.3);
       overflow: hidden;
     }
 
@@ -756,6 +794,10 @@ export interface AccionTabla {
 
     .anios-column {
       width: 100px;
+    }
+
+    .eficacia-column {
+      width: 120px;
     }
 
     .estado-column {
@@ -972,6 +1014,33 @@ export interface AccionTabla {
     .estado-chip.estado-anulado {
       background-color: #fce4ec;
       color: #c2185b;
+    }
+
+    /* Estilos para chips de eficacia anticipada */
+    .eficacia-chip {
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 8px;
+      height: 24px;
+      min-height: 24px;
+      border-radius: 12px;
+    }
+
+    .eficacia-chip.anticipada {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1.5px solid #ef5350;
+      box-shadow: 0 1px 3px rgba(198, 40, 40, 0.2);
+    }
+
+    .eficacia-chip.normal {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #66bb6a;
     }
 
     .rutas-info {
@@ -1298,13 +1367,15 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   /** Evento emitido cuando se ejecuta una acción */
   @Output() accionEjecutada = new EventEmitter<AccionTabla>();
 
-  // ViewChild para el paginador
+  // ViewChild para el paginador y ordenamiento
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   // Servicios inyectados
   private resolucionService = inject(ResolucionService);
   private snackBar = inject(MatSnackBar);
   private breakpointObserver = inject(BreakpointObserver);
+  private cdr = inject(ChangeDetectorRef);
 
   // Datasource de Material Table
   dataSource = new MatTableDataSource<ResolucionConEmpresa>([]);
@@ -1322,6 +1393,12 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   private sortCache = new Map<string, ResolucionConEmpresa[]>();
   private lastSortKey = '';
   
+  // Flag para evitar loops de actualización
+  private actualizandoInternamente = false;
+  
+  // Flag para evitar procesamiento duplicado del mismo ordenamiento
+  private procesandoOrdenamiento = false;
+  
   // Señales para responsive
   esMobile = signal(false);
   esTablet = signal(false);
@@ -1330,7 +1407,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   totalResultados = signal(0);
   
   // Signal interno para la configuración reactiva
-  private configuracionInterna = signal<ResolucionTableConfig>(this.configuracion);
+  configuracionInterna = signal<ResolucionTableConfig>(this.configuracion);
   
   columnasVisibles = computed(() => {
     const columnas = [...this.configuracionInterna().columnasVisibles];
@@ -1371,27 +1448,55 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   }
 
   ngAfterViewInit(): void {
-    // Conectar el paginador al datasource
-    this.dataSource.paginator = this.paginator;
+    // Usar setTimeout para asegurar que el ViewChild esté disponible
+    setTimeout(() => {
+      // Conectar el paginador al datasource
+      if (this.paginator) {
+        this.dataSource.paginator = this.paginator;
+        
+        // Configurar el paginador con los valores iniciales de la configuración
+        this.paginator.pageIndex = this.configuracion.paginacion.paginaActual;
+        this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina;
+        
+        // Si ya hay datos, forzar actualización
+        if (this.resoluciones.length > 0) {
+          this.actualizarDataSource();
+        }
+        
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+      }
+    }, 0);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['resoluciones']) {
-      this.actualizarDataSource();
-    }
-    
-    if (changes['configuracion']) {
-      // Actualizar el signal interno cuando cambia la configuración desde el padre
-      this.configuracionInterna.set(changes['configuracion'].currentValue);
-      
-      // Si cambió el ordenamiento, actualizar datasource
-      if (changes['configuracion'].currentValue?.ordenamiento) {
+      // Solo actualizar si ya se inicializó el componente
+      if (this.dataSource) {
         this.actualizarDataSource();
       }
+    }
+    
+    if (changes['configuracion'] && !this.actualizandoInternamente) {
+      const nuevaConfig = changes['configuracion'].currentValue;
+      const configAnterior = changes['configuracion'].previousValue;
       
-      // Actualizar paginación si cambió
-      if (changes['configuracion'].currentValue?.paginacion) {
-        this.dataSource.paginator?.firstPage();
+      // Actualizar el signal interno
+      this.configuracionInterna.set(nuevaConfig);
+      
+      // Si cambió el ordenamiento, actualizar datasource
+      // PERO solo si realmente cambió (evitar loops)
+      if (nuevaConfig?.ordenamiento && configAnterior) {
+        const ordenamientoCambio = JSON.stringify(nuevaConfig.ordenamiento) !== JSON.stringify(configAnterior.ordenamiento);
+        if (ordenamientoCambio) {
+          this.actualizarDataSource();
+        }
+      }
+      
+      // Si cambió la paginación, actualizar el paginador
+      if (nuevaConfig?.paginacion && this.paginator) {
+        this.paginator.pageIndex = nuevaConfig.paginacion.paginaActual;
+        this.paginator.pageSize = nuevaConfig.paginacion.tamanoPagina;
       }
     }
   }
@@ -1402,14 +1507,37 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
 
   /**
    * Actualiza el datasource con las nuevas resoluciones
+   * IMPORTANTE: Esta es la función clave para que la paginación funcione
    */
   private actualizarDataSource(): void {
-    // Aplicar ordenamiento antes de asignar al datasource
+    // 1. Aplicar ordenamiento a los datos
     const resolucionesOrdenadas = this.aplicarOrdenamiento([...this.resoluciones]);
-    this.dataSource.data = resolucionesOrdenadas;
+    
+    // 2. Actualizar el total de resultados
     this.totalResultados.set(resolucionesOrdenadas.length);
     
-    // Limpiar selección si cambió el dataset
+    // 3. Asignar los datos al datasource
+    this.dataSource.data = resolucionesOrdenadas;
+    
+    // 4. Asegurar que el paginador esté conectado (importante cuando los datos llegan después)
+    if (this.paginator) {
+      if (this.dataSource.paginator !== this.paginator) {
+        this.dataSource.paginator = this.paginator;
+        
+        // Configurar valores iniciales si es necesario
+        if (this.paginator.pageIndex !== this.configuracion.paginacion.paginaActual) {
+          this.paginator.pageIndex = this.configuracion.paginacion.paginaActual;
+        }
+        if (this.paginator.pageSize !== this.configuracion.paginacion.tamanoPagina) {
+          this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina;
+        }
+      }
+    }
+    
+    // 5. FORZAR detección de cambios (necesario con OnPush)
+    this.cdr.markForCheck();
+    
+    // 6. Limpiar selección cuando cambian los datos
     this.seleccion.clear();
   }
 
@@ -1439,8 +1567,8 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Actualizar el signal interno para trigger la reactividad
     this.configuracionInterna.set(nuevaConfiguracion);
     
-    // Emitir el cambio completo
-    this.configuracionChange.emit(nuevaConfiguracion);
+    // Emitir SOLO el cambio específico
+    this.configuracionChange.emit({ columnasVisibles: columnas });
     
     // console.log removed for production
     // console.log removed for production
@@ -1461,8 +1589,8 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Actualizar el signal interno para trigger la reactividad
     this.configuracionInterna.set(nuevaConfiguracion);
     
-    // Emitir el cambio completo
-    this.configuracionChange.emit(nuevaConfiguracion);
+    // Emitir SOLO el cambio específico
+    this.configuracionChange.emit({ ordenColumnas: orden });
     
     // console.log removed for production
     // console.log removed for production
@@ -1476,6 +1604,15 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Maneja el cambio de ordenamiento
    */
   onOrdenamientoChange(evento: EventoOrdenamiento): void {
+    // Evitar procesamiento duplicado
+    if (this.procesandoOrdenamiento) {
+      return;
+    }
+    
+    this.procesandoOrdenamiento = true;
+    
+    console.log(`🔄 Ordenando por ${evento.columna} en dirección ${evento.direccion}`);
+    
     let nuevoOrdenamiento = [...this.configuracion.ordenamiento];
     
     if (evento.esMultiple) {
@@ -1513,12 +1650,33 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       }
     }
     
-    this.configuracionChange.emit({
+    // Limpiar caché cuando cambia el ordenamiento
+    this.sortCache.clear();
+    this.lastSortKey = '';
+    
+    // Activar flag para evitar loop en ngOnChanges
+    this.actualizandoInternamente = true;
+    
+    // Actualizar configuración interna
+    const nuevaConfiguracion = {
+      ...this.configuracion,
       ordenamiento: nuevoOrdenamiento
-    });
+    };
+    
+    this.configuracion = nuevaConfiguracion;
+    this.configuracionInterna.set(nuevaConfiguracion);
+    
+    // Emitir SOLO el cambio de ordenamiento (no toda la configuración)
+    this.configuracionChange.emit({ ordenamiento: nuevoOrdenamiento });
     
     // Aplicar ordenamiento inmediatamente a los datos actuales
     this.actualizarDataSource();
+    
+    // Desactivar flags después de un tick
+    setTimeout(() => {
+      this.actualizandoInternamente = false;
+      this.procesandoOrdenamiento = false;
+    }, 100);
   }
 
   /**
@@ -1561,6 +1719,9 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       }
       return 0;
     });
+    
+    console.log(`✅ Ordenado ${ordenamiento[0].columna} ${ordenamiento[0].direccion}. Primeros 5 años:`, 
+      resultado.slice(0, 5).map(r => r.aniosVigencia));
     
     // Guardar en cache
     this.sortCache.set(cacheKey, resultado);
@@ -1607,6 +1768,21 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
         valorA = a.fechaVigenciaFin ? new Date(a.fechaVigenciaFin).getTime() : 0;
         valorB = b.fechaVigenciaFin ? new Date(b.fechaVigenciaFin).getTime() : 0;
         break;
+      case 'aniosVigencia':
+        valorA = a.aniosVigencia || 0;
+        valorB = b.aniosVigencia || 0;
+        break;
+      case 'eficaciaAnticipada':
+        // Ordenar por días de eficacia anticipada
+        // null = sin datos, false = 0 días, true = días específicos
+        if (a.tieneEficaciaAnticipada === null) valorA = -1;
+        else if (a.tieneEficaciaAnticipada === false) valorA = 0;
+        else valorA = a.diasEficaciaAnticipada || 0;
+        
+        if (b.tieneEficaciaAnticipada === null) valorB = -1;
+        else if (b.tieneEficaciaAnticipada === false) valorB = 0;
+        else valorB = b.diasEficaciaAnticipada || 0;
+        break;
       case 'estado':
         valorA = a.estado;
         valorB = b.estado;
@@ -1646,7 +1822,20 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Maneja el cambio de página
    */
   onPaginaChange(evento: PageEvent): void {
-    this.configuracionChange.emit({
+    // Actualizar configuración interna
+    const nuevaConfiguracion = {
+      ...this.configuracion,
+      paginacion: {
+        tamanoPagina: evento.pageSize,
+        paginaActual: evento.pageIndex
+      }
+    };
+    
+    this.configuracion = nuevaConfiguracion;
+    this.configuracionInterna.set(nuevaConfiguracion);
+    
+    // Emitir SOLO el cambio de paginación
+    this.configuracionChange.emit({ 
       paginacion: {
         tamanoPagina: evento.pageSize,
         paginaActual: evento.pageIndex
