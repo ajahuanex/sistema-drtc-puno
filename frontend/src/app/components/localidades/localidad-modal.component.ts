@@ -509,12 +509,23 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
     this.onTipoChange(valor);
   }
 
+  // Cache de localidades para evitar múltiples llamadas al servicio
+  private localidadesCache: Localidad[] = [];
+
+  // Método para cargar localidades una sola vez
+  private async cargarLocalidadesUnaVez(): Promise<Localidad[]> {
+    if (this.localidadesCache.length === 0) {
+      this.localidadesCache = await this.localidadService.obtenerLocalidades();
+    }
+    return this.localidadesCache;
+  }
+
   // Métodos para cargar opciones dinámicas
   async cargarOpcionesDinamicas() {
     try {
       this.cargandoOpciones = true;
       // console.log removed for production
-      const localidades = await this.localidadService.obtenerLocalidades();
+      const localidades = await this.cargarLocalidadesUnaVez();
       
       // Extraer departamentos únicos
       this.departamentosDisponibles = [...new Set(
@@ -542,7 +553,7 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
 
   async cargarProvinciasPorDepartamento(departamento: string) {
     try {
-      const localidades = await this.localidadService.obtenerLocalidades();
+      const localidades = await this.cargarLocalidadesUnaVez();
       
       // Filtrar provincias por departamento
       this.provinciasDisponibles = [...new Set(
@@ -565,7 +576,7 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
 
   async cargarDistritosPorProvincia(departamento: string, provincia: string) {
     try {
-      const localidades = await this.localidadService.obtenerLocalidades();
+      const localidades = await this.cargarLocalidadesUnaVez();
       
       // Filtrar distritos por departamento y provincia
       this.distritosDisponibles = [...new Set(

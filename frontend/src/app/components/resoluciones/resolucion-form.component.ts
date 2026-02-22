@@ -74,7 +74,7 @@ import { ChangeDetectorRef } from '@angular/core';
               <!-- PASO 1: Búsqueda de Número de Resolución (Único) -->
               <div class="form-row">
                 <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Número de Resolución</mat-label>
+                  <mat-label>NÚMERO DE RESOLUCIÓN</mat-label>
                   <input 
                     matInput 
                     formControlName="numero" 
