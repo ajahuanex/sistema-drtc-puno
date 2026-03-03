@@ -74,18 +74,6 @@ import { LOCALIDADES_CONFIG } from './localidades.config';
             </mat-select>
           </mat-form-field>
 
-          <!-- Filtro de nivel -->
-          <mat-form-field appearance="outline" class="filtro-nivel">
-            <mat-label>Nivel Territorial</mat-label>
-            <mat-select [value]="filtrosService.nivel" 
-                        (selectionChange)="onFiltroNivelChange($event.value)">
-              <mat-option value="">Todos</mat-option>
-              <mat-option *ngFor="let nivel of config.nivelesTerritoriales" [value]="nivel">
-                {{ nivel }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
           <!-- Filtro de estado -->
           <mat-form-field appearance="outline" class="filtro-estado">
             <mat-label>Estado</mat-label>
@@ -166,10 +154,6 @@ export class FiltrosLocalidadesComponent {
 
   onFiltroTipoChange(valor: string) {
     this.filtrosService.setTipo(valor);
-  }
-
-  onFiltroNivelChange(valor: string) {
-    this.filtrosService.setNivel(valor);
   }
 
   onFiltroEstadoChange(valor: string) {

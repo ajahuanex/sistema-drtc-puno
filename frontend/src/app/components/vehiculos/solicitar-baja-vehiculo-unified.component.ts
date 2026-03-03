@@ -23,7 +23,6 @@ import {
 } from '../../models/solicitud-baja.model';
 import { SolicitudBajaService } from '../../services/solicitud-baja.service';
 import { EmpresaService } from '../../services/empresa.service';
-import { VehiculoNotificationService } from '../../services/vehiculo-notification.service';
 import { AuthService } from '../../services/auth.service';
 import { ArchivoUploadComponent } from '../../shared/archivo-upload.component';
 import { ArchivoSustentatorio } from '../../models/historial-transferencia-empresa.model';
@@ -323,7 +322,6 @@ export class SolicitarBajaVehiculoUnifiedComponent {
   private fb = inject(FormBuilder);
   private bajaService = inject(SolicitudBajaService);
   private empresaService = inject(EmpresaService);
-  private notificationService = inject(VehiculoNotificationService);
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 

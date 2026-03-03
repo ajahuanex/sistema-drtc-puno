@@ -4,7 +4,7 @@ import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-import { LocalidadesFactoryService } from '../../../services/localidades-factory.service';
+import { LocalidadService } from '../../../services/localidad.service';
 import { LocalidadesFiltrosService } from './localidades-filtros.service';
 import { Localidad, TipoLocalidad, NivelTerritorial } from '../../../models/localidad.model';
 import { LOCALIDADES_CONFIG } from '../../../config/localidades.config';
@@ -17,7 +17,7 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   // Servicios inyectados
-  protected localidadService = inject(LocalidadesFactoryService);
+  protected localidadService = inject(LocalidadService);
   protected filtrosService = inject(LocalidadesFiltrosService);
   protected snackBar = inject(MatSnackBar);
 
@@ -67,7 +67,26 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   async cargarLocalidades() {
     this.cargando.set(true);
     try {
-      const localidades = await this.localidadService.obtenerLocalidades();
+      // 🚀 OPTIMIZACIÓN: Cargar con filtros inteligentes
+      const filtroTipo = this.filtrosService.tipo;
+      
+      let localidades: Localidad[];
+      
+      if (filtroTipo === 'CENTRO_POBLADO') {
+        // Si se filtra por CENTRO_POBLADO, cargar solo esos
+        localidades = await this.localidadService.obtenerLocalidades({ tipo: 'CENTRO_POBLADO' as any });
+        console.log(`✅ ${localidades.length} centros poblados cargados`);
+      } else if (filtroTipo) {
+        // Si hay otro filtro de tipo, cargar solo ese tipo
+        localidades = await this.localidadService.obtenerLocalidades({ tipo: filtroTipo as any });
+        console.log(`✅ ${localidades.length} localidades tipo ${filtroTipo} cargadas`);
+      } else {
+        // Sin filtro: cargar TODAS las localidades (incluyendo centros poblados)
+        // El servicio ya no filtra automáticamente
+        localidades = await this.localidadService.obtenerLocalidades();
+        console.log(`✅ ${localidades.length} localidades cargadas (todas)`);
+      }
+      
       this.localidades.set(localidades);
       this.dataSource.data = localidades;
     } catch (error) {
@@ -134,10 +153,12 @@ export abstract class BaseLocalidadesComponent implements OnInit {
 
   onFiltroTipoChange(valor: string) {
     this.filtrosService.setTipo(valor);
-  }
-
-  onFiltroNivelChange(valor: string) {
-    this.filtrosService.setNivel(valor);
+    
+    // 🚀 Si se selecciona CENTRO_POBLADO, mostrar mensaje y recargar datos
+    if (valor === 'CENTRO_POBLADO') {
+      this.mostrarMensaje('Cargando centros poblados... Esto puede tardar unos segundos', 'info');
+      this.cargarLocalidades();
+    }
   }
 
   onFiltroEstadoChange(valor: string) {
@@ -146,6 +167,9 @@ export abstract class BaseLocalidadesComponent implements OnInit {
 
   limpiarFiltros() {
     this.filtrosService.limpiarFiltros();
+    
+    // 🚀 Al limpiar filtros, recargar sin centros poblados
+    this.cargarLocalidades();
   }
 
   // ========================================
@@ -170,11 +194,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   getTipoLabel(tipo?: TipoLocalidad): string {
     if (!tipo) return 'Distrito';
     return (this.config.tipoLabels as any)[tipo] || 'Distrito';
-  }
-
-  getNivelLabel(nivel?: NivelTerritorial): string {
-    if (!nivel) return 'Pueblo';
-    return (this.config.nivelLabels as any)[nivel] || 'Pueblo';
   }
 
   // ========================================

@@ -1,7 +1,7 @@
 import { AbstractControl, ValidationErrors, ValidatorFn, AsyncValidatorFn } from '@angular/forms';
 import { Observable, of, timer } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
-import { VehiculoConsolidadoService } from '../services/vehiculo-consolidado.service';
+import { VehiculoService } from '../services/vehiculo.service';
 
 /**
  * Validador para formato de placa peruana
@@ -35,7 +35,7 @@ export function placaPeruanaValidator(): ValidatorFn {
  * Validador asíncrono para verificar duplicados de placa
  */
 export function placaDuplicadaValidator(
-  vehiculoService: VehiculoConsolidadoService | any,
+  vehiculoService: VehiculoService | any,
   vehiculoIdActual?: string
 ): AsyncValidatorFn {
   return (control: AbstractControl): Observable<ValidationErrors | null> => {

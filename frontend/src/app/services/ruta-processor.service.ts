@@ -1,9 +1,24 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { LocalidadManagerService, LocalidadRuta, LocalidadProcesada } from './localidad-manager.service';
+import { LocalidadService } from './localidad.service';
 import { RutaService } from './ruta.service';
 import { RutaCreate, Ruta } from '../models/ruta.model';
 import { environment } from '../../environments/environment';
+
+export interface LocalidadRuta {
+  nombre: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
+  tipo: 'ORIGEN' | 'DESTINO' | 'ITINERARIO';
+}
+
+export interface LocalidadProcesada {
+  id: string;
+  nombre: string;
+  esNueva: boolean;
+  tipo: 'ORIGEN' | 'DESTINO' | 'ITINERARIO';
+}
 
 export interface RutaConLocalidadesData {
   // Datos básicos de la ruta
@@ -61,9 +76,50 @@ export class RutaProcessorService {
 
   constructor(
     private http: HttpClient,
-    private localidadManager: LocalidadManagerService,
+    private localidadService: LocalidadService,
     private rutaService: RutaService
   ) {}
+
+  /**
+   * Procesa localidades de una ruta asegurando unicidad
+   */
+  private async procesarLocalidadesRuta(localidades: LocalidadRuta[]): Promise<LocalidadProcesada[]> {
+    const resultados: LocalidadProcesada[] = [];
+    const todasLocalidades = await this.localidadService.obtenerLocalidades();
+    
+    for (const localidadRuta of localidades) {
+      // Buscar si ya existe
+      const existente = todasLocalidades.find(l => 
+        l.nombre.toLowerCase() === localidadRuta.nombre.toLowerCase()
+      );
+      
+      if (existente) {
+        resultados.push({
+          id: existente.id,
+          nombre: existente.nombre,
+          esNueva: false,
+          tipo: localidadRuta.tipo
+        });
+      } else {
+        // Crear nueva localidad
+        const nueva = await this.localidadService.crearLocalidad({
+          nombre: localidadRuta.nombre,
+          departamento: localidadRuta.departamento,
+          provincia: localidadRuta.provincia,
+          distrito: localidadRuta.distrito
+        });
+        
+        resultados.push({
+          id: nueva.id,
+          nombre: nueva.nombre,
+          esNueva: true,
+          tipo: localidadRuta.tipo
+        });
+      }
+    }
+    
+    return resultados;
+  }
 
   /**
    * Procesa una ruta completa con localidades únicas
@@ -101,14 +157,13 @@ export class RutaProcessorService {
       }
 
       // 3. Procesar todas las localidades para asegurar unicidad
-      // console.log removed for production
-      const localidadesProcesadas = await this.localidadManager.procesarLocalidadesRuta(localidadesParaProcesar);
+      const localidadesProcesadas = await this.procesarLocalidadesRuta(localidadesParaProcesar);
       resultado.localidadesProcesadas = localidadesProcesadas;
 
       // 4. Extraer IDs de las localidades procesadas
-      const origenProcesado = localidadesProcesadas.find(loc => loc.tipo === 'ORIGEN');
-      const destinoProcesado = localidadesProcesadas.find(loc => loc.tipo === 'DESTINO');
-      const itinerarioProcesado = localidadesProcesadas.filter(loc => loc.tipo === 'ITINERARIO');
+      const origenProcesado = localidadesProcesadas.find((loc: any) => loc.tipo === 'ORIGEN');
+      const destinoProcesado = localidadesProcesadas.find((loc: any) => loc.tipo === 'DESTINO');
+      const itinerarioProcesado = localidadesProcesadas.filter((loc: any) => loc.tipo === 'ITINERARIO');
 
       if (!origenProcesado || !destinoProcesado) {
         resultado.errores.push('No se pudieron procesar las localidades de origen y destino');
@@ -128,7 +183,7 @@ export class RutaProcessorService {
           id: destinoProcesado.id,
           nombre: destinoProcesado.nombre
         },
-        itinerario: itinerarioProcesado.map((loc, index) => ({
+        itinerario: itinerarioProcesado.map((loc: any, index: number) => ({
           id: loc.id,
           nombre: loc.nombre,
           orden: index + 1
@@ -299,10 +354,14 @@ export class RutaProcessorService {
    */
   async obtenerEstadisticasProcesamiento(): Promise<any> {
     try {
-      const estadisticasLocalidades = await this.localidadManager.obtenerEstadisticas();
+      // TODO: Implementar estadísticas desde LocalidadService
+      const localidades = await this.localidadService.obtenerLocalidades();
       
       return {
-        localidades: estadisticasLocalidades,
+        localidades: {
+          total: localidades.length,
+          activas: localidades.filter(l => l.estaActiva).length
+        },
         mensaje: 'Estadísticas obtenidas correctamente'
       };
     } catch (error) {

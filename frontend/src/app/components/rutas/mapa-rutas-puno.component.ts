@@ -1,13 +1,24 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, inject, signal, input } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, inject, signal, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import * as L from 'leaflet';
 import 'leaflet-routing-machine';
+import 'leaflet.heat';
 import { Ruta } from '../../models/ruta.model';
+
+// Declarar el tipo para leaflet.heat
+declare module 'leaflet' {
+  function heatLayer(latlngs: [number, number, number][], options?: any): any;
+}
 
 interface LocalidadMapa {
   nombre: string;
@@ -24,101 +35,511 @@ interface LocalidadMapa {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    MatChipsModule
+    MatChipsModule,
+    MatAutocompleteModule,
+    MatFormFieldModule,
+    MatInputModule
   ],
   template: `
-    <mat-card class="mapa-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>map</mat-icon>
-          Mapa de Rutas - Departamento de Puno
-        </mat-card-title>
-        <mat-card-subtitle>
-          Visualización geográfica de rutas y localidades
-        </mat-card-subtitle>
-      </mat-card-header>
+    <mat-card class="mapa-card" [class.fullscreen]="pantallaCompleta()">
+      @if (!pantallaCompleta()) {
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>map</mat-icon>
+            Mapa de Rutas - Departamento de Puno
+          </mat-card-title>
+          <mat-card-subtitle>
+            Visualización geográfica de rutas y localidades
+          </mat-card-subtitle>
+        </mat-card-header>
+      }
       
       <mat-card-content>
-        <!-- Controles del mapa -->
-        <div class="mapa-controles">
-          <mat-chip-set>
-            <mat-chip (click)="toggleMostrarRutas()" [class.active]="mostrarRutas()">
-              <mat-icon>{{ mostrarRutas() ? 'visibility' : 'visibility_off' }}</mat-icon>
-              Rutas
-            </mat-chip>
-            <mat-chip (click)="toggleMostrarLocalidades()" [class.active]="mostrarLocalidades()">
-              <mat-icon>{{ mostrarLocalidades() ? 'visibility' : 'visibility_off' }}</mat-icon>
-              Localidades
-            </mat-chip>
-            <mat-chip (click)="toggleMostrarItinerarios()" [class.active]="mostrarItinerarios()">
-              <mat-icon>{{ mostrarItinerarios() ? 'visibility' : 'visibility_off' }}</mat-icon>
-              Itinerarios
-            </mat-chip>
-            <mat-chip (click)="toggleMostrarRutasCanceladas()" [class.warning]="mostrarRutasCanceladas()">
-              <mat-icon>{{ mostrarRutasCanceladas() ? 'visibility' : 'visibility_off' }}</mat-icon>
-              Canceladas
-            </mat-chip>
-            <mat-chip (click)="centrarMapa()">
-              <mat-icon>my_location</mat-icon>
-              Centrar
-            </mat-chip>
-          </mat-chip-set>
-          
-          <div class="mapa-stats">
-            <span class="stat-item">
-              <mat-icon>place</mat-icon>
-              {{ localidadesEnMapa().length }} localidades
-            </span>
-            <span class="stat-item">
-              <mat-icon>route</mat-icon>
-              {{ rutasEnMapa().length }} rutas
-            </span>
+        <!-- Panel lateral de controles (visible en pantalla completa) -->
+        @if (pantallaCompleta()) {
+          <div class="panel-lateral">
+            <div class="panel-header">
+              <h3>
+                <mat-icon>map</mat-icon>
+                Mapa de Rutas - Puno
+              </h3>
+            </div>
+            
+            <!-- Filtros en panel lateral -->
+            <div class="filtros-lateral">
+              <h4>Buscar Localidad</h4>
+              <mat-form-field appearance="outline" class="filtro-field-lateral">
+                <mat-label>Escribe para buscar</mat-label>
+                <input matInput
+                       [ngModel]="busquedaLocalidad()"
+                       (ngModelChange)="busquedaLocalidad.set($event)"
+                       [matAutocomplete]="autoLocalidad"
+                       placeholder="Ej: PUNO, JULIACA...">
+                <mat-icon matPrefix>search</mat-icon>
+                <mat-autocomplete #autoLocalidad="matAutocomplete" 
+                                  (optionSelected)="seleccionarLocalidadDesdeAutocomplete($event.option.value)">
+                  @if (localidadesFiltradas().length === 0) {
+                    <mat-option disabled>No se encontraron localidades</mat-option>
+                  }
+                  @for (localidad of localidadesFiltradas(); track localidad) {
+                    <mat-option [value]="localidad">
+                      {{ localidad }}
+                    </mat-option>
+                  }
+                </mat-autocomplete>
+                <mat-hint>Busca en origen, destino e itinerario</mat-hint>
+              </mat-form-field>
+
+              @if (localidadSeleccionada) {
+                <div class="localidad-seleccionada">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ localidadSeleccionada }}</span>
+                  <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+
+            <!-- Localidades conectadas -->
+            @if (localidadesConectadas().length > 0) {
+              <div class="conexiones-lateral">
+                <h4>Conectada con ({{ localidadesConectadas().length }})</h4>
+                <div class="conexiones-lista">
+                  @for (conexion of localidadesConectadas(); track conexion.nombre) {
+                    <div class="conexion-item" (click)="seleccionarLocalidad(conexion.nombre)">
+                      <span class="conexion-nombre">{{ conexion.nombre }}</span>
+                      <span class="conexion-rutas">{{ conexion.rutas }} ruta{{ conexion.rutas > 1 ? 's' : '' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Controles en panel lateral -->
+            <div class="controles-lateral">
+              <h4>Capas</h4>
+              <div class="control-item" (click)="toggleProvincias()">
+                <mat-icon [class.active]="mostrarProvincias()">
+                  {{ mostrarProvincias() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Provincias</span>
+              </div>
+              <div class="control-item" (click)="toggleMapaCalor()">
+                <mat-icon [class.active]="mostrarMapaCalor()">
+                  {{ mostrarMapaCalor() ? 'whatshot' : 'map' }}
+                </mat-icon>
+                <span>{{ mostrarMapaCalor() ? 'Mapa de Calor' : 'Mapa Normal' }}</span>
+              </div>
+              <div class="control-item" (click)="togglePoblacion()">
+                <mat-icon [class.active]="mostrarPoblacion()">
+                  {{ mostrarPoblacion() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Población</span>
+              </div>
+              <div class="control-item" (click)="toggleMostrarRutas()">
+                <mat-icon [class.active]="mostrarRutas()">
+                  {{ mostrarRutas() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Rutas</span>
+              </div>
+              <div class="control-item" (click)="toggleMostrarLocalidades()">
+                <mat-icon [class.active]="mostrarLocalidades()">
+                  {{ mostrarLocalidades() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Localidades</span>
+              </div>
+              <div class="control-item" (click)="toggleMostrarItinerarios()">
+                <mat-icon [class.active]="mostrarItinerarios()">
+                  {{ mostrarItinerarios() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Itinerarios</span>
+              </div>
+              <div class="control-item warning" (click)="toggleMostrarRutasCanceladas()">
+                <mat-icon [class.active]="mostrarRutasCanceladas()">
+                  {{ mostrarRutasCanceladas() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+                <span>Canceladas</span>
+              </div>
+              <div class="control-item" (click)="centrarMapa()">
+                <mat-icon>my_location</mat-icon>
+                <span>Centrar</span>
+              </div>
+            </div>
+
+            <!-- Estadísticas en panel lateral -->
+            <div class="stats-lateral">
+              <h4>Estadísticas</h4>
+              <div class="stat-lateral">
+                <mat-icon>place</mat-icon>
+                <span>{{ localidadesEnMapa().length }} localidades</span>
+              </div>
+              <div class="stat-lateral">
+                <mat-icon>route</mat-icon>
+                <span>{{ rutasEnMapa().length }} rutas</span>
+              </div>
+            </div>
           </div>
-        </div>
+        }
+
+        <!-- Filtros normales (solo cuando NO está en pantalla completa) -->
+        @if (!pantallaCompleta()) {
+          <div class="filtros-section">
+            <mat-form-field appearance="outline" class="filtro-field">
+              <mat-label>Buscar Localidad</mat-label>
+              <input matInput
+                     [ngModel]="busquedaLocalidad()"
+                     (ngModelChange)="busquedaLocalidad.set($event)"
+                     [matAutocomplete]="autoLocalidadNormal"
+                     placeholder="Escribe para buscar...">
+              <mat-icon matPrefix>search</mat-icon>
+              <mat-autocomplete #autoLocalidadNormal="matAutocomplete" 
+                                (optionSelected)="seleccionarLocalidadDesdeAutocomplete($event.option.value)">
+                @if (localidadesFiltradas().length === 0) {
+                  <mat-option disabled>No se encontraron localidades</mat-option>
+                }
+                @for (localidad of localidadesFiltradas(); track localidad) {
+                  <mat-option [value]="localidad">
+                    {{ localidad }}
+                  </mat-option>
+                }
+              </mat-autocomplete>
+              <mat-hint>Busca en origen, destino e itinerario</mat-hint>
+            </mat-form-field>
+
+            @if (localidadSeleccionada) {
+              <button mat-raised-button color="warn" (click)="limpiarFiltros()">
+                <mat-icon>clear</mat-icon>
+                Limpiar Filtro
+              </button>
+            }
+          </div>
+
+          <!-- Controles del mapa normales -->
+          <div class="mapa-controles">
+            <mat-chip-set>
+              <mat-chip (click)="toggleProvincias()" [class.active]="mostrarProvincias()">
+                <mat-icon>{{ mostrarProvincias() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Provincias
+              </mat-chip>
+              <mat-chip (click)="toggleMapaCalor()" [class.active]="mostrarMapaCalor()">
+                <mat-icon>{{ mostrarMapaCalor() ? 'whatshot' : 'map' }}</mat-icon>
+                {{ mostrarMapaCalor() ? 'Mapa de Calor' : 'Mapa Normal' }}
+              </mat-chip>
+              <mat-chip (click)="togglePoblacion()" [class.active]="mostrarPoblacion()">
+                <mat-icon>{{ mostrarPoblacion() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Población
+              </mat-chip>
+              <mat-chip (click)="toggleMostrarRutas()" [class.active]="mostrarRutas()">
+                <mat-icon>{{ mostrarRutas() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Rutas
+              </mat-chip>
+              <mat-chip (click)="toggleMostrarLocalidades()" [class.active]="mostrarLocalidades()">
+                <mat-icon>{{ mostrarLocalidades() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Localidades
+              </mat-chip>
+              <mat-chip (click)="toggleMostrarItinerarios()" [class.active]="mostrarItinerarios()">
+                <mat-icon>{{ mostrarItinerarios() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Itinerarios
+              </mat-chip>
+              <mat-chip (click)="toggleMostrarRutasCanceladas()" [class.warning]="mostrarRutasCanceladas()">
+                <mat-icon>{{ mostrarRutasCanceladas() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                Canceladas
+              </mat-chip>
+              <mat-chip (click)="centrarMapa()">
+                <mat-icon>my_location</mat-icon>
+                Centrar
+              </mat-chip>
+            </mat-chip-set>
+            
+            <div class="mapa-stats">
+              <span class="stat-item">
+                <mat-icon>place</mat-icon>
+                {{ localidadesEnMapa().length }} localidades
+              </span>
+              <span class="stat-item">
+                <mat-icon>route</mat-icon>
+                {{ rutasEnMapa().length }} rutas
+              </span>
+            </div>
+          </div>
+        }
         
         <!-- Contenedor del mapa -->
-        <div id="mapa-puno" class="mapa-container"></div>
+        <div id="mapa-puno" class="mapa-container">
+          <!-- Botón flotante de pantalla completa -->
+          <button mat-mini-fab 
+                  class="fullscreen-button" 
+                  (click)="togglePantallaCompleta()"
+                  [matTooltip]="pantallaCompleta() ? 'Salir de pantalla completa' : 'Pantalla completa'"
+                  matTooltipPosition="left">
+            <mat-icon>{{ pantallaCompleta() ? 'fullscreen_exit' : 'fullscreen' }}</mat-icon>
+          </button>
+        </div>
         
-        <!-- Leyenda -->
-        <div class="mapa-leyenda">
-          <h4>Leyenda</h4>
-          <div class="leyenda-items">
-            <div class="leyenda-item">
-              <div class="marker-preview grande"></div>
-              <span>Localidad muy transitada (10+ rutas)</span>
-            </div>
-            <div class="leyenda-item">
-              <div class="marker-preview mediano"></div>
-              <span>Localidad transitada (5-9 rutas)</span>
-            </div>
-            <div class="leyenda-item">
-              <div class="marker-preview pequeno"></div>
-              <span>Localidad poco transitada (1-4 rutas)</span>
-            </div>
-            <div class="leyenda-item">
-              <div class="linea-preview"></div>
-              <span>Ruta activa (línea sólida)</span>
-            </div>
-            <div class="leyenda-item">
-              <div class="linea-preview punteada"></div>
-              <span>Itinerario (línea punteada)</span>
-            </div>
-            <div class="leyenda-item">
-              <div class="linea-preview cancelada"></div>
-              <span>Ruta cancelada (roja)</span>
+        <!-- Leyenda (solo cuando NO está en pantalla completa) -->
+        @if (!pantallaCompleta()) {
+          <div class="mapa-leyenda">
+            <h4>Leyenda</h4>
+            <div class="leyenda-items">
+              <div class="leyenda-item">
+                <div class="marker-preview grande"></div>
+                <span>Localidad muy transitada (80+ rutas)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="marker-preview mediano"></div>
+                <span>Localidad transitada (40-79 rutas)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="marker-preview amarillo"></div>
+                <span>Localidad media (20-39 rutas)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="marker-preview pequeno"></div>
+                <span>Localidad poco transitada (1-4 rutas)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="linea-preview"></div>
+                <span>Ruta activa (línea sólida)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="linea-preview punteada"></div>
+                <span>Itinerario (línea punteada)</span>
+              </div>
+              <div class="leyenda-item">
+                <div class="linea-preview cancelada"></div>
+                <span>Ruta cancelada (roja)</span>
+              </div>
             </div>
           </div>
-        </div>
+        }
       </mat-card-content>
     </mat-card>
   `,
   styles: [`
     .mapa-card {
       margin: 20px 0;
+      transition: all 0.3s ease;
+    }
+
+    .mapa-card.fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      z-index: 9999;
+      border-radius: 0;
+    }
+
+    .mapa-card.fullscreen .mapa-container {
+      height: 100vh;
+      border-radius: 0;
+    }
+
+    /* Panel lateral en pantalla completa */
+    .panel-lateral {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 300px;
+      background: white;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .panel-header {
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      color: #1976d2;
+    }
+
+    .filtros-lateral,
+    .controles-lateral,
+    .stats-lateral,
+    .conexiones-lateral {
+      margin-bottom: 24px;
+    }
+
+    .filtros-lateral h4,
+    .controles-lateral h4,
+    .stats-lateral h4,
+    .conexiones-lateral h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+    }
+
+    .filtro-field-lateral {
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .localidad-seleccionada {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #e3f2fd;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .localidad-seleccionada mat-icon {
+      color: #1976d2;
+    }
+
+    .localidad-seleccionada span {
+      flex: 1;
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    .localidad-seleccionada button {
+      width: 32px;
+      height: 32px;
+      line-height: 32px;
+    }
+
+    .btn-limpiar-lateral {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .control-item:hover {
+      background: #f5f5f5;
+    }
+
+    .control-item mat-icon {
+      color: #666;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .control-item mat-icon.active {
+      color: #1976d2;
+    }
+
+    .control-item.warning mat-icon.active {
+      color: #f44336;
+    }
+
+    .control-item span {
+      font-size: 14px;
+      color: #333;
+    }
+
+    .stat-lateral {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .stat-lateral mat-icon {
+      color: #1976d2;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .stat-lateral span {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    /* Estilos para conexiones */
+    .conexiones-lista {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .conexion-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .conexion-item:hover {
+      background: #e3f2fd;
+      transform: translateX(4px);
+    }
+
+    .conexion-nombre {
+      font-size: 13px;
+      color: #333;
+      font-weight: 500;
+      flex: 1;
+    }
+
+    .conexion-rutas {
+      font-size: 12px;
+      color: #1976d2;
+      font-weight: 600;
+      background: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    .filtros-section {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filtro-field {
+      flex: 1;
+      min-width: 250px;
     }
     
     .mapa-controles {
@@ -156,6 +577,20 @@ interface LocalidadMapa {
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .fullscreen-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .fullscreen-button:hover {
+      background: #f5f5f5;
     }
     
     .mapa-leyenda {
@@ -204,6 +639,12 @@ interface LocalidadMapa {
       width: 14px;
       height: 14px;
       background: #f57c00;
+    }
+    
+    .marker-preview.amarillo {
+      width: 12px;
+      height: 12px;
+      background: #fbc02d;
     }
     
     .marker-preview.pequeno {
@@ -284,9 +725,161 @@ interface LocalidadMapa {
       font-weight: 600;
       color: #333;
     }
+
+    /* Estilos para provincias */
+    :host ::ng-deep .popup-provincia h3 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    :host ::ng-deep .popup-provincia .provincia-stats {
+      margin-top: 8px;
+    }
+
+    :host ::ng-deep .popup-provincia .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    :host ::ng-deep .popup-provincia .stat-label {
+      font-weight: 500;
+      color: #666;
+    }
+
+    :host ::ng-deep .popup-provincia .stat-value {
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    :host ::ng-deep .popup-provincia .stat-value.clickable {
+      cursor: pointer;
+      text-decoration: underline;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    :host ::ng-deep .popup-provincia .stat-value.clickable:hover {
+      color: #0d47a1;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid #e3f2fd;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list strong {
+      color: #1976d2;
+      font-size: 13px;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list ul {
+      margin: 8px 0 4px 0;
+      padding-left: 20px;
+      list-style: none;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list li {
+      padding: 4px 0;
+      font-size: 12px;
+      color: #555;
+      position: relative;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list li:before {
+      content: "•";
+      color: #1976d2;
+      font-weight: bold;
+      position: absolute;
+      left: -15px;
+    }
+
+    :host ::ng-deep .popup-provincia .empresas-list small {
+      color: #999;
+      font-style: italic;
+    }
+
+    /* Popup de empresas detallado */
+    :host ::ng-deep .popup-empresas h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+
+    :host ::ng-deep .popup-empresas p {
+      margin: 4px 0 12px 0;
+      font-size: 13px;
+      color: #666;
+    }
+
+    :host ::ng-deep .popup-empresas .empresas-detalle {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    :host ::ng-deep .popup-empresas .empresa-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      margin-bottom: 4px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    :host ::ng-deep .popup-empresas .empresa-rank {
+      width: 24px;
+      height: 24px;
+      background: #1976d2;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    :host ::ng-deep .popup-empresas .empresa-nombre {
+      flex: 1;
+      font-weight: 500;
+      color: #333;
+    }
+
+    :host ::ng-deep .popup-empresas .empresa-rutas {
+      color: #1976d2;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    :host ::ng-deep .provincia-tooltip {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    :host ::ng-deep .leaflet-interactive {
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
   `]
 })
 export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy {
+  private http = inject(HttpClient);
+  
   // Inputs
   rutas = input<Ruta[]>([]);
   
@@ -295,13 +888,32 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
   mostrarLocalidades = signal(true);
   mostrarRutasCanceladas = signal(false);
   mostrarItinerarios = signal(true);
+  mostrarMapaCalor = signal(false);
+  mostrarProvincias = signal(true);
+  mostrarPoblacion = signal(false);
+  pantallaCompleta = signal(false);
   localidadesEnMapa = signal<LocalidadMapa[]>([]);
   rutasEnMapa = signal<Ruta[]>([]);
+  
+  // Filtros
+  localidadSeleccionada = '';
+  busquedaLocalidad = signal('');
+  localidadesDisponibles = signal<string[]>([]);
+  localidadesFiltradas = computed(() => {
+    const busqueda = this.busquedaLocalidad().toLowerCase().trim();
+    if (!busqueda) return this.localidadesDisponibles();
+    return this.localidadesDisponibles().filter(loc => 
+      loc.toLowerCase().includes(busqueda)
+    );
+  });
+  localidadesConectadas = signal<Array<{nombre: string, rutas: number}>>([]);
   
   // Mapa de Leaflet
   private mapa?: L.Map;
   private markersLayer?: L.LayerGroup;
   private rutasLayer?: L.LayerGroup;
+  private heatLayer?: any;
+  private provinciasLayer?: L.GeoJSON;
   
   // Coordenadas del departamento de Puno
   private readonly PUNO_CENTER: L.LatLngExpression = [-15.8402, -70.0219];
@@ -359,7 +971,7 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
     'USICAYOS': [-14.1833, -69.8833],
     
     // Provincia de Chucuito
-    'JULI': [-16.2167, -69.4667],
+    'JULI': [-16.2167, -69.4667],  // Capital de Chucuito (sur del lago)
     'DESAGUADERO': [-16.5667, -69.0333],
     'HUACULLANI': [-16.6333, -69.1833],
     'KELLUYO': [-16.7167, -69.2167],
@@ -466,10 +1078,51 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
   private procesarDatos(): void {
     const todasLasRutas = this.rutas();
     
+    // Extraer TODAS las localidades únicas (origen, destino e itinerario)
+    const localidades = new Set<string>();
+    
+    todasLasRutas.forEach(ruta => {
+      if (ruta.origen?.nombre) localidades.add(ruta.origen.nombre);
+      if (ruta.destino?.nombre) localidades.add(ruta.destino.nombre);
+      if (ruta.itinerario && Array.isArray(ruta.itinerario)) {
+        ruta.itinerario.forEach(loc => {
+          if (loc.nombre) localidades.add(loc.nombre);
+        });
+      }
+    });
+    
+    this.localidadesDisponibles.set(Array.from(localidades).sort());
+    
+    // Aplicar filtro de localidad (busca en origen, destino E itinerario)
+    let rutasFiltradas = todasLasRutas;
+    
+    if (this.localidadSeleccionada) {
+      rutasFiltradas = rutasFiltradas.filter(ruta => {
+        // Verificar si la localidad está en origen
+        if (ruta.origen?.nombre === this.localidadSeleccionada) return true;
+        
+        // Verificar si la localidad está en destino
+        if (ruta.destino?.nombre === this.localidadSeleccionada) return true;
+        
+        // Verificar si la localidad está en el itinerario
+        if (ruta.itinerario && Array.isArray(ruta.itinerario)) {
+          return ruta.itinerario.some(loc => loc.nombre === this.localidadSeleccionada);
+        }
+        
+        return false;
+      });
+      
+      // Calcular localidades conectadas
+      this.calcularLocalidadesConectadas(rutasFiltradas);
+    } else {
+      // Si no hay filtro, limpiar conexiones
+      this.localidadesConectadas.set([]);
+    }
+    
     // Filtrar rutas canceladas si el toggle está desactivado
     const rutasData = this.mostrarRutasCanceladas() 
-      ? todasLasRutas 
-      : todasLasRutas.filter(ruta => ruta.estado !== 'CANCELADA' && ruta.estado !== 'DADA_DE_BAJA');
+      ? rutasFiltradas 
+      : rutasFiltradas.filter(ruta => ruta.estado !== 'CANCELADA' && ruta.estado !== 'DADA_DE_BAJA');
     
     this.rutasEnMapa.set(rutasData);
     
@@ -553,13 +1206,305 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
       minZoom: 7
     }).addTo(this.mapa);
     
-    // Crear capas para markers y rutas
-    this.markersLayer = L.layerGroup().addTo(this.mapa);
+    // Cargar provincias de Puno PRIMERO (para que estén debajo)
+    this.cargarProvincias();
+    
+    // Crear capas para rutas y markers (en este orden para que estén encima)
     this.rutasLayer = L.layerGroup().addTo(this.mapa);
+    this.markersLayer = L.layerGroup().addTo(this.mapa);
     
     // Dibujar localidades y rutas
     this.dibujarLocalidades();
     this.dibujarRutas();
+  }
+
+  private cargarProvincias(): void {
+    this.http.get<any>('/assets/geojson/peru-provincias.geojson').subscribe({
+      next: (geojson) => {
+        if (this.mapa) {
+          console.log('=== MAPEO DE PROVINCIAS DESDE GEOJSON ===');
+          geojson.features?.forEach((feature: any) => {
+            const id = feature.id;
+            const nombProv = feature.properties?.NOMBPROV;
+            console.log(`ID ${id} -> ${nombProv}`);
+          });
+
+          // Colores para las provincias
+          const colores: { [key: string]: string } = {
+            'PUNO': '#2196F3',
+            'SAN ROMAN': '#F44336',
+            'AZANGARO': '#4CAF50',
+            'CHUCUITO': '#FF9800',
+            'EL COLLAO': '#9C27B0',
+            'YUNGUYO': '#E91E63',
+            'HUANCANE': '#00BCD4',
+            'LAMPA': '#FFC107',
+            'MELGAR': '#795548',
+            'CARABAYA': '#607D8B',
+            'MOHO': '#673AB7',
+            'SAN ANTONIO DE PUTINA': '#CDDC39',
+            'SANDIA': '#FF5722'
+          };
+
+          // Mapeo de nombres del GeoJSON a nombres normalizados
+          const normalizarNombre = (nombre: string): string => {
+            const mapeo: { [key: string]: string } = {
+              'PUNO': 'Puno',
+              'SAN ROMAN': 'San Román',
+              'AZANGARO': 'Azángaro',
+              'CHUCUITO': 'Chucuito',
+              'EL COLLAO': 'El Collao',
+              'YUNGUYO': 'Yunguyo',
+              'HUANCANE': 'Huancané',
+              'LAMPA': 'Lampa',
+              'MELGAR': 'Melgar',
+              'CARABAYA': 'Carabaya',
+              'MOHO': 'Moho',
+              'SAN ANTONIO DE PUTINA': 'San Antonio de Putina',
+              'SANDIA': 'Sandia'
+            };
+            return mapeo[nombre] || nombre;
+          };
+
+          this.provinciasLayer = L.geoJSON(geojson, {
+            style: (feature) => {
+              if (!feature || !feature.properties) return {};
+              
+              const nombProv = feature.properties.NOMBPROV || 'DESCONOCIDA';
+              const color = colores[nombProv] || '#9E9E9E';
+              
+              return {
+                fillColor: color,
+                weight: 2,
+                opacity: 1,
+                color: '#1976d2',
+                fillOpacity: 0.2
+              };
+            },
+            onEachFeature: (feature, layer) => {
+              const id = Number(feature?.id) || 0;
+              const nombProvGeo = feature.properties?.NOMBPROV || 'Desconocida';
+              const nombreProvincia = normalizarNombre(nombProvGeo);
+              
+              // Calcular estadísticas de la provincia
+              const stats = this.calcularEstadisticasProvincia(nombreProvincia);
+              
+              // Popup con información detallada
+              const popupContent = `
+                <div class="popup-provincia">
+                  <h3>${nombreProvincia}</h3>
+                  <div class="provincia-stats">
+                    <div class="stat-row">
+                      <span class="stat-label">ID:</span>
+                      <span class="stat-value">${id}</span>
+                    </div>
+                    <div class="stat-row">
+                      <span class="stat-label">Rutas:</span>
+                      <span class="stat-value">${stats.totalRutas}</span>
+                    </div>
+                    <div class="stat-row">
+                      <span class="stat-label">Empresas:</span>
+                      <span class="stat-value clickable" onclick="window.dispatchEvent(new CustomEvent('mostrarEmpresas', { detail: { provincia: '${nombreProvincia}' } }))">${stats.totalEmpresas} <span style="font-size: 14px;">ℹ️</span></span>
+                    </div>
+                    ${stats.empresas.length > 0 ? `
+                      <div class="empresas-list">
+                        <strong>Top empresas:</strong>
+                        <ul>
+                          ${stats.empresas.slice(0, 3).map(e => `<li>${e.nombre.substring(0, 30)}${e.nombre.length > 30 ? '...' : ''} (${e.rutas})</li>`).join('')}
+                        </ul>
+                        ${stats.empresas.length > 3 ? `<small>y ${stats.empresas.length - 3} más...</small>` : ''}
+                      </div>
+                    ` : '<p style="color: #999; font-size: 12px; margin-top: 8px;">No hay rutas registradas</p>'}
+                  </div>
+                </div>
+              `;
+              
+              layer.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'provincia-popup'
+              });
+              
+              // Tooltip con nombre
+              layer.bindTooltip(`${nombreProvincia}`, {
+                permanent: false,
+                direction: 'center',
+                className: 'provincia-tooltip'
+              });
+              
+              // Eventos de interacción
+              layer.on({
+                mouseover: (e) => {
+                  const layer = e.target;
+                  layer.setStyle({
+                    weight: 3,
+                    fillOpacity: 0.4
+                  });
+                },
+                mouseout: (e) => {
+                  this.provinciasLayer?.resetStyle(e.target);
+                },
+                click: (e) => {
+                  this.mapa?.fitBounds(e.target.getBounds());
+                }
+              });
+            }
+          }).addTo(this.mapa);
+          
+          // Enviar la capa de provincias al fondo (debajo de rutas y localidades)
+          this.provinciasLayer.bringToBack();
+          
+          if (!this.mostrarProvincias()) {
+            this.mapa.removeLayer(this.provinciasLayer);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando GeoJSON de provincias:', error);
+      }
+    });
+
+    // Escuchar evento personalizado para mostrar empresas
+    window.addEventListener('mostrarEmpresas', ((event: CustomEvent) => {
+      this.mostrarDetalleEmpresas(event.detail.provincia);
+    }) as EventListener);
+  }
+
+  private identificarProvinciaPorCoordenadas(lat: number, lng: number): string {
+    // Rangos geográficos aproximados de cada provincia
+    // Basado en las coordenadas reales de Puno
+    
+    // Yunguyo (extremo sur-este, cerca del lago)
+    if (lat < -16.1 && lng > -69.3) return 'Yunguyo';
+    
+    // Chucuito (sur, cerca del lago)
+    if (lat < -16.0 && lat > -16.8 && lng > -69.8 && lng < -69.0) return 'Chucuito';
+    
+    // El Collao (sur-centro)
+    if (lat < -15.9 && lat > -16.8 && lng > -70.0 && lng < -69.4) return 'El Collao';
+    
+    // Puno (centro, alrededor de la ciudad de Puno)
+    if (lat > -16.2 && lat < -15.5 && lng > -70.4 && lng < -69.7) return 'Puno';
+    
+    // San Román (centro-norte, Juliaca) - AJUSTADO
+    // Incluye la zona alrededor de Juliaca
+    if (lat > -15.8 && lat < -15.2 && lng > -70.6 && lng < -69.8) return 'San Román';
+    
+    // Lampa (oeste de San Román)
+    if (lat > -15.7 && lat < -15.0 && lng > -70.8 && lng < -70.1) return 'Lampa';
+    
+    // Melgar (extremo oeste)
+    if (lng < -70.4 && lat > -15.0 && lat < -14.4) return 'Melgar';
+    
+    // Azángaro (norte-centro)
+    if (lat > -15.2 && lat < -14.6 && lng > -70.5 && lng < -69.9) return 'Azángaro';
+    
+    // Huancané (este, cerca del lago)
+    if (lat > -15.5 && lat < -14.9 && lng > -70.0 && lng < -69.3) return 'Huancané';
+    
+    // Moho (noreste, en el lago)
+    if (lat > -15.6 && lat < -15.2 && lng > -69.7 && lng < -69.3) return 'Moho';
+    
+    // San Antonio de Putina (norte)
+    if (lat > -15.0 && lat < -14.6 && lng > -70.0 && lng < -69.5) return 'San Antonio de Putina';
+    
+    // Carabaya (noroeste)
+    if (lat > -14.4 && lat < -13.4 && lng > -70.7 && lng < -69.8) return 'Carabaya';
+    
+    // Sandia (noreste)
+    if (lat > -14.6 && lat < -13.6 && lng > -69.8 && lng < -69.2) return 'Sandia';
+    
+    return 'Desconocida';
+  }
+
+  private calcularDistancia(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lng1 - lng2, 2));
+  }
+
+  private calcularEstadisticasProvincia(nombreProvincia: string): {
+    totalRutas: number;
+    totalEmpresas: number;
+    empresas: Array<{ nombre: string; rutas: number }>;
+  } {
+    // Mapeo de localidades por provincia
+    const localidadesPorProvincia: { [key: string]: string[] } = {
+      'Puno': ['PUNO', 'ACORA', 'AMANTANI', 'ATUNCOLLA', 'CAPACHICA', 'CHUCUITO', 'COATA', 'HUATA', 'MAÑAZO', 'PAUCARCOLLA', 'PICHACANI', 'PLATERIA', 'SAN ANTONIO', 'TIQUILLACA', 'VILQUE'],
+      'San Román': ['JULIACA', 'CABANA', 'CABANILLAS', 'CARACOTO'],
+      'Azángaro': ['AZANGARO', 'ACHAYA', 'ARAPA', 'ASILLO', 'CAMINACA', 'CHUPA', 'JOSE DOMINGO CHOQUEHUANCA', 'MUÑANI', 'POTONI', 'SAMAN', 'SAN ANTON', 'SAN JOSE', 'SAN JUAN DE SALINAS', 'SANTIAGO DE PUPUJA', 'TIRAPATA'],
+      'Chucuito': ['JULI', 'DESAGUADERO', 'HUACULLANI', 'KELLUYO', 'PISACOMA', 'POMATA', 'ZEPITA'],
+      'El Collao': ['ILAVE', 'CAPASO', 'PILCUYO', 'SANTA ROSA COLLAO', 'CONDURIRI'],
+      'Yunguyo': ['YUNGUYO', 'ANAPIA', 'COPANI', 'CUTURAPI', 'OLLARAYA', 'TINICACHI', 'UNICACHI'],
+      'Huancané': ['HUANCANE', 'COJATA', 'HUATASANI', 'INCHUPALLA', 'PUSI', 'ROSASPATA', 'TARACO', 'VILQUE CHICO'],
+      'Lampa': ['LAMPA', 'CABANILLA', 'CALAPUJA', 'NICASIO', 'OCUVIRI', 'PALCA', 'PARATIA', 'PUCARA', 'SANTA LUCIA', 'VILAVILA'],
+      'Melgar': ['AYAVIRI', 'ANTAUTA', 'CUPI', 'LLALLI', 'MACARI', 'NUÑOA', 'ORURILLO', 'SANTA ROSA MELGAR', 'UMACHIRI'],
+      'Carabaya': ['MACUSANI', 'AJOYANI', 'AYAPATA', 'COASA', 'CORANI', 'CRUCERO', 'ITUATA', 'OLLACHEA', 'SAN GABAN', 'USICAYOS'],
+      'Moho': ['MOHO', 'CONIMA', 'HUAYRAPATA', 'TILALI'],
+      'San Antonio de Putina': ['PUTINA', 'ANANEA', 'PEDRO VILCA APAZA', 'QUILCAPUNCU', 'SINA'],
+      'Sandia': ['SANDIA', 'ALTO INAMBARI', 'CUYOCUYO', 'LIMBANI', 'PATAMBUCO', 'PHARA', 'QUIACA', 'SAN JUAN DEL ORO', 'YANAHUAYA', 'MASSIAPO']
+    };
+
+    const localidades = localidadesPorProvincia[nombreProvincia] || [];
+    
+    // Filtrar rutas de esta provincia
+    const rutasProvincia = this.rutasEnMapa().filter(ruta => {
+      const origenEnProvincia = localidades.some(loc => 
+        ruta.origen?.nombre?.toUpperCase().includes(loc)
+      );
+      const destinoEnProvincia = localidades.some(loc => 
+        ruta.destino?.nombre?.toUpperCase().includes(loc)
+      );
+      return origenEnProvincia || destinoEnProvincia;
+    });
+
+    // Contar empresas y sus rutas
+    const empresasMap = new Map<string, { nombre: string; rutas: number }>();
+    rutasProvincia.forEach(ruta => {
+      const empresaNombre = typeof ruta.empresa?.razonSocial === 'string' 
+        ? ruta.empresa.razonSocial 
+        : (ruta.empresa?.razonSocial as any)?.principal || 'Sin empresa';
+      
+      if (!empresasMap.has(empresaNombre)) {
+        empresasMap.set(empresaNombre, { nombre: empresaNombre, rutas: 0 });
+      }
+      empresasMap.get(empresaNombre)!.rutas++;
+    });
+
+    const empresas = Array.from(empresasMap.values())
+      .sort((a, b) => b.rutas - a.rutas);
+
+    return {
+      totalRutas: rutasProvincia.length,
+      totalEmpresas: empresas.length,
+      empresas: empresas
+    };
+  }
+
+  private mostrarDetalleEmpresas(nombreProvincia: string): void {
+    const stats = this.calcularEstadisticasProvincia(nombreProvincia);
+    
+    const empresasHTML = stats.empresas.map((e, i) => 
+      `<div class="empresa-item">
+        <span class="empresa-rank">${i + 1}</span>
+        <span class="empresa-nombre">${e.nombre}</span>
+        <span class="empresa-rutas">${e.rutas} rutas</span>
+      </div>`
+    ).join('');
+
+    const popupContent = `
+      <div class="popup-empresas">
+        <h3>Empresas en ${nombreProvincia}</h3>
+        <p><strong>${stats.totalEmpresas}</strong> empresas operando</p>
+        <div class="empresas-detalle">
+          ${empresasHTML}
+        </div>
+      </div>
+    `;
+
+    if (this.mapa) {
+      L.popup()
+        .setLatLng(this.PUNO_CENTER)
+        .setContent(popupContent)
+        .openOn(this.mapa);
+    }
   }
   
   private dibujarLocalidades(): void {
@@ -569,10 +1514,49 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
     
     if (!this.mostrarLocalidades()) return;
     
-    this.localidadesEnMapa().forEach(localidad => {
+    // Separar localidades superpuestas
+    const localidadesAjustadas = this.separarLocalidadesSuperpuestas(this.localidadesEnMapa());
+    
+    localidadesAjustadas.forEach(localidad => {
       const marker = this.crearMarker(localidad);
       marker.addTo(this.markersLayer!);
     });
+  }
+
+  private separarLocalidadesSuperpuestas(localidades: LocalidadMapa[]): LocalidadMapa[] {
+    const resultado: LocalidadMapa[] = [];
+    const umbralDistancia = 0.02; // ~2km en grados
+    const offsetAngulo = 45; // Grados para separar
+    const offsetDistancia = 0.015; // Distancia de separación
+    
+    localidades.forEach(localidad => {
+      // Verificar si hay localidades muy cercanas
+      const cercanas = resultado.filter(l => {
+        const distancia = Math.sqrt(
+          Math.pow(l.lat - localidad.lat, 2) + 
+          Math.pow(l.lng - localidad.lng, 2)
+        );
+        return distancia < umbralDistancia;
+      });
+      
+      if (cercanas.length > 0) {
+        // Hay localidades cercanas, aplicar offset
+        const angulo = (cercanas.length * offsetAngulo) * (Math.PI / 180);
+        const nuevoLat = localidad.lat + (offsetDistancia * Math.cos(angulo));
+        const nuevoLng = localidad.lng + (offsetDistancia * Math.sin(angulo));
+        
+        resultado.push({
+          ...localidad,
+          lat: nuevoLat,
+          lng: nuevoLng
+        });
+      } else {
+        // No hay localidades cercanas, usar coordenadas originales
+        resultado.push(localidad);
+      }
+    });
+    
+    return resultado;
   }
   
   private crearMarker(localidad: LocalidadMapa): L.CircleMarker {
@@ -580,12 +1564,15 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
     let radius = 6;
     let color = '#388e3c'; // Verde para poco tránsito
     
-    if (localidad.total >= 10) {
+    if (localidad.total >= 80) {
+      radius = 12;
+      color = '#d32f2f'; // Rojo para mucho tránsito (80+)
+    } else if (localidad.total >= 40) {
       radius = 10;
-      color = '#d32f2f'; // Rojo para mucho tránsito
-    } else if (localidad.total >= 5) {
+      color = '#f57c00'; // Naranja para tránsito alto (40-79)
+    } else if (localidad.total >= 20) {
       radius = 8;
-      color = '#f57c00'; // Naranja para tránsito medio
+      color = '#fbc02d'; // Amarillo para tránsito medio (20-39)
     }
     
     const marker = L.circleMarker([localidad.lat, localidad.lng], {
@@ -817,6 +1804,157 @@ export class MapaRutasPunoComponent implements OnInit, AfterViewInit, OnDestroy 
   centrarMapa(): void {
     if (this.mapa) {
       this.mapa.setView(this.PUNO_CENTER, this.PUNO_ZOOM);
+    }
+  }
+
+  togglePantallaCompleta(): void {
+    this.pantallaCompleta.update(v => !v);
+    
+    // Esperar a que el DOM se actualice antes de invalidar el tamaño del mapa
+    setTimeout(() => {
+      if (this.mapa) {
+        this.mapa.invalidateSize();
+      }
+    }, 100);
+  }
+
+  aplicarFiltros(): void {
+    console.log('🔍 Aplicando filtros - Localidad seleccionada:', this.localidadSeleccionada);
+    this.procesarDatos();
+    console.log('📊 Rutas filtradas:', this.rutasEnMapa().length);
+    console.log('📍 Localidades en mapa:', this.localidadesEnMapa().length);
+    if (this.mapa) {
+      this.dibujarLocalidades();
+      this.dibujarRutas();
+      if (this.mostrarMapaCalor()) {
+        this.dibujarMapaCalor();
+      }
+    }
+  }
+
+  limpiarFiltros(): void {
+    this.localidadSeleccionada = '';
+    this.busquedaLocalidad.set('');
+    this.aplicarFiltros();
+  }
+
+  seleccionarLocalidad(nombre: string): void {
+    this.localidadSeleccionada = nombre;
+    this.busquedaLocalidad.set(nombre);
+    this.aplicarFiltros();
+  }
+
+  seleccionarLocalidadDesdeAutocomplete(nombre: string): void {
+    this.localidadSeleccionada = nombre;
+    this.busquedaLocalidad.set(nombre);
+    this.aplicarFiltros();
+  }
+
+  private calcularLocalidadesConectadas(rutas: Ruta[]): void {
+    const conexiones = new Map<string, number>();
+    
+    rutas.forEach(ruta => {
+      // Agregar todas las localidades de la ruta excepto la seleccionada
+      const localidadesRuta = new Set<string>();
+      
+      if (ruta.origen?.nombre && ruta.origen.nombre !== this.localidadSeleccionada) {
+        localidadesRuta.add(ruta.origen.nombre);
+      }
+      
+      if (ruta.destino?.nombre && ruta.destino.nombre !== this.localidadSeleccionada) {
+        localidadesRuta.add(ruta.destino.nombre);
+      }
+      
+      if (ruta.itinerario && Array.isArray(ruta.itinerario)) {
+        ruta.itinerario.forEach(loc => {
+          if (loc.nombre && loc.nombre !== this.localidadSeleccionada) {
+            localidadesRuta.add(loc.nombre);
+          }
+        });
+      }
+      
+      // Contar conexiones
+      localidadesRuta.forEach(localidad => {
+        conexiones.set(localidad, (conexiones.get(localidad) || 0) + 1);
+      });
+    });
+    
+    // Convertir a array y ordenar por número de rutas
+    const conectadas = Array.from(conexiones.entries())
+      .map(([nombre, rutas]) => ({ nombre, rutas }))
+      .sort((a, b) => b.rutas - a.rutas);
+    
+    this.localidadesConectadas.set(conectadas);
+  }
+
+  toggleMapaCalor(): void {
+    this.mostrarMapaCalor.update(v => !v);
+    if (this.mostrarMapaCalor()) {
+      this.dibujarMapaCalor();
+    } else {
+      this.removerMapaCalor();
+    }
+  }
+
+  toggleProvincias(): void {
+    this.mostrarProvincias.update(v => !v);
+    if (this.mapa && this.provinciasLayer) {
+      if (this.mostrarProvincias()) {
+        this.mapa.addLayer(this.provinciasLayer);
+        // Asegurar que las provincias estén al fondo
+        this.provinciasLayer.bringToBack();
+      } else {
+        this.mapa.removeLayer(this.provinciasLayer);
+      }
+    }
+  }
+
+  togglePoblacion(): void {
+    this.mostrarPoblacion.update(v => !v);
+    // La población se muestra en los popups de las localidades
+    // No necesita redibujar, solo actualizar el estado
+  }
+
+  private dibujarMapaCalor(): void {
+    if (!this.mapa) return;
+    
+    // Remover capa anterior si existe
+    this.removerMapaCalor();
+    
+    // Preparar datos para el mapa de calor
+    const heatData: [number, number, number][] = [];
+    
+    // Encontrar el máximo de rutas para normalizar
+    const maxRutas = Math.max(...this.localidadesEnMapa().map(l => l.total), 1);
+    
+    this.localidadesEnMapa().forEach(localidad => {
+      // Intensidad normalizada: 0 a 1 basada en el máximo
+      // Las localidades con más rutas tendrán intensidad cercana a 1 (rojo)
+      const intensidad = localidad.total / maxRutas;
+      heatData.push([localidad.lat, localidad.lng, intensidad]);
+    });
+    
+    // Crear capa de calor con gradiente de frío a caliente
+    this.heatLayer = (L as any).heatLayer(heatData, {
+      radius: 25,      // Radio base más pequeño
+      blur: 15,        // Menos blur para más precisión
+      minOpacity: 0.6, // Opacidad mínima más alta
+      max: 1.0,        // Máximo normalizado a 1
+      gradient: {
+        0.0: '#0000ff',  // Azul - pocas rutas
+        0.2: '#00ffff',  // Cyan
+        0.4: '#00ff00',  // Verde
+        0.6: '#ffff00',  // Amarillo
+        0.8: '#ff8800',  // Naranja
+        1.0: '#ff0000'   // Rojo - más rutas
+      }
+    }).addTo(this.mapa);
+  }
+
+  private removerMapaCalor(): void {
+    if (this.heatLayer && this.mapa) {
+      this.mapa.removeLayer(this.heatLayer);
+      this.heatLayer = null;
     }
   }
 }

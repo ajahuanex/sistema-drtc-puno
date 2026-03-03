@@ -4,8 +4,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
-import { AdminBaseDatosComponent } from './admin-base-datos.component';
-import { InfoBaseDatosComponent } from './info-base-datos.component';
 
 @Component({
   selector: 'app-admin-localidades',
@@ -15,9 +13,7 @@ import { InfoBaseDatosComponent } from './info-base-datos.component';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatTabsModule,
-    AdminBaseDatosComponent,
-    InfoBaseDatosComponent
+    MatTabsModule
   ],
   template: `
     <div class="admin-container">
@@ -38,8 +34,6 @@ import { InfoBaseDatosComponent } from './info-base-datos.component';
           <!-- Tab: Información del Sistema -->
           <mat-tab label="Información del Sistema">
             <div class="tab-content">
-              <app-info-base-datos></app-info-base-datos>
-              
               <mat-card class="info-card">
                 <mat-card-header>
                   <mat-card-title>
@@ -89,8 +83,6 @@ import { InfoBaseDatosComponent } from './info-base-datos.component';
           <!-- Tab: Administración de Base de Datos -->
           <mat-tab label="Administración de Base de Datos">
             <div class="tab-content">
-              <app-admin-base-datos></app-admin-base-datos>
-              
               <mat-card class="warning-card">
                 <mat-card-header>
                   <mat-card-title>

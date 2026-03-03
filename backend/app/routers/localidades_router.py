@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
+import logging
 
 from app.dependencies.db import get_database
 from app.services.localidad_service import LocalidadService
@@ -13,6 +14,7 @@ from app.models.localidad import (
 )
 
 router = APIRouter(prefix="/localidades", tags=["localidades"])
+logger = logging.getLogger(__name__)
 
 async def get_localidad_service(db: AsyncIOMotorDatabase = Depends(get_database)) -> LocalidadService:
     return LocalidadService(db)
@@ -39,7 +41,7 @@ async def obtener_localidades(
     provincia: Optional[str] = Query(None, description="Filtrar por provincia"),
     esta_activa: Optional[bool] = Query(None, description="Filtrar por estado"),
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(200, ge=1, le=1000, description="Número máximo de registros"),
+    limit: int = Query(10000, ge=1, le=20000, description="Número máximo de registros"),
     service: LocalidadService = Depends(get_localidad_service)
 ) -> List[LocalidadResponse]:
     """Obtener localidades con filtros opcionales"""
@@ -100,11 +102,20 @@ async def obtener_localidades_activas(
 @router.get("/buscar", response_model=List[LocalidadResponse])
 async def buscar_localidades(
     q: str = Query(..., min_length=2, description="Término de búsqueda"),
+    limite: int = Query(50, ge=1, le=200, description="Límite de resultados"),
     service: LocalidadService = Depends(get_localidad_service)
 ) -> List[LocalidadResponse]:
-    """Buscar localidades por término"""
+    """
+    Buscar localidades por término con jerarquía territorial
+    
+    La búsqueda prioriza:
+    - Coincidencia exacta en nombre
+    - Nombre que empieza con el término
+    - Jerarquía: Departamento > Provincia > Distrito > Centro Poblado
+    - Coincidencias en departamento, provincia, distrito
+    """
     try:
-        localidades = await service.buscar_localidades(q)
+        localidades = await service.buscar_localidades(q, limite)
         return [LocalidadResponse(**localidad.model_dump()) for localidad in localidades]
     except Exception as e:
         raise HTTPException(status_code=500, detail="Error en la búsqueda")
@@ -454,55 +465,11 @@ async def operaciones_masivas_localidades(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en operación masiva: {str(e)}")
 
-@router.patch("/{localidad_id}/toggle-estado")
-async def toggle_estado_localidad(
-    localidad_id: str,
-    service: LocalidadService = Depends(get_localidad_service)
-) -> dict:
-    """Cambiar estado activo/inactivo de una localidad"""
-    try:
-        localidad = await service.get_localidad_by_id(localidad_id)
-        if not localidad:
-            raise HTTPException(status_code=404, detail="Localidad no encontrada")
-        
-        # Cambiar estado
-        nuevo_estado = not localidad.estaActiva
-        await service.update_localidad(localidad_id, LocalidadUpdate(estaActiva=nuevo_estado))
-        
-        return {
-            "message": f"Localidad {'activada' if nuevo_estado else 'desactivada'} exitosamente",
-            "estado": nuevo_estado
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error cambiando estado: {str(e)}")
-
-@router.delete("/{localidad_id}")
-async def eliminar_localidad(
-    localidad_id: str,
-    service: LocalidadService = Depends(get_localidad_service)
-) -> dict:
-    """Eliminar una localidad"""
-    try:
-        localidad = await service.get_localidad_by_id(localidad_id)
-        if not localidad:
-            raise HTTPException(status_code=404, detail="Localidad no encontrada")
-        
-        # Verificar si la localidad está siendo usada en rutas
-        # TODO: Implementar verificación de uso en rutas
-        
-        await service.delete_localidad(localidad_id)
-        
-        return {"message": "Localidad eliminada exitosamente"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error eliminando localidad: {str(e)}")
-
 # ========================================
 # 🏘️ ENDPOINTS PARA CENTROS POBLADOS
 # ========================================
+# NOTA: Los endpoints duplicados de toggle-estado y eliminar fueron removidos
+# Las implementaciones originales están en las líneas 194 y 175
 
 @router.post("/importar-centros-poblados-inei")
 async def importar_centros_poblados_inei(
@@ -780,3 +747,866 @@ async def importar_centros_poblados_archivo(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error procesando archivo: {str(e)}")
+
+# ========================================
+# 🗺️ ENDPOINT PARA IMPORTACIÓN DESDE GEOJSON
+# ========================================
+
+@router.post("/importar-geojson")
+async def importar_desde_geojson(
+    modo: str = Query('ambos', description="Modo: crear, actualizar, ambos"),
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """
+    Importar localidades completas desde archivos GeoJSON
+    Importa: Provincias, Distritos y Centros Poblados
+    """
+    try:
+        import json
+        import os
+        from pathlib import Path
+        
+        # Función helper para limpiar ubigeo
+        def limpiar_ubigeo(ubigeo_raw) -> Optional[str]:
+            """Retorna ubigeo de 6 dígitos o None si no es válido"""
+            if not ubigeo_raw:
+                return None
+            ubigeo_str = str(ubigeo_raw).strip()
+            if not ubigeo_str or ubigeo_str == '0' or ubigeo_str == '':
+                return None
+            # Completar con ceros al FINAL hasta 6 dígitos (ej: "2101" -> "210100")
+            if len(ubigeo_str) < 6:
+                ubigeo_str = ubigeo_str.ljust(6, '0')
+            # Si es más largo de 6, tomar solo los primeros 6
+            elif len(ubigeo_str) > 6:
+                ubigeo_str = ubigeo_str[:6]
+            # Validar que tenga exactamente 6 caracteres
+            return ubigeo_str if len(ubigeo_str) == 6 else None
+        
+        # Rutas a los archivos GeoJSON
+        base_path = Path(__file__).parent.parent.parent.parent / 'frontend' / 'src' / 'assets' / 'geojson'
+        
+        stats = {
+            'provincias': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0},
+            'distritos': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0},
+            'centros_poblados': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0}
+        }
+        
+        # 1. Importar Provincias
+        ruta_provincias = base_path / 'peru-provincias.geojson'
+        if ruta_provincias.exists():
+            with open(ruta_provincias, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = [f for f in data['features'] if f['properties'].get('NOMBDEP') == 'PUNO']
+                
+                for feature in features:
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        # Extraer centroide
+                        coords = None
+                        if geometry.get('type') == 'Polygon' and geometry.get('coordinates'):
+                            polygon_coords = geometry['coordinates'][0]
+                            if polygon_coords:
+                                lons = [c[0] for c in polygon_coords]
+                                lats = [c[1] for c in polygon_coords]
+                                coords = {
+                                    'longitud': sum(lons) / len(lons),
+                                    'latitud': sum(lats) / len(lats)
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMBPROV', '').strip(),
+                            tipo=TipoLocalidad.PROVINCIA,
+                            departamento='PUNO',
+                            provincia=props.get('NOMBPROV', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('IDPROV')),
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        # Verificar si existe
+                        existe = await service.collection.find_one({
+                            'nombre': localidad_data.nombre,
+                            'tipo': TipoLocalidad.PROVINCIA
+                        })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                # No sobrescribir estaActiva al actualizar
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)  # Remover si existe
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['provincias']['actualizados'] += 1
+                            else:
+                                stats['provincias']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['provincias']['importados'] += 1
+                                
+                    except Exception as e:
+                        stats['provincias']['errores'] += 1
+                        logger.error(f"Error importando provincia: {str(e)}")
+        
+        # 2. Importar Distritos
+        ruta_distritos = base_path / 'puno-distritos.geojson'
+        if ruta_distritos.exists():
+            with open(ruta_distritos, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data['features']
+                
+                for feature in features:
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        # Extraer centroide
+                        coords = None
+                        if geometry.get('type') == 'Polygon' and geometry.get('coordinates'):
+                            polygon_coords = geometry['coordinates'][0]
+                            if polygon_coords:
+                                lons = [c[0] for c in polygon_coords]
+                                lats = [c[1] for c in polygon_coords]
+                                coords = {
+                                    'longitud': sum(lons) / len(lons),
+                                    'latitud': sum(lats) / len(lats)
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('DISTRITO', '').strip(),
+                            tipo=TipoLocalidad.DISTRITO,
+                            departamento=props.get('DEPARTAMEN', 'PUNO').strip(),
+                            provincia=props.get('PROVINCIA', '').strip(),
+                            distrito=props.get('DISTRITO', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('UBIGEO')),
+                            coordenadas=coords
+                        )
+                        
+                        # Verificar si existe
+                        existe = await service.collection.find_one({
+                            'ubigeo': localidad_data.ubigeo
+                        }) if localidad_data.ubigeo else None
+                        
+                        if not existe:
+                            existe = await service.collection.find_one({
+                                'nombre': localidad_data.nombre,
+                                'tipo': TipoLocalidad.DISTRITO,
+                                'provincia': localidad_data.provincia
+                            })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                # No sobrescribir estaActiva al actualizar
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)  # Remover si existe
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['distritos']['actualizados'] += 1
+                            else:
+                                stats['distritos']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['distritos']['importados'] += 1
+                                
+                    except Exception as e:
+                        stats['distritos']['errores'] += 1
+                        logger.error(f"Error importando distrito: {str(e)}")
+        
+        # 3. Importar Centros Poblados
+        ruta_centros = base_path / 'puno-centrospoblados.geojson'
+        if ruta_centros.exists():
+            logger.info(f"📍 Iniciando importación de centros poblados desde {ruta_centros}")
+            with open(ruta_centros, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data['features']
+                logger.info(f"📊 Total de centros poblados a procesar: {len(features)}")
+                
+                for idx, feature in enumerate(features):
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        # Extraer coordenadas (Point)
+                        coords = None
+                        if geometry.get('type') == 'Point' and geometry.get('coordinates'):
+                            point_coords = geometry['coordinates']
+                            if len(point_coords) >= 2:
+                                coords = {
+                                    'longitud': point_coords[0],
+                                    'latitud': point_coords[1]
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMB_CCPP', '').strip(),
+                            tipo=TipoLocalidad.CENTRO_POBLADO,
+                            departamento=props.get('NOMB_DEPAR', 'PUNO').strip(),
+                            provincia=props.get('NOMB_PROVI', '').strip(),
+                            distrito=props.get('NOMB_DISTR', '').strip(),
+                            ubigeo=None,  # Los centros poblados no tienen UBIGEO único
+                            codigo_ccpp=props.get('COD_CCPP', '').strip() or None,
+                            tipo_area=props.get('TIPO', '').strip() or None,
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        # Verificar si existe - buscar solo por nombre + ubicación
+                        existe = await service.collection.find_one({
+                            'nombre': localidad_data.nombre,
+                            'tipo': TipoLocalidad.CENTRO_POBLADO,
+                            'distrito': localidad_data.distrito,
+                            'provincia': localidad_data.provincia
+                        })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                # No sobrescribir estaActiva al actualizar
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)  # Remover si existe
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['centros_poblados']['actualizados'] += 1
+                            else:
+                                stats['centros_poblados']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['centros_poblados']['importados'] += 1
+                        
+                        # Log cada 100
+                        if (idx + 1) % 100 == 0:
+                            logger.info(f"📦 Procesados {idx + 1}/{len(features)} centros poblados... (Importados: {stats['centros_poblados']['importados']}, Actualizados: {stats['centros_poblados']['actualizados']}, Errores: {stats['centros_poblados']['errores']})")
+                                
+                    except Exception as e:
+                        stats['centros_poblados']['errores'] += 1
+                        if idx < 5:  # Log solo los primeros 5 errores para no saturar
+                            logger.error(f"❌ Error importando centro poblado #{idx+1} '{props.get('NOMB_CCPP', 'SIN NOMBRE')}': {str(e)}")
+                
+                logger.info(f"✅ Centros poblados procesados: {len(features)}")
+        else:
+            logger.warning(f"⚠️ Archivo de centros poblados no encontrado en: {ruta_centros}")
+        
+        # Resumen
+        total_importados = sum(s['importados'] for s in stats.values())
+        total_actualizados = sum(s['actualizados'] for s in stats.values())
+        total_omitidos = sum(s['omitidos'] for s in stats.values())
+        total_errores = sum(s['errores'] for s in stats.values())
+        
+        logger.info(f"✅ Importación completada - Importados: {total_importados}, Actualizados: {total_actualizados}, Omitidos: {total_omitidos}, Errores: {total_errores}")
+        logger.info(f"📊 Detalle: {stats}")
+        
+        return {
+            'message': 'Importación completada',
+            'total_importados': total_importados,
+            'total_actualizados': total_actualizados,
+            'total_omitidos': total_omitidos,
+            'total_errores': total_errores,
+            'detalle': stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en importación GeoJSON: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error importando desde GeoJSON: {str(e)}")
+
+
+@router.post("/reactivar-todas")
+async def reactivar_todas_localidades(
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """Reactivar todas las localidades inactivas"""
+    try:
+        result = await service.collection.update_many(
+            {"estaActiva": False},
+            {"$set": {"estaActiva": True, "fechaActualizacion": datetime.utcnow()}}
+        )
+        
+        return {
+            'message': 'Localidades reactivadas',
+            'reactivadas': result.modified_count
+        }
+    except Exception as e:
+        logger.error(f"Error reactivando localidades: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error reactivando localidades: {str(e)}")
+
+
+@router.get("/debug/{nombre}")
+async def debug_localidad(
+    nombre: str,
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """Debug: Ver datos completos de una localidad por nombre"""
+    try:
+        localidad = await service.collection.find_one({
+            "nombre": {"$regex": nombre, "$options": "i"}
+        })
+        
+        if not localidad:
+            return {"error": "No encontrada"}
+        
+        # Convertir ObjectId a string para serialización
+        localidad["_id"] = str(localidad["_id"])
+        
+        return localidad
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/limpiar-base-datos")
+async def limpiar_base_datos_localidades(
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """Eliminar todas las localidades de la base de datos"""
+    try:
+        result = await service.collection.delete_many({})
+        
+        return {
+            'message': 'Todas las localidades han sido eliminadas',
+            'eliminadas': result.deleted_count
+        }
+    except Exception as e:
+        logger.error(f"Error eliminando localidades: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error eliminando localidades: {str(e)}")
+
+
+# Variable global para controlar la importación
+importacion_activa = {"activa": False, "cancelar": False}
+
+@router.post("/importar-geojson-lotes")
+async def importar_desde_geojson_lotes(
+    modo: str = Query('ambos', description="Modo: crear, actualizar, ambos"),
+    lote_size: int = Query(50, description="Tamaño del lote"),
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """
+    Importar localidades por lotes con reporte de progreso
+    """
+    try:
+        import json
+        from pathlib import Path
+        
+        if importacion_activa["activa"]:
+            raise HTTPException(status_code=409, detail="Ya hay una importación en curso")
+        
+        importacion_activa["activa"] = True
+        importacion_activa["cancelar"] = False
+        
+        # Función helper para limpiar ubigeo
+        def limpiar_ubigeo(ubigeo_raw) -> Optional[str]:
+            if not ubigeo_raw:
+                return None
+            ubigeo_str = str(ubigeo_raw).strip()
+            if not ubigeo_str or ubigeo_str == '0':
+                return None
+            if len(ubigeo_str) < 6:
+                ubigeo_str = ubigeo_str.ljust(6, '0')
+            return ubigeo_str if len(ubigeo_str) == 6 else None
+        
+        base_path = Path(__file__).parent.parent.parent.parent / 'frontend' / 'src' / 'assets' / 'geojson'
+        
+        stats = {
+            'provincias': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0},
+            'distritos': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0},
+            'centros_poblados': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0}
+        }
+        
+        # 1. Importar Provincias (rápido)
+        logger.info("🏛️ Importando provincias...")
+        ruta_provincias = base_path / 'peru-provincias.geojson'
+        if ruta_provincias.exists():
+            with open(ruta_provincias, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = [f for f in data['features'] if f['properties'].get('NOMBDEP') == 'PUNO']
+                
+                for feature in features:
+                    if importacion_activa["cancelar"]:
+                        break
+                        
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        coords = None
+                        if geometry.get('type') in ['Polygon', 'MultiPolygon']:
+                            if geometry.get('coordinates'):
+                                polygon_coords = geometry['coordinates'][0] if geometry['type'] == 'Polygon' else geometry['coordinates'][0][0]
+                                if polygon_coords:
+                                    lons = [c[0] for c in polygon_coords]
+                                    lats = [c[1] for c in polygon_coords]
+                                    coords = {
+                                        'longitud': sum(lons) / len(lons),
+                                        'latitud': sum(lats) / len(lats)
+                                    }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMBPROV', '').strip(),
+                            tipo=TipoLocalidad.PROVINCIA,
+                            departamento='PUNO',
+                            provincia=props.get('NOMBPROV', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('IDPROV')),
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        existe = await service.collection.find_one({
+                            'nombre': localidad_data.nombre,
+                            'tipo': TipoLocalidad.PROVINCIA
+                        })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['provincias']['actualizados'] += 1
+                            else:
+                                stats['provincias']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['provincias']['importados'] += 1
+                                
+                    except Exception as e:
+                        stats['provincias']['errores'] += 1
+                        logger.error(f"Error importando provincia: {str(e)}")
+        
+        # 2. Importar Distritos (rápido)
+        logger.info("🗺️ Importando distritos...")
+        ruta_distritos = base_path / 'puno-distritos.geojson'
+        if ruta_distritos.exists():
+            with open(ruta_distritos, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data['features']
+                
+                for feature in features:
+                    if importacion_activa["cancelar"]:
+                        break
+                        
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        coords = None
+                        if geometry.get('type') == 'Polygon' and geometry.get('coordinates'):
+                            polygon_coords = geometry['coordinates'][0]
+                            if polygon_coords:
+                                lons = [c[0] for c in polygon_coords]
+                                lats = [c[1] for c in polygon_coords]
+                                coords = {
+                                    'longitud': sum(lons) / len(lons),
+                                    'latitud': sum(lats) / len(lats)
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('DISTRITO', '').strip(),
+                            tipo=TipoLocalidad.DISTRITO,
+                            departamento=props.get('DEPARTAMEN', 'PUNO').strip(),
+                            provincia=props.get('PROVINCIA', '').strip(),
+                            distrito=props.get('DISTRITO', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('UBIGEO')),
+                            coordenadas=coords
+                        )
+                        
+                        existe = await service.collection.find_one({
+                            'ubigeo': localidad_data.ubigeo
+                        }) if localidad_data.ubigeo else None
+                        
+                        if not existe:
+                            existe = await service.collection.find_one({
+                                'nombre': localidad_data.nombre,
+                                'tipo': TipoLocalidad.DISTRITO,
+                                'provincia': localidad_data.provincia
+                            })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['distritos']['actualizados'] += 1
+                            else:
+                                stats['distritos']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['distritos']['importados'] += 1
+                                
+                    except Exception as e:
+                        stats['distritos']['errores'] += 1
+                        logger.error(f"Error importando distrito: {str(e)}")
+        
+        # 3. Importar Centros Poblados por lotes
+        logger.info("🏘️ Importando centros poblados por lotes...")
+        ruta_centros = base_path / 'puno-centrospoblados.geojson'
+        
+        if ruta_centros.exists():
+            with open(ruta_centros, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data.get('features', [])
+                total_features = len(features)
+                logger.info(f"📊 Total de centros poblados: {total_features}")
+                
+                for idx, feature in enumerate(features):
+                    if importacion_activa["cancelar"]:
+                        logger.info("⏸️ Importación cancelada por el usuario")
+                        break
+                    
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        # Extraer coordenadas Point
+                        coords = None
+                        if geometry.get('type') == 'Point' and geometry.get('coordinates'):
+                            point_coords = geometry['coordinates']
+                            if len(point_coords) >= 2:
+                                coords = {
+                                    'longitud': point_coords[0],
+                                    'latitud': point_coords[1]
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMB_CCPP', '').strip(),
+                            tipo=TipoLocalidad.CENTRO_POBLADO,
+                            departamento=props.get('NOMB_DEPAR', 'PUNO').strip(),
+                            provincia=props.get('NOMB_PROVI', '').strip(),
+                            distrito=props.get('NOMB_DISTR', '').strip(),
+                            ubigeo=None,  # Los centros poblados no tienen UBIGEO único
+                            codigo_ccpp=props.get('COD_CCPP', '').strip() or None,
+                            tipo_area=props.get('TIPO', '').strip() or None,
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        # Buscar si existe - solo por nombre + ubicación
+                        existe = await service.collection.find_one({
+                            'nombre': localidad_data.nombre,
+                            'tipo': TipoLocalidad.CENTRO_POBLADO,
+                            'distrito': localidad_data.distrito,
+                            'provincia': localidad_data.provincia
+                        })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['centros_poblados']['actualizados'] += 1
+                            else:
+                                stats['centros_poblados']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['centros_poblados']['importados'] += 1
+                        
+                        # Log progreso cada 100
+                        if (idx + 1) % 100 == 0:
+                            progreso = ((idx + 1) / total_features) * 100
+                            logger.info(f"📦 Progreso: {progreso:.1f}% ({idx + 1}/{total_features}) - Importados: {stats['centros_poblados']['importados']}, Actualizados: {stats['centros_poblados']['actualizados']}")
+                                
+                    except Exception as e:
+                        stats['centros_poblados']['errores'] += 1
+                        if stats['centros_poblados']['errores'] <= 5:
+                            logger.error(f"❌ Error en centro poblado #{idx+1}: {str(e)}")
+        
+        importacion_activa["activa"] = False
+        
+        total_importados = sum(s['importados'] for s in stats.values())
+        total_actualizados = sum(s['actualizados'] for s in stats.values())
+        total_omitidos = sum(s['omitidos'] for s in stats.values())
+        total_errores = sum(s['errores'] for s in stats.values())
+        
+        logger.info(f"✅ Importación completada - Total: {total_importados + total_actualizados}")
+        
+        return {
+            'message': 'Importación completada' if not importacion_activa["cancelar"] else 'Importación cancelada',
+            'total_importados': total_importados,
+            'total_actualizados': total_actualizados,
+            'total_omitidos': total_omitidos,
+            'total_errores': total_errores,
+            'detalle': stats,
+            'cancelada': importacion_activa["cancelar"]
+        }
+        
+    except Exception as e:
+        importacion_activa["activa"] = False
+        logger.error(f"Error en importación: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.post("/cancelar-importacion")
+async def cancelar_importacion() -> dict:
+    """Cancelar la importación en curso"""
+    if not importacion_activa["activa"]:
+        return {"message": "No hay importación activa"}
+    
+    importacion_activa["cancelar"] = True
+    return {"message": "Cancelación solicitada"}
+
+@router.get("/estado-importacion")
+async def estado_importacion() -> dict:
+    """Obtener estado de la importación"""
+    return {
+        "activa": importacion_activa["activa"],
+        "cancelar": importacion_activa["cancelar"]
+    }
+
+
+@router.post("/importar-geojson-test")
+async def importar_desde_geojson_test(
+    modo: str = Query('ambos', description="Modo: crear, actualizar, ambos"),
+    service: LocalidadService = Depends(get_localidad_service)
+) -> dict:
+    """
+    MODO TEST: Importar solo 2 localidades de cada tipo para pruebas
+    """
+    try:
+        import json
+        from pathlib import Path
+        
+        # Función helper para limpiar ubigeo
+        def limpiar_ubigeo(ubigeo_raw) -> Optional[str]:
+            if not ubigeo_raw:
+                return None
+            ubigeo_str = str(ubigeo_raw).strip()
+            if not ubigeo_str or ubigeo_str == '0' or ubigeo_str == '':
+                return None
+            if len(ubigeo_str) < 6:
+                ubigeo_str = ubigeo_str.ljust(6, '0')
+            elif len(ubigeo_str) > 6:
+                ubigeo_str = ubigeo_str[:6]
+            return ubigeo_str if len(ubigeo_str) == 6 else None
+        
+        base_path = Path(__file__).parent.parent.parent.parent / 'frontend' / 'src' / 'assets' / 'geojson'
+        
+        stats = {
+            'provincias': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0, 'detalles': []},
+            'distritos': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0, 'detalles': []},
+            'centros_poblados': {'importados': 0, 'actualizados': 0, 'omitidos': 0, 'errores': 0, 'detalles': []}
+        }
+        
+        # 1. TEST: Importar 2 Provincias
+        logger.info("🧪 TEST: Importando 2 provincias...")
+        ruta_provincias = base_path / 'peru-provincias.geojson'
+        if ruta_provincias.exists():
+            with open(ruta_provincias, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = [f for f in data['features'] if f['properties'].get('NOMBDEP') == 'PUNO'][:2]
+                
+                for feature in features:
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        coords = None
+                        if geometry.get('type') in ['Polygon', 'MultiPolygon']:
+                            if geometry.get('coordinates'):
+                                polygon_coords = geometry['coordinates'][0] if geometry['type'] == 'Polygon' else geometry['coordinates'][0][0]
+                                if polygon_coords:
+                                    lons = [c[0] for c in polygon_coords]
+                                    lats = [c[1] for c in polygon_coords]
+                                    coords = {
+                                        'longitud': sum(lons) / len(lons),
+                                        'latitud': sum(lats) / len(lats)
+                                    }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMBPROV', '').strip(),
+                            tipo=TipoLocalidad.PROVINCIA,
+                            departamento='PUNO',
+                            provincia=props.get('NOMBPROV', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('IDPROV')),
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        existe = await service.collection.find_one({
+                            'nombre': localidad_data.nombre,
+                            'tipo': TipoLocalidad.PROVINCIA
+                        })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['provincias']['actualizados'] += 1
+                                stats['provincias']['detalles'].append(f"✅ Actualizada: {localidad_data.nombre}")
+                            else:
+                                stats['provincias']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['provincias']['importados'] += 1
+                                stats['provincias']['detalles'].append(f"✨ Creada: {localidad_data.nombre} (UBIGEO: {localidad_data.ubigeo}, Población: {localidad_data.poblacion}, Coords: {coords is not None})")
+                                
+                    except Exception as e:
+                        stats['provincias']['errores'] += 1
+                        stats['provincias']['detalles'].append(f"❌ Error: {props.get('NOMBPROV', 'SIN NOMBRE')} - {str(e)}")
+                        logger.error(f"Error importando provincia: {str(e)}")
+        
+        # 2. TEST: Importar 2 Distritos
+        logger.info("🧪 TEST: Importando 2 distritos...")
+        ruta_distritos = base_path / 'puno-distritos.geojson'
+        if ruta_distritos.exists():
+            with open(ruta_distritos, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data['features'][:2]
+                
+                for feature in features:
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        coords = None
+                        if geometry.get('type') == 'Polygon' and geometry.get('coordinates'):
+                            polygon_coords = geometry['coordinates'][0]
+                            if polygon_coords:
+                                lons = [c[0] for c in polygon_coords]
+                                lats = [c[1] for c in polygon_coords]
+                                coords = {
+                                    'longitud': sum(lons) / len(lons),
+                                    'latitud': sum(lats) / len(lats)
+                                }
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('DISTRITO', '').strip(),
+                            tipo=TipoLocalidad.DISTRITO,
+                            departamento=props.get('DEPARTAMEN', 'PUNO').strip(),
+                            provincia=props.get('PROVINCIA', '').strip(),
+                            distrito=props.get('DISTRITO', '').strip(),
+                            ubigeo=limpiar_ubigeo(props.get('UBIGEO')),
+                            coordenadas=coords
+                        )
+                        
+                        existe = await service.collection.find_one({
+                            'ubigeo': localidad_data.ubigeo
+                        }) if localidad_data.ubigeo else None
+                        
+                        if not existe:
+                            existe = await service.collection.find_one({
+                                'nombre': localidad_data.nombre,
+                                'tipo': TipoLocalidad.DISTRITO,
+                                'provincia': localidad_data.provincia
+                            })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['distritos']['actualizados'] += 1
+                                stats['distritos']['detalles'].append(f"✅ Actualizado: {localidad_data.nombre}")
+                            else:
+                                stats['distritos']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                await service.create_localidad(localidad_data)
+                                stats['distritos']['importados'] += 1
+                                stats['distritos']['detalles'].append(f"✨ Creado: {localidad_data.nombre} (UBIGEO: {localidad_data.ubigeo}, Coords: {coords is not None})")
+                                
+                    except Exception as e:
+                        stats['distritos']['errores'] += 1
+                        stats['distritos']['detalles'].append(f"❌ Error: {props.get('DISTRITO', 'SIN NOMBRE')} - {str(e)}")
+                        logger.error(f"Error importando distrito: {str(e)}")
+        
+        # 3. TEST: Importar 2 Centros Poblados
+        logger.info("🧪 TEST: Importando 2 centros poblados...")
+        ruta_centros = base_path / 'puno-centrospoblados.geojson'
+        if ruta_centros.exists():
+            with open(ruta_centros, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                features = data.get('features', [])[:2]
+                logger.info(f"📊 Features encontrados para test: {len(features)}")
+                
+                for idx, feature in enumerate(features):
+                    try:
+                        props = feature['properties']
+                        geometry = feature.get('geometry', {})
+                        
+                        logger.info(f"🔍 Procesando centro poblado: {props.get('NOMB_CCPP', 'SIN NOMBRE')}")
+                        
+                        # Extraer coordenadas (Point)
+                        coords = None
+                        if geometry.get('type') == 'Point' and geometry.get('coordinates'):
+                            point_coords = geometry['coordinates']
+                            if len(point_coords) >= 2:
+                                coords = {
+                                    'longitud': point_coords[0],
+                                    'latitud': point_coords[1]
+                                }
+                                logger.info(f"  📍 Coordenadas: {coords}")
+                        
+                        ubigeo_limpio = limpiar_ubigeo(props.get('UBIGEO'))
+                        logger.info(f"  🔢 UBIGEO original: {props.get('UBIGEO')} -> limpio: {ubigeo_limpio}")
+                        
+                        localidad_data = LocalidadCreate(
+                            nombre=props.get('NOMB_CCPP', '').strip(),
+                            tipo=TipoLocalidad.CENTRO_POBLADO,
+                            departamento=props.get('NOMB_DEPAR', 'PUNO').strip(),
+                            provincia=props.get('NOMB_PROVI', '').strip(),
+                            distrito=props.get('NOMB_DISTR', '').strip(),
+                            ubigeo=None,  # Los centros poblados no tienen UBIGEO único, solo el distrito
+                            codigo_ccpp=props.get('COD_CCPP', '').strip() or None,
+                            tipo_area=props.get('TIPO', '').strip() or None,
+                            poblacion=props.get('POBTOTAL'),
+                            coordenadas=coords
+                        )
+                        
+                        logger.info(f"  📝 Datos preparados: {localidad_data.nombre}, Población: {localidad_data.poblacion}")
+                        
+                        # Buscar si existe
+                        existe = None
+                        if localidad_data.ubigeo:
+                            existe = await service.collection.find_one({
+                                'ubigeo': localidad_data.ubigeo,
+                                'tipo': TipoLocalidad.CENTRO_POBLADO
+                            })
+                        
+                        if not existe:
+                            existe = await service.collection.find_one({
+                                'nombre': localidad_data.nombre,
+                                'tipo': TipoLocalidad.CENTRO_POBLADO,
+                                'distrito': localidad_data.distrito,
+                                'provincia': localidad_data.provincia
+                            })
+                        
+                        if existe:
+                            if modo in ['actualizar', 'ambos']:
+                                update_dict = localidad_data.model_dump(exclude_unset=True)
+                                update_dict.pop('estaActiva', None)
+                                await service.update_localidad(str(existe['_id']), LocalidadUpdate(**update_dict))
+                                stats['centros_poblados']['actualizados'] += 1
+                                stats['centros_poblados']['detalles'].append(f"✅ Actualizado: {localidad_data.nombre}")
+                                logger.info(f"  ✅ Actualizado exitosamente")
+                            else:
+                                stats['centros_poblados']['omitidos'] += 1
+                        else:
+                            if modo in ['crear', 'ambos']:
+                                resultado = await service.create_localidad(localidad_data)
+                                stats['centros_poblados']['importados'] += 1
+                                stats['centros_poblados']['detalles'].append(f"✨ Creado: {localidad_data.nombre} (UBIGEO: {localidad_data.ubigeo}, Población: {localidad_data.poblacion}, Coords: {coords is not None})")
+                                logger.info(f"  ✨ Creado exitosamente con ID: {resultado.id}")
+                                
+                    except Exception as e:
+                        stats['centros_poblados']['errores'] += 1
+                        stats['centros_poblados']['detalles'].append(f"❌ Error: {props.get('NOMB_CCPP', 'SIN NOMBRE')} - {str(e)}")
+                        logger.error(f"❌ Error importando centro poblado: {str(e)}")
+        
+        total_importados = sum(s['importados'] for s in stats.values())
+        total_actualizados = sum(s['actualizados'] for s in stats.values())
+        total_omitidos = sum(s['omitidos'] for s in stats.values())
+        total_errores = sum(s['errores'] for s in stats.values())
+        
+        logger.info(f"✅ TEST completado - Importados: {total_importados}, Actualizados: {total_actualizados}, Errores: {total_errores}")
+        
+        return {
+            'message': 'TEST: Importación de muestra completada',
+            'total_importados': total_importados,
+            'total_actualizados': total_actualizados,
+            'total_omitidos': total_omitidos,
+            'total_errores': total_errores,
+            'detalle': stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en TEST de importación: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en TEST: {str(e)}")

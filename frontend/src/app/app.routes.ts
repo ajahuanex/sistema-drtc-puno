@@ -5,7 +5,6 @@ import { MainLayoutComponent } from './components/layout/main-layout.component';
 import { AuthGuard } from './guards/auth.guard';
 import { EmpresaVehiculosBatchComponent } from './components/empresas/empresa-vehiculos-batch.component';
 import { VehiculosComponent } from './components/vehiculos/vehiculos.component';
-import { VehiculosConsolidadoComponent } from './components/vehiculos/vehiculos-consolidado.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -35,7 +34,7 @@ export const routes: Routes = [
       { path: 'infraestructura/:id', loadComponent: () => import('./components/infraestructura/infraestructura-detail.component').then(m => m.InfraestructuraDetailComponent) },
       
       // RUTAS DE VEHÍCULOS - CONSOLIDADAS
-      { path: 'vehiculos', component: VehiculosConsolidadoComponent },
+      { path: 'vehiculos', component: VehiculosComponent },
       { path: 'vehiculos/legacy', component: VehiculosComponent }, // Mantener versión anterior temporalmente
       { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
       { path: 'vehiculos/nuevo', loadComponent: () => import('./components/vehiculos/vehiculo-form.component').then(m => m.VehiculoFormComponent) },
@@ -62,7 +61,7 @@ export const routes: Routes = [
       { path: 'rutas/:id', loadComponent: () => import('./components/rutas/ruta-detail.component').then(m => m.RutaDetailComponent) },
       { path: 'rutas/:id/editar', loadComponent: () => import('./shared/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'localidades', loadComponent: () => import('./components/localidades/localidades.component').then(m => m.LocalidadesComponent) },
-      { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones-minimal.component').then(m => m.ResolucionesMinimalComponent) },
+      { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones.component').then(m => m.ResolucionesComponent) },
       { path: 'resoluciones/carga-masiva', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones.component').then(m => m.CargaMasivaResolucionesComponent) },
       { path: 'resoluciones/carga-masiva-padres', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones-padres.component').then(m => m.CargaMasivaResolucionesPadresComponent) },
       { path: 'resoluciones/nuevo', loadComponent: () => import('./components/resoluciones/crear-resolucion.component').then(m => m.CrearResolucionComponent) },

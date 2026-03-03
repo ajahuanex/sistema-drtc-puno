@@ -126,6 +126,30 @@
   align-items: center;
 }
 
+.filtros-activos {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filtro-activo-chip {
+  background-color: #667eea !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  
+  mat-icon {
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
 .search-btn {
   background-color: #f7fafc !important;
   color: #4a5568 !important;
@@ -347,6 +371,31 @@
   border-radius: 12px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   transition: all 0.3s ease !important;
+  
+  &.clickeable {
+    cursor: pointer !important;
+    
+    &:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+      transform: translateY(-4px) !important;
+      border-color: #667eea !important;
+    }
+    
+    &.active {
+      border: 2px solid #667eea !important;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%) !important;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3) !important;
+      
+      .stat-number {
+        color: #667eea !important;
+      }
+      
+      .stat-label {
+        color: #667eea !important;
+        font-weight: 600 !important;
+      }
+    }
+  }
 }
 
 .stat-card:hover {
@@ -448,6 +497,32 @@
   color: #718096 !important;
   font-size: 14px !important;
   margin-top: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Mensaje informativo sobre centros poblados */
+.info-centros-poblados {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background-color: #fff3cd !important;
+  color: #856404 !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border: 1px solid #ffeaa7 !important;
+  margin-left: 8px !important;
+}
+
+.info-centros-poblados .info-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  color: #856404 !important;
 }
 
 .table-container {
@@ -573,19 +648,31 @@
 /* Columna de acciones - Más sutiles (usando clases correctas del HTML) */
 .acciones-cell {
   text-align: center !important;
+  display: flex !important;
+  gap: 4px !important;
+  justify-content: center !important;
+  align-items: center !important;
 }
 
 .acciones-cell button {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
+  line-height: 32px !important;
   border-radius: 6px !important;
-  margin: 0 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
   transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .acciones-cell button mat-icon {
-  font-size: 16px !important;
+  font-size: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  line-height: 18px !important;
 }
 
 /* Estados específicos para botones de acción */
@@ -958,4 +1045,174 @@
 
 .search-btn.has-content:hover {
   background-color: #5a67d8 !important;
+}
+/* 
+========================================
+   COLUMNAS ADICIONALES: POBLACIÓN Y COORDENADAS
+   ======================================== */
+
+/* Columna de Población */
+.poblacion-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.poblacion-valor {
+  font-weight: 500;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.sin-dato {
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Columna de Coordenadas */
+.coordenadas-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.coord-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.coord-label {
+  font-weight: 600;
+  color: #718096;
+  min-width: 28px;
+}
+
+.coord-valor {
+  font-family: 'Courier New', monospace;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+/* Columna de Nombre con UBIGEO y Jerarquía */
+.nombre-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nombre-principal {
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.ruta-jerarquica {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 2px;
+  flex-wrap: wrap;
+
+  .nivel-distrito {
+    color: #2196F3;
+    font-weight: 500;
+  }
+
+  .nivel-provincia {
+    color: #4CAF50;
+    font-weight: 500;
+  }
+
+  .nivel-departamento {
+    color: #FF9800;
+    font-weight: 500;
+  }
+
+  .separador {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: #cbd5e0;
+  }
+}
+
+.ubigeo-badge {
+  display: inline-block;
+  background-color: #e6f3ff;
+  color: #1976d2;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  width: fit-content;
+}
+
+/* Columna de Mapa */
+.mapa-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  button {
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .sin-coordenadas {
+    color: #cbd5e0;
+    font-size: 20px;
+  }
+}
+
+/* Ajustar anchos de columnas */
+.localidades-table .mat-column-nombre {
+  min-width: 180px;
+}
+
+.localidades-table .mat-column-tipo {
+  min-width: 120px;
+}
+
+.localidades-table .mat-column-ubicacion {
+  min-width: 200px;
+}
+
+.localidades-table .mat-column-poblacion {
+  min-width: 100px;
+  text-align: right;
+}
+
+.localidades-table .mat-column-coordenadas {
+  min-width: 180px;
+}
+
+.localidades-table .mat-column-estado {
+  min-width: 100px;
+}
+
+.localidades-table .mat-column-acciones {
+  min-width: 140px;
+  text-align: center;
+}
+
+/* Responsive para nuevas columnas */
+@media (max-width: 1200px) {
+  .localidades-table .mat-column-coordenadas {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .localidades-table .mat-column-poblacion,
+  .localidades-table .mat-column-coordenadas {
+    display: none;
+  }
 }

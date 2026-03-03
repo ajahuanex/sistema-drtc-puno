@@ -2,7 +2,7 @@ import { TipoLocalidad, NivelTerritorial } from '../../../models/localidad.model
 
 export const LOCALIDADES_CONFIG = {
   // Configuración de tabla
-  columnasTabla: ['nombre', 'tipo', 'ubicacion', 'nivel', 'estado', 'acciones'],
+  columnasTabla: ['nombre', 'tipo', 'ubicacion', 'poblacion', 'coordenadas', 'estado', 'acciones'],
   
   // Opciones para filtros
   departamentos: ['PUNO'],
@@ -16,10 +16,6 @@ export const LOCALIDADES_CONFIG = {
   tiposLocalidad: [
     'PROVINCIA', 'DISTRITO', 'CENTRO_POBLADO', 'LOCALIDAD', 'CIUDAD'
   ],
-  
-  nivelesTerritoriales: [
-    'PROVINCIA', 'DISTRITO', 'CENTRO_POBLADO'
-  ],
 
   // Labels para tipos
   tipoLabels: {
@@ -30,15 +26,6 @@ export const LOCALIDADES_CONFIG = {
     [TipoLocalidad.PROVINCIA]: 'Provincia',
     [TipoLocalidad.DEPARTAMENTO]: 'Departamento',
     [TipoLocalidad.CIUDAD]: 'Ciudad'
-  },
-
-  // Labels para niveles
-  nivelLabels: {
-    [NivelTerritorial.PUEBLO]: 'Pueblo',
-    [NivelTerritorial.CENTRO_POBLADO]: 'Centro Poblado',
-    [NivelTerritorial.DISTRITO]: 'Distrito',
-    [NivelTerritorial.PROVINCIA]: 'Provincia',
-    [NivelTerritorial.DEPARTAMENTO]: 'Departamento'
   },
 
   // Configuración de paginación

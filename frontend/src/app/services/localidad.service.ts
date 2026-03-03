@@ -3,11 +3,11 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { 
-  Localidad, 
-  LocalidadCreate, 
-  LocalidadUpdate, 
-  LocalidadesPaginadas, 
+import {
+  Localidad,
+  LocalidadCreate,
+  LocalidadUpdate,
+  LocalidadesPaginadas,
   FiltroLocalidades,
   ValidacionUbigeo,
   RespuestaValidacionUbigeo,
@@ -20,13 +20,13 @@ import {
 })
 export class LocalidadService {
   private apiUrl = environment.apiUrl + '/localidades';
-  
+
   // Cache unificado para todas las operaciones
   private localidadesCache = new BehaviorSubject<Localidad[]>([]);
   private cacheActualizado = false;
   private actualizandoCache = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ========================================
   // MÉTODOS PRINCIPALES CONSOLIDADOS
@@ -34,6 +34,7 @@ export class LocalidadService {
 
   /**
    * MÉTODO ÚNICO: Obtener localidades con cache inteligente
+   * Por defecto EXCLUYE centros poblados para mejorar rendimiento
    */
   async obtenerLocalidades(filtros?: FiltroLocalidades, forzarActualizacion = false): Promise<Localidad[]> {
     try {
@@ -42,7 +43,7 @@ export class LocalidadService {
         return await this.consultarLocalidadesConFiltros(filtros);
       }
 
-      // Para consultas generales, usar cache
+      // Para consultas generales, usar cache SIN centros poblados
       if (!this.cacheActualizado || forzarActualizacion) {
         await this.actualizarCache();
       }
@@ -67,7 +68,7 @@ export class LocalidadService {
       const params = new HttpParams()
         .set('nombre', termino)
         .set('limit', limite.toString());
-      
+
       const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}`, { params }).toPromise();
       console.log('✅ Resultados de búsqueda:', resultado);
       return resultado || [];
@@ -83,18 +84,18 @@ export class LocalidadService {
   async crearLocalidad(localidad: LocalidadCreate): Promise<Localidad> {
     try {
       // console.log removed for production
-      
+
       const nuevaLocalidad = await this.http.post<Localidad>(this.apiUrl, localidad).toPromise();
-      
+
       if (nuevaLocalidad) {
         // Actualizar cache
         const localidadesActuales = this.localidadesCache.value;
         this.localidadesCache.next([...localidadesActuales, nuevaLocalidad]);
-        
+
         // console.log removed for production
         return nuevaLocalidad;
       }
-      
+
       throw new Error('Backend no retornó la localidad creada');
     } catch (error) {
       console.error('❌ Error creando localidad::', error);
@@ -108,12 +109,12 @@ export class LocalidadService {
   async existeLocalidad(nombre: string): Promise<Localidad | null> {
     try {
       await this.actualizarCache();
-      
+
       const nombreNormalizado = this.normalizarTexto(nombre);
-      const localidadExistente = this.localidadesCache.value.find(loc => 
+      const localidadExistente = this.localidadesCache.value.find(loc =>
         this.normalizarTexto(loc.nombre || '') === nombreNormalizado
       );
-      
+
       return localidadExistente || null;
     } catch (error) {
       console.error('❌ Error verificando existencia de localidad::', error);
@@ -152,19 +153,20 @@ export class LocalidadService {
 
     this.actualizandoCache = true;
     try {
-      // console.log removed for production
+      // Cargar TODAS las localidades sin filtrar
+      let params = new HttpParams().set('limit', '10000');
       
-      const localidades = await this.http.get<Localidad[]>(this.apiUrl).pipe(
+      const localidades = await this.http.get<Localidad[]>(this.apiUrl, { params }).pipe(
         catchError(error => {
           console.warn('⚠️ Error cargando localidades del backend:', error);
           return of([]);
         })
       ).toPromise();
-      
+
       this.localidadesCache.next(localidades || []);
       this.cacheActualizado = true;
-      
-      // console.log removed for production
+
+      console.log(`✅ Cache actualizado: ${localidades?.length || 0} localidades`);
     } catch (error) {
       console.error('❌ Error actualizando cache::', error);
       this.localidadesCache.next([]);
@@ -174,8 +176,8 @@ export class LocalidadService {
   }
 
   private async consultarLocalidadesConFiltros(filtros: FiltroLocalidades): Promise<Localidad[]> {
-    let params = new HttpParams();
-    
+    let params = new HttpParams().set('limit', '10000');
+
     if (filtros.nombre) params = params.set('nombre', filtros.nombre);
     if (filtros.tipo) params = params.set('tipo', filtros.tipo);
     if (filtros.departamento) params = params.set('departamento', filtros.departamento);
@@ -209,11 +211,11 @@ export class LocalidadService {
 
   async actualizarLocalidad(id: string, localidad: LocalidadUpdate): Promise<Localidad> {
     const resultado = await this.http.put<Localidad>(`${this.apiUrl}/${id}`, localidad).toPromise();
-    
+
     if (!resultado) {
       throw new Error('No se pudo actualizar la localidad');
     }
-    
+
     // Actualizar cache
     const localidades = this.localidadesCache.value;
     const index = localidades.findIndex(l => l.id === id);
@@ -221,13 +223,13 @@ export class LocalidadService {
       localidades[index] = resultado;
       this.localidadesCache.next([...localidades]);
     }
-    
+
     return resultado;
   }
 
   async eliminarLocalidad(id: string): Promise<void> {
     await this.http.delete(`${this.apiUrl}/${id}`).toPromise();
-    
+
     // Actualizar cache
     const localidades = this.localidadesCache.value.filter(l => l.id !== id);
     this.localidadesCache.next(localidades);
@@ -235,7 +237,7 @@ export class LocalidadService {
 
   async toggleEstadoLocalidad(id: string): Promise<void> {
     await this.http.patch(`${this.apiUrl}/${id}/toggle-estado`, {}).toPromise();
-    
+
     // Actualizar cache
     const localidades = this.localidadesCache.value;
     const localidad = localidades.find(l => l.id === id);
@@ -250,7 +252,7 @@ export class LocalidadService {
     let params = new HttpParams()
       .set('pagina', pagina.toString())
       .set('limite', limite.toString());
-    
+
     if (filtros) {
       if (filtros.nombre) params = params.set('nombre', filtros.nombre);
       if (filtros.tipo) params = params.set('tipo', filtros.tipo);
@@ -271,43 +273,43 @@ export class LocalidadService {
   async operacionesMasivas(operacion: 'activar' | 'desactivar' | 'eliminar', ids: string[]): Promise<any> {
     let params = new HttpParams().set('operacion', operacion);
     ids.forEach(id => params = params.append('ids', id));
-    
+
     const resultado = await this.http.post(`${this.apiUrl}/operaciones-masivas`, null, { params }).toPromise();
-    
+
     // Actualizar cache después de operaciones masivas
     await this.actualizarCache();
-    
+
     return resultado;
   }
 
   async importarExcel(file: File): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const resultado = await this.http.post(`${this.apiUrl}/importar-excel`, formData).toPromise();
-    
+
     // Actualizar cache después de importar
     await this.actualizarCache();
-    
+
     return resultado;
   }
 
   async exportarExcel(): Promise<void> {
-    const response = await this.http.get(`${this.apiUrl}/exportar-excel`, { 
-      responseType: 'blob' 
+    const response = await this.http.get(`${this.apiUrl}/exportar-excel`, {
+      responseType: 'blob'
     }).toPromise() as Blob;
 
-    const blob = new Blob([response], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    const blob = new Blob([response], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
-    
+
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    
+
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     link.download = `localidades_${timestamp}.xlsx`;
-    
+
     link.click();
     window.URL.revokeObjectURL(url);
   }

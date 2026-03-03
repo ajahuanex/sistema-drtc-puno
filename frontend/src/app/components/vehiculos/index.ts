@@ -16,7 +16,6 @@ export { VehiculosEliminadosModalComponent } from './vehiculos-eliminados-modal.
 
 // Componentes de utilidad
 export { VehiculoBusquedaAvanzadaComponent } from './vehiculo-busqueda-avanzada.component';
-export { VehiculoBusquedaGlobalComponent } from './vehiculo-busqueda-global.component';
 export { VehiculoEstadoSelectorComponent } from './vehiculo-estado-selector.component';
 export { VehiculoFormComponent } from './vehiculo-form.component';
 
@@ -31,5 +30,4 @@ export { VehiculosDashboardComponent } from './vehiculos-dashboard.component';
 export { VehiculosEstadisticasAvanzadasComponent } from './vehiculos-estadisticas-avanzadas.component';
 
 // Componentes de ayuda y preferencias (opcionales)
-export { KeyboardShortcutsHelpComponent } from './keyboard-shortcuts-help.component';
 export { UserPreferencesModalComponent } from './user-preferences-modal.component';

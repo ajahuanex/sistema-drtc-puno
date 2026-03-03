@@ -385,23 +385,160 @@ class LocalidadService:
         filtros = FiltroLocalidades(estaActiva=True)
         return await self.get_localidades(filtros)
 
-    async def buscar_localidades(self, termino: str) -> List[Localidad]:
-        """Buscar localidades por término"""
-        query = {
-            "$or": [
-                {"nombre": {"$regex": termino, "$options": "i"}},
-                {"codigo": {"$regex": termino, "$options": "i"}},
-                {"departamento": {"$regex": termino, "$options": "i"}},
-                {"provincia": {"$regex": termino, "$options": "i"}}
-            ],
-            "estaActiva": True
-        }
+    async def buscar_localidades(self, termino: str, limite: int = 50) -> List[Localidad]:
+        """
+        Buscar localidades por término con jerarquía territorial
         
-        cursor = self.collection.find(query).sort("nombre", 1).limit(20)
+        Prioriza resultados por:
+        1. Coincidencia exacta en nombre
+        2. Nombre que empieza con el término
+        3. Nombre que contiene el término
+        4. Jerarquía: Departamento > Provincia > Distrito > Centro Poblado
+        """
+        termino_normalizado = termino.strip()
+        
+        # Pipeline de agregación para búsqueda inteligente con scoring
+        pipeline = [
+            {
+                "$match": {
+                    "$or": [
+                        {"nombre": {"$regex": termino_normalizado, "$options": "i"}},
+                        {"codigo": {"$regex": termino_normalizado, "$options": "i"}},
+                        {"ubigeo": {"$regex": termino_normalizado, "$options": "i"}},
+                        {"departamento": {"$regex": termino_normalizado, "$options": "i"}},
+                        {"provincia": {"$regex": termino_normalizado, "$options": "i"}},
+                        {"distrito": {"$regex": termino_normalizado, "$options": "i"}}
+                    ],
+                    "estaActiva": True
+                }
+            },
+            {
+                "$addFields": {
+                    # Calcular score de relevancia
+                    "score": {
+                        "$add": [
+                            # +100 si coincide exactamente con el nombre (case insensitive)
+                            {
+                                "$cond": [
+                                    {"$eq": [{"$toLower": "$nombre"}, termino_normalizado.lower()]},
+                                    100,
+                                    0
+                                ]
+                            },
+                            # +50 si el nombre empieza con el término
+                            {
+                                "$cond": [
+                                    {"$regexMatch": {"input": "$nombre", "regex": f"^{termino_normalizado}", "options": "i"}},
+                                    50,
+                                    0
+                                ]
+                            },
+                            # +20 si contiene el término en el nombre
+                            {
+                                "$cond": [
+                                    {"$regexMatch": {"input": "$nombre", "regex": termino_normalizado, "options": "i"}},
+                                    20,
+                                    0
+                                ]
+                            },
+                            # Bonus por jerarquía territorial
+                            {
+                                "$switch": {
+                                    "branches": [
+                                        {"case": {"$eq": ["$tipo", "DEPARTAMENTO"]}, "then": 40},
+                                        {"case": {"$eq": ["$tipo", "PROVINCIA"]}, "then": 30},
+                                        {"case": {"$eq": ["$tipo", "DISTRITO"]}, "then": 20},
+                                        {"case": {"$eq": ["$tipo", "CENTRO_POBLADO"]}, "then": 10},
+                                        {"case": {"$eq": ["$tipo", "CIUDAD"]}, "then": 25},
+                                    ],
+                                    "default": 5
+                                }
+                            },
+                            # +10 si coincide en departamento
+                            {
+                                "$cond": [
+                                    {"$regexMatch": {"input": {"$ifNull": ["$departamento", ""]}, "regex": termino_normalizado, "options": "i"}},
+                                    10,
+                                    0
+                                ]
+                            },
+                            # +8 si coincide en provincia
+                            {
+                                "$cond": [
+                                    {"$regexMatch": {"input": {"$ifNull": ["$provincia", ""]}, "regex": termino_normalizado, "options": "i"}},
+                                    8,
+                                    0
+                                ]
+                            },
+                            # +5 si coincide en distrito
+                            {
+                                "$cond": [
+                                    {"$regexMatch": {"input": {"$ifNull": ["$distrito", ""]}, "regex": termino_normalizado, "options": "i"}},
+                                    5,
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    # Construir ruta jerárquica para mostrar
+                    "ruta_jerarquica": {
+                        "$concat": [
+                            "$nombre",
+                            {
+                                "$cond": [
+                                    {"$and": [
+                                        {"$ne": ["$tipo", "DEPARTAMENTO"]},
+                                        {"$ne": [{"$ifNull": ["$distrito", ""]}, ""]}
+                                    ]},
+                                    {"$concat": [" • ", {"$ifNull": ["$distrito", ""]}]},
+                                    ""
+                                ]
+                            },
+                            {
+                                "$cond": [
+                                    {"$and": [
+                                        {"$ne": ["$tipo", "DEPARTAMENTO"]},
+                                        {"$ne": ["$tipo", "PROVINCIA"]},
+                                        {"$ne": [{"$ifNull": ["$provincia", ""]}, ""]}
+                                    ]},
+                                    {"$concat": [" • ", {"$ifNull": ["$provincia", ""]}]},
+                                    ""
+                                ]
+                            },
+                            {
+                                "$cond": [
+                                    {"$ne": ["$tipo", "DEPARTAMENTO"]},
+                                    {"$concat": [" • ", {"$ifNull": ["$departamento", "PUNO"]}]},
+                                    ""
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "$sort": {
+                    "score": -1,  # Ordenar por score descendente
+                    "tipo": 1,    # Luego por tipo (jerarquía)
+                    "nombre": 1   # Finalmente por nombre
+                }
+            },
+            {
+                "$limit": limite
+            }
+        ]
+        
         localidades = []
+        cursor = self.collection.aggregate(pipeline)
         
         async for doc in cursor:
-            localidades.append(self._document_to_localidad(doc))
+            # Agregar la ruta jerárquica al documento antes de convertir
+            localidad = self._document_to_localidad(doc)
+            # Agregar metadata de búsqueda (opcional, para debugging)
+            if hasattr(localidad, '__dict__'):
+                localidad.__dict__['_search_score'] = doc.get('score', 0)
+                localidad.__dict__['_ruta_jerarquica'] = doc.get('ruta_jerarquica', '')
+            localidades.append(localidad)
             
         return localidades
 

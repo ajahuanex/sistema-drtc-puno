@@ -6,7 +6,6 @@ export interface FiltrosLocalidades {
   departamento: string;
   provincia: string;
   tipo: string;
-  nivel: string;
   estado: string;
 }
 
@@ -19,7 +18,6 @@ export class LocalidadesFiltrosService {
   private filtroDepartamento = signal('');
   private filtroProvincia = signal('');
   private filtroTipo = signal('');
-  private filtroNivel = signal('');
   private filtroEstado = signal('');
 
   // Computed para obtener todos los filtros
@@ -28,7 +26,6 @@ export class LocalidadesFiltrosService {
     departamento: this.filtroDepartamento(),
     provincia: this.filtroProvincia(),
     tipo: this.filtroTipo(),
-    nivel: this.filtroNivel(),
     estado: this.filtroEstado()
   }));
 
@@ -37,7 +34,6 @@ export class LocalidadesFiltrosService {
   get departamento() { return this.filtroDepartamento(); }
   get provincia() { return this.filtroProvincia(); }
   get tipo() { return this.filtroTipo(); }
-  get nivel() { return this.filtroNivel(); }
   get estado() { return this.filtroEstado(); }
 
   // Setters para actualizar filtros
@@ -57,10 +53,6 @@ export class LocalidadesFiltrosService {
     this.filtroTipo.set(valor);
   }
 
-  setNivel(valor: string) {
-    this.filtroNivel.set(valor);
-  }
-
   setEstado(valor: string) {
     this.filtroEstado.set(valor);
   }
@@ -71,7 +63,6 @@ export class LocalidadesFiltrosService {
     this.filtroDepartamento.set('');
     this.filtroProvincia.set('');
     this.filtroTipo.set('');
-    this.filtroNivel.set('');
     this.filtroEstado.set('');
   }
 
@@ -119,12 +110,6 @@ export class LocalidadesFiltrosService {
     const tipoFiltro = this.filtroTipo();
     if (tipoFiltro) {
       filtradas = filtradas.filter(l => l.tipo === tipoFiltro);
-    }
-
-    // Filtro por nivel territorial
-    const nivelFiltro = this.filtroNivel();
-    if (nivelFiltro) {
-      filtradas = filtradas.filter(l => l.nivel_territorial === nivelFiltro);
     }
 
     // Filtro por estado

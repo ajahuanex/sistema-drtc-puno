@@ -58,7 +58,7 @@ export const LOCALIDADES_CONFIG = {
   },
 
   // Configuración de la tabla
-  columnasTabla: ['nombre', 'tipo', 'ubicacion', 'nivel', 'estado', 'acciones'],
+  columnasTabla: ['nombre', 'tipo', 'ubicacion', 'estado', 'acciones'],
   
   // Labels para tipos
   tipoLabels: {
@@ -69,15 +69,6 @@ export const LOCALIDADES_CONFIG = {
     'LOCALIDAD': 'Localidad',
     'DEPARTAMENTO': 'Departamento',
     'CIUDAD': 'Ciudad'
-  },
-  
-  // Labels para niveles
-  nivelLabels: {
-    'PROVINCIA': 'Provincia',
-    'DISTRITO': 'Distrito',
-    'CENTRO_POBLADO': 'Centro Poblado',
-    'PUEBLO': 'Pueblo',
-    'DEPARTAMENTO': 'Departamento'
   },
 
   // Labels para departamentos

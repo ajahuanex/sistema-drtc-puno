@@ -9,7 +9,6 @@ export * from './resolucion-number-validator.component';
 export * from './expediente-number-validator.component';
 export * from '../components/shared/codigo-empresa-info.component';
 export * from '../components/vehiculos/vehiculos-resolucion-modal.component';
-export * from '../services/vehiculo-modal.service';
 export * from './date-range-picker.component';
 export * from './resoluciones-filters.component';
 export * from './column-selector.component';

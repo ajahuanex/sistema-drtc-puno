@@ -11,7 +11,7 @@ export enum TipoLocalidad {
   CENTRO_POBLADO = "CENTRO_POBLADO", // Solo cuando necesite jerarquía específica
   LOCALIDAD = "LOCALIDAD",
   DISTRITO = "DISTRITO",
-  PROVINCIA = "PROVINCIA", 
+  PROVINCIA = "PROVINCIA",
   DEPARTAMENTO = "DEPARTAMENTO",
   CIUDAD = "CIUDAD"
 }
@@ -25,10 +25,10 @@ export interface Localidad {
   id: string;
   // ÚNICO CAMPO OBLIGATORIO
   nombre: string;
-  
+
   // TIPO QUE DEFINE EL NIVEL TERRITORIAL
   tipo: TipoLocalidad;
-  
+
   // TODOS LOS DEMÁS CAMPOS SON OPCIONALES
   ubigeo?: string;
   departamento?: string;
@@ -38,15 +38,21 @@ export interface Localidad {
   descripcion?: string;
   coordenadas?: Coordenadas;
   observaciones?: string;
-  
+
+  // NUEVOS CAMPOS PARA CENTROS POBLADOS
+  codigo_ccpp?: string;
+  tipo_area?: string; // Rural o Urbano
+  poblacion?: number;
+  altitud?: number;
+
   // CAMPOS DEL SISTEMA
   estaActiva: boolean;
   fechaCreacion: string;
   fechaActualizacion: string;
-  
-  // Campo calculado automáticamente
-  nivel_territorial: NivelTerritorial;
-  
+
+  // Campo calculado automáticamente (opcional, para compatibilidad futura)
+  nivel_territorial?: NivelTerritorial;
+
   // Campos de compatibilidad (opcionales)
   ubigeo_identificador_mcp?: string;
   municipalidad_centro_poblado?: string;
@@ -59,10 +65,10 @@ export interface Localidad {
 export interface LocalidadCreate {
   // ÚNICO CAMPO OBLIGATORIO
   nombre: string;
-  
+
   // TIPO POR DEFECTO: LOCALIDAD
   tipo?: TipoLocalidad;
-  
+
   // TODOS LOS DEMÁS CAMPOS SON OPCIONALES
   // Solo se muestran cuando tipo = CENTRO_POBLADO
   ubigeo?: string;
@@ -73,7 +79,13 @@ export interface LocalidadCreate {
   descripcion?: string;
   coordenadas?: Coordenadas;
   observaciones?: string;
-  
+
+  // Nuevos campos para centros poblados
+  codigo_ccpp?: string;
+  tipo_area?: string;
+  poblacion?: number;
+  altitud?: number;
+
   // Campos de compatibilidad (opcionales)
   ubigeo_identificador_mcp?: string;
   municipalidad_centro_poblado?: string;
@@ -93,7 +105,13 @@ export interface LocalidadUpdate {
   coordenadas?: Coordenadas;
   observaciones?: string;
   estaActiva?: boolean;
-  
+
+  // Nuevos campos
+  codigo_ccpp?: string;
+  tipo_area?: string;
+  poblacion?: number;
+  altitud?: number;
+
   // Campos de compatibilidad (opcionales)
   ubigeo_identificador_mcp?: string;
   municipalidad_centro_poblado?: string;
@@ -181,15 +199,15 @@ export interface EstadisticasNivelTerritorial {
   distribucion_por_nivel_destino: { [key: string]: number };
   combinaciones_mas_comunes: Array<{ combinacion: string; cantidad: number }>;
   rutas_por_clasificacion: { [key: string]: number };
-  departamentos_mas_conectados: Array<{ 
-    departamento: string; 
-    como_origen: number; 
-    como_destino: number 
+  departamentos_mas_conectados: Array<{
+    departamento: string;
+    como_origen: number;
+    como_destino: number
   }>;
-  provincias_mas_conectadas: Array<{ 
-    provincia: string; 
-    como_origen: number; 
-    como_destino: number 
+  provincias_mas_conectadas: Array<{
+    provincia: string;
+    como_origen: number;
+    como_destino: number
   }>;
 }
 
