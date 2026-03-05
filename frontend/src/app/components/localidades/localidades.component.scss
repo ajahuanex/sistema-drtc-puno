@@ -476,6 +476,10 @@
   color: #2d3748 !important;
   padding: 24px !important;
   border-bottom: 1px solid #e8eaed !important;
+  
+  .mat-mdc-card-header-text {
+    width: 100%;
+  }
 }
 
 .tabla-card .mat-mdc-card-title {
@@ -1214,5 +1218,71 @@
   .localidades-table .mat-column-poblacion,
   .localidades-table .mat-column-coordenadas {
     display: none;
+  }
+}
+
+
+/* ========================================
+   CONFIGURACIÓN DE COLUMNAS
+   ======================================== */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 16px;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.btn-columnas {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  
+  &:hover {
+    background-color: #edf2f7;
+    border-color: #cbd5e0;
+  }
+  
+  mat-icon {
+    color: #667eea;
+  }
+}
+
+.columnas-menu-header {
+  padding: 12px 16px;
+  cursor: default;
+  pointer-events: none;
+  
+  strong {
+    color: #2d3748;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+::ng-deep .mat-mdc-menu-content {
+  padding: 8px 0 !important;
+}
+
+::ng-deep .mat-mdc-menu-item {
+  min-height: 40px !important;
+  
+  .mat-icon {
+    margin-right: 12px;
+    color: #667eea;
+  }
+  
+  &:hover {
+    background-color: #f7fafc !important;
   }
 }

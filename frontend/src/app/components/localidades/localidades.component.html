@@ -216,22 +216,42 @@
   <!-- Tabla de Localidades -->
   <mat-card class="tabla-card">
     <mat-card-header>
-      <mat-card-title>
-        <mat-icon>list</mat-icon>
-        Lista de Localidades
-      </mat-card-title>
-      <mat-card-subtitle>
-        Mostrando {{ resultadosFiltrados }} de {{ localidades().length }} localidades
-        <span *ngIf="terminoBusqueda" class="search-indicator">
-          (filtrado por: "{{ terminoBusqueda }}")
-        </span>
-        <!-- 💡 Mensaje informativo sobre centros poblados -->
-        <span *ngIf="!filtrosService.tipo && !filtrosService.departamento" class="info-centros-poblados">
-          <mat-icon class="info-icon">info</mat-icon>
-          Los centros poblados no se muestran por defecto. Haz click en la tarjeta "Centros Poblados" arriba para verlos.
-        </span>
-      </mat-card-subtitle>
+      <div class="header-content">
+        <div class="header-left">
+          <mat-card-title>
+            <mat-icon>list</mat-icon>
+            Lista de Localidades
+          </mat-card-title>
+          <mat-card-subtitle>
+            Mostrando {{ resultadosFiltrados }} de {{ localidades().length }} localidades
+            @if (terminoBusqueda) {
+              <span class="search-indicator"> • Búsqueda: "{{ terminoBusqueda }}"</span>
+            }
+          </mat-card-subtitle>
+        </div>
+        <div class="header-actions">
+          <button mat-icon-button 
+                  [matMenuTriggerFor]="columnasMenu"
+                  matTooltip="Configurar columnas"
+                  class="btn-columnas">
+            <mat-icon>view_column</mat-icon>
+          </button>
+        </div>
+      </div>
     </mat-card-header>
+    
+    <!-- Menú de configuración de columnas -->
+    <mat-menu #columnasMenu="matMenu">
+      <div mat-menu-item (click)="$event.stopPropagation()" class="columnas-menu-header">
+        <strong>Mostrar columnas</strong>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item *ngFor="let col of columnasDisponibles" 
+              (click)="toggleColumna(col.key)">
+        <mat-icon>{{ columnaVisible(col.key) ? 'check_box' : 'check_box_outline_blank' }}</mat-icon>
+        <span>{{ col.label }}</span>
+      </button>
+    </mat-menu>
     
     <mat-card-content>
       @if (cargando()) {
@@ -384,8 +404,8 @@
               </td>
             </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="columnasTabla"></tr>
-            <tr mat-row *matRowDef="let row; columns: columnasTabla;" 
+            <tr mat-header-row *matHeaderRowDef="columnasVisibles"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasVisibles;" 
                 [class.fila-inactiva]="!row.estaActiva"></tr>
           </table>
           

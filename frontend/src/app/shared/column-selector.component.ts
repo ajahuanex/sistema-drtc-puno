@@ -159,7 +159,7 @@ export class ColumnSelectorComponent {
                 <mat-checkbox 
                   [checked]="columna.visible"
                   [disabled]="columna.required"
-                  (change)="onColumnToggle(columna.key, $event.checked || false)"
+                  (change)="onColumnToggle(columna.key || '', $event.checked || false)"
                   class="column-checkbox">
                 </mat-checkbox>
 
@@ -172,7 +172,7 @@ export class ColumnSelectorComponent {
                     }
                   </div>
                   <div class="column-details">
-                    <span class="column-type">{{ getTipoTexto(columna.tipo) }}</span>
+                    <span class="column-type">{{ getTipoTexto(columna.tipo || '') }}</span>
                     @if (columna.width) {
                       <span class="column-width">{{ columna.width }}</span>
                     }
@@ -674,7 +674,7 @@ export class ColumnSelectorModalComponent implements OnInit {
    */
   mostrarMinimas(): void {
     this.columnasOrdenadas.update(columnas => 
-      columnas.map(c => ({ ...c, visible: c.required }))
+      columnas.map(c => ({ ...c, visible: c.required || false }))
     );
     this.actualizarContador();
   }

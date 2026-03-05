@@ -224,7 +224,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
               @for (filtro of filtrosActivos(); track filtro.key) {
                 <mat-chip 
                   [removable]="true"
-                  (removed)="removerFiltro(filtro.key)"
+                  (removed)="removerFiltro(filtro.key || '')"
                   class="filtro-chip"
                   role="listitem"
                   [attr.aria-label]="'Filtro: ' + filtro.label + '. Presione Enter o Espacio para remover'">
@@ -301,7 +301,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
             @for (filtro of filtrosActivos(); track filtro.key) {
               <mat-chip 
                 [removable]="true"
-                (removed)="removerFiltro(filtro.key)"
+                (removed)="removerFiltro(filtro.key || '')"
                 class="mobile-chip">
                 {{ filtro.label }}
                 <app-smart-icon iconName="cancel" [size]="14" matChipRemove></app-smart-icon>

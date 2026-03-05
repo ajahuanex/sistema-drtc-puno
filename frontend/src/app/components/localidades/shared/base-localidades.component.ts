@@ -67,24 +67,68 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   async cargarLocalidades() {
     this.cargando.set(true);
     try {
-      // 🚀 OPTIMIZACIÓN: Cargar con filtros inteligentes
       const filtroTipo = this.filtrosService.tipo;
+      
+      // 🚀 OPTIMIZACIÓN: Usar paginación del servidor
+      // Solo cargar la primera página (25 registros por defecto)
+      const pagina = this.paginator?.pageIndex || 0;
+      const limite = this.paginator?.pageSize || 25;
+      
+      // Obtener ordenamiento actual
+      const sortActive = this.sort?.active || 'nombre';
+      const sortDirection = this.sort?.direction || 'asc';
       
       let localidades: Localidad[];
       
       if (filtroTipo === 'CENTRO_POBLADO') {
-        // Si se filtra por CENTRO_POBLADO, cargar solo esos
-        localidades = await this.localidadService.obtenerLocalidades({ tipo: 'CENTRO_POBLADO' as any });
-        console.log(`✅ ${localidades.length} centros poblados cargados`);
+        // Si se filtra por CENTRO_POBLADO, usar paginación del servidor
+        const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
+          pagina + 1, 
+          limite, 
+          { tipo: 'CENTRO_POBLADO' as any }
+        );
+        localidades = resultado.localidades;
+        
+        // Actualizar el total para el paginador
+        setTimeout(() => {
+          if (this.paginator) {
+            this.paginator.length = resultado.total;
+          }
+        });
+        
+        console.log(`✅ ${localidades.length} de ${resultado.total} centros poblados cargados (página ${pagina + 1})`);
       } else if (filtroTipo) {
-        // Si hay otro filtro de tipo, cargar solo ese tipo
-        localidades = await this.localidadService.obtenerLocalidades({ tipo: filtroTipo as any });
-        console.log(`✅ ${localidades.length} localidades tipo ${filtroTipo} cargadas`);
+        // Si hay otro filtro de tipo, usar paginación
+        const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
+          pagina + 1, 
+          limite, 
+          { tipo: filtroTipo as any }
+        );
+        localidades = resultado.localidades;
+        
+        setTimeout(() => {
+          if (this.paginator) {
+            this.paginator.length = resultado.total;
+          }
+        });
+        
+        console.log(`✅ ${localidades.length} de ${resultado.total} localidades tipo ${filtroTipo} cargadas (página ${pagina + 1})`);
       } else {
-        // Sin filtro: cargar TODAS las localidades (incluyendo centros poblados)
-        // El servicio ya no filtra automáticamente
+        // Sin filtro: cargar solo provincias y distritos (rápido)
+        // Excluir centros poblados por defecto
         localidades = await this.localidadService.obtenerLocalidades();
-        console.log(`✅ ${localidades.length} localidades cargadas (todas)`);
+        localidades = localidades.filter(l => l.tipo !== 'CENTRO_POBLADO');
+        
+        // Ordenar localmente
+        localidades = this.ordenarLocalidades(localidades, sortActive, sortDirection);
+        
+        setTimeout(() => {
+          if (this.paginator) {
+            this.paginator.length = localidades.length;
+          }
+        });
+        
+        console.log(`✅ ${localidades.length} localidades cargadas (sin centros poblados)`);
       }
       
       this.localidades.set(localidades);
@@ -97,6 +141,32 @@ export abstract class BaseLocalidadesComponent implements OnInit {
     }
   }
 
+  private ordenarLocalidades(localidades: Localidad[], campo: string, direccion: string): Localidad[] {
+    if (!campo || direccion === '') return localidades;
+    
+    return [...localidades].sort((a: any, b: any) => {
+      let valorA = a[campo];
+      let valorB = b[campo];
+      
+      // Manejar valores nulos o undefined
+      if (valorA === null || valorA === undefined) valorA = '';
+      if (valorB === null || valorB === undefined) valorB = '';
+      
+      // Convertir a string para comparación
+      if (typeof valorA === 'string') valorA = valorA.toLowerCase();
+      if (typeof valorB === 'string') valorB = valorB.toLowerCase();
+      
+      let comparacion = 0;
+      if (valorA > valorB) {
+        comparacion = 1;
+      } else if (valorA < valorB) {
+        comparacion = -1;
+      }
+      
+      return direccion === 'asc' ? comparacion : -comparacion;
+    });
+  }
+
   async recargarDatos() {
     await this.cargarLocalidades();
     this.mostrarMensaje('Datos recargados exitosamente', 'success');
@@ -105,12 +175,27 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   configurarTabla() {
     setTimeout(() => {
       if (this.paginator) {
-        this.dataSource.paginator = this.paginator;
+        // NO asignar el paginator al dataSource cuando usamos paginación del servidor
+        // this.dataSource.paginator = this.paginator;
         this.configurarPaginadorTextos();
+        
+        // 🚀 Escuchar cambios de página para cargar datos del servidor
+        this.paginator.page.subscribe(() => {
+          this.cargarLocalidades();
+        });
       }
       
       if (this.sort) {
         this.dataSource.sort = this.sort;
+        
+        // Escuchar cambios de ordenamiento
+        this.sort.sortChange.subscribe(() => {
+          // Resetear a la primera página cuando cambia el ordenamiento
+          if (this.paginator) {
+            this.paginator.pageIndex = 0;
+          }
+          this.cargarLocalidades();
+        });
       }
     });
   }
@@ -175,10 +260,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   // ========================================
   // MÉTODOS AUXILIARES
   // ========================================
-
-  localidadesPorTipo(tipo: string): Localidad[] {
-    return this.localidades().filter(l => l.tipo === tipo);
-  }
 
   localidadesOtros(): Localidad[] {
     return this.localidades().filter(l => 

@@ -453,7 +453,7 @@ export class SortableHeaderComponent implements OnChanges {
       estado = 'sin ordenar';
     }
     
-    if (prioridad > 0) {
+    if (prioridad && prioridad > 0) {
       estado += `, prioridad ${prioridad}`;
     }
     
@@ -484,7 +484,7 @@ export class SortableHeaderComponent implements OnChanges {
     
     const direccionTexto = direccion === 'asc' ? 'Ascendente' : 'Descendente';
     
-    if (prioridad > 0) {
+    if (prioridad && prioridad > 0) {
       return `${direccionTexto} (${prioridad})`;
     }
     
@@ -498,7 +498,8 @@ export class SortableHeaderComponent implements OnChanges {
     if (!this.estOrdenado()) return false;
     
     const prioridadActual = this.prioridadOrdenamiento();
-    return this.ordenamiento.every(o => o.prioridad <= prioridadActual);
+    if (!prioridadActual) return false;
+    return this.ordenamiento.every(o => (o.prioridad || 0) <= prioridadActual);
   }
 
   /**

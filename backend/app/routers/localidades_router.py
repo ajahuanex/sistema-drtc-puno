@@ -1610,3 +1610,519 @@ async def importar_desde_geojson_test(
     except Exception as e:
         logger.error(f"Error en TEST de importación: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en TEST: {str(e)}")
+
+
+
+# ========================================
+# 🗺️ IMPORTACIÓN DESDE GEOJSON POINT
+# ========================================
+
+@router.post("/importar-desde-geojson")
+async def importar_desde_geojson(
+    modo: str = Query("ambos", description="crear, actualizar o ambos"),
+    test: bool = Query(False, description="Modo test: solo 2 de cada tipo"),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Importa localidades desde archivos GeoJSON
+    Usa archivos principales para datos y archivos point para coordenadas
+    """
+    from pathlib import Path
+    import json
+    
+    collection = db.localidades
+    
+    # Rutas a los archivos GeoJSON
+    FRONTEND_PATH = Path(__file__).parent.parent.parent.parent / "frontend"
+    GEOJSON_PATH = FRONTEND_PATH / "src" / "assets" / "geojson"
+    
+    # Archivos principales (con toda la info)
+    PROVINCIAS_MAIN = GEOJSON_PATH / "puno-provincias.geojson"
+    DISTRITOS_MAIN = GEOJSON_PATH / "puno-distritos.geojson"
+    CENTROS_POBLADOS = GEOJSON_PATH / "puno-centrospoblados.geojson"
+    
+    # Archivos point (solo coordenadas)
+    PROVINCIAS_POINT = GEOJSON_PATH / "puno-provincias-point.geojson"
+    DISTRITOS_POINT = GEOJSON_PATH / "puno-distritos-point.geojson"
+    
+    resultado = {
+        "total_importados": 0,
+        "total_actualizados": 0,
+        "total_omitidos": 0,
+        "total_errores": 0,
+        "detalle": {
+            "provincias": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0},
+            "distritos": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0},
+            "centros_poblados": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0}
+        }
+    }
+    
+    try:
+        # 1. Importar provincias
+        if PROVINCIAS_MAIN.exists() and PROVINCIAS_POINT.exists():
+            # Cargar datos principales
+            with open(PROVINCIAS_MAIN, 'r', encoding='utf-8') as f:
+                data_main = json.load(f)
+            
+            # Cargar coordenadas point
+            with open(PROVINCIAS_POINT, 'r', encoding='utf-8') as f:
+                data_point = json.load(f)
+            
+            # Crear diccionario de coordenadas por NOMBRE de provincia
+            coords_map = {}
+            for feature in data_point['features']:
+                nombre_prov = feature['properties'].get('NOMBPROV', '').strip().upper()
+                coords = feature['geometry']['coordinates']
+                coords_map[nombre_prov] = {"longitud": coords[0], "latitud": coords[1]}
+            
+            # Filtrar solo Puno y procesar
+            features = [f for f in data_main['features'] if f['properties'].get('NOMBDEP') == 'PUNO']
+            if test:
+                features = features[:2]
+            
+            for feature in features:
+                try:
+                    props = feature['properties']
+                    
+                    nombre = props.get('NOMBPROV', '').strip()
+                    nombre_upper = nombre.upper()
+                    ubigeo = f"21{props.get('IDPROV', '')}01"
+                    
+                    if not nombre:
+                        continue
+                    
+                    localidad_data = {
+                        "nombre": nombre,
+                        "tipo": TipoLocalidad.PROVINCIA,
+                        "ubigeo": ubigeo,
+                        "departamento": "PUNO",
+                        "provincia": nombre,
+                        "distrito": nombre,
+                        "descripcion": f"Provincia de {nombre}",
+                        "poblacion": props.get('POBTOTAL'),
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    # Agregar coordenadas desde archivo point (match por nombre)
+                    if nombre_upper in coords_map:
+                        localidad_data["coordenadas"] = coords_map[nombre_upper]
+                    
+                    existe = await collection.find_one({"ubigeo": ubigeo})
+                    
+                    if existe:
+                        if modo in ["actualizar", "ambos"]:
+                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["provincias"]["actualizados"] += 1
+                        else:
+                            resultado["detalle"]["provincias"]["omitidos"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await collection.insert_one(localidad_data)
+                            resultado["detalle"]["provincias"]["importados"] += 1
+                        else:
+                            resultado["detalle"]["provincias"]["omitidos"] += 1
+                            
+                except Exception as e:
+                    logger.error(f"Error importando provincia: {e}")
+                    resultado["detalle"]["provincias"]["errores"] += 1
+        
+        # 2. Importar distritos
+        if DISTRITOS_MAIN.exists() and DISTRITOS_POINT.exists():
+            # Cargar datos principales
+            with open(DISTRITOS_MAIN, 'r', encoding='utf-8') as f:
+                data_main = json.load(f)
+            
+            # Cargar coordenadas point
+            with open(DISTRITOS_POINT, 'r', encoding='utf-8') as f:
+                data_point = json.load(f)
+            
+            # Crear diccionario de coordenadas por UBIGEO
+            coords_map = {}
+            for feature in data_point['features']:
+                ubigeo = feature['properties'].get('UBIGEO')
+                coords = feature['geometry']['coordinates']
+                if ubigeo:
+                    coords_map[ubigeo] = {"longitud": coords[0], "latitud": coords[1]}
+            
+            features = data_main['features']
+            if test:
+                features = features[:2]
+            
+            for feature in features:
+                try:
+                    props = feature['properties']
+                    
+                    nombre = props.get('DISTRITO', '').strip()
+                    provincia = props.get('PROVINCIA', '').strip()
+                    ubigeo = props.get('UBIGEO', '')
+                    capital = props.get('CAPITAL', '').strip()
+                    
+                    if not nombre or not ubigeo:
+                        continue
+                    
+                    # Tipo siempre es DISTRITO (respetando el GeoJSON)
+                    tipo = TipoLocalidad.DISTRITO
+                    
+                    localidad_data = {
+                        "nombre": nombre,
+                        "tipo": tipo,
+                        "ubigeo": ubigeo,
+                        "departamento": "PUNO",
+                        "provincia": provincia,
+                        "distrito": nombre,
+                        "capital": capital if capital != nombre else None,
+                        "descripcion": f"Distrito de {nombre}, provincia de {provincia}",
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    # Agregar coordenadas desde archivo point
+                    if ubigeo in coords_map:
+                        localidad_data["coordenadas"] = coords_map[ubigeo]
+                    
+                    existe = await collection.find_one({"ubigeo": ubigeo})
+                    
+                    if existe:
+                        if modo in ["actualizar", "ambos"]:
+                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["distritos"]["actualizados"] += 1
+                        else:
+                            resultado["detalle"]["distritos"]["omitidos"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await collection.insert_one(localidad_data)
+                            resultado["detalle"]["distritos"]["importados"] += 1
+                        else:
+                            resultado["detalle"]["distritos"]["omitidos"] += 1
+                            
+                except Exception as e:
+                    logger.error(f"Error importando distrito: {e}")
+                    resultado["detalle"]["distritos"]["errores"] += 1
+        
+        # 3. Importar centros poblados
+        if CENTROS_POBLADOS.exists():
+            with open(CENTROS_POBLADOS, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            features = data['features'][:2] if test else data['features']
+            
+            for feature in features:
+                try:
+                    props = feature['properties']
+                    
+                    if feature['geometry']['type'] != 'Point':
+                        continue
+                    
+                    coords = feature['geometry']['coordinates']
+                    
+                    nombre = props.get('NOMB_CCPP', '').strip()
+                    provincia = props.get('NOMB_PROVI', 'PUNO').strip()
+                    distrito = props.get('NOMB_DISTR', '').strip()
+                    ubigeo = props.get('UBIGEO', '')
+                    poblacion = props.get('POBTOTAL')
+                    tipo_area = props.get('TIPO', 'Rural')
+                    
+                    if not nombre:
+                        continue
+                    
+                    localidad_data = {
+                        "nombre": nombre,
+                        "tipo": TipoLocalidad.CENTRO_POBLADO,
+                        "ubigeo": ubigeo if ubigeo else None,
+                        "departamento": "PUNO",
+                        "provincia": provincia,
+                        "distrito": distrito if distrito else None,
+                        "descripcion": f"Centro poblado {tipo_area.lower()} de {nombre}",
+                        "coordenadas": {
+                            "longitud": coords[0],
+                            "latitud": coords[1]
+                        },
+                        "poblacion": poblacion,
+                        "area_tipo": tipo_area,
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    # Buscar por nombre y distrito
+                    existe = await collection.find_one({
+                        "nombre": nombre,
+                        "distrito": distrito,
+                        "tipo": TipoLocalidad.CENTRO_POBLADO
+                    })
+                    
+                    if existe:
+                        if modo in ["actualizar", "ambos"]:
+                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["centros_poblados"]["actualizados"] += 1
+                        else:
+                            resultado["detalle"]["centros_poblados"]["omitidos"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await collection.insert_one(localidad_data)
+                            resultado["detalle"]["centros_poblados"]["importados"] += 1
+                        else:
+                            resultado["detalle"]["centros_poblados"]["omitidos"] += 1
+                            
+                except Exception as e:
+                    logger.error(f"Error importando centro poblado: {e}")
+                    resultado["detalle"]["centros_poblados"]["errores"] += 1
+        
+        # Calcular totales
+        for categoria in resultado["detalle"].values():
+            resultado["total_importados"] += categoria["importados"]
+            resultado["total_actualizados"] += categoria["actualizados"]
+            resultado["total_omitidos"] += categoria["omitidos"]
+            resultado["total_errores"] += categoria["errores"]
+        
+        return resultado
+        
+    except Exception as e:
+        logger.error(f"Error en importación: {e}")
+        raise HTTPException(status_code=500, detail=f"Error en importación: {str(e)}")
+
+
+
+@router.post("/eliminar-sin-coordenadas")
+async def eliminar_localidades_sin_coordenadas(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina TODAS las localidades que no tienen coordenadas
+    """
+    collection = db.localidades
+    
+    try:
+        # Eliminar todas las que no tienen coordenadas o tienen coordenadas vacías
+        resultado = await collection.delete_many({
+            "$or": [
+                {"coordenadas": {"$exists": False}},
+                {"coordenadas": None},
+                {"coordenadas.latitud": {"$exists": False}},
+                {"coordenadas.latitud": None}
+            ]
+        })
+        
+        return {
+            "message": "Localidades sin coordenadas eliminadas",
+            "total_eliminados": resultado.deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error eliminando localidades sin coordenadas: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+
+@router.post("/eliminar-duplicados-sin-ubigeo")
+async def eliminar_duplicados_sin_ubigeo(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina localidades que no tienen UBIGEO válido (son duplicados)
+    """
+    collection = db.localidades
+    
+    try:
+        # Eliminar todas las que no tienen ubigeo válido
+        resultado = await collection.delete_many({
+            "$or": [
+                {"ubigeo": {"$exists": False}},
+                {"ubigeo": None},
+                {"ubigeo": ""},
+                {"ubigeo": {"$type": "null"}}
+            ]
+        })
+        
+        return {
+            "message": "Duplicados sin UBIGEO eliminados",
+            "total_eliminados": resultado.deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error eliminando duplicados: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+
+@router.post("/eliminar-coordenadas-invalidas")
+async def eliminar_coordenadas_invalidas(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina localidades con coordenadas inválidas (0,0) o fuera de rango
+    """
+    collection = db.localidades
+    
+    try:
+        # Eliminar las que tienen coordenadas en 0,0 o fuera del rango de Puno
+        resultado = await collection.delete_many({
+            "$or": [
+                {"coordenadas.latitud": 0},
+                {"coordenadas.longitud": 0},
+                {"coordenadas.latitud": {"$lt": -18.5}},
+                {"coordenadas.latitud": {"$gt": -13.0}},
+                {"coordenadas.longitud": {"$lt": -71.5}},
+                {"coordenadas.longitud": {"$gt": -68.0}}
+            ]
+        })
+        
+        return {
+            "message": "Localidades con coordenadas inválidas eliminadas",
+            "total_eliminados": resultado.deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error eliminando coordenadas inválidas: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+
+@router.post("/eliminar-centros-poblados-duplicados-distritos")
+async def eliminar_centros_poblados_duplicados_distritos(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina centros poblados que tienen el mismo nombre que un distrito
+    (son duplicados incorrectos)
+    """
+    collection = db.localidades
+    
+    try:
+        # Obtener todos los distritos
+        distritos = await collection.find({"tipo": TipoLocalidad.DISTRITO}).to_list(None)
+        nombres_distritos = {d['nombre'].upper() for d in distritos}
+        
+        # Eliminar centros poblados que tienen el mismo nombre que un distrito
+        eliminados = []
+        for nombre in nombres_distritos:
+            resultado = await collection.delete_many({
+                "tipo": TipoLocalidad.CENTRO_POBLADO,
+                "nombre": {"$regex": f"^{nombre}$", "$options": "i"}
+            })
+            if resultado.deleted_count > 0:
+                eliminados.append({"nombre": nombre, "cantidad": resultado.deleted_count})
+        
+        return {
+            "message": "Centros poblados duplicados eliminados",
+            "total_eliminados": sum(e['cantidad'] for e in eliminados),
+            "detalles": eliminados
+        }
+        
+    except Exception as e:
+        logger.error(f"Error eliminando duplicados: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+
+@router.post("/limpiar-provincias-duplicadas")
+async def limpiar_provincias_duplicadas(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina provincias duplicadas manteniendo solo las que tienen UBIGEO válido
+    """
+    collection = db.localidades
+    
+    try:
+        # Obtener todas las provincias
+        provincias = await collection.find({"tipo": TipoLocalidad.PROVINCIA}).to_list(None)
+        
+        # Agrupar por nombre
+        grupos = {}
+        for prov in provincias:
+            nombre = prov['nombre']
+            if nombre not in grupos:
+                grupos[nombre] = []
+            grupos[nombre].append(prov)
+        
+        eliminados = 0
+        detalles = []
+        
+        # Para cada grupo, mantener solo el que tiene UBIGEO válido
+        for nombre, provs in grupos.items():
+            if len(provs) > 1:
+                # Separar los que tienen y no tienen UBIGEO válido
+                con_ubigeo = [p for p in provs if p.get('ubigeo') and len(p['ubigeo']) == 6]
+                sin_ubigeo = [p for p in provs if not (p.get('ubigeo') and len(p['ubigeo']) == 6)]
+                
+                # Si hay uno con UBIGEO, eliminar los que no tienen
+                if con_ubigeo and sin_ubigeo:
+                    for prov in sin_ubigeo:
+                        await collection.delete_one({"_id": prov["_id"]})
+                        eliminados += 1
+                    
+                    detalles.append({
+                        "nombre": nombre,
+                        "eliminados": len(sin_ubigeo),
+                        "mantenido_ubigeo": con_ubigeo[0]['ubigeo']
+                    })
+        
+        return {
+            "message": "Provincias duplicadas limpiadas",
+            "total_eliminados": eliminados,
+            "detalles": detalles
+        }
+        
+    except Exception as e:
+        logger.error(f"Error limpiando provincias: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+
+@router.post("/eliminar-distritos-duplicados-por-ubigeo")
+async def eliminar_distritos_duplicados_por_ubigeo(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> dict:
+    """
+    Elimina distritos duplicados que tienen el mismo UBIGEO
+    Mantiene solo el más reciente
+    """
+    collection = db.localidades
+    
+    try:
+        # Obtener todos los distritos
+        distritos = await collection.find({"tipo": TipoLocalidad.DISTRITO}).to_list(None)
+        
+        # Agrupar por UBIGEO
+        grupos = {}
+        for dist in distritos:
+            ubigeo = dist.get('ubigeo')
+            if ubigeo:
+                if ubigeo not in grupos:
+                    grupos[ubigeo] = []
+                grupos[ubigeo].append(dist)
+        
+        eliminados = 0
+        detalles = []
+        
+        # Para cada grupo con duplicados, mantener solo el más reciente
+        for ubigeo, dists in grupos.items():
+            if len(dists) > 1:
+                # Ordenar por fecha de creación (más reciente primero)
+                dists_ordenados = sorted(dists, key=lambda x: x.get('fechaCreacion', datetime.min), reverse=True)
+                
+                # Mantener el primero (más reciente), eliminar el resto
+                for dist in dists_ordenados[1:]:
+                    await collection.delete_one({"_id": dist["_id"]})
+                    eliminados += 1
+                
+                detalles.append({
+                    "nombre": dists_ordenados[0]['nombre'],
+                    "ubigeo": ubigeo,
+                    "duplicados_eliminados": len(dists) - 1,
+                    "mantenido_id": str(dists_ordenados[0]['_id'])
+                })
+        
+        return {
+            "message": "Distritos duplicados eliminados",
+            "total_eliminados": eliminados,
+            "detalles": detalles
+        }
+        
+    except Exception as e:
+        logger.error(f"Error eliminando duplicados: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

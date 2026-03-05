@@ -15,6 +15,8 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { BaseLocalidadesComponent } from './shared/base-localidades.component';
 import { FiltrosLocalidadesComponent } from './shared/filtros-localidades.component';
@@ -42,6 +44,8 @@ import { Localidad, LocalidadCreate, LocalidadUpdate } from '../../models/locali
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatMenuModule,
+    MatDividerModule,
     FiltrosLocalidadesComponent,
     LocalidadModalComponent
   ],
@@ -57,6 +61,24 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
 
   // Término de búsqueda
   terminoBusqueda = '';
+
+  // Configuración de columnas visibles
+  columnasDisponibles = [
+    { key: 'nombre', label: 'Nombre', visible: true },
+    { key: 'tipo', label: 'Tipo', visible: true },
+    { key: 'ubicacion', label: 'Ubicación', visible: true },
+    { key: 'poblacion', label: 'Población', visible: false },
+    { key: 'coordenadas', label: 'Coordenadas', visible: false },
+    { key: 'estado', label: 'Estado', visible: true },
+    { key: 'acciones', label: 'Acciones', visible: true }
+  ];
+
+  // Columnas visibles actualmente
+  get columnasVisibles(): string[] {
+    return this.columnasDisponibles
+      .filter(col => col.visible)
+      .map(col => col.key);
+  }
 
   // Estadísticas completas (cargadas una vez al inicio)
   estadisticasCompletas = {
@@ -120,6 +142,18 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
   // Método para toggle de filtros
   toggleFiltros() {
     this.filtrosExpandidos = !this.filtrosExpandidos;
+  }
+
+  // Métodos para configuración de columnas
+  toggleColumna(key: string) {
+    const columna = this.columnasDisponibles.find(c => c.key === key);
+    if (columna) {
+      columna.visible = !columna.visible;
+    }
+  }
+
+  columnaVisible(key: string): boolean {
+    return this.columnasDisponibles.find(c => c.key === key)?.visible || false;
   }
 
   // Métodos para filtrar desde las tarjetas de estadísticas
@@ -216,7 +250,7 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     }
   }
 
-  // Método para limpiar búsqueda
+  // Método para limpiar búsqueda y filtros
   async limpiarBusqueda() {
     this.terminoBusqueda = '';
     this.filtrosService.setTexto('');
@@ -231,12 +265,6 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     
     // Recargar datos sin filtros
     await this.cargarLocalidades();
-  }
-
-  // Aplicar filtros de búsqueda - ahora delegado al servicio
-  private aplicarFiltrosBusqueda() {
-    // Este método ya no es necesario porque el servicio maneja los filtros
-    // pero lo mantenemos para compatibilidad
   }
 
   // Obtener número de resultados filtrados

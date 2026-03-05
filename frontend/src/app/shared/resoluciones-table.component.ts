@@ -128,8 +128,8 @@ export interface AccionTabla {
           <!-- Selector de columnas -->
           <app-column-selector
             [columnas]="todasLasColumnas"
-            [columnasVisibles]="configuracion.columnasVisibles"
-            [ordenColumnas]="configuracion.ordenColumnas"
+            [columnasVisibles]="configuracion.columnasVisibles || []"
+            [ordenColumnas]="configuracion.ordenColumnas || []"
             (columnasChange)="onColumnasVisiblesChange($event)"
             (ordenChange)="onOrdenColumnasChange($event)">
           </app-column-selector>
@@ -243,7 +243,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="nroResolucion"
                 label="N° Resolución"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -265,7 +265,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="empresa"
                 label="Empresa"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -287,7 +287,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="tipoTramite"
                 label="Tipo de Trámite"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -306,7 +306,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaEmision"
                 label="Fecha de Emisión"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -331,7 +331,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaVigenciaInicio"
                 label="Vigencia Inicio"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -352,7 +352,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="fechaVigenciaFin"
                 label="Vigencia Fin"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -376,7 +376,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="aniosVigencia"
                 label="Años Vigencia"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -398,7 +398,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="eficaciaAnticipada"
                 label="Eficacia Ant."
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -430,7 +430,7 @@ export interface AccionTabla {
               <app-sortable-header
                 columna="estado"
                 label="Estado"
-                [ordenamiento]="configuracionInterna().ordenamiento"
+                [ordenamiento]="configuracionInterna().ordenamiento || []"
                 (ordenamientoChange)="onOrdenamientoChange($event)">
               </app-sortable-header>
             </mat-header-cell>
@@ -589,8 +589,8 @@ export interface AccionTabla {
       <!-- Paginador -->
       <mat-paginator 
         [length]="totalResultados()"
-        [pageSize]="configuracion.paginacion.tamanoPagina"
-        [pageIndex]="configuracion.paginacion.paginaActual"
+        [pageSize]="configuracion.paginacion?.tamanoPagina || 10"
+        [pageIndex]="configuracion.paginacion?.paginaActual || 0"
         [pageSizeOptions]="[10, 25, 50, 100]"
         [showFirstLastButtons]="true"
         [disabled]="cargando"
@@ -1345,8 +1345,12 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     columnasVisibles: ['nroResolucion', 'empresa', 'tipoTramite', 'fechaEmision', 'estado', 'acciones'],
     ordenColumnas: [],
     ordenamiento: [],
-    paginacion: { tamanoPagina: 25, paginaActual: 0 },
-    filtros: {}
+    paginacion: { 
+      tamano: 0,
+      tamanoPagina: 25, 
+      paginaActual: 0,
+      opciones: [10, 25, 50, 100]
+    }
   };
   
   /** Si la tabla está cargando datos */
@@ -1410,7 +1414,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
   configuracionInterna = signal<ResolucionTableConfig>(this.configuracion);
   
   columnasVisibles = computed(() => {
-    const columnas = [...this.configuracionInterna().columnasVisibles];
+    const columnas = [...(this.configuracionInterna().columnasVisibles || [])];
     if (this.seleccionMultiple && !columnas.includes('seleccion')) {
       columnas.unshift('seleccion');
     }
@@ -1451,12 +1455,12 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Usar setTimeout para asegurar que el ViewChild esté disponible
     setTimeout(() => {
       // Conectar el paginador al datasource
-      if (this.paginator) {
+      if (this.paginator && this.configuracion.paginacion) {
         this.dataSource.paginator = this.paginator;
         
         // Configurar el paginador con los valores iniciales de la configuración
-        this.paginator.pageIndex = this.configuracion.paginacion.paginaActual;
-        this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina;
+        this.paginator.pageIndex = this.configuracion.paginacion.paginaActual || 0;
+        this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina || 25;
         
         // Si ya hay datos, forzar actualización
         if (this.resoluciones.length > 0) {
@@ -1520,16 +1524,16 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     this.dataSource.data = resolucionesOrdenadas;
     
     // 4. Asegurar que el paginador esté conectado (importante cuando los datos llegan después)
-    if (this.paginator) {
+    if (this.paginator && this.configuracion.paginacion) {
       if (this.dataSource.paginator !== this.paginator) {
         this.dataSource.paginator = this.paginator;
         
         // Configurar valores iniciales si es necesario
         if (this.paginator.pageIndex !== this.configuracion.paginacion.paginaActual) {
-          this.paginator.pageIndex = this.configuracion.paginacion.paginaActual;
+          this.paginator.pageIndex = this.configuracion.paginacion.paginaActual || 0;
         }
         if (this.paginator.pageSize !== this.configuracion.paginacion.tamanoPagina) {
-          this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina;
+          this.paginator.pageSize = this.configuracion.paginacion.tamanoPagina || 25;
         }
       }
     }
@@ -1613,7 +1617,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     
     console.log(`🔄 Ordenando por ${evento.columna} en dirección ${evento.direccion}`);
     
-    let nuevoOrdenamiento = [...this.configuracion.ordenamiento];
+    let nuevoOrdenamiento = [...(this.configuracion.ordenamiento || [])];
     
     if (evento.esMultiple) {
       // Ordenamiento múltiple
@@ -1684,7 +1688,7 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Usa memoización para evitar recalcular ordenamientos idénticos
    */
   private aplicarOrdenamiento(resoluciones: ResolucionConEmpresa[]): ResolucionConEmpresa[] {
-    const ordenamiento = this.configuracion.ordenamiento;
+    const ordenamiento = this.configuracion.ordenamiento || [];
     
     if (!ordenamiento || ordenamiento.length === 0) {
       return resoluciones;
@@ -1720,8 +1724,10 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
       return 0;
     });
     
-    console.log(`✅ Ordenado ${ordenamiento[0].columna} ${ordenamiento[0].direccion}. Primeros 5 años:`, 
-      resultado.slice(0, 5).map(r => r.aniosVigencia));
+    if (ordenamiento.length > 0) {
+      console.log(`✅ Ordenado ${ordenamiento[0].columna} ${ordenamiento[0].direccion}. Primeros 5 años:`, 
+        resultado.slice(0, 5).map(r => r.aniosVigencia));
+    }
     
     // Guardar en cache
     this.sortCache.set(cacheKey, resultado);
@@ -1826,8 +1832,10 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     const nuevaConfiguracion = {
       ...this.configuracion,
       paginacion: {
+        tamano: this.totalResultados(),
         tamanoPagina: evento.pageSize,
-        paginaActual: evento.pageIndex
+        paginaActual: evento.pageIndex,
+        opciones: [10, 25, 50, 100]
       }
     };
     
@@ -1837,8 +1845,10 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
     // Emitir SOLO el cambio de paginación
     this.configuracionChange.emit({ 
       paginacion: {
+        tamano: this.totalResultados(),
         tamanoPagina: evento.pageSize,
-        paginaActual: evento.pageIndex
+        paginaActual: evento.pageIndex,
+        opciones: [10, 25, 50, 100]
       }
     });
     
@@ -2015,9 +2025,12 @@ export class ResolucionesTableComponent implements OnInit, OnChanges, AfterViewI
    * Obtiene información de paginación para mostrar al usuario
    */
   getPaginacionInfo(): string {
-    const inicio = this.configuracion.paginacion.paginaActual * this.configuracion.paginacion.tamanoPagina + 1;
+    if (!this.configuracion.paginacion) {
+      return '';
+    }
+    const inicio = (this.configuracion.paginacion.paginaActual || 0) * (this.configuracion.paginacion.tamanoPagina || 25) + 1;
     const fin = Math.min(
-      (this.configuracion.paginacion.paginaActual + 1) * this.configuracion.paginacion.tamanoPagina,
+      ((this.configuracion.paginacion.paginaActual || 0) + 1) * (this.configuracion.paginacion.tamanoPagina || 25),
       this.totalResultados()
     );
     
