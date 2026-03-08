@@ -1369,3 +1369,225 @@ async def obtener_ayuda_carga_masiva():
             "procesar": "/rutas/carga-masiva/procesar-completo"
         }
     }
+
+
+@router.post("/sincronizar-localidades")
+async def sincronizar_localidades_rutas(db = Depends(get_database)):
+    """
+    Sincroniza todas las localidades en rutas con datos actuales del módulo de localidades.
+    Agrega información territorial completa: tipo, ubigeo, departamento, provincia, distrito
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+    
+    async def obtener_localidad_completa(localidad_id: str):
+        """
+        Obtiene información completa de una localidad.
+        Prioridad: CENTRO_POBLADO > DISTRITO > PROVINCIA
+        Esto es importante para obtener coordenadas precisas en mapas.
+        """
+        try:
+            # Primero buscar por ID exacto
+            localidad = await localidades_collection.find_one({
+                "$or": [
+                    {"id": localidad_id},
+                    {"_id": ObjectId(localidad_id) if ObjectId.is_valid(localidad_id) else None}
+                ]
+            })
+            
+            if not localidad:
+                return None
+            
+            nombre = localidad.get("nombre", "Sin nombre")
+            tipo = localidad.get("tipo")
+            
+            # Si ya es un centro poblado, usarlo directamente
+            if tipo == "CENTRO_POBLADO":
+                return {
+                    "id": str(localidad.get("_id", localidad.get("id", ""))),
+                    "nombre": nombre,
+                    "tipo": tipo,
+                    "ubigeo": localidad.get("ubigeo"),
+                    "departamento": localidad.get("departamento"),
+                    "provincia": localidad.get("provincia"),
+                    "distrito": localidad.get("distrito"),
+                    "coordenadas": localidad.get("coordenadas")
+                }
+            
+            # Si es DISTRITO o PROVINCIA, buscar si existe un centro poblado con el mismo nombre
+            if tipo in ["DISTRITO", "PROVINCIA"]:
+                # Buscar centro poblado con el mismo nombre en la misma ubicación
+                centro_poblado = await localidades_collection.find_one({
+                    "nombre": nombre,
+                    "tipo": "CENTRO_POBLADO",
+                    "departamento": localidad.get("departamento"),
+                    "provincia": localidad.get("provincia"),
+                    "distrito": localidad.get("distrito") if tipo == "DISTRITO" else None
+                })
+                
+                if centro_poblado:
+                    print(f"  🎯 Encontrado centro poblado para {nombre} (era {tipo})")
+                    return {
+                        "id": str(centro_poblado.get("_id", centro_poblado.get("id", ""))),
+                        "nombre": centro_poblado.get("nombre"),
+                        "tipo": "CENTRO_POBLADO",
+                        "ubigeo": centro_poblado.get("ubigeo"),
+                        "departamento": centro_poblado.get("departamento"),
+                        "provincia": centro_poblado.get("provincia"),
+                        "distrito": centro_poblado.get("distrito"),
+                        "coordenadas": centro_poblado.get("coordenadas")
+                    }
+                
+                # Si no hay centro poblado pero es PROVINCIA, buscar DISTRITO
+                if tipo == "PROVINCIA":
+                    distrito = await localidades_collection.find_one({
+                        "nombre": nombre,
+                        "tipo": "DISTRITO",
+                        "departamento": localidad.get("departamento"),
+                        "provincia": localidad.get("provincia")
+                    })
+                    
+                    if distrito:
+                        print(f"  📍 Encontrado distrito para {nombre} (era PROVINCIA)")
+                        return {
+                            "id": str(distrito.get("_id", distrito.get("id", ""))),
+                            "nombre": distrito.get("nombre"),
+                            "tipo": "DISTRITO",
+                            "ubigeo": distrito.get("ubigeo"),
+                            "departamento": distrito.get("departamento"),
+                            "provincia": distrito.get("provincia"),
+                            "distrito": distrito.get("distrito"),
+                            "coordenadas": distrito.get("coordenadas")
+                        }
+            
+            # Si no se encontró nada más específico, usar la localidad original
+            return {
+                "id": str(localidad.get("_id", localidad.get("id", ""))),
+                "nombre": nombre,
+                "tipo": tipo,
+                "ubigeo": localidad.get("ubigeo"),
+                "departamento": localidad.get("departamento"),
+                "provincia": localidad.get("provincia"),
+                "distrito": localidad.get("distrito"),
+                "coordenadas": localidad.get("coordenadas")
+            }
+        except Exception as e:
+            print(f"Error obteniendo localidad {localidad_id}: {e}")
+            return None
+    
+    # Obtener todas las rutas
+    rutas = await rutas_collection.find({}).to_list(length=None)
+    total_rutas = len(rutas)
+    
+    rutas_actualizadas = 0
+    rutas_con_errores = 0
+    errores = []
+    
+    for ruta in rutas:
+        ruta_id = str(ruta.get("_id"))
+        codigo_ruta = ruta.get("codigoRuta", "Sin código")
+        
+        try:
+            update_data = {}
+            
+            # Sincronizar origen
+            origen = ruta.get("origen")
+            if origen and isinstance(origen, dict) and origen.get("id"):
+                origen_completo = await obtener_localidad_completa(origen["id"])
+                if origen_completo:
+                    update_data["origen"] = origen_completo
+            
+            # Sincronizar destino
+            destino = ruta.get("destino")
+            if destino and isinstance(destino, dict) and destino.get("id"):
+                destino_completo = await obtener_localidad_completa(destino["id"])
+                if destino_completo:
+                    update_data["destino"] = destino_completo
+            
+            # Sincronizar itinerario
+            itinerario = ruta.get("itinerario", [])
+            if itinerario and isinstance(itinerario, list):
+                itinerario_sincronizado = []
+                for parada in itinerario:
+                    if isinstance(parada, dict) and parada.get("id"):
+                        localidad_completa = await obtener_localidad_completa(parada["id"])
+                        if localidad_completa:
+                            localidad_completa["orden"] = parada.get("orden", 0)
+                            itinerario_sincronizado.append(localidad_completa)
+                        else:
+                            itinerario_sincronizado.append(parada)
+                    else:
+                        itinerario_sincronizado.append(parada)
+                
+                if itinerario_sincronizado:
+                    update_data["itinerario"] = itinerario_sincronizado
+            
+            # Actualizar ruta si hay cambios
+            if update_data:
+                result = await rutas_collection.update_one(
+                    {"_id": ruta["_id"]},
+                    {"$set": update_data}
+                )
+                
+                if result.modified_count > 0:
+                    rutas_actualizadas += 1
+        
+        except Exception as e:
+            rutas_con_errores += 1
+            errores.append(f"Error en ruta {codigo_ruta}: {str(e)}")
+    
+    return {
+        "mensaje": "Sincronización completada",
+        "total_rutas": total_rutas,
+        "rutas_actualizadas": rutas_actualizadas,
+        "rutas_con_errores": rutas_con_errores,
+        "errores": errores[:10]  # Solo primeros 10 errores
+    }
+
+@router.get("/verificar-sincronizacion")
+async def verificar_sincronizacion_localidades(db = Depends(get_database)):
+    """
+    Verifica el estado de sincronización de localidades en rutas
+    """
+    rutas_collection = db["rutas"]
+    rutas = await rutas_collection.find({}).to_list(length=None)
+    
+    rutas_con_info_completa = 0
+    rutas_sin_tipo = 0
+    rutas_sin_ubigeo = 0
+    rutas_sin_departamento = 0
+    
+    for ruta in rutas:
+        origen = ruta.get("origen", {})
+        destino = ruta.get("destino", {})
+        
+        # Verificar si tienen información completa
+        tiene_info_completa = (
+            origen.get("tipo") and origen.get("departamento") and
+            destino.get("tipo") and destino.get("departamento")
+        )
+        
+        if tiene_info_completa:
+            rutas_con_info_completa += 1
+        
+        if not origen.get("tipo") or not destino.get("tipo"):
+            rutas_sin_tipo += 1
+        
+        if not origen.get("ubigeo") or not destino.get("ubigeo"):
+            rutas_sin_ubigeo += 1
+        
+        if not origen.get("departamento") or not destino.get("departamento"):
+            rutas_sin_departamento += 1
+    
+    total = len(rutas)
+    porcentaje_completo = (rutas_con_info_completa / total * 100) if total > 0 else 0
+    
+    return {
+        "total_rutas": total,
+        "rutas_con_info_completa": rutas_con_info_completa,
+        "porcentaje_completo": round(porcentaje_completo, 2),
+        "rutas_sin_tipo": rutas_sin_tipo,
+        "rutas_sin_ubigeo": rutas_sin_ubigeo,
+        "rutas_sin_departamento": rutas_sin_departamento,
+        "necesita_sincronizacion": rutas_con_info_completa < total
+    }

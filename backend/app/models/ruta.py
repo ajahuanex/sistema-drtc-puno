@@ -51,6 +51,7 @@ class LocalidadEmbebida(BaseModel):
     departamento: Optional[str] = Field(None, description="Departamento")
     provincia: Optional[str] = Field(None, description="Provincia")
     distrito: Optional[str] = Field(None, description="Distrito")
+    coordenadas: Optional[dict] = Field(None, description="Coordenadas geográficas {latitud, longitud}")
 
 class LocalidadItinerario(LocalidadEmbebida):
     """Localidad en itinerario con orden"""

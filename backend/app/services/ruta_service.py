@@ -115,7 +115,8 @@ class RutaService:
                 ubigeo=localidad.ubigeo if hasattr(localidad, 'ubigeo') else None,
                 departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
                 provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
-                distrito=localidad.distrito if hasattr(localidad, 'distrito') else None
+                distrito=localidad.distrito if hasattr(localidad, 'distrito') else None,
+                coordenadas=localidad.coordenadas if hasattr(localidad, 'coordenadas') else None
             )
             
         except HTTPException:
@@ -187,6 +188,7 @@ class RutaService:
                 departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
                 provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
                 distrito=localidad.distrito if hasattr(localidad, 'distrito') else None,
+                coordenadas=localidad.coordenadas if hasattr(localidad, 'coordenadas') else None,
                 orden=orden
             ))
         

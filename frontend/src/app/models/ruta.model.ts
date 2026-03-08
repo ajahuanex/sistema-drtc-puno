@@ -9,6 +9,10 @@ export interface LocalidadEmbebida {
   departamento?: string;
   provincia?: string;
   distrito?: string;
+  coordenadas?: {
+    latitud: number;
+    longitud: number;
+  };
 }
 
 export interface LocalidadItinerario extends LocalidadEmbebida {
