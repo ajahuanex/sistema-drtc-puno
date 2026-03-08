@@ -18,7 +18,6 @@ import { ExpedienteService } from '../../services/expediente.service';
 import { ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
 import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
 import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-number-validator.component';
-import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.component';
 
 @Component({
   selector: 'app-crear-expediente-modal',
@@ -39,8 +38,7 @@ import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.co
     MatNativeDateModule,
     MatDialogModule,
     EmpresaSelectorComponent,
-    ExpedienteNumberValidatorComponent,
-    ResolucionSelectorComponent
+    ExpedienteNumberValidatorComponent
   ],
   template: `
     <div class="modal-container">

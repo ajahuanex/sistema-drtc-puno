@@ -27,8 +27,18 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { RutaModalComponent, RutaModalData } from '../../shared/ruta-modal.component';
 import { DetalleRutaModalComponent } from './detalle-ruta-modal.component';
-import { FiltrosAvanzadosModalComponent, FiltrosAvanzados } from './filtros-avanzados-modal.component';
 import { SeleccionarEmpresaResolucionDialogComponent } from '../../shared/seleccionar-empresa-resolucion-dialog.component';
+
+// Interfaz temporal para filtros avanzados
+interface FiltrosAvanzados {
+  empresaId?: string;
+  resolucionId?: string;
+  tipoRuta?: string;
+  tipoServicio?: string;
+  estado?: string;
+  origenId?: string;
+  destinoId?: string;
+}
 
 @Component({
   selector: 'app-rutas',
@@ -112,7 +122,7 @@ export class RutasComponent implements OnInit, OnDestroy {
   filtroActivo = computed(() => {
     const busqueda = this.terminoBusqueda();
     const filtros = this.filtrosAvanzados();
-    const tieneFiltrosAvanzados = !!(filtros.origen || filtros.destino);
+    const tieneFiltrosAvanzados = !!(filtros.origenId || filtros.destinoId);
 
     if (busqueda && tieneFiltrosAvanzados) {
       return {
@@ -139,7 +149,7 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   tieneFiltrosAvanzados = computed(() => {
     const filtros = this.filtrosAvanzados();
-    return !!(filtros.origen || filtros.destino);
+    return !!(filtros.origenId || filtros.destinoId);
   });
 
   rutasFiltradas = computed(() => {
@@ -154,7 +164,7 @@ export class RutasComponent implements OnInit, OnDestroy {
     });
 
     // Aplicar filtros avanzados primero (más específicos)
-    if (filtros.origen || filtros.destino) {
+    if (filtros.origenId || filtros.destinoId) {
       const rutasAntes = rutas.length;
       rutas = this.aplicarFiltrosBidireccionales(rutas, filtros);
       console.log('  📊 Después de filtros avanzados:', rutasAntes, '→', rutas.length);
@@ -312,6 +322,10 @@ export class RutasComponent implements OnInit, OnDestroy {
   // ========================================
 
   abrirFiltrosAvanzados(): void {
+    // TODO: Implementar modal de filtros avanzados para rutas
+    this.snackBar.open('Filtros avanzados en desarrollo', 'Cerrar', { duration: 3000 });
+    
+    /* CÓDIGO ORIGINAL - Requiere implementar FiltrosAvanzadosModalComponent
     const dialogRef = this.dialog.open(FiltrosAvanzadosModalComponent, {
       width: '600px',
       data: {
@@ -331,6 +345,7 @@ export class RutasComponent implements OnInit, OnDestroy {
         }
       }
     });
+    */
   }
 
   limpiarFiltrosAvanzados(): void {
@@ -346,40 +361,35 @@ export class RutasComponent implements OnInit, OnDestroy {
   }
 
   private aplicarFiltrosBidireccionales(rutas: Ruta[], filtros: FiltrosAvanzados): Ruta[] {
-    const { origen, destino } = filtros;
+    const { origenId, destinoId } = filtros;
 
-    if (!origen && !destino) {
+    if (!origenId && !destinoId) {
       return rutas;
     }
 
     const rutasAntes = rutas.length;
 
     const rutasFiltradas = rutas.filter(ruta => {
-      const origenRuta = ruta.origen?.nombre?.toLowerCase() || '';
-      const destinoRuta = ruta.destino?.nombre?.toLowerCase() || '';
+      const origenRuta = ruta.origen?.id || '';
+      const destinoRuta = ruta.destino?.id || '';
 
       // Si solo hay origen, buscar en origen O destino
-      if (origen && !destino) {
-        const origenBusqueda = origen.toLowerCase();
-        return origenRuta.includes(origenBusqueda) || destinoRuta.includes(origenBusqueda);
+      if (origenId && !destinoId) {
+        return origenRuta === origenId || destinoRuta === origenId;
       }
 
       // Si solo hay destino, buscar en origen O destino
-      if (destino && !origen) {
-        const destinoBusqueda = destino.toLowerCase();
-        return origenRuta.includes(destinoBusqueda) || destinoRuta.includes(destinoBusqueda);
+      if (destinoId && !origenId) {
+        return origenRuta === destinoId || destinoRuta === destinoId;
       }
 
       // Si hay ambos, buscar bidireccional
-      if (origen && destino) {
-        const origenBusqueda = origen.toLowerCase();
-        const destinoBusqueda = destino.toLowerCase();
-
+      if (origenId && destinoId) {
         // Dirección normal: origen → destino
-        const direccionNormal = origenRuta.includes(origenBusqueda) && destinoRuta.includes(destinoBusqueda);
+        const direccionNormal = origenRuta === origenId && destinoRuta === destinoId;
 
         // Dirección inversa: destino → origen
-        const direccionInversa = origenRuta.includes(destinoBusqueda) && destinoRuta.includes(origenBusqueda);
+        const direccionInversa = origenRuta === destinoId && destinoRuta === origenId;
 
         return direccionNormal || direccionInversa;
       }
@@ -395,12 +405,12 @@ export class RutasComponent implements OnInit, OnDestroy {
   private getDescripcionFiltrosAvanzados(filtros: FiltrosAvanzados): string {
     const partes: string[] = [];
 
-    if (filtros.origen && filtros.destino) {
-      partes.push(`${filtros.origen} ↔ ${filtros.destino}`);
-    } else if (filtros.origen) {
-      partes.push(`Origen/Destino: ${filtros.origen}`);
-    } else if (filtros.destino) {
-      partes.push(`Origen/Destino: ${filtros.destino}`);
+    if (filtros.origenId && filtros.destinoId) {
+      partes.push(`${filtros.origenId} ↔ ${filtros.destinoId}`);
+    } else if (filtros.origenId) {
+      partes.push(`Origen/Destino: ${filtros.origenId}`);
+    } else if (filtros.destinoId) {
+      partes.push(`Origen/Destino: ${filtros.destinoId}`);
     }
 
     return partes.length > 0 ? `Filtros: ${partes.join(', ')}` : 'Filtros avanzados';
@@ -410,19 +420,19 @@ export class RutasComponent implements OnInit, OnDestroy {
     const filtros = this.filtrosAvanzados();
     const chips: Array<{ key: string, label: string, value: string }> = [];
 
-    if (filtros.origen) {
+    if (filtros.origenId) {
       chips.push({
-        key: 'origen',
+        key: 'origenId',
         label: 'Origen',
-        value: filtros.origen
+        value: filtros.origenId
       });
     }
 
-    if (filtros.destino) {
+    if (filtros.destinoId) {
       chips.push({
-        key: 'destino',
+        key: 'destinoId',
         label: 'Destino',
-        value: filtros.destino
+        value: filtros.destinoId
       });
     }
 
@@ -753,4 +763,52 @@ export class RutasComponent implements OnInit, OnDestroy {
       itinerarioFormateado: this.getItinerarioFormateado(ruta)
     }));
   }
+
+  // ========================================
+  // VERIFICACIÓN DE COORDENADAS
+  // ========================================
+
+  /**
+   * Verificar que todas las rutas tengan coordenadas desde el módulo de localidades
+   * NOTA: Modal de verificación eliminado - funcionalidad deshabilitada temporalmente
+   */
+  async verificarCoordenadasRutas(): Promise<void> {
+    this.isLoading.set(true);
+
+    try {
+      const resultado = await this.rutaService.verificarCoordenadasRutas().toPromise();
+
+      if (!resultado) {
+        this.snackBar.open('No se pudo verificar las coordenadas', 'Cerrar', { duration: 3000 });
+        return;
+      }
+
+      // Mostrar resultado en consola
+      console.log('📊 VERIFICACIÓN DE COORDENADAS:', resultado);
+      
+      // Mostrar resultado en snackbar
+      const mensaje = `Verificación completada: ${resultado.total_rutas || 0} rutas verificadas`;
+      this.snackBar.open(mensaje, 'Cerrar', { duration: 5000 });
+
+      // TODO: Implementar modal de verificación de coordenadas
+      // const { VerificacionCoordenadasModalComponent } = await import('./verificacion-coordenadas-modal.component');
+      // this.dialog.open(VerificacionCoordenadasModalComponent, {
+      //   width: '800px',
+      //   maxWidth: '90vw',
+      //   maxHeight: '90vh',
+      //   data: resultado,
+      //   disableClose: false
+      // });
+
+    } catch (error) {
+      console.error('Error verificando coordenadas:', error);
+      this.snackBar.open('Error al verificar coordenadas de rutas', 'Cerrar', { duration: 3000 });
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  // ========================================
+  // MÉTODOS AUXILIARES PARA EL TEMPLATE
+  // ========================================
 }

@@ -40,10 +40,13 @@ async def importar_desde_geojson(
     test: bool = Query(False, description="Modo test: solo 2 de cada tipo")
 ) -> Dict[str, Any]:
     """
-    Importa localidades desde archivos GeoJSON point
+    Importa localidades y geometrías desde archivos GeoJSON
+    - Localidades: Se guardan en la colección 'localidades' (para rutas)
+    - Geometrías: Se guardan en la colección 'geometrias' (para mapas)
     """
     db = await get_database()
-    collection = db.localidades
+    localidades_collection = db.localidades
+    geometrias_collection = db.geometrias
     
     resultado = {
         "total_importados": 0,
@@ -51,14 +54,14 @@ async def importar_desde_geojson(
         "total_omitidos": 0,
         "total_errores": 0,
         "detalle": {
-            "provincias": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0},
-            "distritos": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0},
-            "centros_poblados": {"importados": 0, "actualizados": 0, "omitidos": 0, "errores": 0}
+            "provincias": {"localidades": 0, "geometrias": 0, "errores": 0},
+            "distritos": {"localidades": 0, "geometrias": 0, "errores": 0},
+            "centros_poblados": {"localidades": 0, "geometrias": 0, "errores": 0}
         }
     }
     
     try:
-        # 1. Importar provincias
+        # 1. Importar PROVINCIAS
         if PROVINCIAS_POINT.exists():
             with open(PROVINCIAS_POINT, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -76,6 +79,7 @@ async def importar_desde_geojson(
                     if not nombre:
                         continue
                     
+                    # A) Guardar en LOCALIDADES (para rutas)
                     localidad_data = {
                         "nombre": nombre,
                         "tipo": TipoLocalidad.PROVINCIA,
@@ -89,33 +93,55 @@ async def importar_desde_geojson(
                             "latitud": coords[1]
                         },
                         "poblacion": props.get('POBTOTAL'),
-                        "activo": True,
-                        "updatedAt": datetime.utcnow()
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
                     }
                     
-                    # Verificar si existe
-                    existe = await collection.find_one({"ubigeo": ubigeo})
+                    existe_localidad = await localidades_collection.find_one({"ubigeo": ubigeo})
                     
-                    if existe:
+                    if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
-                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
-                            resultado["detalle"]["provincias"]["actualizados"] += 1
-                        else:
-                            resultado["detalle"]["provincias"]["omitidos"] += 1
+                            await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["provincias"]["localidades"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
-                            localidad_data["createdAt"] = datetime.utcnow()
-                            await collection.insert_one(localidad_data)
-                            resultado["detalle"]["provincias"]["importados"] += 1
-                        else:
-                            resultado["detalle"]["provincias"]["omitidos"] += 1
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await localidades_collection.insert_one(localidad_data)
+                            resultado["detalle"]["provincias"]["localidades"] += 1
+                    
+                    # B) Guardar en GEOMETRIAS (para mapas - punto de referencia)
+                    geometria_data = {
+                        "nombre": nombre,
+                        "tipo": "PROVINCIA_POINT",
+                        "ubigeo": ubigeo,
+                        "departamento": "PUNO",
+                        "provincia": nombre,
+                        "distrito": None,
+                        "geometry": feature['geometry'],
+                        "properties": props,
+                        "centroide_lat": coords[1],
+                        "centroide_lon": coords[0],
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    existe_geometria = await geometrias_collection.find_one({"tipo": "PROVINCIA_POINT", "nombre": nombre})
+                    
+                    if existe_geometria:
+                        if modo in ["actualizar", "ambos"]:
+                            await geometrias_collection.update_one({"_id": existe_geometria["_id"]}, {"$set": geometria_data})
+                            resultado["detalle"]["provincias"]["geometrias"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            geometria_data["fechaCreacion"] = datetime.utcnow()
+                            await geometrias_collection.insert_one(geometria_data)
+                            resultado["detalle"]["provincias"]["geometrias"] += 1
                             
                 except Exception as e:
                     print(f"Error importando provincia: {e}")
                     resultado["detalle"]["provincias"]["errores"] += 1
 
         
-        # 2. Importar distritos
+        # 2. Importar DISTRITOS
         if DISTRITOS_POINT.exists():
             with open(DISTRITOS_POINT, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -138,6 +164,7 @@ async def importar_desde_geojson(
                     es_capital_provincia = (nombre.upper() == provincia.upper())
                     tipo = determinar_tipo_localidad(nombre, es_capital_provincia)
                     
+                    # A) Guardar en LOCALIDADES (para rutas)
                     localidad_data = {
                         "nombre": nombre,
                         "tipo": tipo,
@@ -145,39 +172,60 @@ async def importar_desde_geojson(
                         "departamento": "PUNO",
                         "provincia": provincia,
                         "distrito": nombre,
-                        "capital": capital if capital != nombre else None,
                         "descripcion": f"Distrito de {nombre}, provincia de {provincia}",
                         "coordenadas": {
                             "longitud": coords[0],
                             "latitud": coords[1]
                         },
-                        "activo": True,
-                        "updatedAt": datetime.utcnow()
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
                     }
                     
-                    # Verificar si existe
-                    existe = await collection.find_one({"ubigeo": ubigeo})
+                    existe_localidad = await localidades_collection.find_one({"ubigeo": ubigeo})
                     
-                    if existe:
+                    if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
-                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
-                            resultado["detalle"]["distritos"]["actualizados"] += 1
-                        else:
-                            resultado["detalle"]["distritos"]["omitidos"] += 1
+                            await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["distritos"]["localidades"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
-                            localidad_data["createdAt"] = datetime.utcnow()
-                            await collection.insert_one(localidad_data)
-                            resultado["detalle"]["distritos"]["importados"] += 1
-                        else:
-                            resultado["detalle"]["distritos"]["omitidos"] += 1
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await localidades_collection.insert_one(localidad_data)
+                            resultado["detalle"]["distritos"]["localidades"] += 1
+                    
+                    # B) Guardar en GEOMETRIAS (para mapas - punto de referencia)
+                    geometria_data = {
+                        "nombre": nombre,
+                        "tipo": "DISTRITO_POINT",
+                        "ubigeo": ubigeo,
+                        "departamento": "PUNO",
+                        "provincia": provincia,
+                        "distrito": nombre,
+                        "geometry": feature['geometry'],
+                        "properties": props,
+                        "centroide_lat": coords[1],
+                        "centroide_lon": coords[0],
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    existe_geometria = await geometrias_collection.find_one({"tipo": "DISTRITO_POINT", "ubigeo": ubigeo})
+                    
+                    if existe_geometria:
+                        if modo in ["actualizar", "ambos"]:
+                            await geometrias_collection.update_one({"_id": existe_geometria["_id"]}, {"$set": geometria_data})
+                            resultado["detalle"]["distritos"]["geometrias"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            geometria_data["fechaCreacion"] = datetime.utcnow()
+                            await geometrias_collection.insert_one(geometria_data)
+                            resultado["detalle"]["distritos"]["geometrias"] += 1
                             
                 except Exception as e:
                     print(f"Error importando distrito: {e}")
                     resultado["detalle"]["distritos"]["errores"] += 1
 
         
-        # 3. Importar centros poblados
+        # 3. Importar CENTROS POBLADOS
         if CENTROS_POBLADOS.exists():
             with open(CENTROS_POBLADOS, 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -203,6 +251,7 @@ async def importar_desde_geojson(
                     if not nombre:
                         continue
                     
+                    # A) Guardar en LOCALIDADES (para rutas)
                     localidad_data = {
                         "nombre": nombre,
                         "tipo": TipoLocalidad.CENTRO_POBLADO,
@@ -216,31 +265,60 @@ async def importar_desde_geojson(
                             "latitud": coords[1]
                         },
                         "poblacion": poblacion,
-                        "area_tipo": tipo_area,
-                        "activo": True,
-                        "updatedAt": datetime.utcnow()
+                        "tipo_area": tipo_area,
+                        "estaActiva": True,
+                        "fechaActualizacion": datetime.utcnow()
                     }
                     
                     # Verificar si existe por nombre y distrito
-                    existe = await collection.find_one({
+                    existe_localidad = await localidades_collection.find_one({
                         "nombre": nombre,
                         "distrito": distrito,
                         "tipo": TipoLocalidad.CENTRO_POBLADO
                     })
                     
-                    if existe:
+                    if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
-                            await collection.update_one({"_id": existe["_id"]}, {"$set": localidad_data})
-                            resultado["detalle"]["centros_poblados"]["actualizados"] += 1
-                        else:
-                            resultado["detalle"]["centros_poblados"]["omitidos"] += 1
+                            await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
+                            resultado["detalle"]["centros_poblados"]["localidades"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
-                            localidad_data["createdAt"] = datetime.utcnow()
-                            await collection.insert_one(localidad_data)
-                            resultado["detalle"]["centros_poblados"]["importados"] += 1
-                        else:
-                            resultado["detalle"]["centros_poblados"]["omitidos"] += 1
+                            localidad_data["fechaCreacion"] = datetime.utcnow()
+                            await localidades_collection.insert_one(localidad_data)
+                            resultado["detalle"]["centros_poblados"]["localidades"] += 1
+                    
+                    # B) Guardar en GEOMETRIAS (para mapas - punto)
+                    geometria_data = {
+                        "nombre": nombre,
+                        "tipo": "CENTRO_POBLADO",
+                        "ubigeo": ubigeo if ubigeo else None,
+                        "departamento": "PUNO",
+                        "provincia": provincia,
+                        "distrito": distrito,
+                        "geometry": feature['geometry'],
+                        "properties": props,
+                        "centroide_lat": coords[1],
+                        "centroide_lon": coords[0],
+                        "poblacion": poblacion,
+                        "tipo_area": tipo_area,
+                        "fechaActualizacion": datetime.utcnow()
+                    }
+                    
+                    existe_geometria = await geometrias_collection.find_one({
+                        "tipo": "CENTRO_POBLADO",
+                        "nombre": nombre,
+                        "distrito": distrito
+                    })
+                    
+                    if existe_geometria:
+                        if modo in ["actualizar", "ambos"]:
+                            await geometrias_collection.update_one({"_id": existe_geometria["_id"]}, {"$set": geometria_data})
+                            resultado["detalle"]["centros_poblados"]["geometrias"] += 1
+                    else:
+                        if modo in ["crear", "ambos"]:
+                            geometria_data["fechaCreacion"] = datetime.utcnow()
+                            await geometrias_collection.insert_one(geometria_data)
+                            resultado["detalle"]["centros_poblados"]["geometrias"] += 1
                             
                 except Exception as e:
                     print(f"Error importando centro poblado: {e}")
@@ -248,10 +326,8 @@ async def importar_desde_geojson(
         
         # Calcular totales
         for categoria in resultado["detalle"].values():
-            resultado["total_importados"] += categoria["importados"]
-            resultado["total_actualizados"] += categoria["actualizados"]
-            resultado["total_omitidos"] += categoria["omitidos"]
-            resultado["total_errores"] += categoria["errores"]
+            resultado["total_importados"] += categoria.get("localidades", 0) + categoria.get("geometrias", 0)
+            resultado["total_errores"] += categoria.get("errores", 0)
         
         return resultado
         

@@ -12,7 +12,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRadioModule } from '@angular/material/radio';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { EmpresaService } from '../../services/empresa.service';
 
 interface ResultadoValidacion {
@@ -61,8 +60,7 @@ interface ResultadoProcesamiento extends ResultadoValidacion {
     MatStepperModule,
     MatChipsModule,
     MatTooltipModule,
-    MatRadioModule,
-    SmartIconComponent
+    MatRadioModule
   ],
   templateUrl: './carga-masiva-empresas.component.html',
   styleUrls: ['./carga-masiva-empresas.component.scss']

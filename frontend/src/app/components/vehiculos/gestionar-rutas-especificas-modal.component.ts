@@ -112,7 +112,7 @@ interface RutaSeleccionable {
                   <div class="ruta-content">
                     <span class="codigo">{{ rutaItem.ruta.codigoRuta }}</span>
                     <span class="trayecto">
-                      @if (rutaItem.ruta.origen && rutaItem.ruta.destino && rutaItem.ruta.origen?.nombre !== 'Sin origen') {
+                      @if (rutaItem.ruta.origen && rutaItem.ruta.destino && rutaItem.ruta.origen.nombre !== 'Sin origen') {
                         {{ rutaItem.ruta.origen }} → {{ rutaItem.ruta.destino }}
                       } @else {
                         {{ rutaItem.ruta.nombre || 'Ruta sin nombre' }}

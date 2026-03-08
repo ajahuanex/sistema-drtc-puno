@@ -690,6 +690,212 @@ async def exportar_filtro_avanzado(
             detail=f"Error al exportar: {str(e)}"
         )
 
+# ========================================
+# VERIFICACIÓN DE COORDENADAS
+# ========================================
+
+@router.get("/verificar-coordenadas")
+async def verificar_coordenadas_rutas(
+    db = Depends(get_database)
+):
+    """
+    Verificar que todas las rutas tengan coordenadas desde el módulo de localidades
+    
+    Retorna:
+    - total_rutas: Total de rutas en el sistema
+    - rutas_con_coordenadas: Rutas donde origen y destino tienen coordenadas
+    - rutas_sin_coordenadas: Rutas donde falta al menos una coordenada
+    - detalles: Lista de rutas con problemas de coordenadas
+    """
+    try:
+        rutas_collection = db["rutas"]
+        localidades_collection = db["localidades"]
+        alias_collection = db["localidades_alias"]  # ✅ NUEVA: Colección de alias
+        
+        # Obtener todas las rutas activas
+        rutas = await rutas_collection.find({"estaActivo": True}).to_list(length=None)
+        
+        total_rutas = len(rutas)
+        rutas_con_coordenadas = 0
+        rutas_sin_coordenadas = 0
+        detalles_problemas = []
+        
+        # Función auxiliar para buscar localidad (con alias)
+        async def buscar_localidad_con_alias(nombre):
+            """Buscar localidad por nombre o alias"""
+            import re
+            
+            # Normalizar nombre (remover C.P., CP, etc.)
+            nombre_normalizado = re.sub(r'^(C\.P\.|CP|C\.P)\s*', '', nombre, flags=re.IGNORECASE).strip()
+            
+            # 1. Buscar por nombre exacto
+            localidad = await localidades_collection.find_one({
+                "nombre": {"$regex": f"^{nombre}$", "$options": "i"},
+                "estaActiva": True
+            })
+            
+            if localidad:
+                return localidad
+            
+            # 2. Buscar por nombre normalizado
+            if nombre != nombre_normalizado:
+                localidad = await localidades_collection.find_one({
+                    "nombre": {"$regex": f"^{nombre_normalizado}$", "$options": "i"},
+                    "estaActiva": True
+                })
+                
+                if localidad:
+                    return localidad
+            
+            # 3. ✅ NUEVO: Buscar en tabla de alias
+            alias_doc = await alias_collection.find_one({
+                "alias": {"$regex": f"^{nombre}$", "$options": "i"},
+                "estaActivo": True
+            })
+            
+            if alias_doc:
+                # Obtener la localidad oficial del alias
+                localidad_id = alias_doc.get("localidad_id")
+                if localidad_id:
+                    try:
+                        localidad = await localidades_collection.find_one({"_id": ObjectId(localidad_id)})
+                        if localidad:
+                            return localidad
+                    except:
+                        pass
+            
+            return None
+        
+        for ruta in rutas:
+            ruta_id = str(ruta.get("_id"))
+            codigo_ruta = ruta.get("codigoRuta", "Sin código")
+            origen = ruta.get("origen", {})
+            destino = ruta.get("destino", {})
+            itinerario = ruta.get("itinerario", [])
+            
+            # Verificar coordenadas de origen
+            origen_id = origen.get("id")
+            origen_nombre = origen.get("nombre", "Sin nombre")
+            origen_coordenadas = None
+            
+            if origen_id:
+                try:
+                    # Primero intentar por ID
+                    localidad_origen = await localidades_collection.find_one({"_id": ObjectId(origen_id)})
+                    if not localidad_origen:
+                        # Si no encuentra por ID, buscar con alias
+                        localidad_origen = await buscar_localidad_con_alias(origen_nombre)
+                    
+                    if localidad_origen:
+                        origen_coordenadas = localidad_origen.get("coordenadas")
+                except:
+                    # Si falla, buscar con alias
+                    try:
+                        localidad_origen = await buscar_localidad_con_alias(origen_nombre)
+                        if localidad_origen:
+                            origen_coordenadas = localidad_origen.get("coordenadas")
+                    except:
+                        pass
+            
+            # Verificar coordenadas de destino
+            destino_id = destino.get("id")
+            destino_nombre = destino.get("nombre", "Sin nombre")
+            destino_coordenadas = None
+            
+            if destino_id:
+                try:
+                    # Primero intentar por ID
+                    localidad_destino = await localidades_collection.find_one({"_id": ObjectId(destino_id)})
+                    if not localidad_destino:
+                        # Si no encuentra por ID, buscar con alias
+                        localidad_destino = await buscar_localidad_con_alias(destino_nombre)
+                    
+                    if localidad_destino:
+                        destino_coordenadas = localidad_destino.get("coordenadas")
+                except:
+                    # Si falla, buscar con alias
+                    try:
+                        localidad_destino = await buscar_localidad_con_alias(destino_nombre)
+                        if localidad_destino:
+                            destino_coordenadas = localidad_destino.get("coordenadas")
+                    except:
+                        pass
+            
+            # Verificar coordenadas de itinerario
+            itinerario_sin_coordenadas = []
+            for loc in itinerario:
+                loc_id = loc.get("id")
+                loc_nombre = loc.get("nombre", "Sin nombre")
+                loc_coordenadas = None
+                
+                if loc_id:
+                    try:
+                        # Primero intentar por ID
+                        localidad_it = await localidades_collection.find_one({"_id": ObjectId(loc_id)})
+                        if not localidad_it:
+                            # Si no encuentra por ID, buscar con alias
+                            localidad_it = await buscar_localidad_con_alias(loc_nombre)
+                        
+                        if localidad_it:
+                            loc_coordenadas = localidad_it.get("coordenadas")
+                    except:
+                        # Si falla, buscar con alias
+                        try:
+                            localidad_it = await buscar_localidad_con_alias(loc_nombre)
+                            if localidad_it:
+                                loc_coordenadas = localidad_it.get("coordenadas")
+                        except:
+                            pass
+                    
+                    if not loc_coordenadas or not loc_coordenadas.get("latitud") or not loc_coordenadas.get("longitud"):
+                        itinerario_sin_coordenadas.append({
+                            "nombre": loc_nombre,
+                            "orden": loc.get("orden")
+                        })
+            
+            # Determinar si la ruta tiene todas las coordenadas
+            tiene_origen = origen_coordenadas and origen_coordenadas.get("latitud") and origen_coordenadas.get("longitud")
+            tiene_destino = destino_coordenadas and destino_coordenadas.get("latitud") and destino_coordenadas.get("longitud")
+            
+            if tiene_origen and tiene_destino and len(itinerario_sin_coordenadas) == 0:
+                rutas_con_coordenadas += 1
+            else:
+                rutas_sin_coordenadas += 1
+                
+                problema = {
+                    "ruta_id": ruta_id,
+                    "codigo_ruta": codigo_ruta,
+                    "origen": {
+                        "nombre": origen_nombre,
+                        "tiene_coordenadas": tiene_origen
+                    },
+                    "destino": {
+                        "nombre": destino_nombre,
+                        "tiene_coordenadas": tiene_destino
+                    },
+                    "itinerario_sin_coordenadas": itinerario_sin_coordenadas
+                }
+                detalles_problemas.append(problema)
+        
+        # Calcular porcentaje
+        porcentaje_con_coordenadas = (rutas_con_coordenadas / total_rutas * 100) if total_rutas > 0 else 0
+        
+        return {
+            "estado": "completado",
+            "total_rutas": total_rutas,
+            "rutas_con_coordenadas": rutas_con_coordenadas,
+            "rutas_sin_coordenadas": rutas_sin_coordenadas,
+            "porcentaje_con_coordenadas": round(porcentaje_con_coordenadas, 2),
+            "detalles_problemas": detalles_problemas,
+            "mensaje": f"{rutas_con_coordenadas} de {total_rutas} rutas tienen coordenadas completas ({porcentaje_con_coordenadas:.1f}%)"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al verificar coordenadas: {str(e)}"
+        )
+
 @router.get("/{ruta_id}", response_model=Ruta)
 async def get_ruta(
     ruta_id: str,

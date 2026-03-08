@@ -1,0 +1,379 @@
+================================================================================
+LOCALIDADES SIN COORDENADAS - BÚSQUEDA MANUAL
+================================================================================
+
+Total localidades sin coordenadas: 31
+Total rutas afectadas: 78
+
+
+1. C.P. LA RINCONADA
+   Usado como origen: 1 veces
+   Usado como destino: 21 veces
+   Usado en itinerario: 6 veces
+   Total usos: 28
+   Rutas afectadas: 04, 02, 01, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+2. CUYO CUYO
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 8 veces
+   Total usos: 9
+   Rutas afectadas: 06, 01, 02, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+3. CHACA CHACA
+   Usado como origen: 0 veces
+   Usado como destino: 3 veces
+   Usado en itinerario: 4 veces
+   Total usos: 7
+   Rutas afectadas: 06, 01, 05, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+4. C.P. CERRO LUNAR
+   Usado como origen: 0 veces
+   Usado como destino: 5 veces
+   Usado en itinerario: 0 veces
+   Total usos: 5
+   Rutas afectadas: 01, 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+5. SAN RAFAEL
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 3 veces
+   Total usos: 4
+   Rutas afectadas: 04, 01, 09, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+6. JOSE D. CHOQUEHUANCA
+   Usado como origen: 2 veces
+   Usado como destino: 2 veces
+   Usado en itinerario: 0 veces
+   Total usos: 4
+   Rutas afectadas: 04, 02, 05, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+7. LA OROYA
+   Usado como origen: 0 veces
+   Usado como destino: 2 veces
+   Usado en itinerario: 1 veces
+   Total usos: 3
+   Rutas afectadas: 03, 04
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+8. COAZA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 1 veces
+   Total usos: 2
+   Rutas afectadas: 05, 03
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+9. LA RAYA
+   Usado como origen: 0 veces
+   Usado como destino: 2 veces
+   Usado en itinerario: 0 veces
+   Total usos: 2
+   Rutas afectadas: 02, 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+10. C.P. HILATA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+11. SAN MIGUEL DE PAMPA GRANDE
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+12. CUPISAYA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+13. AZANGARO(CANCELADA)
+   Usado como origen: 1 veces
+   Usado como destino: 0 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 05
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+14. C.P. PUERTO Y MANOA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 04
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+15. CRUCERO ALTO
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+16. MINA SAN RAFAEL
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 05
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+17. RUTA CANCELADA
+   Usado como origen: 1 veces
+   Usado como destino: 0 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+18. SIN ESPECIFICAR
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+19. C.P. CAXILE
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+20. DEAGUADERO
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+21. QUEJON
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+22. YUNGUYO(PROCESO CANCELACION)
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+23. MACHAMARCA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 04
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+24. C.P. HILATA PATASCACHI
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+25. KUNURANA ALTO
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+26. JULIACA(CANCELADO)
+   Usado como origen: 1 veces
+   Usado como destino: 0 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+27. DESAGUADERO(CANCELADO)
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+28. YUNGUYO(CANCELADO)
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 14
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+29. PIZACOMA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 16
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+30. JULIACA(RENUNCIA RUTA02 0947-2025)
+   Usado como origen: 1 veces
+   Usado como destino: 0 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 02
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------
+
+31. SAN ANTONIO PUTINA
+   Usado como origen: 0 veces
+   Usado como destino: 1 veces
+   Usado en itinerario: 0 veces
+   Total usos: 1
+   Rutas afectadas: 01
+   
+   [ ] Encontrada en base de datos
+   [ ] Coordenadas agregadas
+   Notas: _________________________________________________
+   ----------------------------------------------------------------------------

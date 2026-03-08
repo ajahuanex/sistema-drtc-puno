@@ -128,7 +128,7 @@ import { ResolucionService } from '../../services/resolucion.service';
                         <mat-option [value]="empresa.id">
                           <div class="empresa-option">
                             <div class="empresa-ruc">{{ empresa.ruc }}</div>
-                            <div class="empresa-razon">{{ empresa.razonSocial?.principal || 'Sin razón social' }}</div>
+                            <div class="empresa-razon">{{ empresa.razonSocial.principal || 'Sin razón social' }}</div>
                           </div>
                         </mat-option>
                       }
@@ -183,7 +183,7 @@ import { ResolucionService } from '../../services/resolucion.service';
                   </mat-card-header>
                   <mat-card-content>
                     <div class="info-row">
-                      <strong>Empresa:</strong> {{ empresaSeleccionada.ruc }} - {{ empresaSeleccionada.razonSocial?.principal }}
+                      <strong>Empresa:</strong> {{ empresaSeleccionada.ruc }} - {{ empresaSeleccionada.razonSocial.principal }}
                     </div>
                     <div class="info-row">
                       <strong>Resolución:</strong> {{ resolucionSeleccionada.nroResolucion }} - {{ resolucionSeleccionada.tipoTramite }}

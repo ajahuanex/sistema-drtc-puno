@@ -84,7 +84,7 @@ interface TransferirEmpresaData {
               </div>
               <div class="info-row">
                 <span class="info-label">Estado:</span>
-                <span class="info-value estado" [class]="'estado-' + data.vehiculo.estado?.toLowerCase()">
+                <span class="info-value estado" [class]="'estado-' + data.vehiculo.estado.toLowerCase()">
                   {{ data.vehiculo.estado }}
                 </span>
               </div>
@@ -113,7 +113,7 @@ interface TransferirEmpresaData {
                     <mat-option [value]="empresa.id">
                       <div class="empresa-option">
                         <div class="empresa-principal">
-                          <strong>{{ empresa.razonSocial?.principal }}</strong>
+                          <strong>{{ empresa.razonSocial.principal }}</strong>
                         </div>
                         <div class="empresa-secundaria">
                           RUC: {{ empresa.ruc }} | {{ empresa.estado }}

@@ -8,17 +8,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { QRConsultaService } from '../../services/mesa-partes/qr-consulta.service';
 import { DocumentoPublico, DerivacionPublica } from '../../models/mesa-partes/qr-consulta.model';
-import { EstadoBadgeComponent } from './shared/estado-badge.component';
-import { PrioridadIndicatorComponent } from './shared/prioridad-indicator.component';
 
 @Component({
   selector: 'app-consulta-publica-qr',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    EstadoBadgeComponent,
-    PrioridadIndicatorComponent
+    FormsModule
   ],
   template: `
     <div class="consulta-publica-container">

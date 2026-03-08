@@ -2126,3 +2126,104 @@ async def eliminar_distritos_duplicados_por_ubigeo(
     except Exception as e:
         logger.error(f"Error eliminando duplicados: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.get("/exportar-excel")
+async def exportar_localidades_excel(
+    nombre: Optional[str] = Query(None),
+    tipo: Optional[TipoLocalidad] = Query(None),
+    departamento: Optional[str] = Query(None),
+    provincia: Optional[str] = Query(None),
+    distrito: Optional[str] = Query(None),
+    ubigeo: Optional[str] = Query(None),
+    esta_activa: Optional[bool] = Query(None),
+    service: LocalidadService = Depends(get_localidad_service)
+):
+    """Exportar localidades a Excel con filtros opcionales"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        # Construir filtros
+        filtros = {}
+        if nombre:
+            filtros["nombre"] = {"$regex": nombre, "$options": "i"}
+        if tipo:
+            filtros["tipo"] = tipo
+        if departamento:
+            filtros["departamento"] = departamento
+        if provincia:
+            filtros["provincia"] = provincia
+        if distrito:
+            filtros["distrito"] = distrito
+        if ubigeo:
+            filtros["ubigeo"] = ubigeo
+        if esta_activa is not None:
+            filtros["estaActiva"] = esta_activa
+        
+        # Obtener localidades
+        localidades = await service.collection.find(filtros).to_list(length=None)
+        
+        if not localidades:
+            raise HTTPException(status_code=404, detail="No se encontraron localidades para exportar")
+        
+        # Preparar datos para Excel
+        datos_excel = []
+        for loc in localidades:
+            datos_excel.append({
+                'Nombre': loc.get('nombre', ''),
+                'Tipo': loc.get('tipo', ''),
+                'UBIGEO': loc.get('ubigeo', ''),
+                'Departamento': loc.get('departamento', ''),
+                'Provincia': loc.get('provincia', ''),
+                'Distrito': loc.get('distrito', ''),
+                'Código CCPP': loc.get('codigo_ccpp', ''),
+                'Tipo Área': loc.get('tipo_area', ''),
+                'Población': loc.get('poblacion', ''),
+                'Altitud': loc.get('altitud', ''),
+                'Latitud': loc.get('coordenadas', {}).get('latitud', '') if loc.get('coordenadas') else '',
+                'Longitud': loc.get('coordenadas', {}).get('longitud', '') if loc.get('coordenadas') else '',
+                'Descripción': loc.get('descripcion', ''),
+                'Observaciones': loc.get('observaciones', ''),
+                'Estado': 'Activa' if loc.get('estaActiva', True) else 'Inactiva',
+                'Fecha Creación': loc.get('fechaCreacion', ''),
+                'Fecha Actualización': loc.get('fechaActualizacion', '')
+            })
+        
+        # Crear DataFrame
+        df = pd.DataFrame(datos_excel)
+        
+        # Crear archivo Excel en memoria
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Localidades')
+            
+            # Ajustar ancho de columnas
+            worksheet = writer.sheets['Localidades']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # Generar nombre de archivo con timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"localidades_export_{timestamp}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exportando a Excel: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error exportando a Excel: {str(e)}")

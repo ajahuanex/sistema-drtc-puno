@@ -176,10 +176,21 @@
           }
 
           .field-list {
-            mat-chip-list {
+            mat-chip-set {
               mat-chip {
                 margin: 2px;
                 font-size: 12px;
+                
+                &.required-chip {
+                  background-color: #e3f2fd;
+                  color: #1976d2;
+                  font-weight: 500;
+                }
+                
+                &.new-chip {
+                  background-color: #e8f5e9;
+                  color: #2e7d32;
+                }
               }
             }
           }

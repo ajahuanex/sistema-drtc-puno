@@ -41,7 +41,7 @@
       @if (estadisticasTabActivo()) {
         <div class="stats-summary">
           <div class="stat-item">
-            <span class="stat-number">{{ estadisticasTabActivo()?.totalEmpresas || 0 }}</span>
+            <span class="stat-number">{{ estadisticasTabActivo().totalEmpresas || 0 }}</span>
             <span class="stat-label">
               @if (categoriaActiva() === 'INFRAESTRUCTURA') {
                 INFRAESTRUCTURA
@@ -51,11 +51,11 @@
             </span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">{{ estadisticasTabActivo()?.empresasAutorizadas || 0 }}</span>
+            <span class="stat-number">{{ estadisticasTabActivo().empresasAutorizadas || 0 }}</span>
             <span class="stat-label">AUTORIZADAS</span>
           </div>
           <div class="stat-item">
-            <span class="stat-number">{{ estadisticasTabActivo()?.empresasEnTramite || 0 }}</span>
+            <span class="stat-number">{{ estadisticasTabActivo().empresasEnTramite || 0 }}</span>
             <span class="stat-label">EN TRÁMITE</span>
           </div>
         </div>

@@ -24,9 +24,7 @@ import {
 import { SolicitudBajaService } from '../../services/solicitud-baja.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { AuthService } from '../../services/auth.service';
-import { ArchivoUploadComponent } from '../../shared/archivo-upload.component';
 import { ArchivoSustentatorio } from '../../models/historial-transferencia-empresa.model';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
 
 export interface SolicitarBajaVehiculoData {
   vehiculo: Vehiculo;
@@ -60,9 +58,7 @@ export interface SolicitarBajaResult {
     MatDatepickerModule,
     MatNativeDateModule,
     MatExpansionModule,
-    MatDividerModule,
-    ArchivoUploadComponent,
-    SmartIconComponent
+    MatDividerModule
   ],
   template: `
     <div class="solicitar-baja-vehiculo-container">

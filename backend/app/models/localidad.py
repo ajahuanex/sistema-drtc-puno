@@ -90,8 +90,6 @@ class LocalidadUpdate(BaseModel):
     coordenadas: Optional[Coordenadas] = None
     observaciones: Optional[str] = Field(None, max_length=500)
     estaActiva: Optional[bool] = None
-    poblacion: Optional[int] = None
-    tipo_area: Optional[str] = None
     # Nuevos campos
     codigo_ccpp: Optional[str] = Field(None, max_length=20)
     tipo_area: Optional[str] = Field(None, max_length=20)

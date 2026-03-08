@@ -156,57 +156,54 @@ export class ImportExcelDialogComponent {
 
   private crearPlantillaEjemplo(): string {
     const headers = [
-      'departamento',
-      'provincia', 
-      'distrito',
-      'municipalidad_centro_poblado',
-      'nivel_territorial',
-      'ubigeo',
-      'ubigeo_identificador_mcp',
-      'dispositivo_legal_creacion',
-      'nombre',
-      'codigo',
-      'tipo',
+      'nombre',              // OBLIGATORIO
+      'tipo',                // PUEBLO, CENTRO_POBLADO, DISTRITO, PROVINCIA, DEPARTAMENTO, CIUDAD
+      'ubigeo',              // Opcional
+      'departamento',        // Opcional (default: PUNO)
+      'provincia',           // Opcional (default: PUNO)
+      'distrito',            // Opcional (default: PUNO)
+      'codigo_ccpp',         // Nuevo: Código del centro poblado
+      'tipo_area',           // Nuevo: Rural/Urbano
+      'poblacion',           // Nuevo: Población total
+      'altitud',             // Nuevo: Altitud en metros
+      'latitud',             // Coordenadas
+      'longitud',
       'descripcion',
-      'observaciones',
-      'latitud',
-      'longitud'
+      'observaciones'
     ];
 
     const ejemplos = [
       [
-        'PUNO',
-        'PUNO',
-        'PUNO',
-        'Municipalidad Provincial de Puno',
-        'DISTRITO',
-        '210101',
-        '210101-MCP-001',
-        'Ley N° 27972 - Ley Orgánica de Municipalidades',
-        'Puno',
-        'PUN001',
-        'CIUDAD',
-        'Capital del departamento de Puno',
-        'Ciudad a orillas del Lago Titicaca',
-        '-15.8402',
-        '-70.0219'
+        'Puno',                    // nombre
+        'CIUDAD',                  // tipo
+        '210101',                  // ubigeo
+        'PUNO',                    // departamento
+        'PUNO',                    // provincia
+        'PUNO',                    // distrito
+        '',                        // codigo_ccpp
+        'Urbano',                  // tipo_area
+        '120229',                  // poblacion
+        '3827',                    // altitud
+        '-15.8402',                // latitud
+        '-70.0219',                // longitud
+        'Capital del departamento',// descripcion
+        'Ciudad a orillas del Lago Titicaca' // observaciones
       ],
       [
-        'PUNO',
-        'SAN ROMAN',
-        'JULIACA',
-        'Municipalidad Provincial de San Román',
-        'DISTRITO',
-        '211301',
-        '211301-MCP-001',
-        'Ley N° 27972 - Ley Orgánica de Municipalidades',
-        'Juliaca',
-        'JUL001',
-        'CIUDAD',
-        'Ciudad comercial importante',
-        'Centro comercial del altiplano',
-        '-15.5000',
-        '-70.1333'
+        'Acora',                   // nombre
+        'CENTRO_POBLADO',          // tipo
+        '210102',                  // ubigeo
+        'PUNO',                    // departamento
+        'PUNO',                    // provincia
+        'ACORA',                   // distrito
+        '210102001',               // codigo_ccpp
+        'Rural',                   // tipo_area
+        '5000',                    // poblacion
+        '3850',                    // altitud
+        '-15.9667',                // latitud
+        '-69.7833',                // longitud
+        'Centro poblado rural',    // descripcion
+        ''                         // observaciones
       ]
     ];
 

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -19,8 +19,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { BaseLocalidadesComponent } from './shared/base-localidades.component';
-import { FiltrosLocalidadesComponent } from './shared/filtros-localidades.component';
 import { LocalidadModalComponent } from './localidad-modal.component';
+import { MapaLocalidadModalComponent } from './mapa-localidad-modal.component';
 import { CargaMasivaGeojsonComponent } from './carga-masiva-geojson.component';
 import { Localidad, LocalidadCreate, LocalidadUpdate } from '../../models/localidad.model';
 
@@ -46,8 +46,8 @@ import { Localidad, LocalidadCreate, LocalidadUpdate } from '../../models/locali
     MatSelectModule,
     MatMenuModule,
     MatDividerModule,
-    FiltrosLocalidadesComponent,
-    LocalidadModalComponent
+    LocalidadModalComponent,
+    MapaLocalidadModalComponent
   ],
   templateUrl: './localidades.component.html',
   styleUrls: ['./localidades.component.scss']
@@ -66,9 +66,9 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
   columnasDisponibles = [
     { key: 'nombre', label: 'Nombre', visible: true },
     { key: 'tipo', label: 'Tipo', visible: true },
-    { key: 'ubicacion', label: 'Ubicación', visible: true },
+    { key: 'ubicacion', label: 'Ubicación', visible: false },
     { key: 'poblacion', label: 'Población', visible: false },
-    { key: 'coordenadas', label: 'Coordenadas', visible: false },
+    { key: 'coordenadas', label: 'Coordenadas', visible: true },
     { key: 'estado', label: 'Estado', visible: true },
     { key: 'acciones', label: 'Acciones', visible: true }
   ];
@@ -283,22 +283,6 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     return Array.from(provincias).sort();
   }
 
-  // Método para ver localidad en el mapa
-  verEnMapa(localidad: Localidad) {
-    if (localidad.coordenadas?.latitud && localidad.coordenadas?.longitud) {
-      const lat = localidad.coordenadas.latitud;
-      const lng = localidad.coordenadas.longitud;
-      
-      // Abrir Google Maps en una nueva pestaña
-      const url = `https://www.google.com/maps?q=${lat},${lng}&z=15`;
-      window.open(url, '_blank');
-      
-      this.mostrarMensaje(`Abriendo mapa de ${localidad.nombre}`, 'info');
-    } else {
-      this.mostrarMensaje('Esta localidad no tiene coordenadas', 'warn');
-    }
-  }
-
   // Métodos específicos del componente (si los hay)
   async guardarLocalidad(datosLocalidad: LocalidadCreate | LocalidadUpdate) {
     try {
@@ -326,6 +310,56 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
       }
 
       this.mostrarMensaje(mensajeError, 'error');
+    }
+  }
+
+  // Signal para el modal del mapa
+  mostrarMapa = signal(false);
+  localidadMapa = signal<Localidad | null>(null);
+
+  // Método para abrir el mapa de una localidad
+  verEnMapa(localidad: Localidad) {
+    console.log('🗺️ verEnMapa llamado para:', localidad.nombre);
+    console.log('📍 Coordenadas:', localidad.coordenadas);
+    this.localidadMapa.set(localidad);
+    this.mostrarMapa.set(true);
+    console.log('✅ Modal del mapa activado');
+  }
+
+  // Método para cerrar el modal del mapa
+  cerrarMapa() {
+    this.mostrarMapa.set(false);
+    this.localidadMapa.set(null);
+  }
+
+  // Método para actualizar coordenadas desde el mapa
+  async actualizarCoordenadas(coordenadas: {latitud: number, longitud: number}) {
+    const localidad = this.localidadMapa();
+    if (!localidad) return;
+
+    try {
+      console.log('💾 Actualizando coordenadas en BD:', coordenadas);
+
+      // Actualizar en el backend
+      await this.localidadService.actualizarLocalidad(localidad.id, {
+        coordenadas: coordenadas
+      });
+
+      // Actualizar en la lista local
+      const index = this.localidades().findIndex(l => l.id === localidad.id);
+      if (index !== -1) {
+        const localidadesActualizadas = [...this.localidades()];
+        localidadesActualizadas[index] = {
+          ...localidadesActualizadas[index],
+          coordenadas: coordenadas
+        };
+        this.localidades.set(localidadesActualizadas);
+      }
+
+      console.log('✅ Coordenadas actualizadas en BD');
+    } catch (error) {
+      console.error('❌ Error actualizando coordenadas:', error);
+      alert('Error al guardar las coordenadas. Por favor intente nuevamente.');
     }
   }
 }

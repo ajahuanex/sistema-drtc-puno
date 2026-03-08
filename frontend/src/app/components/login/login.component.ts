@@ -500,28 +500,36 @@ export class LoginComponent {
   }
 
   onSubmit(): void {
+    console.log('🔐 [LOGIN] onSubmit iniciado');
+    
     if (this.loginForm.valid) {
+      console.log('🔐 [LOGIN] Formulario válido, iniciando login...');
       this.isLoading.set(true);
       
       const loginRequest: LoginRequest = {
         username: this.loginForm.get('dni')?.value,
         password: this.loginForm.get('password')?.value
       };
+      
+      console.log('🔐 [LOGIN] Llamando authService.login...');
 
       this.authService.login(loginRequest).subscribe({
         next: (response) => {
+          console.log('✅ [LOGIN] Login exitoso, respuesta recibida');
           this.isLoading.set(false);
-          // console.log removed for production
           
           // Usar setTimeout para asegurar que el estado se actualice antes de navegar
           setTimeout(() => {
+            console.log('🔐 [LOGIN] Mostrando mensaje de éxito...');
             this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', { duration: 3000 });
+            console.log('🔐 [LOGIN] Navegando a dashboard...');
             this.router.navigate(['/dashboard'], { replaceUrl: true });
+            console.log('✅ [LOGIN] Navegación iniciada');
           }, 100);
         },
         error: (error) => {
+          console.error('❌ [LOGIN] Error en login:', error);
           this.isLoading.set(false);
-          console.error('Error en login::', error);
           
           let errorMessage = 'Error al iniciar sesión';
           if (error.status === 401) {
@@ -532,10 +540,12 @@ export class LoginComponent {
             errorMessage = error.error.detail;
           }
           
+          console.log('🔐 [LOGIN] Mostrando error:', errorMessage);
           this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
         }
       });
     } else {
+      console.log('⚠️ [LOGIN] Formulario inválido');
       this.markFormGroupTouched();
     }
   }

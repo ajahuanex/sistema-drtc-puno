@@ -15,6 +15,9 @@ from app.routers.vehiculos_solo_router import router as vehiculos_solo_router
 from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_router
 from app.routers.nivel_territorial_router import router as nivel_territorial_router
 from app.routers.infraestructura import router as infraestructura_router
+from app.routers.localidades_alias_router import router as localidades_alias_router
+from app.api.endpoints.localidades_geojson import router as localidades_geojson_router
+from app.routers.geometrias import router as geometrias_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -103,6 +106,9 @@ app.include_router(infracciones_router, prefix=settings.API_V1_STR)
 app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(localidades_router, prefix=settings.API_V1_STR)
+app.include_router(localidades_alias_router, prefix=settings.API_V1_STR)
+app.include_router(localidades_geojson_router, prefix=settings.API_V1_STR + "/localidades", tags=["Localidades GeoJSON"])
+app.include_router(geometrias_router, prefix=settings.API_V1_STR)
 app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)
 app.include_router(additional_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)

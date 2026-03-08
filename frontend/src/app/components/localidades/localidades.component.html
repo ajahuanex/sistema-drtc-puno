@@ -14,6 +14,12 @@
         <mat-icon>cloud_upload</mat-icon>
         Carga Masiva GeoJSON
       </button>
+      <!-- DESHABILITADO TEMPORALMENTE
+      <button mat-raised-button color="warn" (click)="exportarAExcel()" matTooltip="Exportar localidades a Excel">
+        <mat-icon>download</mat-icon>
+        Exportar Excel
+      </button>
+      -->
       <button mat-raised-button color="primary" (click)="abrirModalNuevaLocalidad()">
         <mat-icon>add</mat-icon>
         Nueva Localidad
@@ -382,6 +388,13 @@
               <th mat-header-cell *matHeaderCellDef>Acciones</th>
               <td mat-cell *matCellDef="let localidad">
                 <div class="acciones-cell">
+                  <button mat-icon-button 
+                          color="accent"
+                          (click)="verEnMapa(localidad)" 
+                          matTooltip="Ver en mapa">
+                    <mat-icon>map</mat-icon>
+                  </button>
+
                   <button mat-icon-button color="primary" 
                           (click)="editarLocalidad(localidad)" 
                           matTooltip="Editar localidad">
@@ -430,4 +443,13 @@
     (guardar)="guardarLocalidad($event)"
     (cancelar)="cerrarModal()">
   </app-localidad-modal>
+}
+
+<!-- Modal de Mapa -->
+@if (mostrarMapa()) {
+  <app-mapa-localidad-modal
+    [localidad]="localidadMapa()"
+    (cancelar)="cerrarMapa()"
+    (coordenadasActualizadas)="actualizarCoordenadas($event)">
+  </app-mapa-localidad-modal>
 }

@@ -53,7 +53,7 @@ export interface CrearRutaModalData {
           <div class="empresa-info">
             <h3>EMPRESA SELECCIONADA</h3>
             <p><strong>RUC:</strong> {{ empresa.ruc }}</p>
-            <p><strong>RAZÓN SOCIAL:</strong> {{ empresa.razonSocial?.principal || 'No disponible' }}</p>
+            <p><strong>RAZÓN SOCIAL:</strong> {{ empresa.razonSocial.principal || 'No disponible' }}</p>
           </div>
 
           <!-- Selección de resolución -->
@@ -242,8 +242,10 @@ export interface CrearRutaModalData {
                 <mat-spinner diameter="20"></mat-spinner>
                 GUARDANDO...
               } @else {
-                <mat-icon>save</mat-icon>
-                CREAR RUTA
+                <ng-container>
+                  <mat-icon>save</mat-icon>
+                  CREAR RUTA
+                </ng-container>
               }
             </button>
           }

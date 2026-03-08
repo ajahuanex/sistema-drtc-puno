@@ -155,8 +155,8 @@ export class RutaService {
       origen: origen,
       destino: destino,
       
-      // Itinerario - simplificado como dijiste
-      itinerario: ruta.itinerario || ruta.paradas || [],
+      // Itinerario - transformado correctamente
+      itinerario: this.extractItinerario(ruta.itinerario || ruta.paradas || []),
       
       // Empresa
       empresa: this.extractEmpresa(ruta),
@@ -192,6 +192,40 @@ export class RutaService {
       fechaRegistro: ruta.fechaRegistro ? new Date(ruta.fechaRegistro) : (ruta.fecha_registro ? new Date(ruta.fecha_registro) : new Date()),
       fechaActualizacion: ruta.fechaActualizacion ? new Date(ruta.fechaActualizacion) : (ruta.fecha_actualizacion ? new Date(ruta.fecha_actualizacion) : undefined)
     };
+  }
+
+  /**
+   * Extrae y normaliza el itinerario de una ruta
+   */
+  private extractItinerario(itinerario: any[]): any[] {
+    if (!itinerario || !Array.isArray(itinerario)) {
+      return [];
+    }
+
+    return itinerario.map((parada, index) => {
+      // Si la parada es un objeto con localidad embebida
+      if (parada && typeof parada === 'object') {
+        const localidad = parada.localidad || parada;
+        
+        return {
+          id: localidad.id || localidad._id || '',
+          nombre: localidad.nombre || 'Sin nombre',
+          tipo: localidad.tipo || undefined,
+          ubigeo: localidad.ubigeo || undefined,
+          departamento: localidad.departamento || undefined,
+          provincia: localidad.provincia || undefined,
+          distrito: localidad.distrito || undefined,
+          orden: parada.orden !== undefined ? parada.orden : index
+        };
+      }
+      
+      // Si la parada es solo un string (ID o nombre)
+      return {
+        id: '',
+        nombre: parada || 'Sin nombre',
+        orden: index
+      };
+    });
   }
 
   /**
@@ -245,7 +279,12 @@ export class RutaService {
     if (localidad && typeof localidad === 'object') {
       return {
         id: localidad.id || localidad._id || '',
-        nombre: localidad.nombre || `Sin ${tipo}`
+        nombre: localidad.nombre || `Sin ${tipo}`,
+        tipo: localidad.tipo || undefined,
+        ubigeo: localidad.ubigeo || undefined,
+        departamento: localidad.departamento || undefined,
+        provincia: localidad.provincia || undefined,
+        distrito: localidad.distrito || undefined
       };
     }
     
@@ -254,7 +293,12 @@ export class RutaService {
     
     return {
       id: ruta[idField] || '',
-      nombre: ruta[nombreField] || ruta[tipo] || `Sin ${tipo}`
+      nombre: ruta[nombreField] || ruta[tipo] || `Sin ${tipo}`,
+      tipo: ruta[`${tipo}Tipo`] || ruta[`${tipo}_tipo`] || undefined,
+      ubigeo: ruta[`${tipo}Ubigeo`] || ruta[`${tipo}_ubigeo`] || undefined,
+      departamento: ruta[`${tipo}Departamento`] || ruta[`${tipo}_departamento`] || undefined,
+      provincia: ruta[`${tipo}Provincia`] || ruta[`${tipo}_provincia`] || undefined,
+      distrito: ruta[`${tipo}Distrito`] || ruta[`${tipo}_distrito`] || undefined
     };
   }
 
@@ -523,17 +567,6 @@ export class RutaService {
       return resultado;
     } catch (error: any) {
       console.error('❌ Error eliminando todas las rutas::', error);
-      throw error;
-    }
-  }
-
-  async obtenerAyudaCargaMasiva(): Promise<any> {
-    const url = `${this.apiUrl}/rutas/carga-masiva/ayuda`;
-    
-    try {
-      return await this.http.get(url, { headers: this.getHeaders() }).toPromise();
-    } catch (error) {
-      console.error('Error obteniendo ayuda de carga masiva::', error);
       throw error;
     }
   }
@@ -1035,9 +1068,17 @@ export class RutaService {
   }
 
   /**
-   * Helper para obtener la descripción de frecuencia de una ruta
+   * Verificar que todas las rutas tengan coordenadas desde el módulo de localidades
    */
-  getFrecuenciaDescripcion(ruta: Ruta): string {
-    return ruta.frecuencia?.descripcion || 'Sin frecuencia';
+  verificarCoordenadasRutas(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/verificar-coordenadas`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error verificando coordenadas de rutas:', error);
+          return throwError(() => new Error('Error al verificar coordenadas'));
+        })
+      );
   }
 }

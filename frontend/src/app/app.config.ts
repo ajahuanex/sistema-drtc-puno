@@ -60,8 +60,9 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (configuracionService: ConfiguracionService) => {
         return () => {
-          // Registrar locale español para fechas
+          console.log('🔧 [APP_INITIALIZER] Registrando locale español...');
           registerLocaleData(localeEs, 'es');
+          console.log('🔧 [APP_INITIALIZER] Cargando configuraciones...');
           // Cargar configuraciones al inicio
           return configuracionService.cargarConfiguraciones();
         };

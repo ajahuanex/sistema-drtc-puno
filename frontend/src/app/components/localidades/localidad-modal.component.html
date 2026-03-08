@@ -1,6 +1,6 @@
 <!-- Modal para crear/editar localidades -->
 <div class="modal-overlay" (click)="onCancelar()">
-  <div class="modal-container">>>
+  <div class="modal-container" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h2>
         <mat-icon>{{ esEdicion ? 'edit' : 'add' }}</mat-icon>
@@ -22,7 +22,9 @@
             <!-- Nombre (OBLIGATORIO) -->
             <mat-form-field appearance="outline" class="campo-completo">
               <mat-label>Nombre de la Localidad *</mat-label>
-              <input matInput formControlName="nombre" placeholder="Ej: Puno, Juliaca, Azángaro">
+              <input matInput formControlName="nombre" 
+                     placeholder="Ej: Puno, Juliaca, Azángaro"
+                     style="text-transform: uppercase;">
               <mat-icon matSuffix>place</mat-icon>
               @if (formulario.get('nombre')?.hasError('required')) {
                 <mat-error>El nombre es obligatorio</mat-error>
@@ -94,92 +96,42 @@
 
               <!-- Provincia (solo para DISTRITO y niveles inferiores) -->
               @if (mostrarCampoProvincia()) {
-                @if (usarSelectProvincia()) {
-                  <!-- Autocomplete con búsqueda cuando hay múltiples opciones -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>Provincia</mat-label>
-                    <input matInput 
-                           [formControl]="provinciaControl"
-                           [matAutocomplete]="provinciaAuto"
-                           placeholder="Buscar provincia..."
-                           [disabled]="provinciasDisponibles.length === 0">
-                    <mat-autocomplete #provinciaAuto="matAutocomplete" 
-                                    panelClass="select-panel-high-z-index"
-                                    (optionSelected)="onProvinciaSelected($event)">
-                      @for (provincia of provinciasFiltradas | async; track provincia) {
-                        <mat-option [value]="provincia">
-                          {{ provincia }}
-                        </mat-option>
-                      }
-                      @if ((provinciasFiltradas | async)?.length === 0) {
-                        <mat-option disabled>
-                          No se encontraron provincias
-                        </mat-option>
-                      }
-                    </mat-autocomplete>
-                    <mat-icon matSuffix>location_city</mat-icon>
-                    @if (cargandoOpciones) {
-                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                <mat-form-field appearance="outline">
+                  <mat-label>Provincia</mat-label>
+                  <input matInput 
+                         [formControl]="provinciaControl"
+                         [matAutocomplete]="autoCompleteProvincia"
+                         placeholder="Escribe para buscar..."
+                         style="text-transform: uppercase;">
+                  <mat-autocomplete #autoCompleteProvincia="matAutocomplete"
+                                    (optionSelected)="onProvinciaSeleccionada($event)">
+                    @for (provincia of provinciasFiltradas | async; track provincia) {
+                      <mat-option [value]="provincia">{{ provincia }}</mat-option>
                     }
-                  </mat-form-field>
-                } @else {
-                  <!-- Input cuando solo hay una opción o no hay departamento seleccionado -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>Provincia</mat-label>
-                    <input matInput formControlName="provincia" 
-                           placeholder="Por defecto: PUNO"
-                           [disabled]="provinciasDisponibles.length === 0">
-                    <mat-icon matSuffix>location_city</mat-icon>
-                    @if (cargandoOpciones) {
-                      <mat-spinner matSuffix diameter="20"></mat-spinner>
-                    }
-                  </mat-form-field>
-                }
+                  </mat-autocomplete>
+                  <mat-icon matSuffix>location_city</mat-icon>
+                  <mat-hint>Escribe el nombre de la provincia</mat-hint>
+                </mat-form-field>
               }
 
               <!-- Distrito (solo para PUEBLO y CENTRO_POBLADO) -->
               @if (mostrarCampoDistrito()) {
-                @if (usarSelectDistrito()) {
-                  <!-- Autocomplete con búsqueda cuando hay múltiples opciones -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>Distrito</mat-label>
-                    <input matInput 
-                           [formControl]="distritoControl"
-                           [matAutocomplete]="distritoAuto"
-                           placeholder="Buscar distrito..."
-                           [disabled]="distritosDisponibles.length === 0">
-                    <mat-autocomplete #distritoAuto="matAutocomplete" 
-                                    panelClass="select-panel-high-z-index"
-                                    (optionSelected)="onDistritoSelected($event)">
-                      @for (distrito of distritosFiltrados | async; track distrito) {
-                        <mat-option [value]="distrito">
-                          {{ distrito }}
-                        </mat-option>
-                      }
-                      @if ((distritosFiltrados | async)?.length === 0) {
-                        <mat-option disabled>
-                          No se encontraron distritos
-                        </mat-option>
-                      }
-                    </mat-autocomplete>
-                    <mat-icon matSuffix>place</mat-icon>
-                    @if (cargandoOpciones) {
-                      <mat-spinner matSuffix diameter="20"></mat-spinner>
+                <mat-form-field appearance="outline">
+                  <mat-label>Distrito</mat-label>
+                  <input matInput 
+                         [formControl]="distritoControl"
+                         [matAutocomplete]="autoCompleteDistrito"
+                         placeholder="Escribe para buscar..."
+                         style="text-transform: uppercase;">
+                  <mat-autocomplete #autoCompleteDistrito="matAutocomplete"
+                                    (optionSelected)="onDistritoSeleccionado($event)">
+                    @for (distrito of distritosFiltrados | async; track distrito) {
+                      <mat-option [value]="distrito">{{ distrito }}</mat-option>
                     }
-                  </mat-form-field>
-                } @else {
-                  <!-- Input cuando solo hay una opción o no hay provincia seleccionada -->
-                  <mat-form-field appearance="outline">
-                    <mat-label>Distrito</mat-label>
-                    <input matInput formControlName="distrito" 
-                           placeholder="Por defecto: PUNO"
-                           [disabled]="distritosDisponibles.length === 0">
-                    <mat-icon matSuffix>place</mat-icon>
-                    @if (cargandoOpciones) {
-                      <mat-spinner matSuffix diameter="20"></mat-spinner>
-                    }
-                  </mat-form-field>
-                }
+                  </mat-autocomplete>
+                  <mat-icon matSuffix>place</mat-icon>
+                  <mat-hint>Escribe el nombre del distrito</mat-hint>
+                </mat-form-field>
               }
 
               <!-- UBIGEO (solo para CENTRO_POBLADO) -->
@@ -207,19 +159,68 @@
           </mat-expansion-panel-header>
 
           <div class="campos-grid">
-            <mat-form-field appearance="outline" class="campo-completo">
-              <mat-label>Descripción</mat-label>
-              <textarea matInput formControlName="descripcion" rows="3" 
-                        placeholder="Descripción de la localidad"></textarea>
+            <mat-form-field appearance="outline">
+              <mat-label>Población</mat-label>
+              <input matInput type="number" formControlName="poblacion" 
+                     placeholder="Ej: 5000">
+              <mat-icon matSuffix>people</mat-icon>
+              <mat-hint>Número de habitantes</mat-hint>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="campo-completo">
               <mat-label>Observaciones</mat-label>
-              <textarea matInput formControlName="observaciones" rows="2" 
-                        placeholder="Observaciones adicionales"></textarea>
+              <textarea matInput formControlName="observaciones" rows="3" 
+                        placeholder="Observaciones adicionales"
+                        style="text-transform: uppercase;"></textarea>
+              <mat-icon matSuffix>notes</mat-icon>
             </mat-form-field>
           </div>
         </mat-expansion-panel>
+
+        <!-- Alias (Solo en modo edición) -->
+        @if (esEdicion && localidad) {
+          <mat-expansion-panel class="seccion-alias">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>label</mat-icon>
+                Alias (Nombres Alternativos)
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <div class="alias-container">
+              <p class="alias-hint">
+                Los alias son nombres alternativos para esta localidad que facilitan su búsqueda.
+              </p>
+
+              @if (aliasLocalidad && aliasLocalidad.length > 0) {
+                <div class="alias-list">
+                  @for (alias of aliasLocalidad; track alias.id) {
+                    <div class="alias-chip">
+                      <mat-icon>label</mat-icon>
+                      <span>{{ alias.alias }}</span>
+                      @if (alias.verificado) {
+                        <mat-icon class="verificado-icon" matTooltip="Verificado">check_circle</mat-icon>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="no-alias">
+                  <mat-icon>info</mat-icon>
+                  <span>No hay alias registrados para esta localidad</span>
+                </div>
+              }
+
+              <button mat-raised-button color="primary" 
+                      type="button"
+                      (click)="gestionarAlias()"
+                      class="btn-gestionar-alias">
+                <mat-icon>edit</mat-icon>
+                Gestionar Alias
+              </button>
+            </div>
+          </mat-expansion-panel>
+        }
 
         <!-- Coordenadas (Opcional) -->
         <mat-expansion-panel class="seccion-coordenadas">
@@ -234,8 +235,10 @@
             <mat-form-field appearance="outline">
               <mat-label>Latitud</mat-label>
               <input matInput type="number" formControlName="latitud" 
-                     placeholder="Ej: -15.8422" step="0.000001">
+                     placeholder="Ej: -15.8422" step="0.000001"
+                     (paste)="onPegarCoordenadas($event, 'latitud')">
               <mat-icon matSuffix>south</mat-icon>
+              <mat-hint>Pega "lat, lng" de Google Maps aquí</mat-hint>
               @if (formulario.get('latitud')?.hasError('min') || formulario.get('latitud')?.hasError('max')) {
                 <mat-error>La latitud debe estar entre -90 y 90</mat-error>
               }
@@ -244,8 +247,10 @@
             <mat-form-field appearance="outline">
               <mat-label>Longitud</mat-label>
               <input matInput type="number" formControlName="longitud" 
-                     placeholder="Ej: -70.0199" step="0.000001">
+                     placeholder="Ej: -70.0199" step="0.000001"
+                     (paste)="onPegarCoordenadas($event, 'longitud')">
               <mat-icon matSuffix>east</mat-icon>
+              <mat-hint>O pega aquí también</mat-hint>
               @if (formulario.get('longitud')?.hasError('min') || formulario.get('longitud')?.hasError('max')) {
                 <mat-error>La longitud debe estar entre -180 y 180</mat-error>
               }

@@ -842,8 +842,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   columnasExpedientes = ['numero', 'tipo', 'empresa', 'estado', 'fechaCreacion', 'acciones'];
 
   ngOnInit(): void {
+    console.log('🎯 [DASHBOARD] ngOnInit iniciado');
     this.cargarDatos();
     this.iniciarActualizacionAutomatica();
+    console.log('✅ [DASHBOARD] ngOnInit completado');
   }
 
   ngOnDestroy(): void {

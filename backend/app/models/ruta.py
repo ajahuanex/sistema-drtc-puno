@@ -45,6 +45,12 @@ class LocalidadEmbebida(BaseModel):
     """Localidad embebida en ruta (referencia al módulo de localidades)"""
     id: str = Field(..., description="ID de la localidad")
     nombre: str = Field(..., description="Nombre de la localidad")
+    # Campos opcionales para compatibilidad con el modelo completo de localidades
+    tipo: Optional[str] = Field(None, description="Tipo de localidad")
+    ubigeo: Optional[str] = Field(None, description="Código UBIGEO")
+    departamento: Optional[str] = Field(None, description="Departamento")
+    provincia: Optional[str] = Field(None, description="Provincia")
+    distrito: Optional[str] = Field(None, description="Distrito")
 
 class LocalidadItinerario(LocalidadEmbebida):
     """Localidad en itinerario con orden"""

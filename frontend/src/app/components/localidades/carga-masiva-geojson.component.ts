@@ -768,18 +768,18 @@ export class CargaMasivaGeojsonComponent {
     this.validando.set(true);
 
     try {
-      // Validar que existan los 3 archivos
-      const [provincias, distritos, centros] = await Promise.all([
+      // Validar que existan los archivos (centros poblados deshabilitado por tamaño)
+      const [provincias, distritos] = await Promise.all([
         this.http.get<any>('assets/geojson/peru-provincias.geojson').toPromise(),
-        this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise(),
-        this.http.get<any>('assets/geojson/puno-centrospoblados.geojson').toPromise()
+        this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise()
+        // DESHABILITADO: puno-centrospoblados.geojson (10MB, 9372 features)
       ]);
 
       // Filtrar solo provincias de Puno
       const provinciasPuno = provincias.features.filter((f: any) => f.properties.NOMBDEP === 'PUNO');
 
-      // Analizar los datos
-      const totalFeatures = provinciasPuno.length + distritos.features.length + centros.features.length;
+      // Analizar los datos (sin centros poblados)
+      const totalFeatures = provinciasPuno.length + distritos.features.length; // + centros.features.length;
       
       const validacion: ValidacionPrevia = {
         totalFeatures: totalFeatures,
@@ -792,7 +792,9 @@ export class CargaMasivaGeojsonComponent {
         ejemplos: []
       };
 
-      // Analizar centros poblados para estadísticas
+      // DESHABILITADO: Análisis de centros poblados (archivo muy grande)
+      // Los centros poblados se importan desde el backend directamente
+      /*
       centros.features.forEach((feature: any, index: number) => {
         const props = feature.properties;
         const coords = feature.geometry?.coordinates;
@@ -825,6 +827,7 @@ export class CargaMasivaGeojsonComponent {
           });
         }
       });
+      */
 
       this.validacion.set(validacion);
       this.validando.set(false);
@@ -856,15 +859,17 @@ export class CargaMasivaGeojsonComponent {
     this.iniciado.set(true);
     this.cargando.set(true);
     this.validacionCompleta.set(false);
-    this.estadoActual.set('Importando localidades desde GeoJSON...');
+    this.estadoActual.set('Importando localidades desde base de datos...');
 
     try {
-      // Llamar al nuevo endpoint con lotes
+      // Llamar al endpoint que importa desde GeoJSON en el backend
       const resultado: any = await this.http.post(
-        'http://localhost:8000/api/v1/localidades/importar-geojson-lotes',
+        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
         {},
-        { params: { modo: this.modoImportacion, lote_size: '50' } }
+        { params: { modo: this.modoImportacion, test: 'false' } }
       ).toPromise();
+
+      console.log('📊 Resultado importación:', resultado);
 
       // Completar
       this.cargando.set(false);
@@ -902,9 +907,9 @@ export class CargaMasivaGeojsonComponent {
 
     try {
       const resultado: any = await this.http.post(
-        'http://localhost:8000/api/v1/localidades/importar-geojson-test',
+        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
         {},
-        { params: { modo: this.modoImportacion } }
+        { params: { modo: this.modoImportacion, test: 'true' } }
       ).toPromise();
 
       this.cargando.set(false);
@@ -920,11 +925,7 @@ export class CargaMasivaGeojsonComponent {
         actualizados: resultado.total_actualizados,
         omitidos: resultado.total_omitidos,
         errores: resultado.total_errores,
-        detallesErrores: resultado.detalle ? [
-          ...resultado.detalle.provincias.detalles,
-          ...resultado.detalle.distritos.detalles,
-          ...resultado.detalle.centros_poblados.detalles
-        ] : []
+        detallesErrores: []
       });
 
     } catch (error: any) {
@@ -1036,64 +1037,11 @@ export class CargaMasivaGeojsonComponent {
   }
 
   private async importarCentrosPoblados() {
-    const geojsonData = await this.http.get<any>('assets/geojson/puno-centrospoblados.geojson').toPromise();
-    const features = geojsonData.features;
-    
-    let importados = 0, actualizados = 0, omitidos = 0, errores = 0;
-    this.total.set(features.length);
-
-    for (let i = 0; i < features.length; i++) {
-      try {
-        const feature = features[i];
-        const props = feature.properties;
-        const coords = feature.geometry?.coordinates;
-
-        const localidad: any = {
-          nombre: props.NOMB_CCPP?.trim() || 'SIN NOMBRE',
-          tipo: TipoLocalidad.CENTRO_POBLADO,
-          ubigeo: props.UBIGEO?.trim() || '',
-          departamento: props.NOMB_DEPAR?.trim() || 'PUNO',
-          provincia: props.NOMB_PROVI?.trim() || '',
-          distrito: props.NOMB_DISTR?.trim() || '',
-          codigo_ccpp: props.COD_CCPP?.trim() || '',
-          tipo_area: props.TIPO?.trim() || '',
-          poblacion: props.POBTOTAL || null,
-          coordenadas: coords ? {
-            longitud: coords[0],
-            latitud: coords[1]
-          } : null
-        };
-
-        const existe = await this.verificarExistente(localidad.ubigeo, localidad.nombre, TipoLocalidad.CENTRO_POBLADO);
-
-        if (existe) {
-          if (this.modoImportacion !== 'crear') {
-            await this.localidadService.actualizarLocalidad(existe.id, localidad);
-            actualizados++;
-          } else {
-            omitidos++;
-          }
-        } else {
-          if (this.modoImportacion !== 'actualizar') {
-            await this.localidadService.crearLocalidad(localidad);
-            importados++;
-          } else {
-            omitidos++;
-          }
-        }
-
-        // Actualizar progreso
-        this.procesados.set(i + 1);
-        if ((i + 1) % 50 === 0) {
-          this.estadoActual.set(`Procesando ${i + 1} de ${features.length} centros poblados...`);
-        }
-
-      } catch (error) {
-        errores++;
-      }
-    }
-
-    return { importados, actualizados, omitidos, errores };
+    // DESHABILITADO: Archivo muy grande (10MB, 9372 features)
+    // Los centros poblados deben importarse desde el backend
+    console.warn('⚠️ Importación de centros poblados deshabilitada en frontend');
+    console.info('💡 Usa el endpoint del backend: POST /api/v1/localidades/importar-geojson');
+    return { importados: 0, actualizados: 0, omitidos: 0, errores: 0 };
   }
 
   private extraerCentroide(geometry: any): { latitud: number; longitud: number } | null {

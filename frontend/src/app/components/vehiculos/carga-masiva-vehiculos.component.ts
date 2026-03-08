@@ -6,7 +6,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 
 interface ResultadoCarga {
@@ -27,8 +26,7 @@ interface ResultadoCarga {
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule,
-    SmartIconComponent
+    MatSnackBarModule
   ],
   template: `
     <div class="carga-masiva-container">
@@ -134,8 +132,10 @@ interface ResultadoCarga {
                     <mat-spinner diameter="20"></mat-spinner>
                     <span>Procesando...</span>
                   } @else {
-                    <mat-icon>upload</mat-icon>
-                    <span>Procesar Archivo</span>
+                    <ng-container>
+                      <mat-icon>upload</mat-icon>
+                      <span>Procesar Archivo</span>
+                    </ng-container>
                   }
                 </button>
               </div>

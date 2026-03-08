@@ -3,6 +3,12 @@
 export interface LocalidadEmbebida {
   id: string;
   nombre: string;
+  // Campos opcionales para compatibilidad con el modelo completo de localidades
+  tipo?: string;
+  ubigeo?: string;
+  departamento?: string;
+  provincia?: string;
+  distrito?: string;
 }
 
 export interface LocalidadItinerario extends LocalidadEmbebida {

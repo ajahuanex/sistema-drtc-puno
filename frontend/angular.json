@@ -31,7 +31,14 @@
                 "input": "public"
               },
               "src/favicon.ico",
-              "src/assets"
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "/assets/",
+                "ignore": [
+                  "**/geojson/puno-centrospoblados.geojson"
+                ]
+              }
             ],
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",

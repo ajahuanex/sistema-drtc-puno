@@ -107,9 +107,15 @@ class RutaService:
                     detail=f"La localidad {nombre_campo} '{localidad.nombre}' no está activa"
                 )
             
+            # Retornar LocalidadEmbebida con información completa
             return LocalidadEmbebida(
                 id=localidad.id,
-                nombre=localidad.nombre
+                nombre=localidad.nombre,
+                tipo=localidad.tipo if hasattr(localidad, 'tipo') else None,
+                ubigeo=localidad.ubigeo if hasattr(localidad, 'ubigeo') else None,
+                departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
+                provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
+                distrito=localidad.distrito if hasattr(localidad, 'distrito') else None
             )
             
         except HTTPException:
@@ -172,9 +178,15 @@ class RutaService:
                     detail=f"La localidad del itinerario '{localidad.nombre}' no está activa"
                 )
             
+            # Crear LocalidadItinerario con información completa
             localidades_itinerario.append(LocalidadItinerario(
                 id=localidad.id,
                 nombre=localidad.nombre,
+                tipo=localidad.tipo if hasattr(localidad, 'tipo') else None,
+                ubigeo=localidad.ubigeo if hasattr(localidad, 'ubigeo') else None,
+                departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
+                provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
+                distrito=localidad.distrito if hasattr(localidad, 'distrito') else None,
                 orden=orden
             ))
         

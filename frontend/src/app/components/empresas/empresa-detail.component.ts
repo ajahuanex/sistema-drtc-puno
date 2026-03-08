@@ -3718,7 +3718,7 @@ export class EmpresaDetailComponent implements OnInit {
     <mat-dialog-content>
       <div class="transferencia-info">
         <p><strong>Vehículo:</strong> {{ data.vehiculo.placa }}</p>
-        <p><strong>Empresa Actual:</strong> {{ data.empresaActual?.razonSocial?.principal }}</p>
+        <p><strong>Empresa Actual:</strong> {{ data.empresaActual.razonSocial.principal }}</p>
         
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Empresa Destino</mat-label>

@@ -19,7 +19,18 @@ export enum TipoLocalidad {
 export interface Coordenadas {
   latitud: number;
   longitud: number;
+  
+  // Campos opcionales para coordenadas extendidas
+  latitudOriginal?: number;
+  longitudOriginal?: number;
+  esPersonalizada?: boolean;
+  fechaModificacion?: string;
+  modificadoPor?: string;
+  fuenteOriginal?: string; // 'INEI', 'MANUAL', 'GPS', etc.
 }
+
+// Alias para compatibilidad
+export type CoordenadasExtendidas = Coordenadas;
 
 export interface Localidad {
   id: string;

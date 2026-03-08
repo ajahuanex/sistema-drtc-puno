@@ -297,43 +297,127 @@ export class AppComponent implements OnInit, AfterViewInit {
   private hydrationSimulated = false;
 
   constructor() {
+    console.log('🎯 [APP] 1. Constructor iniciado');
+    
+    // LIMPIAR CACHÉ CORRUPTO AL INICIAR
+    console.log('🎯 [APP] 2. Limpiando caché corrupto...');
+    this.clearCorruptedCache();
+    console.log('🎯 [APP] 3. Caché limpiado');
+    
     // Effect para simular progreso de hidratación (solo una vez)
+    console.log('🎯 [APP] 4. Configurando effect de hidratación...');
     effect(() => {
+      console.log('🎯 [APP-EFFECT] isInitialized:', this.isInitialized(), 'hydrationSimulated:', this.hydrationSimulated);
       if (this.isInitialized() && !this.hydrationSimulated) {
+        console.log('🎯 [APP-EFFECT] Iniciando simulación de hidratación...');
         this.hydrationSimulated = true;
         this.simulateHydrationProgress();
       }
     });
+    console.log('🎯 [APP] 5. Effect de hidratación configurado');
 
     // Effect para calcular tiempo de inicialización
+    console.log('🎯 [APP] 6. Configurando effect de tiempo...');
     effect(() => {
       if (this.isInitialized()) {
-        this._initTime.set(Date.now() - this.startTime);
+        const time = Date.now() - this.startTime;
+        console.log('🎯 [APP-EFFECT] Tiempo de inicialización:', time, 'ms');
+        this._initTime.set(time);
       }
     });
+    console.log('🎯 [APP] 7. Effect de tiempo configurado');
+    console.log('🎯 [APP] 8. Constructor completado');
+  }
+
+  /**
+   * Limpiar caché corrupto de GeoJSON
+   */
+  private clearCorruptedCache(): void {
+    console.log('🧹 [CACHE-CLEAN] Iniciando limpieza de caché corrupto...');
+    
+    try {
+      // 1. Limpiar localStorage de datos GeoJSON grandes
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.includes('geojson') || 
+          key.includes('centros-poblados') ||
+          key.includes('localidades') ||
+          key.includes('common_')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`🗑️ [CACHE-CLEAN] Removed: ${key}`);
+      });
+      
+      if (keysToRemove.length > 0) {
+        console.log(`✅ [CACHE-CLEAN] Cleared ${keysToRemove.length} corrupted cache entries`);
+      } else {
+        console.log('✅ [CACHE-CLEAN] No corrupted cache found');
+      }
+      
+      // 2. Limpiar sessionStorage también
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (
+          key.includes('geojson') || 
+          key.includes('centros-poblados') ||
+          key.includes('localidades')
+        )) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      
+      sessionKeysToRemove.forEach(key => {
+        sessionStorage.removeItem(key);
+        console.log(`🗑️ [CACHE-CLEAN] Removed from session: ${key}`);
+      });
+      
+      if (sessionKeysToRemove.length > 0) {
+        console.log(`✅ [CACHE-CLEAN] Cleared ${sessionKeysToRemove.length} session cache entries`);
+      }
+      
+      console.log('✅ [CACHE-CLEAN] Limpieza completada');
+      
+    } catch (error) {
+      console.error('❌ [CACHE-CLEAN] Error clearing corrupted cache:', error);
+    }
   }
 
   ngOnInit(): void {
+    console.log('🎯 [APP] 9. ngOnInit iniciado');
     // Inicialización del componente
-    // console.log removed for production
+    console.log('🎯 [APP] 10. ngOnInit completado');
   }
 
   private hydrationCompleted = false;
 
   ngAfterViewInit(): void {
+    console.log('🎯 [APP] 11. ngAfterViewInit iniciado');
     // Marcar hidratación como completa después de que la vista se renderice (solo una vez)
     if (!this.hydrationCompleted) {
+      console.log('🎯 [APP] 12. Marcando hidratación como completa...');
       this.hydrationCompleted = true;
       setTimeout(() => {
+        console.log('🎯 [APP] 13. Llamando markHydrationComplete...');
         this.eagerInitService.markHydrationComplete();
+        console.log('🎯 [APP] 14. markHydrationComplete completado');
       }, 1000);
     }
+    console.log('🎯 [APP] 15. ngAfterViewInit completado');
   }
 
   /**
    * Simular progreso de hidratación
    */
   private simulateHydrationProgress(): void {
+    console.log('🎯 [APP] Iniciando simulación de progreso...');
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.random() * 15 + 5; // Incremento aleatorio entre 5-20%
@@ -341,6 +425,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
+        console.log('🎯 [APP] Simulación de progreso completada');
       }
       
       this._hydrationProgress.set(Math.min(progress, 100));

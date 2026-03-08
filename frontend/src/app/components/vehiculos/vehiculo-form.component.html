@@ -96,7 +96,7 @@
                 <mat-option value="">-- Seleccionar --</mat-option>
                 @for (empresa of empresas(); track empresa.id) {
                   <mat-option [value]="empresa.id">
-                    {{ empresa.razonSocial?.principal || empresa.ruc }}
+                    {{ empresa.razonSocial.principal || empresa.ruc }}
                   </mat-option>
                 }
               </mat-select>

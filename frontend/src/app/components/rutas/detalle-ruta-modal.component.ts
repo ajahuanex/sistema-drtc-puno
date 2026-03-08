@@ -63,7 +63,7 @@ export interface DetalleRutaModalData {
               <mat-icon>place</mat-icon>
               Origen
             </div>
-            <div class="info-value">{{ data.ruta.origen?.nombre || data.ruta.origen }}</div>
+            <div class="info-value">{{ data.ruta.origen.nombre || data.ruta.origen }}</div>
           </div>
 
           <div class="info-item">
@@ -71,7 +71,7 @@ export interface DetalleRutaModalData {
               <mat-icon>flag</mat-icon>
               Destino
             </div>
-            <div class="info-value">{{ data.ruta.destino?.nombre || data.ruta.destino }}</div>
+            <div class="info-value">{{ data.ruta.destino.nombre || data.ruta.destino }}</div>
           </div>
 
           <div class="info-item">
@@ -141,7 +141,7 @@ export interface DetalleRutaModalData {
               <mat-icon>payments</mat-icon>
               Tarifa Base
             </div>
-            <div class="info-value">S/ {{ data.ruta.tarifaBase?.toFixed(2) }}</div>
+            <div class="info-value">S/ {{ data.ruta.tarifaBase.toFixed(2) }}</div>
           </div>
         </div>
       </div>

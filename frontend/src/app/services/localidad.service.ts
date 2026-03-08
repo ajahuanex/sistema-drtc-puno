@@ -123,28 +123,6 @@ export class LocalidadService {
   }
 
   // ========================================
-  // MÉTODOS DE COMPATIBILIDAD (DEPRECATED)
-  // ========================================
-
-  /**
-   * @deprecated Usar obtenerLocalidades() en su lugar
-   */
-  getLocalidades(): Observable<Localidad[]> {
-    console.warn('⚠️ getLocalidades() está deprecated. Usar obtenerLocalidades()');
-    return this.localidadesCache.asObservable();
-  }
-
-  /**
-   * @deprecated Usar obtenerLocalidades() con filtros en su lugar
-   */
-  getLocalidadesActivas(): Observable<Localidad[]> {
-    console.warn('⚠️ getLocalidadesActivas() está deprecated. Usar obtenerLocalidades()');
-    return this.localidadesCache.asObservable().pipe(
-      map(localidades => localidades.filter(l => l.esta_activa))
-    );
-  }
-
-  // ========================================
   // MÉTODOS AUXILIARES PRIVADOS
   // ========================================
 
@@ -466,4 +444,55 @@ export class LocalidadService {
       cacheActualizado: this.cacheActualizado
     };
   }
+
+  /* DESHABILITADO TEMPORALMENTE - Exportar a Excel
+  async exportarAExcel(filtros?: FiltroLocalidades): Promise<void> {
+    try {
+      let params = new HttpParams();
+      
+      if (filtros) {
+        if (filtros.nombre) params = params.set('nombre', filtros.nombre);
+        if (filtros.tipo) params = params.set('tipo', filtros.tipo);
+        if (filtros.departamento) params = params.set('departamento', filtros.departamento);
+        if (filtros.provincia) params = params.set('provincia', filtros.provincia);
+        if (filtros.distrito) params = params.set('distrito', filtros.distrito);
+        if (filtros.ubigeo) params = params.set('ubigeo', filtros.ubigeo);
+        if (filtros.esta_activa !== undefined) params = params.set('esta_activa', filtros.esta_activa.toString());
+      }
+
+      const response = await this.http.get(`${this.apiUrl}/exportar-excel`, {
+        params,
+        responseType: 'blob',
+        observe: 'response'
+      }).toPromise();
+
+      if (response && response.body) {
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = 'localidades_export.xlsx';
+        
+        if (contentDisposition) {
+          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+          if (matches != null && matches[1]) {
+            filename = matches[1].replace(/['"]/g, '');
+          }
+        }
+
+        const blob = new Blob([response.body], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        window.URL.revokeObjectURL(url);
+
+        console.log('✅ Archivo Excel descargado:', filename);
+      }
+    } catch (error) {
+      console.error('❌ Error exportando a Excel:', error);
+      throw error;
+    }
+  }
+  */
 }

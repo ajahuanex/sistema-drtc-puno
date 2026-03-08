@@ -189,8 +189,10 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
 
   ngOnInit(): void {
+    console.log('🏗️ [MAIN-LAYOUT] ngOnInit iniciado');
     this.checkScreenSize();
     this.setupResizeObserver();
+    console.log('✅ [MAIN-LAYOUT] ngOnInit completado');
   }
 
   ngOnDestroy(): void {

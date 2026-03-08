@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, HostBinding } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, HostBinding, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,10 +9,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, map, startWith, BehaviorSubject, combineLatest } from 'rxjs';
 
 import { Localidad, LocalidadCreate, LocalidadUpdate, TipoLocalidad } from '../../models/localidad.model';
 import { LocalidadService } from '../../services/localidad.service';
+import { LocalidadAliasService } from '../../services/localidad-alias.service';
+import { LocalidadAlias } from '../../models/localidad-alias.model';
 
 @Component({
   selector: 'app-localidad-modal',
@@ -27,7 +32,9 @@ import { LocalidadService } from '../../services/localidad.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatSnackBarModule,
+    MatTooltipModule
   ],
   templateUrl: './localidad-modal.component.html',
   styleUrls: ['./localidad-modal.component.scss']
@@ -44,6 +51,9 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
   guardando = false;
   tipoSeleccionado = 'PUEBLO';
   cargandoOpciones = false;
+
+  // Alias de la localidad
+  aliasLocalidad: LocalidadAlias[] = [];
 
   // Opciones dinámicas para selectores
   departamentosDisponibles: string[] = [];
@@ -75,7 +85,10 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
 
   constructor(
     private fb: FormBuilder,
-    private localidadService: LocalidadService
+    private localidadService: LocalidadService,
+    private snackBar: MatSnackBar,
+    private aliasService: LocalidadAliasService,
+    private dialog: MatDialog
   ) {
     this.inicializarFormulario();
     this.inicializarAutocomplete();
@@ -177,9 +190,11 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
       // CAMPOS OPCIONALES (valores por defecto PUNO)
       ubigeo: ['', [Validators.pattern(/^\d{6}$/)]],
       departamento: ['PUNO'], // Por defecto PUNO
-      provincia: ['PUNO'],    // Por defecto PUNO
-      distrito: ['PUNO'],     // Por defecto PUNO
-      descripcion: ['', [Validators.maxLength(500)]],
+      provincia: [''],
+      distrito: [''],
+      
+      // CAMPOS ADICIONALES
+      poblacion: ['', [Validators.min(0)]],
       observaciones: ['', [Validators.maxLength(500)]],
       
       // COORDENADAS
@@ -193,43 +208,6 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
         this.onTipoChange(tipo);
       }
     });
-
-    // Escuchar cambios en departamento para filtrar provincias
-    this.formulario.get('departamento')?.valueChanges.subscribe(async departamento => {
-      // console.log removed for production
-      if (departamento) {
-        await this.cargarProvinciasPorDepartamento(departamento);
-        // Limpiar provincia y distrito cuando cambia departamento
-        this.formulario.patchValue({
-          provincia: '',
-          distrito: ''
-        }, { emitEvent: false });
-        // Limpiar distritos
-        this.distritosDisponibles = [];
-        // console.log removed for production
-      }
-    });
-
-    // Escuchar cambios en provincia para filtrar distritos
-    this.formulario.get('provincia')?.valueChanges.subscribe(async provincia => {
-      // console.log removed for production
-      if (provincia) {
-        const departamento = this.formulario.get('departamento')?.value;
-        // console.log removed for production
-        if (departamento) {
-          await this.cargarDistritosPorProvincia(departamento, provincia);
-          // console.log removed for production
-        }
-        // Limpiar distrito cuando cambia provincia
-        this.formulario.patchValue({
-          distrito: ''
-        }, { emitEvent: false });
-      } else {
-        // Si no hay provincia, limpiar distritos
-        this.distritosDisponibles = [];
-        // console.log removed for production
-      }
-    });
   }
 
   private async cargarDatos() {
@@ -238,77 +216,67 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
       const tipoLocalidad = this.localidad.tipo || TipoLocalidad.PUEBLO;
       this.tipoSeleccionado = tipoLocalidad;
       
-      // Cargar opciones dinámicas primero
+      console.log('📋 Cargando localidad:', this.localidad);
+      
+      // Cargar opciones dinámicas
       await this.cargarOpcionesDinamicas();
       
-      // Si hay departamento, cargar provincias
+      // Si tiene departamento y provincia, cargar provincias y distritos
       if (this.localidad.departamento) {
         await this.cargarProvinciasPorDepartamento(this.localidad.departamento);
         
-        // Si hay provincia, cargar distritos
         if (this.localidad.provincia) {
           await this.cargarDistritosPorProvincia(this.localidad.departamento, this.localidad.provincia);
         }
       }
       
+      // Establecer valores en el formulario
       this.formulario.patchValue({
         nombre: this.localidad.nombre || '',
         tipo: tipoLocalidad,
         ubigeo: this.localidad.ubigeo || '',
         departamento: this.localidad.departamento || 'PUNO',
-        provincia: this.localidad.provincia || 'PUNO',
-        distrito: this.localidad.distrito || 'PUNO',
-        descripcion: this.localidad.descripcion || '',
+        provincia: this.localidad.provincia || '',
+        distrito: this.localidad.distrito || '',
+        poblacion: this.localidad.poblacion || '',
         observaciones: this.localidad.observaciones || '',
         latitud: this.localidad.coordenadas?.latitud || '',
         longitud: this.localidad.coordenadas?.longitud || ''
-      });
-
-      // Sincronizar controles del autocomplete
-      this.provinciaControl.setValue(this.localidad.provincia || '');
-      this.distritoControl.setValue(this.localidad.distrito || '');
+      }, { emitEvent: false });
+      
+      // Sincronizar controles de autocomplete
+      this.provinciaControl.setValue(this.localidad.provincia || '', { emitEvent: false });
+      this.distritoControl.setValue(this.localidad.distrito || '', { emitEvent: false });
+      
+      // Cargar alias de la localidad
+      await this.cargarAlias();
+      
+      console.log('✅ Localidad cargada:', this.formulario.value);
+      
     } else {
-      // Resetear formulario para nueva localidad
+      // Nueva localidad - sin valores por defecto en provincia y distrito
       this.tipoSeleccionado = TipoLocalidad.PUEBLO;
       
-      // Cargar opciones dinámicas primero
+      // Cargar opciones dinámicas
       await this.cargarOpcionesDinamicas();
+      await this.cargarProvinciasPorDepartamento('PUNO');
       
-      // Establecer valores por defecto y cargar opciones dependientes
       this.formulario.reset({
         nombre: '',
         tipo: TipoLocalidad.PUEBLO,
         ubigeo: '',
-        departamento: 'PUNO', // Por defecto PUNO
-        provincia: '',        // Vacío inicialmente
-        distrito: '',         // Vacío inicialmente
-        descripcion: '',
+        departamento: 'PUNO',
+        provincia: '',  // Vacío - el usuario debe seleccionar
+        distrito: '',   // Vacío - el usuario debe seleccionar
+        poblacion: '',
         observaciones: '',
         latitud: '',
         longitud: ''
       });
-
-      // Limpiar controles del autocomplete
-      this.provinciaControl.setValue('');
-      this.distritoControl.setValue('');
-
-      // Cargar provincias para PUNO por defecto
-      await this.cargarProvinciasPorDepartamento('PUNO');
       
-      // Si solo hay una provincia, seleccionarla automáticamente
-      if (this.provinciasDisponibles.length === 1) {
-        const provincia = this.provinciasDisponibles[0];
-        this.formulario.patchValue({ provincia });
-        this.provinciaControl.setValue(provincia);
-        await this.cargarDistritosPorProvincia('PUNO', provincia);
-        
-        // Si solo hay un distrito, seleccionarlo automáticamente
-        if (this.distritosDisponibles.length === 1) {
-          const distrito = this.distritosDisponibles[0];
-          this.formulario.patchValue({ distrito });
-          this.distritoControl.setValue(distrito);
-        }
-      }
+      // Limpiar controles de autocomplete
+      this.provinciaControl.setValue('', { emitEvent: false });
+      this.distritoControl.setValue('', { emitEvent: false });
     }
   }
 
@@ -318,14 +286,14 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
       
       const formValue = this.formulario.value;
       
-      // Preparar datos de la localidad
+      // Preparar datos de la localidad - TODO EN MAYÚSCULAS
       const datosLocalidad: LocalidadCreate | LocalidadUpdate = {
-        nombre: formValue.nombre.trim(),
+        nombre: formValue.nombre.trim().toUpperCase(),
         tipo: formValue.tipo,
-        // Siempre incluir departamento, provincia y distrito con PUNO por defecto
-        departamento: formValue.departamento?.trim() || 'PUNO',
-        provincia: formValue.provincia?.trim() || 'PUNO',
-        distrito: formValue.distrito?.trim() || 'PUNO'
+        // Siempre incluir departamento, provincia y distrito en MAYÚSCULAS
+        departamento: (formValue.departamento?.trim() || 'PUNO').toUpperCase(),
+        provincia: (formValue.provincia?.trim() || '').toUpperCase(),
+        distrito: (formValue.distrito?.trim() || '').toUpperCase()
       };
 
       // Solo agregar campos específicos si el tipo es CENTRO_POBLADO
@@ -334,8 +302,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
       }
 
       // Campos opcionales comunes
-      if (formValue.descripcion) datosLocalidad.descripcion = formValue.descripcion.trim();
-      if (formValue.observaciones) datosLocalidad.observaciones = formValue.observaciones.trim();
+      if (formValue.poblacion) datosLocalidad.poblacion = parseInt(formValue.poblacion);
+      if (formValue.observaciones) datosLocalidad.observaciones = formValue.observaciones.trim().toUpperCase();
 
       // Agregar coordenadas si están completas
       if (formValue.latitud && formValue.longitud) {
@@ -390,7 +358,7 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
           ubigeo: '',
           distrito: '', // Se limpia porque ES el distrito
           departamento: 'PUNO', // Especifica departamento
-          provincia: 'PUNO' // Especifica provincia donde se ubica
+          provincia: '' // Limpio para que el usuario seleccione
         });
         break;
         
@@ -399,8 +367,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
         this.formulario.patchValue({
           ubigeo: '',
           departamento: 'PUNO', // Especifica departamento
-          provincia: 'PUNO', // Especifica provincia
-          distrito: 'PUNO' // Especifica distrito donde se ubica
+          provincia: '', // Limpio para que el usuario seleccione
+          distrito: '' // Limpio para que el usuario seleccione
         });
         break;
         
@@ -408,8 +376,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
         // Centro poblado puede tener ubicación administrativa completa
         this.formulario.patchValue({
           departamento: 'PUNO',
-          provincia: 'PUNO',
-          distrito: 'PUNO'
+          provincia: '',
+          distrito: ''
           // Mantiene ubigeo si ya tenía valor
         });
         break;
@@ -419,8 +387,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
         this.formulario.patchValue({
           ubigeo: '',
           departamento: 'PUNO',
-          provincia: 'PUNO',
-          distrito: 'PUNO'
+          provincia: '',
+          distrito: ''
         });
         break;
         
@@ -429,8 +397,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
         this.formulario.patchValue({
           ubigeo: '',
           departamento: 'PUNO',
-          provincia: 'PUNO',
-          distrito: 'PUNO'
+          provincia: '',
+          distrito: ''
         });
         break;
     }
@@ -586,6 +554,8 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
           .filter((d): d is string => Boolean(d))
       )].sort();
 
+      console.log('📍 Distritos cargados para', departamento, provincia, ':', this.distritosDisponibles);
+
       // Actualizar observables del autocomplete
       this.actualizarOpciones();
 
@@ -670,11 +640,87 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
 
   // Método adicional para debugging manual
   debugFormulario() {
-    // console.log removed for production
-    // console.log removed for production
-    // console.log removed for production
-    // console.log removed for production
-    // console.log removed for production
+    console.log('🔍 ===== DEBUG FORMULARIO =====');
+    console.log('📋 Valores del formulario:', this.formulario.value);
+    console.log('📋 Distrito en formulario:', this.formulario.get('distrito')?.value);
+    console.log('📋 Distrito en control:', this.distritoControl.value);
+    console.log('📊 Distritos disponibles:', this.distritosDisponibles);
+    console.log('📊 Usar select distrito:', this.usarSelectDistrito());
+    console.log('📊 Mostrar campo distrito:', this.mostrarCampoDistrito());
+    console.log('📋 Localidad original:', this.localidad);
+    console.log('🔍 ===========================');
+  }
+
+  /**
+   * Maneja el pegado de coordenadas desde Google Maps
+   * Formato esperado: "latitud, longitud" o "latitud,longitud"
+   */
+  onPegarCoordenadas(event: ClipboardEvent, campo: 'latitud' | 'longitud'): void {
+    event.preventDefault();
+    
+    const texto = event.clipboardData?.getData('text') || '';
+    console.log('📍 Texto pegado:', texto);
+    
+    // Intentar parsear como "lat, lng"
+    const partes = texto.split(',').map(p => p.trim());
+    
+    if (partes.length === 2) {
+      const lat = parseFloat(partes[0]);
+      const lng = parseFloat(partes[1]);
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Validar rangos
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          this.formulario.patchValue({
+            latitud: lat,
+            longitud: lng
+          });
+          
+          this.snackBar.open(
+            `Coordenadas pegadas: ${lat}, ${lng}`,
+            'Cerrar',
+            { duration: 3000 }
+          );
+          
+          console.log('✅ Coordenadas establecidas:', { lat, lng });
+          return;
+        }
+      }
+    }
+    
+    // Si no es formato "lat, lng", intentar pegar solo en el campo actual
+    const valor = parseFloat(texto.trim());
+    if (!isNaN(valor)) {
+      this.formulario.patchValue({ [campo]: valor });
+    }
+  }
+
+  /**
+   * Maneja la selección de provincia desde el autocomplete
+   */
+  onProvinciaSeleccionada(event: any): void {
+    const provincia = event.option.value;
+    console.log('📍 Provincia seleccionada:', provincia);
+    
+    // Actualizar el formulario
+    this.formulario.patchValue({ provincia }, { emitEvent: false });
+    
+    // Cargar distritos para esta provincia
+    const departamento = this.formulario.get('departamento')?.value;
+    if (departamento) {
+      this.cargarDistritosPorProvincia(departamento, provincia);
+    }
+  }
+
+  /**
+   * Maneja la selección de distrito desde el autocomplete
+   */
+  onDistritoSeleccionado(event: any): void {
+    const distrito = event.option.value;
+    console.log('📍 Distrito seleccionado:', distrito);
+    
+    // Actualizar el formulario
+    this.formulario.patchValue({ distrito }, { emitEvent: false });
   }
 
   // Método para probar forzar un valor manualmente
@@ -682,5 +728,50 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
     // console.log removed for production
     this.formulario.get('provincia')?.setValue('AZÁNGARO');
     console.log(`🔍 [DEBUG] Valor después de setValue:`, this.formulario.get('provincia')?.value);
+  }
+
+  /**
+   * Carga los alias de la localidad
+   */
+  async cargarAlias(): Promise<void> {
+    if (!this.localidad?.id) return;
+
+    try {
+      // Obtener todos los alias y filtrar por localidad_id
+      const todosAlias = await this.aliasService.obtenerAlias(0, 1000, true).toPromise() || [];
+      this.aliasLocalidad = todosAlias.filter(alias => alias.localidad_id === this.localidad!.id);
+      console.log('📋 Alias cargados:', this.aliasLocalidad);
+    } catch (error) {
+      console.error('Error cargando alias:', error);
+    }
+  }
+
+  /**
+   * Abre el modal de gestión de alias
+   */
+  async gestionarAlias(): Promise<void> {
+    if (!this.localidad?.id) return;
+
+    try {
+      // Importar el componente de gestión de alias dinámicamente
+      const { GestionAliasComponent } = await import('../localidades/gestion-alias.component');
+
+      const dialogRef = this.dialog.open(GestionAliasComponent, {
+        width: '800px',
+        maxWidth: '90vw',
+        data: {
+          localidad: this.localidad
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(async (result) => {
+        // Siempre recargar alias al cerrar el modal, independientemente del resultado
+        await this.cargarAlias();
+        console.log('✅ Alias recargados después de gestionar');
+      });
+    } catch (error) {
+      console.error('Error abriendo gestión de alias:', error);
+      this.snackBar.open('Error al abrir gestión de alias', 'Cerrar', { duration: 3000 });
+    }
   }
 }

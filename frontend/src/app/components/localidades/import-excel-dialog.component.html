@@ -21,8 +21,9 @@
         <ol class="instructions-list">
           <li>Descargue la plantilla de ejemplo haciendo clic en "Descargar Plantilla"</li>
           <li>Complete los datos de las localidades en el archivo Excel</li>
-          <li>Los campos obligatorios son: nombre, tipo (PROVINCIA, DISTRITO, CENTRO_POBLADO, etc.)</li>
-          <li>Los campos opcionales son: departamento, provincia, distrito, ubigeo, coordenadas</li>
+          <li>Campo obligatorio: <strong>nombre</strong></li>
+          <li>Campo <strong>tipo</strong>: PUEBLO, CENTRO_POBLADO, DISTRITO, PROVINCIA, DEPARTAMENTO, CIUDAD</li>
+          <li>Campos opcionales: departamento, provincia, distrito, ubigeo, codigo_ccpp, tipo_area, poblacion, altitud, coordenadas</li>
           <li>Seleccione el archivo completado y haga clic en "Importar"</li>
         </ol>
 
@@ -120,24 +121,44 @@
             <h4>Campos Obligatorios</h4>
             <div class="field-list">
               <mat-chip-set>
-                <mat-chip>nombre</mat-chip>
-                <mat-chip>tipo</mat-chip>
+                <mat-chip class="required-chip">nombre</mat-chip>
               </mat-chip-set>
             </div>
           </div>
 
           <div class="field-group">
-            <h4>Campos Opcionales</h4>
+            <h4>Campos Opcionales - Básicos</h4>
             <div class="field-list">
               <mat-chip-set>
+                <mat-chip>tipo</mat-chip>
                 <mat-chip>departamento</mat-chip>
                 <mat-chip>provincia</mat-chip>
                 <mat-chip>distrito</mat-chip>
                 <mat-chip>ubigeo</mat-chip>
-                <mat-chip>codigo</mat-chip>
                 <mat-chip>descripcion</mat-chip>
                 <mat-chip>observaciones</mat-chip>
-                <mat-chip>coordenadas (latitud, longitud)</mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h4>Campos Opcionales - Centros Poblados</h4>
+            <div class="field-list">
+              <mat-chip-set>
+                <mat-chip class="new-chip">codigo_ccpp</mat-chip>
+                <mat-chip class="new-chip">tipo_area</mat-chip>
+                <mat-chip class="new-chip">poblacion</mat-chip>
+                <mat-chip class="new-chip">altitud</mat-chip>
+              </mat-chip-set>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <h4>Coordenadas GPS</h4>
+            <div class="field-list">
+              <mat-chip-set>
+                <mat-chip>latitud</mat-chip>
+                <mat-chip>longitud</mat-chip>
               </mat-chip-set>
             </div>
           </div>

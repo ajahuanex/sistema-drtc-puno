@@ -1,0 +1,223 @@
+<div class="gestion-alias-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>🗺️ Gestión de Alias de Localidades</h1>
+      <p>Mapeo de nombres alternativos a localidades oficiales</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="nuevoAlias()">
+        <mat-icon>add</mat-icon>
+        Nuevo Alias
+      </button>
+      <button mat-stroked-button (click)="cargarDatos()" [disabled]="isLoading()">
+        <mat-icon>refresh</mat-icon>
+        Recargar
+      </button>
+      <button mat-stroked-button (click)="cerrar()">
+        <mat-icon>close</mat-icon>
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <mat-tab-group>
+    <!-- Tab: Todos los Alias -->
+    <mat-tab label="Todos los Alias">
+      <div class="tab-content">
+        <!-- Buscador -->
+        <mat-card class="search-card">
+          <mat-card-content>
+            <div class="search-container">
+              <mat-form-field appearance="outline" class="search-field">
+                <mat-label>Buscar alias...</mat-label>
+                <input matInput 
+                       [(ngModel)]="terminoBusqueda"
+                       (input)="buscarAlias()"
+                       placeholder="Nombre de alias, localidad o notas">
+                <button matSuffix mat-icon-button (click)="buscarAlias()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </mat-form-field>
+              
+              @if (terminoBusqueda) {
+                <button mat-icon-button (click)="limpiarBusqueda()" matTooltip="Limpiar búsqueda">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tabla de Alias -->
+        @if (isLoading()) {
+          <div class="loading-container">
+            <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+            <p>Cargando alias...</p>
+          </div>
+        } @else {
+          <mat-card>
+            <mat-card-content>
+              <div class="table-container">
+                <table mat-table [dataSource]="aliasFiltrados()" class="alias-table">
+                  <!-- Columna: Alias -->
+                  <ng-container matColumnDef="alias">
+                    <th mat-header-cell *matHeaderCellDef>Alias</th>
+                    <td mat-cell *matCellDef="let alias">
+                      <div class="alias-cell">
+                        <strong>{{ alias.alias }}</strong>
+                        @if (alias.verificado) {
+                          <mat-icon class="verified-icon" matTooltip="Verificado">verified</mat-icon>
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <!-- Columna: Localidad Oficial -->
+                  <ng-container matColumnDef="localidad_nombre">
+                    <th mat-header-cell *matHeaderCellDef>Localidad Oficial</th>
+                    <td mat-cell *matCellDef="let alias">
+                      <div class="localidad-cell">
+                        {{ alias.localidad_nombre }}
+                        @if (alias.notas) {
+                          <mat-icon class="notes-icon" [matTooltip]="alias.notas">info</mat-icon>
+                        }
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <!-- Columna: Usos -->
+                  <ng-container matColumnDef="usos">
+                    <th mat-header-cell *matHeaderCellDef>Usos</th>
+                    <td mat-cell *matCellDef="let alias">
+                      <div class="usos-cell">
+                        <mat-chip-set>
+                          <mat-chip class="total-chip">{{ getTotalUsos(alias) }}</mat-chip>
+                        </mat-chip-set>
+                        <div class="usos-detalle">
+                          <span matTooltip="Como origen">O: {{ alias.usos_como_origen }}</span>
+                          <span matTooltip="Como destino">D: {{ alias.usos_como_destino }}</span>
+                          <span matTooltip="En itinerario">I: {{ alias.usos_en_itinerario }}</span>
+                        </div>
+                      </div>
+                    </td>
+                  </ng-container>
+
+                  <!-- Columna: Verificado -->
+                  <ng-container matColumnDef="verificado">
+                    <th mat-header-cell *matHeaderCellDef>Estado</th>
+                    <td mat-cell *matCellDef="let alias">
+                      @if (alias.verificado) {
+                        <mat-chip class="chip-verified">Verificado</mat-chip>
+                      } @else {
+                        <mat-chip class="chip-pending">Pendiente</mat-chip>
+                      }
+                    </td>
+                  </ng-container>
+
+                  <!-- Columna: Acciones -->
+                  <ng-container matColumnDef="acciones">
+                    <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                    <td mat-cell *matCellDef="let alias">
+                      <button mat-icon-button (click)="editarAlias(alias)" matTooltip="Editar">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="eliminarAlias(alias)" matTooltip="Eliminar">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </td>
+                  </ng-container>
+
+                  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                </table>
+
+                @if (aliasFiltrados().length === 0) {
+                  <div class="no-data">
+                    <mat-icon>search_off</mat-icon>
+                    <p>No se encontraron alias</p>
+                  </div>
+                }
+              </div>
+
+              <div class="table-footer">
+                <p>Total: {{ aliasFiltrados().length }} alias</p>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Más Usados -->
+    <mat-tab label="Más Usados">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Top 20 Alias Más Usados</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="estadisticas-list">
+              @for (stat of aliasMasUsados(); track stat.id) {
+                <div class="estadistica-item">
+                  <div class="estadistica-info">
+                    <strong>{{ stat.alias }}</strong>
+                    <span class="localidad-nombre">→ {{ stat.localidad_nombre }}</span>
+                  </div>
+                  <div class="estadistica-usos">
+                    <mat-chip class="total-chip">{{ stat.total_usos }}</mat-chip>
+                    <span class="usos-detalle">
+                      O: {{ stat.usos_como_origen }} | 
+                      D: {{ stat.usos_como_destino }} | 
+                      I: {{ stat.usos_en_itinerario }}
+                    </span>
+                  </div>
+                </div>
+              }
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- Tab: Sin Usar -->
+    <mat-tab label="Sin Usar">
+      <div class="tab-content">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Alias Sin Usar</mat-card-title>
+            <mat-card-subtitle>Alias que no están siendo utilizados en ninguna ruta</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            @if (aliasSinUsar().length === 0) {
+              <div class="no-data">
+                <mat-icon>check_circle</mat-icon>
+                <p>Todos los alias están siendo utilizados</p>
+              </div>
+            } @else {
+              <div class="alias-sin-usar-list">
+                @for (alias of aliasSinUsar(); track alias.id) {
+                  <div class="alias-sin-usar-item">
+                    <div class="alias-info">
+                      <strong>{{ alias.alias }}</strong>
+                      <span>→ {{ alias.localidad_nombre }}</span>
+                    </div>
+                    <div class="alias-actions">
+                      <button mat-icon-button (click)="editarAlias(alias)" matTooltip="Editar">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="eliminarAlias(alias)" matTooltip="Eliminar">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

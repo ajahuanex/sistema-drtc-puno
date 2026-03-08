@@ -54,7 +54,7 @@ export interface RutaFormConfig {
           @if (config.empresa) {
             <div class="info-item">
               <mat-icon>business</mat-icon>
-              <span>{{ config.empresa.ruc }} - {{ config.empresa.razonSocial?.principal }}</span>
+              <span>{{ config.empresa.ruc }} - {{ config.empresa.razonSocial.principal }}</span>
             </div>
           }
           @if (config.resolucion) {

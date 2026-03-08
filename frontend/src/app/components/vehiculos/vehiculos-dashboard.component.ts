@@ -7,7 +7,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
-import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { Vehiculo } from '../../models/vehiculo.model';
@@ -48,8 +47,7 @@ interface AlertaVehiculo {
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
-    MatMenuModule,
-    SmartIconComponent
+    MatMenuModule
   ],
   template: `<div>Componente en mantenimiento - Template simplificado</div>`,  styles
 : [`

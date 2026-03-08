@@ -127,6 +127,14 @@
         <mat-icon>refresh</mat-icon>
         Recargar
       </button>
+      <button mat-stroked-button 
+              color="warn" 
+              (click)="verificarCoordenadasRutas()"
+              [disabled]="isLoading()"
+              matTooltip="Verificar que todas las rutas tengan coordenadas desde el módulo de localidades">
+        <mat-icon>location_on</mat-icon>
+        Verificar Coordenadas
+      </button>
     </div>
   </div>
 

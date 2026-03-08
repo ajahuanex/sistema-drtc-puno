@@ -59,23 +59,34 @@ export class EagerInitService {
   };
 
   constructor() {
+    console.log('🔧 [EAGER-INIT] Constructor iniciado');
     // Inicialización automática (solo una vez)
+    console.log('🔧 [EAGER-INIT] Llamando initializeApp...');
     this.initializeApp();
+    console.log('🔧 [EAGER-INIT] Constructor completado');
   }
 
   /**
    * Inicialización eager de la aplicación
    */
   async initializeApp(): Promise<void> {
+    console.log('🚀 [INIT] Iniciando aplicación...');
+    
     try {
       // 1. Cargar configuración crítica
+      console.log('📋 [INIT] Paso 1: Cargando configuración crítica...');
       await this.loadCriticalConfig();
+      console.log('✅ [INIT] Configuración crítica cargada');
       
       // 2. Pre-cargar datos esenciales
+      console.log('📦 [INIT] Paso 2: Pre-cargando datos esenciales...');
       await this.preloadEssentialData();
+      console.log('✅ [INIT] Datos esenciales pre-cargados');
       
       // 3. Inicializar cache y preferencias
+      console.log('💾 [INIT] Paso 3: Inicializando cache...');
       await this.initializeCache();
+      console.log('✅ [INIT] Cache inicializado');
       
       // 4. Marcar como inicializado
       this._appState.update(state => ({
@@ -85,10 +96,10 @@ export class EagerInitService {
       
       this._initializationStatus$.next(true);
       
-      // console.log removed for production
+      console.log('✅ [INIT] Aplicación inicializada correctamente');
       
     } catch (error) {
-      console.error('❌ Error en inicialización eager::', error);
+      console.error('❌ [INIT] Error en inicialización eager:', error);
       // Fallback a configuración por defecto
       this.setDefaultConfig();
     }
@@ -98,6 +109,16 @@ export class EagerInitService {
    * Cargar configuración crítica
    */
   private async loadCriticalConfig(): Promise<void> {
+    console.log('🔍 [INIT] loadCriticalConfig - Usando configuración por defecto');
+    
+    // SIMPLIFICADO: Usar siempre configuración por defecto
+    // No intentar cargar desde API ni sessionStorage
+    this.setDefaultConfig();
+    
+    console.log('✅ [INIT] Configuración por defecto establecida');
+    return;
+    
+    /* CÓDIGO ORIGINAL DESHABILITADO
     try {
       // Intentar cargar desde sessionStorage primero
       const cached = sessionStorage.getItem('criticalConfig');
@@ -126,12 +147,24 @@ export class EagerInitService {
       // Usar configuración por defecto cuando falla la API
       this.setDefaultConfig();
     }
+    */
   }
 
   /**
    * Pre-cargar datos esenciales
+   * DESHABILITADO TEMPORALMENTE para debugging
    */
   private async preloadEssentialData(): Promise<void> {
+    console.log('🔍 [INIT] preloadEssentialData - DESHABILITADO');
+    
+    // Solo cargar preferencias de usuario (ligero)
+    await this.preloadUserPreferences();
+    
+    // DESHABILITADO: Resto de pre-cargas
+    console.log('⚠️ [INIT] Pre-carga de datos comunes y UI DESHABILITADA');
+    return;
+    
+    /* CÓDIGO ORIGINAL DESHABILITADO
     const preloadTasks = [
       this.preloadUserPreferences(),
       this.preloadCommonData(),
@@ -140,6 +173,7 @@ export class EagerInitService {
     ];
 
     await Promise.allSettled(preloadTasks);
+    */
   }
 
   /**
@@ -162,8 +196,17 @@ export class EagerInitService {
 
   /**
    * Pre-cargar datos comunes
+   * DESHABILITADO: Puede causar problemas de carga
    */
   private async preloadCommonData(): Promise<void> {
+    console.log('🔍 [CACHE] Iniciando preloadCommonData...');
+    
+    // DESHABILITADO: Pre-carga de datos comunes
+    console.log('⚠️ [CACHE] Pre-carga de datos comunes DESHABILITADA');
+    console.log('💡 [CACHE] Los datos se cargarán bajo demanda');
+    return;
+    
+    /* CÓDIGO ORIGINAL DESHABILITADO
     // Pre-cargar datos que se usan frecuentemente
     // Por ahora, solo cargar desde localStorage si existe
     const commonDataKeys = ['tiposDocumento', 'estadosEmpresa', 'configuracionGeneral'];
@@ -179,6 +222,7 @@ export class EagerInitService {
         // Ignorar errores de pre-carga
       }
     }
+    */
   }
 
   /**
@@ -240,16 +284,21 @@ export class EagerInitService {
    * Marcar hidratación como completa
    */
   markHydrationComplete(): void {
+    console.log('🔧 [EAGER-INIT] markHydrationComplete llamado');
     const wasHydrated = this._appState().isHydrated;
+    console.log('🔧 [EAGER-INIT] wasHydrated:', wasHydrated);
     
     this._appState.update(state => ({
       ...state,
       isHydrated: true
     }));
+    console.log('🔧 [EAGER-INIT] Estado actualizado a isHydrated: true');
 
     // Solo ejecutar callback si no estaba hidratado antes
     if (!wasHydrated) {
+      console.log('🔧 [EAGER-INIT] Ejecutando onHydrationComplete...');
       this.onHydrationComplete();
+      console.log('🔧 [EAGER-INIT] onHydrationComplete completado');
     }
   }
 
@@ -355,30 +404,47 @@ export class EagerInitService {
    * Callback cuando la hidratación se completa
    */
   private onHydrationComplete(): void {
-    // console.log removed for production
+    console.log('🔧 [EAGER-INIT] onHydrationComplete iniciado');
     
     // Ejecutar tareas post-hidratación
+    console.log('🔧 [EAGER-INIT] Ejecutando executePostHydrationTasks...');
     this.executePostHydrationTasks();
+    console.log('🔧 [EAGER-INIT] onHydrationComplete completado');
   }
 
   /**
    * Ejecutar tareas después de la hidratación
    */
   private executePostHydrationTasks(): void {
+    console.log('🔧 [EAGER-INIT] executePostHydrationTasks iniciado');
+    
     // Tareas que requieren que la aplicación esté completamente hidratada
     setTimeout(() => {
+      console.log('🔧 [EAGER-INIT] Timeout de post-hidratación ejecutándose...');
+      
       // Pre-cargar datos adicionales
+      console.log('🔧 [EAGER-INIT] Llamando preloadAdditionalData...');
       this.preloadAdditionalData();
       
       // Optimizar componentes de la UI
+      console.log('🔧 [EAGER-INIT] Llamando optimizeUIComponents...');
       this.optimizeUIComponents();
+      
+      console.log('🔧 [EAGER-INIT] Timeout de post-hidratación completado');
     }, 1000);
+    
+    console.log('🔧 [EAGER-INIT] executePostHydrationTasks completado');
   }
 
   /**
    * Pre-cargar datos adicionales post-hidratación
+   * DESHABILITADO: Puede causar problemas de carga
    */
   private async preloadAdditionalData(): Promise<void> {
+    console.log('🔍 [CACHE] preloadAdditionalData DESHABILITADO');
+    return;
+    
+    /* CÓDIGO ORIGINAL DESHABILITADO
     // Datos que no son críticos pero mejoran la experiencia
     const additionalData = [
       'estadisticasGenerales',
@@ -394,6 +460,7 @@ export class EagerInitService {
         // Ignorar errores de pre-carga adicional
       }
     }
+    */
   }
 
   /**
