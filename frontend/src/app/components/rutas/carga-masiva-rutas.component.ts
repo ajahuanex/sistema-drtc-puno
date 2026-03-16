@@ -655,7 +655,6 @@ export class CargaMasivaRutasComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    // console.log removed for production
   }
 
   // ========================================
@@ -665,7 +664,6 @@ export class CargaMasivaRutasComponent implements OnInit {
   async descargarPlantilla() {
     try {
       this.cargando = true;
-      // console.log removed for production
 
       const blob = await this.rutaService.descargarPlantillaCargaMasiva();
 
@@ -683,7 +681,7 @@ export class CargaMasivaRutasComponent implements OnInit {
       this.snackBar.open('Plantilla descargada exitosamente', 'Cerrar', { duration: 3000 });
 
     } catch (error: any) {
-      console.error('❌ Error descargando plantilla::', error);
+      console.error('Error descargando plantilla:', error);
       this.snackBar.open('Error al descargar la plantilla', 'Cerrar', { duration: 5000 });
     } finally {
       this.cargando = false;
@@ -745,7 +743,6 @@ export class CargaMasivaRutasComponent implements OnInit {
 
     this.archivoSeleccionado = file;
     this.limpiarResultados();
-    console.log('📁 Archivo seleccionado:', file.name, this.formatFileSize(file.size));
   }
 
   limpiarArchivo() {
@@ -782,8 +779,6 @@ export class CargaMasivaRutasComponent implements OnInit {
     this.cargando = true;
     this.limpiarResultados();
 
-    // console.log removed for production
-
     try {
       if (this.soloValidar) {
         await this.ejecutarValidacion();
@@ -794,7 +789,7 @@ export class CargaMasivaRutasComponent implements OnInit {
       this.mostrarResultados = true;
 
     } catch (error: any) {
-      console.error('❌ ERROR EN PROCESAMIENTO::', error);
+      console.error('ERROR EN PROCESAMIENTO:', error);
       this.snackBar.open(
         `Error: ${error.error?.mensaje || error.message || 'Error desconocido'}`,
         'Cerrar',
@@ -806,99 +801,18 @@ export class CargaMasivaRutasComponent implements OnInit {
   }
 
   private async ejecutarValidacion() {
-    // console.log removed for production
     this.resultado = await this.rutaService.validarCargaMasiva(this.archivoSeleccionado!);
-    // console.log removed for production
-
-    // Debug: Mostrar la estructura de datos para verificar
-    if (this.resultado) {
-      const datos: any = (this.resultado as any).validacion || this.resultado;
-      console.log('🔍 DEBUG - Estructura de resultado:', {
-        tieneValidacion: !!(this.resultado as any).validacion,
-        datos: datos,
-        estadisticas: {
-          total: this.getEstadistica('total'),
-          exitosas: this.getEstadistica('exitosas'),
-          errores: this.getEstadistica('errores'),
-          advertencias: this.getEstadistica('advertencias')
-        }
-      });
-    }
   }
 
   private async ejecutarProcesamiento() {
     const opciones = {
       soloValidar: false,
-      modo: this.modoProcesamiento,  // ✅ NUEVO: Enviar modo
+      modo: this.modoProcesamiento,
       procesarEnLotes: this.procesarEnLotes,
       tamanoLote: this.tamanoLote
     };
 
     this.resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado!, opciones);
-
-    // Debug: Mostrar la estructura de datos para verificar
-    if (this.resultado) {
-      const resultado: any = this.resultado as any;
-
-      // Información específica sobre RUCs y normalización
-      const rutasCreadas = resultado.rutas_creadas || resultado.resultado?.rutas_creadas || [];
-      const rutasValidas = resultado.validacion?.rutas_validas || [];
-
-      console.log('🔍 DEBUG - Estructura de procesamiento:', {
-        tieneValidacion: !!resultado.validacion,
-        tieneResultado: !!resultado.resultado,
-        datosValidacion: resultado.validacion,
-        datosProcesamiento: resultado.resultado,
-        estadisticas: {
-          total: this.getEstadistica('total'),
-          exitosas: this.getEstadistica('exitosas'),
-          errores: this.getEstadistica('errores'),
-          advertencias: this.getEstadistica('advertencias')
-        }
-      });
-
-      // Debug específico para RUCs
-      console.log('🔍 DEBUG - Análisis de RUCs:', {
-        rutasCreadas: rutasCreadas.length,
-        rutasValidas: rutasValidas.length,
-        muestraRutasCreadas: rutasCreadas.slice(0, 3),
-        muestraRutasValidas: rutasValidas.slice(0, 3)
-      });
-
-      // Verificar si las rutas creadas tienen información de empresa
-      if (rutasCreadas.length > 0) {
-        console.log('🔍 DEBUG - Verificando información de empresa en rutas creadas:');
-        rutasCreadas.forEach((ruta: any, index: number) => {
-          console.log(`  Ruta ${index + 1}:`, {
-            id: ruta.id,
-            codigo: ruta.codigo || ruta.codigo_ruta,
-            nombre: ruta.nombre,
-            tieneEmpresa: !!ruta.empresa,
-            empresaInfo: ruta.empresa ? {
-              id: ruta.empresa.id,
-              ruc: ruta.empresa.ruc,
-              razonSocial: ruta.empresa.razonSocial
-            } : 'No tiene empresa',
-            rucDirecto: ruta.ruc || 'No tiene RUC directo'
-          });
-        });
-      }
-
-      // Verificar RUCs en rutas válidas
-      if (rutasValidas.length > 0) {
-        console.log('🔍 DEBUG - RUCs en rutas válidas:');
-        const rucsEncontrados = new Set<string>();
-        rutasValidas.forEach((ruta: any, index: number) => {
-          if (ruta.ruc) {
-            rucsEncontrados.add(ruta.ruc);
-            if (index < 5) { // Solo mostrar los primeros 5
-              console.log(`  Ruta válida ${index + 1}: RUC ${ruta.ruc}, Código: ${ruta.codigoRuta}`);
-            }
-          }
-        });
-        console.log(`📊 Total RUCs únicos encontrados: ${rucsEncontrados.size}`, Array.from(rucsEncontrados));
-      }
-    }
   }
 
   // ========================================

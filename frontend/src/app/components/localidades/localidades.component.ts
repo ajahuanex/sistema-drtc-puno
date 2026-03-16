@@ -1,6 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatDialogModule, MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -21,7 +22,6 @@ import { MatDividerModule } from '@angular/material/divider';
 import { BaseLocalidadesComponent } from './shared/base-localidades.component';
 import { LocalidadModalComponent } from './localidad-modal.component';
 import { MapaLocalidadModalComponent } from './mapa-localidad-modal.component';
-import { CargaMasivaGeojsonComponent } from './carga-masiva-geojson.component';
 import { Localidad, LocalidadCreate, LocalidadUpdate } from '../../models/localidad.model';
 
 @Component({
@@ -53,8 +53,9 @@ import { Localidad, LocalidadCreate, LocalidadUpdate } from '../../models/locali
   styleUrls: ['./localidades.component.scss']
 })
 export class LocalidadesComponent extends BaseLocalidadesComponent {
-  // Inyectar MatDialog usando inject()
+  // Inyectar dependencias usando inject()
   private dialog = inject(MatDialog);
+  protected http = inject(HttpClient);
 
   // Estado de filtros colapsables
   filtrosExpandidos = false;
@@ -80,63 +81,116 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
       .map(col => col.key);
   }
 
-  // Estadísticas completas (cargadas una vez al inicio)
-  estadisticasCompletas = {
+  // Estadísticas totales - Se cargan una sola vez al inicio
+  estadisticasTotales = signal({
     provincias: 0,
     distritos: 0,
     centrosPoblados: 0,
-    otros: 0
-  };
+    aliases: 0
+  });
 
-  // Sobrescribir ngOnInit para cargar estadísticas
+  // Sobrescribir ngOnInit para cargar estadísticas totales
   override async ngOnInit() {
     await super.ngOnInit();
-    await this.cargarEstadisticasCompletas();
+    await this.cargarEstadisticasTotales();
   }
 
-  // Cargar estadísticas completas desde el backend
-  async cargarEstadisticasCompletas() {
+  // Cargar estadísticas totales desde el servicio
+  private async cargarEstadisticasTotales() {
     try {
-      // Hacer consultas paralelas para obtener conteos
-      const [provincias, distritos, centrosPoblados] = await Promise.all([
-        this.localidadService.obtenerLocalidades({ tipo: 'PROVINCIA' as any }),
-        this.localidadService.obtenerLocalidades({ tipo: 'DISTRITO' as any }),
-        this.localidadService.obtenerLocalidades({ tipo: 'CENTRO_POBLADO' as any })
-      ]);
-
-      this.estadisticasCompletas = {
-        provincias: provincias.length,
-        distritos: distritos.length,
-        centrosPoblados: centrosPoblados.length,
-        otros: this.localidadesOtros().length
-      };
-
-      console.log('📊 Estadísticas completas cargadas:', this.estadisticasCompletas);
+      // Obtener TODAS las localidades incluyendo centros poblados
+      const todasLasLocalidades = await this.localidadService.obtenerTodasLasLocalidades();
+      
+      // Contar solo localidades reales (sin aliases)
+      const provincias = todasLasLocalidades.filter(l => l.tipo === 'PROVINCIA' && !l.metadata?.es_alias).length;
+      const distritos = todasLasLocalidades.filter(l => l.tipo === 'DISTRITO' && !l.metadata?.es_alias).length;
+      const centrosPoblados = todasLasLocalidades.filter(l => l.tipo === 'CENTRO_POBLADO' && !l.metadata?.es_alias).length;
+      const aliases = todasLasLocalidades.filter(l => l.metadata?.es_alias).length;
+      
+      this.estadisticasTotales.set({
+        provincias,
+        distritos,
+        centrosPoblados,
+        aliases
+      });
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      console.error('Error cargando estadísticas totales:', error);
     }
   }
 
-  // Método para abrir modal de carga masiva
-  abrirCargaMasiva() {
-    const dialogRef = this.dialog.open(CargaMasivaGeojsonComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      disableClose: true,
-      panelClass: 'carga-masiva-dialog'
+  // Método para cargar estadísticas (mantener para compatibilidad)
+  async cargarEstadisticasCompletas() {
+    await this.cargarEstadisticasTotales();
+  }
+
+  // Método para importar localidades desde GeoJSON
+  async abrirCargaMasiva() {
+    const dialogRef = this.dialog.open(ConfirmacionImportacionDialog, {
+      width: '500px',
+      disableClose: false
     });
 
-    dialogRef.afterClosed().subscribe(async (recargar: boolean) => {
-      if (recargar) {
-        this.snackBar.open('Centros poblados importados exitosamente', 'Cerrar', {
-          duration: 3000,
+    const confirmar = await dialogRef.afterClosed().toPromise();
+    if (!confirmar) return;
+
+    try {
+      this.snackBar.open('⏳ Importando localidades...', '', {
+        duration: 0,
+        horizontalPosition: 'end',
+        verticalPosition: 'top',
+        panelClass: ['info-snackbar']
+      });
+
+      // 1. Importar localidades (puntos para rutas)
+      const responseLocalidades: any = await this.http.post(
+        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
+        {},
+        { params: { modo: 'ambos', test: 'false' } }
+      ).toPromise();
+
+      // 2. Importar geometrías (polígonos para mapas)
+      const responseGeometrias: any = await this.http.post(
+        'http://localhost:8000/api/v1/geometrias/importar-desde-geojson',
+        {},
+        { params: { modo: 'ambos' } }
+      ).toPromise();
+
+      this.snackBar.dismiss();
+
+      // Combinar resultados
+      const resultadoCombinado = {
+        localidades: responseLocalidades,
+        geometrias: responseGeometrias,
+        total_importados: responseLocalidades.total_importados + responseGeometrias.total_importados,
+        total_actualizados: responseLocalidades.total_actualizados + responseGeometrias.total_actualizados,
+        detalle: responseLocalidades.detalle
+      };
+
+      // Mostrar resultado en un diálogo bonito
+      this.dialog.open(ResultadoImportacionDialog, {
+        width: '600px',
+        data: resultadoCombinado
+      });
+
+      // Recargar datos
+      await this.cargarLocalidades();
+      await this.cargarEstadisticasCompletas();
+
+    } catch (error: any) {
+      this.snackBar.dismiss();
+      console.error('Error en importación:', error);
+      
+      this.snackBar.open(
+        '❌ Error al importar: ' + (error.error?.detail || error.message || 'Error desconocido'),
+        'Cerrar',
+        {
+          duration: 5000,
           horizontalPosition: 'end',
           verticalPosition: 'top',
-          panelClass: ['success-snackbar']
-        });
-        await this.cargarLocalidades();
-      }
-    });
+          panelClass: ['error-snackbar']
+        }
+      );
+    }
   }
 
   // Método para toggle de filtros
@@ -156,12 +210,11 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     return this.columnasDisponibles.find(c => c.key === key)?.visible || false;
   }
 
-  // Métodos para filtrar desde las tarjetas de estadísticas
+  // Método para filtrar desde las tarjetas de estadísticas
   async filtrarPorTipo(tipo: string) {
     // Si ya está filtrado por este tipo, limpiar solo ese filtro y recargar
     if (this.filtrosService.tipo === tipo) {
       this.filtrosService.setTipo('');
-      // Recargar sin centros poblados
       await this.cargarLocalidades();
       return;
     }
@@ -172,14 +225,9 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     // Si es CENTRO_POBLADO, mostrar mensaje y recargar
     if (tipo === 'CENTRO_POBLADO') {
       this.mostrarMensaje('Cargando centros poblados... Esto puede tardar unos segundos', 'info');
-      await this.cargarLocalidades();
     }
-  }
-
-  // Sobrescribir el método del componente base para evitar doble carga
-  override onFiltroTipoChange(valor: string) {
-    // Solo delegar al método filtrarPorTipo
-    this.filtrarPorTipo(valor);
+    
+    await this.cargarLocalidades();
   }
 
   async filtrarPorOtros() {
@@ -191,6 +239,26 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
 
     // Aplicar filtro de OTROS
     this.filtrosService.setDepartamento('OTROS');
+  }
+
+  async filtrarPorAliases() {
+    // Los aliases ya están en el cache expandido, solo filtrar
+    this.cargando.set(true);
+    try {
+      // Usar el cache que ya tiene los aliases expandidos
+      const todasLasLocalidades = this.localidadService.getLocalidadesCache();
+      
+      // Filtrar solo aliases
+      const aliases = todasLasLocalidades.filter(l => l.metadata?.es_alias);
+      this.localidades.set(aliases);
+      this.dataSource.data = aliases;
+      this.mostrarMensaje(`Mostrando ${aliases.length} aliases`, 'info');
+    } catch (error) {
+      console.error('Error cargando aliases:', error);
+      this.mostrarMensaje('Error cargando aliases', 'error');
+    } finally {
+      this.cargando.set(false);
+    }
   }
 
   // Método auxiliar para obtener la etiqueta del filtro activo
@@ -283,7 +351,7 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
     return Array.from(provincias).sort();
   }
 
-  // Métodos específicos del componente (si los hay)
+  // Métodos específicos del componente
   async guardarLocalidad(datosLocalidad: LocalidadCreate | LocalidadUpdate) {
     try {
       if (this.esEdicion()) {
@@ -335,15 +403,37 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
   // Método para actualizar coordenadas desde el mapa
   async actualizarCoordenadas(coordenadas: {latitud: number, longitud: number}) {
     const localidad = this.localidadMapa();
-    if (!localidad) return;
+    if (!localidad || !localidad.id) {
+      console.error('❌ No hay localidad seleccionada o no tiene ID');
+      return;
+    }
 
     try {
-      console.log('💾 Actualizando coordenadas en BD:', coordenadas);
-
-      // Actualizar en el backend
-      await this.localidadService.actualizarLocalidad(localidad.id, {
+      console.log('💾 Actualizando coordenadas en BD:', {
+        localidadId: localidad.id,
+        localidadNombre: localidad.nombre,
         coordenadas: coordenadas
       });
+
+      // Preparar el objeto de actualización
+      const updateData: LocalidadUpdate = {
+        coordenadas: {
+          latitud: coordenadas.latitud,
+          longitud: coordenadas.longitud,
+          esPersonalizada: true,
+          fechaModificacion: new Date().toISOString(),
+          fuenteOriginal: localidad.coordenadas?.fuenteOriginal || 'INEI',
+          latitudOriginal: localidad.coordenadas?.latitudOriginal || localidad.coordenadas?.latitud,
+          longitudOriginal: localidad.coordenadas?.longitudOriginal || localidad.coordenadas?.longitud
+        }
+      };
+
+      console.log('📤 Enviando actualización:', updateData);
+
+      // Actualizar en el backend
+      const resultado = await this.localidadService.actualizarLocalidad(localidad.id, updateData);
+
+      console.log('📥 Respuesta del backend:', resultado);
 
       // Actualizar en la lista local
       const index = this.localidades().findIndex(l => l.id === localidad.id);
@@ -351,15 +441,329 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
         const localidadesActualizadas = [...this.localidades()];
         localidadesActualizadas[index] = {
           ...localidadesActualizadas[index],
-          coordenadas: coordenadas
+          coordenadas: updateData.coordenadas
         };
         this.localidades.set(localidadesActualizadas);
+        console.log('✅ Lista local actualizada');
       }
 
-      console.log('✅ Coordenadas actualizadas en BD');
-    } catch (error) {
+      // Actualizar la localidad en el mapa también
+      if (this.localidadMapa()) {
+        this.localidadMapa.set({
+          ...this.localidadMapa()!,
+          coordenadas: updateData.coordenadas
+        });
+        console.log('✅ Localidad del mapa actualizada');
+      }
+
+      console.log('✅ Coordenadas actualizadas exitosamente en BD');
+      alert('Coordenadas actualizadas correctamente');
+    } catch (error: any) {
       console.error('❌ Error actualizando coordenadas:', error);
-      alert('Error al guardar las coordenadas. Por favor intente nuevamente.');
+      console.error('❌ Detalles del error:', {
+        message: error?.message,
+        status: error?.status,
+        error: error?.error
+      });
+      alert(`Error al guardar las coordenadas: ${error?.message || 'Error desconocido'}`);
     }
   }
+
+  // Métodos para identificar alias
+  esAlias(localidad: Localidad): boolean {
+    return !!(localidad.metadata?.es_alias);
+  }
+
+  getNombreOriginal(localidad: Localidad): string {
+    return localidad.metadata?.['localidad_nombre'] || 'localidad principal';
+  }
+
+  // Verificar si una localidad es un alias para deshabilitar acciones
+  esAliasParaEditar(localidad: Localidad): boolean {
+    return this.esAlias(localidad);
+  }
+}
+
+
+// ============================================
+// DIÁLOGOS DE IMPORTACIÓN
+// ============================================
+
+@Component({
+  selector: 'confirmacion-importacion-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon>cloud_upload</mat-icon>
+      Importar Localidades desde GeoJSON
+    </h2>
+    <mat-dialog-content>
+      <p>¿Deseas importar/actualizar todas las localidades desde los archivos GeoJSON?</p>
+      
+      <div class="info-box">
+        <h3>Esto incluye:</h3>
+        <ul>
+          <li><mat-icon>location_city</mat-icon> 13 Provincias</li>
+          <li><mat-icon>map</mat-icon> 110 Distritos</li>
+          <li><mat-icon>home</mat-icon> 9,372 Centros Poblados</li>
+        </ul>
+      </div>
+
+      <p class="warning">
+        <mat-icon>info</mat-icon>
+        El proceso puede tardar unos segundos.
+      </p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button [mat-dialog-close]="false">Cancelar</button>
+      <button mat-raised-button color="primary" [mat-dialog-close]="true">
+        <mat-icon>check</mat-icon>
+        Confirmar
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+    }
+
+    mat-dialog-content {
+      padding: 20px 24px;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 0;
+          font-size: 14px;
+
+          mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            color: #1976d2;
+          }
+        }
+      }
+    }
+
+    .warning {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f57c00;
+      font-size: 13px;
+      margin: 16px 0 0 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    mat-dialog-actions {
+      padding: 16px 24px;
+      gap: 8px;
+    }
+  `]
+})
+export class ConfirmacionImportacionDialog {}
+
+@Component({
+  selector: 'resultado-importacion-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  template: `
+    <h2 mat-dialog-title>
+      <mat-icon class="success">check_circle</mat-icon>
+      Importación Completada
+    </h2>
+    <mat-dialog-content>
+      <div class="resultado-grid">
+        <div class="resultado-item success">
+          <mat-icon>add_circle</mat-icon>
+          <div class="resultado-info">
+            <div class="numero">{{ data.total_importados }}</div>
+            <div class="label">Importados</div>
+          </div>
+        </div>
+
+        <div class="resultado-item info">
+          <mat-icon>update</mat-icon>
+          <div class="resultado-info">
+            <div class="numero">{{ data.total_actualizados }}</div>
+            <div class="label">Actualizados</div>
+          </div>
+        </div>
+
+        <div class="resultado-item warning">
+          <mat-icon>skip_next</mat-icon>
+          <div class="resultado-info">
+            <div class="numero">{{ data.total_omitidos }}</div>
+            <div class="label">Omitidos</div>
+          </div>
+        </div>
+
+        <div class="resultado-item error" *ngIf="data.total_errores > 0">
+          <mat-icon>error</mat-icon>
+          <div class="resultado-info">
+            <div class="numero">{{ data.total_errores }}</div>
+            <div class="label">Errores</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detalle" *ngIf="data.detalle">
+        <h3>Detalle por tipo:</h3>
+        <div class="detalle-item">
+          <strong>Provincias:</strong> 
+          {{ data.detalle.provincias.importados }} nuevas, 
+          {{ data.detalle.provincias.actualizados }} actualizadas
+        </div>
+        <div class="detalle-item">
+          <strong>Distritos:</strong> 
+          {{ data.detalle.distritos.importados }} nuevos, 
+          {{ data.detalle.distritos.actualizados }} actualizados
+        </div>
+        <div class="detalle-item">
+          <strong>Centros Poblados:</strong> 
+          {{ data.detalle.centros_poblados.importados }} nuevos, 
+          {{ data.detalle.centros_poblados.actualizados }} actualizados
+        </div>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-raised-button color="primary" mat-dialog-close>
+        <mat-icon>done</mat-icon>
+        Aceptar
+      </button>
+    </mat-dialog-actions>
+  `,
+  styles: [`
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+
+      mat-icon.success {
+        color: #4caf50;
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    mat-dialog-content {
+      padding: 20px 24px;
+      min-width: 400px;
+    }
+
+    .resultado-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .resultado-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #f5f5f5;
+
+      &.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
+      &.info {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+
+      &.warning {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+
+      &.error {
+        background: #ffebee;
+        color: #c62828;
+      }
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+
+      .resultado-info {
+        .numero {
+          font-size: 24px;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        .label {
+          font-size: 12px;
+          opacity: 0.8;
+          margin-top: 4px;
+        }
+      }
+    }
+
+    .detalle {
+      background: #f5f5f5;
+      padding: 16px;
+      border-radius: 8px;
+
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .detalle-item {
+        font-size: 13px;
+        padding: 4px 0;
+        
+        strong {
+          color: #1976d2;
+        }
+      }
+    }
+
+    mat-dialog-actions {
+      padding: 16px 24px;
+    }
+  `]
+})
+export class ResultadoImportacionDialog {
+  constructor(@Inject(MAT_DIALOG_DATA) public data: any) {}
 }

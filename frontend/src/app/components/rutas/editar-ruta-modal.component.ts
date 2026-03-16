@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule, MatDialog } from '@angular/material/dialog';
@@ -12,6 +12,7 @@ import { RutaService } from '../../services/ruta.service';
 import { Ruta, RutaUpdate } from '../../models/ruta.model';
 import { Localidad } from '../../models/localidad.model';
 import { BuscarLocalidadDialogComponent } from '../../shared/buscar-localidad-dialog.component';
+import { environment } from '../../../environments/environment';
 
 export interface EditarRutaModalData {
   ruta: Ruta;
@@ -39,7 +40,7 @@ export interface EditarRutaModalData {
         <div class="campo-seleccion">
           <label>Origen *</label>
           <div class="seleccion-display" [class.has-value]="origenSeleccionado" [class.error]="!origenSeleccionado">
-            <span *ngIf="origenSeleccionado" class="value">{{ origenSeleccionado.nombre }}</span>
+            <span *ngIf="origenSeleccionado" class="value">{{ getNombreDisplay(origenSeleccionado) }}</span>
             <span *ngIf="!origenSeleccionado" class="placeholder">Seleccionar origen...</span>
             <button mat-icon-button type="button" (click)="buscarOrigen()">
               <mat-icon>search</mat-icon>
@@ -50,7 +51,7 @@ export interface EditarRutaModalData {
         <div class="campo-seleccion">
           <label>Destino *</label>
           <div class="seleccion-display" [class.has-value]="destinoSeleccionado" [class.error]="!destinoSeleccionado">
-            <span *ngIf="destinoSeleccionado" class="value">{{ destinoSeleccionado.nombre }}</span>
+            <span *ngIf="destinoSeleccionado" class="value">{{ getNombreDisplay(destinoSeleccionado) }}</span>
             <span *ngIf="!destinoSeleccionado" class="placeholder">Seleccionar destino...</span>
             <button mat-icon-button type="button" (click)="buscarDestino()">
               <mat-icon>search</mat-icon>
@@ -220,6 +221,7 @@ export class EditarRutaModalComponent implements OnInit {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private dialogRef: MatDialogRef<EditarRutaModalComponent>,
+    private cdr: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: EditarRutaModalData
   ) {
     this.form = this.fb.group({
@@ -242,6 +244,9 @@ export class EditarRutaModalComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Cargar alias de las localidades si existen
+    this.cargarAliasLocalidades();
+    
     // Configurar listeners para actualización automática de la descripción de frecuencia
     this.form.get('cantidadFrecuencia')?.valueChanges.subscribe(() => {
       this.actualizarDescripcionFrecuencia();
@@ -250,6 +255,42 @@ export class EditarRutaModalComponent implements OnInit {
     this.form.get('diasSemana')?.valueChanges.subscribe(() => {
       this.actualizarDescripcionFrecuencia();
     });
+  }
+
+  private async cargarAliasLocalidades() {
+    if (this.origenSeleccionado?.id) {
+      try {
+        const response = await fetch(`${environment.apiUrl}/localidades/${this.origenSeleccionado.id}`, {
+          cache: 'no-cache'
+        });
+        if (response.ok) {
+          const localidad = await response.json();
+          if (localidad.metadata?.alias) {
+            this.origenSeleccionado.metadata = localidad.metadata;
+            this.cdr.detectChanges();
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando alias de origen:', error);
+      }
+    }
+    
+    if (this.destinoSeleccionado?.id) {
+      try {
+        const response = await fetch(`${environment.apiUrl}/localidades/${this.destinoSeleccionado.id}`, {
+          cache: 'no-cache'
+        });
+        if (response.ok) {
+          const localidad = await response.json();
+          if (localidad.metadata?.alias) {
+            this.destinoSeleccionado.metadata = localidad.metadata;
+            this.cdr.detectChanges();
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando alias de destino:', error);
+      }
+    }
   }
 
   onTipoFrecuenciaChange() {
@@ -332,6 +373,10 @@ export class EditarRutaModalComponent implements OnInit {
     }
   }
 
+  getNombreDisplay(localidad: Localidad): string {
+    return localidad.metadata?.['alias'] || localidad.nombre;
+  }
+
   valido(): boolean {
     const formValido = this.form.valid;
     const localidadesSeleccionadas = !!this.origenSeleccionado && !!this.destinoSeleccionado;
@@ -344,8 +389,28 @@ export class EditarRutaModalComponent implements OnInit {
     if (!this.valido()) return;
 
     const update: RutaUpdate = {
-      origen: { id: this.origenSeleccionado!.id, nombre: this.origenSeleccionado!.nombre },
-      destino: { id: this.destinoSeleccionado!.id, nombre: this.destinoSeleccionado!.nombre },
+      origen: {
+        id: this.origenSeleccionado!.id,
+        nombre: this.origenSeleccionado!.nombre,
+        tipo: this.origenSeleccionado!.tipo,
+        ubigeo: this.origenSeleccionado!.ubigeo,
+        departamento: this.origenSeleccionado!.departamento,
+        provincia: this.origenSeleccionado!.provincia,
+        distrito: this.origenSeleccionado!.distrito,
+        coordenadas: this.origenSeleccionado!.coordenadas,
+        metadata: this.origenSeleccionado!.metadata
+      },
+      destino: {
+        id: this.destinoSeleccionado!.id,
+        nombre: this.destinoSeleccionado!.nombre,
+        tipo: this.destinoSeleccionado!.tipo,
+        ubigeo: this.destinoSeleccionado!.ubigeo,
+        departamento: this.destinoSeleccionado!.departamento,
+        provincia: this.destinoSeleccionado!.provincia,
+        distrito: this.destinoSeleccionado!.distrito,
+        coordenadas: this.destinoSeleccionado!.coordenadas,
+        metadata: this.destinoSeleccionado!.metadata
+      },
       frecuencia: {
         tipo: this.form.value.tipoFrecuencia || 'DIARIO',
         cantidad: this.form.value.cantidadFrecuencia || 1,

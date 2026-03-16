@@ -1,14 +1,17 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, Input, Output, EventEmitter, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, Input, Output, EventEmitter, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { FormsModule } from '@angular/forms';
 
 import * as L from 'leaflet';
 import { Localidad, TipoLocalidad, NivelTerritorial } from '../../models/localidad.model';
+import { GeometriaService } from '../../services/geometria.service';
 
 // Fix para iconos de Leaflet en Angular
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -23,11 +26,13 @@ L.Icon.Default.mergeOptions({
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatCheckboxModule
   ],
   template: `
     <mat-card class="mapa-card">
@@ -41,12 +46,6 @@ L.Icon.Default.mergeOptions({
                   (click)="centrarEnPuno()" 
                   matTooltip="Centrar en Puno">
             <mat-icon>my_location</mat-icon>
-          </button>
-          
-          <button mat-icon-button 
-                  (click)="toggleCapas()" 
-                  matTooltip="Alternar capas">
-            <mat-icon>layers</mat-icon>
           </button>
           
           <button mat-icon-button 
@@ -64,24 +63,45 @@ L.Icon.Default.mergeOptions({
           <p>Cargando mapa...</p>
         </div>
         
+        <!-- Panel de Capas (lado izquierdo) -->
+        <div class="capas-panel">
+          <div class="capas-header">
+            <mat-icon>layers</mat-icon>
+            <span>Capas</span>
+          </div>
+          
+          <div class="capas-grupo">
+            <div class="grupo-titulo">Polígonos</div>
+            <mat-checkbox [(ngModel)]="capas.provincias" (change)="toggleCapaProvincias()">
+              Provincias
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="capas.distritos" (change)="toggleCapaDistritos()">
+              Distritos
+            </mat-checkbox>
+          </div>
+          
+          <div class="capas-grupo">
+            <div class="grupo-titulo">Puntos de Referencia</div>
+            <mat-checkbox [(ngModel)]="capas.puntosProvincias" (change)="togglePuntosProvincias()">
+              Provincias
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="capas.puntosDistritos" (change)="togglePuntosDistritos()">
+              Distritos
+            </mat-checkbox>
+          </div>
+          
+          <div class="capas-grupo">
+            <div class="grupo-titulo">Centros Poblados</div>
+            <mat-checkbox [(ngModel)]="capas.centrosPoblados" (change)="toggleCentrosPoblados()">
+              Mostrar
+            </mat-checkbox>
+          </div>
+        </div>
+        
         <!-- Mapa -->
         <div #mapaContainer 
              class="mapa-container" 
              [class.loading]="cargandoMapa()">
-        </div>
-        
-        <!-- Leyenda -->
-        <div class="leyenda-container" *ngIf="mostrarLeyenda">
-          <div class="leyenda-titulo">
-            <mat-icon>info</mat-icon>
-            Leyenda
-          </div>
-          <div class="leyenda-items">
-            <div class="leyenda-item" *ngFor="let item of leyendaItems()">
-              <div class="marcador-ejemplo" [style.background-color]="item.color"></div>
-              <span>{{ item.label }} ({{ item.count }})</span>
-            </div>
-          </div>
         </div>
         
         <!-- Estadísticas -->
@@ -113,6 +133,23 @@ export class MapaLocalidadesComponent implements OnInit, OnDestroy {
   // Estado del mapa
   private mapa!: L.Map;
   private marcadores: L.LayerGroup = new L.LayerGroup();
+  private geometriaService = inject(GeometriaService);
+  
+  // Layers de geometrías
+  private layerProvincias?: L.GeoJSON;
+  private layerDistritos?: L.GeoJSON;
+  private layerPuntosProvincias?: L.GeoJSON;
+  private layerPuntosDistritos?: L.GeoJSON;
+  private layerCentrosPoblados?: L.GeoJSON;
+  
+  // Estado de capas
+  capas = {
+    provincias: true,
+    distritos: false,
+    puntosProvincias: false,
+    puntosDistritos: false,
+    centrosPoblados: false
+  };
   
   // Signals
   cargandoMapa = signal(true);
@@ -203,6 +240,11 @@ export class MapaLocalidadesComponent implements OnInit, OnDestroy {
 
       this.cargandoMapa.set(false);
       this.mapaListo.emit();
+      
+      // Cargar capa de provincias por defecto
+      if (this.capas.provincias) {
+        this.cargarCapaProvincias();
+      }
       
       // Cargar localidades si ya están disponibles
       if (this.localidades().length > 0) {
@@ -372,5 +414,175 @@ export class MapaLocalidadesComponent implements OnInit, OnDestroy {
     this.filtrosActivos.set(filtros);
     // Aquí se puede implementar lógica para mostrar/ocultar marcadores según filtros
     this.actualizarMarcadores();
+  }
+
+  // ============================================
+  // MÉTODOS PARA CAPAS DE GEOMETRÍAS
+  // ============================================
+
+  toggleCapaProvincias() {
+    if (this.capas.provincias) {
+      this.cargarCapaProvincias();
+    } else {
+      this.removerCapa(this.layerProvincias);
+      this.layerProvincias = undefined;
+    }
+  }
+
+  toggleCapaDistritos() {
+    if (this.capas.distritos) {
+      this.cargarCapaDistritos();
+    } else {
+      this.removerCapa(this.layerDistritos);
+      this.layerDistritos = undefined;
+    }
+  }
+
+  togglePuntosProvincias() {
+    if (this.capas.puntosProvincias) {
+      this.cargarPuntosProvincias();
+    } else {
+      this.removerCapa(this.layerPuntosProvincias);
+      this.layerPuntosProvincias = undefined;
+    }
+  }
+
+  togglePuntosDistritos() {
+    if (this.capas.puntosDistritos) {
+      this.cargarPuntosDistritos();
+    } else {
+      this.removerCapa(this.layerPuntosDistritos);
+      this.layerPuntosDistritos = undefined;
+    }
+  }
+
+  toggleCentrosPoblados() {
+    if (this.capas.centrosPoblados) {
+      this.cargarCentrosPoblados();
+    } else {
+      this.removerCapa(this.layerCentrosPoblados);
+      this.layerCentrosPoblados = undefined;
+    }
+  }
+
+  private cargarCapaProvincias() {
+    this.geometriaService.obtenerGeometriasGeoJSON({ tipo: 'PROVINCIA', departamento: 'PUNO' })
+      .subscribe({
+        next: (geojson) => {
+          this.removerCapa(this.layerProvincias);
+          this.layerProvincias = L.geoJSON(geojson as any, {
+            style: { color: '#388e3c', weight: 2, fillOpacity: 0.1 },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>${feature.properties.nombre}</b><br>Provincia`);
+            }
+          }).addTo(this.mapa);
+        },
+        error: (err) => console.error('Error cargando provincias:', err)
+      });
+  }
+
+  private cargarCapaDistritos() {
+    this.geometriaService.obtenerGeometriasGeoJSON({ tipo: 'DISTRITO', departamento: 'PUNO' })
+      .subscribe({
+        next: (geojson) => {
+          this.removerCapa(this.layerDistritos);
+          this.layerDistritos = L.geoJSON(geojson as any, {
+            style: { color: '#f57c00', weight: 1, fillOpacity: 0.05 },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>${feature.properties.nombre}</b><br>Distrito de ${feature.properties.provincia}`);
+            }
+          }).addTo(this.mapa);
+        },
+        error: (err) => console.error('Error cargando distritos:', err)
+      });
+  }
+
+  private cargarPuntosProvincias() {
+    this.geometriaService.obtenerLocalidadesGeoJSON({ tipo: 'PROVINCIA', departamento: 'PUNO' })
+      .subscribe({
+        next: (geojson) => {
+          this.removerCapa(this.layerPuntosProvincias);
+          this.layerPuntosProvincias = L.geoJSON(geojson as any, {
+            pointToLayer: (feature, latlng) => {
+              return L.circleMarker(latlng, {
+                radius: 8,
+                fillColor: '#388e3c',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+              });
+            },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>${feature.properties.nombre}</b><br>Capital de Provincia`);
+            }
+          }).addTo(this.mapa);
+        },
+        error: (err) => console.error('Error cargando puntos de provincias:', err)
+      });
+  }
+
+  private cargarPuntosDistritos() {
+    this.geometriaService.obtenerLocalidadesGeoJSON({ tipo: 'DISTRITO', departamento: 'PUNO' })
+      .subscribe({
+        next: (geojson) => {
+          this.removerCapa(this.layerPuntosDistritos);
+          this.layerPuntosDistritos = L.geoJSON(geojson as any, {
+            pointToLayer: (feature, latlng) => {
+              return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: '#f57c00',
+                color: '#fff',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.7
+              });
+            },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(`<b>${feature.properties.nombre}</b><br>Capital de Distrito`);
+            }
+          }).addTo(this.mapa);
+        },
+        error: (err) => console.error('Error cargando puntos de distritos:', err)
+      });
+  }
+
+  private cargarCentrosPoblados() {
+    // Cargar todos los centros poblados de Puno (limitado a 5000 para rendimiento)
+    this.geometriaService.obtenerLocalidadesGeoJSON({ 
+      tipo: 'CENTRO_POBLADO', 
+      departamento: 'PUNO' 
+    }).subscribe({
+      next: (geojson) => {
+        this.removerCapa(this.layerCentrosPoblados);
+        this.layerCentrosPoblados = L.geoJSON(geojson as any, {
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 4,
+              fillColor: '#d32f2f',
+              color: '#fff',
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.6
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            layer.bindPopup(`
+              <b>${props.nombre}</b><br>
+              ${props.distrito ? `Distrito: ${props.distrito}<br>` : ''}
+              ${props.poblacion ? `Población: ${props.poblacion}` : ''}
+            `);
+          }
+        }).addTo(this.mapa);
+      },
+      error: (err) => console.error('Error cargando centros poblados:', err)
+    });
+  }
+
+  private removerCapa(layer?: L.GeoJSON) {
+    if (layer && this.mapa) {
+      this.mapa.removeLayer(layer);
+    }
   }
 }

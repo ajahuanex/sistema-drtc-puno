@@ -1286,3 +1286,44 @@
     background-color: #f7fafc !important;
   }
 }
+
+
+// Badge para alias
+.alias-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  background: #ff9800;
+  color: white;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+  
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// Estilos para filas de alias
+.fila-alias {
+  background-color: #fff8e1 !important;
+  
+  .mat-mdc-cell {
+    color: #9e9e9e !important;
+    font-style: italic;
+  }
+  
+  .nombre-principal {
+    color: #ff9800 !important;
+    font-weight: 500 !important;
+  }
+  
+  .alias-badge {
+    background: #ff9800 !important;
+  }
+}

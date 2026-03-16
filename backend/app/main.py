@@ -16,6 +16,9 @@ from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_rou
 from app.routers.nivel_territorial_router import router as nivel_territorial_router
 from app.routers.infraestructura import router as infraestructura_router
 from app.routers.localidades_alias_router import router as localidades_alias_router
+from app.routers.normalizar_ubigeos import router as normalizar_ubigeos_router
+from app.routers.importar_geojson import router as importar_geojson_router
+from app.routers.localidades_import_geojson import router as localidades_import_geojson_router
 from app.api.endpoints.localidades_geojson import router as localidades_geojson_router
 from app.routers.geometrias import router as geometrias_router
 from app.dependencies.db import lifespan
@@ -107,6 +110,9 @@ app.include_router(oficinas_router, prefix=settings.API_V1_STR)
 app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
 app.include_router(localidades_router, prefix=settings.API_V1_STR)
 app.include_router(localidades_alias_router, prefix=settings.API_V1_STR)
+app.include_router(localidades_import_geojson_router, prefix=settings.API_V1_STR, tags=["Localidades Import"])
+app.include_router(normalizar_ubigeos_router, prefix=settings.API_V1_STR)
+app.include_router(importar_geojson_router, prefix=settings.API_V1_STR)
 app.include_router(localidades_geojson_router, prefix=settings.API_V1_STR + "/localidades", tags=["Localidades GeoJSON"])
 app.include_router(geometrias_router, prefix=settings.API_V1_STR)
 app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)

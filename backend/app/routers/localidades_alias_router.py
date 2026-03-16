@@ -146,3 +146,62 @@ async def delete_alias(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@router.post("/actualizar-ids-antiguos")
+async def actualizar_ids_antiguos(db = Depends(get_database)):
+    """
+    Actualizar los localidad_id de los alias en la colección localidades_alias
+    """
+    try:
+        alias_collection = db.localidades_alias
+        localidades_collection = db.localidades
+        
+        # Obtener todos los alias
+        alias_docs = await alias_collection.find({}).to_list(length=None)
+        
+        actualizados = 0
+        eliminados = 0
+        errores = 0
+        detalles = []
+        
+        for alias_doc in alias_docs:
+            localidad_nombre = alias_doc.get("localidad_nombre")
+            if not localidad_nombre:
+                errores += 1
+                detalles.append(f"Error: Alias '{alias_doc.get('alias')}' sin localidad_nombre")
+                continue
+            
+            # Buscar la localidad principal por nombre
+            localidad_principal = await localidades_collection.find_one({
+                "nombre": localidad_nombre
+            })
+            
+            if localidad_principal:
+                nuevo_id = str(localidad_principal["_id"])
+                id_actual = alias_doc.get("localidad_id")
+                
+                if nuevo_id != id_actual:
+                    await alias_collection.update_one(
+                        {"_id": alias_doc["_id"]},
+                        {"$set": {"localidad_id": nuevo_id}}
+                    )
+                    actualizados += 1
+                    detalles.append(f"Actualizado: {alias_doc.get('alias')} -> {localidad_nombre}")
+            else:
+                # Eliminar alias huérfano
+                await alias_collection.delete_one({"_id": alias_doc["_id"]})
+                eliminados += 1
+                detalles.append(f"Eliminado: Alias '{alias_doc.get('alias')}' (localidad '{localidad_nombre}' no existe)")
+        
+        return {
+            "total_procesados": len(alias_docs),
+            "actualizados": actualizados,
+            "eliminados": eliminados,
+            "errores": errores,
+            "detalles": detalles[:50]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

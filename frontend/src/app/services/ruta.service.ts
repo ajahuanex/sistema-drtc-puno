@@ -35,26 +35,17 @@ export class RutaService {
     return this.http.get<any[]>(url, { headers: this.getHeaders() })
       .pipe(
         switchMap(rutasRaw => {
-          console.log('✅ RUTAS RECIBIDAS DEL BACKEND:', rutasRaw.length);
-          console.log('🔍 URL CONSULTADA:', url);
-          console.log('📊 PRIMERAS 3 RUTAS:', rutasRaw.slice(0, 3).map(r => ({ id: r.id, codigo: r.codigoRuta })));
-          
-          // Obtener todos los RUCs únicos que necesitan normalización usando el método de utilidad
           const rucsParaNormalizar = this.obtenerRucsParaNormalizar(rutasRaw);
 
           if (rucsParaNormalizar.size === 0) {
-            // No hay RUCs para normalizar, procesar directamente
             return of(rutasRaw.map(ruta => this.transformRutaData(ruta)));
           }
 
-          // Obtener información de empresas por RUC
-          console.log('🔍 NORMALIZANDO EMPRESAS PARA RUCs:', Array.from(rucsParaNormalizar));
-          
           const empresasRequests = Array.from(rucsParaNormalizar).map(ruc => 
             this.empresaService.validarRuc(ruc).pipe(
               map(response => response.empresa || null),
               catchError(error => {
-                console.warn(`⚠️ No se pudo obtener empresa para RUC ${ruc}:`, error);
+                console.warn(`No se pudo obtener empresa para RUC ${ruc}:`, error);
                 return of(null);
               })
             )
@@ -62,7 +53,6 @@ export class RutaService {
 
           return forkJoin(empresasRequests).pipe(
             map(empresas => {
-              // Crear mapa de RUC -> Empresa
               const empresasPorRuc = new Map<string, any>();
               empresas.forEach((empresa, index) => {
                 if (empresa) {
@@ -71,15 +61,13 @@ export class RutaService {
                 }
               });
 
-              // Transformar rutas con empresas normalizadas
               const rutasTransformadas = rutasRaw.map(ruta => this.transformRutaDataConEmpresas(ruta, empresasPorRuc));
-              console.log('✅ RUTAS TRANSFORMADAS FINALES:', rutasTransformadas.length);
               return rutasTransformadas;
             })
           );
         }),
         catchError(error => {
-          console.error('❌ ERROR AL OBTENER RUTAS DEL BACKEND:', error);
+          console.error('ERROR AL OBTENER RUTAS DEL BACKEND:', error);
           return of([]);
         })
       );
@@ -91,7 +79,7 @@ export class RutaService {
     return this.http.get<Ruta>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('Error obteniendo ruta::', error);
+          console.error('Error obteniendo ruta:', error);
           return throwError(() => new Error('Ruta no encontrada'));
         })
       );
@@ -99,12 +87,11 @@ export class RutaService {
 
   createRuta(ruta: RutaCreate): Observable<Ruta> {
     const url = `${this.apiUrl}/rutas/`;
-    // console.log removed for production
     
     return this.http.post<Ruta>(url, ruta, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error creating ruta::', error);
+          console.error('Error creating ruta:', error);
           return throwError(() => error);
         })
       );
@@ -112,12 +99,11 @@ export class RutaService {
 
   updateRuta(id: string, ruta: RutaUpdate): Observable<Ruta> {
     const url = `${this.apiUrl}/rutas/${id}`;
-    // console.log removed for production
     
     return this.http.put<Ruta>(url, ruta, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error updating ruta::', error);
+          console.error('Error updating ruta:', error);
           return throwError(() => error);
         })
       );
@@ -125,23 +111,20 @@ export class RutaService {
 
   deleteRuta(id: string): Observable<void> {
     const url = `${this.apiUrl}/rutas/${id}`;
-    // console.log removed for production
     
     return this.http.delete<void>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error deleting ruta::', error);
+          console.error('Error deleting ruta:', error);
           return throwError(() => error);
         })
       );
   }
 
   private transformRutaData(ruta: any): Ruta {
-    // Extraer origen y destino primero
     const origen = this.extractLocalidad(ruta, 'origen');
     const destino = this.extractLocalidad(ruta, 'destino');
     
-    // Generar nombre como "ORIGEN - DESTINO"
     const nombreGenerado = origen && destino 
       ? `${origen.nombre} - ${destino.nombre}`
       : (ruta.nombre || '');
@@ -150,21 +133,11 @@ export class RutaService {
       id: ruta.id || ruta._id || '',
       codigoRuta: ruta.codigoRuta || ruta.codigo_ruta || '',
       nombre: nombreGenerado,
-      
-      // Localidades
       origen: origen,
       destino: destino,
-      
-      // Itinerario - transformado correctamente
       itinerario: this.extractItinerario(ruta.itinerario || ruta.paradas || []),
-      
-      // Empresa
       empresa: this.extractEmpresa(ruta),
-      
-      // Resolución
       resolucion: this.extractResolucion(ruta),
-      
-      // Datos operativos - simplificados
       frecuencia: ruta.frecuencia || {
         tipo: 'DIARIO',
         cantidad: 1,
@@ -174,36 +147,26 @@ export class RutaService {
       tipoRuta: ruta.tipoRuta || ruta.tipo_ruta || 'INTERPROVINCIAL',
       tipoServicio: ruta.tipoServicio || ruta.tipo_servicio || 'PASAJEROS',
       estado: ruta.estado || 'ACTIVA',
-      
-      // Datos técnicos
       distancia: ruta.distancia || 0,
       tiempoEstimado: ruta.tiempoEstimado || ruta.tiempo_estimado || '',
       tarifaBase: ruta.tarifaBase || ruta.tarifa_base || 0,
       capacidadMaxima: ruta.capacidadMaxima || ruta.capacidad_maxima || 0,
-      
-      // Datos adicionales
       horarios: ruta.horarios || [],
       restricciones: ruta.restricciones || [],
       observaciones: ruta.observaciones || '',
       descripcion: ruta.descripcion || '',
-      
-      // Control de estado
       estaActivo: ruta.estaActivo !== undefined ? ruta.estaActivo : (ruta.esta_activo !== undefined ? ruta.esta_activo : true),
       fechaRegistro: ruta.fechaRegistro ? new Date(ruta.fechaRegistro) : (ruta.fecha_registro ? new Date(ruta.fecha_registro) : new Date()),
       fechaActualizacion: ruta.fechaActualizacion ? new Date(ruta.fechaActualizacion) : (ruta.fecha_actualizacion ? new Date(ruta.fecha_actualizacion) : undefined)
     };
   }
 
-  /**
-   * Extrae y normaliza el itinerario de una ruta
-   */
   private extractItinerario(itinerario: any[]): any[] {
     if (!itinerario || !Array.isArray(itinerario)) {
       return [];
     }
 
     return itinerario.map((parada, index) => {
-      // Si la parada es un objeto con localidad embebida
       if (parada && typeof parada === 'object') {
         const localidad = parada.localidad || parada;
         
@@ -215,11 +178,11 @@ export class RutaService {
           departamento: localidad.departamento || undefined,
           provincia: localidad.provincia || undefined,
           distrito: localidad.distrito || undefined,
+          coordenadas: localidad.coordenadas || undefined,
           orden: parada.orden !== undefined ? parada.orden : index
         };
       }
       
-      // Si la parada es solo un string (ID o nombre)
       return {
         id: '',
         nombre: parada || 'Sin nombre',
@@ -228,18 +191,13 @@ export class RutaService {
     });
   }
 
-  /**
-   * Transforma datos de ruta con empresas normalizadas
-   */
   private transformRutaDataConEmpresas(ruta: any, empresasPorRuc: Map<string, any>): Ruta {
     const rutaBase = this.transformRutaData(ruta);
     
-    // Si ya tiene empresa completa, no hacer nada
     if (ruta.empresa && typeof ruta.empresa === 'object') {
       return rutaBase;
     }
     
-    // Buscar empresa normalizada por RUC
     const rucOriginal = ruta.ruc || ruta.empresa_ruc || ruta.empresaRuc;
     if (rucOriginal) {
       const rucNormalizado = this.normalizarRuc(rucOriginal);
@@ -247,7 +205,6 @@ export class RutaService {
       if (empresasPorRuc.has(rucNormalizado)) {
         const empresaNormalizada = empresasPorRuc.get(rucNormalizado);
         
-        // Normalizar la estructura de razonSocial
         let razonSocial;
         if (empresaNormalizada.razonSocial) {
           if (typeof empresaNormalizada.razonSocial === 'object') {
@@ -264,10 +221,6 @@ export class RutaService {
           ruc: empresaNormalizada.ruc,
           razonSocial: razonSocial
         };
-        
-        console.log('✅ EMPRESA NORMALIZADA:', rucOriginal, '→', rucNormalizado, '→', razonSocial.principal);
-      } else {
-        console.warn(`⚠️ No se encontró empresa para RUC: ${rucOriginal} (normalizado: ${rucNormalizado})`);
       }
     }
     
@@ -284,7 +237,8 @@ export class RutaService {
         ubigeo: localidad.ubigeo || undefined,
         departamento: localidad.departamento || undefined,
         provincia: localidad.provincia || undefined,
-        distrito: localidad.distrito || undefined
+        distrito: localidad.distrito || undefined,
+        coordenadas: localidad.coordenadas || undefined
       };
     }
     
@@ -298,13 +252,13 @@ export class RutaService {
       ubigeo: ruta[`${tipo}Ubigeo`] || ruta[`${tipo}_ubigeo`] || undefined,
       departamento: ruta[`${tipo}Departamento`] || ruta[`${tipo}_departamento`] || undefined,
       provincia: ruta[`${tipo}Provincia`] || ruta[`${tipo}_provincia`] || undefined,
-      distrito: ruta[`${tipo}Distrito`] || ruta[`${tipo}_distrito`] || undefined
+      distrito: ruta[`${tipo}Distrito`] || ruta[`${tipo}_distrito`] || undefined,
+      coordenadas: ruta[`${tipo}Coordenadas`] || ruta[`${tipo}_coordenadas`] || undefined
     };
   }
 
   private extractEmpresa(ruta: any): any {
     if (ruta.empresa && typeof ruta.empresa === 'object') {
-      // Normalizar la estructura de razonSocial
       let razonSocial;
       if (ruta.empresa.razonSocial) {
         if (typeof ruta.empresa.razonSocial === 'object') {
@@ -362,13 +316,6 @@ export class RutaService {
     };
   }
 
-  // ========================================
-  // MÉTODOS DE CARGA MASIVA
-  // ========================================
-
-  /**
-   * Descarga la plantilla Excel para carga masiva de rutas
-   */
   async descargarPlantillaCargaMasiva(): Promise<Blob> {
     const url = `${this.apiUrl}/rutas/carga-masiva/plantilla`;
     
@@ -381,52 +328,31 @@ export class RutaService {
       if (!blob) throw new Error('No se pudo descargar la plantilla');
       return blob;
     } catch (error) {
-      console.error('Error descargando plantilla de rutas::', error);
+      console.error('Error descargando plantilla de rutas:', error);
       throw new Error('Error al descargar la plantilla');
     }
   }
 
-  /**
-   * Valida un archivo Excel de carga masiva de rutas
-   * @param archivo - Archivo Excel a validar
-   * @returns Resultado de la validación con estadísticas y errores
-   */
   async validarCargaMasiva(archivo: File): Promise<any> {
-    // console.log removed for production
     return await this.validarCargaMasivaBasica(archivo);
   }
 
-  /**
-   * Procesa un archivo Excel de carga masiva de rutas
-   * @param archivo - Archivo Excel a procesar
-   * @param opciones - Opciones de procesamiento (validación, modo, lotes, etc.)
-   * @returns Resultado del procesamiento con rutas creadas y errores
-   * 
-   * NOTA: Las localidades no encontradas en la base de datos principal
-   * se crearán automáticamente con tipo y nivel "OTROS"
-   */
   async procesarCargaMasiva(archivo: File, opciones: {
     soloValidar?: boolean;
-    modo?: 'crear' | 'actualizar' | 'upsert';  // ✅ NUEVO
+    modo?: 'crear' | 'actualizar' | 'upsert';
     procesarEnLotes?: boolean;
     tamanoLote?: number;
   } = {}): Promise<any> {
-    const { soloValidar = false, modo = 'upsert' } = opciones;  // ✅ Por defecto upsert
+    const { soloValidar = false, modo = 'upsert' } = opciones;
     
     if (soloValidar) {
       return await this.validarCargaMasiva(archivo);
     }
 
-    const resultado = await this.procesarCargaMasivaBasico(archivo, false, modo);  // ✅ Pasar modo
+    const resultado = await this.procesarCargaMasivaBasico(archivo, false, modo);
     
-    // Después del procesamiento, forzar normalización de todas las rutas
     if (resultado && resultado.rutas_creadas) {
-      console.log('🔄 INICIANDO NORMALIZACIÓN POST-PROCESAMIENTO...');
-      
-      // Esperar un momento para que las rutas se guarden completamente
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Forzar normalización de todas las rutas recién creadas
       await this.forzarNormalizacionCompleta(resultado.rutas_creadas);
     }
     
@@ -442,7 +368,6 @@ export class RutaService {
     formData.append('validar_localidades', 'true');
     formData.append('normalizar_codigos', 'true');
     formData.append('normalizar_empresas', 'true');
-    // Parámetro para crear localidades no encontradas como tipo "OTROS"
     formData.append('localidades_no_encontradas_como_otros', 'true');
 
     const headers = new HttpHeaders({
@@ -451,9 +376,7 @@ export class RutaService {
 
     const resultado = await this.http.post(url, formData, { headers }).toPromise();
     
-    // Si hay rutas válidas en la validación, intentar normalizar los RUCs
     if (resultado && (resultado as any).validacion && (resultado as any).validacion.rutas_validas) {
-      console.log('🔍 VALIDANDO NORMALIZACIÓN DE RUCs EN VALIDACIÓN...');
       await this.validarNormalizacionRucs((resultado as any).validacion.rutas_validas);
     }
     
@@ -469,7 +392,6 @@ export class RutaService {
     formData.append('validar_localidades', 'true');
     formData.append('normalizar_codigos', 'true');
     formData.append('normalizar_empresas', 'true');
-    // Parámetro para crear localidades no encontradas como tipo "OTROS"
     formData.append('localidades_no_encontradas_como_otros', 'true');
     formData.append('modo_seguro', 'true');
     
@@ -477,7 +399,7 @@ export class RutaService {
     if (soloValidar) {
       params.append('solo_validar', 'true');
     }
-    params.append('modo', modo);  // ✅ NUEVO: Agregar modo
+    params.append('modo', modo);
 
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.authService.getToken()}`
@@ -487,25 +409,16 @@ export class RutaService {
 
     const resultado = await this.http.post(finalUrl, formData, { headers }).toPromise();
     
-    // Si no es solo validación y hay rutas creadas, normalizar los RUCs
     if (!soloValidar && resultado && (resultado as any).rutas_creadas) {
-      console.log('🔍 NORMALIZANDO RUCs DE RUTAS CREADAS...');
       await this.normalizarRucsRutasCreadas((resultado as any).rutas_creadas);
     }
     
     return resultado;
   }
 
-  // ========================================
-  // MÉTODOS DE BÚSQUEDA DE LOCALIDADES
-  // ========================================
-
   buscarLocalidadesParaRutas(nombre: string, limite: number = 10): Observable<any[]> {
-    // console.log removed for production
-    
     return from(this.localidadService.buscarLocalidades(nombre, limite)).pipe(
       map(localidades => {
-        // console.log removed for production
         return localidades.map(loc => ({
           id: loc.id,
           nombre: loc.nombre,
@@ -516,18 +429,15 @@ export class RutaService {
         }));
       }),
       catchError(error => {
-        console.error('❌ Error buscando localidades para rutas::', error);
+        console.error('Error buscando localidades para rutas:', error);
         return of([]);
       })
     );
   }
 
   obtenerLocalidadesPopulares(limite: number = 20): Observable<any[]> {
-    // console.log removed for production
-    
     return from(this.localidadService.obtenerLocalidades()).pipe(
       map(localidades => {
-        // console.log removed for production
         return localidades
           .filter(loc => loc.esta_activa)
           .slice(0, limite)
@@ -541,15 +451,11 @@ export class RutaService {
           }));
       }),
       catchError(error => {
-        console.error('❌ Error obteniendo localidades populares::', error);
+        console.error('Error obteniendo localidades populares:', error);
         return of([]);
       })
     );
   }
-
-  // ========================================
-  // MÉTODOS ADICIONALES
-  // ========================================
 
   async eliminarTodasLasRutas(): Promise<any> {
     const url = `${this.apiUrl}/rutas/`;
@@ -559,38 +465,30 @@ export class RutaService {
     });
 
     try {
-      // console.log removed for production
-      
       const resultado = await this.http.delete(`${url}?confirmar=true`, { headers }).toPromise();
-      
-      // console.log removed for production
       return resultado;
     } catch (error: any) {
-      console.error('❌ Error eliminando todas las rutas::', error);
+      console.error('Error eliminando todas las rutas:', error);
       throw error;
     }
   }
 
   getSiguienteCodigoDisponible(resolucionId: string): Observable<string> {
-    // console.log removed for production
     const url = `${this.apiUrl}/rutas/siguiente-codigo/${resolucionId}`;
     
     return this.http.get<{codigo: string}>(url, { headers: this.getHeaders() })
       .pipe(
         map(response => {
-          // console.log removed for production
           return response.codigo;
         }),
         catchError(error => {
-          console.error('❌ Error obteniendo siguiente código, usando fallback::', error);
+          console.error('Error obteniendo siguiente código, usando fallback:', error);
           return of('01');
         })
       );
   }
 
   validarCodigoRutaUnico(resolucionId: string, codigoRuta: string, rutaIdExcluir?: string): Observable<boolean> {
-    // console.log removed for production
-
     const url = `${this.apiUrl}/rutas/validar-codigo-unico`;
     const body = {
       resolucionId,
@@ -601,25 +499,22 @@ export class RutaService {
     return this.http.post<{esUnico: boolean}>(url, body, { headers: this.getHeaders() })
       .pipe(
         map(response => {
-          // console.log removed for production
-
           return response.esUnico;
         }),
         catchError(error => {
-          console.error('❌ Error validando código único::', error);
+          console.error('Error validando código único:', error);
           return of(true);
         })
       );
   }
 
   getRutasPorEmpresa(empresaId: string): Observable<Ruta[]> {
-    // console.log removed for production
     const url = `${this.apiUrl}/empresas/${empresaId}/rutas`;
     
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error obteniendo rutas por empresa::', error);
+          console.error('Error obteniendo rutas por empresa:', error);
           return of([]);
         })
       );
@@ -628,31 +523,24 @@ export class RutaService {
   getRutasPorResolucion(resolucionId: string): Observable<Ruta[]> {
     const url = `${this.apiUrl}/resoluciones/${resolucionId}/rutas`;
     
-    console.log('🔍 [RUTA-SERVICE] Obteniendo rutas de resolución:', resolucionId);
-    console.log('🔍 [RUTA-SERVICE] URL:', url);
-    
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
         map(rutas => {
-          console.log('✅ [RUTA-SERVICE] Rutas recibidas de resolución:', rutas.length);
-          console.log('📋 [RUTA-SERVICE] Códigos:', rutas.map(r => r.codigoRuta));
           return rutas;
         }),
         catchError(error => {
-          console.error('❌ [RUTA-SERVICE] Error obteniendo rutas por resolución:', error);
+          console.error('Error obteniendo rutas por resolución:', error);
           return of([]);
         })
       );
   }
 
   getRutasPorEmpresaYResolucion(empresaId: string, resolucionId: string): Observable<Ruta[]> {
-    // console.log removed for production
-    
     const url = `${this.apiUrl}/rutas/empresa/${empresaId}/resolucion/${resolucionId}`;
     return this.http.get<Ruta[]>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error obteniendo rutas por empresa y resolución::', error);
+          console.error('Error obteniendo rutas por empresa y resolución:', error);
           return of([]);
         })
       );
@@ -664,7 +552,7 @@ export class RutaService {
     return this.http.get<any>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error obteniendo resoluciones primigenias::', error);
+          console.error('Error obteniendo resoluciones primigenias:', error);
           return of([]);
         })
       );
@@ -676,31 +564,56 @@ export class RutaService {
     return this.http.get<any>(url, { headers: this.getHeaders() })
       .pipe(
         catchError(error => {
-          console.error('❌ Error obteniendo todas las resoluciones primigenias::', error);
+          console.error('Error obteniendo todas las resoluciones primigenias:', error);
           return of([]);
         })
       );
   }
 
-  // ========================================
-  // MÉTODOS DE UTILIDAD PARA NORMALIZACIÓN DE RUC
-  // ========================================
+  verificarCoordenadasRutas(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/verificar-coordenadas`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error verificando coordenadas de rutas:', error);
+          return of(null);
+        })
+      );
+  }
 
-  /**
-   * Normaliza un RUC eliminando espacios y caracteres especiales
-   */
+  sincronizarLocalidades(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/sincronizar-localidades`;
+    
+    return this.http.post<any>(url, {}, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error sincronizando localidades:', error);
+          return of(null);
+        })
+      );
+  }
+
+  verificarSincronizacionLocalidades(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/verificar-sincronizacion`;
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error verificando sincronización:', error);
+          return of(null);
+        })
+      );
+  }
+
   private normalizarRuc(ruc: string): string {
     if (!ruc || ruc === 'Sin RUC') {
       return 'Sin RUC';
     }
     
-    // Eliminar espacios, guiones y otros caracteres especiales
     return ruc.replace(/[\s\-\.]/g, '').trim();
   }
 
-  /**
-   * Valida si un RUC tiene el formato correcto (11 dígitos)
-   */
   private validarFormatoRuc(ruc: string): boolean {
     if (!ruc || ruc === 'Sin RUC') {
       return false;
@@ -710,9 +623,6 @@ export class RutaService {
     return /^\d{11}$/.test(rucNormalizado);
   }
 
-  /**
-   * Obtiene todos los RUCs únicos de un array de rutas que necesitan normalización
-   */
   private obtenerRucsParaNormalizar(rutas: any[]): Set<string> {
     const rucsParaNormalizar = new Set<string>();
     
@@ -724,8 +634,6 @@ export class RutaService {
         
         if (this.validarFormatoRuc(rucNormalizado)) {
           rucsParaNormalizar.add(rucNormalizado);
-        } else {
-          console.warn(`⚠️ RUC con formato inválido encontrado: ${ruc}`);
         }
       }
     });
@@ -733,9 +641,6 @@ export class RutaService {
     return rucsParaNormalizar;
   }
 
-  /**
-   * Método público para validar y normalizar un RUC
-   */
   validarYNormalizarRuc(ruc: string): { valido: boolean; rucNormalizado: string; mensaje?: string } {
     if (!ruc || ruc.trim() === '') {
       return {
@@ -761,119 +666,93 @@ export class RutaService {
     };
   }
 
-  /**
-   * Normaliza los RUCs de las rutas recién creadas en carga masiva
-   */
   private async normalizarRucsRutasCreadas(rutasCreadas: any[]): Promise<void> {
     if (!rutasCreadas || rutasCreadas.length === 0) {
       return;
     }
 
-    console.log(`🔍 INICIANDO NORMALIZACIÓN DE ${rutasCreadas.length} RUTAS CREADAS`);
-
-    // Obtener los IDs de las rutas creadas
     const idsRutas = rutasCreadas.map(ruta => ruta.id).filter(id => id);
     
     if (idsRutas.length === 0) {
-      console.warn('⚠️ No se encontraron IDs válidos en las rutas creadas');
       return;
     }
 
     try {
-      // Obtener las rutas completas del backend
       const rutasCompletas = await Promise.all(
         idsRutas.map(id => this.getRutaById(id).toPromise().catch(error => {
-          console.warn(`⚠️ No se pudo obtener la ruta ${id}:`, error);
+          console.warn(`No se pudo obtener la ruta ${id}:`, error);
           return null;
         }))
       );
 
-      // Filtrar rutas válidas
       const rutasValidas = rutasCompletas.filter(ruta => ruta !== null);
       
       if (rutasValidas.length === 0) {
-        console.warn('⚠️ No se pudieron obtener rutas válidas para normalizar');
         return;
       }
 
-      // Obtener RUCs únicos que necesitan normalización
       const rucsParaNormalizar = this.obtenerRucsParaNormalizar(rutasValidas);
       
       if (rucsParaNormalizar.size === 0) {
-        console.log('✅ No hay RUCs para normalizar en las rutas creadas');
         return;
       }
 
-      console.log(`🔍 NORMALIZANDO ${rucsParaNormalizar.size} RUCs ÚNICOS:`, Array.from(rucsParaNormalizar));
-
-      // Obtener información de empresas por RUC
-      const empresasRequests = Array.from(rucsParaNormalizar).map(ruc => 
-        this.empresaService.validarRuc(ruc).pipe(
-          map(response => ({ ruc, empresa: response.empresa || null })),
-          catchError(error => {
-            console.warn(`⚠️ No se pudo obtener empresa para RUC ${ruc}:`, error);
-            return of({ ruc, empresa: null });
-          })
-        ).toPromise()
-      );
-
-      const empresasResultados = await Promise.all(empresasRequests);
-      
-      // Crear mapa de RUC -> Empresa
-      const empresasPorRuc = new Map<string, any>();
-      empresasResultados.forEach(resultado => {
-        if (resultado && resultado.empresa) {
-          empresasPorRuc.set(resultado.ruc, resultado.empresa);
-          const empresaNombre = resultado.empresa.razonSocial?.principal || 'Sin razón social';
-          console.log(`✅ EMPRESA ENCONTRADA PARA RUC ${resultado.ruc}:`, empresaNombre);
-        } else if (resultado) {
-          console.warn(`⚠️ NO SE ENCONTRÓ EMPRESA PARA RUC ${resultado.ruc}`);
+      const empresasPromises = Array.from(rucsParaNormalizar).map(async (ruc) => {
+        try {
+          const response = await this.empresaService.validarRuc(ruc).toPromise();
+          return { ruc, empresa: response?.empresa || null };
+        } catch (error) {
+          console.warn(`Error obteniendo empresa para RUC ${ruc}:`, error);
+          return { ruc, empresa: null };
         }
       });
 
-      // Actualizar las rutas con la información de empresa normalizada
+      const empresasResultados = await Promise.all(empresasPromises);
+      
+      const empresasPorRuc = new Map<string, any>();
+      empresasResultados.forEach(resultado => {
+        if (resultado.empresa) {
+          empresasPorRuc.set(resultado.ruc, resultado.empresa);
+        }
+      });
+
+      let rutasActualizadas = 0;
       const actualizacionesPromises = rutasValidas.map(async (ruta) => {
         const rucOriginal = this.extraerRucDeRuta(ruta);
-        if (!rucOriginal) return null;
+        if (!rucOriginal) return false;
 
         const rucNormalizado = this.normalizarRuc(rucOriginal);
         const empresa = empresasPorRuc.get(rucNormalizado);
         
-        if (!empresa) return null;
-
-        // Actualizar la ruta con la información de empresa normalizada
-        const rutaActualizada = {
-          ...ruta,
-          empresa: {
-            id: empresa.id,
-            ruc: empresa.ruc,
-            razonSocial: empresa.razonSocial || { principal: empresa.nombre || 'Sin razón social' }
-          }
-        };
+        if (!empresa) {
+          return false;
+        }
 
         try {
+          const rutaActualizada: any = {
+            empresa: {
+              id: empresa.id,
+              ruc: empresa.ruc,
+              razonSocial: empresa.razonSocial || { principal: empresa.nombre || 'Sin razón social' }
+            }
+          };
+
           await this.updateRuta(ruta!.id, rutaActualizada).toPromise();
-          console.log(`✅ RUTA ${ruta!.codigoRuta} ACTUALIZADA CON EMPRESA:`, empresa.razonSocial?.principal);
-          return rutaActualizada;
+          return true;
         } catch (error) {
-          console.error(`❌ ERROR ACTUALIZANDO RUTA ${ruta!.id}:`, error);
-          return null;
+          console.error(`Error actualizando ruta ${ruta!.id}:`, error);
+          return false;
         }
       });
 
-      const rutasActualizadas = await Promise.all(actualizacionesPromises);
-      const exitosas = rutasActualizadas.filter(ruta => ruta !== null).length;
-      
-      console.log(`✅ NORMALIZACIÓN COMPLETADA: ${exitosas}/${rutasValidas.length} rutas actualizadas`);
+      const resultados = await Promise.all(actualizacionesPromises);
+      rutasActualizadas = resultados.filter(resultado => resultado === true).length;
 
     } catch (error) {
-      console.error('❌ ERROR EN NORMALIZACIÓN DE RUCs:', error);
+      console.error('ERROR EN NORMALIZACIÓN DE RUCs:', error);
     }
   }
 
-  /**
-   * Extrae el RUC de una ruta (maneja diferentes formatos)
-   */
   private extraerRucDeRuta(ruta: any): string | null {
     if (ruta.empresa && typeof ruta.empresa === 'object' && ruta.empresa.ruc) {
       return ruta.empresa.ruc;
@@ -882,17 +761,11 @@ export class RutaService {
     return ruta.ruc || ruta.empresa_ruc || ruta.empresaRuc || null;
   }
 
-  /**
-   * Valida la normalización de RUCs durante la validación de carga masiva
-   */
   private async validarNormalizacionRucs(rutasValidas: any[]): Promise<void> {
     if (!rutasValidas || rutasValidas.length === 0) {
       return;
     }
 
-    console.log(`🔍 VALIDANDO NORMALIZACIÓN DE ${rutasValidas.length} RUTAS`);
-
-    // Obtener RUCs únicos
     const rucsUnicos = new Set<string>();
     rutasValidas.forEach(ruta => {
       const ruc = ruta.ruc;
@@ -905,25 +778,18 @@ export class RutaService {
     });
 
     if (rucsUnicos.size === 0) {
-      console.log('⚠️ No hay RUCs válidos para validar normalización');
       return;
     }
 
-    console.log(`🔍 VALIDANDO ${rucsUnicos.size} RUCs ÚNICOS:`, Array.from(rucsUnicos));
-
-    // Verificar que cada RUC existe en el módulo de empresas
     const verificacionesPromises = Array.from(rucsUnicos).map(async (ruc) => {
       try {
         const response = await this.empresaService.validarRuc(ruc).toPromise();
         if (response?.empresa) {
-          console.log(`✅ RUC ${ruc} VÁLIDO - Empresa: ${response.empresa.razonSocial?.principal}`);
           return { ruc, valido: true, empresa: response.empresa };
         } else {
-          console.warn(`⚠️ RUC ${ruc} NO ENCONTRADO EN MÓDULO DE EMPRESAS`);
           return { ruc, valido: false, empresa: null };
         }
       } catch (error) {
-        console.error(`❌ ERROR VALIDANDO RUC ${ruc}:`, error);
         return { ruc, valido: false, empresa: null };
       }
     });
@@ -933,42 +799,29 @@ export class RutaService {
     const rucsValidos = verificaciones.filter(v => v.valido).length;
     const rucsInvalidos = verificaciones.filter(v => !v.valido).length;
     
-    console.log(`📊 RESULTADO VALIDACIÓN RUCs: ${rucsValidos} válidos, ${rucsInvalidos} inválidos`);
-    
     if (rucsInvalidos > 0) {
       const rucsNoEncontrados = verificaciones.filter(v => !v.valido).map(v => v.ruc);
-      console.warn('⚠️ RUCs NO ENCONTRADOS EN MÓDULO DE EMPRESAS:', rucsNoEncontrados);
+      console.warn('RUCs NO ENCONTRADOS EN MÓDULO DE EMPRESAS:', rucsNoEncontrados);
     }
   }
 
-  /**
-   * Fuerza la normalización completa de rutas recién creadas
-   */
   private async forzarNormalizacionCompleta(rutasCreadas: any[]): Promise<void> {
     if (!rutasCreadas || rutasCreadas.length === 0) {
-      console.log('⚠️ No hay rutas para normalizar');
       return;
     }
 
-    console.log(`🔄 FORZANDO NORMALIZACIÓN COMPLETA DE ${rutasCreadas.length} RUTAS`);
-
     try {
-      // Obtener todas las rutas del sistema para encontrar las recién creadas
       const todasLasRutas = await this.getRutas().toPromise();
       
       if (!todasLasRutas || todasLasRutas.length === 0) {
-        console.warn('⚠️ No se pudieron obtener las rutas del sistema');
         return;
       }
 
-      // Filtrar las rutas que necesitan normalización (las que no tienen empresa completa)
       const rutasParaNormalizar = todasLasRutas.filter(ruta => {
-        // Verificar si la ruta necesita normalización
         if (!ruta.empresa || typeof ruta.empresa !== 'object') {
           return true;
         }
         
-        // Verificar si la empresa no tiene información completa
         if (!ruta.empresa.id || !ruta.empresa.razonSocial) {
           return true;
         }
@@ -977,13 +830,9 @@ export class RutaService {
       });
 
       if (rutasParaNormalizar.length === 0) {
-        console.log('✅ Todas las rutas ya están normalizadas');
         return;
       }
 
-      console.log(`🔍 ENCONTRADAS ${rutasParaNormalizar.length} RUTAS QUE NECESITAN NORMALIZACIÓN`);
-
-      // Obtener RUCs únicos de las rutas que necesitan normalización
       const rucsParaNormalizar = new Set<string>();
       rutasParaNormalizar.forEach(ruta => {
         const ruc = this.extraerRucDeRuta(ruta);
@@ -996,35 +845,28 @@ export class RutaService {
       });
 
       if (rucsParaNormalizar.size === 0) {
-        console.warn('⚠️ No se encontraron RUCs válidos para normalizar');
         return;
       }
 
-      console.log(`🔍 NORMALIZANDO ${rucsParaNormalizar.size} RUCs ÚNICOS:`, Array.from(rucsParaNormalizar));
-
-      // Obtener información de empresas
       const empresasPromises = Array.from(rucsParaNormalizar).map(async (ruc) => {
         try {
           const response = await this.empresaService.validarRuc(ruc).toPromise();
           return { ruc, empresa: response?.empresa || null };
         } catch (error) {
-          console.warn(`⚠️ Error obteniendo empresa para RUC ${ruc}:`, error);
+          console.warn(`Error obteniendo empresa para RUC ${ruc}:`, error);
           return { ruc, empresa: null };
         }
       });
 
       const empresasResultados = await Promise.all(empresasPromises);
       
-      // Crear mapa de RUC -> Empresa
       const empresasPorRuc = new Map<string, any>();
       empresasResultados.forEach(resultado => {
         if (resultado.empresa) {
           empresasPorRuc.set(resultado.ruc, resultado.empresa);
-          console.log(`✅ EMPRESA ENCONTRADA: RUC ${resultado.ruc} -> ${resultado.empresa.razonSocial?.principal}`);
         }
       });
 
-      // Actualizar rutas con información de empresa
       let rutasActualizadas = 0;
       const actualizacionesPromises = rutasParaNormalizar.map(async (ruta) => {
         const rucOriginal = this.extraerRucDeRuta(ruta);
@@ -1034,12 +876,10 @@ export class RutaService {
         const empresa = empresasPorRuc.get(rucNormalizado);
         
         if (!empresa) {
-          console.warn(`⚠️ No se encontró empresa para RUC ${rucOriginal} (normalizado: ${rucNormalizado})`);
           return false;
         }
 
         try {
-          // Actualizar la ruta con información de empresa
           const rutaActualizada: any = {
             empresa: {
               id: empresa.id,
@@ -1048,11 +888,10 @@ export class RutaService {
             }
           };
 
-          await this.updateRuta(ruta.id, rutaActualizada).toPromise();
-          console.log(`✅ RUTA NORMALIZADA: ${ruta.codigoRuta} -> ${empresa.razonSocial?.principal || empresa.nombre}`);
+          await this.updateRuta(ruta!.id, rutaActualizada).toPromise();
           return true;
         } catch (error) {
-          console.error(`❌ Error actualizando ruta ${ruta.id}:`, error);
+          console.error(`Error actualizando ruta ${ruta!.id}:`, error);
           return false;
         }
       });
@@ -1060,25 +899,8 @@ export class RutaService {
       const resultados = await Promise.all(actualizacionesPromises);
       rutasActualizadas = resultados.filter(resultado => resultado === true).length;
 
-      console.log(`🎉 NORMALIZACIÓN COMPLETA FINALIZADA: ${rutasActualizadas}/${rutasParaNormalizar.length} rutas actualizadas`);
-
     } catch (error) {
-      console.error('❌ ERROR EN NORMALIZACIÓN COMPLETA:', error);
+      console.error('ERROR EN NORMALIZACIÓN COMPLETA:', error);
     }
-  }
-
-  /**
-   * Verificar que todas las rutas tengan coordenadas desde el módulo de localidades
-   */
-  verificarCoordenadasRutas(): Observable<any> {
-    const url = `${this.apiUrl}/rutas/verificar-coordenadas`;
-    
-    return this.http.get<any>(url, { headers: this.getHeaders() })
-      .pipe(
-        catchError(error => {
-          console.error('Error verificando coordenadas de rutas:', error);
-          return throwError(() => new Error('Error al verificar coordenadas'));
-        })
-      );
   }
 }

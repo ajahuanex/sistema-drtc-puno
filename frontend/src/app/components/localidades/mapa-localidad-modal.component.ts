@@ -463,10 +463,11 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
           iconUrl: 'assets/marker-icon.png',
           iconRetinaUrl: 'assets/marker-icon-2x.png',
           shadowUrl: 'assets/marker-shadow.png',
-          iconSize: [35, 55],
-          iconAnchor: [17, 55],
-          popupAnchor: [1, -45],
-          shadowSize: [55, 55]
+          iconSize: [25, 41],        // Tamaño estándar de Leaflet
+          iconAnchor: [12, 41],      // Punto de anclaje en la base del ícono
+          popupAnchor: [1, -34],     // Punto donde aparece el popup
+          shadowSize: [41, 41],      // Tamaño de la sombra
+          shadowAnchor: [12, 41]     // Anclaje de la sombra
         });
 
         const marker = L.marker([
@@ -699,7 +700,6 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
         this.mapa.removeLayer(this.provinciaLayer);
       }
     }
-    this.actualizarPuntosReferencia();
   }
 
   toggleCapaDistritoActual() {
@@ -710,7 +710,6 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
         this.mapa.removeLayer(this.distritoActualLayer);
       }
     }
-    this.actualizarPuntosReferencia();
   }
 
   toggleCapaDistritos() {
@@ -736,7 +735,6 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
         console.log('❌ Capa de distritos ocultada');
       }
     }
-    this.actualizarPuntosReferencia();
   }
 
   toggleCapaCentrosPoblados() {
@@ -765,25 +763,8 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
   }
 
   private actualizarPuntosReferencia() {
-    // Determinar si debemos mostrar puntos de referencia
-    const deberMostrarPuntos = this.mostrarProvincia || this.mostrarDistritoActual || this.mostrarDistritos;
-
-    if (deberMostrarPuntos) {
-      // Cargar puntos si no están cargados
-      if (!this.puntosReferenciaLayer && this.localidad) {
-        const provinciaNombre = this.localidad.provincia || 'PUNO';
-        this.cargarPuntosReferencia(provinciaNombre);
-      } else if (this.puntosReferenciaLayer && this.mapa) {
-        if (!this.mapa.hasLayer(this.puntosReferenciaLayer)) {
-          this.mapa.addLayer(this.puntosReferenciaLayer);
-        }
-      }
-    } else {
-      // Ocultar puntos si no hay capas de polígonos activas
-      if (this.puntosReferenciaLayer && this.mapa && this.mapa.hasLayer(this.puntosReferenciaLayer)) {
-        this.mapa.removeLayer(this.puntosReferenciaLayer);
-      }
-    }
+    // Los puntos de referencia ahora se controlan solo con su checkbox
+    // Este método ya no hace nada automático
   }
 
   private async cargarCentrosPoblados(provinciaNombre: string, distritoNombre: string | undefined) {
@@ -878,6 +859,50 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
 
     this.puntosReferenciaLayer = L.layerGroup();
 
+    // Crear ícono personalizado para provincias (estrella grande)
+    const iconoProvincia = L.divIcon({
+      html: `
+        <div style="
+          width: 24px;
+          height: 24px;
+          background: #388e3c;
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          color: white;
+        ">★</div>
+      `,
+      className: 'punto-referencia-provincia',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+
+    // Crear ícono personalizado para distritos (estrella pequeña)
+    const iconoDistrito = L.divIcon({
+      html: `
+        <div style="
+          width: 18px;
+          height: 18px;
+          background: #1976d2;
+          border: 2px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          color: white;
+        ">★</div>
+      `,
+      className: 'punto-referencia-distrito',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+
     // Cargar puntos de provincias desde el API
     this.geometriaService.obtenerProvinciasPoint('PUNO').subscribe({
       next: (provinciasPointData) => {
@@ -891,25 +916,23 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
         if (provinciaPoint && this.puntosReferenciaLayer) {
           const coords = provinciaPoint.geometry.coordinates;
           const marker = L.marker([coords[1], coords[0]], {
-            icon: L.icon({
-              iconUrl: 'assets/marker-icon.png',
-              iconRetinaUrl: 'assets/marker-icon-2x.png',
-              shadowUrl: 'assets/marker-shadow.png',
-              iconSize: [20, 33],
-              iconAnchor: [10, 33],
-              popupAnchor: [0, -33]
-            })
+            icon: iconoProvincia
           });
           
           const nombre = provinciaPoint.properties.nombre || provinciaPoint.properties['NOMBPROV'];
-          marker.bindPopup(`<strong>${nombre}</strong><br><small>Punto de Referencia - Provincia</small>`);
+          marker.bindPopup(`
+            <div style="text-align: center; padding: 8px;">
+              <strong style="color: #388e3c; font-size: 16px;">★ ${nombre}</strong><br>
+              <small style="color: #666;">Punto de Referencia - Provincia</small>
+            </div>
+          `);
           
           if (this.mostrarEtiquetas) {
             marker.bindTooltip(nombre, {
               permanent: true,
               direction: 'right',
               className: 'label-tooltip',
-              offset: [10, -15]
+              offset: [15, 0]
             });
           }
           
@@ -934,24 +957,24 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
           distritosPointData.features.forEach((distritoPoint: any) => {
             if (this.puntosReferenciaLayer) {
               const coords = distritoPoint.geometry.coordinates;
-              const marker = L.circleMarker([coords[1], coords[0]], {
-                radius: 5,
-                fillColor: '#9c27b0',
-                color: '#6a1b9a',
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.7
+              const marker = L.marker([coords[1], coords[0]], {
+                icon: iconoDistrito
               });
               
               const nombre = distritoPoint.properties.nombre || distritoPoint.properties['NOMBDIST'];
-              marker.bindPopup(`<strong>${nombre}</strong><br><small>Punto de Referencia - Distrito</small>`);
+              marker.bindPopup(`
+                <div style="text-align: center; padding: 8px;">
+                  <strong style="color: #1976d2; font-size: 14px;">★ ${nombre}</strong><br>
+                  <small style="color: #666;">Punto de Referencia - Distrito</small>
+                </div>
+              `);
               
               if (this.mostrarEtiquetas) {
                 marker.bindTooltip(nombre, {
                   permanent: true,
                   direction: 'top',
                   className: 'label-tooltip',
-                  offset: [0, -8]
+                  offset: [0, -12]
                 });
               }
               
@@ -1080,44 +1103,135 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
 
   // Métodos de edición de coordenadas
   iniciarEdicion() {
-    if (!this.localidad?.coordenadas || !this.mapa) return;
+    if (!this.mapa) {
+      console.error('❌ No se puede iniciar edición: falta mapa');
+      return;
+    }
 
     this.modoEdicion = true;
     console.log('🎯 Modo edición activado');
 
-    // Guardar coordenadas actuales como temporales
-    this.coordenadasTemporales = {
-      latitud: this.localidad.coordenadas.latitud,
-      longitud: this.localidad.coordenadas.longitud
-    };
+    // Guardar coordenadas actuales como temporales (si existen)
+    if (this.localidad?.coordenadas) {
+      this.coordenadasTemporales = {
+        latitud: this.localidad.coordenadas.latitud,
+        longitud: this.localidad.coordenadas.longitud
+      };
+    }
 
-    // Hacer el marcador draggable
-    this.mapa.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker && layer.options.draggable === undefined) {
-        layer.setOpacity(0.7);
-        layer.dragging?.enable();
-        this.marcadorEditable = layer;
-        
-        // Agregar clase para animación
-        const icon = layer.getElement();
-        if (icon) {
-          icon.classList.add('marcador-editable');
-        }
-
-        // Evento cuando se mueve el marcador
-        layer.on('dragend', (e: any) => {
-          const latlng = e.target.getLatLng();
-          this.coordenadasTemporales = {
-            latitud: latlng.lat,
-            longitud: latlng.lng
-          };
-          console.log('📍 Nueva posición:', this.coordenadasTemporales);
-        });
-      }
+    // Crear ícono para el marcador editable (rojo para distinguirlo)
+    const editIcon = L.divIcon({
+      html: `
+        <div style="
+          width: 30px;
+          height: 30px;
+          background: #f44336;
+          border: 3px solid white;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            transform: rotate(45deg);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+          ">📍</div>
+        </div>
+      `,
+      className: 'marcador-edicion',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30]
     });
 
-    // Mostrar mensaje
-    alert('Arrastra el marcador azul a la nueva ubicación y luego haz clic en "Guardar"');
+    // Crear marcador editable en la posición actual o centro del mapa
+    const lat = this.localidad?.coordenadas?.latitud || this.mapa.getCenter().lat;
+    const lng = this.localidad?.coordenadas?.longitud || this.mapa.getCenter().lng;
+
+    this.marcadorEditable = L.marker([lat, lng], {
+      icon: editIcon,
+      draggable: false  // No draggable, solo se mueve con clics
+    }).addTo(this.mapa);
+
+    // Popup con instrucciones (pero no lo abrimos automáticamente)
+    this.marcadorEditable.bindPopup(`
+      <div style="text-align: center; padding: 8px;">
+        <strong style="color: #f44336;">Modo Edición</strong><br>
+        <small>Haz clic en el mapa para mover el marcador</small>
+      </div>
+    `);
+
+    // Actualizar coordenadas temporales
+    this.coordenadasTemporales = { latitud: lat, longitud: lng };
+
+    // Remover cualquier listener previo
+    this.mapa.off('click');
+    
+    // Cerrar todos los popups al entrar en modo edición
+    this.mapa.closePopup();
+    
+    // Deshabilitar popups de todas las capas durante la edición
+    this.mapa.eachLayer((layer: any) => {
+      if (layer.closePopup) {
+        layer.closePopup();
+      }
+      if (layer.unbindPopup) {
+        // Guardar el popup original para restaurarlo después
+        if (!layer._originalPopup && layer.getPopup()) {
+          layer._originalPopup = layer.getPopup();
+          layer.unbindPopup();
+        }
+      }
+    });
+    
+    // Usar getContainer() para capturar clics directamente en el contenedor del mapa
+    // Esto evita que las capas GeoJSON bloqueen el evento
+    const mapaContainer = this.mapa.getContainer();
+    
+    const clickHandler = (e: MouseEvent) => {
+      console.log('🖱️ Clic detectado en contenedor del mapa');
+      
+      if (!this.modoEdicion || !this.marcadorEditable || !this.mapa) {
+        console.warn('⚠️ Modo edición no activo o marcador no existe');
+        return;
+      }
+
+      // Prevenir que el evento se propague a las capas
+      e.stopPropagation();
+      e.preventDefault();
+
+      // Obtener las coordenadas del clic relativas al contenedor del mapa
+      const rect = mapaContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Convertir a coordenadas geográficas
+      const latlng = this.mapa.containerPointToLatLng([x, y]);
+      
+      console.log('📍 Coordenadas calculadas:', { lat: latlng.lat, lng: latlng.lng });
+      
+      // Mover el marcador a la nueva posición
+      this.marcadorEditable.setLatLng(latlng);
+      
+      // Actualizar coordenadas temporales
+      this.coordenadasTemporales = {
+        latitud: latlng.lat,
+        longitud: latlng.lng
+      };
+      
+      console.log('✅ Marcador movido a:', this.coordenadasTemporales);
+    };
+
+    // Guardar referencia al handler para poder removerlo después
+    (this as any)._clickHandler = clickHandler;
+    
+    // Agregar listener al contenedor con capture=true para interceptar antes que las capas
+    mapaContainer.addEventListener('click', clickHandler, true);
+
+    console.log('✅ Modo edición activado - Haz clic en el mapa para posicionar el marcador');
   }
 
   cancelarEdicion() {
@@ -1127,71 +1241,141 @@ export class MapaLocalidadModalComponent implements OnInit, AfterViewInit, OnDes
     this.coordenadasTemporales = null;
     console.log('❌ Edición cancelada');
 
-    // Restaurar marcador
+    // Remover marcador editable
     if (this.marcadorEditable) {
-      this.marcadorEditable.setOpacity(1);
-      this.marcadorEditable.dragging?.disable();
-      
-      const icon = this.marcadorEditable.getElement();
-      if (icon) {
-        icon.classList.remove('marcador-editable');
-      }
-
-      // Volver a posición original
-      if (this.localidad?.coordenadas) {
-        this.marcadorEditable.setLatLng([
-          this.localidad.coordenadas.latitud,
-          this.localidad.coordenadas.longitud
-        ]);
-      }
-
+      this.mapa.removeLayer(this.marcadorEditable);
       this.marcadorEditable = null;
     }
+
+    // Restaurar popups de las capas
+    this.mapa.eachLayer((layer: any) => {
+      if (layer._originalPopup) {
+        layer.bindPopup(layer._originalPopup);
+        delete layer._originalPopup;
+      }
+    });
+
+    // Remover evento de clic del contenedor
+    const mapaContainer = this.mapa.getContainer();
+    const clickHandler = (this as any)._clickHandler;
+    if (clickHandler) {
+      mapaContainer.removeEventListener('click', clickHandler, true);
+      (this as any)._clickHandler = null;
+    }
+
+    // Remover evento de clic del mapa también
+    this.mapa.off('click');
   }
 
   async guardarEdicion() {
-    if (!this.coordenadasTemporales || !this.localidad) return;
-
-    console.log('💾 Guardando nuevas coordenadas:', this.coordenadasTemporales);
-
-    // Guardar coordenadas originales si no existen
-    if (!this.localidad.coordenadas?.esPersonalizada) {
-      this.localidad.coordenadas = {
-        ...this.localidad.coordenadas!,
-        latitudOriginal: this.localidad.coordenadas!.latitud,
-        longitudOriginal: this.localidad.coordenadas!.longitud,
-        fuenteOriginal: 'INEI'
-      };
+    if (!this.coordenadasTemporales || !this.localidad) {
+      alert('No hay cambios para guardar');
+      return;
     }
 
-    // Actualizar con nuevas coordenadas
-    this.localidad.coordenadas = {
-      ...this.localidad.coordenadas!,
-      latitud: this.coordenadasTemporales.latitud,
-      longitud: this.coordenadasTemporales.longitud,
-      esPersonalizada: true,
-      fechaModificacion: new Date().toISOString()
-    };
+    console.log('💾 Guardando nuevas coordenadas:', this.coordenadasTemporales);
 
     // Emitir evento para que el componente padre guarde en BD
     this.coordenadasActualizadas.emit(this.coordenadasTemporales);
 
-    // Salir del modo edición
-    this.modoEdicion = false;
-    if (this.marcadorEditable) {
-      this.marcadorEditable.setOpacity(1);
-      this.marcadorEditable.dragging?.disable();
-      
-      const icon = this.marcadorEditable.getElement();
-      if (icon) {
-        icon.classList.remove('marcador-editable');
+    // Actualizar coordenadas de la localidad
+    if (this.localidad.coordenadas) {
+      // Guardar coordenadas originales si no existen
+      if (!this.localidad.coordenadas.esPersonalizada) {
+        this.localidad.coordenadas.latitudOriginal = this.localidad.coordenadas.latitud;
+        this.localidad.coordenadas.longitudOriginal = this.localidad.coordenadas.longitud;
+        this.localidad.coordenadas.fuenteOriginal = 'INEI';
       }
-      
+
+      // Actualizar con nuevas coordenadas
+      this.localidad.coordenadas.latitud = this.coordenadasTemporales.latitud;
+      this.localidad.coordenadas.longitud = this.coordenadasTemporales.longitud;
+      this.localidad.coordenadas.esPersonalizada = true;
+      this.localidad.coordenadas.fechaModificacion = new Date().toISOString();
+    } else {
+      // Crear coordenadas si no existían
+      this.localidad.coordenadas = {
+        latitud: this.coordenadasTemporales.latitud,
+        longitud: this.coordenadasTemporales.longitud,
+        esPersonalizada: true,
+        fechaModificacion: new Date().toISOString()
+      };
+    }
+
+    // Remover marcador editable
+    if (this.marcadorEditable) {
+      this.mapa?.removeLayer(this.marcadorEditable);
       this.marcadorEditable = null;
     }
 
+    // Restaurar popups de las capas
+    if (this.mapa) {
+      this.mapa.eachLayer((layer: any) => {
+        if (layer._originalPopup) {
+          layer.bindPopup(layer._originalPopup);
+          delete layer._originalPopup;
+        }
+      });
+    }
+
+    // Remover evento de clic del contenedor
+    if (this.mapa) {
+      const mapaContainer = this.mapa.getContainer();
+      const clickHandler = (this as any)._clickHandler;
+      if (clickHandler) {
+        mapaContainer.removeEventListener('click', clickHandler, true);
+        (this as any)._clickHandler = null;
+      }
+    }
+
+    // Remover evento de clic del mapa
+    this.mapa?.off('click');
+
+    // Crear nuevo marcador en la posición actualizada
+    if (this.mapa) {
+      const customIcon = L.icon({
+        iconUrl: 'assets/marker-icon.png',
+        iconRetinaUrl: 'assets/marker-icon-2x.png',
+        shadowUrl: 'assets/marker-shadow.png',
+        iconSize: [25, 41],        // Tamaño estándar de Leaflet
+        iconAnchor: [12, 41],      // Punto de anclaje en la base del ícono
+        popupAnchor: [1, -34],     // Punto donde aparece el popup
+        shadowSize: [41, 41],      // Tamaño de la sombra
+        shadowAnchor: [12, 41]     // Anclaje de la sombra
+      });
+
+      const marker = L.marker([
+        this.coordenadasTemporales.latitud,
+        this.coordenadasTemporales.longitud
+      ], { icon: customIcon }).addTo(this.mapa);
+
+      const popupContent = `
+        <div style="padding: 12px;">
+          <strong style="font-size: 18px; color: #667eea;">${this.localidad.nombre}</strong><br>
+          <small style="color: #666;">
+            ${this.localidad.distrito ? `Distrito: ${this.localidad.distrito}<br>` : ''}
+            ${this.localidad.provincia ? `Provincia: ${this.localidad.provincia}<br>` : ''}
+            ${this.localidad.ubigeo ? `UBIGEO: ${this.localidad.ubigeo}` : ''}
+          </small>
+          <div style="margin-top: 8px; padding: 4px; background: #fff3cd; border-radius: 4px;">
+            <small style="color: #856404;">
+              <strong>✏️ Coordenadas personalizadas</strong>
+            </small>
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent).openPopup();
+
+      // Centrar mapa en la nueva posición
+      this.mapa.setView([this.coordenadasTemporales.latitud, this.coordenadasTemporales.longitud], this.mapa.getZoom());
+    }
+
+    // Salir del modo edición
+    this.modoEdicion = false;
+    this.coordenadasTemporales = null;
+
     console.log('✅ Coordenadas guardadas');
-    alert('Coordenadas actualizadas correctamente. Las coordenadas originales del INEI se mantienen guardadas.');
   }
 
   async restaurarOriginal() {

@@ -49,7 +49,7 @@ class LocalidadBase(BaseModel):
     tipo: TipoLocalidad = Field(TipoLocalidad.PUEBLO, description="Tipo de localidad que define su nivel territorial")
     
     # TODOS LOS DEMÁS CAMPOS SON OPCIONALES (con valores por defecto PUNO)
-    ubigeo: Optional[str] = Field(None, max_length=6, description="Código UBIGEO de 6 dígitos")
+    ubigeo: Optional[str] = Field(None, max_length=10, description="Código identificador según tipo: IDPROV (4), UBIGEO (6), IDCCPP (10)")
     departamento: Optional[str] = Field("PUNO", max_length=50, description="Departamento")
     provincia: Optional[str] = Field("PUNO", max_length=50, description="Provincia")
     distrito: Optional[str] = Field("PUNO", max_length=50, description="Distrito")
@@ -62,6 +62,9 @@ class LocalidadBase(BaseModel):
     tipo_area: Optional[str] = Field(None, max_length=20, description="Tipo de área: Rural o Urbano")
     poblacion: Optional[int] = Field(None, ge=0, description="Población total del centro poblado")
     altitud: Optional[int] = Field(None, description="Altitud en metros sobre el nivel del mar")
+    
+    # METADATA ADICIONAL (alias, etc.)
+    metadata: Optional[dict] = Field(None, description="Metadata adicional como alias, nombre oficial, etc.")
 
     def get_nivel_territorial(self) -> str:
         """Obtiene el nivel territorial basado en el tipo"""
@@ -82,7 +85,7 @@ class LocalidadCreate(LocalidadBase):
 class LocalidadUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=2, max_length=100)
     tipo: Optional[TipoLocalidad] = None
-    ubigeo: Optional[str] = Field(None, max_length=6)
+    ubigeo: Optional[str] = Field(None, max_length=10)
     departamento: Optional[str] = Field(None, max_length=50)
     provincia: Optional[str] = Field(None, max_length=50)
     distrito: Optional[str] = Field(None, max_length=50)
@@ -95,6 +98,7 @@ class LocalidadUpdate(BaseModel):
     tipo_area: Optional[str] = Field(None, max_length=20)
     poblacion: Optional[int] = Field(None, ge=0)
     altitud: Optional[int] = None
+    metadata: Optional[dict] = None
 
 class Localidad(LocalidadBase):
     id: str = Field(..., description="ID único de la localidad")
@@ -139,7 +143,7 @@ class FiltroLocalidades(BaseModel):
     estaActiva: Optional[bool] = None
 
 class ValidacionUbigeo(BaseModel):
-    ubigeo: str = Field(..., min_length=6, max_length=6)
+    ubigeo: str = Field(..., min_length=4, max_length=10, description="IDPROV (4), UBIGEO (6) o IDCCPP (10)")
     idExcluir: Optional[str] = None
 
 class RespuestaValidacionUbigeo(BaseModel):

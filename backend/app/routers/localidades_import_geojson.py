@@ -12,6 +12,31 @@ from app.models.localidad import TipoLocalidad
 
 router = APIRouter()
 
+@router.delete("/eliminar-todas")
+async def eliminar_todas_localidades() -> Dict[str, Any]:
+    """
+    Elimina TODAS las localidades de la base de datos
+    ⚠️ CUIDADO: Esta operación no se puede deshacer
+    """
+    db = await get_database()
+    localidades_collection = db.localidades
+    geometrias_collection = db.geometrias
+    
+    try:
+        # Eliminar todas las localidades
+        result_localidades = await localidades_collection.delete_many({})
+        
+        # Eliminar todas las geometrías
+        result_geometrias = await geometrias_collection.delete_many({})
+        
+        return {
+            "mensaje": "Todas las localidades y geometrías han sido eliminadas",
+            "localidades_eliminadas": result_localidades.deleted_count,
+            "geometrias_eliminadas": result_geometrias.deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error eliminando localidades: {str(e)}")
+
 # Rutas a los archivos GeoJSON
 FRONTEND_PATH = Path(__file__).parent.parent.parent.parent / "frontend"
 GEOJSON_PATH = FRONTEND_PATH / "src" / "assets" / "geojson"
@@ -74,7 +99,10 @@ async def importar_desde_geojson(
                     coords = feature['geometry']['coordinates']
                     
                     nombre = props.get('NOMBPROV', '').strip()
-                    ubigeo = f"21{props.get('IDPROV', '')}01"
+                    # UBIGEO para provincias: usar IDPROV (4 dígitos) según INEI
+                    ubigeo = props.get('IDPROV', '').strip()
+                    
+                    print(f"DEBUG Provincia: {nombre} - IDPROV: {ubigeo}")
                     
                     if not nombre:
                         continue
@@ -97,17 +125,40 @@ async def importar_desde_geojson(
                         "fechaActualizacion": datetime.utcnow()
                     }
                     
-                    existe_localidad = await localidades_collection.find_one({"ubigeo": ubigeo})
+                    print(f"DEBUG localidad_data ubigeo: {localidad_data['ubigeo']} (tipo: {type(localidad_data['ubigeo'])}, len: {len(localidad_data['ubigeo'])})")
+                    
+                    # Buscar por nombre y tipo para poder corregir ubigeos incorrectos
+                    # Actualizar TODOS los registros que coincidan (eliminar duplicados)
+                    existe_localidad = await localidades_collection.find_one({
+                        "nombre": nombre,
+                        "tipo": TipoLocalidad.PROVINCIA
+                    })
                     
                     if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
-                            await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
-                            resultado["detalle"]["provincias"]["localidades"] += 1
+                            # Actualizar TODOS los registros con este nombre y tipo
+                            result = await localidades_collection.update_many(
+                                {"nombre": nombre, "tipo": TipoLocalidad.PROVINCIA},
+                                {"$set": localidad_data}
+                            )
+                            resultado["detalle"]["provincias"]["localidades"] += result.modified_count
+                            resultado["total_actualizados"] += result.modified_count
+                            
+                            # Si hay duplicados, eliminar todos excepto uno
+                            duplicados = await localidades_collection.find(
+                                {"nombre": nombre, "tipo": TipoLocalidad.PROVINCIA}
+                            ).to_list(length=100)
+                            
+                            if len(duplicados) > 1:
+                                # Mantener solo el primero, eliminar el resto
+                                ids_a_eliminar = [d["_id"] for d in duplicados[1:]]
+                                await localidades_collection.delete_many({"_id": {"$in": ids_a_eliminar}})
                     else:
                         if modo in ["crear", "ambos"]:
                             localidad_data["fechaCreacion"] = datetime.utcnow()
                             await localidades_collection.insert_one(localidad_data)
                             resultado["detalle"]["provincias"]["localidades"] += 1
+                            resultado["total_importados"] += 1
                     
                     # B) Guardar en GEOMETRIAS (para mapas - punto de referencia)
                     geometria_data = {
@@ -155,7 +206,8 @@ async def importar_desde_geojson(
                     
                     nombre = props.get('DISTRITO', '').strip()
                     provincia = props.get('PROVINCIA', '').strip()
-                    ubigeo = props.get('UBIGEO', '')
+                    # UBIGEO para distritos: usar UBIGEO (6 dígitos) según INEI
+                    ubigeo = props.get('UBIGEO', '').strip()
                     capital = props.get('CAPITAL', '').strip()
                     
                     if not nombre or not ubigeo:
@@ -181,17 +233,25 @@ async def importar_desde_geojson(
                         "fechaActualizacion": datetime.utcnow()
                     }
                     
-                    existe_localidad = await localidades_collection.find_one({"ubigeo": ubigeo})
+                    # Buscar por ubigeo o por nombre y tipo para poder corregir ubigeos incorrectos
+                    existe_localidad = await localidades_collection.find_one({
+                        "$or": [
+                            {"ubigeo": ubigeo},
+                            {"nombre": nombre, "tipo": tipo, "distrito": nombre}
+                        ]
+                    })
                     
                     if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
                             await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
                             resultado["detalle"]["distritos"]["localidades"] += 1
+                            resultado["total_actualizados"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
                             localidad_data["fechaCreacion"] = datetime.utcnow()
                             await localidades_collection.insert_one(localidad_data)
                             resultado["detalle"]["distritos"]["localidades"] += 1
+                            resultado["total_importados"] += 1
                     
                     # B) Guardar en GEOMETRIAS (para mapas - punto de referencia)
                     geometria_data = {
@@ -244,7 +304,8 @@ async def importar_desde_geojson(
                     nombre = props.get('NOMB_CCPP', '').strip()
                     provincia = props.get('NOMB_PROVI', 'PUNO').strip()
                     distrito = props.get('NOMB_DISTR', '').strip()
-                    ubigeo = props.get('UBIGEO', '')
+                    # UBIGEO para centros poblados: usar IDCCPP (10 dígitos) según INEI
+                    ubigeo = props.get('IDCCPP', '').strip()
                     poblacion = props.get('POBTOTAL')
                     tipo_area = props.get('TIPO', 'Rural')
                     
@@ -281,11 +342,13 @@ async def importar_desde_geojson(
                         if modo in ["actualizar", "ambos"]:
                             await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
                             resultado["detalle"]["centros_poblados"]["localidades"] += 1
+                            resultado["total_actualizados"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
                             localidad_data["fechaCreacion"] = datetime.utcnow()
                             await localidades_collection.insert_one(localidad_data)
                             resultado["detalle"]["centros_poblados"]["localidades"] += 1
+                            resultado["total_importados"] += 1
                     
                     # B) Guardar en GEOMETRIAS (para mapas - punto)
                     geometria_data = {
@@ -324,9 +387,10 @@ async def importar_desde_geojson(
                     print(f"Error importando centro poblado: {e}")
                     resultado["detalle"]["centros_poblados"]["errores"] += 1
         
-        # Calcular totales
+        # Los totales ya se calculan en cada sección
+        # Solo sumar geometrías y errores
         for categoria in resultado["detalle"].values():
-            resultado["total_importados"] += categoria.get("localidades", 0) + categoria.get("geometrias", 0)
+            resultado["total_importados"] += categoria.get("geometrias", 0)
             resultado["total_errores"] += categoria.get("errores", 0)
         
         return resultado

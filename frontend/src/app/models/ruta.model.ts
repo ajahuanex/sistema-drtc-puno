@@ -13,6 +13,14 @@ export interface LocalidadEmbebida {
     latitud: number;
     longitud: number;
   };
+  // ✅ NUEVO: Metadata flexible para información adicional
+  metadata?: {
+    es_alias?: boolean;
+    nombre_oficial?: string;
+    alias_id?: string;
+    fecha_sincronizacion?: string;
+    [key: string]: any; // Permite agregar cualquier campo futuro
+  };
 }
 
 export interface LocalidadItinerario extends LocalidadEmbebida {

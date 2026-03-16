@@ -63,6 +63,17 @@ class LocalidadAliasService:
         except:
             return None
     
+    async def get_alias_by_localidad_id(self, localidad_id: str) -> Optional[LocalidadAlias]:
+        """Obtener alias por ID de localidad"""
+        try:
+            doc = await self.collection.find_one({
+                "localidad_id": localidad_id,
+                "estaActivo": True
+            })
+            return self._document_to_alias(doc) if doc else None
+        except:
+            return None
+    
     async def get_all_alias(
         self,
         skip: int = 0,

@@ -35,12 +35,49 @@ export class LocalidadService {
   /**
    * MÉTODO ÚNICO: Obtener localidades con cache inteligente
    * Por defecto EXCLUYE centros poblados para mejorar rendimiento
+   * También expande los alias para que aparezcan en la lista
    */
+  /**
+   * Obtener el cache de localidades (para acceso directo sin cargar del servidor)
+   */
+  getLocalidadesCache(): Localidad[] {
+    return this.localidadesCache.value;
+  }
+
+  /**
+   * Obtener TODAS las localidades incluyendo centros poblados y aliases
+   * Para estadísticas y filtros especiales
+   */
+  async obtenerTodasLasLocalidades(): Promise<Localidad[]> {
+    try {
+      // Cargar TODAS las localidades sin filtrar
+      let params = new HttpParams().set('limit', '20000');
+      
+      const localidades = await this.http.get<Localidad[]>(this.apiUrl, { params }).pipe(
+        catchError(error => {
+          console.warn('⚠️ Error cargando todas las localidades:', error);
+          return of([]);
+        })
+      ).toPromise();
+
+      // Expandir aliases
+      const localidadesConAliases = this.expandirAliases(localidades || []);
+      
+      console.log(`✅ Todas las localidades cargadas: ${localidadesConAliases.length} (incluyendo aliases)`);
+      return localidadesConAliases;
+    } catch (error) {
+      console.error('❌ Error obteniendo todas las localidades:', error);
+      return [];
+    }
+  }
+
   async obtenerLocalidades(filtros?: FiltroLocalidades, forzarActualizacion = false): Promise<Localidad[]> {
     try {
       // Si hay filtros específicos, hacer consulta directa
       if (filtros && (filtros.nombre || filtros.tipo || filtros.departamento)) {
-        return await this.consultarLocalidadesConFiltros(filtros);
+        const resultado = await this.consultarLocalidadesConFiltros(filtros);
+        // Expandir alias en resultados con filtros
+        return this.expandirAliases(resultado);
       }
 
       // Para consultas generales, usar cache SIN centros poblados
@@ -48,7 +85,8 @@ export class LocalidadService {
         await this.actualizarCache();
       }
 
-      return this.localidadesCache.value;
+      // Expandir aliases del cache
+      return this.expandirAliases(this.localidadesCache.value);
     } catch (error) {
       console.error('❌ Error obteniendo localidades::', error);
       return [];
@@ -64,14 +102,42 @@ export class LocalidadService {
         return [];
       }
 
-      // Usar el endpoint correcto: GET /localidades?nombre=xxx&limit=10
+      // Usar el endpoint correcto de búsqueda con alias
       const params = new HttpParams()
-        .set('nombre', termino)
-        .set('limit', limite.toString());
+        .set('q', termino)
+        .set('limite', limite.toString());
 
-      const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}`, { params }).toPromise();
+      const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}/buscar`, { params }).toPromise();
       console.log('✅ Resultados de búsqueda:', resultado);
-      return resultado || [];
+      
+      // Expandir resultados: si tiene aliases (plural), crear una entrada por cada alias
+      const resultadosExpandidos: Localidad[] = [];
+      
+      for (const localidad of resultado || []) {
+        // Siempre agregar la versión original
+        resultadosExpandidos.push(localidad);
+        
+        // Si tiene aliases, agregar una versión por cada alias (usando notación de corchetes)
+        if (localidad.metadata?.['aliases'] && Array.isArray(localidad.metadata['aliases'])) {
+          // Necesitamos obtener los IDs de los alias desde el backend
+          // Por ahora, crear las opciones con el alias como nombre
+          for (let i = 0; i < localidad.metadata['aliases'].length; i++) {
+            const alias = localidad.metadata['aliases'][i];
+            const localidadConAlias: Localidad = {
+              ...localidad,
+              nombre: alias,
+              metadata: {
+                ['es_alias']: true,
+                ['alias_usado']: alias  // Temporal, se reemplazará con alias_id al guardar
+              }
+            } as Localidad;
+            
+            resultadosExpandidos.push(localidadConAlias);
+          }
+        }
+      }
+      
+      return resultadosExpandidos;
     } catch (error) {
       console.error('❌ Error buscando localidades:', error);
       return [];
@@ -141,10 +207,13 @@ export class LocalidadService {
         })
       ).toPromise();
 
-      this.localidadesCache.next(localidades || []);
+      // Expandir aliases antes de guardar en cache
+      const localidadesConAliases = this.expandirAliases(localidades || []);
+      
+      this.localidadesCache.next(localidadesConAliases);
       this.cacheActualizado = true;
 
-      console.log(`✅ Cache actualizado: ${localidades?.length || 0} localidades`);
+      console.log(`✅ Cache actualizado: ${localidadesConAliases.length} localidades (incluyendo aliases)`);
     } catch (error) {
       console.error('❌ Error actualizando cache::', error);
       this.localidadesCache.next([]);
@@ -164,7 +233,8 @@ export class LocalidadService {
     if (typeof filtros.esta_activa !== "undefined") params = params.set('esta_activa', filtros.esta_activa.toString());
 
     const resultado = await this.http.get<Localidad[]>(this.apiUrl, { params }).toPromise();
-    return resultado || [];
+    // Expandir aliases en resultados con filtros
+    return this.expandirAliases(resultado || []);
   }
 
   private normalizarTexto(texto: string): string {
@@ -177,6 +247,40 @@ export class LocalidadService {
       .replace(/ñ/g, 'n')
       .replace(/[^a-z0-9\s]/g, '')
       .replace(/\s+/g, ' ');
+  }
+
+  /**
+   * Expande los aliases de localidades creando entradas separadas
+   * Cada alias se convierte en una localidad con metadata.es_alias = true
+   */
+  private expandirAliases(localidades: Localidad[]): Localidad[] {
+    const resultado: Localidad[] = [];
+    
+    for (const localidad of localidades) {
+      // Siempre agregar la versión original
+      resultado.push(localidad);
+      
+      // Si tiene aliases en metadata, crear una entrada por cada alias
+      const aliases = localidad.metadata?.['aliases'] as string[] | undefined;
+      if (aliases && Array.isArray(aliases)) {
+        for (const alias of aliases) {
+          const localidadConAlias: Localidad = {
+            ...localidad,
+            nombre: alias,
+            metadata: {
+              ...localidad.metadata,
+              es_alias: true,
+              alias_usado: alias,
+              localidad_id: localidad.id,
+              localidad_nombre: localidad.nombre
+            }
+          };
+          resultado.push(localidadConAlias);
+        }
+      }
+    }
+    
+    return resultado;
   }
 
   // ========================================
@@ -225,7 +329,7 @@ export class LocalidadService {
     }
   }
 
-  // Métodos específicos mantenidos sin cambios
+  // Métodos específicos mantenidos
   async obtenerLocalidadesPaginadas(pagina: number = 1, limite: number = 10, filtros?: FiltroLocalidades): Promise<LocalidadesPaginadas> {
     let params = new HttpParams()
       .set('pagina', pagina.toString())
@@ -243,23 +347,6 @@ export class LocalidadService {
     return this.http.get<LocalidadesPaginadas>(`${this.apiUrl}/paginadas`, { params }).toPromise() as Promise<LocalidadesPaginadas>;
   }
 
-  async validarUbigeoUnico(ubigeo: string, idExcluir?: string): Promise<RespuestaValidacionUbigeo> {
-    const validacion: ValidacionUbigeo = { ubigeo, idExcluir };
-    return this.http.post<RespuestaValidacionUbigeo>(`${this.apiUrl}/validar-ubigeo`, validacion).toPromise() as Promise<RespuestaValidacionUbigeo>;
-  }
-
-  async operacionesMasivas(operacion: 'activar' | 'desactivar' | 'eliminar', ids: string[]): Promise<any> {
-    let params = new HttpParams().set('operacion', operacion);
-    ids.forEach(id => params = params.append('ids', id));
-
-    const resultado = await this.http.post(`${this.apiUrl}/operaciones-masivas`, null, { params }).toPromise();
-
-    // Actualizar cache después de operaciones masivas
-    await this.actualizarCache();
-
-    return resultado;
-  }
-
   async importarExcel(file: File): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
@@ -270,30 +357,6 @@ export class LocalidadService {
     await this.actualizarCache();
 
     return resultado;
-  }
-
-  async exportarExcel(): Promise<void> {
-    const response = await this.http.get(`${this.apiUrl}/exportar-excel`, {
-      responseType: 'blob'
-    }).toPromise() as Blob;
-
-    const blob = new Blob([response], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    link.download = `localidades_${timestamp}.xlsx`;
-
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
-
-  async calcularDistancia(origenId: string, destinoId: string): Promise<{ distancia: number; unidad: string }> {
-    return this.http.get<{ distancia: number; unidad: string }>(`${this.apiUrl}/${origenId}/distancia/${destinoId}`).toPromise() as Promise<{ distancia: number; unidad: string }>;
   }
 
   /**
@@ -333,21 +396,31 @@ export class LocalidadService {
     return resultado;
   }
 
-  // Métodos de centros poblados mantenidos
-  async importarCentrosPobladosINEI(): Promise<any> {
-    const resultado = await this.http.post(`${this.apiUrl}/importar-centros-poblados-inei`, {
-      departamento: 'PUNO'
-    }).toPromise();
-    await this.actualizarCache();
-    return resultado;
-  }
+  // Métodos de centros poblados consolidados
+  async importarCentrosPoblados(fuente: 'INEI' | 'RENIEC' | 'ARCHIVO' = 'INEI', file?: File): Promise<any> {
+    try {
+      let resultado: any;
 
-  async importarCentrosPobladosRENIEC(): Promise<any> {
-    const resultado = await this.http.post(`${this.apiUrl}/importar-centros-poblados-reniec`, {
-      departamento: 'PUNO'
-    }).toPromise();
-    await this.actualizarCache();
-    return resultado;
+      if (fuente === 'ARCHIVO' && file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('fuente', fuente);
+        formData.append('departamento', 'PUNO');
+        resultado = await this.http.post(`${this.apiUrl}/importar-centros-poblados-archivo`, formData).toPromise();
+      } else {
+        const endpoint = fuente === 'RENIEC' 
+          ? `${this.apiUrl}/importar-centros-poblados-reniec`
+          : `${this.apiUrl}/importar-centros-poblados-inei`;
+        
+        resultado = await this.http.post(endpoint, { departamento: 'PUNO' }).toPromise();
+      }
+
+      await this.actualizarCache();
+      return resultado;
+    } catch (error) {
+      console.error(`Error importando centros poblados (${fuente}):`, error);
+      throw error;
+    }
   }
 
   async obtenerCentrosPobladosPorDistrito(distritoId: string): Promise<Localidad[]> {
@@ -355,18 +428,9 @@ export class LocalidadService {
       const resultado = await this.http.get<Localidad[]>(`${this.apiUrl}/centros-poblados/distrito/${distritoId}`).toPromise();
       return resultado || [];
     } catch (error) {
-      console.error('Error obteniendo centros poblados por distrito::', error);
+      console.error('Error obteniendo centros poblados por distrito:', error);
       return [];
     }
-  }
-
-  async sincronizarConBaseDatosOficial(fuente: 'INEI' | 'RENIEC' | 'MUNICIPALIDAD'): Promise<any> {
-    const resultado = await this.http.post(`${this.apiUrl}/sincronizar-oficial`, {
-      fuente,
-      departamento: 'PUNO'
-    }).toPromise();
-    await this.actualizarCache();
-    return resultado;
   }
 
   async obtenerEstadisticasCentrosPoblados(): Promise<any> {
@@ -380,7 +444,7 @@ export class LocalidadService {
         sinCoordenadas: 0
       };
     } catch (error) {
-      console.error('Error obteniendo estadísticas de centros poblados::', error);
+      console.error('Error obteniendo estadísticas de centros poblados:', error);
       return {
         totalCentrosPoblados: 0,
         porDistrito: [],
@@ -389,28 +453,6 @@ export class LocalidadService {
         sinCoordenadas: 0
       };
     }
-  }
-
-  async validarYLimpiarCentrosPoblados(): Promise<any> {
-    const resultado = await this.http.post<any>(`${this.apiUrl}/validar-limpiar-centros-poblados`, {}).toPromise();
-    await this.actualizarCache();
-    return resultado || {
-      procesados: 0,
-      corregidos: 0,
-      eliminados: 0,
-      errores: []
-    };
-  }
-
-  async importarCentrosPobladosArchivo(file: File, fuente: string): Promise<any> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fuente', fuente);
-    formData.append('departamento', 'PUNO');
-
-    const resultado = await this.http.post(`${this.apiUrl}/importar-centros-poblados-archivo`, formData).toPromise();
-    await this.actualizarCache();
-    return resultado;
   }
 
   // ========================================
@@ -444,55 +486,4 @@ export class LocalidadService {
       cacheActualizado: this.cacheActualizado
     };
   }
-
-  /* DESHABILITADO TEMPORALMENTE - Exportar a Excel
-  async exportarAExcel(filtros?: FiltroLocalidades): Promise<void> {
-    try {
-      let params = new HttpParams();
-      
-      if (filtros) {
-        if (filtros.nombre) params = params.set('nombre', filtros.nombre);
-        if (filtros.tipo) params = params.set('tipo', filtros.tipo);
-        if (filtros.departamento) params = params.set('departamento', filtros.departamento);
-        if (filtros.provincia) params = params.set('provincia', filtros.provincia);
-        if (filtros.distrito) params = params.set('distrito', filtros.distrito);
-        if (filtros.ubigeo) params = params.set('ubigeo', filtros.ubigeo);
-        if (filtros.esta_activa !== undefined) params = params.set('esta_activa', filtros.esta_activa.toString());
-      }
-
-      const response = await this.http.get(`${this.apiUrl}/exportar-excel`, {
-        params,
-        responseType: 'blob',
-        observe: 'response'
-      }).toPromise();
-
-      if (response && response.body) {
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename = 'localidades_export.xlsx';
-        
-        if (contentDisposition) {
-          const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
-          if (matches != null && matches[1]) {
-            filename = matches[1].replace(/['"]/g, '');
-          }
-        }
-
-        const blob = new Blob([response.body], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-        });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        window.URL.revokeObjectURL(url);
-
-        console.log('✅ Archivo Excel descargado:', filename);
-      }
-    } catch (error) {
-      console.error('❌ Error exportando a Excel:', error);
-      throw error;
-    }
-  }
-  */
 }

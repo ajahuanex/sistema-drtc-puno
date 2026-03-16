@@ -52,6 +52,12 @@ class LocalidadEmbebida(BaseModel):
     provincia: Optional[str] = Field(None, description="Provincia")
     distrito: Optional[str] = Field(None, description="Distrito")
     coordenadas: Optional[dict] = Field(None, description="Coordenadas geográficas {latitud, longitud}")
+    # ✅ NUEVO: Metadata flexible para información adicional
+    metadata: Optional[dict] = Field(None, description="Metadata adicional (ej: alias, validaciones, etc.)")
+    # Ejemplos de uso de metadata:
+    # {"es_alias": true, "nombre_oficial": "LA RINCONADA", "alias_id": "123"}
+    # {"validado_manualmente": true, "fecha_validacion": "2024-03-08"}
+    # {"fuente": "importacion_masiva", "lote": "2024-03"}
 
 class LocalidadItinerario(LocalidadEmbebida):
     """Localidad en itinerario con orden"""

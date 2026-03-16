@@ -69,19 +69,13 @@ export abstract class BaseLocalidadesComponent implements OnInit {
     try {
       const filtroTipo = this.filtrosService.tipo;
       
-      // 🚀 OPTIMIZACIÓN: Usar paginación del servidor
-      // Solo cargar la primera página (25 registros por defecto)
-      const pagina = this.paginator?.pageIndex || 0;
-      const limite = this.paginator?.pageSize || 25;
-      
-      // Obtener ordenamiento actual
-      const sortActive = this.sort?.active || 'nombre';
-      const sortDirection = this.sort?.direction || 'asc';
-      
       let localidades: Localidad[];
       
       if (filtroTipo === 'CENTRO_POBLADO') {
         // Si se filtra por CENTRO_POBLADO, usar paginación del servidor
+        const pagina = this.paginator?.pageIndex || 0;
+        const limite = this.paginator?.pageSize || 25;
+        
         const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
           pagina + 1, 
           limite, 
@@ -96,9 +90,12 @@ export abstract class BaseLocalidadesComponent implements OnInit {
           }
         });
         
-        console.log(`✅ ${localidades.length} de ${resultado.total} centros poblados cargados (página ${pagina + 1})`);
+        console.log(`✅ ${localidades.length} de ${resultado.total} centros poblados cargados`);
       } else if (filtroTipo) {
         // Si hay otro filtro de tipo, usar paginación
+        const pagina = this.paginator?.pageIndex || 0;
+        const limite = this.paginator?.pageSize || 25;
+        
         const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
           pagina + 1, 
           limite, 
@@ -112,15 +109,12 @@ export abstract class BaseLocalidadesComponent implements OnInit {
           }
         });
         
-        console.log(`✅ ${localidades.length} de ${resultado.total} localidades tipo ${filtroTipo} cargadas (página ${pagina + 1})`);
+        console.log(`✅ ${localidades.length} localidades tipo ${filtroTipo} cargadas`);
       } else {
         // Sin filtro: cargar solo provincias y distritos (rápido)
-        // Excluir centros poblados por defecto
+        // Los centros poblados se cargan bajo demanda cuando se filtran
         localidades = await this.localidadService.obtenerLocalidades();
         localidades = localidades.filter(l => l.tipo !== 'CENTRO_POBLADO');
-        
-        // Ordenar localmente
-        localidades = this.ordenarLocalidades(localidades, sortActive, sortDirection);
         
         setTimeout(() => {
           if (this.paginator) {
@@ -141,32 +135,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
     }
   }
 
-  private ordenarLocalidades(localidades: Localidad[], campo: string, direccion: string): Localidad[] {
-    if (!campo || direccion === '') return localidades;
-    
-    return [...localidades].sort((a: any, b: any) => {
-      let valorA = a[campo];
-      let valorB = b[campo];
-      
-      // Manejar valores nulos o undefined
-      if (valorA === null || valorA === undefined) valorA = '';
-      if (valorB === null || valorB === undefined) valorB = '';
-      
-      // Convertir a string para comparación
-      if (typeof valorA === 'string') valorA = valorA.toLowerCase();
-      if (typeof valorB === 'string') valorB = valorB.toLowerCase();
-      
-      let comparacion = 0;
-      if (valorA > valorB) {
-        comparacion = 1;
-      } else if (valorA < valorB) {
-        comparacion = -1;
-      }
-      
-      return direccion === 'asc' ? comparacion : -comparacion;
-    });
-  }
-
   async recargarDatos() {
     await this.cargarLocalidades();
     this.mostrarMensaje('Datos recargados exitosamente', 'success');
@@ -175,11 +143,9 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   configurarTabla() {
     setTimeout(() => {
       if (this.paginator) {
-        // NO asignar el paginator al dataSource cuando usamos paginación del servidor
-        // this.dataSource.paginator = this.paginator;
         this.configurarPaginadorTextos();
         
-        // 🚀 Escuchar cambios de página para cargar datos del servidor
+        // Escuchar cambios de página para cargar datos del servidor
         this.paginator.page.subscribe(() => {
           this.cargarLocalidades();
         });
@@ -190,7 +156,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
         
         // Escuchar cambios de ordenamiento
         this.sort.sortChange.subscribe(() => {
-          // Resetear a la primera página cuando cambia el ordenamiento
           if (this.paginator) {
             this.paginator.pageIndex = 0;
           }
@@ -238,12 +203,7 @@ export abstract class BaseLocalidadesComponent implements OnInit {
 
   onFiltroTipoChange(valor: string) {
     this.filtrosService.setTipo(valor);
-    
-    // 🚀 Si se selecciona CENTRO_POBLADO, mostrar mensaje y recargar datos
-    if (valor === 'CENTRO_POBLADO') {
-      this.mostrarMensaje('Cargando centros poblados... Esto puede tardar unos segundos', 'info');
-      this.cargarLocalidades();
-    }
+    this.cargarLocalidades();
   }
 
   onFiltroEstadoChange(valor: string) {
@@ -252,8 +212,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
 
   limpiarFiltros() {
     this.filtrosService.limpiarFiltros();
-    
-    // 🚀 Al limpiar filtros, recargar sin centros poblados
     this.cargarLocalidades();
   }
 
@@ -288,6 +246,18 @@ export abstract class BaseLocalidadesComponent implements OnInit {
   }
 
   editarLocalidad(localidad: Localidad) {
+    // Si es un alias, abrir la localidad original SIN mostrar información del alias
+    if (localidad.metadata?.es_alias && localidad.metadata?.['localidad_id']) {
+      const localidadOriginal = this.localidades().find(l => l.id === localidad.metadata?.['localidad_id']);
+      if (localidadOriginal) {
+        // Abrir la localidad original directamente, sin información del alias
+        this.localidadSeleccionada.set(localidadOriginal);
+        this.esEdicion.set(true);
+        this.mostrarModal.set(true);
+        return;
+      }
+    }
+    
     this.localidadSeleccionada.set(localidad);
     this.esEdicion.set(true);
     this.mostrarModal.set(true);
@@ -318,11 +288,10 @@ export abstract class BaseLocalidadesComponent implements OnInit {
 
   async eliminarLocalidad(localidad: Localidad) {
     try {
-      // 1️⃣ Primero verificar si está en uso
+      // Verificar si está en uso
       const verificacion = await this.localidadService.verificarUsoLocalidad(localidad.id);
       
       if (verificacion.en_uso) {
-        // 🚫 Mostrar mensaje detallado de por qué no se puede eliminar
         let mensaje = `❌ NO SE PUEDE ELIMINAR\n\n`;
         mensaje += `La localidad "${localidad.nombre}" está siendo utilizada en:\n\n`;
         
@@ -347,7 +316,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
         return;
       }
 
-      // 2️⃣ Si no está en uso, proceder con confirmación
       const confirmacion = confirm(
         `⚠️ ATENCIÓN: Esta acción eliminará permanentemente la localidad "${localidad.nombre || 'Sin nombre'}".\n\n` +
         `Esta acción NO se puede deshacer.\n\n` +
@@ -362,7 +330,6 @@ export abstract class BaseLocalidadesComponent implements OnInit {
       
       if (!segundaConfirmacion) return;
 
-      // 3️⃣ Eliminar
       await this.localidadService.eliminarLocalidad(localidad.id);
       this.mostrarMensaje('✅ Localidad eliminada exitosamente', 'success');
       await this.cargarLocalidades();
@@ -399,42 +366,5 @@ export abstract class BaseLocalidadesComponent implements OnInit {
     console.log('🐛 [DEBUG] Localidades filtradas:', this.localidadesFiltradas().length);
     console.log('🐛 [DEBUG] Filtros actuales:', this.filtros);
     console.log('🐛 [DEBUG] Muestra de datos:', this.localidades().slice(0, 2));
-    
-    // Debug específico para filtro OTROS
-    const localidadesOtros = this.localidadesOtros();
-    console.log('🐛 [DEBUG] Localidades OTROS (método):', localidadesOtros.length);
-    console.log('🐛 [DEBUG] Localidades OTROS (detalle):', localidadesOtros.map(l => ({
-      nombre: l.nombre,
-      departamento: l.departamento,
-      provincia: l.provincia,
-      distrito: l.distrito,
-      razon: this.getOtrosReason(l)
-    })));
-    
-    // Debug del filtro aplicado
-    if (this.filtros.departamento === 'OTROS') {
-      const filtradas = this.filtrosService.aplicarFiltros(this.localidades());
-      console.log('🐛 [DEBUG] Filtro OTROS aplicado - Resultados:', filtradas.length);
-      console.log('🐛 [DEBUG] Filtro OTROS aplicado - Detalle:', filtradas.map(l => ({
-        nombre: l.nombre,
-        departamento: l.departamento,
-        provincia: l.provincia,
-        distrito: l.distrito
-      })));
-    }
-  }
-
-  private getOtrosReason(localidad: any): string {
-    const reasons = [];
-    if (!localidad.departamento || localidad.departamento.trim() === '') {
-      reasons.push('sin departamento');
-    }
-    if (!localidad.provincia || localidad.provincia.trim() === '') {
-      reasons.push('sin provincia');
-    }
-    if (!localidad.distrito || localidad.distrito.trim() === '') {
-      reasons.push('sin distrito');
-    }
-    return reasons.join(', ') || 'datos completos';
   }
 }

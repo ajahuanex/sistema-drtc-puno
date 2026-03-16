@@ -68,7 +68,29 @@ class LocalidadService:
         cursor = self.collection.find(query).skip(skip).limit(limit).sort("nombre", 1)
         localidades = []
         
+        # Obtener colección de alias
+        alias_collection = self.db["localidades_alias"]
+        
         async for doc in cursor:
+            # Buscar TODOS los alias para esta localidad
+            alias_cursor = alias_collection.find({
+                "localidad_id": str(doc["_id"]),
+                "estaActivo": True
+            })
+            
+            aliases = []
+            async for alias_doc in alias_cursor:
+                if alias_doc.get("alias"):
+                    aliases.append(alias_doc.get("alias"))
+            
+            # Si existen alias, agregarlos a metadata
+            if aliases:
+                if "metadata" not in doc:
+                    doc["metadata"] = {}
+                doc["metadata"]["aliases"] = aliases  # Lista de todos los alias
+                doc["metadata"]["alias"] = aliases[0]  # Primer alias por compatibilidad
+                doc["metadata"]["nombre_oficial"] = doc.get("nombre")
+            
             localidades.append(self._document_to_localidad(doc))
             
         return localidades
@@ -112,10 +134,33 @@ class LocalidadService:
         )
 
     async def get_localidad_by_id(self, localidad_id: str) -> Optional[Localidad]:
-        """Obtener localidad por ID"""
+        """Obtener localidad por ID con todos sus alias"""
         try:
             doc = await self.collection.find_one({"_id": ObjectId(localidad_id)})
-            return self._document_to_localidad(doc) if doc else None
+            if not doc:
+                return None
+            
+            # Buscar TODOS los alias para esta localidad
+            alias_collection = self.db["localidades_alias"]
+            alias_cursor = alias_collection.find({
+                "localidad_id": localidad_id,
+                "estaActivo": True
+            })
+            
+            aliases = []
+            async for alias_doc in alias_cursor:
+                if alias_doc.get("alias"):
+                    aliases.append(alias_doc.get("alias"))
+            
+            # Si existen alias, agregarlos a metadata
+            if aliases:
+                if "metadata" not in doc:
+                    doc["metadata"] = {}
+                doc["metadata"]["aliases"] = aliases  # Lista de todos los alias
+                doc["metadata"]["alias"] = aliases[0]  # Primer alias por compatibilidad
+                doc["metadata"]["nombre_oficial"] = doc.get("nombre")
+            
+            return self._document_to_localidad(doc)
         except:
             return None
 
@@ -531,7 +576,29 @@ class LocalidadService:
         localidades = []
         cursor = self.collection.aggregate(pipeline)
         
+        # Obtener colección de alias
+        alias_collection = self.db["localidades_alias"]
+        
         async for doc in cursor:
+            # Buscar TODOS los alias para esta localidad
+            alias_cursor = alias_collection.find({
+                "localidad_id": str(doc["_id"]),
+                "estaActivo": True
+            })
+            
+            aliases = []
+            async for alias_doc in alias_cursor:
+                if alias_doc.get("alias"):
+                    aliases.append(alias_doc.get("alias"))
+            
+            # Si existen alias, agregarlos a metadata
+            if aliases:
+                if "metadata" not in doc:
+                    doc["metadata"] = {}
+                doc["metadata"]["aliases"] = aliases  # Lista de todos los alias
+                doc["metadata"]["alias"] = aliases[0]  # Primer alias por compatibilidad
+                doc["metadata"]["nombre_oficial"] = doc.get("nombre")
+            
             # Agregar la ruta jerárquica al documento antes de convertir
             localidad = self._document_to_localidad(doc)
             # Agregar metadata de búsqueda (opcional, para debugging)

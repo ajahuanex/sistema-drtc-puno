@@ -124,4 +124,37 @@ export class GeometriaService {
       provincia
     });
   }
+
+  /**
+   * Obtener localidades como puntos en formato GeoJSON
+   */
+  obtenerLocalidadesGeoJSON(filtros?: {
+    tipo?: string;
+    departamento?: string;
+    provincia?: string;
+    distrito?: string;
+    esta_activa?: boolean;
+  }): Observable<GeometriaGeoJSON> {
+    let params = new HttpParams();
+    
+    if (filtros) {
+      if (filtros.tipo) {
+        params = params.set('tipo', filtros.tipo);
+      }
+      if (filtros.departamento) {
+        params = params.set('departamento', filtros.departamento);
+      }
+      if (filtros.provincia) {
+        params = params.set('provincia', filtros.provincia);
+      }
+      if (filtros.distrito) {
+        params = params.set('distrito', filtros.distrito);
+      }
+      if (filtros.esta_activa !== undefined) {
+        params = params.set('esta_activa', filtros.esta_activa.toString());
+      }
+    }
+
+    return this.http.get<GeometriaGeoJSON>(`${environment.apiUrl}/localidades/export/geojson`, { params });
+  }
 }

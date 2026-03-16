@@ -20,6 +20,7 @@ import { Resolucion } from '../models/resolucion.model';
 import { Observable, of, Subject, from } from 'rxjs';
 import { map, startWith, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { BuscarLocalidadDialogComponent } from './buscar-localidad-dialog.component';
+import { environment } from '../../environments/environment';
 
 export interface RutaFormConfig {
   empresa?: Empresa;
@@ -1263,34 +1264,86 @@ export class RutaFormComponent implements OnInit {
     console.log('📤 [RUTA-FORM] Objeto de actualización:', JSON.stringify(rutaUpdate, null, 2));
     console.log('📋 [RUTA-FORM] Itinerario a actualizar:', this.itinerario);
 
-    // Si se cambió el origen o destino, actualizar
-    if (formValue.origenId || formValue.destinoId) {
-      const todasLocalidades = await this.localidadService.obtenerLocalidades();
+    // Si se cambió el origen o destino, usar las localidades ya seleccionadas
+    if (formValue.origenId && this.origenSeleccionado) {
+      // Si es un alias, buscar el alias_id (usando notación de corchetes)
+      let metadata = this.origenSeleccionado.metadata;
+      if (metadata?.['es_alias'] && metadata?.['alias_usado']) {
+        // Buscar el ID del alias en el backend
+        try {
+          const response = await fetch(`${environment.apiUrl}/localidades-alias/?limit=1000`);
+          const aliases = await response.json();
+          const aliasEncontrado = aliases.find((a: any) => 
+            a.localidad_id === this.origenSeleccionado!.id && 
+            a.alias === metadata!['alias_usado']
+          );
+          if (aliasEncontrado) {
+            metadata = {
+              ['alias_id']: aliasEncontrado.id,
+              ['es_alias']: true
+            };
+          }
+        } catch (error) {
+          console.error('Error buscando alias_id:', error);
+        }
+      } else {
+        metadata = undefined; // No es alias, no guardar metadata
+      }
       
-      if (formValue.origenId) {
-        const origenLocalidad = todasLocalidades?.find(l => l.id === formValue.origenId);
-        if (origenLocalidad) {
-          rutaUpdate.origen = {
-            id: origenLocalidad.id,
-            nombre: origenLocalidad.nombre
-          };
-        }
-      }
+      rutaUpdate.origen = {
+        id: this.origenSeleccionado.id,
+        nombre: this.origenSeleccionado.nombre,
+        tipo: this.origenSeleccionado.tipo,
+        ubigeo: this.origenSeleccionado.ubigeo,
+        departamento: this.origenSeleccionado.departamento,
+        provincia: this.origenSeleccionado.provincia,
+        distrito: this.origenSeleccionado.distrito,
+        coordenadas: this.origenSeleccionado.coordenadas,
+        metadata: metadata
+      };
+    }
 
-      if (formValue.destinoId) {
-        const destinoLocalidad = todasLocalidades?.find(l => l.id === formValue.destinoId);
-        if (destinoLocalidad) {
-          rutaUpdate.destino = {
-            id: destinoLocalidad.id,
-            nombre: destinoLocalidad.nombre
-          };
+    if (formValue.destinoId && this.destinoSeleccionado) {
+      // Si es un alias, buscar el alias_id (usando notación de corchetes)
+      let metadata = this.destinoSeleccionado.metadata;
+      if (metadata?.['es_alias'] && metadata?.['alias_usado']) {
+        // Buscar el ID del alias en el backend
+        try {
+          const response = await fetch(`${environment.apiUrl}/localidades-alias/?limit=1000`);
+          const aliases = await response.json();
+          const aliasEncontrado = aliases.find((a: any) => 
+            a.localidad_id === this.destinoSeleccionado!.id && 
+            a.alias === metadata!['alias_usado']
+          );
+          if (aliasEncontrado) {
+            metadata = {
+              ['alias_id']: aliasEncontrado.id,
+              es_alias: true
+            };
+          }
+        } catch (error) {
+          console.error('Error buscando alias_id:', error);
         }
+      } else {
+        metadata = undefined; // No es alias, no guardar metadata
       }
+      
+      rutaUpdate.destino = {
+        id: this.destinoSeleccionado.id,
+        nombre: this.destinoSeleccionado.nombre,
+        tipo: this.destinoSeleccionado.tipo,
+        ubigeo: this.destinoSeleccionado.ubigeo,
+        departamento: this.destinoSeleccionado.departamento,
+        provincia: this.destinoSeleccionado.provincia,
+        distrito: this.destinoSeleccionado.distrito,
+        coordenadas: this.destinoSeleccionado.coordenadas,
+        metadata: metadata
+      };
+    }
 
-      // Actualizar nombre si cambiaron origen o destino
-      if (rutaUpdate.origen && rutaUpdate.destino) {
-        rutaUpdate.nombre = `${rutaUpdate.origen.nombre} - ${rutaUpdate.destino.nombre}`;
-      }
+    // Actualizar nombre si cambiaron origen o destino
+    if (rutaUpdate.origen && rutaUpdate.destino) {
+      rutaUpdate.nombre = `${rutaUpdate.origen.nombre} - ${rutaUpdate.destino.nombre}`;
     }
 
     try {

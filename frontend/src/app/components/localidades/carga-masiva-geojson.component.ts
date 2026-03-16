@@ -92,9 +92,9 @@ interface ResultadoImportacion {
                 <h3>Importar Localidades Completas de Puno</h3>
                 <p>
                   Este proceso importará TODAS las localidades desde archivos GeoJSON:
-                  <br>• <strong>13 Provincias</strong> desde peru-provincias.geojson
+                  <br>• <strong>13 Provincias</strong> desde puno-provincias.geojson
                   <br>• <strong>~110 Distritos</strong> desde puno-distritos.geojson
-                  <br>• <strong>~3000 Centros Poblados</strong> desde puno-centrospoblados.geojson
+                  <br>• <strong>~9000 Centros Poblados</strong> desde puno-centrospoblados.geojson
                 </p>
               </div>
             </div>
@@ -770,7 +770,7 @@ export class CargaMasivaGeojsonComponent {
     try {
       // Validar que existan los archivos (centros poblados deshabilitado por tamaño)
       const [provincias, distritos] = await Promise.all([
-        this.http.get<any>('assets/geojson/peru-provincias.geojson').toPromise(),
+        this.http.get<any>('assets/geojson/puno-provincias.geojson').toPromise(),
         this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise()
         // DESHABILITADO: puno-centrospoblados.geojson (10MB, 9372 features)
       ]);

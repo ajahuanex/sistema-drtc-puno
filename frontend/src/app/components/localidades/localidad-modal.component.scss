@@ -519,6 +519,65 @@ mat-form-field {
   }
 }
 
+/* Información del alias que se está editando */
+.seccion-alias-info {
+  margin-bottom: 24px;
+
+  .alias-info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background-color: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    border-left: 4px solid #1976d2;
+
+    mat-icon {
+      color: #1976d2;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .alias-info-content {
+      flex: 1;
+
+      p {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+      }
+
+      .alias-info-label {
+        color: #666;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .alias-info-original {
+        color: #1976d2;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+
+      .alias-info-alias {
+        color: #666;
+        font-size: 13px;
+
+        strong {
+          color: #333;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
+
 .alias-container {
   .alias-hint {
     font-size: 14px;

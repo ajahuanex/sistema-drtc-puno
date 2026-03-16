@@ -135,6 +135,14 @@
         <mat-icon>location_on</mat-icon>
         Verificar Coordenadas
       </button>
+      <button mat-stroked-button 
+              color="primary" 
+              (click)="sincronizarLocalidades()"
+              [disabled]="isLoading()"
+              matTooltip="Sincronizar información de localidades en rutas (incluye búsqueda por alias)">
+        <mat-icon>sync</mat-icon>
+        Sincronizar Localidades
+      </button>
     </div>
   </div>
 

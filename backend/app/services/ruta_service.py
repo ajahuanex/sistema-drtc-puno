@@ -812,8 +812,8 @@ class RutaService:
         Nota: No se permite cambiar empresaId ni resolucionId
         """
         try:
-            # Verificar que la ruta existe
-            ruta_actual = await self.get_ruta_by_id(ruta_id)
+            # Verificar que la ruta existe (SIN filtrar por estaActivo)
+            ruta_actual = await self.rutas_collection.find_one({"_id": ObjectId(ruta_id)})
             if not ruta_actual:
                 raise HTTPException(
                     status_code=404,
@@ -822,11 +822,13 @@ class RutaService:
             
             # Si se está actualizando el código, validar unicidad
             if ruta_data.codigoRuta:
-                await self.validar_codigo_unico(
-                    ruta_data.codigoRuta,
-                    ruta_actual.resolucionId,
-                    ruta_id
-                )
+                resolucion_id = ruta_actual.get("resolucion", {}).get("id")
+                if resolucion_id:
+                    await self.validar_codigo_unico(
+                        ruta_data.codigoRuta,
+                        resolucion_id,
+                        ruta_id
+                    )
             
             # Preparar actualización
             update_data = ruta_data.model_dump(exclude_unset=True)
@@ -838,11 +840,18 @@ class RutaService:
                 {"$set": update_data}
             )
             
-            if result.modified_count == 0:
-                return ruta_actual  # No hubo cambios
+            if result.modified_count == 0 and result.matched_count == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Ruta {ruta_id} no encontrada"
+                )
             
-            # Retornar ruta actualizada
-            return await self.get_ruta_by_id(ruta_id)
+            # Retornar ruta actualizada (buscar sin filtro de estaActivo)
+            ruta_actualizada = await self.rutas_collection.find_one({"_id": ObjectId(ruta_id)})
+            if ruta_actualizada:
+                return await self._convert_ruta_to_model(ruta_actualizada)
+            
+            return None
             
         except HTTPException:
             raise
@@ -851,6 +860,46 @@ class RutaService:
                 status_code=500,
                 detail=f"Error al actualizar ruta: {str(e)}"
             )
+    
+    async def _convert_ruta_to_model(self, ruta_dict: dict) -> Ruta:
+        """Convertir documento de MongoDB a modelo Ruta"""
+        empresa_data = ruta_dict.get("empresa", {})
+        resolucion_data = ruta_dict.get("resolucion", {})
+        
+        return Ruta(
+            id=str(ruta_dict.get("_id")),
+            codigoRuta=ruta_dict.get("codigoRuta", ""),
+            nombre=ruta_dict.get("nombre", ""),
+            origen=ruta_dict.get("origen", {}),
+            destino=ruta_dict.get("destino", {}),
+            itinerario=ruta_dict.get("itinerario", []),
+            empresa={
+                "id": empresa_data.get("id", ""),
+                "ruc": empresa_data.get("ruc", ""),
+                "razonSocial": empresa_data.get("razonSocial", "")
+            },
+            resolucion={
+                "id": resolucion_data.get("id", ""),
+                "nroResolucion": resolucion_data.get("nroResolucion", ""),
+                "tipoResolucion": resolucion_data.get("tipoResolucion", ""),
+                "estado": resolucion_data.get("estado", "")
+            },
+            frecuencia=ruta_dict.get("frecuencia"),
+            horarios=ruta_dict.get("horarios", []),
+            tipoRuta=ruta_dict.get("tipoRuta"),
+            tipoServicio=ruta_dict.get("tipoServicio", "PASAJEROS"),
+            estado=ruta_dict.get("estado", "ACTIVA"),
+            distancia=ruta_dict.get("distancia"),
+            tiempoEstimado=ruta_dict.get("tiempoEstimado"),
+            tarifaBase=ruta_dict.get("tarifaBase"),
+            capacidadMaxima=ruta_dict.get("capacidadMaxima"),
+            restricciones=ruta_dict.get("restricciones", []),
+            observaciones=ruta_dict.get("observaciones"),
+            descripcion=ruta_dict.get("descripcion"),
+            estaActivo=ruta_dict.get("estaActivo", True),
+            fechaRegistro=ruta_dict.get("fechaRegistro"),
+            fechaActualizacion=ruta_dict.get("fechaActualizacion")
+        )
     
     async def soft_delete_ruta(self, ruta_id: str) -> bool:
         """Desactivar ruta (borrado lógico)"""

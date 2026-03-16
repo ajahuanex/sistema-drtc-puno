@@ -48,17 +48,25 @@ import { Localidad } from '../models/localidad.model';
 
       @if (!buscando && resultados.length > 0) {
         <div class="resultados">
-          @for (localidad of resultados; track localidad.id) {
+          @for (localidad of resultados; track localidad.id + (localidad.metadata?.es_alias ? '-alias' : '')) {
             <div class="resultado-item" (click)="seleccionar(localidad)">
               <div class="nombre-container">
                 <div class="nombre">{{ localidad.nombre }}</div>
                 <span class="tipo-badge" [class]="'tipo-' + getTipoClase(localidad.tipo)">
                   {{ getTipoLabel(localidad.tipo) }}
                 </span>
+                @if (localidad.metadata?.es_alias) {
+                  <span class="alias-badge">ALIAS</span>
+                }
               </div>
               <div class="ubicacion">
                 {{ getUbicacion(localidad) }}
               </div>
+              @if (localidad.metadata?.es_alias && localidad.metadata?.nombre_original) {
+                <div class="nombre-original">
+                  Alias de: {{ localidad.metadata?.nombre_original }}
+                </div>
+              }
             </div>
           }
         </div>
@@ -191,9 +199,28 @@ import { Localidad } from '../models/localidad.model';
       color: #616161;
     }
 
+    .alias-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #fff3e0;
+      color: #f57c00;
+      border: 1px solid #f57c00;
+    }
+
     .ubicacion {
       font-size: 14px;
       color: #666;
+    }
+
+    .nombre-original {
+      font-size: 12px;
+      color: #999;
+      font-style: italic;
+      margin-top: 4px;
     }
 
     .no-results, .hint {
@@ -254,6 +281,11 @@ export class BuscarLocalidadDialogComponent implements OnInit {
 
   seleccionar(localidad: Localidad) {
     this.dialogRef.close(localidad);
+  }
+
+  getNombreDisplay(localidad: Localidad): string {
+    // Priorizar el alias si existe (usando notación de corchetes para index signature)
+    return localidad.metadata?.['alias'] || localidad.nombre;
   }
 
   getTipoLabel(tipo: string): string {

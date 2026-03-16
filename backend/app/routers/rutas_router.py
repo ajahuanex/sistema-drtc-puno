@@ -896,6 +896,154 @@ async def verificar_coordenadas_rutas(
             detail=f"Error al verificar coordenadas: {str(e)}"
         )
 
+# ========================================
+# ENDPOINTS DE SINCRONIZACIÓN Y VERIFICACIÓN
+# Deben ir ANTES de las rutas dinámicas /{ruta_id}
+# ========================================
+
+@router.get("/verificar-ids-localidades")
+async def verificar_ids_localidades(db = Depends(get_database)):
+    """
+    Verifica la correspondencia de IDs entre rutas y localidades.
+    Compara los primeros 10 registros.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+    
+    # Obtener primeras 10 rutas
+    rutas = await rutas_collection.find({}).limit(10).to_list(length=10)
+    
+    resultados = []
+    
+    for ruta in rutas:
+        codigo_ruta = ruta.get("codigoRuta", "Sin código")
+        
+        # Verificar ORIGEN
+        origen = ruta.get("origen", {})
+        if origen:
+            origen_id = origen.get("id")
+            origen_nombre = origen.get("nombre", "Sin nombre")
+            
+            # Buscar en localidades
+            localidad_encontrada = await localidades_collection.find_one({
+                "$or": [
+                    {"id": origen_id},
+                    {"_id": ObjectId(origen_id) if ObjectId.is_valid(origen_id) else None}
+                ]
+            })
+            
+            if localidad_encontrada:
+                loc_id = str(localidad_encontrada.get("_id"))
+                loc_tipo = localidad_encontrada.get("tipo")
+                loc_ubigeo = localidad_encontrada.get("ubigeo")
+                loc_coords = localidad_encontrada.get("coordenadas")
+                
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "origen",
+                    "nombre": origen_nombre,
+                    "id_en_ruta": origen_id,
+                    "id_real": loc_id,
+                    "id_coincide": origen_id == loc_id,
+                    "tiene_tipo_en_ruta": bool(origen.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(origen.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(origen.get("coordenadas")),
+                    "tipo_localidad": loc_tipo,
+                    "ubigeo_localidad": loc_ubigeo,
+                    "tiene_coords_localidad": bool(loc_coords),
+                    "encontrada": True
+                })
+            else:
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "origen",
+                    "nombre": origen_nombre,
+                    "id_en_ruta": origen_id,
+                    "id_real": None,
+                    "id_coincide": False,
+                    "tiene_tipo_en_ruta": bool(origen.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(origen.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(origen.get("coordenadas")),
+                    "tipo_localidad": None,
+                    "ubigeo_localidad": None,
+                    "tiene_coords_localidad": False,
+                    "encontrada": False
+                })
+        
+        # Verificar DESTINO
+        destino = ruta.get("destino", {})
+        if destino:
+            destino_id = destino.get("id")
+            destino_nombre = destino.get("nombre", "Sin nombre")
+            
+            # Buscar en localidades
+            localidad_encontrada = await localidades_collection.find_one({
+                "$or": [
+                    {"id": destino_id},
+                    {"_id": ObjectId(destino_id) if ObjectId.is_valid(destino_id) else None}
+                ]
+            })
+            
+            if localidad_encontrada:
+                loc_id = str(localidad_encontrada.get("_id"))
+                loc_tipo = localidad_encontrada.get("tipo")
+                loc_ubigeo = localidad_encontrada.get("ubigeo")
+                loc_coords = localidad_encontrada.get("coordenadas")
+                
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "destino",
+                    "nombre": destino_nombre,
+                    "id_en_ruta": destino_id,
+                    "id_real": loc_id,
+                    "id_coincide": destino_id == loc_id,
+                    "tiene_tipo_en_ruta": bool(destino.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(destino.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(destino.get("coordenadas")),
+                    "tipo_localidad": loc_tipo,
+                    "ubigeo_localidad": loc_ubigeo,
+                    "tiene_coords_localidad": bool(loc_coords),
+                    "encontrada": True
+                })
+            else:
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "destino",
+                    "nombre": destino_nombre,
+                    "id_en_ruta": destino_id,
+                    "id_real": None,
+                    "id_coincide": False,
+                    "tiene_tipo_en_ruta": bool(destino.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(destino.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(destino.get("coordenadas")),
+                    "tipo_localidad": None,
+                    "ubigeo_localidad": None,
+                    "tiene_coords_localidad": False,
+                    "encontrada": False
+                })
+    
+    # Calcular estadísticas
+    total = len(resultados)
+    ids_coinciden = sum(1 for r in resultados if r["id_coincide"])
+    encontradas = sum(1 for r in resultados if r["encontrada"])
+    con_tipo = sum(1 for r in resultados if r["tiene_tipo_en_ruta"])
+    con_ubigeo = sum(1 for r in resultados if r["tiene_ubigeo_en_ruta"])
+    con_coords = sum(1 for r in resultados if r["tiene_coords_en_ruta"])
+    
+    return {
+        "total_verificadas": total,
+        "ids_coinciden": ids_coinciden,
+        "localidades_encontradas": encontradas,
+        "con_tipo_en_ruta": con_tipo,
+        "con_ubigeo_en_ruta": con_ubigeo,
+        "con_coords_en_ruta": con_coords,
+        "porcentaje_ids_ok": round(ids_coinciden / total * 100, 2) if total > 0 else 0,
+        "porcentaje_encontradas": round(encontradas / total * 100, 2) if total > 0 else 0,
+        "porcentaje_con_info": round(con_tipo / total * 100, 2) if total > 0 else 0,
+        "necesita_sincronizacion": con_tipo < total or con_ubigeo < total or con_coords < total,
+        "detalles": resultados
+    }
+
 @router.get("/{ruta_id}", response_model=Ruta)
 async def get_ruta(
     ruta_id: str,
@@ -1376,17 +1524,27 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
     """
     Sincroniza todas las localidades en rutas con datos actuales del módulo de localidades.
     Agrega información territorial completa: tipo, ubigeo, departamento, provincia, distrito
+    Incluye búsqueda por ALIAS para localidades no encontradas por ID o nombre.
     """
     rutas_collection = db["rutas"]
     localidades_collection = db["localidades"]
+    alias_collection = db["localidades_alias"]
     
-    async def obtener_localidad_completa(localidad_id: str):
+    async def obtener_localidad_completa(localidad_id: str, nombre_localidad: str = None):
         """
         Obtiene información completa de una localidad.
-        Prioridad: CENTRO_POBLADO > DISTRITO > PROVINCIA
-        Esto es importante para obtener coordenadas precisas en mapas.
+        Búsqueda: 1) Por ID, 2) Por NOMBRE, 3) Por ALIAS
+        Prioridad de tipo: CENTRO_POBLADO > DISTRITO > PROVINCIA
+        
+        IMPORTANTE: Preserva el nombre original de la ruta, solo agrega información territorial.
         """
         try:
+            import re
+            
+            # GUARDAR EL NOMBRE ORIGINAL para preservarlo
+            nombre_original = nombre_localidad
+            alias_doc = None  # Inicializar aquí para que esté disponible en todo el scope
+            
             # Primero buscar por ID exacto
             localidad = await localidades_collection.find_one({
                 "$or": [
@@ -1395,17 +1553,106 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                 ]
             })
             
+            # Si no se encuentra por ID, buscar por nombre
+            if not localidad and nombre_localidad:
+                print(f"  ⚠️ ID no encontrado, buscando por nombre: {nombre_localidad}")
+                
+                # Normalizar nombre (remover prefijos C.P., CP, etc.)
+                nombre_normalizado = re.sub(r'^(C\.P\.|CP|C\.P)\s*', '', nombre_localidad, flags=re.IGNORECASE).strip()
+                
+                # Buscar primero CENTRO_POBLADO con ese nombre
+                localidad = await localidades_collection.find_one({
+                    "nombre": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
+                    "tipo": "CENTRO_POBLADO",
+                    "estaActiva": True
+                })
+                
+                # Si no hay centro poblado con nombre original, buscar con nombre normalizado
+                if not localidad and nombre_normalizado != nombre_localidad:
+                    localidad = await localidades_collection.find_one({
+                        "nombre": {"$regex": f"^{nombre_normalizado}$", "$options": "i"},
+                        "tipo": "CENTRO_POBLADO",
+                        "estaActiva": True
+                    })
+                
+                # Si no hay centro poblado, buscar DISTRITO
+                if not localidad:
+                    localidad = await localidades_collection.find_one({
+                        "nombre": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
+                        "tipo": "DISTRITO",
+                        "estaActiva": True
+                    })
+                
+                # Si no hay distrito, buscar PROVINCIA
+                if not localidad:
+                    localidad = await localidades_collection.find_one({
+                        "nombre": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
+                        "tipo": "PROVINCIA",
+                        "estaActiva": True
+                    })
+                
+                # Si no hay provincia, buscar cualquier tipo
+                if not localidad:
+                    localidad = await localidades_collection.find_one({
+                        "nombre": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
+                        "estaActiva": True
+                    })
+                
+                # ✅ NUEVO: Si aún no se encuentra, buscar en ALIAS
+                if not localidad:
+                    print(f"  🔍 Buscando en alias: {nombre_localidad}")
+                    
+                    # Buscar alias con nombre original
+                    alias_doc = await alias_collection.find_one({
+                        "alias": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
+                        "estaActivo": True
+                    })
+                    
+                    # Si no se encuentra, buscar con nombre normalizado
+                    if not alias_doc and nombre_normalizado != nombre_localidad:
+                        alias_doc = await alias_collection.find_one({
+                            "alias": {"$regex": f"^{nombre_normalizado}$", "$options": "i"},
+                            "estaActivo": True
+                        })
+                    
+                    # Si se encontró un alias, obtener la localidad oficial
+                    if alias_doc:
+                        localidad_id_alias = alias_doc.get("localidad_id")
+                        if localidad_id_alias:
+                            try:
+                                localidad = await localidades_collection.find_one({
+                                    "_id": ObjectId(localidad_id_alias)
+                                })
+                                if localidad:
+                                    print(f"  ✅ Encontrada por ALIAS: '{nombre_localidad}' → '{localidad.get('nombre')}' ({localidad.get('tipo')})")
+                                    print(f"  📌 PRESERVANDO nombre original: '{nombre_original}'")
+                            except Exception as e:
+                                print(f"  ❌ Error obteniendo localidad desde alias: {e}")
+                
+                if localidad:
+                    print(f"  ✅ Encontrada por nombre: {localidad.get('nombre')} ({localidad.get('tipo')})")
+            
             if not localidad:
                 return None
             
-            nombre = localidad.get("nombre", "Sin nombre")
             tipo = localidad.get("tipo")
+            
+            # ✅ USAR NOMBRE ORIGINAL, no el de la localidad oficial
+            nombre_a_usar = nombre_original if nombre_original else localidad.get("nombre", "Sin nombre")
+            
+            # ✅ PREPARAR METADATA si se encontró por alias
+            metadata = None
+            if alias_doc:
+                metadata = {
+                    "alias_id": str(alias_doc.get("_id")),
+                    "es_alias": True
+                }
             
             # Si ya es un centro poblado, usarlo directamente
             if tipo == "CENTRO_POBLADO":
-                return {
+                resultado = {
                     "id": str(localidad.get("_id", localidad.get("id", ""))),
-                    "nombre": nombre,
+                    "nombre": nombre_a_usar,  # ✅ PRESERVAR NOMBRE ORIGINAL
                     "tipo": tipo,
                     "ubigeo": localidad.get("ubigeo"),
                     "departamento": localidad.get("departamento"),
@@ -1413,12 +1660,15 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                     "distrito": localidad.get("distrito"),
                     "coordenadas": localidad.get("coordenadas")
                 }
+                if metadata:
+                    resultado["metadata"] = metadata
+                return resultado
             
             # Si es DISTRITO o PROVINCIA, buscar si existe un centro poblado con el mismo nombre
             if tipo in ["DISTRITO", "PROVINCIA"]:
                 # Buscar centro poblado con el mismo nombre en la misma ubicación
                 centro_poblado = await localidades_collection.find_one({
-                    "nombre": nombre,
+                    "nombre": localidad.get("nombre"),
                     "tipo": "CENTRO_POBLADO",
                     "departamento": localidad.get("departamento"),
                     "provincia": localidad.get("provincia"),
@@ -1426,10 +1676,10 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                 })
                 
                 if centro_poblado:
-                    print(f"  🎯 Encontrado centro poblado para {nombre} (era {tipo})")
-                    return {
+                    print(f"  🎯 Encontrado centro poblado para {nombre_a_usar} (era {tipo})")
+                    resultado = {
                         "id": str(centro_poblado.get("_id", centro_poblado.get("id", ""))),
-                        "nombre": centro_poblado.get("nombre"),
+                        "nombre": nombre_a_usar,  # ✅ PRESERVAR NOMBRE ORIGINAL
                         "tipo": "CENTRO_POBLADO",
                         "ubigeo": centro_poblado.get("ubigeo"),
                         "departamento": centro_poblado.get("departamento"),
@@ -1437,21 +1687,24 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                         "distrito": centro_poblado.get("distrito"),
                         "coordenadas": centro_poblado.get("coordenadas")
                     }
+                    if metadata:
+                        resultado["metadata"] = metadata
+                    return resultado
                 
                 # Si no hay centro poblado pero es PROVINCIA, buscar DISTRITO
                 if tipo == "PROVINCIA":
                     distrito = await localidades_collection.find_one({
-                        "nombre": nombre,
+                        "nombre": localidad.get("nombre"),
                         "tipo": "DISTRITO",
                         "departamento": localidad.get("departamento"),
                         "provincia": localidad.get("provincia")
                     })
                     
                     if distrito:
-                        print(f"  📍 Encontrado distrito para {nombre} (era PROVINCIA)")
-                        return {
+                        print(f"  📍 Encontrado distrito para {nombre_a_usar} (era PROVINCIA)")
+                        resultado = {
                             "id": str(distrito.get("_id", distrito.get("id", ""))),
-                            "nombre": distrito.get("nombre"),
+                            "nombre": nombre_a_usar,  # ✅ PRESERVAR NOMBRE ORIGINAL
                             "tipo": "DISTRITO",
                             "ubigeo": distrito.get("ubigeo"),
                             "departamento": distrito.get("departamento"),
@@ -1459,11 +1712,14 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                             "distrito": distrito.get("distrito"),
                             "coordenadas": distrito.get("coordenadas")
                         }
+                        if metadata:
+                            resultado["metadata"] = metadata
+                        return resultado
             
             # Si no se encontró nada más específico, usar la localidad original
-            return {
+            resultado = {
                 "id": str(localidad.get("_id", localidad.get("id", ""))),
-                "nombre": nombre,
+                "nombre": nombre_a_usar,  # ✅ PRESERVAR NOMBRE ORIGINAL
                 "tipo": tipo,
                 "ubigeo": localidad.get("ubigeo"),
                 "departamento": localidad.get("departamento"),
@@ -1471,6 +1727,9 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                 "distrito": localidad.get("distrito"),
                 "coordenadas": localidad.get("coordenadas")
             }
+            if metadata:
+                resultado["metadata"] = metadata
+            return resultado
         except Exception as e:
             print(f"Error obteniendo localidad {localidad_id}: {e}")
             return None
@@ -1493,14 +1752,20 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
             # Sincronizar origen
             origen = ruta.get("origen")
             if origen and isinstance(origen, dict) and origen.get("id"):
-                origen_completo = await obtener_localidad_completa(origen["id"])
+                origen_completo = await obtener_localidad_completa(
+                    origen["id"], 
+                    origen.get("nombre")
+                )
                 if origen_completo:
                     update_data["origen"] = origen_completo
             
             # Sincronizar destino
             destino = ruta.get("destino")
             if destino and isinstance(destino, dict) and destino.get("id"):
-                destino_completo = await obtener_localidad_completa(destino["id"])
+                destino_completo = await obtener_localidad_completa(
+                    destino["id"],
+                    destino.get("nombre")
+                )
                 if destino_completo:
                     update_data["destino"] = destino_completo
             
@@ -1510,7 +1775,10 @@ async def sincronizar_localidades_rutas(db = Depends(get_database)):
                 itinerario_sincronizado = []
                 for parada in itinerario:
                     if isinstance(parada, dict) and parada.get("id"):
-                        localidad_completa = await obtener_localidad_completa(parada["id"])
+                        localidad_completa = await obtener_localidad_completa(
+                            parada["id"],
+                            parada.get("nombre")
+                        )
                         if localidad_completa:
                             localidad_completa["orden"] = parada.get("orden", 0)
                             itinerario_sincronizado.append(localidad_completa)
@@ -1590,4 +1858,267 @@ async def verificar_sincronizacion_localidades(db = Depends(get_database)):
         "rutas_sin_ubigeo": rutas_sin_ubigeo,
         "rutas_sin_departamento": rutas_sin_departamento,
         "necesita_sincronizacion": rutas_con_info_completa < total
+    }
+
+
+@router.get("/verificar-ids-localidades")
+async def verificar_ids_localidades(db = Depends(get_database)):
+    """
+    Verifica la correspondencia de IDs entre rutas y localidades.
+    Compara los primeros 10 registros.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+    
+    # Obtener primeras 10 rutas
+    rutas = await rutas_collection.find({}).limit(10).to_list(length=10)
+    
+    resultados = []
+    
+    for ruta in rutas:
+        codigo_ruta = ruta.get("codigoRuta", "Sin código")
+        
+        # Verificar ORIGEN
+        origen = ruta.get("origen", {})
+        if origen:
+            origen_id = origen.get("id")
+            origen_nombre = origen.get("nombre", "Sin nombre")
+            
+            # Buscar en localidades
+            localidad_encontrada = await localidades_collection.find_one({
+                "$or": [
+                    {"id": origen_id},
+                    {"_id": ObjectId(origen_id) if ObjectId.is_valid(origen_id) else None}
+                ]
+            })
+            
+            if localidad_encontrada:
+                loc_id = str(localidad_encontrada.get("_id"))
+                loc_tipo = localidad_encontrada.get("tipo")
+                loc_ubigeo = localidad_encontrada.get("ubigeo")
+                loc_coords = localidad_encontrada.get("coordenadas")
+                
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "origen",
+                    "nombre": origen_nombre,
+                    "id_en_ruta": origen_id,
+                    "id_real": loc_id,
+                    "id_coincide": origen_id == loc_id,
+                    "tiene_tipo_en_ruta": bool(origen.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(origen.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(origen.get("coordenadas")),
+                    "tipo_localidad": loc_tipo,
+                    "ubigeo_localidad": loc_ubigeo,
+                    "tiene_coords_localidad": bool(loc_coords),
+                    "encontrada": True
+                })
+            else:
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "origen",
+                    "nombre": origen_nombre,
+                    "id_en_ruta": origen_id,
+                    "id_real": None,
+                    "id_coincide": False,
+                    "tiene_tipo_en_ruta": bool(origen.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(origen.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(origen.get("coordenadas")),
+                    "tipo_localidad": None,
+                    "ubigeo_localidad": None,
+                    "tiene_coords_localidad": False,
+                    "encontrada": False
+                })
+        
+        # Verificar DESTINO
+        destino = ruta.get("destino", {})
+        if destino:
+            destino_id = destino.get("id")
+            destino_nombre = destino.get("nombre", "Sin nombre")
+            
+            # Buscar en localidades
+            localidad_encontrada = await localidades_collection.find_one({
+                "$or": [
+                    {"id": destino_id},
+                    {"_id": ObjectId(destino_id) if ObjectId.is_valid(destino_id) else None}
+                ]
+            })
+            
+            if localidad_encontrada:
+                loc_id = str(localidad_encontrada.get("_id"))
+                loc_tipo = localidad_encontrada.get("tipo")
+                loc_ubigeo = localidad_encontrada.get("ubigeo")
+                loc_coords = localidad_encontrada.get("coordenadas")
+                
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "destino",
+                    "nombre": destino_nombre,
+                    "id_en_ruta": destino_id,
+                    "id_real": loc_id,
+                    "id_coincide": destino_id == loc_id,
+                    "tiene_tipo_en_ruta": bool(destino.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(destino.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(destino.get("coordenadas")),
+                    "tipo_localidad": loc_tipo,
+                    "ubigeo_localidad": loc_ubigeo,
+                    "tiene_coords_localidad": bool(loc_coords),
+                    "encontrada": True
+                })
+            else:
+                resultados.append({
+                    "ruta": codigo_ruta,
+                    "tipo": "destino",
+                    "nombre": destino_nombre,
+                    "id_en_ruta": destino_id,
+                    "id_real": None,
+                    "id_coincide": False,
+                    "tiene_tipo_en_ruta": bool(destino.get("tipo")),
+                    "tiene_ubigeo_en_ruta": bool(destino.get("ubigeo")),
+                    "tiene_coords_en_ruta": bool(destino.get("coordenadas")),
+                    "tipo_localidad": None,
+                    "ubigeo_localidad": None,
+                    "tiene_coords_localidad": False,
+                    "encontrada": False
+                })
+    
+    # Calcular estadísticas
+    total = len(resultados)
+    ids_coinciden = sum(1 for r in resultados if r["id_coincide"])
+    encontradas = sum(1 for r in resultados if r["encontrada"])
+    con_tipo = sum(1 for r in resultados if r["tiene_tipo_en_ruta"])
+    con_ubigeo = sum(1 for r in resultados if r["tiene_ubigeo_en_ruta"])
+    con_coords = sum(1 for r in resultados if r["tiene_coords_en_ruta"])
+    
+    return {
+        "total_verificadas": total,
+        "ids_coinciden": ids_coinciden,
+        "localidades_encontradas": encontradas,
+        "con_tipo_en_ruta": con_tipo,
+        "con_ubigeo_en_ruta": con_ubigeo,
+        "con_coords_en_ruta": con_coords,
+        "porcentaje_ids_ok": round(ids_coinciden / total * 100, 2) if total > 0 else 0,
+        "porcentaje_encontradas": round(encontradas / total * 100, 2) if total > 0 else 0,
+        "porcentaje_con_info": round(con_tipo / total * 100, 2) if total > 0 else 0,
+        "necesita_sincronizacion": con_tipo < total or con_ubigeo < total or con_coords < total,
+        "detalles": resultados
+    }
+
+
+@router.get("/verificar-coordenadas")
+async def verificar_coordenadas_rutas(db = Depends(get_database)):
+    """
+    Verifica que todas las rutas tengan coordenadas completas en origen, destino e itinerario.
+    Retorna estadísticas y detalles de rutas con problemas.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+    
+    # Obtener todas las rutas activas
+    rutas = await rutas_collection.find({"estaActivo": True}).to_list(length=None)
+    
+    total_rutas = len(rutas)
+    rutas_con_coordenadas = 0
+    rutas_sin_coordenadas = 0
+    detalles_problemas = []
+    
+    async def tiene_coordenadas(localidad_id: str) -> bool:
+        """Verifica si una localidad tiene coordenadas"""
+        if not localidad_id:
+            return False
+        
+        try:
+            localidad = await localidades_collection.find_one({
+                "$or": [
+                    {"id": localidad_id},
+                    {"_id": ObjectId(localidad_id) if ObjectId.is_valid(localidad_id) else None}
+                ]
+            })
+            
+            if not localidad:
+                return False
+            
+            coordenadas = localidad.get("coordenadas")
+            if not coordenadas:
+                return False
+            
+            # Verificar que tenga latitud y longitud válidas
+            lat = coordenadas.get("latitud") or coordenadas.get("lat")
+            lon = coordenadas.get("longitud") or coordenadas.get("lon") or coordenadas.get("lng")
+            
+            return lat is not None and lon is not None and lat != 0 and lon != 0
+        except Exception as e:
+            print(f"Error verificando coordenadas para localidad {localidad_id}: {e}")
+            return False
+    
+    for ruta in rutas:
+        ruta_id = str(ruta.get("_id"))
+        codigo_ruta = ruta.get("codigoRuta", "Sin código")
+        
+        # Verificar origen
+        origen = ruta.get("origen", {})
+        origen_id = origen.get("id")
+        origen_nombre = origen.get("nombre", "Sin nombre")
+        origen_tiene_coords = await tiene_coordenadas(origen_id) if origen_id else False
+        
+        # Verificar destino
+        destino = ruta.get("destino", {})
+        destino_id = destino.get("id")
+        destino_nombre = destino.get("nombre", "Sin nombre")
+        destino_tiene_coords = await tiene_coordenadas(destino_id) if destino_id else False
+        
+        # Verificar itinerario
+        itinerario = ruta.get("itinerario", [])
+        itinerario_sin_coordenadas = []
+        
+        for parada in itinerario:
+            if isinstance(parada, dict):
+                parada_id = parada.get("id")
+                parada_nombre = parada.get("nombre", "Sin nombre")
+                parada_orden = parada.get("orden", 0)
+                
+                if parada_id:
+                    parada_tiene_coords = await tiene_coordenadas(parada_id)
+                    if not parada_tiene_coords:
+                        itinerario_sin_coordenadas.append({
+                            "id": parada_id,
+                            "nombre": parada_nombre,
+                            "orden": parada_orden
+                        })
+        
+        # Determinar si la ruta tiene todas las coordenadas
+        ruta_completa = (
+            origen_tiene_coords and 
+            destino_tiene_coords and 
+            len(itinerario_sin_coordenadas) == 0
+        )
+        
+        if ruta_completa:
+            rutas_con_coordenadas += 1
+        else:
+            rutas_sin_coordenadas += 1
+            detalles_problemas.append({
+                "ruta_id": ruta_id,
+                "codigo_ruta": codigo_ruta,
+                "origen": {
+                    "id": origen_id,
+                    "nombre": origen_nombre,
+                    "tiene_coordenadas": origen_tiene_coords
+                },
+                "destino": {
+                    "id": destino_id,
+                    "nombre": destino_nombre,
+                    "tiene_coordenadas": destino_tiene_coords
+                },
+                "itinerario_sin_coordenadas": itinerario_sin_coordenadas
+            })
+    
+    porcentaje_con_coordenadas = (rutas_con_coordenadas / total_rutas * 100) if total_rutas > 0 else 0
+    
+    return {
+        "total_rutas": total_rutas,
+        "rutas_con_coordenadas": rutas_con_coordenadas,
+        "rutas_sin_coordenadas": rutas_sin_coordenadas,
+        "porcentaje_con_coordenadas": round(porcentaje_con_coordenadas, 2),
+        "detalles_problemas": detalles_problemas
     }

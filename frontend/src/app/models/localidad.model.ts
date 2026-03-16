@@ -20,7 +20,7 @@ export interface Coordenadas {
   latitud: number;
   longitud: number;
   
-  // Campos opcionales para coordenadas extendidas
+  // Metadata de coordenadas (guardada en metadata.coordenadas)
   latitudOriginal?: number;
   longitudOriginal?: number;
   esPersonalizada?: boolean;
@@ -29,8 +29,19 @@ export interface Coordenadas {
   fuenteOriginal?: string; // 'INEI', 'MANUAL', 'GPS', etc.
 }
 
-// Alias para compatibilidad
-export type CoordenadasExtendidas = Coordenadas;
+// Metadata adicional de localidades
+export interface LocalidadMetadata {
+  nombreOficial?: string; // Nombre oficial completo
+  notas?: string; // Notas adicionales
+  fuenteDatos?: string; // Fuente de los datos (INEI, MANUAL, etc.)
+  
+  // Campos para manejo de alias (usados cuando la localidad se embebe en rutas)
+  es_alias?: boolean; // Indica si esta instancia representa un alias
+  nombre_original?: string; // Nombre original de la localidad cuando es_alias=true
+  alias_id?: string; // ID del alias en la colección localidades_alias
+  
+  [key: string]: any; // Permitir campos adicionales
+}
 
 export interface Localidad {
   id: string;
@@ -49,6 +60,7 @@ export interface Localidad {
   descripcion?: string;
   coordenadas?: Coordenadas;
   observaciones?: string;
+  metadata?: LocalidadMetadata; // Metadata adicional (alias, etc.)
 
   // NUEVOS CAMPOS PARA CENTROS POBLADOS
   codigo_ccpp?: string;
@@ -90,6 +102,7 @@ export interface LocalidadCreate {
   descripcion?: string;
   coordenadas?: Coordenadas;
   observaciones?: string;
+  metadata?: LocalidadMetadata; // Metadata adicional (alias, etc.)
 
   // Nuevos campos para centros poblados
   codigo_ccpp?: string;
@@ -116,6 +129,7 @@ export interface LocalidadUpdate {
   coordenadas?: Coordenadas;
   observaciones?: string;
   estaActiva?: boolean;
+  metadata?: LocalidadMetadata; // Metadata adicional (alias, etc.)
 
   // Nuevos campos
   codigo_ccpp?: string;

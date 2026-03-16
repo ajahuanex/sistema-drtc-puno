@@ -212,41 +212,55 @@ export class LocalidadModalComponent implements OnInit, OnChanges {
 
   private async cargarDatos() {
     if (this.esEdicion && this.localidad) {
-      // Cargar datos de la localidad existente
-      const tipoLocalidad = this.localidad.tipo || TipoLocalidad.PUEBLO;
-      this.tipoSeleccionado = tipoLocalidad;
+      // Si es un alias, obtener la localidad original
+      let localidadACargar = this.localidad;
       
-      console.log('📋 Cargando localidad:', this.localidad);
+      if (this.localidad.metadata?.es_alias && this.localidad.metadata?.['localidad_id']) {
+        // Buscar la localidad original en el servicio
+        try {
+          localidadACargar = await this.localidadService.obtenerLocalidadPorId(this.localidad.metadata['localidad_id']);
+          console.log('📋 Cargando localidad original (alias detectado):', localidadACargar);
+        } catch (error) {
+          console.error('Error obteniendo localidad original:', error);
+          localidadACargar = this.localidad;
+        }
+      } else {
+        console.log('📋 Cargando localidad:', localidadACargar);
+      }
+      
+      // Cargar datos de la localidad existente
+      const tipoLocalidad = localidadACargar.tipo || TipoLocalidad.PUEBLO;
+      this.tipoSeleccionado = tipoLocalidad;
       
       // Cargar opciones dinámicas
       await this.cargarOpcionesDinamicas();
       
       // Si tiene departamento y provincia, cargar provincias y distritos
-      if (this.localidad.departamento) {
-        await this.cargarProvinciasPorDepartamento(this.localidad.departamento);
+      if (localidadACargar.departamento) {
+        await this.cargarProvinciasPorDepartamento(localidadACargar.departamento);
         
-        if (this.localidad.provincia) {
-          await this.cargarDistritosPorProvincia(this.localidad.departamento, this.localidad.provincia);
+        if (localidadACargar.provincia) {
+          await this.cargarDistritosPorProvincia(localidadACargar.departamento, localidadACargar.provincia);
         }
       }
       
       // Establecer valores en el formulario
       this.formulario.patchValue({
-        nombre: this.localidad.nombre || '',
+        nombre: localidadACargar.nombre || '',
         tipo: tipoLocalidad,
-        ubigeo: this.localidad.ubigeo || '',
-        departamento: this.localidad.departamento || 'PUNO',
-        provincia: this.localidad.provincia || '',
-        distrito: this.localidad.distrito || '',
-        poblacion: this.localidad.poblacion || '',
-        observaciones: this.localidad.observaciones || '',
-        latitud: this.localidad.coordenadas?.latitud || '',
-        longitud: this.localidad.coordenadas?.longitud || ''
+        ubigeo: localidadACargar.ubigeo || '',
+        departamento: localidadACargar.departamento || 'PUNO',
+        provincia: localidadACargar.provincia || '',
+        distrito: localidadACargar.distrito || '',
+        poblacion: localidadACargar.poblacion || '',
+        observaciones: localidadACargar.observaciones || '',
+        latitud: localidadACargar.coordenadas?.latitud || '',
+        longitud: localidadACargar.coordenadas?.longitud || ''
       }, { emitEvent: false });
       
       // Sincronizar controles de autocomplete
-      this.provinciaControl.setValue(this.localidad.provincia || '', { emitEvent: false });
-      this.distritoControl.setValue(this.localidad.distrito || '', { emitEvent: false });
+      this.provinciaControl.setValue(localidadACargar.provincia || '', { emitEvent: false });
+      this.distritoControl.setValue(localidadACargar.distrito || '', { emitEvent: false });
       
       // Cargar alias de la localidad
       await this.cargarAlias();
