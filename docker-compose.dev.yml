@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: sirret-mongodb-dev
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: sirret_dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data_dev:/data/db
+    networks:
+      - sirret-network-dev
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: sirret-backend-dev
+    environment:
+      DATABASE_URL: mongodb://admin:admin123@mongodb:27017/sirret_dev
+      ENVIRONMENT: development
+      DEBUG: "true"
+      LOG_LEVEL: debug
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mongodb
+    networks:
+      - sirret-network-dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: sirret-frontend-dev
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - sirret-network-dev
+
+volumes:
+  mongodb_data_dev:
+
+networks:
+  sirret-network-dev:
+    driver: bridge
