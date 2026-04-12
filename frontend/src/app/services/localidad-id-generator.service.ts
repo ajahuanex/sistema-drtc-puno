@@ -21,12 +21,12 @@ export class LocalidadIdGeneratorService {
    * Generar ID único para una localidad basado en su información
    */
   generarIdLocalidad(localidad: Partial<Localidad>): string {
-    // Generar ID basado en departamento, provincia, distrito y centro poblado
+    // Generar ID basado en departamento, provincia, distrito y nombre
     const partes = [
       localidad.departamento?.replace(/\s+/g, '').toUpperCase(),
       localidad.provincia?.replace(/\s+/g, '').toUpperCase(),
       localidad.distrito?.replace(/\s+/g, '').toUpperCase(),
-      localidad.municipalidad_centro_poblado?.replace(/\s+/g, '').toUpperCase()
+      localidad.nombre?.replace(/\s+/g, '').toUpperCase()
     ].filter(Boolean);
 
     // Crear ID único
@@ -72,7 +72,6 @@ export class LocalidadIdGeneratorService {
               departamento: localidad.departamento,
               provincia: localidad.provincia,
               distrito: localidad.distrito,
-              municipalidad_centro_poblado: localidad.municipalidad_centro_poblado,
               nivelTerritorial: localidad.nivelTerritorial,
               dispositivo_legal_creacion: localidad.dispositivo_legal_creacion,
               coordenadas: localidad.coordenadas,
@@ -81,7 +80,7 @@ export class LocalidadIdGeneratorService {
               tipo: localidad.tipo,
               descripcion: localidad.descripcion,
               observaciones: `ID actualizado: ${nuevoId}`,
-              esta_activa: localidad.esta_activa
+              estaActiva: localidad.estaActiva
             };
             
             await this.localidadService.actualizarLocalidad(localidad.id, actualizacion);
@@ -90,7 +89,7 @@ export class LocalidadIdGeneratorService {
           }
           
         } catch (error: any) {
-          const errorMsg = `Error procesando localidad ${localidad.municipalidad_centro_poblado}: ${error.message}`;
+          const errorMsg = `Error procesando localidad ${localidad.nombre}: ${error.message}`;
           console.error('❌:', errorMsg);
           resultado.errores.push(errorMsg);
         }
@@ -117,11 +116,11 @@ export class LocalidadIdGeneratorService {
     localidades.forEach(localidad => {
       // Crear múltiples claves para facilitar la búsqueda
       const claves = [
-        (localidad.municipalidad_centro_poblado || localidad.nombre || '').toUpperCase(),
+        (localidad.nombre || '').toUpperCase(),
         (localidad.distrito || '').toUpperCase(),
         (localidad.provincia || '').toUpperCase(),
         `${(localidad.distrito || '').toUpperCase()}_${(localidad.provincia || '').toUpperCase()}`,
-        `${(localidad.municipalidad_centro_poblado || localidad.nombre || '').toUpperCase()}_${(localidad.distrito || '').toUpperCase()}`
+        `${(localidad.nombre || '').toUpperCase()}_${(localidad.distrito || '').toUpperCase()}`
       ].filter(clave => clave.length > 0);
       
       claves.forEach(clave => {
