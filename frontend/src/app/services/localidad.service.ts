@@ -340,7 +340,7 @@ export class LocalidadService {
       if (filtros.tipo) params = params.set('tipo', filtros.tipo);
       if (filtros.departamento) params = params.set('departamento', filtros.departamento);
       if (filtros.provincia) params = params.set('provincia', filtros.provincia);
-      if (filtros.nivel_territorial) params = params.set('nivel_territorial', filtros.nivel_territorial);
+      if (filtros.nivelTerritorial) params = params.set('nivelTerritorial', filtros.nivelTerritorial);
       if (typeof filtros.esta_activa !== "undefined") params = params.set('esta_activa', filtros.esta_activa.toString());
     }
 

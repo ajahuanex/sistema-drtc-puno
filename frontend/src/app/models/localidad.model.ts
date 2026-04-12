@@ -167,7 +167,7 @@ export interface LocalidadEnRuta {
   localidad_id: string;
   ubigeo: string;
   nombre: string;
-  nivel_territorial: NivelTerritorial;
+  nivelTerritorial: NivelTerritorial;
   departamento: string;
   provincia: string;
   distrito: string;

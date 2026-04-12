@@ -73,7 +73,7 @@ export class LocalidadIdGeneratorService {
               provincia: localidad.provincia,
               distrito: localidad.distrito,
               municipalidad_centro_poblado: localidad.municipalidad_centro_poblado,
-              nivel_territorial: localidad.nivel_territorial,
+              nivelTerritorial: localidad.nivelTerritorial,
               dispositivo_legal_creacion: localidad.dispositivo_legal_creacion,
               coordenadas: localidad.coordenadas,
               nombre: localidad.nombre,
