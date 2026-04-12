@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -27,6 +27,11 @@ class UsuarioInDB(UsuarioBase):
     estaActivo: bool = True
     fechaCreacion: datetime
     fechaActualizacion: Optional[datetime] = None
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=lambda x: x if x.startswith('_') else x
+    )
 
 class UsuarioResponse(BaseModel):
     id: str
@@ -38,13 +43,11 @@ class UsuarioResponse(BaseModel):
     estaActivo: bool
     fechaCreacion: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     user: UsuarioResponse
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

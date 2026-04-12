@@ -26,7 +26,7 @@ async def get_database():
         await attempt_reconnect()
     
     if db.client:
-        return db.client["drtc_db"]
+        return db.client[settings.DATABASE_NAME]
     else:
         logger.error("❌ No hay conexión a MongoDB disponible")
         return None
@@ -38,7 +38,7 @@ def get_sync_database():
         return None
     
     if db.sync_client:
-        return db.sync_client["drtc_db"]
+        return db.sync_client[settings.DATABASE_NAME]
     else:
         logger.error("❌ No hay conexión síncrona a MongoDB disponible")
         return None
@@ -73,8 +73,8 @@ async def connect_to_mongo():
     """Conecta a MongoDB con manejo de errores mejorado"""
     try:
         # Usar la URL correcta directamente
-        mongodb_url = "mongodb://admin:admin123@localhost:27017/"
-        database_name = "drtc_db"
+        mongodb_url = settings.MONGODB_URL
+        database_name = settings.DATABASE_NAME
         
         logger.info(f"Conectando a MongoDB: {mongodb_url}")
         logger.info(f"Base de datos: {database_name}")

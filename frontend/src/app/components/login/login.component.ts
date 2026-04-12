@@ -83,8 +83,15 @@ import { LoginRequest } from '../../models/usuario.model';
                   <input matInput 
                          formControlName="password" 
                          placeholder="Ingrese su contraseña"
-                         type="password"
+                         [type]="showPassword() ? 'text' : 'password'"
                          required>
+                  <button mat-icon-button 
+                          matSuffix 
+                          (click)="showPassword.set(!showPassword())"
+                          type="button"
+                          class="toggle-password-btn">
+                    <mat-icon>{{ showPassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+                  </button>
                   @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
                     <mat-error>La contraseña es requerida</mat-error>
                   }
@@ -327,6 +334,15 @@ import { LoginRequest } from '../../models/usuario.model';
       color: #6c757d;
     }
 
+    .toggle-password-btn {
+      color: #6c757d;
+      transition: color 0.2s ease;
+    }
+
+    .toggle-password-btn:hover {
+      color: #0066ff;
+    }
+
     .login-button {
       display: flex;
       align-items: center;
@@ -483,6 +499,7 @@ export class LoginComponent {
   // Signals
   isLoading = signal(false);
   logoError = signal(false);
+  showPassword = signal(false);
 
   // Form
   loginForm: FormGroup;

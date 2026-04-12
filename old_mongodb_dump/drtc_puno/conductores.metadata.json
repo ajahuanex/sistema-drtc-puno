@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"dni":{"$numberInt":"1"}},"name":"dni_1","unique":true},{"v":{"$numberInt":"2"},"key":{"empresaId":{"$numberInt":"1"}},"name":"empresaId_1"}],"uuid":"ef01f9674bb6436793031b910cc1f4d8","collectionName":"conductores","type":"collection"}

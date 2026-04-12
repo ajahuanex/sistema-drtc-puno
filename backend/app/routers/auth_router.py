@@ -17,6 +17,8 @@ router = APIRouter(prefix="/auth", tags=["autenticación"])
 async def get_usuario_service():
     """Dependency para obtener el servicio de usuarios"""
     db = await get_database()
+    if db is None:
+        raise HTTPException(status_code=503, detail="Base de datos no disponible")
     return UsuarioService(db)
 
 @router.post("/login", response_model=LoginResponse)
