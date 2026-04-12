@@ -341,7 +341,7 @@ export class LocalidadService {
       if (filtros.departamento) params = params.set('departamento', filtros.departamento);
       if (filtros.provincia) params = params.set('provincia', filtros.provincia);
       if (filtros.nivelTerritorial) params = params.set('nivelTerritorial', filtros.nivelTerritorial);
-      if (typeof filtros.esta_activa !== "undefined") params = params.set('esta_activa', filtros.esta_activa.toString());
+      if (typeof filtros.estaActiva !== "undefined") params = params.set('estaActiva', filtros.estaActiva.toString());
     }
 
     return this.http.get<LocalidadesPaginadas>(`${this.apiUrl}/paginadas`, { params }).toPromise() as Promise<LocalidadesPaginadas>;
