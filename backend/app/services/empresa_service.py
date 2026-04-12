@@ -154,12 +154,39 @@ class EmpresaService:
     async def get_empresas_activas(self, skip: int = 0, limit: int = 100) -> List[EmpresaInDB]:
         cursor = self.collection.find({"estaActivo": True}).skip(skip).limit(limit)
         docs = await cursor.to_list(length=limit)
-        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
+        
+        # Importar mapper aquí para evitar circular imports
+        from app.services.empresa_mapper import EmpresaMapper
+        
+        empresas = []
+        for doc in docs:
+            try:
+                # Mapear documento antiguo al nuevo modelo
+                empresa = EmpresaMapper.map_empresa_antigua(doc)
+                empresas.append(empresa)
+            except Exception as e:
+                print(f"Error mapeando empresa {doc.get('ruc', 'desconocido')}: {e}")
+                continue
+        
+        return empresas
 
     async def get_empresas_por_estado(self, estado: EstadoEmpresa, skip: int = 0, limit: int = 100) -> List[EmpresaInDB]:
         cursor = self.collection.find({"estado": estado, "estaActivo": True}).skip(skip).limit(limit)
         docs = await cursor.to_list(length=limit)
-        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
+        
+        # Importar mapper aquí para evitar circular imports
+        from app.services.empresa_mapper import EmpresaMapper
+        
+        empresas = []
+        for doc in docs:
+            try:
+                empresa = EmpresaMapper.map_empresa_antigua(doc)
+                empresas.append(empresa)
+            except Exception as e:
+                print(f"Error mapeando empresa {doc.get('ruc', 'desconocido')}: {e}")
+                continue
+        
+        return empresas
 
     async def get_empresas_con_filtros(self, filtros: EmpresaFiltros) -> List[EmpresaInDB]:
         query: Dict[str, Any] = {"estaActivo": True}
