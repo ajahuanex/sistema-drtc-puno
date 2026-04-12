@@ -104,9 +104,8 @@ export interface LocalidadCreate {
 
   // Campos de compatibilidad (opcionales)
   ubigeo_identificador_mcp?: string;
-  municipalidad_centro_poblado?: string;
   dispositivo_legal_creacion?: string;
-  nivel_territorial?: NivelTerritorial;
+  nivelTerritorial?: NivelTerritorial;
 }
 
 export interface LocalidadUpdate {
@@ -131,7 +130,6 @@ export interface LocalidadUpdate {
 
   // Campos de compatibilidad (opcionales)
   ubigeo_identificador_mcp?: string;
-  municipalidad_centro_poblado?: string;
   dispositivo_legal_creacion?: string;
   nivelTerritorial?: NivelTerritorial;
 }
@@ -141,7 +139,6 @@ export interface FiltroLocalidades {
   departamento?: string;
   provincia?: string;
   distrito?: string;
-  municipalidad_centro_poblado?: string;
   nivelTerritorial?: NivelTerritorial;
   nombre?: string;
   tipo?: TipoLocalidad;
