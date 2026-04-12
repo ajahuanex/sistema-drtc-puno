@@ -229,8 +229,8 @@ export class LocalidadService {
     if (filtros.tipo) params = params.set('tipo', filtros.tipo);
     if (filtros.departamento) params = params.set('departamento', filtros.departamento);
     if (filtros.provincia) params = params.set('provincia', filtros.provincia);
-    if (filtros.nivel_territorial) params = params.set('nivel_territorial', filtros.nivel_territorial);
-    if (typeof filtros.esta_activa !== "undefined") params = params.set('esta_activa', filtros.esta_activa.toString());
+    if (filtros.nivelTerritorial) params = params.set('nivelTerritorial', filtros.nivelTerritorial);
+    if (typeof filtros.estaActiva !== "undefined") params = params.set('estaActiva', filtros.estaActiva.toString());
 
     const resultado = await this.http.get<Localidad[]>(this.apiUrl, { params }).toPromise();
     // Expandir aliases en resultados con filtros
@@ -324,7 +324,7 @@ export class LocalidadService {
     const localidades = this.localidadesCache.value;
     const localidad = localidades.find(l => l.id === id);
     if (localidad) {
-      localidad.esta_activa = !localidad.esta_activa;
+      localidad.estaActiva = !localidad.estaActiva;
       this.localidadesCache.next([...localidades]);
     }
   }
@@ -481,8 +481,8 @@ export class LocalidadService {
     const localidades = this.localidadesCache.value;
     return {
       total: localidades.length,
-      activas: localidades.filter(l => l.esta_activa).length,
-      inactivas: localidades.filter(l => !l.esta_activa).length,
+      activas: localidades.filter(l => l.estaActiva).length,
+      inactivas: localidades.filter(l => !l.estaActiva).length,
       cacheActualizado: this.cacheActualizado
     };
   }

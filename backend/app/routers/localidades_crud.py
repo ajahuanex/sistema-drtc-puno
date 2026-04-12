@@ -39,7 +39,7 @@ async def obtener_localidades(
     tipo: Optional[TipoLocalidad] = Query(None, description="Filtrar por tipo"),
     departamento: Optional[str] = Query(None, description="Filtrar por departamento"),
     provincia: Optional[str] = Query(None, description="Filtrar por provincia"),
-    esta_activa: Optional[bool] = Query(None, description="Filtrar por estado"),
+    estaActiva: Optional[bool] = Query(None, description="Filtrar por estado"),
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
     limit: int = Query(10000, ge=1, le=20000, description="Número máximo de registros"),
     service: LocalidadService = Depends(get_localidad_service)
@@ -50,7 +50,7 @@ async def obtener_localidades(
         tipo=tipo,
         departamento=departamento,
         provincia=provincia,
-        estaActiva=esta_activa
+        estaActiva=estaActiva
     )
     
     localidades = await service.get_localidades(filtros, skip, limit)
@@ -64,7 +64,7 @@ async def obtener_localidades_paginadas(
     tipo: Optional[TipoLocalidad] = Query(None, description="Filtrar por tipo"),
     departamento: Optional[str] = Query(None, description="Filtrar por departamento"),
     provincia: Optional[str] = Query(None, description="Filtrar por provincia"),
-    esta_activa: Optional[bool] = Query(None, description="Filtrar por estado"),
+    estaActiva: Optional[bool] = Query(None, description="Filtrar por estado"),
     service: LocalidadService = Depends(get_localidad_service)
 ) -> LocalidadesPaginadas:
     """Obtener localidades paginadas"""
@@ -73,7 +73,7 @@ async def obtener_localidades_paginadas(
         tipo=tipo,
         departamento=departamento,
         provincia=provincia,
-        estaActiva=esta_activa
+        estaActiva=estaActiva
     )
     
     return await service.get_localidades_paginadas(pagina, limite, filtros)

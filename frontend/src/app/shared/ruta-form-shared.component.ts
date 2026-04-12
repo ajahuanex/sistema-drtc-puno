@@ -450,7 +450,7 @@ export class RutaWizardComponent {
     // Configurar búsqueda de localidades
     this.localidadesFiltradas.set(
       this.localidadService.getLocalidadesObservable().pipe(
-        map(localidades => localidades.filter(l => l.esta_activa)),
+        map(localidades => localidades.filter(l => l.estaActiva)),
         startWith([])
       )
     );

@@ -439,7 +439,7 @@ export class RutaService {
     return from(this.localidadService.obtenerLocalidades()).pipe(
       map(localidades => {
         return localidades
-          .filter(loc => loc.esta_activa)
+          .filter(loc => loc.estaActiva)
           .slice(0, limite)
           .map(loc => ({
             id: loc.id,

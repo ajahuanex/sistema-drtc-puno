@@ -437,7 +437,7 @@ export class CrearRutaModalComponent implements OnInit {
   private async cargarLocalidades(): Promise<void> {
     try {
       const todasLocalidades = await this.localidadService.obtenerLocalidades();
-      this.localidades = todasLocalidades.filter(l => l.esta_activa);
+      this.localidades = todasLocalidades.filter(l => l.estaActiva);
     } catch (error) {
       console.error('Error cargando localidades:', error);
       this.localidades = [];
