@@ -74,15 +74,7 @@ export interface Localidad {
   fechaActualizacion: string;
 
   // Campo calculado automáticamente (opcional, para compatibilidad futura)
-  nivel_territorial?: NivelTerritorial;
-
-  // Campos de compatibilidad (opcionales)
-  ubigeo_identificador_mcp?: string;
-  municipalidad_centro_poblado?: string;
-  dispositivo_legal_creacion?: string;
-  esta_activa?: boolean; // Alias para estaActiva
-  fecha_creacion?: string; // Alias para fechaCreacion
-  fecha_actualizacion?: string; // Alias para fechaActualizacion
+  nivelTerritorial?: NivelTerritorial;
 }
 
 export interface LocalidadCreate {
@@ -141,8 +133,7 @@ export interface LocalidadUpdate {
   ubigeo_identificador_mcp?: string;
   municipalidad_centro_poblado?: string;
   dispositivo_legal_creacion?: string;
-  nivel_territorial?: NivelTerritorial;
-  esta_activa?: boolean; // Alias para estaActiva
+  nivelTerritorial?: NivelTerritorial;
 }
 
 export interface FiltroLocalidades {
@@ -151,10 +142,10 @@ export interface FiltroLocalidades {
   provincia?: string;
   distrito?: string;
   municipalidad_centro_poblado?: string;
-  nivel_territorial?: NivelTerritorial;
+  nivelTerritorial?: NivelTerritorial;
   nombre?: string;
   tipo?: TipoLocalidad;
-  esta_activa?: boolean;
+  estaActiva?: boolean;
 }
 
 export interface LocalidadesPaginadas {

@@ -93,7 +93,6 @@ class LocalidadUpdate(BaseModel):
     coordenadas: Optional[Coordenadas] = None
     observaciones: Optional[str] = Field(None, max_length=500)
     estaActiva: Optional[bool] = None
-    # Nuevos campos
     codigo_ccpp: Optional[str] = Field(None, max_length=20)
     tipo_area: Optional[str] = Field(None, max_length=20)
     poblacion: Optional[int] = Field(None, ge=0)
@@ -107,7 +106,7 @@ class Localidad(LocalidadBase):
     fechaActualizacion: datetime = Field(default_factory=datetime.utcnow)
     
     # Campo calculado automáticamente
-    nivel_territorial: Optional[str] = Field(None, description="Nivel territorial calculado automáticamente")
+    nivelTerritorial: Optional[str] = Field(None, description="Nivel territorial calculado automáticamente")
 
     class Config:
         from_attributes = True
