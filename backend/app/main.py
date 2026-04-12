@@ -12,7 +12,6 @@ from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 from app.routers.historial_vehicular_router import router as historial_vehicular_router
 from app.routers.vehiculos_solo_router import router as vehiculos_solo_router
-from app.routers.mesa_partes.qr_consulta_router import router as qr_consulta_router
 from app.routers.nivel_territorial_router import router as nivel_territorial_router
 from app.routers.infraestructura import router as infraestructura_router
 from app.routers.localidades_alias_router import router as localidades_alias_router
@@ -118,7 +117,6 @@ app.include_router(geometrias_router, prefix=settings.API_V1_STR)
 app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)
 app.include_router(additional_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)
-app.include_router(qr_consulta_router, tags=["Mesa de Partes - Consulta Pública"])
 
 # Endpoint de salud
 @app.get("/health")
