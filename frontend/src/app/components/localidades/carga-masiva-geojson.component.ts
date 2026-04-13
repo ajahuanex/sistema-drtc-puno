@@ -196,10 +196,6 @@ interface ResultadoImportacion {
                 </mat-checkbox>
               </div>
             </div>
-                  </div>
-                </mat-checkbox>
-              </div>
-            </div>
 
             <div class="datos-esperados">
               <h4>Campos que se importarán:</h4>
