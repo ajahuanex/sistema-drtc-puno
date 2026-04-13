@@ -236,8 +236,8 @@ async def importar_desde_geojson(
                     # Buscar por ubigeo o por nombre y tipo para poder corregir ubigeos incorrectos
                     existe_localidad = await localidades_collection.find_one({
                         "$or": [
-                            {"ubigeo": ubigeo},
-                            {"nombre": nombre, "tipo": tipo, "distrito": nombre}
+                            {"ubigeo": ubigeo, "tipo": tipo},
+                            {"nombre": nombre, "tipo": tipo, "provincia": provincia}
                         ]
                     })
                     
