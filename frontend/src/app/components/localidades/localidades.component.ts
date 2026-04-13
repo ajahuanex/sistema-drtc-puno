@@ -125,69 +125,30 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
 
   // Método para importar localidades desde GeoJSON
   async abrirCargaMasiva() {
-    const dialogRef = this.dialog.open(ConfirmacionImportacionDialog, {
-      width: '500px',
+    // Importar dinámicamente el componente
+    const { CargaMasivaGeojsonComponent } = await import('./carga-masiva-geojson.component');
+    
+    const dialogRef = this.dialog.open(CargaMasivaGeojsonComponent, {
+      width: '700px',
+      maxHeight: '90vh',
       disableClose: false
     });
 
-    const confirmar = await dialogRef.afterClosed().toPromise();
-    if (!confirmar) return;
-
-    try {
-      this.snackBar.open('⏳ Importando localidades...', '', {
-        duration: 0,
-        horizontalPosition: 'end',
-        verticalPosition: 'top',
-        panelClass: ['info-snackbar']
-      });
-
-      // 1. Importar localidades (puntos para rutas)
-      const responseLocalidades: any = await this.http.post(
-        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
-        {},
-        { params: { modo: 'ambos', test: 'false' } }
-      ).toPromise();
-
-      // 2. Importar geometrías (polígonos para mapas)
-      const responseGeometrias: any = await this.http.post(
-        'http://localhost:8000/api/v1/geometrias/importar-desde-geojson',
-        {},
-        { params: { modo: 'ambos' } }
-      ).toPromise();
-
-      this.snackBar.dismiss();
-
-      // Combinar resultados
-      const resultadoCombinado = {
-        localidades: responseLocalidades,
-        geometrias: responseGeometrias,
-        total_importados: responseLocalidades.total_importados + responseGeometrias.total_importados,
-        total_actualizados: responseLocalidades.total_actualizados + responseGeometrias.total_actualizados,
-        detalle: responseLocalidades.detalle
-      };
-
-      // Mostrar resultado en un diálogo bonito
-      this.dialog.open(ResultadoImportacionDialog, {
-        width: '600px',
-        data: resultadoCombinado
-      });
-
-      // Recargar datos
+    const recargar = await dialogRef.afterClosed().toPromise();
+    
+    if (recargar) {
+      // Recargar datos si la importación fue exitosa
       await this.cargarLocalidades();
       await this.cargarEstadisticasCompletas();
-
-    } catch (error: any) {
-      this.snackBar.dismiss();
-      console.error('Error en importación:', error);
       
       this.snackBar.open(
-        '❌ Error al importar: ' + (error.error?.detail || error.message || 'Error desconocido'),
+        '✅ Localidades importadas exitosamente',
         'Cerrar',
         {
           duration: 5000,
           horizontalPosition: 'end',
           verticalPosition: 'top',
-          panelClass: ['error-snackbar']
+          panelClass: ['success-snackbar']
         }
       );
     }
