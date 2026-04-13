@@ -1054,26 +1054,48 @@ export class CargaMasivaGeojsonComponent {
       return;
     }
 
+    // Si usa archivo personalizado, validar que esté seleccionado
+    if (this.usarArchivoPersonalizado && !this.archivoSeleccionado()) {
+      alert('Por favor selecciona un archivo GeoJSON');
+      return;
+    }
+
     this.iniciado.set(true);
     this.cargando.set(true);
     this.validacionCompleta.set(false);
-    this.estadoActual.set('Importando localidades desde base de datos...');
+    this.estadoActual.set('Importando localidades...');
 
     try {
-      // Construir parámetros de selección
-      const params = new URLSearchParams({
-        modo: this.modoImportacion,
-        test: 'false',
-        provincias: this.importarProvincias.toString(),
-        distritos: this.importarDistritos.toString(),
-        centros_poblados: this.importarCentrosPoblados.toString()
-      });
+      let resultado: any;
 
-      // Llamar al endpoint que importa desde GeoJSON en el backend
-      const resultado: any = await this.http.post(
-        `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
-        {}
-      ).toPromise();
+      if (this.usarArchivoPersonalizado && this.archivoSeleccionado()) {
+        // Importar desde archivo personalizado
+        const formData = new FormData();
+        formData.append('file', this.archivoSeleccionado()!);
+        formData.append('modo', this.modoImportacion);
+        formData.append('provincias', this.importarProvincias.toString());
+        formData.append('distritos', this.importarDistritos.toString());
+        formData.append('centros_poblados', this.importarCentrosPoblados.toString());
+
+        resultado = await this.http.post(
+          'http://localhost:8000/api/v1/localidades/importar-desde-archivo',
+          formData
+        ).toPromise();
+      } else {
+        // Importar desde archivos por defecto
+        const params = new URLSearchParams({
+          modo: this.modoImportacion,
+          test: 'false',
+          provincias: this.importarProvincias.toString(),
+          distritos: this.importarDistritos.toString(),
+          centros_poblados: this.importarCentrosPoblados.toString()
+        });
+
+        resultado = await this.http.post(
+          `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
+          {}
+        ).toPromise();
+      }
 
       console.log('📊 Resultado importación:', resultado);
 
@@ -1113,19 +1135,48 @@ export class CargaMasivaGeojsonComponent {
       return;
     }
 
+    // Si usa archivo personalizado, validar que esté seleccionado
+    if (this.usarArchivoPersonalizado && !this.archivoSeleccionado()) {
+      alert('Por favor selecciona un archivo GeoJSON');
+      return;
+    }
+
     this.iniciado.set(true);
     this.cargando.set(true);
     this.estadoActual.set('TEST: Importando 2 de cada tipo...');
 
     try {
-      // Construir parámetros de selección
-      const params = new URLSearchParams({
-        modo: this.modoImportacion,
-        test: 'true',
-        provincias: this.importarProvincias.toString(),
-        distritos: this.importarDistritos.toString(),
-        centros_poblados: this.importarCentrosPoblados.toString()
-      });
+      let resultado: any;
+
+      if (this.usarArchivoPersonalizado && this.archivoSeleccionado()) {
+        // Importar desde archivo personalizado (test)
+        const formData = new FormData();
+        formData.append('file', this.archivoSeleccionado()!);
+        formData.append('modo', this.modoImportacion);
+        formData.append('test', 'true');
+        formData.append('provincias', this.importarProvincias.toString());
+        formData.append('distritos', this.importarDistritos.toString());
+        formData.append('centros_poblados', this.importarCentrosPoblados.toString());
+
+        resultado = await this.http.post(
+          'http://localhost:8000/api/v1/localidades/importar-desde-archivo',
+          formData
+        ).toPromise();
+      } else {
+        // Importar desde archivos por defecto (test)
+        const params = new URLSearchParams({
+          modo: this.modoImportacion,
+          test: 'true',
+          provincias: this.importarProvincias.toString(),
+          distritos: this.importarDistritos.toString(),
+          centros_poblados: this.importarCentrosPoblados.toString()
+        });
+
+        resultado = await this.http.post(
+          `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
+          {}
+        ).toPromise();
+      }
 
       const resultado: any = await this.http.post(
         `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
