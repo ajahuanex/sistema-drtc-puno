@@ -972,7 +972,7 @@ export class CargaMasivaGeojsonComponent {
 
       // Analizar los datos (sin centros poblados)
       const totalFeatures = provinciasPuno.length + distritos.features.length; // + centros.features.length;
-      
+
       const validacion: ValidacionPrevia = {
         totalFeatures: totalFeatures,
         conCoordenadas: 0,
@@ -1116,7 +1116,7 @@ export class CargaMasivaGeojsonComponent {
       console.error('Error en importación:', error);
       this.cargando.set(false);
       this.completado.set(true);
-      
+
       this.resultado.set({
         total: 0,
         importados: 0,
@@ -1178,11 +1178,6 @@ export class CargaMasivaGeojsonComponent {
         ).toPromise();
       }
 
-      const resultado: any = await this.http.post(
-        `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
-        {}
-      ).toPromise();
-
       this.cargando.set(false);
       this.completado.set(true);
 
@@ -1203,7 +1198,7 @@ export class CargaMasivaGeojsonComponent {
       console.error('Error en TEST:', error);
       this.cargando.set(false);
       this.completado.set(true);
-      
+
       this.resultado.set({
         total: 0,
         importados: 0,
@@ -1218,7 +1213,7 @@ export class CargaMasivaGeojsonComponent {
   private async cargarProvincias() {
     const geojsonData = await this.http.get<any>('assets/geojson/peru-provincias.geojson').toPromise();
     const features = geojsonData.features.filter((f: any) => f.properties.NOMBDEP === 'PUNO');
-    
+
     let importados = 0, actualizados = 0, omitidos = 0, errores = 0;
 
     for (const feature of features) {
@@ -1264,7 +1259,7 @@ export class CargaMasivaGeojsonComponent {
   private async cargarDistritos() {
     const geojsonData = await this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise();
     const features = geojsonData.features;
-    
+
     let importados = 0, actualizados = 0, omitidos = 0, errores = 0;
 
     for (const feature of features) {
@@ -1345,8 +1340,8 @@ export class CargaMasivaGeojsonComponent {
         departamento: 'PUNO'
       });
 
-      return localidades.find((l: any) => 
-        (ubigeo && l.ubigeo === ubigeo) || 
+      return localidades.find((l: any) =>
+        (ubigeo && l.ubigeo === ubigeo) ||
         (l.nombre === nombre && l.tipo === tipo)
       );
     } catch (error) {
