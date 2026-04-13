@@ -1078,7 +1078,7 @@ export class CargaMasivaGeojsonComponent {
         formData.append('centros_poblados', this.importarCentrosPoblados.toString());
 
         resultado = await this.http.post(
-          'http://localhost:8000/api/v1/importar-desde-archivo',
+          'http://localhost:8000/api/v1/localidades/importar-desde-archivo',
           formData
         ).toPromise();
       } else {
@@ -1159,7 +1159,7 @@ export class CargaMasivaGeojsonComponent {
         formData.append('centros_poblados', this.importarCentrosPoblados.toString());
 
         resultado = await this.http.post(
-          'http://localhost:8000/api/v1/importar-desde-archivo',
+          'http://localhost:8000/api/v1/localidades/importar-desde-archivo',
           formData
         ).toPromise();
       } else {
