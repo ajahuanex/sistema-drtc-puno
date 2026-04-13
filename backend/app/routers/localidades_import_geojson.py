@@ -401,7 +401,7 @@ async def importar_desde_geojson(
 
 @router.post("/importar-desde-archivo")
 async def importar_desde_archivo(
-    file: UploadFile,
+    file: UploadFile = File(...),
     modo: str = Query("ambos", description="crear, actualizar o ambos"),
     test: bool = Query(False, description="Modo test: solo 2 de cada tipo"),
     provincias: bool = Query(True, description="Importar provincias"),
@@ -411,8 +411,6 @@ async def importar_desde_archivo(
     """
     Importa localidades desde un archivo GeoJSON personalizado cargado por el usuario
     """
-    from fastapi import UploadFile, File
-    
     db = await get_database()
     localidades_collection = db.localidades
     
