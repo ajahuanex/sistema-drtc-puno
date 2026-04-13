@@ -7,6 +7,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { LocalidadService } from '../../services/localidad.service';
@@ -68,7 +69,8 @@ interface ResultadoImportacion {
     MatProgressBarModule,
     MatCardModule,
     MatChipsModule,
-    MatRadioModule
+    MatRadioModule,
+    MatCheckboxModule
   ],
   template: `
     <div class="carga-masiva-dialog">
@@ -105,14 +107,14 @@ interface ResultadoImportacion {
                 <mat-radio-button value="crear">
                   <div class="radio-content">
                     <strong>Crear solo nuevos</strong>
-                    <span>Importa únicamente centros poblados que no existen</span>
+                    <span>Importa únicamente localidades que no existen</span>
                   </div>
                 </mat-radio-button>
                 
                 <mat-radio-button value="actualizar">
                   <div class="radio-content">
                     <strong>Actualizar solo existentes</strong>
-                    <span>Actualiza únicamente centros poblados ya registrados</span>
+                    <span>Actualiza únicamente localidades ya registradas</span>
                   </div>
                 </mat-radio-button>
                 
@@ -123,6 +125,32 @@ interface ResultadoImportacion {
                   </div>
                 </mat-radio-button>
               </mat-radio-group>
+            </div>
+
+            <div class="tipos-seleccion">
+              <h3>Selecciona qué tipos de localidades importar:</h3>
+              <div class="checkbox-group">
+                <mat-checkbox [(ngModel)]="importarProvincias" class="tipo-checkbox">
+                  <div class="checkbox-content">
+                    <strong>Provincias</strong>
+                    <span>13 provincias de Puno</span>
+                  </div>
+                </mat-checkbox>
+                
+                <mat-checkbox [(ngModel)]="importarDistritos" class="tipo-checkbox">
+                  <div class="checkbox-content">
+                    <strong>Distritos</strong>
+                    <span>~110 distritos de Puno</span>
+                  </div>
+                </mat-checkbox>
+                
+                <mat-checkbox [(ngModel)]="importarCentrosPoblados" class="tipo-checkbox">
+                  <div class="checkbox-content">
+                    <strong>Centros Poblados</strong>
+                    <span>~9000 centros poblados (desde backend)</span>
+                  </div>
+                </mat-checkbox>
+              </div>
             </div>
 
             <div class="datos-esperados">
@@ -460,6 +488,42 @@ interface ResultadoImportacion {
       }
     }
 
+    .tipos-seleccion {
+      h3 {
+        margin: 0 0 16px 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        mat-checkbox {
+          ::ng-deep .mdc-checkbox {
+            padding: 8px;
+          }
+
+          .checkbox-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-left: 8px;
+
+            strong {
+              font-size: 14px;
+            }
+
+            span {
+              font-size: 12px;
+              color: #666;
+            }
+          }
+        }
+      }
+    }
+
     .datos-esperados {
       h4 {
         margin: 0 0 12px 0;
@@ -733,6 +797,11 @@ export class CargaMasivaGeojsonComponent {
   // Modo de importación
   modoImportacion = 'ambos';
 
+  // Selección de tipos de localidades
+  importarProvincias = true;
+  importarDistritos = true;
+  importarCentrosPoblados = true;
+
   // Validación previa
   validacion = signal<ValidacionPrevia | null>(null);
 
@@ -856,17 +925,31 @@ export class CargaMasivaGeojsonComponent {
   }
 
   async iniciarImportacion() {
+    // Validar que al menos un tipo esté seleccionado
+    if (!this.importarProvincias && !this.importarDistritos && !this.importarCentrosPoblados) {
+      alert('Por favor selecciona al menos un tipo de localidad para importar');
+      return;
+    }
+
     this.iniciado.set(true);
     this.cargando.set(true);
     this.validacionCompleta.set(false);
     this.estadoActual.set('Importando localidades desde base de datos...');
 
     try {
+      // Construir parámetros de selección
+      const params = new URLSearchParams({
+        modo: this.modoImportacion,
+        test: 'false',
+        provincias: this.importarProvincias.toString(),
+        distritos: this.importarDistritos.toString(),
+        centros_poblados: this.importarCentrosPoblados.toString()
+      });
+
       // Llamar al endpoint que importa desde GeoJSON en el backend
       const resultado: any = await this.http.post(
-        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
-        {},
-        { params: { modo: this.modoImportacion, test: 'false' } }
+        `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
+        {}
       ).toPromise();
 
       console.log('📊 Resultado importación:', resultado);
@@ -901,15 +984,29 @@ export class CargaMasivaGeojsonComponent {
   }
 
   async importarTest() {
+    // Validar que al menos un tipo esté seleccionado
+    if (!this.importarProvincias && !this.importarDistritos && !this.importarCentrosPoblados) {
+      alert('Por favor selecciona al menos un tipo de localidad para importar');
+      return;
+    }
+
     this.iniciado.set(true);
     this.cargando.set(true);
     this.estadoActual.set('TEST: Importando 2 de cada tipo...');
 
     try {
+      // Construir parámetros de selección
+      const params = new URLSearchParams({
+        modo: this.modoImportacion,
+        test: 'true',
+        provincias: this.importarProvincias.toString(),
+        distritos: this.importarDistritos.toString(),
+        centros_poblados: this.importarCentrosPoblados.toString()
+      });
+
       const resultado: any = await this.http.post(
-        'http://localhost:8000/api/v1/localidades/importar-desde-geojson',
-        {},
-        { params: { modo: this.modoImportacion, test: 'true' } }
+        `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
+        {}
       ).toPromise();
 
       this.cargando.set(false);
