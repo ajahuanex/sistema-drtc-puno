@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatTabsModule } from '@angular/material/tabs';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { LocalidadService } from '../../services/localidad.service';
@@ -70,7 +71,8 @@ interface ResultadoImportacion {
     MatCardModule,
     MatChipsModule,
     MatRadioModule,
-    MatCheckboxModule
+    MatCheckboxModule,
+    MatTabsModule
   ],
   template: `
     <div class="carga-masiva-dialog">
@@ -88,18 +90,60 @@ interface ResultadoImportacion {
         @if (!iniciado() && !validando() && !validacionCompleta()) {
           <!-- Paso 1: Selección de modo -->
           <div class="paso-inicial">
-            <div class="info-card">
-              <mat-icon class="info-icon">info</mat-icon>
-              <div class="info-content">
-                <h3>Importar Localidades Completas de Puno</h3>
-                <p>
-                  Este proceso importará TODAS las localidades desde archivos GeoJSON:
-                  <br>• <strong>13 Provincias</strong> desde puno-provincias.geojson
-                  <br>• <strong>~110 Distritos</strong> desde puno-distritos.geojson
-                  <br>• <strong>~9000 Centros Poblados</strong> desde puno-centrospoblados.geojson
-                </p>
-              </div>
-            </div>
+            <mat-tab-group>
+              <!-- Tab 1: Archivos por defecto -->
+              <mat-tab label="Archivos por Defecto">
+                <div class="tab-content">
+                  <div class="info-card">
+                    <mat-icon class="info-icon">info</mat-icon>
+                    <div class="info-content">
+                      <h3>Importar Localidades Completas de Puno</h3>
+                      <p>
+                        Este proceso importará TODAS las localidades desde archivos GeoJSON:
+                        <br>• <strong>13 Provincias</strong> desde puno-provincias.geojson
+                        <br>• <strong>~110 Distritos</strong> desde puno-distritos.geojson
+                        <br>• <strong>~9000 Centros Poblados</strong> desde puno-centrospoblados.geojson
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </mat-tab>
+
+              <!-- Tab 2: Archivo personalizado -->
+              <mat-tab label="Archivo Personalizado">
+                <div class="tab-content">
+                  <div class="upload-card">
+                    <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                    <h3>Cargar archivo GeoJSON personalizado</h3>
+                    <p>Selecciona un archivo .geojson desde tu computadora</p>
+                    
+                    <div class="file-input-wrapper">
+                      <input 
+                        type="file" 
+                        #fileInput 
+                        accept=".geojson,.json"
+                        (change)="onFileSelected($event)"
+                        style="display: none"
+                      >
+                      <button mat-raised-button color="primary" (click)="fileInput.click()">
+                        <mat-icon>attach_file</mat-icon>
+                        Seleccionar Archivo
+                      </button>
+                    </div>
+
+                    @if (archivoSeleccionado()) {
+                      <div class="archivo-info">
+                        <mat-icon class="success-icon">check_circle</mat-icon>
+                        <div>
+                          <strong>{{ archivoSeleccionado()?.name }}</strong>
+                          <span>{{ (archivoSeleccionado()?.size || 0) / 1024 | number:'1.0-0' }} KB</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </mat-tab>
+            </mat-tab-group>
 
             <div class="modo-seleccion">
               <h3>Selecciona el modo de importación:</h3>
@@ -148,6 +192,10 @@ interface ResultadoImportacion {
                   <div class="checkbox-content">
                     <strong>Centros Poblados</strong>
                     <span>~9000 centros poblados (desde backend)</span>
+                  </div>
+                </mat-checkbox>
+              </div>
+            </div>
                   </div>
                 </mat-checkbox>
               </div>
@@ -524,6 +572,81 @@ interface ResultadoImportacion {
       }
     }
 
+    .tab-content {
+      padding: 16px 0;
+    }
+
+    .upload-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 24px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      border: 2px dashed #2196f3;
+      text-align: center;
+
+      .upload-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        color: #2196f3;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .file-input-wrapper {
+        display: flex;
+        gap: 12px;
+      }
+    }
+
+    .archivo-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      border-left: 4px solid #4caf50;
+      width: 100%;
+
+      .success-icon {
+        color: #4caf50;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+
+      div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+
+        strong {
+          font-size: 14px;
+        }
+
+        span {
+          font-size: 12px;
+          color: #666;
+        }
+      }
+    }
+
     .datos-esperados {
       h4 {
         margin: 0 0 12px 0;
@@ -801,6 +924,10 @@ export class CargaMasivaGeojsonComponent {
   importarProvincias = true;
   importarDistritos = true;
   importarCentrosPoblados = true;
+
+  // Archivo personalizado
+  archivoSeleccionado = signal<File | null>(null);
+  usarArchivoPersonalizado = false;
 
   // Validación previa
   validacion = signal<ValidacionPrevia | null>(null);
@@ -1182,6 +1309,20 @@ export class CargaMasivaGeojsonComponent {
 
   cerrar() {
     this.dialogRef()?.close(false);
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (file.name.endsWith('.geojson') || file.name.endsWith('.json')) {
+        this.archivoSeleccionado.set(file);
+        this.usarArchivoPersonalizado = true;
+      } else {
+        alert('Por favor selecciona un archivo .geojson o .json');
+        this.archivoSeleccionado.set(null);
+      }
+    }
   }
 
   cerrarYRecargar() {
