@@ -1041,7 +1041,7 @@ export class CargaMasivaGeojsonComponent {
     }
   }
 
-  private async importarProvincias() {
+  private async cargarProvincias() {
     const geojsonData = await this.http.get<any>('assets/geojson/peru-provincias.geojson').toPromise();
     const features = geojsonData.features.filter((f: any) => f.properties.NOMBDEP === 'PUNO');
     
@@ -1087,7 +1087,7 @@ export class CargaMasivaGeojsonComponent {
     return { importados, actualizados, omitidos, errores };
   }
 
-  private async importarDistritos() {
+  private async cargarDistritos() {
     const geojsonData = await this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise();
     const features = geojsonData.features;
     
@@ -1133,7 +1133,7 @@ export class CargaMasivaGeojsonComponent {
     return { importados, actualizados, omitidos, errores };
   }
 
-  private async importarCentrosPoblados() {
+  private async cargarCentrosPoblados() {
     // DESHABILITADO: Archivo muy grande (10MB, 9372 features)
     // Los centros poblados deben importarse desde el backend
     console.warn('⚠️ Importación de centros poblados deshabilitada en frontend');
