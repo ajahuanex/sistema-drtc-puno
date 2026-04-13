@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -924,6 +924,10 @@ export class CargaMasivaGeojsonComponent {
   // Archivo personalizado
   archivoSeleccionado = signal<File | null>(null);
   usarArchivoPersonalizado = false;
+  
+  // Mapeo de columnas
+  mapeoColumnas = signal<any | null>(null);
+  datosPreview = signal<any[]>([]);
 
   // Validación previa
   validacion = signal<ValidacionPrevia | null>(null);
@@ -943,6 +947,7 @@ export class CargaMasivaGeojsonComponent {
   constructor(
     private http: HttpClient,
     private localidadService: LocalidadService,
+    private dialog: MatDialog,
     dialogRef: MatDialogRef<CargaMasivaGeojsonComponent>
   ) {
     this.dialogRef.set(dialogRef);
@@ -1353,18 +1358,59 @@ export class CargaMasivaGeojsonComponent {
     this.dialogRef()?.close(false);
   }
 
-  onFileSelected(event: Event) {
+  async onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       if (file.name.endsWith('.geojson') || file.name.endsWith('.json')) {
         this.archivoSeleccionado.set(file);
         this.usarArchivoPersonalizado = true;
+        
+        // Leer el archivo para obtener vista previa
+        try {
+          const contenido = await file.text();
+          const data = JSON.parse(contenido);
+          
+          if (data.features && data.features.length > 0) {
+            // Extraer columnas disponibles
+            const primeraFeature = data.features[0];
+            const columnas = Object.keys(primeraFeature.properties || {});
+            
+            // Obtener datos de preview
+            const preview = data.features.slice(0, 3).map((f: any) => f.properties);
+            this.datosPreview.set(preview);
+            
+            // Abrir diálogo de mapeo
+            this.abrirMapeoColumnas(columnas, preview);
+          }
+        } catch (error) {
+          alert('Error al leer el archivo: ' + (error as any).message);
+          this.archivoSeleccionado.set(null);
+        }
       } else {
         alert('Por favor selecciona un archivo .geojson o .json');
         this.archivoSeleccionado.set(null);
       }
     }
+  }
+
+  private abrirMapeoColumnas(columnas: string[], datos: any[]) {
+    // Importar dinámicamente el componente
+    import('./mapeo-columnas-dialog.component').then(({ MapeoColumnasDialogComponent }) => {
+      const dialogRef = this.dialog.open(MapeoColumnasDialogComponent, {
+        width: '700px',
+        data: { columnas, datos }
+      });
+
+      dialogRef.afterClosed().subscribe((mapeo) => {
+        if (mapeo) {
+          this.mapeoColumnas.set(mapeo);
+        } else {
+          this.archivoSeleccionado.set(null);
+          this.usarArchivoPersonalizado = false;
+        }
+      });
+    });
   }
 
   cerrarYRecargar() {
