@@ -1,7 +1,7 @@
 """
 Router para importación masiva de localidades desde archivos GeoJSON
 """
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from typing import Dict, Any
 import json
 from pathlib import Path
@@ -397,3 +397,112 @@ async def importar_desde_geojson(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error en importación: {str(e)}")
+
+
+@router.post("/importar-desde-archivo")
+async def importar_desde_archivo(
+    file: UploadFile,
+    modo: str = Query("ambos", description="crear, actualizar o ambos"),
+    test: bool = Query(False, description="Modo test: solo 2 de cada tipo"),
+    provincias: bool = Query(True, description="Importar provincias"),
+    distritos: bool = Query(True, description="Importar distritos"),
+    centros_poblados: bool = Query(True, description="Importar centros poblados")
+) -> Dict[str, Any]:
+    """
+    Importa localidades desde un archivo GeoJSON personalizado cargado por el usuario
+    """
+    from fastapi import UploadFile, File
+    
+    db = await get_database()
+    localidades_collection = db.localidades
+    
+    resultado = {
+        "total_importados": 0,
+        "total_actualizados": 0,
+        "total_omitidos": 0,
+        "total_errores": 0,
+        "detalle": "Importación desde archivo personalizado"
+    }
+    
+    try:
+        # Leer el contenido del archivo
+        contenido = await file.read()
+        data = json.loads(contenido.decode('utf-8'))
+        
+        if not isinstance(data, dict) or 'features' not in data:
+            raise HTTPException(status_code=400, detail="Archivo GeoJSON inválido")
+        
+        features = data['features'][:2] if test else data['features']
+        
+        for feature in features:
+            try:
+                props = feature.get('properties', {})
+                coords = feature.get('geometry', {}).get('coordinates', [0, 0])
+                
+                # Intentar obtener el nombre de diferentes campos posibles
+                nombre = (props.get('nombre') or props.get('NOMBRE') or 
+                         props.get('name') or props.get('NAME') or 
+                         props.get('NOMB_CCPP') or props.get('NOMBPROV') or 
+                         props.get('DISTRITO') or '').strip()
+                
+                if not nombre:
+                    resultado["total_omitidos"] += 1
+                    continue
+                
+                # Obtener otros campos
+                tipo = props.get('tipo') or props.get('TIPO') or props.get('type') or 'LOCALIDAD'
+                ubigeo = props.get('ubigeo') or props.get('UBIGEO') or ''
+                departamento = props.get('departamento') or props.get('DEPARTAMENTO') or 'PUNO'
+                provincia = props.get('provincia') or props.get('PROVINCIA') or props.get('NOMBPROV') or ''
+                distrito = props.get('distrito') or props.get('DISTRITO') or ''
+                
+                # Crear documento de localidad
+                localidad_data = {
+                    "nombre": nombre,
+                    "tipo": tipo,
+                    "ubigeo": ubigeo,
+                    "departamento": departamento,
+                    "provincia": provincia,
+                    "distrito": distrito,
+                    "descripcion": props.get('descripcion') or props.get('DESCRIPCION') or f"Localidad: {nombre}",
+                    "coordenadas": {
+                        "longitud": coords[0] if len(coords) > 0 else 0,
+                        "latitud": coords[1] if len(coords) > 1 else 0
+                    },
+                    "estaActiva": True,
+                    "fechaActualizacion": datetime.utcnow()
+                }
+                
+                # Buscar si ya existe
+                existe = await localidades_collection.find_one({
+                    "nombre": nombre,
+                    "tipo": tipo
+                })
+                
+                if existe:
+                    if modo in ["actualizar", "ambos"]:
+                        await localidades_collection.update_one(
+                            {"_id": existe["_id"]},
+                            {"$set": localidad_data}
+                        )
+                        resultado["total_actualizados"] += 1
+                    else:
+                        resultado["total_omitidos"] += 1
+                else:
+                    if modo in ["crear", "ambos"]:
+                        localidad_data["fechaCreacion"] = datetime.utcnow()
+                        await localidades_collection.insert_one(localidad_data)
+                        resultado["total_importados"] += 1
+                    else:
+                        resultado["total_omitidos"] += 1
+                        
+            except Exception as e:
+                print(f"Error procesando feature: {e}")
+                resultado["total_errores"] += 1
+        
+        return resultado
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Archivo no es un JSON válido")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importando archivo: {str(e)}")
