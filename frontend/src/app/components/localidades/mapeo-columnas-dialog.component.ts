@@ -109,7 +109,7 @@ interface MapeoColumnas {
                   {{ col }}
                 </mat-option>
               </mat-select>
-              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.tipo] }}</small>
+              <small class="valor-actual" *ngIf="mapeo.tipo">Valor: {{ datosPreview[0]?.[mapeo.tipo] }}</small>
             </div>
           </div>
         </div>
