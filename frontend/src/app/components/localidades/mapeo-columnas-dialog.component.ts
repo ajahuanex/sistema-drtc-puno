@@ -35,75 +35,98 @@ interface MapeoColumnas {
       <h2 mat-dialog-title>Mapear Columnas del GeoJSON</h2>
       
       <mat-dialog-content>
-        <p class="instrucciones">Selecciona qué columna del archivo corresponde a cada campo:</p>
-        
-        <div class="mapeo-form">
-          <mat-form-field appearance="outline">
-            <mat-label>Nombre</mat-label>
-            <mat-select [(ngModel)]="mapeo.nombre">
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+        <div class="contenedor-principal">
+          <!-- Columnas disponibles -->
+          <div class="columnas-disponibles">
+            <h3>Columnas Disponibles en el Archivo:</h3>
+            <div class="lista-columnas">
+              <div *ngFor="let col of columnasDisponibles" class="columna-item">
+                <span class="columna-nombre">{{ col }}</span>
+                <span class="columna-ejemplo">{{ datosPreview[0]?.[col] }}</span>
+              </div>
+            </div>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>UBIGEO</mat-label>
-            <mat-select [(ngModel)]="mapeo.ubigeo">
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+          <!-- Mapeo de columnas -->
+          <div class="mapeo-form">
+            <h3>Mapear Campos:</h3>
+            
+            <div class="campo-mapeo">
+              <label>Nombre *</label>
+              <mat-select [(ngModel)]="mapeo.nombre" class="select-mapeo">
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.nombre] }}</small>
+            </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Departamento</mat-label>
-            <mat-select [(ngModel)]="mapeo.departamento">
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+            <div class="campo-mapeo">
+              <label>UBIGEO *</label>
+              <mat-select [(ngModel)]="mapeo.ubigeo" class="select-mapeo">
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.ubigeo] }}</small>
+            </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Provincia</mat-label>
-            <mat-select [(ngModel)]="mapeo.provincia">
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+            <div class="campo-mapeo">
+              <label>Departamento *</label>
+              <mat-select [(ngModel)]="mapeo.departamento" class="select-mapeo">
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.departamento] }}</small>
+            </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Distrito</mat-label>
-            <mat-select [(ngModel)]="mapeo.distrito">
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+            <div class="campo-mapeo">
+              <label>Provincia *</label>
+              <mat-select [(ngModel)]="mapeo.provincia" class="select-mapeo">
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.provincia] }}</small>
+            </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Tipo (Opcional)</mat-label>
-            <mat-select [(ngModel)]="mapeo.tipo">
-              <mat-option value="">Ninguno</mat-option>
-              <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
-                {{ col }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+            <div class="campo-mapeo">
+              <label>Distrito *</label>
+              <mat-select [(ngModel)]="mapeo.distrito" class="select-mapeo">
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.distrito] }}</small>
+            </div>
+
+            <div class="campo-mapeo">
+              <label>Tipo (Opcional)</label>
+              <mat-select [(ngModel)]="mapeo.tipo" class="select-mapeo">
+                <mat-option value="">Ninguno</mat-option>
+                <mat-option *ngFor="let col of columnasDisponibles" [value]="col">
+                  {{ col }}
+                </mat-option>
+              </mat-select>
+              <small class="valor-actual">Valor: {{ datosPreview[0]?.[mapeo.tipo] }}</small>
+            </div>
+          </div>
         </div>
 
+        <!-- Vista previa de datos -->
         <div class="preview">
           <h3>Vista Previa (primeros 3 registros):</h3>
-          <table mat-table [dataSource]="datosPreview" class="preview-table">
-            <ng-container *ngFor="let col of columnasDisponibles" [matColumnDef]="col">
-              <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
-              <td mat-cell *matCellDef="let element">{{ element[col] }}</td>
-            </ng-container>
-            <tr mat-header-row *matHeaderRowDef="columnasDisponibles"></tr>
-            <tr mat-row *matRowDef="let row; columns: columnasDisponibles;"></tr>
-          </table>
+          <div class="preview-scroll">
+            <table mat-table [dataSource]="datosPreview" class="preview-table">
+              <ng-container *ngFor="let col of columnasDisponibles" [matColumnDef]="col">
+                <th mat-header-cell *matHeaderCellDef>{{ col }}</th>
+                <td mat-cell *matCellDef="let element">{{ element[col] }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="columnasDisponibles"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasDisponibles;"></tr>
+            </table>
+          </div>
         </div>
       </mat-dialog-content>
 
@@ -115,43 +138,144 @@ interface MapeoColumnas {
   `,
   styles: [`
     .mapeo-dialog {
-      width: 600px;
-      max-width: 90vw;
+      width: 900px;
+      max-width: 95vw;
+      max-height: 90vh;
     }
 
-    .instrucciones {
-      margin-bottom: 20px;
-      color: #666;
+    mat-dialog-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-height: calc(90vh - 150px);
+      overflow-y: auto;
+    }
+
+    .contenedor-principal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .columnas-disponibles {
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .lista-columnas {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+
+        .columna-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px;
+          background: white;
+          border-radius: 4px;
+          border-left: 3px solid #2196f3;
+          font-size: 12px;
+
+          .columna-nombre {
+            font-weight: 600;
+            color: #333;
+          }
+
+          .columna-ejemplo {
+            color: #999;
+            font-size: 11px;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
     }
 
     .mapeo-form {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 24px;
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+      }
 
-      mat-form-field {
-        width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .campo-mapeo {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .select-mapeo {
+          width: 100%;
+        }
+
+        .valor-actual {
+          font-size: 11px;
+          color: #999;
+          padding: 4px 0;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
     }
 
     .preview {
-      margin-top: 24px;
-      padding: 16px;
-      background: #f5f5f5;
-      border-radius: 8px;
-
       h3 {
         margin: 0 0 12px 0;
         font-size: 14px;
-        font-weight: 500;
+        font-weight: 600;
       }
 
-      .preview-table {
-        width: 100%;
-        font-size: 12px;
-        max-height: 300px;
-        overflow-y: auto;
+      .preview-scroll {
+        overflow-x: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+
+        .preview-table {
+          width: 100%;
+          font-size: 11px;
+          background: white;
+
+          th {
+            background: #f5f5f5;
+            font-weight: 600;
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          tr:hover {
+            background: #fafafa;
+          }
+        }
       }
     }
 
@@ -159,6 +283,7 @@ interface MapeoColumnas {
       padding: 16px 0 0 0;
       justify-content: flex-end;
       gap: 12px;
+      border-top: 1px solid #e0e0e0;
     }
   `]
 })
