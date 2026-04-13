@@ -7,12 +7,119 @@ from datetime import datetime, timezone
 from bson import ObjectId
 import os
 from dotenv import load_dotenv
+import json
+from pathlib import Path
 
 load_dotenv()
 
 # Configuración de MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = "sirret_db"
+
+# Rutas a los archivos GeoJSON
+FRONTEND_PATH = Path(__file__).parent / "frontend"
+GEOJSON_PATH = FRONTEND_PATH / "src" / "assets" / "geojson"
+
+PROVINCIAS_POINT_FILE = GEOJSON_PATH / "puno-provincias-point.geojson"
+DISTRITOS_POINT_FILE = GEOJSON_PATH / "puno-distritos-point.geojson"
+CENTROS_POBLADOS_FILE = GEOJSON_PATH / "puno-centrospoblados.geojson"
+
+async def cargar_localidades_desde_geojson():
+    """Cargar localidades desde archivos GeoJSON"""
+    localidades = []
+    
+    # Cargar provincias
+    if PROVINCIAS_POINT_FILE.exists():
+        with open(PROVINCIAS_POINT_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        for feature in data['features']:
+            props = feature['properties']
+            coords = feature['geometry']['coordinates']
+            nombre = props.get('NOMBPROV', '').strip()
+            
+            if nombre:
+                localidades.append({
+                    "nombre": nombre,
+                    "tipo": "PROVINCIA",
+                    "ubigeo": f"21{props.get('IDPROV', '')}01",
+                    "departamento": "PUNO",
+                    "provincia": nombre,
+                    "distrito": nombre,
+                    "descripcion": f"Provincia de {nombre}",
+                    "coordenadas": {
+                        "longitud": coords[0],
+                        "latitud": coords[1]
+                    },
+                    "estaActiva": True,
+                    "fechaCreacion": datetime.now(timezone.utc),
+                    "fechaActualizacion": datetime.now(timezone.utc)
+                })
+    
+    # Cargar distritos
+    if DISTRITOS_POINT_FILE.exists():
+        with open(DISTRITOS_POINT_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        for feature in data['features']:
+            props = feature['properties']
+            coords = feature['geometry']['coordinates']
+            nombre = props.get('NOMBDIST', '').strip()
+            provincia = props.get('NOMBPROV', '').strip()
+            
+            if nombre and provincia:
+                localidades.append({
+                    "nombre": nombre,
+                    "tipo": "DISTRITO",
+                    "ubigeo": props.get('UBIGEO', ''),
+                    "departamento": "PUNO",
+                    "provincia": provincia,
+                    "distrito": nombre,
+                    "descripcion": f"Distrito de {nombre}",
+                    "coordenadas": {
+                        "longitud": coords[0],
+                        "latitud": coords[1]
+                    },
+                    "estaActiva": True,
+                    "fechaCreacion": datetime.now(timezone.utc),
+                    "fechaActualizacion": datetime.now(timezone.utc)
+                })
+    
+    # Cargar centros poblados (limitado a los principales)
+    if CENTROS_POBLADOS_FILE.exists():
+        with open(CENTROS_POBLADOS_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Limitar a los primeros 50 centros poblados para no saturar
+        for i, feature in enumerate(data['features'][:50]):
+            if i >= 50:
+                break
+            
+            props = feature['properties']
+            coords = feature['geometry']['coordinates']
+            nombre = props.get('NOMB_CCPP', '').strip()
+            provincia = props.get('NOMBPROV', '').strip()
+            distrito = props.get('NOMBDIST', '').strip()
+            
+            if nombre and provincia and distrito:
+                localidades.append({
+                    "nombre": nombre,
+                    "tipo": "CENTRO_POBLADO",
+                    "ubigeo": props.get('UBIGEO', ''),
+                    "departamento": "PUNO",
+                    "provincia": provincia,
+                    "distrito": distrito,
+                    "descripcion": f"Centro poblado de {nombre}",
+                    "coordenadas": {
+                        "longitud": coords[0],
+                        "latitud": coords[1]
+                    },
+                    "estaActiva": True,
+                    "fechaCreacion": datetime.now(timezone.utc),
+                    "fechaActualizacion": datetime.now(timezone.utc)
+                })
+    
+    return localidades
 
 async def seed_database():
     """Poblar la base de datos con datos iniciales"""
@@ -30,6 +137,7 @@ async def seed_database():
     await db.expedientes.delete_many({})
     await db.resoluciones.delete_many({})
     await db.usuarios.delete_many({})
+    await db.localidades.delete_many({})
     
     # Crear usuarios iniciales
     print("👥 Creando usuarios...")
@@ -197,11 +305,21 @@ async def seed_database():
     await db.expedientes.insert_many(expedientes)
     print(f"✅ {len(expedientes)} expedientes creados")
     
+    # Cargar localidades desde GeoJSON
+    print("📍 Cargando localidades desde archivos GeoJSON...")
+    localidades = await cargar_localidades_desde_geojson()
+    if localidades:
+        await db.localidades.insert_many(localidades)
+        print(f"✅ {len(localidades)} localidades cargadas")
+    else:
+        print("⚠️ No se pudieron cargar localidades desde GeoJSON")
+    
     print("\n✨ Base de datos poblada exitosamente!")
     print(f"\n📊 Resumen:")
     print(f"   - Usuarios: {len(usuarios)}")
     print(f"   - Empresas: {len(empresas)}")
     print(f"   - Expedientes: {len(expedientes)}")
+    print(f"   - Localidades: {len(localidades)}")
     print(f"\n🔐 Credenciales de acceso:")
     print(f"   Admin: DNI 12345678 / password123")
     print(f"   Fiscalizador: DNI 87654321 / password123")
