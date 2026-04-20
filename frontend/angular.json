@@ -34,10 +34,7 @@
               {
                 "glob": "**/*",
                 "input": "src/assets",
-                "output": "/assets/",
-                "ignore": [
-                  "**/geojson/puno-centrospoblados.geojson"
-                ]
+                "output": "/assets/"
               }
             ],
             "styles": [

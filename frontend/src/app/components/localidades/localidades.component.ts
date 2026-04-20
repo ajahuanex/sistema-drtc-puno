@@ -98,20 +98,19 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
   // Cargar estadísticas totales desde el servicio
   private async cargarEstadisticasTotales() {
     try {
-      // Obtener TODAS las localidades incluyendo centros poblados
-      const todasLasLocalidades = await this.localidadService.obtenerTodasLasLocalidades();
-      
-      // Contar solo localidades reales (sin aliases)
-      const provincias = todasLasLocalidades.filter(l => l.tipo === 'PROVINCIA' && !l.metadata?.es_alias).length;
-      const distritos = todasLasLocalidades.filter(l => l.tipo === 'DISTRITO' && !l.metadata?.es_alias).length;
-      const centrosPoblados = todasLasLocalidades.filter(l => l.tipo === 'CENTRO_POBLADO' && !l.metadata?.es_alias).length;
-      const aliases = todasLasLocalidades.filter(l => l.metadata?.es_alias).length;
+      // Obtener estadísticas sin cargar todos los datos
+      // Usar paginación para obtener solo los conteos
+      const [provincias, distritos, centrosPoblados] = await Promise.all([
+        this.localidadService.obtenerLocalidadesPaginadas(1, 1, { tipo: 'PROVINCIA' as any }),
+        this.localidadService.obtenerLocalidadesPaginadas(1, 1, { tipo: 'DISTRITO' as any }),
+        this.localidadService.obtenerLocalidadesPaginadas(1, 1, { tipo: 'CENTRO_POBLADO' as any })
+      ]);
       
       this.estadisticasTotales.set({
-        provincias,
-        distritos,
-        centrosPoblados,
-        aliases
+        provincias: provincias.total,
+        distritos: distritos.total,
+        centrosPoblados: centrosPoblados.total,
+        aliases: 0 // TODO: Agregar endpoint para contar aliases
       });
     } catch (error) {
       console.error('Error cargando estadísticas totales:', error);
@@ -442,6 +441,73 @@ export class LocalidadesComponent extends BaseLocalidadesComponent {
   // Verificar si una localidad es un alias para deshabilitar acciones
   esAliasParaEditar(localidad: Localidad): boolean {
     return this.esAlias(localidad);
+  }
+
+  // Método para abrir el diagnóstico de duplicados
+  async abrirDiagnosticoDuplicados() {
+    const { DiagnosticoDuplicadosComponent } = await import('./diagnostico-duplicados.component');
+    
+    const dialogRef = this.dialog.open(DiagnosticoDuplicadosComponent, {
+      width: '800px',
+      maxHeight: '90vh',
+      disableClose: false
+    });
+
+    await dialogRef.afterClosed().toPromise();
+    
+    // Recargar datos después de cerrar el diagnóstico
+    await this.cargarLocalidades();
+    await this.cargarEstadisticasCompletas();
+  }
+
+  // Método para borrar todas las localidades
+  async borrarTodasLocalidades() {
+    const confirmacion = confirm(
+      '⚠️ ADVERTENCIA: Esto eliminará TODAS las localidades de la base de datos.\n\n' +
+      'Esta acción NO se puede deshacer.\n\n' +
+      '¿Estás seguro de que deseas continuar?'
+    );
+
+    if (!confirmacion) {
+      return;
+    }
+
+    // Segunda confirmación
+    const confirmacion2 = prompt(
+      'Escribe "BORRAR TODO" para confirmar la eliminación de todas las localidades:'
+    );
+
+    if (confirmacion2 !== 'BORRAR TODO') {
+      this.snackBar.open('Operación cancelada', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    try {
+      this.cargando.set(true);
+      
+      const resultado = await this.http.delete<any>(
+        'http://localhost:8000/api/v1/eliminar-todas'
+      ).toPromise();
+
+      this.snackBar.open(
+        `✅ Se eliminaron ${resultado.localidades_eliminadas} localidades y ${resultado.geometrias_eliminadas} geometrías`,
+        'Cerrar',
+        { duration: 5000 }
+      );
+
+      // Recargar datos
+      await this.cargarLocalidades();
+      await this.cargarEstadisticasCompletas();
+    } catch (error: any) {
+      console.error('Error borrando localidades:', error);
+      this.snackBar.open(
+        'Error al borrar localidades: ' + (error.error?.detail || error.message),
+        'Cerrar',
+        { duration: 5000 }
+      );
+    } finally {
+      this.cargando.set(false);
+    }
   }
 }
 

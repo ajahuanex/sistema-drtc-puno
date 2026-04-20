@@ -28,13 +28,23 @@ async def login(
 ) -> LoginResponse:
     """Iniciar sesión con DNI y contraseña"""
     
+    # El username es el DNI del usuario
+    dni = form_data.username
+    password = form_data.password
+    
+    logger.info(f"Intento de login con DNI: {dni}")
+    
     # Autenticación con base de datos real
-    usuario = await usuario_service.authenticate_usuario(form_data.username, form_data.password)
+    usuario = await usuario_service.authenticate_usuario(dni, password)
     if not usuario:
+        logger.warning(f"Login fallido para DNI: {dni}")
         raise AuthenticationException("DNI o contraseña incorrectos")
     
     if not usuario.estaActivo:
+        logger.warning(f"Usuario inactivo: {dni}")
         raise AuthenticationException("Usuario inactivo")
+    
+    logger.info(f"Login exitoso para DNI: {dni}")
     
     # Crear token de acceso
     access_token = create_access_token(data={"sub": usuario.id})

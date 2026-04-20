@@ -47,14 +47,13 @@ CENTROS_POBLADOS = GEOJSON_PATH / "puno-centrospoblados.geojson"
 
 
 def determinar_tipo_localidad(nombre: str, es_capital: bool = False) -> str:
-    """Determina el tipo de localidad"""
-    nombre_upper = nombre.upper()
-    ciudades = ["PUNO", "JULIACA", "AYAVIRI", "AZANGARO", "ILAVE", "JULI", "DESAGUADERO"]
-    
-    if nombre_upper in ciudades:
-        return TipoLocalidad.CIUDAD
-    if es_capital:
-        return TipoLocalidad.CIUDAD
+    """
+    Determina el tipo de localidad.
+    IMPORTANTE: Los distritos SIEMPRE se importan como DISTRITO,
+    incluso si son capitales de provincia. Las ciudades se crean
+    como registros separados si es necesario.
+    """
+    # Los distritos siempre son DISTRITO
     return TipoLocalidad.DISTRITO
 
 
@@ -62,7 +61,10 @@ def determinar_tipo_localidad(nombre: str, es_capital: bool = False) -> str:
 @router.post("/importar-desde-geojson")
 async def importar_desde_geojson(
     modo: str = Query("ambos", description="crear, actualizar o ambos"),
-    test: bool = Query(False, description="Modo test: solo 2 de cada tipo")
+    test: bool = Query(False, description="Modo test: solo 2 de cada tipo"),
+    provincias: bool = Query(True, description="Importar provincias"),
+    distritos: bool = Query(True, description="Importar distritos"),
+    centros_poblados: bool = Query(True, description="Importar centros poblados")
 ) -> Dict[str, Any]:
     """
     Importa localidades y geometrías desde archivos GeoJSON
@@ -78,16 +80,18 @@ async def importar_desde_geojson(
         "total_actualizados": 0,
         "total_omitidos": 0,
         "total_errores": 0,
+        "duplicados_detectados": [],
+        "errores_detalle": [],
         "detalle": {
-            "provincias": {"localidades": 0, "geometrias": 0, "errores": 0},
-            "distritos": {"localidades": 0, "geometrias": 0, "errores": 0},
-            "centros_poblados": {"localidades": 0, "geometrias": 0, "errores": 0}
+            "provincias": {"localidades": 0, "geometrias": 0, "errores": 0, "duplicados": []},
+            "distritos": {"localidades": 0, "geometrias": 0, "errores": 0, "duplicados": []},
+            "centros_poblados": {"localidades": 0, "geometrias": 0, "errores": 0, "duplicados": []}
         }
     }
     
     try:
-        # 1. Importar PROVINCIAS
-        if PROVINCIAS_POINT.exists():
+        # 1. Importar PROVINCIAS - SOLO SI provincias=True
+        if provincias and PROVINCIAS_POINT.exists():
             with open(PROVINCIAS_POINT, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
@@ -192,8 +196,8 @@ async def importar_desde_geojson(
                     resultado["detalle"]["provincias"]["errores"] += 1
 
         
-        # 2. Importar DISTRITOS
-        if DISTRITOS_POINT.exists():
+        # 2. Importar DISTRITOS - SOLO SI distritos=True
+        if distritos and DISTRITOS_POINT.exists():
             with open(DISTRITOS_POINT, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
@@ -233,25 +237,41 @@ async def importar_desde_geojson(
                         "fechaActualizacion": datetime.utcnow()
                     }
                     
-                    # Buscar por ubigeo o por nombre y tipo para poder corregir ubigeos incorrectos
-                    existe_localidad = await localidades_collection.find_one({
-                        "$or": [
-                            {"ubigeo": ubigeo, "tipo": tipo},
-                            {"nombre": nombre, "tipo": tipo, "provincia": provincia}
-                        ]
-                    })
+                    # Buscar duplicados SOLO por UBIGEO (es el identificador único)
+                    existe_localidad = None
+                    razon_duplicado = None
+                    
+                    if ubigeo:
+                        existe_localidad = await localidades_collection.find_one({
+                            "ubigeo": ubigeo,
+                            "tipo": tipo
+                        })
+                        if existe_localidad:
+                            razon_duplicado = f"UBIGEO duplicado: {ubigeo}"
                     
                     if existe_localidad:
                         if modo in ["actualizar", "ambos"]:
                             await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
                             resultado["detalle"]["distritos"]["localidades"] += 1
                             resultado["total_actualizados"] += 1
+                        else:
+                            # Registrar duplicado omitido
+                            resultado["detalle"]["distritos"]["duplicados"].append({
+                                "nombre": nombre,
+                                "ubigeo": ubigeo,
+                                "provincia": provincia,
+                                "razon": razon_duplicado,
+                                "accion": "omitido"
+                            })
+                            resultado["total_omitidos"] += 1
                     else:
                         if modo in ["crear", "ambos"]:
                             localidad_data["fechaCreacion"] = datetime.utcnow()
                             await localidades_collection.insert_one(localidad_data)
                             resultado["detalle"]["distritos"]["localidades"] += 1
                             resultado["total_importados"] += 1
+                        else:
+                            resultado["total_omitidos"] += 1
                     
                     # B) Guardar en GEOMETRIAS (para mapas - punto de referencia)
                     geometria_data = {
@@ -285,113 +305,192 @@ async def importar_desde_geojson(
                     resultado["detalle"]["distritos"]["errores"] += 1
 
         
-        # 3. Importar CENTROS POBLADOS
-        if CENTROS_POBLADOS.exists():
+        # 3. Importar CENTROS POBLADOS - SOLO SI centros_poblados=True
+        # Procesar por lotes para evitar problemas de memoria con ~9000 registros
+        if centros_poblados and CENTROS_POBLADOS.exists():
             with open(CENTROS_POBLADOS, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            features = data['features'][:2] if test else data['features']
+            all_features = data['features'][:2] if test else data['features']
             
-            for feature in features:
-                try:
-                    props = feature['properties']
-                    
-                    if feature['geometry']['type'] != 'Point':
-                        continue
-                    
-                    coords = feature['geometry']['coordinates']
-                    
-                    nombre = props.get('NOMB_CCPP', '').strip()
-                    provincia = props.get('NOMB_PROVI', 'PUNO').strip()
-                    distrito = props.get('NOMB_DISTR', '').strip()
-                    # UBIGEO para centros poblados: usar IDCCPP (10 dígitos) según INEI
-                    ubigeo = props.get('IDCCPP', '').strip()
-                    poblacion = props.get('POBTOTAL')
-                    tipo_area = props.get('TIPO', 'Rural')
-                    
-                    if not nombre:
-                        continue
-                    
-                    # A) Guardar en LOCALIDADES (para rutas)
-                    localidad_data = {
-                        "nombre": nombre,
-                        "tipo": TipoLocalidad.CENTRO_POBLADO,
-                        "ubigeo": ubigeo if ubigeo else None,
-                        "departamento": "PUNO",
-                        "provincia": provincia,
-                        "distrito": distrito if distrito else None,
-                        "descripcion": f"Centro poblado {tipo_area.lower()} de {nombre}",
-                        "coordenadas": {
-                            "longitud": coords[0],
-                            "latitud": coords[1]
-                        },
-                        "poblacion": poblacion,
-                        "tipo_area": tipo_area,
-                        "estaActiva": True,
-                        "fechaActualizacion": datetime.utcnow()
-                    }
-                    
-                    # Verificar si existe por nombre y distrito
-                    existe_localidad = await localidades_collection.find_one({
-                        "nombre": nombre,
-                        "distrito": distrito,
-                        "tipo": TipoLocalidad.CENTRO_POBLADO
-                    })
-                    
-                    if existe_localidad:
-                        if modo in ["actualizar", "ambos"]:
-                            await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
-                            resultado["detalle"]["centros_poblados"]["localidades"] += 1
-                            resultado["total_actualizados"] += 1
-                    else:
-                        if modo in ["crear", "ambos"]:
-                            localidad_data["fechaCreacion"] = datetime.utcnow()
-                            await localidades_collection.insert_one(localidad_data)
-                            resultado["detalle"]["centros_poblados"]["localidades"] += 1
-                            resultado["total_importados"] += 1
-                    
-                    # B) Guardar en GEOMETRIAS (para mapas - punto)
-                    geometria_data = {
-                        "nombre": nombre,
-                        "tipo": "CENTRO_POBLADO",
-                        "ubigeo": ubigeo if ubigeo else None,
-                        "departamento": "PUNO",
-                        "provincia": provincia,
-                        "distrito": distrito,
-                        "geometry": feature['geometry'],
-                        "properties": props,
-                        "centroide_lat": coords[1],
-                        "centroide_lon": coords[0],
-                        "poblacion": poblacion,
-                        "tipo_area": tipo_area,
-                        "fechaActualizacion": datetime.utcnow()
-                    }
-                    
-                    existe_geometria = await geometrias_collection.find_one({
-                        "tipo": "CENTRO_POBLADO",
-                        "nombre": nombre,
-                        "distrito": distrito
-                    })
-                    
-                    if existe_geometria:
-                        if modo in ["actualizar", "ambos"]:
-                            await geometrias_collection.update_one({"_id": existe_geometria["_id"]}, {"$set": geometria_data})
-                            resultado["detalle"]["centros_poblados"]["geometrias"] += 1
-                    else:
-                        if modo in ["crear", "ambos"]:
-                            geometria_data["fechaCreacion"] = datetime.utcnow()
-                            await geometrias_collection.insert_one(geometria_data)
-                            resultado["detalle"]["centros_poblados"]["geometrias"] += 1
-                            
-                except Exception as e:
-                    print(f"Error importando centro poblado: {e}")
-                    resultado["detalle"]["centros_poblados"]["errores"] += 1
+            # Procesar por lotes de 500 registros
+            BATCH_SIZE = 500
+            total_batches = (len(all_features) + BATCH_SIZE - 1) // BATCH_SIZE
+            
+            print(f"\n📦 Procesando {len(all_features)} centros poblados en {total_batches} lotes...")
+            
+            for batch_num in range(total_batches):
+                start_idx = batch_num * BATCH_SIZE
+                end_idx = min(start_idx + BATCH_SIZE, len(all_features))
+                batch_features = all_features[start_idx:end_idx]
+                
+                print(f"  Lote {batch_num + 1}/{total_batches} ({start_idx + 1}-{end_idx} de {len(all_features)})")
+                
+                for feature in batch_features:
+                    try:
+                        props = feature['properties']
+                        
+                        if feature['geometry']['type'] != 'Point':
+                            continue
+                        
+                        coords = feature['geometry']['coordinates']
+                        
+                        nombre = props.get('NOMB_CCPP', '').strip()
+                        provincia = props.get('NOMB_PROVI', 'PUNO').strip()
+                        distrito = props.get('NOMB_DISTR', '').strip()
+                        # UBIGEO para centros poblados: usar IDCCPP (10 dígitos) según INEI
+                        ubigeo = props.get('IDCCPP', '').strip()
+                        poblacion = props.get('POBTOTAL')
+                        tipo_area = props.get('TIPO', 'Rural')
+                        
+                        if not nombre:
+                            continue
+                        
+                        # A) Guardar en LOCALIDADES (para rutas)
+                        localidad_data = {
+                            "nombre": nombre,
+                            "tipo": TipoLocalidad.CENTRO_POBLADO,
+                            "ubigeo": ubigeo if ubigeo else None,
+                            "departamento": "PUNO",
+                            "provincia": provincia,
+                            "distrito": distrito if distrito else None,
+                            "descripcion": f"Centro poblado {tipo_area.lower()} de {nombre}",
+                            "coordenadas": {
+                                "longitud": coords[0],
+                                "latitud": coords[1]
+                            },
+                            "poblacion": poblacion,
+                            "tipo_area": tipo_area,
+                            "estaActiva": True,
+                            "fechaActualizacion": datetime.utcnow()
+                        }
+                        
+                        # Verificar si existe SOLO por UBIGEO (es el identificador único)
+                        existe_localidad = None
+                        razon_duplicado = None
+                        
+                        if ubigeo:
+                            existe_localidad = await localidades_collection.find_one({
+                                "ubigeo": ubigeo,
+                                "tipo": TipoLocalidad.CENTRO_POBLADO
+                            })
+                            if existe_localidad:
+                                razon_duplicado = f"IDCCPP duplicado: {ubigeo}"
+                        
+                        if existe_localidad:
+                            if modo in ["actualizar", "ambos"]:
+                                await localidades_collection.update_one({"_id": existe_localidad["_id"]}, {"$set": localidad_data})
+                                resultado["detalle"]["centros_poblados"]["localidades"] += 1
+                                resultado["total_actualizados"] += 1
+                            else:
+                                # Registrar duplicado omitido
+                                resultado["detalle"]["centros_poblados"]["duplicados"].append({
+                                    "nombre": nombre,
+                                    "ubigeo": ubigeo,
+                                    "distrito": distrito,
+                                    "provincia": provincia,
+                                    "razon": razon_duplicado,
+                                    "accion": "omitido"
+                                })
+                                resultado["total_omitidos"] += 1
+                        else:
+                            if modo in ["crear", "ambos"]:
+                                localidad_data["fechaCreacion"] = datetime.utcnow()
+                                await localidades_collection.insert_one(localidad_data)
+                                resultado["detalle"]["centros_poblados"]["localidades"] += 1
+                                resultado["total_importados"] += 1
+                            else:
+                                resultado["total_omitidos"] += 1
+                        
+                        # B) Guardar en GEOMETRIAS (para mapas - punto)
+                        geometria_data = {
+                            "nombre": nombre,
+                            "tipo": "CENTRO_POBLADO",
+                            "ubigeo": ubigeo if ubigeo else None,
+                            "departamento": "PUNO",
+                            "provincia": provincia,
+                            "distrito": distrito,
+                            "geometry": feature['geometry'],
+                            "properties": props,
+                            "centroide_lat": coords[1],
+                            "centroide_lon": coords[0],
+                            "poblacion": poblacion,
+                            "tipo_area": tipo_area,
+                            "fechaActualizacion": datetime.utcnow()
+                        }
+                        
+                        existe_geometria = await geometrias_collection.find_one({
+                            "tipo": "CENTRO_POBLADO",
+                            "nombre": nombre,
+                            "distrito": distrito
+                        })
+                        
+                        if existe_geometria:
+                            if modo in ["actualizar", "ambos"]:
+                                await geometrias_collection.update_one({"_id": existe_geometria["_id"]}, {"$set": geometria_data})
+                                resultado["detalle"]["centros_poblados"]["geometrias"] += 1
+                        else:
+                            if modo in ["crear", "ambos"]:
+                                geometria_data["fechaCreacion"] = datetime.utcnow()
+                                await geometrias_collection.insert_one(geometria_data)
+                                resultado["detalle"]["centros_poblados"]["geometrias"] += 1
+                                
+                    except Exception as e:
+                        print(f"Error importando centro poblado: {e}")
+                        resultado["detalle"]["centros_poblados"]["errores"] += 1
+            
+            print(f"  ✅ Lotes completados")
         
         # Los totales ya se calculan en cada sección
-        # Solo sumar geometrías y errores
+        # NO sumar geometrías al total_importados (ya están contadas)
+        # Solo sumar errores
         for categoria in resultado["detalle"].values():
-            resultado["total_importados"] += categoria.get("geometrias", 0)
             resultado["total_errores"] += categoria.get("errores", 0)
+        
+        # Log detallado de lo que no se importó
+        print("\n" + "="*80)
+        print("📊 REPORTE DE IMPORTACIÓN DETALLADO")
+        print("="*80)
+        print(f"\n📊 RESUMEN GENERAL:")
+        print(f"✅ Importados: {resultado['total_importados']}")
+        print(f"🔄 Actualizados: {resultado['total_actualizados']}")
+        print(f"⏭️  Omitidos: {resultado['total_omitidos']}")
+        print(f"❌ Errores: {resultado['total_errores']}")
+        
+        # Desglose por tipo
+        print(f"\n📋 DESGLOSE POR TIPO:")
+        print(f"\n🏛️  PROVINCIAS:")
+        print(f"   Localidades: {resultado['detalle']['provincias']['localidades']}")
+        print(f"   Geometrías: {resultado['detalle']['provincias']['geometrias']}")
+        print(f"   Errores: {resultado['detalle']['provincias']['errores']}")
+        
+        print(f"\n🏘️  DISTRITOS:")
+        print(f"   Localidades: {resultado['detalle']['distritos']['localidades']}")
+        print(f"   Geometrías: {resultado['detalle']['distritos']['geometrias']}")
+        print(f"   Errores: {resultado['detalle']['distritos']['errores']}")
+        print(f"   Duplicados omitidos: {len(resultado['detalle']['distritos']['duplicados'])}")
+        
+        print(f"\n🏙️  CENTROS POBLADOS:")
+        print(f"   Localidades: {resultado['detalle']['centros_poblados']['localidades']}")
+        print(f"   Geometrías: {resultado['detalle']['centros_poblados']['geometrias']}")
+        print(f"   Errores: {resultado['detalle']['centros_poblados']['errores']}")
+        print(f"   Duplicados omitidos: {len(resultado['detalle']['centros_poblados']['duplicados'])}")
+        
+        # Reportar distritos no importados
+        if resultado["detalle"]["distritos"]["duplicados"]:
+            print(f"\n⚠️  DISTRITOS NO IMPORTADOS ({len(resultado['detalle']['distritos']['duplicados'])}):")
+            for dup in resultado["detalle"]["distritos"]["duplicados"]:
+                print(f"   - {dup['nombre']} ({dup['provincia']}) - UBIGEO: {dup['ubigeo']} - Razón: {dup['razon']}")
+        
+        # Reportar centros poblados no importados (solo los primeros 10)
+        if resultado["detalle"]["centros_poblados"]["duplicados"]:
+            print(f"\n⚠️  CENTROS POBLADOS NO IMPORTADOS ({len(resultado['detalle']['centros_poblados']['duplicados'])}):")
+            for dup in resultado["detalle"]["centros_poblados"]["duplicados"][:10]:
+                print(f"   - {dup['nombre']} ({dup['distrito']}) - Razón: {dup['razon']}")
+            if len(resultado["detalle"]["centros_poblados"]["duplicados"]) > 10:
+                print(f"   ... y {len(resultado['detalle']['centros_poblados']['duplicados']) - 10} más")
+        
+        print("="*80 + "\n")
         
         return resultado
         
@@ -419,6 +518,8 @@ async def importar_desde_archivo(
         "total_actualizados": 0,
         "total_omitidos": 0,
         "total_errores": 0,
+        "duplicados_detectados": [],
+        "errores_detalle": [],
         "detalle": "Importación desde archivo personalizado"
     }
     
@@ -471,11 +572,26 @@ async def importar_desde_archivo(
                     "fechaActualizacion": datetime.utcnow()
                 }
                 
-                # Buscar si ya existe
-                existe = await localidades_collection.find_one({
-                    "nombre": nombre,
-                    "tipo": tipo
-                })
+                # Buscar si ya existe con búsqueda robusta
+                existe = None
+                razon_duplicado = None
+                
+                if ubigeo:
+                    existe = await localidades_collection.find_one({
+                        "ubigeo": ubigeo,
+                        "tipo": tipo
+                    })
+                    if existe:
+                        razon_duplicado = f"UBIGEO duplicado: {ubigeo}"
+                
+                if not existe:
+                    nombre_normalizado = nombre.upper().strip()
+                    existe = await localidades_collection.find_one({
+                        "nombre": {"$regex": f"^{nombre_normalizado}$", "$options": "i"},
+                        "tipo": tipo
+                    })
+                    if existe:
+                        razon_duplicado = f"Nombre duplicado: {nombre}"
                 
                 if existe:
                     if modo in ["actualizar", "ambos"]:
@@ -485,6 +601,17 @@ async def importar_desde_archivo(
                         )
                         resultado["total_actualizados"] += 1
                     else:
+                        # Registrar duplicado omitido
+                        resultado["duplicados_detectados"].append({
+                            "nombre": nombre,
+                            "ubigeo": ubigeo,
+                            "tipo": tipo,
+                            "departamento": departamento,
+                            "provincia": provincia,
+                            "distrito": distrito,
+                            "razon": razon_duplicado,
+                            "accion": "omitido"
+                        })
                         resultado["total_omitidos"] += 1
                 else:
                     if modo in ["crear", "ambos"]:
@@ -495,7 +622,13 @@ async def importar_desde_archivo(
                         resultado["total_omitidos"] += 1
                         
             except Exception as e:
-                print(f"Error procesando feature: {e}")
+                error_msg = f"Error procesando feature '{nombre}': {str(e)}"
+                print(error_msg)
+                resultado["errores_detalle"].append({
+                    "nombre": nombre,
+                    "tipo": tipo,
+                    "error": str(e)
+                })
                 resultado["total_errores"] += 1
         
         return resultado
@@ -504,3 +637,330 @@ async def importar_desde_archivo(
         raise HTTPException(status_code=400, detail="Archivo no es un JSON válido")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error importando archivo: {str(e)}")
+
+
+@router.get("/diagnostico-duplicados")
+async def diagnostico_duplicados() -> Dict[str, Any]:
+    """
+    Genera un reporte de duplicados y problemas en la base de datos
+    """
+    db = await get_database()
+    localidades_collection = db.localidades
+    
+    try:
+        # Contar localidades por tipo
+        tipos = await localidades_collection.distinct("tipo")
+        
+        diagnostico = {
+            "total_localidades": await localidades_collection.count_documents({}),
+            "por_tipo": {},
+            "duplicados_potenciales": [],
+            "sin_ubigeo": 0,
+            "sin_coordenadas": 0
+        }
+        
+        # Analizar por tipo
+        for tipo in tipos:
+            count = await localidades_collection.count_documents({"tipo": tipo})
+            diagnostico["por_tipo"][tipo] = count
+        
+        # Buscar duplicados por nombre y tipo
+        pipeline = [
+            {
+                "$group": {
+                    "_id": {"nombre": "$nombre", "tipo": "$tipo"},
+                    "count": {"$sum": 1},
+                    "ids": {"$push": "$_id"}
+                }
+            },
+            {
+                "$match": {"count": {"$gt": 1}}
+            }
+        ]
+        
+        duplicados = await localidades_collection.aggregate(pipeline).to_list(length=None)
+        
+        for dup in duplicados:
+            diagnostico["duplicados_potenciales"].append({
+                "nombre": dup["_id"]["nombre"],
+                "tipo": dup["_id"]["tipo"],
+                "cantidad": dup["count"],
+                "ids": [str(id) for id in dup["ids"]]
+            })
+        
+        # Contar sin ubigeo
+        diagnostico["sin_ubigeo"] = await localidades_collection.count_documents({
+            "$or": [
+                {"ubigeo": None},
+                {"ubigeo": ""},
+                {"ubigeo": {"$exists": False}}
+            ]
+        })
+        
+        # Contar sin coordenadas
+        diagnostico["sin_coordenadas"] = await localidades_collection.count_documents({
+            "$or": [
+                {"coordenadas": None},
+                {"coordenadas": {"$exists": False}},
+                {"coordenadas.longitud": None},
+                {"coordenadas.latitud": None}
+            ]
+        })
+        
+        return diagnostico
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en diagnóstico: {str(e)}")
+
+
+@router.post("/limpiar-duplicados")
+async def limpiar_duplicados() -> Dict[str, Any]:
+    """
+    Elimina duplicados exactos, manteniendo solo el primero de cada grupo
+    """
+    db = await get_database()
+    localidades_collection = db.localidades
+    
+    try:
+        resultado = {
+            "duplicados_encontrados": 0,
+            "registros_eliminados": 0,
+            "detalles": []
+        }
+        
+        # Buscar duplicados por nombre y tipo
+        pipeline = [
+            {
+                "$group": {
+                    "_id": {"nombre": "$nombre", "tipo": "$tipo"},
+                    "count": {"$sum": 1},
+                    "ids": {"$push": "$_id"}
+                }
+            },
+            {
+                "$match": {"count": {"$gt": 1}}
+            }
+        ]
+        
+        duplicados = await localidades_collection.aggregate(pipeline).to_list(length=None)
+        
+        for dup in duplicados:
+            resultado["duplicados_encontrados"] += 1
+            ids_a_eliminar = dup["ids"][1:]  # Mantener el primero, eliminar el resto
+            
+            delete_result = await localidades_collection.delete_many({
+                "_id": {"$in": ids_a_eliminar}
+            })
+            
+            resultado["registros_eliminados"] += delete_result.deleted_count
+            resultado["detalles"].append({
+                "nombre": dup["_id"]["nombre"],
+                "tipo": dup["_id"]["tipo"],
+                "cantidad_original": dup["count"],
+                "eliminados": delete_result.deleted_count
+            })
+        
+        return resultado
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error limpiando duplicados: {str(e)}")
+
+
+@router.get("/diagnostico-duplicados")
+async def diagnostico_duplicados() -> Dict[str, Any]:
+    """
+    Muestra un diagnóstico detallado de los duplicados en la base de datos
+    """
+    db = await get_database()
+    localidades_collection = db.localidades
+
+    try:
+        resultado = {
+            "total_localidades": 0,
+            "duplicados_por_tipo": {},
+            "duplicados_detalle": []
+        }
+
+        # Contar total de localidades
+        resultado["total_localidades"] = await localidades_collection.count_documents({})
+
+        # Buscar duplicados por nombre y tipo
+        pipeline = [
+            {
+                "$group": {
+                    "_id": {"nombre": "$nombre", "tipo": "$tipo"},
+                    "count": {"$sum": 1},
+                    "ids": {"$push": "$_id"},
+                    "ubigeos": {"$push": "$ubigeo"},
+                    "provincias": {"$push": "$provincia"},
+                    "distritos": {"$push": "$distrito"}
+                }
+            },
+            {
+                "$match": {"count": {"$gt": 1}}
+            },
+            {
+                "$sort": {"count": -1}
+            }
+        ]
+
+        duplicados = await localidades_collection.aggregate(pipeline).to_list(length=None)
+
+        # Agrupar por tipo
+        for dup in duplicados:
+            tipo = dup["_id"]["tipo"]
+            
+            if tipo not in resultado["duplicados_por_tipo"]:
+                resultado["duplicados_por_tipo"][tipo] = 0
+            
+            resultado["duplicados_por_tipo"][tipo] += 1
+            
+            resultado["duplicados_detalle"].append({
+                "nombre": dup["_id"]["nombre"],
+                "tipo": tipo,
+                "cantidad": dup["count"],
+                "ubigeos": list(set(str(u) for u in dup["ubigeos"] if u)),
+                "provincias": list(set(str(p) for p in dup["provincias"] if p)),
+                "distritos": list(set(str(d) for d in dup["distritos"] if d)),
+                "ids": [str(id) for id in dup["ids"]]
+            })
+
+        # Estadísticas por tipo
+        print("\n" + "="*80)
+        print("📊 DIAGNÓSTICO DE DUPLICADOS")
+        print("="*80)
+        print(f"Total de localidades: {resultado['total_localidades']}")
+        print(f"Total de duplicados encontrados: {len(duplicados)}")
+        
+        for tipo, cantidad in resultado["duplicados_por_tipo"].items():
+            print(f"\n{tipo}: {cantidad} duplicados")
+        
+        print("\n📋 DETALLE DE DUPLICADOS:")
+        for dup in resultado["duplicados_detalle"][:20]:  # Mostrar primeros 20
+            print(f"\n  • {dup['nombre']} ({dup['tipo']})")
+            print(f"    Cantidad: {dup['cantidad']}")
+            print(f"    UBIGEO: {', '.join(dup['ubigeos'])}")
+            if dup['provincias']:
+                print(f"    Provincias: {', '.join(dup['provincias'])}")
+            if dup['distritos']:
+                print(f"    Distritos: {', '.join(dup['distritos'])}")
+        
+        if len(duplicados) > 20:
+            print(f"\n  ... y {len(duplicados) - 20} duplicados más")
+        
+        print("="*80 + "\n")
+        
+        return resultado
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en diagnóstico: {str(e)}")
+
+
+@router.get("/distritos-faltantes")
+async def distritos_faltantes() -> Dict[str, Any]:
+    """
+    Muestra los distritos que faltan en la importación
+    Compara los distritos en el archivo GeoJSON con los en la BD
+    """
+    db = await get_database()
+    localidades_collection = db.localidades
+
+    try:
+        resultado = {
+            "total_en_archivo": 0,
+            "total_en_bd": 0,
+            "faltantes": [],
+            "duplicados_en_bd": []
+        }
+
+        # Leer archivo de distritos
+        with open(DISTRITOS_POINT, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        distritos_archivo = {}
+        for feature in data['features']:
+            props = feature['properties']
+            nombre = props.get('DISTRITO', '').strip()
+            ubigeo = props.get('UBIGEO', '').strip()
+            provincia = props.get('PROVINCIA', '').strip()
+            
+            if nombre and ubigeo:
+                key = f"{nombre}|{ubigeo}|{provincia}"
+                distritos_archivo[key] = {
+                    "nombre": nombre,
+                    "ubigeo": ubigeo,
+                    "provincia": provincia
+                }
+        
+        resultado["total_en_archivo"] = len(distritos_archivo)
+
+        # Contar distritos en BD
+        distritos_bd = await localidades_collection.find(
+            {"tipo": "DISTRITO"}
+        ).to_list(length=None)
+        
+        resultado["total_en_bd"] = len(distritos_bd)
+
+        # Crear set de distritos en BD
+        distritos_bd_set = set()
+        for dist in distritos_bd:
+            key = f"{dist['nombre']}|{dist['ubigeo']}|{dist['provincia']}"
+            distritos_bd_set.add(key)
+
+        # Encontrar faltantes
+        for key, dist in distritos_archivo.items():
+            if key not in distritos_bd_set:
+                resultado["faltantes"].append(dist)
+
+        # Encontrar duplicados en BD
+        duplicados_pipeline = [
+            {
+                "$match": {"tipo": "DISTRITO"}
+            },
+            {
+                "$group": {
+                    "_id": {"nombre": "$nombre", "ubigeo": "$ubigeo"},
+                    "count": {"$sum": 1},
+                    "ids": {"$push": "$_id"}
+                }
+            },
+            {
+                "$match": {"count": {"$gt": 1}}
+            }
+        ]
+
+        duplicados = await localidades_collection.aggregate(duplicados_pipeline).to_list(length=None)
+        
+        for dup in duplicados:
+            resultado["duplicados_en_bd"].append({
+                "nombre": dup["_id"]["nombre"],
+                "ubigeo": dup["_id"]["ubigeo"],
+                "cantidad": dup["count"],
+                "ids": [str(id) for id in dup["ids"]]
+            })
+
+        # Mostrar reporte
+        print("\n" + "="*80)
+        print("📊 ANÁLISIS DE DISTRITOS")
+        print("="*80)
+        print(f"Total en archivo: {resultado['total_en_archivo']}")
+        print(f"Total en BD: {resultado['total_en_bd']}")
+        print(f"Faltantes: {len(resultado['faltantes'])}")
+        print(f"Duplicados en BD: {len(resultado['duplicados_en_bd'])}")
+        
+        if resultado["faltantes"]:
+            print(f"\n⚠️  DISTRITOS FALTANTES ({len(resultado['faltantes'])}):")
+            for dist in resultado["faltantes"]:
+                print(f"  • {dist['nombre']} - UBIGEO: {dist['ubigeo']} - Provincia: {dist['provincia']}")
+        
+        if resultado["duplicados_en_bd"]:
+            print(f"\n⚠️  DISTRITOS DUPLICADOS EN BD ({len(resultado['duplicados_en_bd'])}):")
+            for dup in resultado["duplicados_en_bd"]:
+                print(f"  • {dup['nombre']} - UBIGEO: {dup['ubigeo']} - Cantidad: {dup['cantidad']}")
+        
+        print("="*80 + "\n")
+        
+        return resultado
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en análisis: {str(e)}")

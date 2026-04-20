@@ -243,7 +243,7 @@ interface TransferirEmpresaData {
         </form>
 
         <!-- Información sobre rutas -->
-        @if (data.vehiculo.rutasAsignadasIds?.length || data.vehiculo.rutasEspecificas?.length) {
+        @if ((data.vehiculo.rutasAsignadasIds.length || 0) > 0 || (data.vehiculo.rutasEspecificas?.length || 0) > 0) {
           <mat-card class="rutas-info-card">
             <mat-card-content>
               <div class="rutas-info-content">
@@ -252,10 +252,10 @@ interface TransferirEmpresaData {
                   <h4>Información sobre Rutas</h4>
                   <p>Este vehículo tiene rutas asignadas que serán removidas durante la transferencia:</p>
                   <ul>
-                    @if (data.vehiculo.rutasAsignadasIds?.length) {
-                      <li>{{ data.vehiculo.rutasAsignadasIds?.length || 0 }} ruta(s) general(es)</li>
+                    @if ((data.vehiculo.rutasAsignadasIds.length || 0) > 0) {
+                      <li>{{ data.vehiculo.rutasAsignadasIds.length || 0 }} ruta(s) general(es)</li>
                     }
-                    @if (data.vehiculo.rutasEspecificas?.length) {
+                    @if ((data.vehiculo.rutasEspecificas?.length || 0) > 0) {
                       <li>{{ data.vehiculo.rutasEspecificas?.length || 0 }} ruta(s) específica(s)</li>
                     }
                   </ul>

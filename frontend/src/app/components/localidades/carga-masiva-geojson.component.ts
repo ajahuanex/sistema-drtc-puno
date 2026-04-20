@@ -41,7 +41,14 @@ interface ValidacionPrevia {
   sinUbigeo: number;
   porProvincia: { [key: string]: number };
   porDistrito: { [key: string]: number };
-  ejemplos: any[];
+  ejemplos: Array<{
+    nombre: string;
+    tipo?: string;
+    provincia: string;
+    distrito: string;
+    ubigeo?: string;
+    coordenadas?: boolean;
+  }>;
 }
 
 interface GeoJSONData {
@@ -55,7 +62,17 @@ interface ResultadoImportacion {
   actualizados: number;
   omitidos: number;
   errores: number;
-  detallesErrores: string[];
+  detallesErrores?: string[];
+  duplicados_detectados?: Array<{
+    nombre: string;
+    ubigeo: string;
+    tipo: string;
+    departamento: string;
+    provincia: string;
+    distrito: string;
+    razon: string;
+    accion: string;
+  }>;
 }
 
 @Component({
@@ -99,13 +116,89 @@ interface ResultadoImportacion {
                     <div class="info-content">
                       <h3>Importar Localidades Completas de Puno</h3>
                       <p>
-                        Este proceso importará TODAS las localidades desde archivos GeoJSON:
-                        <br>• <strong>13 Provincias</strong> desde puno-provincias.geojson
-                        <br>• <strong>~110 Distritos</strong> desde puno-distritos.geojson
+                        Este proceso importará TODAS las localidades desde archivos GeoJSON con coordenadas:
+                        <br>• <strong>13 Provincias</strong> desde puno-provincias-point.geojson
+                        <br>• <strong>~110 Distritos</strong> desde puno-distritos-point.geojson
                         <br>• <strong>~9000 Centros Poblados</strong> desde puno-centrospoblados.geojson
                       </p>
                     </div>
                   </div>
+
+                  <div class="archivos-disponibles-section">
+                    <h4>Archivos Disponibles en Assets:</h4>
+                    <div class="archivos-list">
+                      @for (archivo of archivosDisponibles(); track archivo) {
+                        <div class="archivo-item" (click)="cargarArchivoPreview(archivo)">
+                          <mat-icon>description</mat-icon>
+                          <span>{{ archivo }}</span>
+                          @if (archivo.includes('point')) {
+                            <mat-chip class="coordenadas-chip">📍 Con Coordenadas</mat-chip>
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="nota-centros-poblados">
+                      <mat-icon>info</mat-icon>
+                      <span><strong>Centros Poblados:</strong> El archivo puno-centrospoblados.geojson (~9000 registros) se importa directamente desde el backend. Selecciona la opción "Centros Poblados" en los tipos de localidades para incluirlo en la importación.</span>
+                    </div>
+                  </div>
+
+                  @if (archivoSeleccionadoNombre()) {
+                    <div class="archivo-preview-section">
+                      <h4>Preview: {{ archivoSeleccionadoNombre() }}</h4>
+                      
+                      <div class="preview-columnas">
+                        <strong>Columnas Disponibles ({{ archivoPreviewColumnas().length }}):</strong>
+                        <div class="columnas-grid">
+                          @for (columna of archivoPreviewColumnas(); track columna) {
+                            <mat-chip class="columna-chip">{{ columna }}</mat-chip>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="mapeo-columnas">
+                        <strong>Seleccionar Columnas a Importar:</strong>
+                        <div class="columnas-seleccion">
+                          @for (columna of archivoPreviewColumnas(); track columna) {
+                            <mat-checkbox 
+                              [(ngModel)]="columnasSeleccionadas()[columna]"
+                              class="columna-checkbox">
+                              {{ columna }}
+                            </mat-checkbox>
+                          }
+                        </div>
+                      </div>
+
+                      <div class="preview-tabla">
+                        <table class="datos-table">
+                          <thead>
+                            <tr>
+                              @for (columna of archivoPreviewColumnas(); track columna) {
+                                <th>{{ columna }}</th>
+                              }
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (dato of archivoPreviewDatos(); track $index) {
+                              <tr>
+                                @for (columna of archivoPreviewColumnas(); track columna) {
+                                  <td>
+                                    @if (columna === 'coordenadas' && dato[columna]) {
+                                      <span class="coordenadas-badge">📍 [{{ dato[columna][0] | number:'1.4-4' }}, {{ dato[columna][1] | number:'1.4-4' }}]</span>
+                                    } @else if (isObject(dato[columna])) {
+                                      <code>{{ dato[columna] | json }}</code>
+                                    } @else {
+                                      {{ dato[columna] || '-' }}
+                                    }
+                                  </td>
+                                }
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
                 </div>
               </mat-tab>
 
@@ -232,12 +325,28 @@ interface ResultadoImportacion {
           <div class="validacion-resultados">
             <div class="validacion-header">
               <mat-icon class="check-icon">check_circle</mat-icon>
-              <h3>Archivo Validado</h3>
+              <div>
+                <h3>Archivo Validado - Preview por Tipo</h3>
+                @if (usarArchivoPersonalizado && archivoSeleccionado()) {
+                  <p class="archivo-nombre">Archivo: <strong>{{ archivoSeleccionado()?.name }}</strong></p>
+                } @else {
+                  <p class="archivo-nombre">Archivos por defecto de Puno</p>
+                }
+              </div>
+            </div>
+
+            <div class="columnas-disponibles">
+              <h4>Columnas Disponibles:</h4>
+              <div class="columnas-grid">
+                @for (columna of obtenerColumnasDisponibles(); track columna) {
+                  <mat-chip class="columna-chip">{{ columna }}</mat-chip>
+                }
+              </div>
             </div>
 
             <div class="validacion-stats">
               <div class="stat-row">
-                <span class="stat-label">Total de centros poblados:</span>
+                <span class="stat-label">Total de registros:</span>
                 <span class="stat-value">{{ validacion()?.totalFeatures || 0 }}</span>
               </div>
               <div class="stat-row">
@@ -245,54 +354,130 @@ interface ResultadoImportacion {
                 <span class="stat-value success">{{ validacion()?.conCoordenadas || 0 }}</span>
               </div>
               <div class="stat-row">
-                <span class="stat-label">Sin coordenadas:</span>
-                <span class="stat-value warning">{{ validacion()?.sinCoordenadas || 0 }}</span>
-              </div>
-              <div class="stat-row">
                 <span class="stat-label">Con UBIGEO:</span>
                 <span class="stat-value success">{{ validacion()?.conUbigeo || 0 }}</span>
               </div>
-              <div class="stat-row">
-                <span class="stat-label">Sin UBIGEO:</span>
-                <span class="stat-value warning">{{ validacion()?.sinUbigeo || 0 }}</span>
-              </div>
             </div>
 
-            <div class="validacion-distribucion">
-              <h4>Distribución por provincia (top 5):</h4>
-              <div class="distribucion-list">
-                @for (item of getTopProvincias(); track item.nombre) {
-                  <div class="distribucion-item">
-                    <span class="nombre">{{ item.nombre }}</span>
-                    <span class="cantidad">{{ item.cantidad }}</span>
+            <div class="preview-por-tipo">
+              <h4>Preview de Datos por Tipo:</h4>
+              <mat-tab-group>
+                <!-- Tab: Provincias -->
+                <mat-tab label="Provincias">
+                  <div class="preview-tabla">
+                    <table class="datos-table">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>UBIGEO</th>
+                          <th>Coordenadas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (ejemplo of getEjemplosPorTipo('PROVINCIA'); track ejemplo.nombre) {
+                          <tr>
+                            <td>{{ ejemplo.nombre }}</td>
+                            <td>{{ ejemplo.ubigeo || 'N/A' }}</td>
+                            <td>
+                              @if (ejemplo.coordenadas) {
+                                <mat-chip class="mini-chip success">✓ GPS</mat-chip>
+                              } @else {
+                                <mat-chip class="mini-chip warning">✗ Sin GPS</mat-chip>
+                              }
+                            </td>
+                          </tr>
+                        }
+                        @if (getEjemplosPorTipo('PROVINCIA').length === 0) {
+                          <tr>
+                            <td colspan="3" class="sin-datos">No hay provincias en el preview</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
                   </div>
-                }
-              </div>
-            </div>
+                </mat-tab>
 
-            <div class="validacion-ejemplos">
-              <h4>Ejemplos de datos (primeros 3):</h4>
-              <div class="ejemplos-list">
-                @for (ejemplo of validacion()?.ejemplos || []; track ejemplo.nombre) {
-                  <div class="ejemplo-item">
-                    <div class="ejemplo-nombre">{{ ejemplo.nombre }}</div>
-                    <div class="ejemplo-detalles">
-                      <span>{{ ejemplo.provincia }} - {{ ejemplo.distrito }}</span>
-                      @if (ejemplo.ubigeo) {
-                        <mat-chip class="mini-chip">{{ ejemplo.ubigeo }}</mat-chip>
-                      }
-                      @if (ejemplo.coordenadas) {
-                        <mat-chip class="mini-chip success">GPS</mat-chip>
-                      }
-                    </div>
+                <!-- Tab: Distritos -->
+                <mat-tab label="Distritos">
+                  <div class="preview-tabla">
+                    <table class="datos-table">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Provincia</th>
+                          <th>UBIGEO</th>
+                          <th>Coordenadas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (ejemplo of getEjemplosPorTipo('DISTRITO'); track ejemplo.nombre) {
+                          <tr>
+                            <td>{{ ejemplo.nombre }}</td>
+                            <td>{{ ejemplo.provincia }}</td>
+                            <td>{{ ejemplo.ubigeo || 'N/A' }}</td>
+                            <td>
+                              @if (ejemplo.coordenadas) {
+                                <mat-chip class="mini-chip success">✓ GPS</mat-chip>
+                              } @else {
+                                <mat-chip class="mini-chip warning">✗ Sin GPS</mat-chip>
+                              }
+                            </td>
+                          </tr>
+                        }
+                        @if (getEjemplosPorTipo('DISTRITO').length === 0) {
+                          <tr>
+                            <td colspan="4" class="sin-datos">No hay distritos en el preview</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
                   </div>
-                }
-              </div>
+                </mat-tab>
+
+                <!-- Tab: Centros Poblados -->
+                <mat-tab label="Centros Poblados">
+                  <div class="preview-tabla">
+                    <table class="datos-table">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Distrito</th>
+                          <th>Provincia</th>
+                          <th>UBIGEO</th>
+                          <th>Coordenadas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (ejemplo of getEjemplosPorTipo('CENTRO_POBLADO'); track ejemplo.nombre) {
+                          <tr>
+                            <td>{{ ejemplo.nombre }}</td>
+                            <td>{{ ejemplo.distrito }}</td>
+                            <td>{{ ejemplo.provincia }}</td>
+                            <td>{{ ejemplo.ubigeo || 'N/A' }}</td>
+                            <td>
+                              @if (ejemplo.coordenadas) {
+                                <mat-chip class="mini-chip success">✓ GPS</mat-chip>
+                              } @else {
+                                <mat-chip class="mini-chip warning">✗ Sin GPS</mat-chip>
+                              }
+                            </td>
+                          </tr>
+                        }
+                        @if (getEjemplosPorTipo('CENTRO_POBLADO').length === 0) {
+                          <tr>
+                            <td colspan="5" class="sin-datos">No hay centros poblados en el preview</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </mat-tab>
+              </mat-tab-group>
             </div>
 
             <div class="validacion-confirmacion">
-              <mat-icon>warning</mat-icon>
-              <p>¿Deseas continuar con la importación de {{ validacion()?.totalFeatures || 0 }} localidades (provincias, distritos y centros poblados)?</p>
+              <mat-icon>info</mat-icon>
+              <p>Revisa el preview anterior. Si los datos se ven correctos, haz clic en "Confirmar e Importar"</p>
             </div>
           </div>
         }
@@ -368,19 +553,53 @@ interface ResultadoImportacion {
               }
             </div>
 
-            @if (resultado()?.detallesErrores && resultado()!.detallesErrores.length > 0) {
+            @if ((resultado()?.detallesErrores?.length || 0) > 0) {
               <div class="errores-detalle">
                 <h4>Detalles de errores:</h4>
                 <div class="error-list">
-                  @for (error of resultado()!.detallesErrores.slice(0, 5); track error) {
+                  @for (error of (resultado()?.detallesErrores || []).slice(0, 5); track error) {
                     <div class="error-item">
                       <mat-icon>error_outline</mat-icon>
                       <span>{{ error }}</span>
                     </div>
                   }
-                  @if (resultado()!.detallesErrores.length > 5) {
+                  @if ((resultado()?.detallesErrores?.length || 0) > 5) {
                     <div class="error-item">
-                      <span>... y {{ resultado()!.detallesErrores.length - 5 }} errores más</span>
+                      <span>... y {{ (resultado()?.detallesErrores?.length || 0) - 5 }} errores más</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            @if ((resultado()?.duplicados_detectados?.length || 0) > 0) {
+              <div class="duplicados-detalle">
+                <h4>Duplicados detectados ({{ resultado()?.duplicados_detectados?.length || 0 }}):</h4>
+                <p class="duplicados-info">Estas localidades no se importaron porque ya existen en la base de datos</p>
+                <div class="duplicados-list">
+                  @for (dup of (resultado()?.duplicados_detectados || []).slice(0, 10); track dup.nombre + dup.ubigeo) {
+                    <div class="duplicado-item">
+                      <div class="duplicado-header">
+                        <strong>{{ dup.nombre }}</strong>
+                        <mat-chip class="tipo-chip">{{ dup.tipo }}</mat-chip>
+                      </div>
+                      <div class="duplicado-info">
+                        <span class="info-label">UBIGEO:</span>
+                        <span class="info-value">{{ dup.ubigeo || 'N/A' }}</span>
+                      </div>
+                      <div class="duplicado-info">
+                        <span class="info-label">Ubicación:</span>
+                        <span class="info-value">{{ dup.provincia }}{{ dup.distrito ? ' - ' + dup.distrito : '' }}</span>
+                      </div>
+                      <div class="duplicado-razon">
+                        <mat-icon>info</mat-icon>
+                        <span>{{ dup.razon }}</span>
+                      </div>
+                    </div>
+                  }
+                  @if ((resultado()?.duplicados_detectados?.length || 0) > 10) {
+                    <div class="duplicado-item">
+                      <span>... y {{ (resultado()?.duplicados_detectados?.length || 0) - 10 }} duplicados más</span>
                     </div>
                   }
                 </div>
@@ -895,11 +1114,447 @@ interface ResultadoImportacion {
       }
     }
 
+    .duplicados-detalle {
+      margin-top: 24px;
+      padding: 16px;
+      background: #fff3e0;
+      border-radius: 8px;
+      border-left: 4px solid #f57c00;
+
+      h4 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        font-weight: 500;
+        color: #f57c00;
+      }
+
+      .duplicados-info {
+        margin: 0 0 12px 0;
+        font-size: 12px;
+        color: #666;
+      }
+
+      .duplicados-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+
+        .duplicado-item {
+          padding: 12px;
+          background: white;
+          border-radius: 4px;
+          border-left: 3px solid #f57c00;
+
+          .duplicado-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+
+            strong {
+              font-size: 13px;
+              flex: 1;
+            }
+
+            .tipo-chip {
+              font-size: 10px;
+              height: 20px;
+              background: #fff3e0;
+              color: #f57c00;
+            }
+          }
+
+          .duplicado-info {
+            display: flex;
+            gap: 8px;
+            font-size: 11px;
+            margin-bottom: 4px;
+
+            .info-label {
+              font-weight: 600;
+              color: #666;
+              min-width: 60px;
+            }
+
+            .info-value {
+              color: #333;
+              flex: 1;
+            }
+          }
+
+          .duplicado-razon {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 11px;
+            color: #f57c00;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #ffe0b2;
+
+            mat-icon {
+              font-size: 14px;
+              width: 14px;
+              height: 14px;
+              flex-shrink: 0;
+            }
+
+            span {
+              flex: 1;
+            }
+          }
+        }
+      }
+    }
+
     mat-dialog-actions {
       padding: 16px 24px;
       border-top: 1px solid #e0e0e0;
       justify-content: flex-end;
       gap: 12px;
+    }
+
+    .preview-tabla {
+      margin: 16px 0;
+      overflow-x: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+
+      .datos-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+
+        thead {
+          background: #f5f5f5;
+          border-bottom: 2px solid #e0e0e0;
+
+          th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+          }
+        }
+
+        tbody {
+          tr {
+            border-bottom: 1px solid #e0e0e0;
+
+            &:hover {
+              background: #f9f9f9;
+            }
+
+            td {
+              padding: 10px 12px;
+              color: #666;
+
+              &.sin-datos {
+                text-align: center;
+                color: #999;
+                font-style: italic;
+              }
+
+              mat-chip {
+                font-size: 10px;
+                height: 20px;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .preview-por-tipo {
+      margin: 20px 0;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+    }
+
+    .validacion-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+
+      .check-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+        color: #4caf50;
+        flex-shrink: 0;
+        margin-top: 4px;
+      }
+
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        font-weight: 500;
+      }
+
+      .archivo-nombre {
+        margin: 0;
+        font-size: 13px;
+        color: #666;
+        padding: 8px 12px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        border-left: 3px solid #2196f3;
+
+        strong {
+          color: #1976d2;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .columnas-disponibles {
+      margin: 16px 0;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .columnas-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .columna-chip {
+          font-size: 11px;
+          height: 24px;
+          background: #e3f2fd;
+          color: #1976d2;
+          border: 1px solid #90caf9;
+        }
+      }
+    }
+
+    .archivos-disponibles-section {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f0f7ff;
+      border-radius: 8px;
+      border: 1px solid #b3e5fc;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #01579b;
+      }
+
+      .archivos-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .archivo-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: white;
+          border-radius: 4px;
+          border-left: 3px solid #0288d1;
+          font-size: 12px;
+          color: #333;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #e3f2fd;
+            border-left-color: #1976d2;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          mat-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: #0288d1;
+          }
+
+          .coordenadas-chip {
+            margin-left: auto;
+            font-size: 10px;
+            height: 20px;
+            background: #c8e6c9;
+            color: #2e7d32;
+          }
+        }
+      }
+
+      .nota-centros-poblados {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 12px;
+        padding: 10px;
+        background: #fff3e0;
+        border-radius: 4px;
+        border-left: 3px solid #f57c00;
+        font-size: 11px;
+        color: #e65100;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        span {
+          flex: 1;
+          line-height: 1.4;
+
+          strong {
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .archivo-preview-section {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .preview-columnas {
+        margin-bottom: 12px;
+
+        strong {
+          display: block;
+          font-size: 11px;
+          margin-bottom: 8px;
+          color: #666;
+        }
+
+        .columnas-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+
+          .columna-chip {
+            font-size: 10px;
+            height: 22px;
+            background: #e1f5fe;
+            color: #01579b;
+            border: 1px solid #80deea;
+          }
+        }
+      }
+
+      .mapeo-columnas {
+        margin-bottom: 12px;
+        padding: 12px;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #e0e0e0;
+
+        strong {
+          display: block;
+          font-size: 11px;
+          margin-bottom: 8px;
+          color: #333;
+          font-weight: 600;
+        }
+
+        .columnas-seleccion {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 8px;
+
+          .columna-checkbox {
+            font-size: 12px;
+          }
+        }
+      }
+
+      .preview-tabla {
+        overflow-x: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        margin-top: 12px;
+
+        .datos-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+
+          thead {
+            background: #e0e0e0;
+            border-bottom: 2px solid #bdbdbd;
+
+            th {
+              padding: 8px;
+              text-align: left;
+              font-weight: 600;
+              color: #333;
+              white-space: nowrap;
+            }
+          }
+
+          tbody {
+            tr {
+              border-bottom: 1px solid #f0f0f0;
+
+              &:hover {
+                background: #fafafa;
+              }
+
+              td {
+                padding: 8px;
+                color: #666;
+                max-width: 200px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                code {
+                  background: #f5f5f5;
+                  padding: 2px 4px;
+                  border-radius: 2px;
+                  font-size: 9px;
+                }
+
+                .coordenadas-badge {
+                  background: #c8e6c9;
+                  color: #2e7d32;
+                  padding: 2px 6px;
+                  border-radius: 3px;
+                  font-weight: 500;
+                }
+              }
+            }
+          }
+        }
+      }
     }
   `]
 })
@@ -920,6 +1575,16 @@ export class CargaMasivaGeojsonComponent {
   importarProvincias = true;
   importarDistritos = true;
   importarCentrosPoblados = true;
+
+  // Archivos disponibles
+  archivosDisponibles = signal<string[]>([]);
+  archivoSeleccionadoNombre = signal<string>('');
+  archivoPreviewDatos = signal<any[]>([]);
+  archivoPreviewColumnas = signal<string[]>([]);
+  
+  // Mapeo de columnas
+  columnasSeleccionadas = signal<{ [key: string]: boolean }>({});
+  mostrarMapeoColumnas = signal(false);
 
   // Archivo personalizado
   archivoSeleccionado = signal<File | null>(null);
@@ -951,6 +1616,7 @@ export class CargaMasivaGeojsonComponent {
     dialogRef: MatDialogRef<CargaMasivaGeojsonComponent>
   ) {
     this.dialogRef.set(dialogRef);
+    this.cargarArchivosDisponibles();
   }
 
   get progreso(): () => number {
@@ -961,80 +1627,396 @@ export class CargaMasivaGeojsonComponent {
     };
   }
 
+  isObject(value: any): boolean {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private cargarArchivosDisponibles() {
+    // Lista de archivos GeoJSON disponibles en assets
+    // IMPORTANTE: Usar archivos con "-point" para tener coordenadas reales
+    this.archivosDisponibles.set([
+      'puno-provincias-point.geojson',    // Provincias con coordenadas
+      'puno-distritos-point.geojson',     // Distritos con coordenadas
+      'puno-centrospoblados.geojson'      // Centros poblados con coordenadas
+    ]);
+  }
+
+  async cargarArchivoPreview(nombreArchivo: string) {
+    try {
+      console.log(`Cargando preview de ${nombreArchivo}...`);
+      
+      // Para archivos muy grandes, usar un enfoque diferente
+      if (nombreArchivo.includes('centrospoblados')) {
+        await this.cargarArchivoGrandePreview(nombreArchivo);
+      } else {
+        await this.cargarArchivoNormalPreview(nombreArchivo);
+      }
+    } catch (error) {
+      console.error(`Error cargando archivo ${nombreArchivo}:`, error);
+      alert(`Error al cargar ${nombreArchivo}`);
+    }
+  }
+
+  private async cargarArchivoNormalPreview(nombreArchivo: string) {
+    const data = await this.http.get<any>(`assets/geojson/${nombreArchivo}`).toPromise();
+    
+    if (data?.features && data.features.length > 0) {
+      this.procesarPreviewData(nombreArchivo, data.features);
+    }
+  }
+
+  private async cargarArchivoGrandePreview(nombreArchivo: string) {
+    try {
+      // Para archivos grandes, hacer una solicitud con responseType text
+      // y parsear manualmente solo los primeros 10 features
+      const response = await this.http.get(`assets/geojson/${nombreArchivo}`, {
+        responseType: 'text'
+      }).toPromise();
+      
+      if (!response) throw new Error('No response');
+      
+      // Parsear el JSON
+      const data = JSON.parse(response);
+      
+      if (data?.features && data.features.length > 0) {
+        console.log(`✅ Archivo grande cargado: ${nombreArchivo} (${data.features.length} total)`);
+        this.procesarPreviewData(nombreArchivo, data.features);
+      }
+    } catch (error) {
+      console.error(`Error cargando archivo grande ${nombreArchivo}:`, error);
+      throw error;
+    }
+  }
+
+  private procesarPreviewData(nombreArchivo: string, allFeatures: any[]) {
+    // Tomar solo los primeros 10 registros
+    const features = allFeatures.slice(0, 10);
+    
+    // Extraer datos de propiedades
+    const datos = features.map((f: any) => ({
+      ...f.properties,
+      coordenadas: f.geometry?.coordinates || null,
+      tipo_geometria: f.geometry?.type || null
+    }));
+    
+    // Obtener columnas únicas de TODOS los features
+    const columnasSet = new Set<string>();
+    allFeatures.forEach((f: any) => {
+      Object.keys(f.properties || {}).forEach(col => columnasSet.add(col));
+    });
+    
+    const columnas = Array.from(columnasSet).sort();
+    
+    this.archivoSeleccionadoNombre.set(nombreArchivo);
+    this.archivoPreviewDatos.set(datos);
+    this.archivoPreviewColumnas.set(columnas);
+    
+    // Inicializar mapeo de columnas (todas seleccionadas por defecto)
+    const mapeo: { [key: string]: boolean } = {};
+    columnas.forEach(col => {
+      mapeo[col] = true;
+    });
+    this.columnasSeleccionadas.set(mapeo);
+    this.mostrarMapeoColumnas.set(true);
+    
+    console.log(`✅ Preview procesado: ${nombreArchivo}`, {
+      total: allFeatures.length,
+      preview: datos.length,
+      columnasUnicas: columnas.length,
+      columnas: columnas
+    });
+  }
+
   async validarArchivo() {
     this.validando.set(true);
 
     try {
-      // Validar que existan los archivos (centros poblados deshabilitado por tamaño)
-      const [provincias, distritos] = await Promise.all([
-        this.http.get<any>('assets/geojson/puno-provincias.geojson').toPromise(),
-        this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise()
-        // DESHABILITADO: puno-centrospoblados.geojson (10MB, 9372 features)
-      ]);
-
-      // Filtrar solo provincias de Puno
-      const provinciasPuno = provincias.features.filter((f: any) => f.properties.NOMBDEP === 'PUNO');
-
-      // Analizar los datos (sin centros poblados)
-      const totalFeatures = provinciasPuno.length + distritos.features.length; // + centros.features.length;
-
-      const validacion: ValidacionPrevia = {
-        totalFeatures: totalFeatures,
-        conCoordenadas: 0,
-        sinCoordenadas: 0,
-        conUbigeo: 0,
-        sinUbigeo: 0,
-        porProvincia: {},
-        porDistrito: {},
-        ejemplos: []
-      };
-
-      // DESHABILITADO: Análisis de centros poblados (archivo muy grande)
-      // Los centros poblados se importan desde el backend directamente
-      /*
-      centros.features.forEach((feature: any, index: number) => {
-        const props = feature.properties;
-        const coords = feature.geometry?.coordinates;
-
-        if (coords && coords.length === 2) {
-          validacion.conCoordenadas++;
-        } else {
-          validacion.sinCoordenadas++;
+      if (this.usarArchivoPersonalizado && this.archivoSeleccionado()) {
+        // Validar archivo personalizado
+        const file = this.archivoSeleccionado()!;
+        const contenido = await file.text();
+        const data = JSON.parse(contenido);
+        
+        if (!data.features || !Array.isArray(data.features)) {
+          throw new Error('El archivo no contiene features válidas');
         }
-
-        if (props.UBIGEO && props.UBIGEO.trim()) {
-          validacion.conUbigeo++;
-        } else {
-          validacion.sinUbigeo++;
-        }
-
-        const provincia = props.NOMB_PROVI || 'Sin provincia';
-        validacion.porProvincia[provincia] = (validacion.porProvincia[provincia] || 0) + 1;
-
-        const distrito = props.NOMB_DISTR || 'Sin distrito';
-        validacion.porDistrito[distrito] = (validacion.porDistrito[distrito] || 0) + 1;
-
-        if (index < 3) {
-          validacion.ejemplos.push({
-            nombre: props.NOMB_CCPP || 'Sin nombre',
-            ubigeo: props.UBIGEO || null,
-            provincia: props.NOMB_PROVI || 'N/A',
-            distrito: props.NOMB_DISTR || 'N/A',
-            coordenadas: coords && coords.length === 2
-          });
-        }
-      });
-      */
-
-      this.validacion.set(validacion);
+        
+        this.procesarValidacion(data.features);
+      } else {
+        // Cargar y validar archivos por defecto (solo provincias y distritos)
+        // Los centros poblados se cargan desde el backend por su tamaño
+        await this.cargarYValidarArchivosPorDefecto();
+      }
+      
       this.validando.set(false);
       this.validacionCompleta.set(true);
-
     } catch (error: any) {
       console.error('Error validando archivos:', error);
       this.validando.set(false);
       alert('Error al validar los archivos GeoJSON: ' + (error.message || 'Error desconocido'));
     }
+  }
+
+  private async cargarYValidarArchivosPorDefecto() {
+    try {
+      const features: any[] = [];
+      
+      // Cargar provincias si está seleccionado (usar archivo con -point para coordenadas)
+      if (this.importarProvincias) {
+        try {
+          const data = await this.http.get<any>('assets/geojson/puno-provincias-point.geojson').toPromise();
+          if (data?.features) {
+            features.push(...data.features.slice(0, 10).map((f: any) => ({
+              ...f,
+              properties: { ...f.properties, tipo: 'PROVINCIA', archivo: 'puno-provincias-point.geojson' }
+            })));
+          }
+        } catch (error) {
+          console.warn('Error cargando provincias:', error);
+        }
+      }
+      
+      // Cargar distritos si está seleccionado (usar archivo con -point para coordenadas)
+      if (this.importarDistritos) {
+        try {
+          const data = await this.http.get<any>('assets/geojson/puno-distritos-point.geojson').toPromise();
+          if (data?.features) {
+            features.push(...data.features.slice(0, 10).map((f: any) => ({
+              ...f,
+              properties: { ...f.properties, tipo: 'DISTRITO', archivo: 'puno-distritos-point.geojson' }
+            })));
+          }
+        } catch (error) {
+          console.warn('Error cargando distritos:', error);
+        }
+      }
+      
+      // Cargar centros poblados si está seleccionado
+      if (this.importarCentrosPoblados) {
+        try {
+          const data = await this.http.get<any>('assets/geojson/puno-centrospoblados.geojson').toPromise();
+          if (data?.features) {
+            features.push(...data.features.slice(0, 10).map((f: any) => ({
+              ...f,
+              properties: { ...f.properties, tipo: 'CENTRO_POBLADO', archivo: 'puno-centrospoblados.geojson' }
+            })));
+          }
+        } catch (error) {
+          console.warn('Error cargando centros poblados (archivo muy grande):', error);
+          // No lanzar error, solo advertencia
+        }
+      }
+      
+      if (features.length === 0) {
+        throw new Error('No se pudieron cargar los archivos GeoJSON');
+      }
+      
+      this.procesarValidacion(features);
+    } catch (error) {
+      console.error('Error cargando archivos por defecto:', error);
+      throw new Error('Error cargando archivos GeoJSON por defecto');
+    }
+  }
+
+  private procesarValidacion(features: any[]) {
+    let conCoordenadas = 0;
+    let sinCoordenadas = 0;
+    let conUbigeo = 0;
+    let sinUbigeo = 0;
+    const porProvincia: { [key: string]: number } = {};
+    const porDistrito: { [key: string]: number } = {};
+    
+    // Separar ejemplos por tipo
+    const ejemplosProvincias: any[] = [];
+    const ejemplosDistritos: any[] = [];
+    const ejemplosCentrosPoblados: any[] = [];
+    
+    features.forEach((feature, index) => {
+      const props = feature.properties || {};
+      const tipo = props.tipo || 'N/A';
+      
+      // Mapear localidad con UBIGEO correcto según tipo
+      const localidad = this.mapearLocalidad(feature, tipo);
+      
+      // Contar coordenadas
+      if (localidad.longitud !== null && localidad.latitud !== null) {
+        conCoordenadas++;
+      } else {
+        sinCoordenadas++;
+      }
+      
+      // Contar UBIGEO
+      if (localidad.ubigeo && localidad.ubigeo.length > 0) {
+        conUbigeo++;
+      } else {
+        sinUbigeo++;
+      }
+      
+      // Contar por provincia
+      const provincia = localidad.provincia || 'Sin provincia';
+      porProvincia[provincia] = (porProvincia[provincia] || 0) + 1;
+      
+      // Contar por distrito
+      const distrito = localidad.distrito || 'Sin distrito';
+      porDistrito[distrito] = (porDistrito[distrito] || 0) + 1;
+      
+      // Crear ejemplo
+      const ejemplo = {
+        nombre: localidad.nombre,
+        tipo: tipo,
+        provincia: provincia,
+        distrito: distrito,
+        ubigeo: localidad.ubigeo,
+        coordenadas: localidad.longitud !== null && localidad.latitud !== null
+      };
+      
+      // Separar por tipo - IMPORTANTE: usar === para comparación exacta
+      if (tipo === 'PROVINCIA' && ejemplosProvincias.length < 5) {
+        ejemplosProvincias.push(ejemplo);
+      } else if (tipo === 'DISTRITO' && ejemplosDistritos.length < 5) {
+        ejemplosDistritos.push(ejemplo);
+      } else if (tipo === 'CENTRO_POBLADO' && ejemplosCentrosPoblados.length < 5) {
+        ejemplosCentrosPoblados.push(ejemplo);
+      }
+    });
+    
+    this.validacion.set({
+      totalFeatures: features.length,
+      conCoordenadas,
+      sinCoordenadas,
+      conUbigeo,
+      sinUbigeo,
+      porProvincia,
+      porDistrito,
+      ejemplos: [...ejemplosProvincias, ...ejemplosDistritos, ...ejemplosCentrosPoblados]
+    });
+  }
+
+  // Métodos para mapeo correcto de UBIGEO según tipo de localidad
+  private mapearLocalidad(feature: any, tipo: string): any {
+    const coords = this.extraerCoordenadas(feature);
+    const props = feature.properties;
+    
+    const localidad = {
+      nombre: this.extraerNombre(props, tipo),
+      tipo: tipo,
+      ubigeo: this.generarUBIGEO(feature, tipo),
+      departamento: props.NOMB_DEPAR || props.NOMBDEP || 'PUNO',
+      provincia: props.NOMB_PROVI || props.PROVINCIA || props.NOMBPROV || '',
+      distrito: props.NOMB_DISTR || props.DISTRITO || props.NOMBDIST || '',
+      longitud: coords?.longitud || null,
+      latitud: coords?.latitud || null,
+      poblacion: props.POBTOTAL || 0,
+      fuente: props.FUENTE || 'INEI - CPV2017'
+    };
+    
+    return localidad;
+  }
+
+  private extraerNombre(props: any, tipo: string): string {
+    switch(tipo) {
+      case 'PROVINCIA':
+        return props.NOMBPROV || props.PROVINCIA || '';
+      case 'DISTRITO':
+        return props.NOMBDIST || props.DISTRITO || '';
+      case 'CENTRO_POBLADO':
+        return props.NOMB_CCPP || '';
+      default:
+        return '';
+    }
+  }
+
+  private extraerCoordenadas(feature: any): { longitud: number; latitud: number } | null {
+    const coords = feature.geometry?.coordinates;
+    
+    if (!coords || coords.length < 2) {
+      return null;
+    }
+    
+    // GeoJSON usa [Longitud, Latitud]
+    return {
+      longitud: coords[0],
+      latitud: coords[1]
+    };
+  }
+
+  private generarUBIGEO(feature: any, tipo: string): string {
+    const props = feature.properties;
+    
+    // Formato correcto: DDPPDDCCCC (10 dígitos)
+    // DD = Departamento (21 para Puno)
+    // PP = Provincia
+    // DD = Distrito
+    // CCCC = Centro Poblado
+    
+    switch(tipo) {
+      case 'PROVINCIA':
+        // PROVINCIA: DDPP000000 (10 dígitos)
+        // Ejemplo: 2101000000 (Departamento 21, Provincia 01, sin distrito ni CCPP)
+        const idprov = props.IDPROV || props.CODPROV;
+        if (idprov) {
+          const provStr = idprov.toString();
+          const provCode = provStr.length === 4 ? provStr.substring(2) : provStr;
+          return '21' + provCode.padStart(2, '0') + '000000';
+        }
+        return '';
+      
+      case 'DISTRITO':
+        // DISTRITO: DDPPDD0000 (10 dígitos)
+        // Ejemplo: 2105020000 (Departamento 21, Provincia 05, Distrito 02, sin CCPP)
+        const ubigeo = props.UBIGEO || props.ubigeo;
+        if (ubigeo) {
+          const ubigeoStr = ubigeo.toString().padStart(6, '0');
+          return ubigeoStr + '0000';
+        }
+        return '';
+      
+      case 'CENTRO_POBLADO':
+        // CENTRO_POBLADO: DDPPDDCCCC (10 dígitos)
+        // Ejemplo: 2110020048 (Departamento 21, Provincia 10, Distrito 02, CCPP 0048)
+        const idccpp = props.IDCCPP || props.COD_CCPP;
+        if (idccpp) {
+          return idccpp.toString().padStart(10, '0');
+        }
+        return '';
+      
+      default:
+        return '';
+    }
+  }
+
+  private validarLocalidad(localidad: any): { valido: boolean; errores: string[] } {
+    const errores: string[] = [];
+    
+    // Validar nombre
+    if (!localidad.nombre || localidad.nombre.trim() === '') {
+      errores.push('Nombre vacío');
+    }
+    
+    // Validar UBIGEO
+    if (!localidad.ubigeo || localidad.ubigeo.length === 0) {
+      errores.push('UBIGEO vacío');
+    }
+    
+    // Validar coordenadas
+    if (localidad.longitud === null || localidad.latitud === null) {
+      errores.push('Coordenadas faltantes');
+    }
+    
+    // Validar rango de coordenadas (Puno)
+    if (localidad.longitud && localidad.latitud) {
+      if (localidad.longitud < -72 || localidad.longitud > -68) {
+        errores.push('Longitud fuera de rango para Puno');
+      }
+      if (localidad.latitud < -18 || localidad.latitud > -13) {
+        errores.push('Latitud fuera de rango para Puno');
+      }
+    }
+    
+    return {
+      valido: errores.length === 0,
+      errores
+    };
   }
 
   getTopProvincias(): Array<{ nombre: string; cantidad: number }> {
@@ -1045,6 +2027,24 @@ export class CargaMasivaGeojsonComponent {
       .map(([nombre, cantidad]) => ({ nombre, cantidad: cantidad as number }))
       .sort((a, b) => b.cantidad - a.cantidad)
       .slice(0, 5);
+  }
+
+  getEjemplosPorTipo(tipo: string): any[] {
+    const validacion = this.validacion();
+    if (!validacion) return [];
+
+    return (validacion.ejemplos || [])
+      .filter(e => e.tipo === tipo)
+      .slice(0, 5);
+  }
+
+  obtenerColumnasDisponibles(): string[] {
+    const validacion = this.validacion();
+    if (!validacion || validacion.ejemplos.length === 0) return [];
+
+    const primerEjemplo = validacion.ejemplos[0];
+    // Obtener todas las propiedades del primer ejemplo
+    return Object.keys(primerEjemplo).filter(key => key !== 'tipo' && key !== 'archivo');
   }
 
   volverAInicio() {
@@ -1083,7 +2083,7 @@ export class CargaMasivaGeojsonComponent {
         formData.append('centros_poblados', this.importarCentrosPoblados.toString());
 
         resultado = await this.http.post(
-          'http://localhost:8000/api/v1/localidades/importar-desde-archivo',
+          'http://localhost:8000/api/v1/importar-desde-archivo',
           formData
         ).toPromise();
       } else {
@@ -1097,7 +2097,7 @@ export class CargaMasivaGeojsonComponent {
         });
 
         resultado = await this.http.post(
-          `http://localhost:8000/api/v1/localidades/importar-desde-geojson?${params}`,
+          `http://localhost:8000/api/v1/importar-desde-geojson?${params}`,
           {}
         ).toPromise();
       }
@@ -1109,13 +2109,22 @@ export class CargaMasivaGeojsonComponent {
       this.completado.set(true);
 
       this.resultado.set({
-        total: resultado.total_importados + resultado.total_actualizados + resultado.total_omitidos,
+        total: resultado.total_importados + resultado.total_actualizados + resultado.total_omitidos + resultado.total_errores,
         importados: resultado.total_importados,
         actualizados: resultado.total_actualizados,
         omitidos: resultado.total_omitidos,
         errores: resultado.total_errores,
-        detallesErrores: []
+        detallesErrores: resultado.errores_detalle?.map((e: any) => `${e.nombre}: ${e.error}`) || [],
+        duplicados_detectados: resultado.duplicados_detectados || resultado.detalle?.distritos?.duplicados || []
       });
+
+      // Log detallado de lo que no se importó
+      if (resultado.duplicados_detectados && resultado.duplicados_detectados.length > 0) {
+        console.warn('⚠️ Duplicados detectados:', resultado.duplicados_detectados);
+      }
+      if (resultado.detalle?.distritos?.duplicados && resultado.detalle.distritos.duplicados.length > 0) {
+        console.warn('⚠️ Distritos duplicados:', resultado.detalle.distritos.duplicados);
+      }
 
     } catch (error: any) {
       console.error('Error en importación:', error);
@@ -1215,145 +2224,6 @@ export class CargaMasivaGeojsonComponent {
     }
   }
 
-  private async cargarProvincias() {
-    const geojsonData = await this.http.get<any>('assets/geojson/peru-provincias.geojson').toPromise();
-    const features = geojsonData.features.filter((f: any) => f.properties.NOMBDEP === 'PUNO');
-
-    let importados = 0, actualizados = 0, omitidos = 0, errores = 0;
-
-    for (const feature of features) {
-      try {
-        const props = feature.properties;
-        const coords = this.extraerCentroide(feature.geometry);
-
-        const localidad: any = {
-          nombre: props.NOMBPROV?.trim() || '',
-          tipo: TipoLocalidad.PROVINCIA,
-          departamento: 'PUNO',
-          provincia: props.NOMBPROV?.trim() || '',
-          ubigeo: props.IDPROV?.toString().substring(0, 4) || '',
-          poblacion: props.POBTOTAL || null,
-          coordenadas: coords
-        };
-
-        const existe = await this.verificarExistente(localidad.ubigeo, localidad.nombre, TipoLocalidad.PROVINCIA);
-
-        if (existe) {
-          if (this.modoImportacion !== 'crear') {
-            await this.localidadService.actualizarLocalidad(existe.id, localidad);
-            actualizados++;
-          } else {
-            omitidos++;
-          }
-        } else {
-          if (this.modoImportacion !== 'actualizar') {
-            await this.localidadService.crearLocalidad(localidad);
-            importados++;
-          } else {
-            omitidos++;
-          }
-        }
-      } catch (error) {
-        errores++;
-      }
-    }
-
-    return { importados, actualizados, omitidos, errores };
-  }
-
-  private async cargarDistritos() {
-    const geojsonData = await this.http.get<any>('assets/geojson/puno-distritos.geojson').toPromise();
-    const features = geojsonData.features;
-
-    let importados = 0, actualizados = 0, omitidos = 0, errores = 0;
-
-    for (const feature of features) {
-      try {
-        const props = feature.properties;
-        const coords = this.extraerCentroide(feature.geometry);
-
-        const localidad: any = {
-          nombre: props.DISTRITO?.trim() || '',
-          tipo: TipoLocalidad.DISTRITO,
-          departamento: props.DEPARTAMEN?.trim() || 'PUNO',
-          provincia: props.PROVINCIA?.trim() || '',
-          distrito: props.DISTRITO?.trim() || '',
-          ubigeo: props.UBIGEO?.trim() || '',
-          coordenadas: coords
-        };
-
-        const existe = await this.verificarExistente(localidad.ubigeo, localidad.nombre, TipoLocalidad.DISTRITO);
-
-        if (existe) {
-          if (this.modoImportacion !== 'crear') {
-            await this.localidadService.actualizarLocalidad(existe.id, localidad);
-            actualizados++;
-          } else {
-            omitidos++;
-          }
-        } else {
-          if (this.modoImportacion !== 'actualizar') {
-            await this.localidadService.crearLocalidad(localidad);
-            importados++;
-          } else {
-            omitidos++;
-          }
-        }
-      } catch (error) {
-        errores++;
-      }
-    }
-
-    return { importados, actualizados, omitidos, errores };
-  }
-
-  private async cargarCentrosPoblados() {
-    // DESHABILITADO: Archivo muy grande (10MB, 9372 features)
-    // Los centros poblados deben importarse desde el backend
-    console.warn('⚠️ Importación de centros poblados deshabilitada en frontend');
-    console.info('💡 Usa el endpoint del backend: POST /api/v1/localidades/importar-geojson');
-    return { importados: 0, actualizados: 0, omitidos: 0, errores: 0 };
-  }
-
-  private extraerCentroide(geometry: any): { latitud: number; longitud: number } | null {
-    if (!geometry) return null;
-
-    if (geometry.type === 'Point') {
-      const coords = geometry.coordinates;
-      return coords ? { longitud: coords[0], latitud: coords[1] } : null;
-    }
-
-    if (geometry.type === 'Polygon') {
-      const coords = geometry.coordinates[0];
-      if (coords && coords.length > 0) {
-        const lons = coords.map((c: number[]) => c[0]);
-        const lats = coords.map((c: number[]) => c[1]);
-        return {
-          longitud: lons.reduce((a: number, b: number) => a + b, 0) / lons.length,
-          latitud: lats.reduce((a: number, b: number) => a + b, 0) / lats.length
-        };
-      }
-    }
-
-    return null;
-  }
-
-  private async verificarExistente(ubigeo: string, nombre: string, tipo: TipoLocalidad): Promise<any> {
-    try {
-      const localidades = await this.localidadService.obtenerLocalidades({
-        tipo: tipo,
-        departamento: 'PUNO'
-      });
-
-      return localidades.find((l: any) =>
-        (ubigeo && l.ubigeo === ubigeo) ||
-        (l.nombre === nombre && l.tipo === tipo)
-      );
-    } catch (error) {
-      return null;
-    }
-  }
-
   cerrar() {
     this.dialogRef()?.close(false);
   }
@@ -1376,12 +2246,12 @@ export class CargaMasivaGeojsonComponent {
             const primeraFeature = data.features[0];
             const columnas = Object.keys(primeraFeature.properties || {});
             
-            // Obtener datos de preview
-            const preview = data.features.slice(0, 3).map((f: any) => f.properties);
+            // Obtener datos de preview (primeros 10)
+            const preview = data.features.slice(0, 10).map((f: any) => f.properties);
             this.datosPreview.set(preview);
             
-            // Abrir diálogo de mapeo
-            this.abrirMapeoColumnas(columnas, preview);
+            // Abrir diálogo de mapeo con preview
+            this.abrirMapeoColumnasConPreview(columnas, preview);
           }
         } catch (error) {
           alert('Error al leer el archivo: ' + (error as any).message);
@@ -1394,17 +2264,20 @@ export class CargaMasivaGeojsonComponent {
     }
   }
 
-  private abrirMapeoColumnas(columnas: string[], datos: any[]) {
+  private abrirMapeoColumnasConPreview(columnas: string[], datos: any[]) {
     // Importar dinámicamente el componente
-    import('./mapeo-columnas-dialog.component').then(({ MapeoColumnasDialogComponent }) => {
-      const dialogRef = this.dialog.open(MapeoColumnasDialogComponent, {
-        width: '700px',
+    import('./mapeo-columnas-preview.component').then(({ MapeoColumnasPreviewComponent }) => {
+      const dialogRef = this.dialog.open(MapeoColumnasPreviewComponent, {
+        width: '900px',
+        maxHeight: '90vh',
         data: { columnas, datos }
       });
 
       dialogRef.afterClosed().subscribe((mapeo) => {
         if (mapeo) {
           this.mapeoColumnas.set(mapeo);
+          // Proceder a validación
+          this.validarArchivo();
         } else {
           this.archivoSeleccionado.set(null);
           this.usarArchivoPersonalizado = false;

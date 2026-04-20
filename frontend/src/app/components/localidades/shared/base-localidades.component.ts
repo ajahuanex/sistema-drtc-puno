@@ -68,62 +68,53 @@ export abstract class BaseLocalidadesComponent implements OnInit {
     this.cargando.set(true);
     try {
       const filtroTipo = this.filtrosService.tipo;
+      const pagina = this.paginator?.pageIndex || 0;
+      const limite = this.paginator?.pageSize || 25;
       
       let localidades: Localidad[];
+      let total = 0;
       
       if (filtroTipo === 'CENTRO_POBLADO') {
         // Si se filtra por CENTRO_POBLADO, usar paginación del servidor
-        const pagina = this.paginator?.pageIndex || 0;
-        const limite = this.paginator?.pageSize || 25;
-        
         const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
           pagina + 1, 
           limite, 
           { tipo: 'CENTRO_POBLADO' as any }
         );
         localidades = resultado.localidades;
+        total = resultado.total;
         
-        // Actualizar el total para el paginador
-        setTimeout(() => {
-          if (this.paginator) {
-            this.paginator.length = resultado.total;
-          }
-        });
-        
-        console.log(`✅ ${localidades.length} de ${resultado.total} centros poblados cargados`);
+        console.log(`✅ ${localidades.length} de ${total} centros poblados cargados`);
       } else if (filtroTipo) {
         // Si hay otro filtro de tipo, usar paginación
-        const pagina = this.paginator?.pageIndex || 0;
-        const limite = this.paginator?.pageSize || 25;
-        
         const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
           pagina + 1, 
           limite, 
           { tipo: filtroTipo as any }
         );
         localidades = resultado.localidades;
-        
-        setTimeout(() => {
-          if (this.paginator) {
-            this.paginator.length = resultado.total;
-          }
-        });
+        total = resultado.total;
         
         console.log(`✅ ${localidades.length} localidades tipo ${filtroTipo} cargadas`);
       } else {
-        // Sin filtro: cargar solo provincias y distritos (rápido)
-        // Los centros poblados se cargan bajo demanda cuando se filtran
-        localidades = await this.localidadService.obtenerLocalidades();
-        localidades = localidades.filter(l => l.tipo !== 'CENTRO_POBLADO');
+        // Sin filtro: cargar con paginación (provincias, distritos y centros poblados)
+        // Esto permite cargar de forma lazy/recursiva
+        const resultado = await this.localidadService.obtenerLocalidadesPaginadas(
+          pagina + 1, 
+          limite
+        );
+        localidades = resultado.localidades;
+        total = resultado.total;
         
-        setTimeout(() => {
-          if (this.paginator) {
-            this.paginator.length = localidades.length;
-          }
-        });
-        
-        console.log(`✅ ${localidades.length} localidades cargadas (sin centros poblados)`);
+        console.log(`✅ ${localidades.length} de ${total} localidades cargadas (página ${pagina + 1})`);
       }
+      
+      // Actualizar el total para el paginador
+      setTimeout(() => {
+        if (this.paginator) {
+          this.paginator.length = total;
+        }
+      });
       
       this.localidades.set(localidades);
       this.dataSource.data = localidades;

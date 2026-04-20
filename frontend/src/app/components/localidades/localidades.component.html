@@ -14,6 +14,14 @@
         <mat-icon>cloud_upload</mat-icon>
         Carga Masiva GeoJSON
       </button>
+      <button mat-raised-button color="warn" (click)="abrirDiagnosticoDuplicados()" matTooltip="Analizar y limpiar duplicados">
+        <mat-icon>bug_report</mat-icon>
+        Diagnóstico Duplicados
+      </button>
+      <button mat-raised-button color="warn" (click)="borrarTodasLocalidades()" matTooltip="⚠️ Elimina TODAS las localidades - No se puede deshacer">
+        <mat-icon>delete_sweep</mat-icon>
+        Borrar Todo
+      </button>
       <!-- DESHABILITADO TEMPORALMENTE
       <button mat-raised-button color="warn" (click)="exportarAExcel()" matTooltip="Exportar localidades a Excel">
         <mat-icon>download</mat-icon>
