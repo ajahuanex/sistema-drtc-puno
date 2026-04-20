@@ -22,12 +22,22 @@ class LocalidadAliasService:
     async def create_alias(self, alias_data: LocalidadAliasCreate) -> LocalidadAlias:
         """Crear un nuevo alias de localidad"""
         # Verificar que la localidad existe
-        localidad = await self.localidades_collection.find_one({
-            "_id": ObjectId(alias_data.localidad_id)
-        })
-        
-        if not localidad:
-            raise ValueError(f"Localidad con ID {alias_data.localidad_id} no encontrada")
+        try:
+            localidad_id = ObjectId(alias_data.localidad_id)
+        except:
+            # Si no es un ObjectId válido, buscar por nombre
+            localidad = await self.localidades_collection.find_one({
+                "nombre": alias_data.localidad_nombre
+            })
+            if not localidad:
+                raise ValueError(f"Localidad '{alias_data.localidad_nombre}' no encontrada")
+            localidad_id = localidad["_id"]
+        else:
+            localidad = await self.localidades_collection.find_one({
+                "_id": localidad_id
+            })
+            if not localidad:
+                raise ValueError(f"Localidad con ID {alias_data.localidad_id} no encontrada")
         
         # Verificar que el alias no existe ya
         existing = await self.collection.find_one({
@@ -42,6 +52,7 @@ class LocalidadAliasService:
         alias_dict = alias_data.model_dump()
         alias_dict.update({
             "_id": ObjectId(),
+            "localidad_id": str(localidad_id),
             "estaActivo": True,
             "fechaCreacion": datetime.utcnow(),
             "fechaActualizacion": datetime.utcnow(),

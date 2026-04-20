@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -26,567 +26,229 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
     SmartIconComponent
   ],
   template: `
-    <!-- Navegación Principal -->
     <nav class="sidebar-nav" role="navigation">
       <mat-nav-list class="nav-list">
-        
-        <!-- Sección: Gestión Principal -->
         @if (isExpanded()) {
           <div class="nav-section">
             <h3 class="section-title">Gestión Principal</h3>
           </div>
         }
         
-        <!-- Dashboard -->
-        <a mat-list-item 
-           routerLink="/dashboard" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Dashboard' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Dashboard' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Dashboard</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard</span> }
         </a>
 
-        <!-- Empresas -->
-        <a mat-list-item 
-           routerLink="/empresas" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Empresas' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/empresas" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Empresas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Empresas</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Empresas</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('empresas')" (click)="toggleGroup('empresas', $event)">chevron_right</mat-icon> }
         </a>
 
-        <!-- Dashboard Empresas -->
-        @if (isExpanded()) {
-          <a mat-list-item 
-             routerLink="/empresas/dashboard" 
-             routerLinkActive="active-link" 
-             class="nav-item sub-item"
-             [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" 
-             matTooltipPosition="right">
-            <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
-            @if (isExpanded()) {
-              <span matListItemTitle class="nav-text">Dashboard Empresas</span>
-            }
+        @if (isExpanded() && expandedGroups().has('empresas')) {
+          <a mat-list-item routerLink="/empresas/dashboard" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard Empresas</span> }
           </a>
         }
 
-        <!-- Infraestructura -->
-        <a mat-list-item 
-           routerLink="/infraestructura" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Infraestructura' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/infraestructura" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Infraestructura' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'location_city'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Infraestructura</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Infraestructura</span> }
         </a>
 
-        <!-- Vehículos -->
-        <a mat-list-item 
-           routerLink="/vehiculos" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Vehículos' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/vehiculos" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Vehículos' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'directions_car'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Vehículos</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Vehículos</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculos')" (click)="toggleGroup('vehiculos', $event)">chevron_right</mat-icon> }
         </a>
 
-        <!-- Carga Masiva Vehículos -->
-        @if (isExpanded()) {
-          <a mat-list-item 
-             routerLink="/vehiculos/carga-masiva" 
-             routerLinkActive="active-link" 
-             class="nav-item sub-item"
-             [matTooltip]="!isExpanded() ? 'Carga Masiva Vehículos' : ''" 
-             matTooltipPosition="right">
-            <app-smart-icon matListItemIcon [iconName]="'upload_file'" [size]="24" class="nav-icon"></app-smart-icon>
-            @if (isExpanded()) {
-              <span matListItemTitle class="nav-text">Carga Masiva Vehículos</span>
-            }
+        @if (isExpanded() && expandedGroups().has('vehiculos')) {
+          <a mat-list-item routerLink="/vehiculos/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva Vehículos' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva Vehículos</span> }
           </a>
         }
 
-        <!-- Vehículos Solo (Datos Técnicos) -->
-        <a mat-list-item 
-           routerLink="/vehiculos-solo" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/vehiculos-solo" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'build'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Datos Técnicos Vehiculares</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Datos Técnicos Vehiculares</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosSolo')" (click)="toggleGroup('vehiculosSolo', $event)">chevron_right</mat-icon> }
         </a>
 
-        <!-- Carga Masiva Datos Técnicos -->
-        @if (isExpanded()) {
-          <a mat-list-item 
-             routerLink="/vehiculos-solo/carga-masiva" 
-             routerLinkActive="active-link" 
-             class="nav-item sub-item"
-             [matTooltip]="!isExpanded() ? 'Carga Masiva Datos Técnicos' : ''" 
-             matTooltipPosition="right">
-            <app-smart-icon matListItemIcon [iconName]="'upload_file'" [size]="24" class="nav-icon"></app-smart-icon>
-            @if (isExpanded()) {
-              <span matListItemTitle class="nav-text">Carga Masiva Datos Técnicos</span>
-            }
+        @if (isExpanded() && expandedGroups().has('vehiculosSolo')) {
+          <a mat-list-item routerLink="/vehiculos-solo/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva Datos Técnicos' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva Datos Técnicos</span> }
           </a>
         }
 
-        <!-- Historial Vehicular -->
-        <a mat-list-item 
-           routerLink="/historial-vehiculos" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Historial Vehicular' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/historial-vehiculos" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Historial Vehicular' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'history'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Historial Vehicular</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Historial Vehicular</span> }
         </a>
 
-        <!-- Solicitudes de Baja -->
-        <a mat-list-item 
-           routerLink="/vehiculos/solicitudes-baja" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Solicitudes de Baja' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/vehiculos/solicitudes-baja" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Solicitudes de Baja' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'assignment'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Solicitudes de Baja</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Solicitudes de Baja</span> }
         </a>
 
-        <!-- Conductores -->
-        <a mat-list-item 
-           routerLink="/conductores" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Conductores' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/conductores" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Conductores' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'person'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Conductores</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Conductores</span> }
         </a>
 
-        <!-- TUCs -->
-        <a mat-list-item 
-           routerLink="/tucs" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'TUCs' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/tucs" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'TUCs' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'receipt'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">TUCs</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">TUCs</span> }
         </a>
 
-        <!-- Separador -->
-        @if (isExpanded()) {
-          <mat-divider class="section-divider"></mat-divider>
-        }
+        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
-        <!-- Sección: Operaciones -->
         @if (isExpanded()) {
           <div class="nav-section">
             <h3 class="section-title">Operaciones</h3>
           </div>
         }
 
-        <!-- Fiscalizaciones -->
-        <a mat-list-item 
-           routerLink="/fiscalizaciones" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/fiscalizaciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'security'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Fiscalizaciones</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Fiscalizaciones</span> }
         </a>
 
-        <!-- Rutas -->
-        <a mat-list-item 
-           routerLink="/rutas" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Rutas' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/rutas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Rutas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Rutas</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Rutas</span> }
         </a>
 
-        <!-- Localidades -->
-        <a mat-list-item 
-           routerLink="/localidades" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Localidades' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/localidades" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Localidades' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'place'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Localidades</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Localidades</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('localidades')" (click)="toggleGroup('localidades', $event)">chevron_right</mat-icon> }
         </a>
 
-        <!-- Resoluciones -->
-        <a mat-list-item 
-           routerLink="/resoluciones" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" 
-           matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Resoluciones</span>
-          }
-        </a>
-
-        <!-- Expedientes -->
-        <a mat-list-item 
-           routerLink="/expedientes" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Expedientes' : ''" 
-           matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Expedientes</span>
-          }
-        </a>
-
-        <!-- Separador -->
-        @if (isExpanded()) {
-          <mat-divider class="section-divider"></mat-divider>
+        @if (isExpanded() && expandedGroups().has('localidades')) {
+          <a mat-list-item routerLink="/localidades/alias" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Gestionar Alias' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Gestionar Alias</span> }
+          </a>
         }
 
-        <!-- Sección: Gestión de Oficinas -->
+        <a mat-list-item routerLink="/resoluciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones</span> }
+        </a>
+
+        <a mat-list-item routerLink="/expedientes" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Expedientes' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Expedientes</span> }
+        </a>
+
+        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
+
         @if (isExpanded()) {
           <div class="nav-section">
             <h3 class="section-title">Gestión de Oficinas</h3>
           </div>
         }
 
-        <!-- Oficinas -->
-        <a mat-list-item 
-           routerLink="/oficinas" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Oficinas' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/oficinas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Oficinas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Oficinas</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Oficinas</span> }
         </a>
 
-        <!-- Flujo de Expedientes -->
-        <a mat-list-item 
-           routerLink="/oficinas/flujo" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/oficinas/flujo" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'timeline'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Flujo de Expedientes</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Flujo de Expedientes</span> }
         </a>
 
-        <!-- Separador -->
-        @if (isExpanded()) {
-          <mat-divider class="section-divider"></mat-divider>
-        }
+        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
-        <!-- Sección: Reportes -->
         @if (isExpanded()) {
           <div class="nav-section">
             <h3 class="section-title">Reportes</h3>
           </div>
         }
 
-        <!-- Reportes -->
-        <a mat-list-item 
-           routerLink="/reportes" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Reportes' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Reportes' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'assessment'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Reportes</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Reportes</span> }
         </a>
 
-        <!-- Separador -->
-        @if (isExpanded()) {
-          <mat-divider class="section-divider"></mat-divider>
-        }
+        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
-        <!-- Sección: Sistema -->
         @if (isExpanded()) {
           <div class="nav-section">
             <h3 class="section-title">Sistema</h3>
           </div>
         }
 
-        <!-- Configuración -->
-        <a mat-list-item 
-           routerLink="/configuracion" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Configuración' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/configuracion" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Configuración' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'settings'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Configuración</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Configuración</span> }
         </a>
 
-        <!-- Perfil -->
-        <a mat-list-item 
-           routerLink="/perfil" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Perfil' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/perfil" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Perfil' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'account_circle'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Perfil</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Perfil</span> }
         </a>
 
-        <!-- Ayuda -->
-        <a mat-list-item 
-           routerLink="/ayuda" 
-           routerLinkActive="active-link" 
-           class="nav-item"
-           [matTooltip]="!isExpanded() ? 'Ayuda' : ''" 
-           matTooltipPosition="right">
+        <a mat-list-item routerLink="/ayuda" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Ayuda' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'help'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) {
-            <span matListItemTitle class="nav-text">Ayuda</span>
-          }
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Ayuda</span> }
         </a>
       </mat-nav-list>
     </nav>
   `,
   styles: [`
-    .sidebar-nav {
-      height: 100%;
-      background: white;
-      border-radius: 0 16px 16px 0;
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-    }
-
-    .nav-list {
-      padding: 8px 0 0 0;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    .nav-section {
-      padding: 8px 16px 8px 16px;
-    }
-
-    .section-title {
-      margin: 0;
-      font-size: 12px;
-      font-weight: 600;
-      color: #6c757d;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .nav-item {
-      margin: 4px 8px;
-      border-radius: 8px;
-      transition: all 0.2s ease-in-out;
-      position: relative;
-      display: flex !important;
-      align-items: center !important;
-      height: 48px !important;
-    }
-
-    .nav-item:hover {
-      background-color: #f8f9fa;
-      transform: translateX(4px);
-    }
-
-    .nav-item.active-link {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    .nav-item.active-link:hover {
-      background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-      transform: translateX(4px);
-    }
-
-    .nav-icon {
-      color: #6c757d;
-      transition: color 0.2s ease-in-out;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      margin-right: 16px;
-      flex-shrink: 0;
-      vertical-align: middle !important;
-    }
-
-    .nav-item.active-link .nav-icon {
-      color: white;
-    }
-    
-    /* Asegurar alineación de iconos en mat-list-item */
-    .nav-item ::ng-deep app-smart-icon {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      vertical-align: middle !important;
-    }
-
-    /* Forzar alineación del contenido del mat-list-item */
-    .nav-item ::ng-deep .mdc-list-item__content {
-      display: flex !important;
-      align-items: center !important;
-      flex-direction: row !important;
-    }
-
-    .nav-item ::ng-deep .mat-mdc-list-item-unscoped-content {
-      display: flex !important;
-      align-items: center !important;
-      flex-direction: row !important;
-    }
-
-    .nav-text {
-      font-weight: 500;
-      color: #2c3e50;
-      transition: color 0.2s ease-in-out;
-    }
-
-    .nav-item.active-link .nav-text {
-      color: white;
-    }
-
-    /* Sub-items (elementos anidados) */
-    .nav-item.sub-item {
-      margin-left: 24px;
-      padding-left: 16px;
-      border-left: 2px solid #e9ecef;
-      font-size: 0.9em;
-    }
-
-    .nav-item.sub-item:hover {
-      border-left-color: #667eea;
-    }
-
-    .nav-item.sub-item.active-link {
-      border-left-color: #667eea;
-    }
-
-
-
-    .section-divider {
-      margin: 16px 8px;
-      border-color: #e9ecef;
-    }
-
-    /* Scrollbar personalizado */
-    .nav-list::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .nav-list::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .nav-list::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 2px;
-    }
-
-    .nav-list::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 0, 0, 0.3);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .sidebar-nav {
-        border-radius: 0;
-      }
-
-      .nav-item {
-        margin: 2px 4px;
-      }
-
-      .nav-section {
-        padding: 12px 12px 6px 12px;
-      }
-    }
-
-    /* Animaciones */
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    .nav-item {
-      animation: slideIn 0.3s ease-out;
-    }
-
-    .nav-item:nth-child(1) { animation-delay: 0.1s; }
-    .nav-item:nth-child(2) { animation-delay: 0.2s; }
-    .nav-item:nth-child(3) { animation-delay: 0.3s; }
-    .nav-item:nth-child(4) { animation-delay: 0.4s; }
-    .nav-item:nth-child(5) { animation-delay: 0.5s; }
-    .nav-item:nth-child(6) { animation-delay: 0.6s; }
-    .nav-item:nth-child(7) { animation-delay: 0.7s; }
-    .nav-item:nth-child(8) { animation-delay: 0.8s; }
-    .nav-item:nth-child(9) { animation-delay: 0.9s; }
-    .nav-item:nth-child(10) { animation-delay: 1.0s; }
-    .nav-item:nth-child(11) { animation-delay: 1.1s; }
-    .nav-item:nth-child(12) { animation-delay: 1.2s; }
-    .nav-item:nth-child(13) { animation-delay: 1.3s; }
-    .nav-item:nth-child(14) { animation-delay: 1.4s; }
-    .nav-item:nth-child(15) { animation-delay: 1.5s; }
-    .nav-item:nth-child(16) { animation-delay: 1.6s; }
-    .nav-item:nth-child(17) { animation-delay: 1.7s; }
-    .nav-item:nth-child(18) { animation-delay: 1.8s; }
-    .nav-item:nth-child(19) { animation-delay: 1.9s; }
-    .nav-item:nth-child(20) { animation-delay: 2.0s; }
+    .sidebar-nav { height: 100%; background: white; border-radius: 0 16px 16px 0; box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1); overflow: hidden; }
+    .nav-list { padding: 8px 0 0 0; height: 100%; overflow-y: auto; }
+    .nav-section { padding: 8px 16px 8px 16px; }
+    .section-title { margin: 0; font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    .nav-item { margin: 4px 8px; border-radius: 8px; transition: all 0.2s ease-in-out; position: relative; display: flex !important; align-items: center !important; height: 48px !important; }
+    .nav-item:hover { background-color: #f8f9fa; transform: translateX(4px); }
+    .nav-item.active-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+    .nav-item.active-link:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); transform: translateX(4px); }
+    .nav-icon { color: #6c757d; transition: color 0.2s ease-in-out; display: inline-flex !important; align-items: center !important; justify-content: center !important; margin-right: 16px; flex-shrink: 0; vertical-align: middle !important; }
+    .nav-item.active-link .nav-icon { color: white; }
+    .nav-item.sub-item .sub-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; color: #adb5bd !important; margin-right: 12px !important; }
+    .nav-item.sub-item.active-link .sub-icon { color: rgba(255, 255, 255, 0.8) !important; }
+    .nav-item ::ng-deep app-smart-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; vertical-align: middle !important; }
+    .nav-item ::ng-deep .mdc-list-item__content { display: flex !important; align-items: center !important; flex-direction: row !important; }
+    .nav-item ::ng-deep .mat-mdc-list-item-unscoped-content { display: flex !important; align-items: center !important; flex-direction: row !important; }
+    .nav-text { font-weight: 500; color: #2c3e50; transition: color 0.2s ease-in-out; }
+    .nav-item.active-link .nav-text { color: white; }
+    .nav-item.sub-item { margin-left: 24px; padding-left: 16px; border-left: 2px solid #e9ecef; font-size: 0.9em; }
+    .nav-item.sub-item:hover { border-left-color: #667eea; }
+    .nav-item.sub-item.active-link { border-left-color: #667eea; }
+    .expand-icon { font-size: 16px; color: #adb5bd; cursor: pointer; transition: transform 0.2s ease-in-out; margin-left: auto; margin-right: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .expand-icon.expanded { transform: rotate(90deg); }
+    .nav-parent { display: flex !important; align-items: center !important; }
+    .nav-parent .nav-text { flex: 1; }
+    .section-divider { margin: 16px 8px; border-color: #e9ecef; }
+    .nav-list::-webkit-scrollbar { width: 4px; }
+    .nav-list::-webkit-scrollbar-track { background: transparent; }
+    .nav-list::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 2px; }
+    .nav-list::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+    @media (max-width: 768px) { .sidebar-nav { border-radius: 0; } .nav-item { margin: 2px 4px; } .nav-section { padding: 12px 12px 6px 12px; } }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    .nav-item { animation: slideIn 0.3s ease-out; }
   `]
 })
 export class SidebarComponent {
-  // Input signal using modern syntax
   isExpanded = input<boolean>(true);
-} 
+  expandedGroups = signal<Set<string>>(new Set());
+  
+  toggleGroup(groupName: string, event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const current = this.expandedGroups();
+    const newSet = new Set(current);
+    if (newSet.has(groupName)) {
+      newSet.delete(groupName);
+    } else {
+      newSet.add(groupName);
+    }
+    this.expandedGroups.set(newSet);
+  }
+}
