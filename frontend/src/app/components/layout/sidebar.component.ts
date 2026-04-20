@@ -134,6 +134,13 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
+        @if (isExpanded() && expandedGroups().has('localidades')) {
+          <a mat-list-item routerLink="/localidades/geometrias" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Gestionar Geometrías' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Gestionar Geometrías</span> }
+          </a>
+        }
+
         <a mat-list-item routerLink="/resoluciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones</span> }

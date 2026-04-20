@@ -61,6 +61,7 @@ export const routes: Routes = [
       { path: 'rutas/:id/editar', loadComponent: () => import('./shared/ruta-form.component').then(m => m.RutaFormComponent) },
       { path: 'localidades', loadComponent: () => import('./components/localidades/localidades.component').then(m => m.LocalidadesComponent) },
       { path: 'localidades/alias', loadComponent: () => import('./components/localidades/gestionar-alias.component').then(m => m.GestionarAliasComponent) },
+      { path: 'localidades/geometrias', loadComponent: () => import('./components/localidades/gestionar-geometrias.component').then(m => m.GestionarGeometriasComponent) },
       { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones.component').then(m => m.ResolucionesComponent) },
       { path: 'resoluciones/carga-masiva', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones.component').then(m => m.CargaMasivaResolucionesComponent) },
       { path: 'resoluciones/carga-masiva-padres', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones-padres.component').then(m => m.CargaMasivaResolucionesPadresComponent) },

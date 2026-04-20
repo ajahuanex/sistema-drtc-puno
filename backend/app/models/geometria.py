@@ -66,3 +66,16 @@ class FiltroGeometrias(BaseModel):
     distrito: Optional[str] = None
     ubigeo: Optional[str] = None
     nombre: Optional[str] = None
+
+# Modelos para importación de geometrías
+class GeometriaImportItem(BaseModel):
+    """Item individual de geometría para importar"""
+    ubigeo: str = Field(..., description="Código UBIGEO")
+    nombre: str = Field(..., description="Nombre de la localidad")
+    geometry: Dict[str, Any] = Field(..., description="Geometría GeoJSON")
+    centroide: Optional[List[float]] = Field(None, description="Coordenadas del centroide [lon, lat]")
+
+class ImportarGeometriasPayload(BaseModel):
+    """Payload para importar geometrías"""
+    tipo: str = Field(..., description="Tipo: centro_poblado, distrito o provincia")
+    geometrias: List[GeometriaImportItem] = Field(..., description="Lista de geometrías a importar")
