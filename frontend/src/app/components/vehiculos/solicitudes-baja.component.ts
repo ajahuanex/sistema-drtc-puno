@@ -496,7 +496,9 @@ export class SolicitudesBajaComponent implements OnInit {
   }
 
   verDetalleSolicitud(solicitud: SolicitudBaja): void {
-    // TODO: Implementar modal de detalle
+    // PENDIENTE: Implementar modal de detalle de solicitud de baja
+    // Debe mostrar: historial, documentos, observaciones, etc.
+    // Ver: historial-detalle-modal.component.ts como referencia
     this.snackBar.open('Funcionalidad de detalle en desarrollo', 'Cerrar', { duration: 3000 });
   }
 

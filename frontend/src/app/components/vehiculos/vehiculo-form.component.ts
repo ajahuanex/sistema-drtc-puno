@@ -100,7 +100,7 @@ export class VehiculoFormComponent implements OnInit {
       // Cargar empresas
       this.empresaService.getEmpresas().subscribe({
         next: (empresas) => {
-          this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADO));
+          this.empresas.set(empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA));
         },
         error: (error) => console.error('Error cargando empresas:', error)
       });

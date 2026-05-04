@@ -28,35 +28,52 @@ class TipoTramite(str, Enum):
 
 class Resolucion(BaseModel):
     id: Optional[str] = None
-    nroResolucion: str
+    nroResolucion: str  # Número de resolución actual (HIJA si existe, sino PADRE)
+    ruc: str  # RUC de la empresa
     empresaId: str
-    fechaEmision: Optional[datetime] = None
+    
+    # Resoluciones padre e hijas
+    resolucionPadreId: Optional[str] = None  # ID de la resolución padre
+    nroResolucionPadre: Optional[str] = None  # Número de la resolución padre
+    resolucionesHijasIds: List[str] = []  # IDs de resoluciones hijas
+    nroResolucionesHijas: List[str] = []  # Números de resoluciones hijas
+    
+    # Fechas
+    fechaEmision: Optional[datetime] = None  # Fecha de emisión (de la resolución padre si no hay hija)
     fechaVigenciaInicio: Optional[datetime] = None
     fechaVigenciaFin: Optional[datetime] = None
     aniosVigencia: Optional[int] = Field(default=None, description="Años de vigencia de la resolución (4 o 10)")
+    
+    # Expedientes y trámite
+    expedientesIds: List[str] = []  # Lista de IDs de expedientes
+    tipoTramite: TipoTramite
+    tipoAutorizacion: Optional[str] = None  # Tipo de autorización
+    
+    # Descripción y estado
+    descripcion: str
+    estado: Optional[EstadoResolucion] = None  # VIGENTE, VENCIDA, SUSPENDIDA, REVOCADA, DADA_DE_BAJA, RENOVADA, ANULADA
+    
+    # Listas
+    observacionesList: List[str] = []  # Lista de observaciones
+    resolucionesRenovadas: List[str] = []  # Números de resoluciones que renovaron a esta
+    
+    # Eficacia anticipada
     tieneEficaciaAnticipada: Optional[bool] = Field(default=None, description="Indica si la resolución tiene eficacia anticipada")
     diasEficaciaAnticipada: Optional[int] = Field(default=None, description="Días de eficacia anticipada")
-    tipoResolucion: TipoResolucion
-    resolucionPadreId: Optional[str] = None
-    resolucionesHijasIds: List[str] = []
+    
+    # Campos adicionales
+    tipoResolucion: TipoResolucion  # PADRE o HIJO
     vehiculosHabilitadosIds: List[str] = []
     rutasAutorizadasIds: List[str] = []
-    tipoTramite: TipoTramite
-    descripcion: str
-    expedienteId: Optional[str] = None  # Opcional porque no todas las resoluciones tienen expediente
     documentoId: Optional[str] = None
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
-    usuarioEmisionId: Optional[str] = None  # Opcional
+    usuarioEmisionId: Optional[str] = None
+    
+    # Compatibilidad
     observaciones: Optional[str] = None
-    estado: Optional[EstadoResolucion] = None
-    motivoSuspension: Optional[str] = None
-    fechaSuspension: Optional[datetime] = None
-    usuarioSuspensionId: Optional[str] = None
-    motivoAnulacion: Optional[str] = None
-    fechaAnulacion: Optional[datetime] = None
-    usuarioAnulacionId: Optional[str] = None
+    expedienteId: Optional[str] = None
 
 class ResolucionCreate(BaseModel):
     nroResolucion: str

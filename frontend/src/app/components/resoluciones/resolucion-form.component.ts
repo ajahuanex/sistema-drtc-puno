@@ -1091,7 +1091,7 @@ export class ResolucionFormComponent {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas autorizadas
-      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADO);
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
 
       const empresaSearchControl = this.resolucionForm.get('empresaSearch');
       if (empresaSearchControl) {
@@ -1254,10 +1254,7 @@ export class ResolucionFormComponent {
       const resolucionData: ResolucionCreate = {
         nroResolucion: numeroCompleto,
         empresaId: empresaId,
-        expedienteId: expedienteData.id,
         fechaEmision: formValue.fechaEmision,
-        descripcion: formValue.descripcion,
-        observaciones: formValue.observaciones,
         usuarioEmisionId: 'sistema', // TODO: Obtener del usuario actual
         // El tipo de resolución se determina automáticamente del expediente
         tipoResolucion: this.tipoResolucionAutomatico() as 'PADRE' | 'HIJO',

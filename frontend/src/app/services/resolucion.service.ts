@@ -172,7 +172,6 @@ export class ResolucionService {
     const resolucionBackend: any = {
       nroResolucion: resolucion.nroResolucion,
       empresaId: resolucion.empresaId,
-      expedienteId: resolucion.expedienteId,
       fechaEmision: resolucion.fechaEmision,
       fechaVigenciaInicio: resolucion.fechaVigenciaInicio || null,
       fechaVigenciaFin: resolucion.fechaVigenciaFin || null,
@@ -182,13 +181,11 @@ export class ResolucionService {
       vehiculosHabilitadosIds: resolucion.vehiculosHabilitadosIds || [],
       rutasAutorizadasIds: resolucion.rutasAutorizadasIds || [],
       tipoTramite: tipoTramiteBackend,
-      descripcion: resolucion.descripcion,
       documentoId: null,
       estaActivo: true,
       fechaRegistro: new Date(),
       fechaActualizacion: null,
       usuarioEmisionId: this.authService.getCurrentUserId() || 'admin', // Usuario autenticado
-      observaciones: resolucion.observaciones || null,
       estado: 'VIGENTE',
       motivoSuspension: null,
       fechaSuspension: null,
@@ -211,7 +208,6 @@ export class ResolucionService {
             id: resolucionCreada.id || Date.now().toString(),
             nroResolucion: resolucionCreada.nroResolucion,
             empresaId: resolucionCreada.empresaId,
-            expedienteId: resolucionCreada.expedienteId,
             fechaEmision: resolucionCreada.fechaEmision,
             fechaVigenciaInicio: resolucionCreada.fechaVigenciaInicio,
             fechaVigenciaFin: resolucionCreada.fechaVigenciaFin,
@@ -221,17 +217,15 @@ export class ResolucionService {
             vehiculosHabilitadosIds: resolucionCreada.vehiculosHabilitadosIds || [],
             rutasAutorizadasIds: resolucionCreada.rutasAutorizadasIds || [],
             tipoTramite: resolucionCreada.tipoTramite,
-            descripcion: resolucionCreada.descripcion,
             documentoId: resolucionCreada.documentoId,
             estaActivo: resolucionCreada.estaActivo || true,
             estado: resolucionCreada.estado || 'VIGENTE',
             fechaRegistro: resolucionCreada.fechaRegistro || new Date(),
             fechaActualizacion: resolucionCreada.fechaActualizacion || new Date(),
             usuarioEmisionId: resolucionCreada.usuarioEmisionId || 'user1',
-            usuarioAprobacionId: resolucionCreada.usuarioAprobacionId || 'user1',
-            fechaAprobacion: resolucionCreada.fechaAprobacion || new Date(),
-            documentos: resolucionCreada.documentos || [],
-            auditoria: resolucionCreada.auditoria || []
+            ruc: resolucionCreada.ruc || '',
+            observacionesList: resolucionCreada.observacionesList || [],
+            resolucionesRenovadas: resolucionCreada.resolucionesRenovadas || []
           };
           // console.log removed for production
 

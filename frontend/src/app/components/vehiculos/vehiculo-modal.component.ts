@@ -18,7 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
-import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+// import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component'; // DESHABILITADO
 import { ResolucionSelectorComponent } from '../../shared/resolucion-selector.component';
 import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
@@ -63,7 +63,7 @@ export interface VehiculoModalData {
     MatSlideToggleModule,
     MatCheckboxModule,
     SmartIconComponent,
-    EmpresaSelectorComponent,
+    // EmpresaSelectorComponent, // DESHABILITADO
     ResolucionSelectorComponent
   ],
   template: `
@@ -203,6 +203,7 @@ export interface VehiculoModalData {
               </div>
 
               @if (!isEditing()) {
+                <!-- DESHABILITADO - app-empresa-selector no existe
                 <div class="form-row">
                   <app-empresa-selector
                     [empresaId]="empresaIdSeleccionada()"
@@ -210,6 +211,7 @@ export interface VehiculoModalData {
                     class="full-width">
                   </app-empresa-selector>
                 </div>
+                -->
 
                 @if (empresaIdSeleccionada()) {
                   <div class="form-row">

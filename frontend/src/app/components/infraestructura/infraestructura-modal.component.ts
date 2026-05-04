@@ -307,13 +307,6 @@ export interface InfraestructuraModalData {
                 </div>
 
                 <div class="form-row">
-                  <mat-form-field appearance="outline" class="full-width">
-                    <mat-label>Sitio Web (Opcional)</mat-label>
-                    <input matInput 
-                           formControlName="sitioWeb" 
-                           placeholder="https://www.empresa.com">
-                    <mat-icon matSuffix>language</mat-icon>
-                  </mat-form-field>
                 </div>
 
                 <div class="form-row">

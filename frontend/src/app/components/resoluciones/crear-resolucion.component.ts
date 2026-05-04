@@ -19,12 +19,10 @@ import { takeUntil } from 'rxjs/operators';
 
 import { ResolucionService } from '../../services/resolucion.service';
 import { EmpresaService } from '../../services/empresa.service';
-import { ExpedienteService } from '../../services/expediente.service';
 import { ConfiguracionService } from '../../services/configuracion.service';
-import { Resolucion, ResolucionCreate } from '../../models/resolucion.model';
+import { Resolucion, ResolucionCreate, TipoTramite } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
-import { Expediente } from '../../models/expediente.model';
-import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+// import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component'; // DESHABILITADO
 
 @Component({
   selector: 'app-crear-resolucion',
@@ -44,7 +42,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
     MatChipsModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    EmpresaSelectorComponent
+    // EmpresaSelectorComponent // DESHABILITADO
   ],
   template: `
     <div class="crear-resolucion-container">
@@ -99,6 +97,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                       </div>
                     </div>
                   } @else {
+                    <!-- DESHABILITADO - app-empresa-selector no existe
                     <app-empresa-selector
                       [label]="'EMPRESA'"
                       [placeholder]="'Buscar por RUC, razón social o código'"
@@ -108,107 +107,11 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                       (empresaSeleccionada)="onEmpresaSeleccionadaBuscador($event)"
                       (empresaIdChange)="resolucionForm.patchValue({ empresaId: $event })">
                     </app-empresa-selector>
+                    -->
+                    <p>Seleccione una empresa para continuar</p>
                   }
                 </mat-card-content>
               </mat-card>
-            </div>
-
-            <!-- Indicador de Tipo de Resolución -->
-            @if (expedienteSeleccionado()) {
-              <div class="tipo-resolucion-indicator full-width">
-                <mat-card class="indicator-card">
-                  <mat-card-content>
-                    <div class="indicator-content">
-                      <mat-icon [class]="getIconoTipoResolucion()" class="indicator-icon">
-                        @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
-                          new_releases
-                        } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                          refresh
-                        } @else {
-                          add_circle
-                        }
-                      </mat-icon>
-                      <div class="indicator-text">
-                        <h3>Creando Resolución de {{ expedienteSeleccionado()?.tipoTramite | uppercase }}</h3>
-                        <p>
-                          @if (expedienteSeleccionado()?.tipoTramite === 'AUTORIZACION_NUEVA') {
-                            Esta será una resolución PADRE con fechas de vigencia propias
-                          } @else if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                            Esta será una resolución PADRE que renueva una autorización existente
-                          } @else {
-                            Esta será una resolución HIJA que hereda fechas de vigencia de una resolución padre
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </mat-card-content>
-                </mat-card>
-              </div>
-            }
-
-            <!-- Selector de Expediente -->
-            <div class="expediente-section full-width">
-              <!-- Debug Info -->
-              <div class="debug-info">
-                <p>🔍 Debug: Empresa seleccionada: {{ empresaSeleccionada()?.id || 'NONE' }}</p>
-                <p>🔍 Debug: Total expedientes: {{ (expedientes())?.length || 0 }}</p>
-                <p>🔍 Debug: Expedientes filtrados: {{ (expedientesFiltrados())?.length || 0 }}</p>
-                <p>🔍 Debug: Empresa ID en formulario: {{ resolucionForm.get('empresaId')?.value || 'NONE' }}</p>
-                <p>🔍 Debug: Empresa ID (signal): {{ empresaIdForm() || 'NONE' }}</p>
-                <p>🔍 Debug: Fecha inicio: {{ resolucionForm.get('fechaVigenciaInicio')?.value || 'NONE' }}</p>
-                <p>🔍 Debug: Años vigencia: {{ resolucionForm.get('aniosVigencia')?.value || 'NONE' }}</p>
-                <p>🔍 Debug: Fecha fin calculada: {{ fechaVigenciaFinCalculada() }}</p>
-                <p>🔍 Debug: Expediente seleccionado: {{ expedienteSeleccionado()?.nroExpediente || 'NONE' }}</p>
-                <p>🔍 Debug: Tipo trámite: {{ expedienteSeleccionado()?.tipoTramite || 'NONE' }}</p>
-                <p>🔍 Debug: Mostrar fecha fin: {{ mostrarFechaVigenciaFin() }}</p>
-                <button mat-button type="button" (click)="debugEstadoActual()" class="debug-button">
-                  🔍 DEBUG ESTADO
-                </button>
-                <button mat-button type="button" (click)="debugFechaVigencia()" class="debug-button">
-                  🔍 DEBUG FECHA VIGENCIA
-                </button>
-              </div>
-
-              @if (!empresaSeleccionada()) {
-                <div class="warning-message">
-                  <mat-icon>warning</mat-icon>
-                  <span>DEBE SELECCIONAR UNA EMPRESA PRIMERO PARA VER LOS EXPEDIENTES DISPONIBLES</span>
-                </div>
-              } @else {
-                <mat-form-field 
-                  appearance="outline" 
-                  class="form-field required-field"
-                  [class.field-error]="resolucionForm.get('expedienteId')?.hasError('required') && resolucionForm.get('expedienteId')?.touched"
-                >
-                  <mat-label>
-                    <span class="required-indicator">*</span>
-                    EXPEDIENTE
-                  </mat-label>
-                  <mat-select formControlName="expedienteId" required (selectionChange)="onExpedienteChange($event)">
-                    <mat-option value="">SELECCIONE UN EXPEDIENTE</mat-option>
-                    @for (expediente of expedientesFiltrados(); track expediente.id) {
-                      <mat-option [value]="expediente.id">
-                        {{ expediente.nroExpediente }} - {{ expediente.tipoTramite | uppercase }}
-                        @if (expediente.estado) {
-                          ({{ expediente.estado }})
-                        }
-                      </mat-option>
-                    }
-                  </mat-select>
-                  <mat-hint>
-                    @if (expedienteSeleccionado()) {
-                      Expediente: {{ expedienteSeleccionado()?.nroExpediente }} | Tipo de Trámite: {{ expedienteSeleccionado()?.tipoTramite | uppercase }}
-                    } @else if (expedientesFiltrados().length > 0) {
-                      {{ (expedientesFiltrados())?.length || 0 }} expediente(s) disponible(s) para {{ empresaSeleccionada()?.razonSocial?.principal | uppercase }}
-                    } @else {
-                      NO HAY EXPEDIENTES DISPONIBLES PARA ESTA EMPRESA
-                    }
-                  </mat-hint>
-                  @if (resolucionForm.get('expedienteId')?.hasError('required') && resolucionForm.get('expedienteId')?.touched) {
-                    <mat-error>EL EXPEDIENTE ES REQUERIDO</mat-error>
-                  }
-                </mat-form-field>
-              }
             </div>
 
             <!-- Número de Resolución -->
@@ -250,27 +153,13 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
               }
             </mat-form-field>
 
-            <!-- Resolución Padre (para RENOVACIÓN y resoluciones HIJA) -->
+            <!-- Resolución Padre (opcional) -->
             @if (mostrarResolucionPadre()) {
               <div class="resolucion-padre-section full-width">
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>
-                    @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                      RESOLUCIÓN PADRE A RENOVAR (OPCIONAL)
-                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
-                      RESOLUCIÓN PRIMIGENIA (OPCIONAL)
-                    } @else {
-                      RESOLUCIÓN PADRE (requerida para {{ expedienteSeleccionado()?.tipoTramite | uppercase }})
-                    }
-                  </mat-label>
+                  <mat-label>RESOLUCIÓN PADRE (OPCIONAL)</mat-label>
                   <mat-select formControlName="resolucionPadreId" [required]="esResolucionPadreRequerida()" (selectionChange)="onResolucionPadreChange()">
-                    <mat-option value="">
-                      @if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
-                        SELECCIONE LA RESOLUCIÓN PRIMIGENIA (OPCIONAL)
-                      } @else {
-                        SELECCIONE LA RESOLUCIÓN PADRE
-                      }
-                    </mat-option>
+                    <mat-option value="">SELECCIONE UNA RESOLUCIÓN PADRE</mat-option>
                     @for (resolucion of resolucionesPadre(); track resolucion.id) {
                       <mat-option [value]="resolucion.id">
                         {{ resolucion.nroResolucion }}
@@ -280,15 +169,7 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                       </mat-option>
                     }
                   </mat-select>
-                  <mat-hint>
-                    @if (expedienteSeleccionado()?.tipoTramite === 'RENOVACION') {
-                      Opcional: Seleccione la resolución padre que desea renovar (si aplica)
-                    } @else if (expedienteSeleccionado()?.tipoTramite === 'INCREMENTO' || expedienteSeleccionado()?.tipoTramite === 'SUSTITUCION') {
-                      Opcional: Seleccione la resolución primigenia si existe una autorización previa
-                    } @else {
-                      Seleccione la resolución padre de la cual heredará las fechas de vigencia
-                    }
-                  </mat-hint>
+                  <mat-hint>Seleccione una resolución padre si aplica</mat-hint>
                   @if (resolucionForm.get('resolucionPadreId')?.hasError('required') && resolucionForm.get('resolucionPadreId')?.touched) {
                     <mat-error>DEBE SELECCIONAR LA RESOLUCIÓN PADRE</mat-error>
                   }
@@ -358,36 +239,6 @@ import { EmpresaSelectorComponent } from '../../shared/empresa-selector.componen
                 </mat-card>
               </div>
             }
-
-            <!-- Descripción -->
-            <div class="descripcion-section full-width">
-              <div class="descripcion-header">
-                <mat-label class="descripcion-label">
-                  <span class="required-indicator">*</span>
-                  DESCRIPCIÓN
-                </mat-label>
-                <button 
-                  mat-button 
-                  type="button" 
-                  color="accent" 
-                  (click)="generarDescripcionAutomatica()"
-                  [disabled]="!expedienteSeleccionado() || !empresaSeleccionada()"
-                  class="generar-descripcion-btn"
-                >
-                  <mat-icon>auto_fix_high</mat-icon>
-                  GENERAR AUTOMÁTICAMENTE
-                </button>
-              </div>
-              
-              <mat-form-field appearance="outline" class="form-field full-width required-field"
-                [class.field-error]="resolucionForm.get('descripcion')?.hasError('required') && resolucionForm.get('descripcion')?.touched">
-                <textarea matInput formControlName="descripcion" rows="3" placeholder="Descripción detallada de la resolución"></textarea>
-                <mat-hint>Descripción de la resolución y su propósito</mat-hint>
-                @if (resolucionForm.get('descripcion')?.hasError('required') && resolucionForm.get('descripcion')?.touched) {
-                  <mat-error>LA DESCRIPCIÓN ES REQUERIDA</mat-error>
-                }
-              </mat-form-field>
-            </div>
 
             <!-- Observaciones -->
             <mat-form-field appearance="outline" class="form-field full-width">
@@ -865,7 +716,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
-  private expedienteService = inject(ExpedienteService);
   private configuracionService = inject(ConfiguracionService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
@@ -887,21 +737,9 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   submitting = signal(false);
   empresas = signal<Empresa[]>([]);
   resolucionesPadre = signal<Resolucion[]>([]);
-  expedientes = signal<Expediente[]>([]);
-  expedientesFiltrados = signal<Expediente[]>([]);
-  expedienteSeleccionado = signal<Expediente | null>(null);
   empresaIdForm = signal<string | null>(null);
   formularioListo = signal(false);
   resolucionId = signal<string | null>(null);
-
-  // Los signals fechaVigenciaInicioSignal y aniosVigenciaSignal ya existen más arriba
-
-  // Debug: Log del estado de expedientesFiltrados
-  debugExpedientesFiltrados = computed(() => {
-    const expedientes = this.expedientesFiltrados();
-    // console.log removed for production
-    return expedientes;
-  });
 
 
 
@@ -935,33 +773,13 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
   // Determinar si mostrar selector de resolución padre
   mostrarResolucionPadre = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    if (!expediente) return false;
-
-    // Mostrar para RENOVACION (siempre requiere padre)
-    if (expediente.tipoTramite === 'RENOVACION') return true;
-
-    // Mostrar para tipos HIJO (INCREMENTO, SUSTITUCION, OTROS)
-    if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION' || expediente.tipoTramite === 'OTROS') return true;
-
-    // No mostrar para PRIMIGENIA
-    return false;
+    // Siempre mostrar el selector de resolución padre (es opcional)
+    return true;
   });
 
   // Determinar si la resolución padre es requerida
   esResolucionPadreRequerida = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    if (!expediente) return false;
-
-    // Para RENOVACION es opcional
-    if (expediente.tipoTramite === 'RENOVACION') return false;
-
-    // Para INCREMENTO y SUSTITUCION es opcional (pueden ser resoluciones primigenias)
-    if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION') return false;
-
-    // Para OTROS sí es requerida
-    if (expediente.tipoTramite === 'OTROS') return true;
-
+    // La resolución padre es siempre opcional
     return false;
   });
 
@@ -996,18 +814,18 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   });
 
   mostrarFechaVigenciaInicio = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
+    // Siempre mostrar fecha de inicio
+    return true;
   });
 
   mostrarAniosVigencia = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
+    // Siempre mostrar años de vigencia
+    return true;
   });
 
   mostrarFechaVigenciaFin = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    return expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION';
+    // Siempre mostrar fecha de fin calculada
+    return true;
   });
 
   fechaVigenciaFinCalculada = computed(() => {
@@ -1048,11 +866,9 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   });
 
   tipoResolucionCalculado = computed(() => {
-    const expediente = this.expedienteSeleccionado();
-    if (expediente?.tipoTramite === 'AUTORIZACION_NUEVA' || expediente?.tipoTramite === 'RENOVACION') {
-      return 'PADRE';
-    }
-    return 'HIJO';
+    // Por defecto, las resoluciones son PADRE
+    // El tipo se determina por el tipo de trámite
+    return 'PADRE';
   });
 
   // Formulario
@@ -1061,7 +877,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   constructor() {
     this.resolucionForm = this.fb.group({
       empresaId: ['', Validators.required],
-      expedienteId: ['', Validators.required],
       numeroBase: ['', [Validators.required, Validators.minLength(4), Validators.maxLength(4)]],
       fechaEmision: [new Date(), Validators.required],
       resolucionPadreId: [null],
@@ -1073,9 +888,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
           Validators.min(this.configuracionService.minAniosVigencia()),
           Validators.max(this.configuracionService.maxAniosVigencia())
         ]
-      ],
-      descripcion: ['', Validators.required],
-      observaciones: ['']
+      ]
     });
 
     // Inicializar signals con valores del formulario
@@ -1139,13 +952,11 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     if (this.empresaId) {
       this.resolucionForm.get('empresaId')?.setValue(this.empresaId);
       this.empresaIdForm.set(this.empresaId);
-      this.cargarExpedientesPorEmpresa(this.empresaId);
     } else {
       const empresaId = this.route.snapshot.queryParams['empresaId'];
       if (empresaId) {
         this.resolucionForm.get('empresaId')?.setValue(empresaId);
         this.empresaIdForm.set(empresaId);
-        this.cargarExpedientesPorEmpresa(empresaId);
       }
     }
 
@@ -1155,18 +966,10 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       this.empresaIdForm.set(empresaId);
 
       if (empresaId) {
-        this.cargarExpedientesPorEmpresa(empresaId);
-        // Limpiar expediente seleccionado cuando cambie la empresa
-        this.resolucionForm.get('expedienteId')?.setValue(null);
-        this.expedienteSeleccionado.set(null);
         // Limpiar campos dependientes
         this.resolucionForm.get('resolucionPadreId')?.setValue(null);
         this.resolucionForm.get('fechaVigenciaInicio')?.setValue(null);
         this.resolucionForm.get('aniosVigencia')?.setValue(4);
-      } else {
-        // Si no hay empresa seleccionada, limpiar expedientes
-        this.expedientesFiltrados.set([]);
-        this.expedienteSeleccionado.set(null);
       }
     });
 
@@ -1179,20 +982,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     this.resolucionForm.get('aniosVigencia')?.valueChanges.subscribe((anios) => {
       // console.log removed for production
       this.aniosVigenciaSignal.set(anios);
-    });
-
-    // Escuchar cambios en expedienteId
-    this.resolucionForm.get('expedienteId')?.valueChanges.subscribe(expedienteId => {
-      // console.log removed for production
-      if (expedienteId) {
-        const expediente = this.expedientesFiltrados().find(e => e.id === expedienteId);
-        if (expediente) {
-          // console.log removed for production
-          this.expedienteSeleccionado.set(expediente);
-        }
-      } else {
-        this.expedienteSeleccionado.set(null);
-      }
     });
 
     // Marcar el formulario como listo después de la inicialización
@@ -1215,39 +1004,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       this.empresas.set(empresas);
     });
 
-    // Cargar expedientes
-    this.expedienteService.getExpedientes().subscribe(expedientes => {
-      this.expedientes.set(expedientes);
-      this.expedientesFiltrados.set(expedientes);
-    });
-
     this.loading.set(false);
-  }
-
-  cargarExpedientesPorEmpresa(empresaId: string): void {
-    // console.log removed for production
-
-    const expedientes = this.expedientes();
-    // console.log removed for production
-
-    const expedientesFiltrados = expedientes.filter(e => e.empresaId === empresaId);
-
-    // console.log removed for production
-    expedientesFiltrados.forEach(exp => {
-      console.log(`  - ${exp.nroExpediente}: ${exp.descripcion} (${exp.tipoTramite})`);
-    });
-
-    this.expedientesFiltrados.set(expedientesFiltrados);
-    console.log('✅ Signal expedientesFiltrados actualizado:', this.expedientesFiltrados());
-
-    // Si no hay expedientes para esta empresa, mostrar mensaje
-    if (expedientesFiltrados.length === 0) {
-      this.snackBar.open(
-        'NO HAY EXPEDIENTES DISPONIBLES PARA ESTA EMPRESA',
-        'CERRAR',
-        { duration: 3000 }
-      );
-    }
   }
 
   /**
@@ -1276,14 +1033,11 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         // Poblar el formulario con los datos existentes
         this.resolucionForm.patchValue({
           empresaId: resolucion.empresaId,
-          expedienteId: resolucion.expedienteId,
           numeroBase: resolucion.nroResolucion?.split('-')[1] || '',
           fechaEmision: new Date(resolucion.fechaEmision),
           resolucionPadreId: resolucion.resolucionPadreId,
           fechaVigenciaInicio: resolucion.fechaVigenciaInicio ? new Date(resolucion.fechaVigenciaInicio) : null,
-          aniosVigencia: aniosVigencia,
-          descripcion: resolucion.descripcion,
-          observaciones: resolucion.observaciones
+          aniosVigencia: aniosVigencia
         });
 
         // Actualizar signals
@@ -1293,18 +1047,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.fechaVigenciaInicioSignal.set(resolucion.fechaVigenciaInicio ? new Date(resolucion.fechaVigenciaInicio) : null);
         this.aniosVigenciaSignal.set(aniosVigencia);
 
-        // Cargar expedientes de la empresa
-        this.cargarExpedientesPorEmpresa(resolucion.empresaId);
-
-        // Cargar expediente seleccionado
-        if (resolucion.expedienteId) {
-          const expediente = this.expedientes().find(e => e.id === resolucion.expedienteId);
-          if (expediente) {
-            this.expedienteSeleccionado.set(expediente);
-            this.tipoTramiteSignal.set(expediente.tipoTramite);
-          }
-        }
-
         this.loading.set(false);
       },
       error: (error) => {
@@ -1313,56 +1055,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
         this.snackBar.open('Error al cargar la resolución para edición', 'Cerrar', { duration: 3000 });
       }
     });
-  }
-
-  onEmpresaSeleccionadaBuscador(empresa: Empresa | null): void {
-    if (empresa) {
-      // console.log removed for production
-
-      // Actualizar el formulario (esto hará que empresaSeleccionada computed se actualice)
-      this.resolucionForm.patchValue({ empresaId: empresa.id });
-
-      // Limpiar expediente seleccionado ya que cambió la empresa
-      this.expedienteSeleccionado.set(null);
-      this.resolucionForm.patchValue({ expedienteId: '' });
-
-      // Filtrar expedientes por la nueva empresa
-      this.filtrarExpedientesPorEmpresa(empresa.id);
-    } else {
-      // console.log removed for production
-      this.expedienteSeleccionado.set(null);
-      this.resolucionForm.patchValue({
-        empresaId: '',
-        expedienteId: ''
-      });
-    }
-  }
-
-  private filtrarExpedientesPorEmpresa(empresaId: string): void {
-    // Esta lógica ya existe en el computed expedientesFiltrados
-    // Solo necesitamos asegurar que se actualice
-    // console.log removed for production
-  }
-
-  onExpedienteChange(event: any): void {
-    const expedienteId = event.value;
-
-    if (expedienteId) {
-      // Buscar en los expedientes filtrados por empresa
-      const expediente = this.expedientesFiltrados().find(e => e.id === expedienteId);
-      if (expediente) {
-        // console.log removed for production
-        this.expedienteSeleccionado.set(expediente);
-        this.tipoTramiteSignal.set(expediente.tipoTramite);
-        this.actualizarFormularioPorTipoTramite(expediente.tipoTramite);
-      } else {
-        console.warn('⚠️ Expediente no encontrado en la lista filtrada');
-        this.expedienteSeleccionado.set(null);
-      }
-    } else {
-      this.expedienteSeleccionado.set(null);
-      this.tipoTramiteSignal.set('AUTORIZACION_NUEVA');
-    }
   }
 
   private actualizarFormularioPorTipoTramite(tipoTramite: string): void {
@@ -1411,14 +1103,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const expediente = this.expedienteSeleccionado();
-    if (!expediente) {
-      // console.log removed for production
-      return;
-    }
-
-    // console.log removed for production
-
+    // Cargar resoluciones padre de la empresa
     this.resolucionService.getResoluciones().subscribe({
       next: (resoluciones) => {
         console.log('✅ RESOLUCIONES OBTENIDAS DEL BACKEND:', {
@@ -1442,45 +1127,14 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
         let resolucionesPadre: Resolucion[] = [];
 
-        if (expediente.tipoTramite === 'RENOVACION') {
-          // console.log removed for production
-          resolucionesPadre = resolucionesEmpresa.filter(r => {
-            const esPadre = r.tipoResolucion === 'PADRE';
-            const estaActivo = r.estaActivo;
-            const esVigente = r.estado === 'VIGENTE';
-            const tieneFechaFin = r.fechaVigenciaFin;
-            const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
-            
-            // console.log removed for production
-            
-            return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
-          });
-        } else if (expediente.tipoTramite === 'INCREMENTO' || expediente.tipoTramite === 'SUSTITUCION') {
-          // console.log removed for production
-          resolucionesPadre = resolucionesEmpresa.filter(r => {
-            const esPrimigenia = r.tipoResolucion === 'PADRE'; // Las primigenias son tipo PADRE
-            const estaActivo = r.estaActivo;
-            const esVigente = r.estado === 'VIGENTE';
-            
-            // console.log removed for production
-            
-            // Para INCREMENTO/SUSTITUCION mostrar todas las resoluciones primigenias vigentes
-            return esPrimigenia && estaActivo && esVigente;
-          });
-        } else if (expediente.tipoTramite === 'OTROS') {
-          // console.log removed for production
-          resolucionesPadre = resolucionesEmpresa.filter(r => {
-            const esPadre = r.tipoResolucion === 'PADRE';
-            const estaActivo = r.estaActivo;
-            const esVigente = r.estado === 'VIGENTE';
-            const tieneFechaFin = r.fechaVigenciaFin;
-            const noVencido = tieneFechaFin && r.fechaVigenciaFin ? new Date(r.fechaVigenciaFin) > new Date() : false;
-            
-            // console.log removed for production
-            
-            return esPadre && estaActivo && esVigente && tieneFechaFin && noVencido;
-          });
-        }
+        // Mostrar todas las resoluciones padre vigentes de la empresa
+        resolucionesPadre = resolucionesEmpresa.filter(r => {
+          const esPadre = r.tipoResolucion === 'PADRE';
+          const estaActivo = r.estaActivo;
+          const esVigente = r.estado === 'VIGENTE';
+          
+          return esPadre && estaActivo && esVigente;
+        });
 
         console.log('✅ RESOLUCIONES PADRE FILTRADAS:', {
           total: resolucionesPadre.length,
@@ -1512,12 +1166,8 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       const resolucionPadre = this.resolucionesPadre().find(r => r.id === resolucionPadreId);
 
       if (resolucionPadre) {
-        const expediente = this.expedienteSeleccionado();
-        if (expediente?.tipoTramite === 'RENOVACION') {
-          this.configurarFechasParaRenovacion(resolucionPadre);
-        } else if (expediente?.tipoTramite === 'INCREMENTO' || expediente?.tipoTramite === 'SUSTITUCION' || expediente?.tipoTramite === 'OTROS') {
-          this.configurarFechasHeredadasDelPadre(resolucionPadreId);
-        }
+        // Configurar fechas heredadas del padre
+        this.configurarFechasHeredadasDelPadre(resolucionPadreId);
       }
     }
   }
@@ -1625,72 +1275,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     }
   }
 
-  getIconoTipoResolucion(): string {
-    const tipoTramite = this.expedienteSeleccionado()?.tipoTramite;
-    if (tipoTramite === 'AUTORIZACION_NUEVA') {
-      return 'icono-primigenia';
-    } else if (tipoTramite === 'RENOVACION') {
-      return 'icono-renovacion';
-    } else {
-      return 'icono-hija';
-    }
-  }
-
-  /**
-   * Genera la descripción automática de la resolución basándose en las opciones seleccionadas
-   */
-  generarDescripcionAutomatica(): void {
-    const expediente = this.expedienteSeleccionado();
-    const empresa = this.empresaSeleccionada();
-    const aniosVigencia = this.resolucionForm.get('aniosVigencia')?.value;
-    const fechaInicio = this.resolucionForm.get('fechaVigenciaInicio')?.value;
-
-    if (!expediente || !empresa) {
-      return;
-    }
-
-    let descripcion = '';
-
-    switch (expediente.tipoTramite) {
-      case 'AUTORIZACION_NUEVA':
-        descripcion = `AUTORIZACIÓN ${expediente.tipoTramite} para ${empresa.razonSocial.principal} `;
-        descripcion += `para operar transporte público de pasajeros en rutas interprovinciales`;
-        if (aniosVigencia && fechaInicio) {
-          descripcion += ` por un período de ${aniosVigencia} año(s)`;
-        }
-        break;
-
-      case 'RENOVACION':
-        descripcion = `RENOVACIÓN de autorización para ${empresa.razonSocial.principal} `;
-        descripcion += `para continuar operando transporte público de pasajeros en rutas interprovinciales`;
-        if (aniosVigencia && fechaInicio) {
-          descripcion += ` por un período adicional de ${aniosVigencia} año(s)`;
-        }
-        break;
-
-      case 'OTROS':
-        descripcion = `MODIFICACIÓN de autorización para ${empresa.razonSocial.principal} `;
-        descripcion += `para ajustar operaciones de transporte público de pasajeros`;
-        if (aniosVigencia && fechaInicio) {
-          descripcion += ` manteniendo vigencia por ${aniosVigencia} año(s)`;
-        }
-        break;
-
-      default:
-        descripcion = `AUTORIZACIÓN para ${empresa.razonSocial.principal} `;
-        descripcion += `en materia de transporte público de pasajeros`;
-        if (aniosVigencia && fechaInicio) {
-          descripcion += ` por ${aniosVigencia} año(s)`;
-        }
-    }
-
-    // Actualizar el campo de descripción en el formulario
-    this.resolucionForm.get('descripcion')?.setValue(descripcion);
-
-    // Mostrar notificación
-    this.snackBar.open('Descripción generada automáticamente', 'Cerrar', { duration: 2000 });
-  }
-
   formatearFechaLima(fecha: Date | string | null): string {
     if (!fecha) return 'NO DISPONIBLE';
 
@@ -1754,8 +1338,6 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     console.log('Empresa ID (signal):', this.empresaIdForm());
     console.log('Empresa seleccionada (computed):', this.empresaSeleccionada());
     console.log('Total empresas:', this.empresas().length);
-    console.log('Total expedientes:', this.expedientes().length);
-    console.log('Expedientes filtrados:', this.expedientesFiltrados());
     // console.log removed for production
   }
 
@@ -1809,9 +1391,9 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Validar que se haya seleccionado un expediente
-    if (!this.resolucionForm.get('expedienteId')?.value) {
-      this.snackBar.open('DEBE SELECCIONAR UN EXPEDIENTE', 'CERRAR', { duration: 3000 });
+    // Validar que se haya seleccionado una empresa
+    if (!this.resolucionForm.get('empresaId')?.value) {
+      this.snackBar.open('DEBE SELECCIONAR UNA EMPRESA', 'CERRAR', { duration: 3000 });
       return;
     }
 
@@ -1825,16 +1407,13 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
     
     const resolucionData: ResolucionCreate = {
       empresaId: formValue.empresaId,
-      expedienteId: formValue.expedienteId,
       nroResolucion: numeroCompleto,
       fechaEmision: formValue.fechaEmision,
       resolucionPadreId: formValue.resolucionPadreId,
       fechaVigenciaInicio: formValue.fechaVigenciaInicio,
       fechaVigenciaFin: this.calcularFechaVigenciaFin(formValue.fechaVigenciaInicio, formValue.aniosVigencia),
-      tipoResolucion: this.tipoResolucionCalculado(),
-      tipoTramite: this.expedienteSeleccionado()?.tipoTramite || 'AUTORIZACION_NUEVA',
-      descripcion: formValue.descripcion,
-      observaciones: formValue.observaciones,
+      tipoResolucion: this.tipoResolucionCalculado() as any,
+      tipoTramite: 'AUTORIZACION_NUEVA' as TipoTramite,
       usuarioEmisionId: 'sistema', // TODO: Obtener del usuario actual
       vehiculosHabilitadosIds: [],
       rutasAutorizadasIds: []

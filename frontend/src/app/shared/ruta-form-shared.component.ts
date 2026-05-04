@@ -435,7 +435,7 @@ export class RutaWizardComponent {
     // Configurar búsqueda de empresas
     this.empresasFiltradas.set(
       this.empresaService.getEmpresas().pipe(
-        map(empresas => empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADO)),
+        map(empresas => empresas.filter(e => e.estado === EstadoEmpresa.AUTORIZADA)),
         startWith([])
       )
     );

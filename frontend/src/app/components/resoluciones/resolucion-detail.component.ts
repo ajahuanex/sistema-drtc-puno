@@ -8,10 +8,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { ResolucionService } from '../../services/resolucion.service';
-import { ExpedienteService } from '../../services/expediente.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { Resolucion } from '../../models/resolucion.model';
-import { Expediente } from '../../models/expediente.model';
 import { Empresa } from '../../models/empresa.model';
 
 @Component({
@@ -154,55 +152,6 @@ import { Empresa } from '../../models/empresa.model';
               </mat-card-content>
             </mat-card>
 
-            <!-- Información del Expediente -->
-            <mat-card class="info-card">
-              <mat-card-header>
-                <mat-card-title>
-                  <mat-icon>folder</mat-icon>
-                  Expediente Relacionado
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                @if (expediente()) {
-                  <div class="info-list">
-                    <div class="info-item">
-                      <span class="info-label">Número de Expediente:</span>
-                      <span class="info-value expediente-numero">{{ expediente()?.nroExpediente }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Tipo de Trámite:</span>
-                      <span class="info-value">
-                        <mat-chip [class]="'tipo-chip-' + expediente()?.tipoTramite?.toLowerCase()">
-                          {{ getTipoDisplayName(expediente()?.tipoTramite) }}
-                        </mat-chip>
-                      </span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Descripción:</span>
-                      <span class="info-value">{{ expediente()?.descripcion || 'Sin descripción' }}</span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Estado:</span>
-                      <span class="info-value">
-                        <mat-chip [class]="'estado-chip-' + expediente()?.estado?.toLowerCase()">
-                          {{ expediente()?.estado || 'Sin estado' }}
-                        </mat-chip>
-                      </span>
-                    </div>
-                    <div class="info-item">
-                      <span class="info-label">Fecha de Emisión:</span>
-                      <span class="info-value">{{ expediente()?.fechaEmision | date:'dd/MM/yyyy' }}</span>
-                    </div>
-                  </div>
-                } @else {
-                  <div class="no-data">
-                    <mat-icon>folder_open</mat-icon>
-                    <span>Cargando información del expediente...</span>
-                  </div>
-                }
-              </mat-card-content>
-            </mat-card>
-
             <!-- Información de la Empresa -->
             <mat-card class="info-card">
               <mat-card-header>
@@ -270,28 +219,6 @@ import { Empresa } from '../../models/empresa.model';
                       </div>
                     }
                   }
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Descripción y Observaciones -->
-            <mat-card class="info-card">
-              <mat-card-header>
-                <mat-card-title>
-                  <mat-icon>info</mat-icon>
-                  Descripción
-                </mat-card-title>
-              </mat-card-header>
-              <mat-card-content>
-                <div class="info-list">
-                  <div class="info-item">
-                    <span class="info-label">Descripción:</span>
-                    <span class="info-value">{{ resolucion()?.descripcion || 'Sin descripción' }}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Observaciones:</span>
-                    <span class="info-value">{{ resolucion()?.observaciones || 'Sin observaciones' }}</span>
-                  </div>
                 </div>
               </mat-card-content>
             </mat-card>
@@ -648,11 +575,9 @@ export class ResolucionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private snackBar = inject(MatSnackBar);
   private resolucionService = inject(ResolucionService);
-  private expedienteService = inject(ExpedienteService);
   private empresaService = inject(EmpresaService);
 
   resolucion = signal<Resolucion | null>(null);
-  expediente = signal<Expediente | null>(null);
   empresa = signal<Empresa | null>(null);
   isLoading = signal(false);
 
@@ -668,18 +593,6 @@ export class ResolucionDetailComponent implements OnInit {
     this.resolucionService.getResolucionById(id).subscribe({
       next: (resolucion) => {
         this.resolucion.set(resolucion);
-        
-        // Cargar expediente relacionado
-        if (resolucion.expedienteId) {
-          this.expedienteService.getExpediente(resolucion.expedienteId).subscribe({
-            next: (expediente) => {
-              this.expediente.set(expediente);
-            },
-            error: (error) => {
-              console.error('Error cargando expediente::', error);
-            }
-          });
-        }
         
         // Cargar empresa relacionada
         if (resolucion.empresaId) {
@@ -727,8 +640,8 @@ export class ResolucionDetailComponent implements OnInit {
 
   isVencida(): boolean {
     const resolucion = this.resolucion();
-    if (!resolucion?.fechaVencimiento) return false;
-    return new Date() > new Date(resolucion.fechaVencimiento);
+    if (!resolucion?.fechaVigenciaFin) return false;
+    return new Date() > new Date(resolucion.fechaVigenciaFin);
   }
 
   calcularDuracionVigencia(): string {

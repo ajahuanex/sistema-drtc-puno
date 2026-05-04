@@ -1,0 +1,282 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                    DIAGRAMA DEL MODELO DE DATOS - EMPRESAS                     ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─ ENTIDAD PRINCIPAL: EMPRESA ────────────────────────────────────────────────┐
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                          EMPRESA                                     │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │ Identificación:                                                      │  │
+│  │  • id: string (UUID)                                                │  │
+│  │  • codigoEmpresa: string                                            │  │
+│  │  • ruc: string (11 dígitos)                                         │  │
+│  │                                                                      │  │
+│  │ Información Básica:                                                 │  │
+│  │  • razonSocial: RazonSocial                                         │  │
+│  │    ├─ principal: string                                             │  │
+│  │    ├─ sunat?: string                                                │  │
+│  │    └─ minimo?: string                                               │  │
+│  │  • direccionFiscal: string                                          │  │
+│  │  • estado: EstadoEmpresa (AUTORIZADA | SUSPENDIDA | CANCELADA)     │  │
+│  │  • tiposServicio: TipoServicio[] (ARRAY - múltiples)               │  │
+│  │  • estaActivo: boolean                                              │  │
+│  │                                                                      │  │
+│  │ Representante Legal:                                                │  │
+│  │  • dni: string (8 dígitos)                                          │  │
+│  │  • nombres: string                                                  │  │
+│  │  • apellidos: string                                                │  │
+│  │  • email?: string                                                   │  │
+│  │  • telefono?: string                                                │  │
+│  │  • direccion?: string                                               │  │
+│  │                                                                      │  │
+│  │ Contacto:                                                           │  │
+│  │  • emailContacto?: string                                           │  │
+│  │  • telefonoContacto?: string                                        │  │
+│  │  • sitioWeb?: string                                                │  │
+│  │                                                                      │  │
+│  │ Validación:                                                         │  │
+│  │  • datosSunat?: DatosSunat                                          │  │
+│  │  • ultimaValidacionSunat?: Date                                     │  │
+│  │  • scoreRiesgo?: number (0-100)                                     │  │
+│  │                                                                      │  │
+│  │ Auditoría:                                                          │  │
+│  │  • fechaRegistro: Date                                              │  │
+│  │  • fechaActualizacion?: Date                                        │  │
+│  │  • auditoria: AuditoriaEmpresa[]                                    │  │
+│  │                                                                      │  │
+│  │ Observaciones:                                                      │  │
+│  │  • observaciones?: string                                           │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ COLECCIONES RELACIONADAS ──────────────────────────────────────────────────┐
+│                                                                              │
+│  ┌─ DOCUMENTOS ────────────────────────────────────────────────────────┐   │
+│  │ documentos: DocumentoEmpresa[]                                      │   │
+│  │  • tipo: TipoDocumento (RUC, DNI, RESOLUCION, etc.)               │   │
+│  │  • numero: string                                                  │   │
+│  │  • fechaEmision: Date                                              │   │
+│  │  • fechaVencimiento?: Date                                         │   │
+│  │  • urlDocumento?: string                                           │   │
+│  │  • observaciones?: string                                          │   │
+│  │  • estaActivo: boolean                                             │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌─ HISTORIAL DE EVENTOS ──────────────────────────────────────────────┐   │
+│  │ historialEventos: EventoHistorialEmpresa[]                         │   │
+│  │  • fechaEvento: Date                                               │   │
+│  │  • usuarioId: string                                               │   │
+│  │  • tipoEvento: TipoEventoEmpresa                                   │   │
+│  │  • titulo: string                                                  │   │
+│  │  • descripcion: string                                             │   │
+│  │  • datosAnterior?: any                                             │   │
+│  │  • datosNuevo?: any                                                │   │
+│  │  • requiereDocumento: boolean                                      │   │
+│  │  • tipoDocumentoSustentatorio?: TipoDocumento                      │   │
+│  │  • numeroDocumentoSustentatorio?: string                           │   │
+│  │  • esDocumentoFisico: boolean                                      │   │
+│  │  • urlDocumentoSustentatorio?: string                              │   │
+│  │  • fechaDocumento?: Date                                           │   │
+│  │  • entidadEmisora?: string                                         │   │
+│  │  • motivo?: string                                                 │   │
+│  │  • observaciones?: string                                          │   │
+│  │  • vehiculoId?: string                                             │   │
+│  │  • rutaId?: string                                                 │   │
+│  │  • resolucionId?: string                                           │   │
+│  │  • ipUsuario?: string                                              │   │
+│  │  • userAgent?: string                                              │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌─ HISTORIAL DE ESTADOS ──────────────────────────────────────────────┐   │
+│  │ historialEstados: CambioEstadoEmpresa[]                            │   │
+│  │  • fechaCambio: Date                                               │   │
+│  │  • usuarioId: string                                               │   │
+│  │  • estadoAnterior: EstadoEmpresa                                   │   │
+│  │  • estadoNuevo: EstadoEmpresa                                      │   │
+│  │  • motivo: string                                                  │   │
+│  │  • tipoDocumentoSustentatorio?: TipoDocumento                      │   │
+│  │  • numeroDocumentoSustentatorio?: string                           │   │
+│  │  • esDocumentoFisico: boolean                                      │   │
+│  │  • urlDocumentoSustentatorio?: string                              │   │
+│  │  • fechaDocumento?: Date                                           │   │
+│  │  • entidadEmisora?: string                                         │   │
+│  │  • observaciones?: string                                          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌─ HISTORIAL DE REPRESENTANTES ───────────────────────────────────────┐   │
+│  │ historialRepresentantes: CambioRepresentanteLegal[]                │   │
+│  │  • fechaCambio: Date                                               │   │
+│  │  • usuarioId: string                                               │   │
+│  │  • tipoCambio: TipoCambioRepresentante                             │   │
+│  │  • representanteAnterior: RepresentanteLegal                       │   │
+│  │  • representanteNuevo: RepresentanteLegal                          │   │
+│  │  • motivo: string                                                  │   │
+│  │  • tipoDocumentoSustentatorio?: TipoDocumento                      │   │
+│  │  • numeroDocumentoSustentatorio?: string                           │   │
+│  │  • esDocumentoFisico: boolean                                      │   │
+│  │  • urlDocumentoSustentatorio?: string                              │   │
+│  │  • fechaDocumento?: Date                                           │   │
+│  │  • entidadEmisora?: string                                         │   │
+│  │  • observaciones?: string                                          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+│  ┌─ AUDITORÍA ─────────────────────────────────────────────────────────┐   │
+│  │ auditoria: AuditoriaEmpresa[]                                      │   │
+│  │  • fechaCambio: Date                                               │   │
+│  │  • usuarioId: string                                               │   │
+│  │  • tipoCambio: string                                              │   │
+│  │  • campoAnterior?: string                                          │   │
+│  │  • campoNuevo?: string                                             │   │
+│  │  • observaciones?: string                                          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ RELACIONES CON OTRAS ENTIDADES ────────────────────────────────────────────┐
+│                                                                              │
+│  Empresa ──1:N──> Vehículos                                                 │
+│  └─ vehiculosHabilitadosIds: string[]                                       │
+│                                                                              │
+│  Empresa ──1:N──> Conductores                                               │
+│  └─ conductoresHabilitadosIds: string[]                                     │
+│                                                                              │
+│  Empresa ──1:N──> Rutas                                                     │
+│  └─ rutasAutorizadasIds: string[]                                           │
+│                                                                              │
+│  Empresa ──1:N──> Resoluciones                                              │
+│  └─ resolucionesPrimigeniasIds: string[]                                    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ ENUMERACIONES ─────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  EstadoEmpresa:                                                             │
+│  ├─ AUTORIZADA                                                              │
+│  ├─ SUSPENDIDA                                                              │
+│  ├─ CANCELADA                                                               │
+│  └─ EN_TRAMITE                                                              │
+│                                                                              │
+│  TipoServicio:                                                              │
+│  ├─ PERSONAS                                                                │
+│  ├─ TURISMO                                                                 │
+│  ├─ TRABAJADORES                                                            │
+│  ├─ MERCANCIAS                                                              │
+│  ├─ ESTUDIANTES                                                             │
+│  ├─ TERMINAL_TERRESTRE                                                      │
+│  ├─ ESTACION_DE_RUTA                                                        │
+│  └─ OTROS                                                                   │
+│                                                                              │
+│  TipoEventoEmpresa:                                                         │
+│  ├─ CAMBIO_REPRESENTANTE_LEGAL                                              │
+│  ├─ ACTUALIZACION_DATOS_REPRESENTANTE                                       │
+│  ├─ CAMBIO_RAZON_SOCIAL                                                     │
+│  ├─ CAMBIO_ESTADO                                                           │
+│  ├─ RENOVACION                                                              │
+│  ├─ INCREMENTO                                                              │
+│  ├─ SUSTITUCION                                                             │
+│  ├─ DUPLICADO                                                               │
+│  ├─ BAJA_VEHICULAR                                                          │
+│  ├─ CAMBIO_RUTAS                                                            │
+│  ├─ CANCELACION_RUTAS                                                       │
+│  ├─ AUTORIZACION_RUTAS                                                      │
+│  ├─ CREACION_EMPRESA                                                        │
+│  └─ ACTUALIZACION_DATOS_GENERALES                                           │
+│                                                                              │
+│  TipoDocumento:                                                             │
+│  ├─ RUC                                                                     │
+│  ├─ DNI                                                                     │
+│  ├─ LICENCIA_CONDUCIR                                                       │
+│  ├─ CERTIFICADO_VEHICULAR                                                   │
+│  ├─ RESOLUCION                                                              │
+│  ├─ TUC                                                                     │
+│  └─ OTRO                                                                    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE OPERACIÓN ───────────────────────────────────────────────────┐
+│                                                                              │
+│  EmpresaCreate                                                              │
+│  ├─ ruc: string (requerido)                                                 │
+│  ├─ razonSocial: RazonSocial (requerido)                                    │
+│  ├─ direccionFiscal: string (requerido)                                     │
+│  ├─ representanteLegal: RepresentanteLegal (requerido)                      │
+│  ├─ tiposServicio: TipoServicio[] (requerido)                               │
+│  ├─ emailContacto?: string                                                  │
+│  ├─ telefonoContacto?: string                                               │
+│  ├─ sitioWeb?: string                                                       │
+│  └─ documentos?: DocumentoEmpresa[]                                         │
+│                                                                              │
+│  EmpresaUpdate                                                              │
+│  ├─ ruc?: string                                                            │
+│  ├─ razonSocial?: RazonSocial                                               │
+│  ├─ direccionFiscal?: string                                                │
+│  ├─ representanteLegal?: RepresentanteLegal                                 │
+│  ├─ estado?: EstadoEmpresa                                                  │
+│  ├─ tiposServicio?: TipoServicio[]                                          │
+│  ├─ emailContacto?: string                                                  │
+│  ├─ telefonoContacto?: string                                               │
+│  ├─ sitioWeb?: string                                                       │
+│  ├─ documentos?: DocumentoEmpresa[]                                         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+│  EmpresaCambioEstado                                                        │
+│  ├─ estadoNuevo: EstadoEmpresa (requerido)                                  │
+│  ├─ motivo: string (requerido)                                              │
+│  ├─ tipoDocumentoSustentatorio?: TipoDocumento                              │
+│  ├─ numeroDocumentoSustentatorio?: string                                   │
+│  ├─ esDocumentoFisico?: boolean                                             │
+│  ├─ urlDocumentoSustentatorio?: string                                      │
+│  ├─ fechaDocumento?: Date                                                   │
+│  ├─ entidadEmisora?: string                                                 │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE CONSULTA ────────────────────────────────────────────────────┐
+│                                                                              │
+│  EmpresaFiltros                                                             │
+│  ├─ ruc?: string                                                            │
+│  ├─ razonSocial?: string                                                    │
+│  ├─ estado?: EstadoEmpresa                                                  │
+│  ├─ fechaDesde?: Date                                                       │
+│  ├─ fechaHasta?: Date                                                       │
+│  ├─ scoreRiesgoMin?: number                                                 │
+│  ├─ scoreRiesgoMax?: number                                                 │
+│  ├─ tieneDocumentosVencidos?: boolean                                       │
+│  ├─ tieneVehiculos?: boolean                                                │
+│  └─ tieneConductores?: boolean                                              │
+│                                                                              │
+│  EmpresaEstadisticas                                                        │
+│  ├─ totalEmpresas: number                                                   │
+│  ├─ empresasAutorizadas: number                                             │
+│  ├─ empresasEnTramite: number                                               │
+│  ├─ empresasSuspendidas: number                                             │
+│  ├─ empresasCanceladas: number                                              │
+│  ├─ empresasDadasDeBaja: number                                             │
+│  ├─ empresasConDocumentosVencidos: number                                   │
+│  ├─ empresasConScoreAltoRiesgo: number                                      │
+│  ├─ promedioVehiculosPorEmpresa: number                                     │
+│  └─ promedioConductoresPorEmpresa: number                                   │
+│                                                                              │
+│  EmpresaResumen                                                             │
+│  ├─ id: string                                                              │
+│  ├─ ruc: string                                                             │
+│  ├─ razonSocial: string                                                     │
+│  ├─ estado: EstadoEmpresa                                                   │
+│  ├─ scoreRiesgo: number                                                     │
+│  ├─ vehiculosCount: number                                                  │
+│  ├─ conductoresCount: number                                                │
+│  ├─ documentosVencidosCount: number                                         │
+│  └─ ultimaActualizacion: Date                                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                    Última Actualización: 21 de Abril de 2026                   ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝

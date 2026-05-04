@@ -1,0 +1,350 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║              MODELO DE DATOS REFACTORIZADO - EMPRESAS (LIMPIO)                 ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─ INTERFACES REUTILIZABLES ──────────────────────────────────────────────────┐
+│                                                                              │
+│  ✅ RazonSocial                                                             │
+│  ├─ principal: string                                                       │
+│  ├─ sunat?: string                                                          │
+│  └─ minimo?: string                                                         │
+│                                                                              │
+│  ✅ RepresentanteLegal (MEJORADA)                                           │
+│  ├─ dni: string                                                             │
+│  ├─ nombres: string                                                         │
+│  ├─ apellidos: string                                                       │
+│  ├─ email?: string                                                          │
+│  ├─ telefono?: string                                                       │
+│  └─ direccion?: string                                                      │
+│                                                                              │
+│  ✅ DocumentoSustentatorio (NUEVA - REUTILIZABLE)                           │
+│  ├─ tipoDocumento?: TipoDocumento                                           │
+│  ├─ numeroDocumento?: string                                                │
+│  ├─ esDocumentoFisico?: boolean                                             │
+│  ├─ urlDocumento?: string                                                   │
+│  ├─ fechaDocumento?: Date                                                   │
+│  └─ entidadEmisora?: string                                                 │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ ENUMERACIONES ─────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  EstadoEmpresa: AUTORIZADA | SUSPENDIDA | CANCELADA | EN_TRAMITE           │
+│  TipoEmpresa: P | R | T                                                     │
+│  TipoServicio: PERSONAS | TURISMO | TRABAJADORES | MERCANCIAS | ...        │
+│  TipoEventoEmpresa: 14 tipos de eventos                                     │
+│  TipoCambioRepresentante: CAMBIO_REPRESENTANTE | ACTUALIZACION_DATOS        │
+│  TipoDocumento: RUC | DNI | LICENCIA_CONDUCIR | RESOLUCION | ...           │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE HISTORIAL (REFACTORIZADAS) ──────────────────────────────────┐
+│                                                                              │
+│  ✅ EventoHistorialEmpresa (LIMPIA)                                         │
+│  ├─ id?: string                                                             │
+│  ├─ fechaEvento: Date                                                       │
+│  ├─ usuarioId: string                                                       │
+│  ├─ tipoEvento: TipoEventoEmpresa                                           │
+│  ├─ titulo: string                                                          │
+│  ├─ descripcion: string                                                     │
+│  ├─ datosAnterior?: any                                                     │
+│  ├─ datosNuevo?: any                                                        │
+│  ├─ requiereDocumento: boolean                                              │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  ├─ motivo?: string                                                         │
+│  ├─ observaciones?: string                                                  │
+│  ├─ vehiculoId?: string                                                     │
+│  ├─ rutaId?: string                                                         │
+│  ├─ resolucionId?: string                                                   │
+│  ├─ ipUsuario?: string                                                      │
+│  └─ userAgent?: string                                                      │
+│                                                                              │
+│  ✅ CambioEstadoEmpresa (LIMPIA)                                            │
+│  ├─ fechaCambio: Date                                                       │
+│  ├─ usuarioId: string                                                       │
+│  ├─ estadoAnterior: EstadoEmpresa                                           │
+│  ├─ estadoNuevo: EstadoEmpresa                                              │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+│  ✅ CambioRepresentanteLegal (LIMPIA)                                       │
+│  ├─ fechaCambio: Date                                                       │
+│  ├─ usuarioId: string                                                       │
+│  ├─ tipoCambio: TipoCambioRepresentante                                     │
+│  ├─ representanteAnterior: RepresentanteLegal                               │
+│  ├─ representanteNuevo: RepresentanteLegal                                  │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE OPERACIÓN (REFACTORIZADAS) ──────────────────────────────────┐
+│                                                                              │
+│  ✅ EmpresaOperacionVehicular (LIMPIA)                                      │
+│  ├─ tipoOperacion: TipoEventoEmpresa                                        │
+│  ├─ vehiculoId?: string                                                     │
+│  ├─ vehiculosIds?: string[]                                                 │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  ├─ observaciones?: string                                                  │
+│  └─ datosAdicionales?: any                                                  │
+│                                                                              │
+│  ✅ EmpresaOperacionRutas (LIMPIA)                                          │
+│  ├─ tipoOperacion: TipoEventoEmpresa                                        │
+│  ├─ rutaId?: string                                                         │
+│  ├─ rutasIds?: string[]                                                     │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  ├─ observaciones?: string                                                  │
+│  └─ datosAdicionales?: any                                                  │
+│                                                                              │
+│  ✅ EmpresaCambioRepresentante (LIMPIA)                                     │
+│  ├─ tipoCambio: TipoCambioRepresentante                                     │
+│  ├─ representanteNuevo: RepresentanteLegal                                  │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+│  ✅ EmpresaCambioEstado (LIMPIA)                                            │
+│  ├─ estadoNuevo: EstadoEmpresa                                              │
+│  ├─ motivo: string                                                          │
+│  ├─ documentoSustentatorio?: DocumentoSustentatorio  ← REUTILIZABLE         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ ENTIDAD PRINCIPAL: EMPRESA (REFACTORIZADA) ────────────────────────────────┐
+│                                                                              │
+│  ✅ Empresa (LIMPIA - SIN REDUNDANCIAS)                                     │
+│  ├─ Identificación:                                                         │
+│  │  ├─ id: string                                                           │
+│  │  ├─ codigoEmpresa: string                                                │
+│  │  └─ ruc: string                                                          │
+│  │                                                                          │
+│  ├─ Información Básica:                                                     │
+│  │  ├─ razonSocial: RazonSocial  ← REUTILIZABLE                             │
+│  │  ├─ direccionFiscal: string                                              │
+│  │  ├─ estado: EstadoEmpresa                                                │
+│  │  ├─ tiposServicio: TipoServicio[]                                        │
+│  │  └─ estaActivo: boolean                                                  │
+│  │                                                                          │
+│  ├─ Representante Legal:                                                    │
+│  │  └─ representanteLegal: RepresentanteLegal  ← REUTILIZABLE               │
+│  │                                                                          │
+│  ├─ Contacto:                                                               │
+│  │  ├─ emailContacto?: string                                               │
+│  │  ├─ telefonoContacto?: string                                            │
+│  │  └─ sitioWeb?: string                                                    │
+│  │                                                                          │
+│  ├─ Documentos:                                                             │
+│  │  └─ documentos: DocumentoEmpresa[]                                       │
+│  │                                                                          │
+│  ├─ Historial:                                                              │
+│  │  ├─ historialEventos: EventoHistorialEmpresa[]                           │
+│  │  ├─ historialEstados: CambioEstadoEmpresa[]                              │
+│  │  └─ historialRepresentantes: CambioRepresentanteLegal[]                  │
+│  │                                                                          │
+│  ├─ Auditoría:                                                              │
+│  │  ├─ auditoria: AuditoriaEmpresa[]                                        │
+│  │  ├─ fechaRegistro: Date                                                  │
+│  │  └─ fechaActualizacion?: Date                                            │
+│  │                                                                          │
+│  ├─ Relaciones:                                                             │
+│  │  ├─ resolucionesPrimigeniasIds: string[]                                 │
+│  │  ├─ vehiculosHabilitadosIds: string[]                                    │
+│  │  ├─ conductoresHabilitadosIds: string[]                                  │
+│  │  └─ rutasAutorizadasIds: string[]                                        │
+│  │                                                                          │
+│  ├─ Validación:                                                             │
+│  │  ├─ datosSunat?: DatosSunat                                              │
+│  │  ├─ ultimaValidacionSunat?: Date                                         │
+│  │  └─ scoreRiesgo?: number                                                 │
+│  │                                                                          │
+│  └─ Observaciones:                                                          │
+│     └─ observaciones?: string                                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE CREACIÓN Y ACTUALIZACIÓN (REFACTORIZADAS) ────────────────────┐
+│                                                                              │
+│  ✅ EmpresaCreate (LIMPIA)                                                  │
+│  ├─ codigoEmpresa?: string                                                  │
+│  ├─ ruc: string                                                             │
+│  ├─ razonSocial: RazonSocial  ← REUTILIZABLE                                │
+│  ├─ direccionFiscal: string                                                 │
+│  ├─ representanteLegal: RepresentanteLegal  ← REUTILIZABLE                  │
+│  ├─ tiposServicio: TipoServicio[]                                           │
+│  ├─ emailContacto?: string                                                  │
+│  ├─ telefonoContacto?: string                                               │
+│  ├─ sitioWeb?: string                                                       │
+│  └─ documentos?: DocumentoEmpresa[]                                         │
+│                                                                              │
+│  ✅ EmpresaUpdate (LIMPIA)                                                  │
+│  ├─ ruc?: string                                                            │
+│  ├─ razonSocial?: RazonSocial  ← REUTILIZABLE                               │
+│  ├─ direccionFiscal?: string                                                │
+│  ├─ representanteLegal?: RepresentanteLegal  ← REUTILIZABLE                 │
+│  ├─ estado?: EstadoEmpresa                                                  │
+│  ├─ tiposServicio?: TipoServicio[]                                          │
+│  ├─ emailContacto?: string                                                  │
+│  ├─ telefonoContacto?: string                                               │
+│  ├─ sitioWeb?: string                                                       │
+│  ├─ documentos?: DocumentoEmpresa[]                                         │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+│  ✅ EmpresaResponse (CONSOLIDADA)                                           │
+│  └─ extends Empresa  ← HERENCIA (SIN DUPLICACIÓN)                           │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE CONSULTA Y REPORTES ─────────────────────────────────────────┐
+│                                                                              │
+│  ✅ EmpresaFiltros                                                          │
+│  ├─ ruc?: string                                                            │
+│  ├─ razonSocial?: string                                                    │
+│  ├─ estado?: EstadoEmpresa                                                  │
+│  ├─ fechaDesde?: Date                                                       │
+│  ├─ fechaHasta?: Date                                                       │
+│  ├─ scoreRiesgoMin?: number                                                 │
+│  ├─ scoreRiesgoMax?: number                                                 │
+│  ├─ tieneDocumentosVencidos?: boolean                                       │
+│  ├─ tieneVehiculos?: boolean                                                │
+│  └─ tieneConductores?: boolean                                              │
+│                                                                              │
+│  ✅ EmpresaEstadisticas                                                     │
+│  ├─ totalEmpresas: number                                                   │
+│  ├─ empresasAutorizadas: number                                             │
+│  ├─ empresasEnTramite: number                                               │
+│  ├─ empresasSuspendidas: number                                             │
+│  ├─ empresasCanceladas: number                                              │
+│  ├─ empresasDadasDeBaja: number                                             │
+│  ├─ empresasConDocumentosVencidos: number                                   │
+│  ├─ empresasConScoreAltoRiesgo: number                                      │
+│  ├─ promedioVehiculosPorEmpresa: number                                     │
+│  └─ promedioConductoresPorEmpresa: number                                   │
+│                                                                              │
+│  ✅ EmpresaReporte                                                          │
+│  ├─ empresa: Empresa                                                        │
+│  ├─ documentosVencidos: DocumentoEmpresa[]                                  │
+│  ├─ scoreRiesgo: number                                                     │
+│  ├─ nivelRiesgo: 'BAJO' | 'MEDIO' | 'ALTO'                                 │
+│  └─ recomendaciones: string[]                                               │
+│                                                                              │
+│  ✅ EmpresaResumen                                                          │
+│  ├─ id: string                                                              │
+│  ├─ ruc: string                                                             │
+│  ├─ razonSocial: string                                                     │
+│  ├─ estado: EstadoEmpresa                                                   │
+│  ├─ scoreRiesgo: number                                                     │
+│  ├─ vehiculosCount: number                                                  │
+│  ├─ conductoresCount: number                                                │
+│  ├─ documentosVencidosCount: number                                         │
+│  └─ ultimaActualizacion: Date                                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACES DE SOPORTE ─────────────────────────────────────────────────────┐
+│                                                                              │
+│  ✅ DocumentoEmpresa                                                        │
+│  ├─ tipo: TipoDocumento                                                     │
+│  ├─ numero: string                                                          │
+│  ├─ fechaEmision: Date                                                      │
+│  ├─ fechaVencimiento?: Date                                                 │
+│  ├─ urlDocumento?: string                                                   │
+│  ├─ observaciones?: string                                                  │
+│  └─ estaActivo: boolean                                                     │
+│                                                                              │
+│  ✅ AuditoriaEmpresa                                                        │
+│  ├─ fechaCambio: Date                                                       │
+│  ├─ usuarioId: string                                                       │
+│  ├─ tipoCambio: string                                                      │
+│  ├─ campoAnterior?: string                                                  │
+│  ├─ campoNuevo?: string                                                     │
+│  └─ observaciones?: string                                                  │
+│                                                                              │
+│  ✅ DatosSunat                                                              │
+│  ├─ valido: boolean                                                         │
+│  ├─ razonSocial?: string                                                    │
+│  ├─ estado?: string                                                         │
+│  ├─ condicion?: string                                                      │
+│  ├─ direccion?: string                                                      │
+│  ├─ fechaActualizacion?: Date                                               │
+│  └─ error?: string                                                          │
+│                                                                              │
+│  ✅ ValidacionSunat                                                         │
+│  ├─ ruc: string                                                             │
+│  ├─ valido: boolean                                                         │
+│  ├─ razonSocial?: string                                                    │
+│  ├─ estado?: string                                                         │
+│  ├─ condicion?: string                                                      │
+│  ├─ direccion?: string                                                      │
+│  ├─ fechaConsulta: Date                                                     │
+│  └─ error?: string                                                          │
+│                                                                              │
+│  ✅ ValidacionDni                                                           │
+│  ├─ dni: string                                                             │
+│  ├─ valido: boolean                                                         │
+│  ├─ nombres?: string                                                        │
+│  ├─ apellidos?: string                                                      │
+│  ├─ fechaNacimiento?: string                                                │
+│  ├─ estado?: string                                                         │
+│  ├─ fechaConsulta: Date                                                     │
+│  └─ error?: string                                                          │
+│                                                                              │
+│  ✅ HistorialEmpresa                                                        │
+│  ├─ empresaId: string                                                       │
+│  ├─ eventos: EventoHistorialEmpresa[]                                       │
+│  ├─ fechaCreacion: Date                                                     │
+│  ├─ fechaActualizacion?: Date                                               │
+│  └─ totalEventos: number                                                    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ ESTADÍSTICAS DE REFACTORIZACIÓN ───────────────────────────────────────────┐
+│                                                                              │
+│  ✅ Interfaces Reutilizables Creadas: 1                                     │
+│     └─ DocumentoSustentatorio (usado en 7 interfaces)                       │
+│                                                                              │
+│  ✅ Interfaces Refactorizadas: 7                                            │
+│     ├─ EventoHistorialEmpresa                                               │
+│     ├─ EmpresaOperacionVehicular                                            │
+│     ├─ EmpresaOperacionRutas                                                │
+│     ├─ CambioRepresentanteLegal                                             │
+│     ├─ EmpresaCambioRepresentante                                           │
+│     ├─ CambioEstadoEmpresa                                                  │
+│     └─ EmpresaCambioEstado                                                  │
+│                                                                              │
+│  ✅ Interfaces Consolidadas: 3                                              │
+│     ├─ Empresa (eliminados campos de compatibilidad)                        │
+│     ├─ EmpresaCreate (usa RazonSocial y RepresentanteLegal)                 │
+│     └─ EmpresaUpdate (usa RazonSocial y RepresentanteLegal)                 │
+│                                                                              │
+│  ✅ Interfaces Mejoradas: 2                                                 │
+│     ├─ RepresentanteLegal (definición completa)                             │
+│     └─ EmpresaResponse (herencia de Empresa)                                │
+│                                                                              │
+│  ✅ Líneas de Código Eliminadas: 100+                                       │
+│  ✅ Redundancia de Documentación: 100% eliminada                            │
+│  ✅ Redundancia de RazonSocial: 100% eliminada                              │
+│  ✅ Redundancia de RepresentanteLegal: 100% eliminada                       │
+│  ✅ Campos de Compatibilidad: 100% eliminados                               │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                    ✅ MODELO REFACTORIZADO Y LIMPIO                            ║
+║                                                                                ║
+║                    • Menos código (100+ líneas eliminadas)                      ║
+║                    • Más mantenible (cambios en un solo lugar)                  ║
+║                    • Más consistente (interfaces reutilizables)                 ║
+║                    • Menos errores (sin redundancias)                           ║
+║                    • Mejor rendimiento (sin datos innecesarios)                 ║
+║                                                                                ║
+║                         Fecha: 21 de Abril de 2026                             ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝

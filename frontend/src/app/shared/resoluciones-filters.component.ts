@@ -20,7 +20,6 @@ import {
   TIPOS_TRAMITE_OPCIONES,
   ESTADOS_RESOLUCION_OPCIONES 
 } from '../models/resolucion-table.model';
-import { EmpresaSelectorComponent } from './empresa-selector.component';
 import { DateRangePickerComponent, RangoFechas } from './date-range-picker.component';
 import { SmartIconComponent } from './smart-icon.component';
 import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
@@ -55,7 +54,6 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
     MatDialogModule,
     MatToolbarModule,
     MatMenuModule,
-    EmpresaSelectorComponent,
     DateRangePickerComponent,
     SmartIconComponent
   ],
@@ -109,7 +107,8 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
               <mat-hint id="hint-numero-resolucion">Buscar por número completo o parcial</mat-hint>
             </mat-form-field>
 
-            <!-- Filtro por empresa -->
+            <!-- Filtro por empresa - DESHABILITADO -->
+            <!-- 
             <div class="filtro-field">
               <app-empresa-selector
                 label="Empresa"
@@ -120,6 +119,7 @@ import { FiltrosMobileModalComponent } from './filtros-mobile-modal.component';
                 (empresaSeleccionada)="onEmpresaSeleccionada($event)">
               </app-empresa-selector>
             </div>
+            -->
           </div>
 
           <!-- Segunda fila de filtros -->

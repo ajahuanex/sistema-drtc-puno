@@ -562,7 +562,7 @@ export class ExpedienteFormComponent implements OnInit {
   private cargarEmpresas(): void {
     this.empresaService.getEmpresas().subscribe(empresas => {
       // Filtrar solo empresas autorizadas
-      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADO);
+      const empresasAutorizadas = empresas.filter(emp => emp.estado === EstadoEmpresa.AUTORIZADA);
 
       const empresaSearchControl = this.expedienteForm.get('empresaSearch');
       if (empresaSearchControl) {

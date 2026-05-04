@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from bson import ObjectId
@@ -23,36 +23,69 @@ async def get_empresa_service():
     db = await get_database()
     return EmpresaService(db)
 
-def create_empresa_response(empresa: EmpresaInDB) -> EmpresaResponse:
+def create_empresa_response(empresa) -> EmpresaResponse:
     """Función helper para crear respuestas completas de EmpresaResponse"""
-    return EmpresaResponse(
-        id=empresa.id,
-        ruc=empresa.ruc,
-        razonSocial=empresa.razonSocial,
-        direccionFiscal=empresa.direccionFiscal,
-        estado=empresa.estado,
-        tiposServicio=empresa.tiposServicio,
-        estaActivo=empresa.estaActivo,
-        fechaRegistro=empresa.fechaRegistro,
-        fechaActualizacion=empresa.fechaActualizacion,
-        representanteLegal=empresa.representanteLegal,
-        emailContacto=empresa.emailContacto,
-        telefonoContacto=empresa.telefonoContacto,
-        sitioWeb=empresa.sitioWeb,
-        documentos=empresa.documentos,
-        auditoria=empresa.auditoria,
-        historialEventos=empresa.historialEventos,
-        historialEstados=empresa.historialEstados,
-        historialRepresentantes=empresa.historialRepresentantes,
-        resolucionesPrimigeniasIds=empresa.resolucionesPrimigeniasIds,
-        vehiculosHabilitadosIds=empresa.vehiculosHabilitadosIds,
-        conductoresHabilitadosIds=empresa.conductoresHabilitadosIds,
-        rutasAutorizadasIds=empresa.rutasAutorizadasIds,
-        datosSunat=empresa.datosSunat,
-        ultimaValidacionSunat=empresa.ultimaValidacionSunat,
-        scoreRiesgo=empresa.scoreRiesgo,
-        observaciones=empresa.observaciones
-    )
+    # Aceptar tanto objetos como diccionarios
+    if isinstance(empresa, dict):
+        return EmpresaResponse(
+            id=empresa.get('id'),
+            ruc=empresa.get('ruc'),
+            razonSocial=empresa.get('razonSocial'),
+            direccionFiscal=empresa.get('direccionFiscal'),
+            estado=empresa.get('estado'),
+            tiposServicio=empresa.get('tiposServicio'),
+            estaActivo=empresa.get('estaActivo'),
+            fechaRegistro=empresa.get('fechaRegistro'),
+            fechaActualizacion=empresa.get('fechaActualizacion'),
+            representanteLegal=empresa.get('representanteLegal'),
+            emailContacto=empresa.get('emailContacto'),
+            telefonoContacto=empresa.get('telefonoContacto'),
+            sitioWeb=empresa.get('sitioWeb'),
+            documentos=empresa.get('documentos', []),
+            auditoria=empresa.get('auditoria', []),
+            historialEventos=empresa.get('historialEventos', []),
+            historialEstados=empresa.get('historialEstados', []),
+            historialRepresentantes=empresa.get('historialRepresentantes', []),
+            resolucionesPrimigeniasIds=empresa.get('resolucionesPrimigeniasIds', []),
+            vehiculosHabilitadosIds=empresa.get('vehiculosHabilitadosIds', []),
+            conductoresHabilitadosIds=empresa.get('conductoresHabilitadosIds', []),
+            rutasAutorizadasIds=empresa.get('rutasAutorizadasIds', []),
+            datosSunat=empresa.get('datosSunat'),
+            ultimaValidacionSunat=empresa.get('ultimaValidacionSunat'),
+            scoreRiesgo=empresa.get('scoreRiesgo'),
+            observaciones=empresa.get('observaciones'),
+            socios=empresa.get('socios', [])
+        )
+    else:
+        return EmpresaResponse(
+            id=empresa.id,
+            ruc=empresa.ruc,
+            razonSocial=empresa.razonSocial,
+            direccionFiscal=empresa.direccionFiscal,
+            estado=empresa.estado,
+            tiposServicio=empresa.tiposServicio,
+            estaActivo=empresa.estaActivo,
+            fechaRegistro=empresa.fechaRegistro,
+            fechaActualizacion=empresa.fechaActualizacion,
+            representanteLegal=getattr(empresa, 'representanteLegal', None),
+            emailContacto=empresa.emailContacto,
+            telefonoContacto=empresa.telefonoContacto,
+            sitioWeb=empresa.sitioWeb,
+            documentos=getattr(empresa, 'documentos', []),
+            auditoria=getattr(empresa, 'auditoria', []),
+            historialEventos=getattr(empresa, 'historialEventos', []),
+            historialEstados=getattr(empresa, 'historialEstados', []),
+            historialRepresentantes=getattr(empresa, 'historialRepresentantes', []),
+            resolucionesPrimigeniasIds=getattr(empresa, 'resolucionesPrimigeniasIds', []),
+            vehiculosHabilitadosIds=getattr(empresa, 'vehiculosHabilitadosIds', []),
+            conductoresHabilitadosIds=getattr(empresa, 'conductoresHabilitadosIds', []),
+            rutasAutorizadasIds=getattr(empresa, 'rutasAutorizadasIds', []),
+            datosSunat=getattr(empresa, 'datosSunat', None),
+            ultimaValidacionSunat=getattr(empresa, 'ultimaValidacionSunat', None),
+            scoreRiesgo=getattr(empresa, 'scoreRiesgo', None),
+            observaciones=empresa.observaciones,
+            socios=getattr(empresa, 'socios', [])
+        )
 
 @router.post("/", response_model=EmpresaResponse, status_code=201)
 async def create_empresa(
@@ -272,21 +305,36 @@ async def get_historial_estados_empresa(
 @router.get("/", response_model=List[EmpresaResponse])
 async def get_empresas(
     skip: int = Query(0, ge=0, description="Número de registros a omitir"),
-    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
+    limit: int = Query(10000, ge=1, le=10000, description="Número máximo de registros"),
     estado: str = Query(None, description="Filtrar por estado"),
     empresa_service: EmpresaService = Depends(get_empresa_service)
 ) -> List[EmpresaResponse]:
     """Obtener lista de empresas con filtros opcionales"""
     
-    if estado:
-        empresas = await empresa_service.get_empresas_por_estado(estado, skip, limit)
-    else:
-        empresas = await empresa_service.get_empresas_activas(skip, limit)
-    
-    return [
-        create_empresa_response(empresa)
-        for empresa in empresas
-    ]
+    try:
+        # Obtener documentos crudos de MongoDB
+        if estado:
+            query = {"estado": estado, "estaActivo": True}
+        else:
+            query = {"estaActivo": True}
+        
+        cursor = empresa_service.collection.find(query).skip(skip).limit(limit)
+        docs = await cursor.to_list(length=limit)
+        
+        # Convertir documentos a respuestas
+        respuestas = []
+        for doc in docs:
+            # Convertir _id a id
+            if "_id" in doc:
+                doc["id"] = str(doc.pop("_id"))
+            respuestas.append(create_empresa_response(doc))
+        
+        return respuestas
+    except Exception as e:
+        print(f"Error en get_empresas: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al obtener empresas: {str(e)}")
 
 @router.get("/filtros", response_model=List[EmpresaResponse])
 async def get_empresas_con_filtros(
@@ -810,3 +858,395 @@ async def procesar_carga_masiva_empresas(
             status_code=500, 
             detail=f"Error al procesar archivo: {str(e)}"
         )
+
+
+@router.post("/carga-masiva/google-sheets")
+async def procesar_carga_masiva_google_sheets(
+    datos: List[dict] = Body(...),
+    solo_validar: bool = Query(False, description="Solo validar sin crear empresas"),
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """
+    Procesar carga masiva de empresas desde Google Sheets
+    
+    Espera una lista de empresas a procesar
+    Si la empresa existe por RUC, la actualiza. Si no existe, la crea.
+    """
+    
+    try:
+        if not datos or not isinstance(datos, list):
+            raise ValueError("No se proporcionaron datos de empresas válidos")
+        
+        resultado = {
+            'total_filas': len(datos),
+            'validos': 0,
+            'invalidos': 0,
+            'exitosas': 0,
+            'fallidas': 0,
+            'empresas_creadas': [],
+            'empresas_actualizadas': [],
+            'errores': [],
+            'advertencias': []
+        }
+        
+        # TODO: Get usuario_id from authenticated user
+        usuario_id = "USR001"
+        
+        for idx, empresa_data in enumerate(datos, 1):
+            try:
+                # Validar datos mínimos
+                ruc = str(empresa_data.get('ruc', '')).strip()
+                razon_social = str(empresa_data.get('razonSocial', '')).strip()
+                direccion = str(empresa_data.get('direccionFiscal', '')).strip() or None
+                
+                if not ruc:
+                    resultado['invalidos'] += 1
+                    resultado['errores'].append({
+                        'fila': idx,
+                        'ruc': 'N/A',
+                        'error': 'RUC es requerido'
+                    })
+                    continue
+                
+                if not razon_social:
+                    resultado['invalidos'] += 1
+                    resultado['errores'].append({
+                        'fila': idx,
+                        'ruc': ruc,
+                        'error': 'Razón Social es requerida'
+                    })
+                    continue
+                
+                resultado['validos'] += 1
+                
+                if solo_validar:
+                    continue
+                
+                # Preparar datos de socios si existen
+                socios = []
+                
+                # Obtener datos del representante - buscar en múltiples variaciones de nombres
+                nombres_rep = (
+                    str(empresa_data.get('nombresRepresentante', '')).strip() or
+                    str(empresa_data.get('Nombres Representante', '')).strip() or
+                    str(empresa_data.get('nombres_representante', '')).strip() or
+                    ''
+                )
+                apellidos_rep = (
+                    str(empresa_data.get('apellidosRepresentante', '')).strip() or
+                    str(empresa_data.get('Apellidos Representante', '')).strip() or
+                    str(empresa_data.get('apellidos_representante', '')).strip() or
+                    ''
+                )
+                dni = (
+                    str(empresa_data.get('dniRepresentante', '')).strip() or
+                    str(empresa_data.get('DNI Representante', '')).strip() or
+                    str(empresa_data.get('dni_representante', '')).strip() or
+                    ''
+                )
+                
+                # Si no hay nombres/apellidos separados, intentar obtener del campo representanteLegal
+                if not nombres_rep and not apellidos_rep:
+                    representante = (
+                        str(empresa_data.get('representanteLegal', '')).strip() or
+                        str(empresa_data.get('Representante Legal', '')).strip() or
+                        str(empresa_data.get('representante_legal', '')).strip() or
+                        ''
+                    )
+                    if representante:
+                        # Separar nombres y apellidos
+                        nombres_partes = representante.split()
+                        apellidos_rep = nombres_partes[-1] if len(nombres_partes) > 0 else ''
+                        nombres_rep = ' '.join(nombres_partes[:-1]) if len(nombres_partes) > 1 else ''
+                
+                # Normalizar DNI a 8 dígitos si existe
+                if dni:
+                    # Remover caracteres no numéricos
+                    dni_numerico = ''.join(filter(str.isdigit, dni))
+                    # Rellenar con ceros por delante hasta 8 dígitos
+                    dni = dni_numerico.zfill(8)
+                
+                # Crear socio si hay al menos nombres o DNI
+                if (nombres_rep or apellidos_rep or dni):
+                    socios.append({
+                        'dni': dni if dni else '',
+                        'nombres': nombres_rep,
+                        'apellidos': apellidos_rep,
+                        'tipoSocio': 'REPRESENTANTE_LEGAL'
+                    })
+                
+                # Obtener Razón Social SUNAT y Mínimo (opcionales)
+                razon_social_sunat = str(empresa_data.get('razonSocialSunat', '')).strip() or None
+                razon_social_minimo = str(empresa_data.get('razonSocialMinimo', '')).strip() or None
+                
+                # Crear empresa
+                empresa_create = EmpresaCreate(
+                    ruc=ruc,
+                    razonSocial={
+                        'principal': razon_social,
+                        'sunat': razon_social_sunat,
+                        'minimo': razon_social_minimo
+                    },
+                    direccionFiscal=direccion,
+                    estado=empresa_data.get('estado', 'EN_TRAMITE'),
+                    tiposServicio=empresa_data.get('tiposServicio', ['PERSONAS']),
+                    emailContacto=empresa_data.get('emailContacto'),
+                    telefonoContacto=empresa_data.get('telefonoContacto'),
+                    sitioWeb=empresa_data.get('sitioWeb'),
+                    observaciones=empresa_data.get('observaciones'),
+                    socios=socios
+                )
+                
+                # Primero, buscar si la empresa ya existe por RUC
+                empresa_existente = await empresa_service.get_empresa_by_ruc(ruc)
+                
+                if empresa_existente:
+                    # La empresa existe, actualizar
+                    try:
+                        empresa_id = empresa_existente.get('id') if isinstance(empresa_existente, dict) else empresa_existente.id
+                        
+                        # Crear objeto de actualización
+                        empresa_update = EmpresaUpdate(
+                            razonSocial=empresa_create.razonSocial,
+                            direccionFiscal=empresa_create.direccionFiscal,
+                            estado=empresa_create.estado,
+                            tiposServicio=empresa_create.tiposServicio,
+                            emailContacto=empresa_create.emailContacto,
+                            telefonoContacto=empresa_create.telefonoContacto,
+                            sitioWeb=empresa_create.sitioWeb,
+                            observaciones=empresa_create.observaciones,
+                            socios=empresa_create.socios
+                        )
+                        
+                        empresa = await empresa_service.update_empresa(str(empresa_id), empresa_update, usuario_id)
+                        resultado['exitosas'] += 1
+                        resultado['empresas_actualizadas'].append({
+                            'ruc': empresa.ruc,
+                            'razonSocial': empresa.razonSocial.get('principal', '') if isinstance(empresa.razonSocial, dict) else str(empresa.razonSocial),
+                            'id': str(empresa.id),
+                            'estado': empresa.estado
+                        })
+                    except Exception as e:
+                        resultado['fallidas'] += 1
+                        resultado['errores'].append({
+                            'fila': idx,
+                            'ruc': ruc,
+                            'error': f'Error al actualizar: {str(e)}'
+                        })
+                else:
+                    # La empresa no existe, crear
+                    try:
+                        empresa = await empresa_service.create_empresa_carga_masiva(empresa_create, usuario_id)
+                        resultado['exitosas'] += 1
+                        resultado['empresas_creadas'].append({
+                            'ruc': empresa.ruc,
+                            'razonSocial': empresa.razonSocial.get('principal', '') if isinstance(empresa.razonSocial, dict) else str(empresa.razonSocial),
+                            'id': str(empresa.id),
+                            'estado': empresa.estado
+                        })
+                    except (ValueError, EmpresaAlreadyExistsException) as e:
+                        resultado['fallidas'] += 1
+                        resultado['errores'].append({
+                            'fila': idx,
+                            'ruc': ruc,
+                            'error': f'Error al crear: {str(e)}'
+                        })
+                
+            except Exception as e:
+                resultado['fallidas'] += 1
+                resultado['errores'].append({
+                    'fila': idx,
+                    'ruc': str(empresa_data.get('ruc', 'N/A')),
+                    'error': f'Error al procesar: {str(e)}'
+                })
+        
+        return {
+            'solo_validacion': solo_validar,
+            'resultado': resultado,
+            'mensaje': f"Procesamiento completado: {resultado['exitosas']} exitosas, {resultado['fallidas']} fallidas"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al procesar datos de Google Sheets: {str(e)}"
+        )
+
+# Endpoint de prueba para insertar datos de ejemplo
+@router.post("/seed/crear-datos-prueba")
+async def crear_datos_prueba(
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Crear datos de prueba para desarrollo"""
+    from app.models.empresa import TipoSocio
+    
+    empresas_data = [
+        {
+            "ruc": "20123456789",
+            "razonSocial": {
+                "principal": "Empresa de Transporte Puno S.A.",
+                "sunat": "EMPRESA DE TRANSPORTE PUNO SOCIEDAD ANONIMA",
+                "minimo": "ETP S.A."
+            },
+            "direccionFiscal": "Av. Principal 123, Puno",
+            "estado": "AUTORIZADA",
+            "tiposServicio": ["PASAJEROS", "TURISMO"],
+            "emailContacto": "contacto@etpuno.com",
+            "telefonoContacto": "051-123456",
+            "sitioWeb": "www.etpuno.com",
+            "socios": [
+                {
+                    "dni": "12345678",
+                    "nombres": "Juan",
+                    "apellidos": "Pérez García",
+                    "tipoSocio": "REPRESENTANTE_LEGAL",
+                    "email": "juan@etpuno.com"
+                }
+            ],
+            "observaciones": "Empresa de transporte de pasajeros"
+        },
+        {
+            "ruc": "20234567890",
+            "razonSocial": {
+                "principal": "Transportes Andinos del Sur E.I.R.L.",
+                "sunat": "TRANSPORTES ANDINOS DEL SUR EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA",
+                "minimo": "TAS E.I.R.L."
+            },
+            "direccionFiscal": "Calle Comercio 456, Puno",
+            "estado": "AUTORIZADA",
+            "tiposServicio": ["MERCANCIAS", "CARGA"],
+            "emailContacto": "info@tas.com",
+            "telefonoContacto": "051-234567",
+            "sitioWeb": "www.tas.com",
+            "socios": [
+                {
+                    "dni": "87654321",
+                    "nombres": "María",
+                    "apellidos": "López Quispe",
+                    "tipoSocio": "REPRESENTANTE_LEGAL",
+                    "email": "maria@tas.com"
+                }
+            ],
+            "observaciones": "Empresa de transporte de carga"
+        },
+        {
+            "ruc": "20345678901",
+            "razonSocial": {
+                "principal": "Turismo Puno Express S.A.C.",
+                "sunat": "TURISMO PUNO EXPRESS SOCIEDAD ANONIMA CERRADA",
+                "minimo": "TPE S.A.C."
+            },
+            "direccionFiscal": "Jr. Turismo 789, Puno",
+            "estado": "EN_TRAMITE",
+            "tiposServicio": ["TURISMO"],
+            "emailContacto": "reservas@tpexpress.com",
+            "telefonoContacto": "051-345678",
+            "sitioWeb": "www.tpexpress.com",
+            "socios": [
+                {
+                    "dni": "11223344",
+                    "nombres": "Carlos",
+                    "apellidos": "Mamani Condori",
+                    "tipoSocio": "REPRESENTANTE_LEGAL",
+                    "email": "carlos@tpexpress.com"
+                }
+            ],
+            "observaciones": "Empresa de turismo en trámite de autorización"
+        },
+        {
+            "ruc": "20456789012",
+            "razonSocial": {
+                "principal": "Transportes Mixtos Puno S.A.",
+                "sunat": "TRANSPORTES MIXTOS PUNO SOCIEDAD ANONIMA",
+                "minimo": "TMP S.A."
+            },
+            "direccionFiscal": "Av. Costanera 321, Puno",
+            "estado": "AUTORIZADA",
+            "tiposServicio": ["PASAJEROS", "MERCANCIAS", "MIXTO"],
+            "emailContacto": "admin@tmixtos.com",
+            "telefonoContacto": "051-456789",
+            "sitioWeb": "www.tmixtos.com",
+            "socios": [
+                {
+                    "dni": "55667788",
+                    "nombres": "Pedro",
+                    "apellidos": "Flores Huanca",
+                    "tipoSocio": "REPRESENTANTE_LEGAL",
+                    "email": "pedro@tmixtos.com"
+                }
+            ],
+            "observaciones": "Empresa de transporte mixto"
+        },
+        {
+            "ruc": "20567890123",
+            "razonSocial": {
+                "principal": "Transportes Trabajadores Puno Ltda.",
+                "sunat": "TRANSPORTES TRABAJADORES PUNO LIMITADA",
+                "minimo": "TTP Ltda."
+            },
+            "direccionFiscal": "Calle Obrera 654, Puno",
+            "estado": "SUSPENDIDA",
+            "tiposServicio": ["TRABAJADORES"],
+            "emailContacto": "contacto@ttp.com",
+            "telefonoContacto": "051-567890",
+            "sitioWeb": "www.ttp.com",
+            "socios": [
+                {
+                    "dni": "99887766",
+                    "nombres": "Rosa",
+                    "apellidos": "Quispe Mamani",
+                    "tipoSocio": "REPRESENTANTE_LEGAL",
+                    "email": "rosa@ttp.com"
+                }
+            ],
+            "observaciones": "Empresa suspendida por incumplimiento"
+        }
+    ]
+    
+    usuario_id = "SEED_USER"
+    exitosas = 0
+    errores = 0
+    
+    for empresa_data in empresas_data:
+        try:
+            empresa_create = EmpresaCreate(**empresa_data)
+            await empresa_service.create_empresa(empresa_create, usuario_id)
+            exitosas += 1
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            errores += 1
+    
+    return {
+        "exitosas": exitosas,
+        "errores": errores,
+        "mensaje": f"{exitosas} empresas creadas, {errores} errores"
+    }
+
+
+# Endpoint de prueba simple
+@router.get("/test/ping")
+async def ping():
+    """Endpoint de prueba"""
+    return {"status": "ok", "message": "Backend está funcionando"}
+
+@router.get("/test/empresas-count")
+async def empresas_count(
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """Contar empresas en la base de datos"""
+    try:
+        count = await empresa_service.collection.count_documents({"estaActivo": True})
+        # Obtener una empresa para ver su estructura
+        sample = await empresa_service.collection.find_one({"estaActivo": True})
+        return {
+            "count": count,
+            "sample": sample,
+            "status": "ok"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "status": "error"
+        }

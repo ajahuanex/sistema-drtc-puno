@@ -1,25 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, of, catchError, throwError, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { Router } from '@angular/router';
+import { Observable, throwError } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import {
   Empresa,
   EmpresaCreate,
   EmpresaUpdate,
   EmpresaFiltros,
-  EmpresaEstadisticas,
   EstadoEmpresa,
-  TipoDocumento,
-  EmpresaCambioEstado,
-  CambioEstadoEmpresa,
-  EmpresaCambioRepresentante,
-  CambioRepresentanteLegal,
-  RepresentanteLegal,
-  EventoHistorialEmpresa,
-  TipoEventoEmpresa,
-  EmpresaOperacionVehicular,
-  EmpresaOperacionRutas
+  Socio,
+  SocioCreate,
+  SocioUpdate
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -28,12 +19,11 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class EmpresaService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = `${environment.apiUrl}/empresas`;
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService,
-    private router: Router
+    private authService: AuthService
   ) { }
 
   private getHeaders(): HttpHeaders {
@@ -44,654 +34,203 @@ export class EmpresaService {
     });
   }
 
-  // Métodos principales CRUD
-  getEmpresas(skip: number = 0, limit: number = 1000): Observable<Empresa[]> {
-    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`).pipe(
-      map(empresas => {
-        const transformedEmpresas = empresas.map(empresa => this.transformEmpresaData(empresa));
-        return transformedEmpresas;
-      }),
-      catchError(error => {
-        console.error('❌ Error en getEmpresas::', error);
-        console.error('URL::', `${this.apiUrl}/empresas?skip=${skip}&limit=${limit}`);
-        console.error('Status::', error.status);
-        console.error('Message::', error.message);
-        return throwError(() => error);
-      })
+  // ========================================
+  // CRUD BÁSICO
+  // ========================================
+
+  getEmpresas(page: number = 0, limit: number = 10): Observable<Empresa[]> {
+    const params = new HttpParams()
+      .set('skip', (page * limit).toString())
+      .set('limit', limit.toString());
+
+    return this.http.get<Empresa[]>(this.apiUrl, {
+      headers: this.getHeaders(),
+      params
+    }).pipe(
+      map(empresas => empresas.map(e => this.transformEmpresaData(e))),
+      catchError(error => this.handleError('getEmpresas', error))
     );
   }
 
   getEmpresa(id: string): Observable<Empresa> {
-    return this.http.get<Empresa>(`${this.apiUrl}/empresas/${id}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa))
-    );
-  }
-
-  createEmpresa(empresaData: EmpresaCreate): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas`, empresaData, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error creando empresa::', error);
-        console.error('Status::', error.status);
-        console.error('Error detail::', error.error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  updateEmpresa(id: string, empresaData: EmpresaUpdate): Observable<Empresa> {
-    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${id}`, empresaData, {
+    return this.http.get<Empresa>(`${this.apiUrl}/${id}`, {
       headers: this.getHeaders()
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error actualizando empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('getEmpresa', error))
+    );
+  }
+
+  createEmpresa(data: EmpresaCreate): Observable<Empresa> {
+    return this.http.post<Empresa>(this.apiUrl, data, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => this.handleError('createEmpresa', error))
+    );
+  }
+
+  updateEmpresa(id: string, data: EmpresaUpdate): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/${id}`, data, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => this.handleError('updateEmpresa', error))
     );
   }
 
   deleteEmpresa(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/empresas/${id}`, {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, {
       headers: this.getHeaders()
     }).pipe(
-      catchError(error => {
-        console.error('❌ Error eliminando empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('deleteEmpresa', error))
     );
   }
 
-  // Métodos de filtrado y búsqueda
-  getEmpresasConFiltros(filtros: EmpresaFiltros): Observable<Empresa[]> {
-    const params = new HttpParams()
-      .set('skip', '0')
-      .set('limit', '1000');
+  // ========================================
+  // BÚSQUEDA Y FILTROS
+  // ========================================
 
-    if (filtros.ruc) params.set('ruc', filtros.ruc);
-    if (filtros.razonSocial) params.set('razon_social', filtros.razonSocial);
-    if (filtros.estado) params.set('estado', filtros.estado);
-    if (filtros.fechaDesde) params.set('fecha_desde', filtros.fechaDesde.toISOString());
-    if (filtros.fechaHasta) params.set('fecha_hasta', filtros.fechaHasta.toISOString());
+  buscarEmpresas(termino: string): Observable<Empresa[]> {
+    const params = new HttpParams().set('q', termino);
 
-    return this.http.get<Empresa[]>(`${this.apiUrl}/empresas/filtros`, {
+    return this.http.get<Empresa[]>(`${this.apiUrl}/buscar`, {
       headers: this.getHeaders(),
       params
     }).pipe(
-      map(empresas => empresas.map(empresa => this.transformEmpresaData(empresa))),
-      catchError(error => {
-        console.error('❌ Error aplicando filtros::', error);
-        return throwError(() => error);
-      })
+      map(empresas => empresas.map(e => this.transformEmpresaData(e))),
+      catchError(error => this.handleError('buscarEmpresas', error))
     );
   }
 
-  // Métodos de estadísticas
-  getEstadisticasEmpresas(): Observable<EmpresaEstadisticas> {
-    // Temporalmente sin headers para debug
-    return this.http.get<EmpresaEstadisticas>(`${this.apiUrl}/empresas/estadisticas`).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo estadísticas::', error);
-        return throwError(() => error);
-      })
+  filtrarEmpresas(filtros: EmpresaFiltros): Observable<Empresa[]> {
+    let params = new HttpParams();
+
+    if (filtros.ruc) params = params.set('ruc', filtros.ruc);
+    if (filtros.razonSocial) params = params.set('razon_social', filtros.razonSocial);
+    if (filtros.estado) params = params.set('estado', filtros.estado);
+    if (filtros.estaActivo !== undefined) params = params.set('esta_activo', filtros.estaActivo.toString());
+    if (filtros.page) params = params.set('page', filtros.page.toString());
+    if (filtros.limit) params = params.set('limit', filtros.limit.toString());
+
+    return this.http.get<Empresa[]>(`${this.apiUrl}/filtrar`, {
+      headers: this.getHeaders(),
+      params
+    }).pipe(
+      map(empresas => empresas.map(e => this.transformEmpresaData(e))),
+      catchError(error => this.handleError('filtrarEmpresas', error))
     );
   }
 
-  // Métodos para gestión de vehículos
-  agregarVehiculoAEmpresa(empresaId: string, vehiculoId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`, {}, {
+  // ========================================
+  // GESTIÓN DE SOCIOS
+  // ========================================
+
+  agregarSocio(empresaId: string, socio: SocioCreate): Observable<Empresa> {
+    return this.http.post<Empresa>(`${this.apiUrl}/${empresaId}/socios`, socio, {
       headers: this.getHeaders()
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error agregando vehículo a empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('agregarSocio', error))
     );
   }
 
-  removerVehiculoDeEmpresa(empresaId: string, vehiculoId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/vehiculos/${vehiculoId}`, {
+  actualizarSocio(empresaId: string, dniSocio: string, datos: SocioUpdate): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/${empresaId}/socios/${dniSocio}`, datos, {
       headers: this.getHeaders()
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error removiendo vehículo de empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('actualizarSocio', error))
     );
   }
 
-  // Métodos para gestión de conductores
-  agregarConductorAEmpresa(empresaId: string, conductorId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`, {}, {
+  removerSocio(empresaId: string, dniSocio: string): Observable<Empresa> {
+    return this.http.delete<Empresa>(`${this.apiUrl}/${empresaId}/socios/${dniSocio}`, {
       headers: this.getHeaders()
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error agregando conductor a empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('removerSocio', error))
     );
   }
 
-  removerConductorDeEmpresa(empresaId: string, conductorId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/conductores/${conductorId}`, {
+  getSocios(empresaId: string): Observable<Socio[]> {
+    return this.http.get<Socio[]>(`${this.apiUrl}/${empresaId}/socios`, {
       headers: this.getHeaders()
     }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error removiendo conductor de empresa::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('getSocios', error))
     );
   }
 
-  // Métodos para gestión de rutas
-  agregarRutaAEmpresa(empresaId: string, rutaId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`, {}, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error agregando ruta a empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
+  // ========================================
+  // UTILIDADES
+  // ========================================
 
-  removerRutaDeEmpresa(empresaId: string, rutaId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/rutas/${rutaId}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error removiendo ruta de empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  // Métodos para gestión de resoluciones
-  agregarResolucionAEmpresa(empresaId: string, resolucionId: string): Observable<Empresa> {
-    return this.http.post<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`, {}, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error agregando resolución a empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  removerResolucionDeEmpresa(empresaId: string, resolucionId: string): Observable<Empresa> {
-    return this.http.delete<Empresa>(`${this.apiUrl}/empresas/${empresaId}/resoluciones/${resolucionId}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error removiendo resolución de empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  getResolucionesEmpresa(empresaId: string): Observable<{ empresa_id: string; resoluciones: string[]; total: number }> {
-    return this.http.get<{ empresa_id: string; resoluciones: string[]; total: number }>(`${this.apiUrl}/empresas/${empresaId}/resoluciones`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo resoluciones de empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  // Método simplificado para obtener resoluciones con estructura padre/hijas
-  getResoluciones(empresaId: string, incluirHijas: boolean = true): Observable<any> {
-    const params = incluirHijas ? '?incluir_hijas=true' : '?incluir_hijas=false';
-    return this.http.get<any>(`${this.apiUrl}/empresas/${empresaId}/resoluciones${params}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo resoluciones simplificadas::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  // Métodos para validación
   validarRuc(ruc: string): Observable<{ valido: boolean; empresa?: Empresa }> {
-    return this.http.get<{ valido: boolean; empresa?: Empresa }>(`${this.apiUrl}/empresas/validar-ruc/${ruc}`, {
+    return this.http.get<{ valido: boolean; empresa?: Empresa }>(`${this.apiUrl}/validar-ruc/${ruc}`, {
       headers: this.getHeaders()
     }).pipe(
-      catchError(error => {
-        console.error('❌ Error validando RUC::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('validarRuc', error))
     );
   }
 
-  // Métodos para exportación
-  exportarEmpresas(formato: 'pdf' | 'excel' | 'csv', empresasSeleccionadas?: string[], columnasVisibles?: string[]): Observable<Blob> {
-    let url = `${this.apiUrl}/empresas/exportar/${formato}`;
-    const params = new URLSearchParams();
-    
-    // Si hay empresas seleccionadas, agregarlas como parámetro
-    if (empresasSeleccionadas && empresasSeleccionadas.length > 0) {
-      params.append('empresas_seleccionadas', empresasSeleccionadas.join(','));
-    }
-    
-    // Si hay columnas visibles específicas, agregarlas como parámetro
-    if (columnasVisibles && columnasVisibles.length > 0) {
-      params.append('columnas_visibles', columnasVisibles.join(','));
-    }
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-    
-    return this.http.get(url, {
-      responseType: 'blob',
-      headers: this.getHeaders()
+  descargarPlantilla(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/carga-masiva/plantilla`, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
     }).pipe(
-      catchError(error => {
-        console.error('❌ Error exportando empresas::', error);
-        return throwError(() => error);
-      })
+      catchError(error => this.handleError('descargarPlantilla', error))
     );
   }
 
-  // Métodos auxiliares
-  private convertToCSV(data: any[]): string {
-    if (data.length === 0) return '';
+  // ========================================
+  // CARGA MASIVA DESDE GOOGLE SHEETS
+  // ========================================
 
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
+  procesarCargaMasivaGoogleSheets(
+    empresas: any[],
+    soloValidar: boolean = false
+  ): Observable<any> {
+    const params = new HttpParams().set('solo_validar', soloValidar.toString());
 
-    for (const row of data) {
-      const values = headers.map(header => {
-        const value = row[header];
-        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-      });
-      csvRows.push(values.join(','));
-    }
-
-    return csvRows.join('\n');
+    return this.http.post(
+      `${this.apiUrl}/carga-masiva/google-sheets`,
+      empresas,
+      {
+        headers: this.getHeaders(),
+        params
+      }
+    ).pipe(
+      catchError(error => this.handleError('procesarCargaMasivaGoogleSheets', error))
+    );
   }
+
+  // ========================================
+  // TRANSFORMACIÓN DE DATOS
+  // ========================================
 
   private transformEmpresaData(empresa: any): Empresa {
     return {
       id: empresa.id || empresa._id || '',
       ruc: empresa.ruc || '',
       razonSocial: empresa.razonSocial || empresa.razon_social || {
-        principal: empresa.razonSocial?.principal || empresa.razon_social?.principal || 'Sin razón social',
-        sunat: empresa.razonSocial?.sunat || empresa.razon_social?.sunat || '',
-        minimo: empresa.razonSocial?.minimo || empresa.razon_social?.minimo || ''
+        principal: 'Sin razón social'
       },
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
-      tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || ['PERSONAS'],
-      estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : (empresa.esta_activo !== undefined ? empresa.esta_activo : true),
-      fechaRegistro: empresa.fechaRegistro ? new Date(empresa.fechaRegistro) : (empresa.fecha_registro ? new Date(empresa.fecha_registro) : new Date()),
-      fechaActualizacion: empresa.fechaActualizacion ? new Date(empresa.fechaActualizacion) : (empresa.fecha_actualizacion ? new Date(empresa.fecha_actualizacion) : undefined),
-      representanteLegal: empresa.representanteLegal || empresa.representante_legal || {
-        dni: '',
-        nombres: '',
-        apellidos: '',
-        email: '',
-        telefono: '',
-        direccion: ''
-      },
+      tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || [],
+      estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : true,
+      fechaRegistro: empresa.fechaRegistro ? new Date(empresa.fechaRegistro) : new Date(),
+      fechaActualizacion: empresa.fechaActualizacion ? new Date(empresa.fechaActualizacion) : undefined,
+      socios: empresa.socios || [],
       emailContacto: empresa.emailContacto || empresa.email_contacto || '',
       telefonoContacto: empresa.telefonoContacto || empresa.telefono_contacto || '',
       sitioWeb: empresa.sitioWeb || empresa.sitio_web || '',
-      documentos: empresa.documentos || [],
-      auditoria: empresa.auditoria || [],
-      historialEventos: empresa.historialEventos || empresa.historial_eventos || [],
-      historialEstados: empresa.historialEstados || empresa.historial_estados || [],
-      historialRepresentantes: empresa.historialRepresentantes || empresa.historial_representantes || [],
-      resolucionesPrimigeniasIds: empresa.resolucionesPrimigeniasIds || empresa.resoluciones_primigenias_ids || [],
-      vehiculosHabilitadosIds: empresa.vehiculosHabilitadosIds || empresa.vehiculos_habilitados_ids || [],
-      conductoresHabilitadosIds: empresa.conductoresHabilitadosIds || empresa.conductores_habilitados_ids || [],
-      rutasAutorizadasIds: empresa.rutasAutorizadasIds || empresa.rutas_autorizadas_ids || [],
-      datosSunat: empresa.datosSunat || empresa.datos_sunat || {
-        valido: false,
-        razonSocial: '',
-        estado: '',
-        condicion: '',
-        direccion: '',
-        fechaActualizacion: new Date()
-      },
-      ultimaValidacionSunat: empresa.ultimaValidacionSunat ? new Date(empresa.ultimaValidacionSunat) : (empresa.ultima_validacion_sunat ? new Date(empresa.ultima_validacion_sunat) : new Date()),
-      scoreRiesgo: empresa.scoreRiesgo || empresa.score_riesgo || 0,
-      observaciones: empresa.observaciones || '',
-      codigoEmpresa: empresa.codigoEmpresa || ''
+      observaciones: empresa.observaciones || ''
     };
   }
 
-  // Método para validación SUNAT
-  validarEmpresaSunat(ruc: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/empresas/validar-sunat/${ruc}`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error validando empresa con SUNAT::', error);
-        return throwError(() => error);
-      })
-    );
+  private handleError(context: string, error: any): Observable<never> {
+    console.error(`❌ Error en ${context}:`, error);
+    return throwError(() => error);
   }
-
-  // Generar número de TUC único
-  generarNumeroTuc(): string {
-    const año = new Date().getFullYear();
-    const numero = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
-    return `T-${numero}-${año}`;
-  }
-
-  // Generar siguiente código de empresa disponible
-  generarSiguienteCodigoEmpresa(): Observable<{ siguienteCodigo: string, descripcion: string, formato: string }> {
-    const url = `${this.apiUrl}/empresas/siguiente-codigo`;
-
-    return this.http.get<{ siguienteCodigo: string, descripcion: string, formato: string }>(url, { headers: this.getHeaders() })
-      .pipe(
-        catchError(error => {
-          console.error('❌ Error generando código de empresa::', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  // Validar código de empresa
-  validarCodigoEmpresa(codigo: string): Observable<{
-    codigo: string;
-    esValido: boolean;
-    numeroSecuencial?: number;
-    tiposEmpresa?: string[];
-    descripcionTipos?: string;
-    error?: string;
-  }> {
-    const url = `${this.apiUrl}/empresas/validar-codigo/${codigo}`;
-
-    return this.http.get<{
-      codigo: string;
-      esValido: boolean;
-      numeroSecuencial?: number;
-      tiposEmpresa?: string[];
-      descripcionTipos?: string;
-      error?: string;
-    }>(url, { headers: this.getHeaders() })
-      .pipe(
-        catchError(error => {
-          console.error('❌ Error validando código de empresa::', error);
-          return throwError(() => error);
-        })
-      );
-  }
-
-  // ========================================
-  // MÉTODOS DE CARGA MASIVA DESDE EXCEL
-  // ========================================
-
-  /**
-   * Descargar plantilla Excel para carga masiva de empresas
-   */
-  async descargarPlantillaEmpresas(): Promise<void> {
-    try {
-      const response = await fetch(`${this.apiUrl}/empresas/carga-masiva/plantilla`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al descargar plantilla');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'plantilla_empresas.xlsx';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error('❌ Error descargando plantilla::', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Validar archivo Excel de empresas
-   */
-  validarArchivoEmpresas(archivo: File): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('archivo', archivo);
-
-      const xhr = new XMLHttpRequest();
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            resolve(response);
-          } catch (error) {
-            reject(new Error('Error al procesar respuesta del servidor'));
-          }
-        } else {
-          try {
-            const errorResponse = JSON.parse(xhr.responseText);
-            reject(new Error(errorResponse.detail || 'Error al validar archivo'));
-          } catch {
-            reject(new Error(`Error del servidor: ${xhr.status}`));
-          }
-        }
-      };
-
-      xhr.onerror = () => {
-        reject(new Error('Error de red al validar archivo'));
-      };
-
-      xhr.open('POST', `${this.apiUrl}/empresas/carga-masiva/validar`);
-      xhr.setRequestHeader('Authorization', `Bearer ${this.authService.getToken()}`);
-      xhr.send(formData);
-    });
-  }
-
-  /**
-   * Procesar carga masiva de empresas
-   */
-  procesarCargaMasivaEmpresas(archivo: File, soloValidar: boolean = false): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('archivo', archivo);
-
-      const xhr = new XMLHttpRequest();
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            resolve(response);
-          } catch (error) {
-            reject(new Error('Error al procesar respuesta del servidor'));
-          }
-        } else {
-          try {
-            const errorResponse = JSON.parse(xhr.responseText);
-            reject(new Error(errorResponse.detail || 'Error al procesar archivo'));
-          } catch {
-            reject(new Error(`Error del servidor: ${xhr.status}`));
-          }
-        }
-      };
-
-      xhr.onerror = () => {
-        reject(new Error('Error de red al procesar archivo'));
-      };
-
-      const url = `${this.apiUrl}/empresas/carga-masiva/procesar?solo_validar=${soloValidar}`;
-      xhr.open('POST', url);
-      xhr.setRequestHeader('Authorization', `Bearer ${this.authService.getToken()}`);
-      xhr.send(formData);
-    });
-  }
-
-  // ========================================
-  // MÉTODOS DE CAMBIO DE ESTADO
-  // ========================================
-
-  cambiarEstadoEmpresa(empresaId: string, cambioEstado: EmpresaCambioEstado): Observable<Empresa> {
-    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${empresaId}/cambiar-estado`, cambioEstado, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error cambiando estado de empresa::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  cambiarEstadoBloque(empresaIds: string[], nuevoEstado: EstadoEmpresa, observaciones?: string): Observable<{success: boolean, empresasActualizadas: number, errores?: any[]}> {
-    console.log('🔄 SERVICIO: Cambiando estado en bloque');
-    console.log('📋 IDs:', empresaIds);
-    console.log('🏷️ Nuevo estado:', nuevoEstado);
-
-    // Ya no necesitamos conversión - los valores coinciden directamente
-    const estadoBackend = nuevoEstado;
-
-    // Crear observables para cada empresa
-    const cambiosIndividuales = empresaIds.map(empresaId => {
-      const cambioEstado: EmpresaCambioEstado = {
-        estadoNuevo: estadoBackend as EstadoEmpresa,
-        motivo: observaciones || `Cambio masivo de estado de empresa a ${estadoBackend} mediante operación en bloque desde el sistema administrativo`
-      };
-
-      console.log(`📤 Enviando cambio para empresa ${empresaId}:`, cambioEstado);
-
-      return this.cambiarEstadoEmpresa(empresaId, cambioEstado).pipe(
-        map(empresa => ({ success: true, empresaId, empresa })),
-        catchError(error => {
-          console.error(`❌ Error cambiando estado de empresa ${empresaId}:`, error);
-          console.error('📋 Detalle del error:', error.error);
-          console.error('📋 Status:', error.status);
-          console.error('📋 Datos enviados:', cambioEstado);
-          return of({ success: false, empresaId, error });
-        })
-      );
-    });
-
-    // Ejecutar todos los cambios en paralelo
-    return forkJoin(cambiosIndividuales).pipe(
-      map(resultados => {
-        const exitosos = resultados.filter(r => r.success);
-        const errores = resultados.filter(r => !r.success);
-        
-        console.log('✅ Cambios exitosos:', exitosos.length);
-        console.log('❌ Cambios con error:', errores.length);
-
-        return {
-          success: errores.length === 0,
-          empresasActualizadas: exitosos.length,
-          errores: errores.length > 0 ? errores : undefined
-        };
-      }),
-      catchError(error => {
-        console.error('❌ Error general en cambio de estado en bloque:', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  getHistorialEstadosEmpresa(empresaId: string): Observable<{empresaId: string, estadoActual: EstadoEmpresa, historialEstados: CambioEstadoEmpresa[]}> {
-    return this.http.get<{empresaId: string, estadoActual: EstadoEmpresa, historialEstados: CambioEstadoEmpresa[]}>(`${this.apiUrl}/empresas/${empresaId}/historial-estados`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo historial de estados::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  // ========================================
-  // MÉTODOS DE CAMBIO DE REPRESENTANTE LEGAL
-  // ========================================
-
-  cambiarRepresentanteLegal(empresaId: string, cambioRepresentante: EmpresaCambioRepresentante): Observable<Empresa> {
-    return this.http.put<Empresa>(`${this.apiUrl}/empresas/${empresaId}/cambiar-representante`, cambioRepresentante, {
-      headers: this.getHeaders()
-    }).pipe(
-      map(empresa => this.transformEmpresaData(empresa)),
-      catchError(error => {
-        console.error('❌ Error cambiando representante legal::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  getHistorialRepresentantesEmpresa(empresaId: string): Observable<{empresaId: string, representanteActual: RepresentanteLegal, historialRepresentantes: CambioRepresentanteLegal[]}> {
-    return this.http.get<{empresaId: string, representanteActual: RepresentanteLegal, historialRepresentantes: CambioRepresentanteLegal[]}>(`${this.apiUrl}/empresas/${empresaId}/historial-representantes`, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo historial de representantes::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  // ========================================
-  // MÉTODOS DE HISTORIAL UNIFICADO
-  // ========================================
-
-  getHistorialCompletoEmpresa(empresaId: string, tipoEvento?: TipoEventoEmpresa, limit: number = 100): Observable<{empresaId: string, eventos: EventoHistorialEmpresa[], estadisticas: any}> {
-    let params = new HttpParams().set('limit', limit.toString());
-    if (tipoEvento) {
-      params = params.set('tipo_evento', tipoEvento);
-    }
-
-    return this.http.get<{empresaId: string, eventos: EventoHistorialEmpresa[], estadisticas: any}>(`${this.apiUrl}/empresas/${empresaId}/historial-completo`, {
-      headers: this.getHeaders(),
-      params
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error obteniendo historial completo::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  registrarOperacionVehicular(empresaId: string, operacion: EmpresaOperacionVehicular): Observable<{success: boolean, message: string}> {
-    return this.http.post<{success: boolean, message: string}>(`${this.apiUrl}/empresas/${empresaId}/operacion-vehicular`, operacion, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error registrando operación vehicular::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  registrarOperacionRutas(empresaId: string, operacion: EmpresaOperacionRutas): Observable<{success: boolean, message: string}> {
-    return this.http.post<{success: boolean, message: string}>(`${this.apiUrl}/empresas/${empresaId}/operacion-rutas`, operacion, {
-      headers: this.getHeaders()
-    }).pipe(
-      catchError(error => {
-        console.error('❌ Error registrando operación de rutas::', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-} 
+}

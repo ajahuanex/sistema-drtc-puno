@@ -99,15 +99,23 @@ class EmpresaExcelService:
                 'Apellidos Representante': ['', ''],
                 'DNI Representante': ['', ''],
                 'Partida Registral': ['', ''],
-                'Razón Social SUNAT': ['', ''],
-                'Razón Social Mínimo': ['', ''],
                 'Estado': ['', ''],
                 'Estado SUNAT': ['', ''],
                 'Tipo de Servicio': ['', ''],
-                'Observaciones': ['', '']
+                'Observaciones': ['', ''],
+                'Razón Social SUNAT': ['', ''],
+                'Razón Social Mínimo': ['', '']
             }
             
             df_datos = pd.DataFrame(datos_vacios)
+            # Forzar el orden de las columnas
+            columnas_orden = [
+                'RUC', 'Razón Social Principal', 'Dirección Fiscal', 'Teléfono Contacto',
+                'Email Contacto', 'Nombres Representante', 'Apellidos Representante',
+                'DNI Representante', 'Partida Registral', 'Estado', 'Estado SUNAT',
+                'Tipo de Servicio', 'Observaciones', 'Razón Social SUNAT', 'Razón Social Mínimo'
+            ]
+            df_datos = df_datos[columnas_orden]
             df_datos.to_excel(writer, sheet_name='DATOS', index=False)
             
             # ========================================
@@ -149,7 +157,6 @@ class EmpresaExcelService:
                 ['   • EN_TRAMITE'],
                 ['   • SUSPENDIDA'],
                 ['   • CANCELADA'],
-                ['   • DADA_DE_BAJA'],
                 [''],
                 ['6. CONSEJOS:'],
                 ['   • Mínimo requerido: RUC + Razón Social Principal'],
@@ -180,12 +187,12 @@ class EmpresaExcelService:
                 ['Apellidos Representante', 'NO', 'Texto', 'Apellidos del representante', 'MAMANI QUISPE'],
                 ['DNI Representante', 'NO', 'Numérico (máx 8 dígitos)', 'DNI del representante legal (se completa con ceros)', '12345678'],
                 ['Partida Registral', 'NO', 'Numérico (8-9 dígitos)', 'Número de partida registral (se completa con ceros)', '00123456'],
-                ['Razón Social SUNAT', 'NO', 'Texto', 'Razón social según SUNAT', 'TRANSPORTES PUNO SOCIEDAD ANONIMA CERRADA'],
-                ['Razón Social Mínimo', 'NO', 'Texto', 'Nombre corto de la empresa', 'TRANSPORTES PUNO'],
                 ['Estado', 'NO', 'Lista', 'Estado de la empresa', 'AUTORIZADA'],
                 ['Estado SUNAT', 'NO', 'Texto', 'Estado según SUNAT', 'ACTIVO'],
                 ['Tipo de Servicio', 'NO', 'Lista', 'Tipo de servicio que ofrece la empresa', 'PERSONAS'],
-                ['Observaciones', 'NO', 'Texto', 'Comentarios adicionales', 'Empresa especializada en transporte']
+                ['Observaciones', 'NO', 'Texto', 'Comentarios adicionales', 'Empresa especializada en transporte'],
+                ['Razón Social SUNAT', 'NO', 'Texto', 'Razón social según SUNAT (opcional)', 'TRANSPORTES PUNO SOCIEDAD ANONIMA CERRADA'],
+                ['Razón Social Mínimo', 'NO', 'Texto', 'Nombre corto de la empresa (opcional)', 'TRANSPORTES PUNO']
             ]
             
             df_campos = pd.DataFrame(campos_info[1:], columns=campos_info[0])
@@ -204,15 +211,23 @@ class EmpresaExcelService:
                 'Apellidos Representante': ['MAMANI QUISPE', 'RODRIGUEZ VARGAS', ''],
                 'DNI Representante': ['12345678', '87654321', ''],
                 'Partida Registral': ['00123456', '00765432', ''],
-                'Razón Social SUNAT': ['TRANSPORTES PUNO SOCIEDAD ANONIMA CERRADA', '', ''],
-                'Razón Social Mínimo': ['TRANSPORTES PUNO', 'LOGISTICA AREQUIPA', ''],
                 'Estado': ['AUTORIZADA', 'EN_TRAMITE', ''],
                 'Estado SUNAT': ['ACTIVO', 'ACTIVO', ''],
                 'Tipo de Servicio': ['PERSONAS', 'TURISMO', ''],
-                'Observaciones': ['Empresa completa con todos los datos', 'Empresa completa con todos los datos', 'Solo datos mínimos: RUC + Razón Social']
+                'Observaciones': ['Empresa completa con todos los datos', 'Empresa completa con todos los datos', 'Solo datos mínimos: RUC + Razón Social'],
+                'Razón Social SUNAT': ['TRANSPORTES PUNO SOCIEDAD ANONIMA CERRADA', '', ''],
+                'Razón Social Mínimo': ['TRANSPORTES PUNO', 'LOGISTICA AREQUIPA', '']
             }
             
             df_ejemplos = pd.DataFrame(ejemplos_datos)
+            # Forzar el orden de las columnas
+            columnas_orden = [
+                'RUC', 'Razón Social Principal', 'Dirección Fiscal', 'Teléfono Contacto',
+                'Email Contacto', 'Nombres Representante', 'Apellidos Representante',
+                'DNI Representante', 'Partida Registral', 'Estado', 'Estado SUNAT',
+                'Tipo de Servicio', 'Observaciones', 'Razón Social SUNAT', 'Razón Social Mínimo'
+            ]
+            df_ejemplos = df_ejemplos[columnas_orden]
             df_ejemplos.to_excel(writer, sheet_name='EJEMPLOS', index=False)
             
             # Agregar comentarios explicativos en la hoja de ejemplos

@@ -223,17 +223,17 @@ import { NotificationService } from '../../services/notification.service';
                   <div class="empresa-details">
                     <div class="detail-item">
                       <span class="detail-label">Dirección:</span>
-                                          <span class="detail-value">{{ tucCompleto()?.empresa?.direccion ?? 'N/A' }}</span>
-                  </div>
+                      <span class="detail-value">{{ tucCompleto()?.empresa?.direccionFiscal ?? 'N/A' }}</span>
+                    </div>
                   
-                  <div class="detail-item">
-                    <span class="detail-label">Teléfono:</span>
-                    <span class="detail-value">{{ tucCompleto()?.empresa?.telefono ?? 'No registrado' }}</span>
-                  </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Teléfono:</span>
+                      <span class="detail-value">{{ tucCompleto()?.empresa?.telefonoContacto ?? 'No registrado' }}</span>
+                    </div>
                   
-                  <div class="detail-item">
-                    <span class="detail-label">Email:</span>
-                    <span class="detail-value">{{ tucCompleto()?.empresa?.email ?? 'No registrado' }}</span>
+                    <div class="detail-item">
+                      <span class="detail-label">Email:</span>
+                      <span class="detail-value">{{ tucCompleto()?.empresa?.emailContacto ?? 'No registrado' }}</span>
                     </div>
                   </div>
                 </div>

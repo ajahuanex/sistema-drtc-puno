@@ -28,7 +28,7 @@ class EmpresaMapper:
             "EN_TRAMITE": EstadoEmpresa.EN_TRAMITE,
             "SUSPENDIDA": EstadoEmpresa.SUSPENDIDA,
             "CANCELADA": EstadoEmpresa.CANCELADA,
-            "DADA_DE_BAJA": EstadoEmpresa.DADA_DE_BAJA,
+            "DADA_DE_BAJA": EstadoEmpresa.AUTORIZADA,  # Convertir a AUTORIZADA por defecto
         }
         return estado_map.get(estado_antiguo.upper(), EstadoEmpresa.AUTORIZADA)
     
@@ -108,12 +108,32 @@ class EmpresaMapper:
             return None
     
     @staticmethod
-    def map_empresa_antigua(doc: Dict[str, Any]) -> Empresa:
-        """Mapea documento antiguo de empresa al nuevo modelo Empresa"""
+    def map_empresa_antigua(doc: Dict[str, Any]) -> 'EmpresaInDB':
+        """Mapea documento antiguo de empresa al nuevo modelo EmpresaInDB"""
+        from app.models.empresa import EmpresaInDB, Socio
+        
+        # Convertir socios de diccionarios a objetos Socio
+        socios_raw = doc.get("socios", [])
+        socios_convertidos = []
+        for socio_data in socios_raw:
+            if isinstance(socio_data, dict):
+                try:
+                    socio = Socio(**socio_data)
+                    socios_convertidos.append(socio)
+                except Exception as e:
+                    print(f"Error convirtiendo socio: {e}, socio_data: {socio_data}")
+                    continue
+            else:
+                socios_convertidos.append(socio_data)
         
         # Mapear campos básicos
+        # Usar el campo 'id' si existe, si no usar '_id'
+        empresa_id = doc.get("id")
+        if not empresa_id and "_id" in doc:
+            empresa_id = str(doc["_id"])
+        
         empresa_dict = {
-            "id": str(doc.get("_id")) if "_id" in doc else None,
+            "id": empresa_id,
             "ruc": doc.get("ruc", ""),
             "razonSocial": EmpresaMapper.map_razon_social(doc.get("razonSocial", {})),
             "direccionFiscal": doc.get("direccionFiscal", ""),
@@ -125,17 +145,18 @@ class EmpresaMapper:
             "estaActivo": doc.get("estaActivo", True),
             "fechaRegistro": doc.get("fechaRegistro", datetime.utcnow()),
             "fechaActualizacion": doc.get("fechaActualizacion"),
+            "socios": socios_convertidos,  # Usar socios convertidos
             "representanteLegal": EmpresaMapper.map_representante_legal(doc.get("representanteLegal", {})),
             "emailContacto": doc.get("emailContacto"),
             "telefonoContacto": doc.get("telefonoContacto"),
             "sitioWeb": doc.get("sitioWeb"),
             
             # Campos complejos con valores por defecto
-            "documentos": [],
-            "auditoria": [],
-            "historialEventos": [],
-            "historialEstados": [],
-            "historialRepresentantes": [],
+            "documentos": doc.get("documentos", []),
+            "auditoria": doc.get("auditoria", []),
+            "historialEventos": doc.get("historialEventos", []),
+            "historialEstados": doc.get("historialEstados", []),
+            "historialRepresentantes": doc.get("historialRepresentantes", []),
             "resolucionesPrimigeniasIds": doc.get("resolucionesPrimigeniasIds", []),
             "vehiculosHabilitadosIds": doc.get("vehiculosHabilitadosIds", []),
             "conductoresHabilitadosIds": doc.get("conductoresHabilitadosIds", []),
@@ -148,13 +169,4 @@ class EmpresaMapper:
             "observaciones": doc.get("observaciones"),
         }
         
-        # Mapear documentos si existen
-        if "documentos" in doc and isinstance(doc["documentos"], list):
-            documentos_mapeados = []
-            for doc_item in doc["documentos"]:
-                doc_mapeado = EmpresaMapper.map_documento_antiguo(doc_item)
-                if doc_mapeado:
-                    documentos_mapeados.append(doc_mapeado)
-            empresa_dict["documentos"] = documentos_mapeados
-        
-        return Empresa(**empresa_dict)
+        return EmpresaInDB(**empresa_dict)

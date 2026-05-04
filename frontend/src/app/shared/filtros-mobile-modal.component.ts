@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatDividerModule } from '@angular/material/divider';
 import { ResolucionFiltros, TIPOS_TRAMITE_OPCIONES, ESTADOS_RESOLUCION_OPCIONES } from '../models/resolucion-table.model';
-import { EmpresaSelectorComponent } from './empresa-selector.component';
+// import { EmpresaSelectorComponent } from './empresa-selector.component'; // DESHABILITADO
 import { DateRangePickerComponent, RangoFechas } from './date-range-picker.component';
 import { SmartIconComponent } from './smart-icon.component';
 
@@ -35,7 +35,7 @@ interface FiltrosMobileData {
     MatSelectModule,
     MatSlideToggleModule,
     MatDividerModule,
-    EmpresaSelectorComponent,
+    // EmpresaSelectorComponent, // DESHABILITADO
     DateRangePickerComponent,
     SmartIconComponent
   ],
@@ -79,6 +79,7 @@ interface FiltrosMobileData {
               <mat-hint>Buscar por número completo o parcial</mat-hint>
             </mat-form-field>
 
+            <!-- DESHABILITADO - app-empresa-selector no existe
             <div class="empresa-selector-mobile">
               <app-empresa-selector
                 label="Empresa"
@@ -89,6 +90,7 @@ interface FiltrosMobileData {
                 (empresaSeleccionada)="onEmpresaSeleccionada($event)">
               </app-empresa-selector>
             </div>
+            -->
           </div>
 
           <mat-divider></mat-divider>

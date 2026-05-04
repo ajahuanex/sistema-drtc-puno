@@ -131,8 +131,10 @@ export class InfraestructuraComponent implements OnInit, AfterViewInit {
       infraestructura.ruc.toLowerCase().includes(searchText) ||
       infraestructura.razonSocial.principal.toLowerCase().includes(searchText) ||
       infraestructura.direccionFiscal.toLowerCase().includes(searchText) ||
-      infraestructura.representanteLegal.nombres.toLowerCase().includes(searchText) ||
-      infraestructura.representanteLegal.apellidos.toLowerCase().includes(searchText)
+      (infraestructura.representanteLegal && (
+        infraestructura.representanteLegal.nombres.toLowerCase().includes(searchText) || 
+        infraestructura.representanteLegal.apellidos.toLowerCase().includes(searchText)
+      ) || false)
     );
   });
 
@@ -159,9 +161,7 @@ export class InfraestructuraComponent implements OnInit, AfterViewInit {
       capacidadMaxima: [''],
       fechaRegistroDesde: [''],
       fechaRegistroHasta: [''],
-      conDocumentosVencidos: [false],
-      scoreRiesgoMinimo: [''],
-      scoreRiesgoMaximo: ['']
+      conDocumentosVencidos: [false]
     });
   }
 

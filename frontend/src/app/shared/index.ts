@@ -3,7 +3,7 @@ export * from './ruta-modal.component';
 export * from './ruta-form-shared.component'; // Mantener para compatibilidad (ahora es RutaWizardComponent)
 export * from './mat-confirm-dialog.component';
 export * from './smart-icon.component';
-export * from './empresa-selector.component';
+// export * from './empresa-selector.component'; // DESHABILITADO - Componente no existe
 export * from './resolucion-selector.component';
 export * from './resolucion-number-validator.component';
 export * from './expediente-number-validator.component';

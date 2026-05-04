@@ -539,8 +539,8 @@ export class LoginComponent {
           setTimeout(() => {
             console.log('🔐 [LOGIN] Mostrando mensaje de éxito...');
             this.snackBar.open('Inicio de sesión exitoso', 'Cerrar', { duration: 3000 });
-            console.log('🔐 [LOGIN] Navegando a dashboard...');
-            this.router.navigate(['/dashboard'], { replaceUrl: true });
+            console.log('🔐 [LOGIN] Navegando a empresas...');
+            this.router.navigate(['/empresas'], { replaceUrl: true });
             console.log('✅ [LOGIN] Navegación iniciada');
           }, 100);
         },

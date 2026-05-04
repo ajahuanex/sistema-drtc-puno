@@ -531,11 +531,7 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
       // Buscar por número de resolución
       const matchNumero = resolucion.nroResolucion.toLowerCase().includes(filterValue);
       
-      // Buscar por descripción
-      const matchDescripcion = resolucion.descripcion && 
-        resolucion.descripcion.toLowerCase().includes(filterValue);
-      
-      return matchNumero || matchDescripcion;
+      return matchNumero;
     });
   }
 
@@ -543,20 +539,15 @@ export class ResolucionSelectorComponent implements OnInit, OnChanges {
    * Función para mostrar la resolución seleccionada en el input
    * @param resolucionId - ID de la resolución seleccionada
    * @returns Texto formateado para mostrar en el campo de entrada
-   * @description Convierte el ID de resolución en texto legible mostrando número y descripción
-   * @example "R-0001-2025 - Resolución PRIMIGENIA para autorización..."
+   * @description Convierte el ID de resolución en texto legible mostrando número
+   * @example "R-0001-2025"
    */
   displayFn = (resolucionId: string): string => {
     if (!resolucionId) return '';
     const resolucion = this.resoluciones().find(r => r.id === resolucionId);
     if (!resolucion) return '';
     
-    // Truncar descripción si es muy larga
-    const descripcionCorta = resolucion.descripcion.length > 50 
-      ? resolucion.descripcion.substring(0, 50) + '...'
-      : resolucion.descripcion;
-    
-    return `${resolucion.nroResolucion} - ${descripcionCorta}`;
+    return resolucion.nroResolucion;
   }
 
   /**

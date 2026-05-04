@@ -1,0 +1,251 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║              ANÁLISIS DE REDUNDANCIAS - MODELO DE DATOS EMPRESAS               ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─ REDUNDANCIAS ENCONTRADAS ──────────────────────────────────────────────────┐
+│                                                                              │
+│  🚨 CRÍTICA: Documentación duplicada en 7 interfaces                         │
+│  🔴 ALTA: Emails duplicados en 3 lugares                                    │
+│  🔴 ALTA: Teléfonos duplicados en 3 lugares                                 │
+│  🔴 ALTA: Direcciones duplicadas en 3 lugares                               │
+│  🟡 MEDIA: RepresentanteLegal definido en 2 interfaces                      │
+│  🟡 MEDIA: RazonSocial definido en 5 interfaces                             │
+│  🟡 MEDIA: Empresa vs EmpresaResponse casi idénticas                        │
+│  🟢 BAJA: Campos de compatibilidad innecesarios                             │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #1: EMAILS ────────────────────────────────────────────────────┐
+│                                                                              │
+│  Ubicaciones:                                                               │
+│  ├─ representanteLegal.email                                                │
+│  ├─ emailContacto                                                           │
+│  └─ email (REDUNDANTE)                                                      │
+│                                                                              │
+│  Problema: ¿Cuál usar? ¿Cuál es la fuente de verdad?                       │
+│  Impacto: Confusión, inconsistencias, duplicación de datos                  │
+│                                                                              │
+│  Solución:                                                                  │
+│  ├─ Mantener: representanteLegal.email                                      │
+│  ├─ Mantener: emailContacto (si es diferente)                               │
+│  └─ ELIMINAR: email                                                         │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #2: TELÉFONOS ─────────────────────────────────────────────────┐
+│                                                                              │
+│  Ubicaciones:                                                               │
+│  ├─ representanteLegal.telefono                                             │
+│  ├─ telefonoContacto                                                        │
+│  └─ telefono (REDUNDANTE)                                                   │
+│                                                                              │
+│  Problema: Mismo que emails                                                 │
+│  Impacto: Mismo que emails                                                  │
+│                                                                              │
+│  Solución:                                                                  │
+│  ├─ Mantener: representanteLegal.telefono                                   │
+│  ├─ Mantener: telefonoContacto (si es diferente)                            │
+│  └─ ELIMINAR: telefono                                                      │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #3: DIRECCIONES ───────────────────────────────────────────────┐
+│                                                                              │
+│  Ubicaciones:                                                               │
+│  ├─ representanteLegal.direccion                                            │
+│  ├─ direccionFiscal                                                         │
+│  └─ direccion (REDUNDANTE)                                                  │
+│                                                                              │
+│  Problema: Mismo que emails                                                 │
+│  Impacto: Mismo que emails                                                  │
+│                                                                              │
+│  Solución:                                                                  │
+│  ├─ Mantener: direccionFiscal                                               │
+│  ├─ Mantener: representanteLegal.direccion (si es diferente)                │
+│  └─ ELIMINAR: direccion                                                     │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #4: DOCUMENTACIÓN (CRÍTICA) ──────────────────────────────────┐
+│                                                                              │
+│  Los mismos campos se repiten en 7 interfaces:                              │
+│                                                                              │
+│  ├─ EventoHistorialEmpresa                                                  │
+│  ├─ EmpresaOperacionVehicular                                               │
+│  ├─ EmpresaOperacionRutas                                                   │
+│  ├─ CambioRepresentanteLegal                                                │
+│  ├─ EmpresaCambioRepresentante                                              │
+│  ├─ CambioEstadoEmpresa                                                     │
+│  └─ EmpresaCambioEstado                                                     │
+│                                                                              │
+│  Campos duplicados:                                                         │
+│  ├─ tipoDocumentoSustentatorio                                              │
+│  ├─ numeroDocumentoSustentatorio                                            │
+│  ├─ esDocumentoFisico                                                       │
+│  ├─ urlDocumentoSustentatorio                                               │
+│  ├─ fechaDocumento                                                          │
+│  └─ entidadEmisora                                                          │
+│                                                                              │
+│  Problema: 7 interfaces con los mismos campos                               │
+│  Impacto: Muy Alto - Cambios requieren actualizar 7 lugares                 │
+│                                                                              │
+│  Solución: Crear interface reutilizable                                     │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ export interface DocumentoSustentatorio {                          │    │
+│  │   tipoDocumento?: TipoDocumento;                                   │    │
+│  │   numeroDocumento?: string;                                        │    │
+│  │   esDocumentoFisico?: boolean;                                     │    │
+│  │   urlDocumento?: string;                                           │    │
+│  │   fechaDocumento?: Date;                                           │    │
+│  │   entidadEmisora?: string;                                         │    │
+│  │ }                                                                  │    │
+│  │                                                                    │    │
+│  │ // Usar en todas las interfaces:                                  │    │
+│  │ documentoSustentatorio?: DocumentoSustentatorio;                   │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #5: REPRESENTANTE LEGAL ───────────────────────────────────────┐
+│                                                                              │
+│  Definiciones:                                                              │
+│  ├─ Interface 1 (mínima): dni, nombres                                      │
+│  └─ Interface 2 (en Empresa): dni, nombres, apellidos, email, etc.          │
+│                                                                              │
+│  Problema: Inconsistencia en la definición                                  │
+│  Impacto: Confusión, cambios requieren actualizar múltiples lugares         │
+│                                                                              │
+│  Solución: Usar una única definición completa                               │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ export interface RepresentanteLegal {                              │    │
+│  │   dni: string;                                                     │    │
+│  │   nombres: string;                                                 │    │
+│  │   apellidos: string;                                               │    │
+│  │   email?: string;                                                  │    │
+│  │   telefono?: string;                                               │    │
+│  │   direccion?: string;                                              │    │
+│  │ }                                                                  │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #6: RAZON SOCIAL ──────────────────────────────────────────────┐
+│                                                                              │
+│  Definiciones en 5 interfaces:                                              │
+│  ├─ Interface RazonSocial (definición)                                      │
+│  ├─ Empresa                                                                 │
+│  ├─ EmpresaCreate                                                           │
+│  ├─ EmpresaUpdate                                                           │
+│  └─ EmpresaResponse                                                         │
+│                                                                              │
+│  Problema: Duplicación de definición                                        │
+│  Impacto: Cambios requieren actualizar 5 lugares                            │
+│                                                                              │
+│  Solución: Usar interface RazonSocial en todas partes                       │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ razonSocial: RazonSocial;                                          │    │
+│  │ razonSocial?: RazonSocial;                                         │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #7: EMPRESA vs EMPRESA RESPONSE ───────────────────────────────┐
+│                                                                              │
+│  Problema: Dos interfaces casi idénticas                                    │
+│  ├─ Empresa (30+ campos)                                                    │
+│  └─ EmpresaResponse (30+ campos DUPLICADOS)                                 │
+│                                                                              │
+│  Impacto: Duplicación de código, difícil de mantener                        │
+│                                                                              │
+│  Solución: Usar type alias o herencia                                       │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ // Opción 1: Type alias                                            │    │
+│  │ export type EmpresaResponse = Empresa;                             │    │
+│  │                                                                    │    │
+│  │ // Opción 2: Herencia (si hay diferencias)                        │    │
+│  │ export interface EmpresaResponse extends Empresa {                │    │
+│  │   // Solo campos adicionales si los hay                           │    │
+│  │ }                                                                  │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ REDUNDANCIA #8: CAMPOS DE COMPATIBILIDAD ──────────────────────────────────┐
+│                                                                              │
+│  Campos innecesarios en Empresa:                                            │
+│  ├─ direccion?: string;      // Ya existe direccionFiscal                   │
+│  ├─ telefono?: string;       // Ya existe telefonoContacto                  │
+│  └─ email?: string;          // Ya existe emailContacto                     │
+│                                                                              │
+│  Problema: Confusión sobre cuál usar                                        │
+│  Impacto: Bajo (pero suma a la confusión general)                           │
+│                                                                              │
+│  Solución: ELIMINAR estos campos                                            │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ RESUMEN DE IMPACTO ────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Redundancia              │ Ubicaciones │ Impacto │ Prioridad              │
+│  ─────────────────────────────────────────────────────────────────────────  │
+│  Documentación            │ 7           │ Crítico │ 🔴 CRÍTICA             │
+│  Emails                   │ 3           │ Alto    │ 🔴 ALTA                │
+│  Teléfonos                │ 3           │ Alto    │ 🔴 ALTA                │
+│  Direcciones              │ 3           │ Alto    │ 🔴 ALTA                │
+│  RepresentanteLegal       │ 2           │ Medio   │ 🟡 MEDIA               │
+│  RazonSocial              │ 5           │ Medio   │ 🟡 MEDIA               │
+│  Empresa vs Response      │ 2           │ Medio   │ 🟡 MEDIA               │
+│  Campos compatibilidad    │ 3           │ Bajo    │ 🟢 BAJA                │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PLAN DE REFACTORIZACIÓN ───────────────────────────────────────────────────┐
+│                                                                              │
+│  FASE 1: Crear Interfaces Reutilizables (2 horas) 🔴 CRÍTICA               │
+│  ├─ DocumentoSustentatorio                                                  │
+│  ├─ Actualizar RepresentanteLegal                                           │
+│  └─ Usar RazonSocial en todas partes                                        │
+│                                                                              │
+│  FASE 2: Refactorizar Interfaces (3 horas) 🔴 ALTA                         │
+│  ├─ EventoHistorialEmpresa                                                  │
+│  ├─ EmpresaOperacionVehicular                                               │
+│  ├─ EmpresaOperacionRutas                                                   │
+│  ├─ CambioRepresentanteLegal                                                │
+│  ├─ EmpresaCambioRepresentante                                              │
+│  ├─ CambioEstadoEmpresa                                                     │
+│  └─ EmpresaCambioEstado                                                     │
+│                                                                              │
+│  FASE 3: Eliminar Redundancias (1 hora) 🟡 MEDIA                           │
+│  ├─ Eliminar campos de compatibilidad                                       │
+│  ├─ Consolidar Empresa y EmpresaResponse                                    │
+│  └─ Limpiar interfaces                                                      │
+│                                                                              │
+│  FASE 4: Actualizar Componentes (4 horas) 🟡 MEDIA                         │
+│  ├─ Actualizar imports                                                      │
+│  ├─ Actualizar referencias                                                  │
+│  └─ Testing                                                                 │
+│                                                                              │
+│  TOTAL: 10 horas                                                            │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ BENEFICIOS DE LA REFACTORIZACIÓN ──────────────────────────────────────────┐
+│                                                                              │
+│  ✅ Menos código (~100+ líneas eliminadas)                                  │
+│  ✅ Más mantenible (cambios en un solo lugar)                               │
+│  ✅ Más consistente (misma estructura en todas partes)                      │
+│  ✅ Menos errores (menos lugares donde equivocarse)                         │
+│  ✅ Mejor rendimiento (menos datos innecesarios)                            │
+│  ✅ Mejor documentación (código más claro)                                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║                    RECOMENDACIÓN: Proceder con Fase 1 inmediatamente           ║
+║                                                                                ║
+║                         Fecha: 21 de Abril de 2026                             ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝

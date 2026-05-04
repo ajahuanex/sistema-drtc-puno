@@ -16,7 +16,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ExpedienteService } from '../../services/expediente.service';
 import { ExpedienteCreate, TipoSolicitante, TipoExpediente } from '../../models/expediente.model';
-import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component';
+// import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component'; // DESHABILITADO
 import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-number-validator.component';
 
 @Component({
@@ -37,7 +37,7 @@ import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-numb
     MatDatepickerModule,
     MatNativeDateModule,
     MatDialogModule,
-    EmpresaSelectorComponent,
+    // EmpresaSelectorComponent, // DESHABILITADO
     ExpedienteNumberValidatorComponent
   ],
   template: `
@@ -69,6 +69,7 @@ import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-numb
             <mat-card-content>
               
               <!-- 1. Empresa (Mostrar solo si no viene preseleccionada) -->
+              <!-- DESHABILITADO - app-empresa-selector no existe
               @if (!tieneEmpresaPreseleccionada) {
                 <div class="form-row">
                   <app-empresa-selector
@@ -82,6 +83,8 @@ import { ExpedienteNumberValidatorComponent } from '../../shared/expediente-numb
                   </app-empresa-selector>
                 </div>
               } @else {
+              -->
+              @if (true) {
                 <!-- Mostrar empresa preseleccionada -->
                 <div class="empresa-preseleccionada">
                   <mat-card class="empresa-info-card">
