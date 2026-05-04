@@ -80,11 +80,14 @@ import { EmpresaCreate, EmpresaUpdate, TipoSocio } from '../../models/empresa.mo
                     <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Tipos de Servicio</mat-label>
                       <mat-select formControlName="tiposServicio" multiple>
-                        <mat-option value="PERSONAS">Personas</mat-option>
+                        <mat-option value="PASAJEROS">Pasajeros</mat-option>
                         <mat-option value="TURISMO">Turismo</mat-option>
                         <mat-option value="TRABAJADORES">Trabajadores</mat-option>
                         <mat-option value="MERCANCIAS">Mercancías</mat-option>
-                        <mat-option value="ESTUDIANTES">Estudiantes</mat-option>
+                        <mat-option value="CARGA">Carga</mat-option>
+                        <mat-option value="INFRAESTRUCTURA">Infraestructura</mat-option>
+                        <mat-option value="OTROS">Otros</mat-option>
+                        <mat-option value="MIXTO">Mixto</mat-option>
                       </mat-select>
                     </mat-form-field>
 

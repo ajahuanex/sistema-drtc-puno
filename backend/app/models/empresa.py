@@ -21,6 +21,7 @@ class TipoServicio(str, Enum):
     TRABAJADORES = "TRABAJADORES"
     MERCANCIAS = "MERCANCIAS"
     CARGA = "CARGA"
+    INFRAESTRUCTURA = "INFRAESTRUCTURA"
     OTROS = "OTROS"
     MIXTO = "MIXTO"
 
@@ -86,7 +87,7 @@ class Empresa(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: Optional[str] = None
     estado: EstadoEmpresa = EstadoEmpresa.EN_TRAMITE
-    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PERSONAS])
+    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PASAJEROS])
     estaActivo: bool = True
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow)
     fechaActualizacion: Optional[datetime] = None
@@ -106,7 +107,7 @@ class EmpresaCreate(BaseModel):
     razonSocial: RazonSocial
     direccionFiscal: Optional[str] = None
     socios: List[Socio] = Field(default_factory=list)
-    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PERSONAS])
+    tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PASAJEROS])
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None

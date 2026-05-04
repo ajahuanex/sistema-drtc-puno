@@ -89,8 +89,8 @@ CONFIGURACIONES_PREDEFINIDAS = {
         "descripcion": "Tipos de servicio que pueden ofrecer las empresas de transporte",
         "items": [
             {
-                "codigo": "PERSONAS",
-                "nombre": "Transporte de Personas",
+                "codigo": "PASAJEROS",
+                "nombre": "Transporte de Pasajeros",
                 "descripcion": "Servicio de transporte de pasajeros",
                 "orden": 1
             },
@@ -113,27 +113,27 @@ CONFIGURACIONES_PREDEFINIDAS = {
                 "orden": 4
             },
             {
-                "codigo": "ESTUDIANTES",
-                "nombre": "Transporte de Estudiantes",
-                "descripcion": "Servicio de transporte escolar y universitario",
+                "codigo": "CARGA",
+                "nombre": "Transporte de Carga",
+                "descripcion": "Servicio de transporte de carga pesada",
                 "orden": 5
             },
             {
-                "codigo": "TERMINAL_TERRESTRE",
-                "nombre": "Terminal Terrestre",
-                "descripción": "Operación de terminal terrestre",
+                "codigo": "INFRAESTRUCTURA",
+                "nombre": "Infraestructura",
+                "descripcion": "Servicio de infraestructura de transporte",
                 "orden": 6
-            },
-            {
-                "codigo": "ESTACION_DE_RUTA",
-                "nombre": "Estación de Ruta",
-                "descripcion": "Operación de estación de ruta",
-                "orden": 7
             },
             {
                 "codigo": "OTROS",
                 "nombre": "Otros Servicios",
                 "descripcion": "Otros tipos de servicio de transporte",
+                "orden": 7
+            },
+            {
+                "codigo": "MIXTO",
+                "nombre": "Transporte Mixto",
+                "descripcion": "Servicio combinado de múltiples tipos",
                 "orden": 8
             }
         ]

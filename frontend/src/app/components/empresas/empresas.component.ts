@@ -617,6 +617,7 @@ export class EmpresasComponent implements OnInit {
     TipoServicio.TRABAJADORES,
     TipoServicio.MERCANCIAS,
     TipoServicio.CARGA,
+    TipoServicio.INFRAESTRUCTURA,
     TipoServicio.OTROS,
     TipoServicio.MIXTO
   ];
@@ -1096,7 +1097,7 @@ export class EmpresasComponent implements OnInit {
                 direccion: (row as any)['Dirección Fiscal']?.toString().trim() || undefined
               }
             ] : [],
-            tiposServicio: (row as any)['Tipo de Servicio']?.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s) || ['PERSONAS'],
+            tiposServicio: (row as any)['Tipo de Servicio']?.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s) || ['PASAJEROS'],
             emailContacto: (row as any)['Email Contacto']?.toString().trim() || '',
             telefonoContacto: (row as any)['Teléfono Contacto']?.toString().trim() || '',
             sitioWeb: (row as any)['Sitio Web']?.toString().trim() || '',
@@ -1450,7 +1451,7 @@ export class EdicionBloqueEstadoDialog {
   `]
 })
 export class EdicionBloqueServiciosDialog {
-  serviciosDisponibles = ['PERSONAS', 'TURISMO', 'TRABAJADORES', 'MERCANCIAS', 'CARGA', 'MIXTO'];
+  serviciosDisponibles = ['PASAJEROS', 'TURISMO', 'TRABAJADORES', 'MERCANCIAS', 'CARGA', 'INFRAESTRUCTURA', 'OTROS', 'MIXTO'];
   serviciosSeleccionados: { [key: string]: boolean } = {};
 
   constructor(

@@ -584,8 +584,13 @@ export class ConfiguracionService {
         nombre: 'TIPOS_SERVICIO_CONFIG',
         valor: JSON.stringify([
           { codigo: 'PASAJEROS', nombre: 'Transporte de Pasajeros', descripcion: 'Servicio de transporte público de personas', estaActivo: true },
-          { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de mercancías y productos', estaActivo: true },
-          { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de pasajeros y carga', estaActivo: true }
+          { codigo: 'TURISMO', nombre: 'Transporte de Turismo', descripcion: 'Servicio de transporte turístico', estaActivo: true },
+          { codigo: 'TRABAJADORES', nombre: 'Transporte de Trabajadores', descripcion: 'Servicio de transporte de trabajadores', estaActivo: true },
+          { codigo: 'MERCANCIAS', nombre: 'Transporte de Mercancías', descripcion: 'Servicio de transporte de mercancías', estaActivo: true },
+          { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de carga pesada', estaActivo: true },
+          { codigo: 'INFRAESTRUCTURA', nombre: 'Infraestructura', descripcion: 'Servicio de infraestructura de transporte', estaActivo: true },
+          { codigo: 'OTROS', nombre: 'Otros', descripcion: 'Otros servicios de transporte', estaActivo: true },
+          { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de múltiples tipos', estaActivo: true }
         ]),
         descripcion: 'Configuración de tipos de servicio disponibles',
         categoria: CategoriaConfiguracion.SISTEMA,
@@ -935,8 +940,13 @@ export class ConfiguracionService {
   private getTiposServicioDefault() {
     return [
       { codigo: 'PASAJEROS', nombre: 'Transporte de Pasajeros', descripcion: 'Servicio de transporte público de personas', estaActivo: true },
-      { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de mercancías y productos', estaActivo: true },
-      { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de pasajeros y carga', estaActivo: true }
+      { codigo: 'TURISMO', nombre: 'Transporte de Turismo', descripcion: 'Servicio de transporte turístico', estaActivo: true },
+      { codigo: 'TRABAJADORES', nombre: 'Transporte de Trabajadores', descripcion: 'Servicio de transporte de trabajadores', estaActivo: true },
+      { codigo: 'MERCANCIAS', nombre: 'Transporte de Mercancías', descripcion: 'Servicio de transporte de mercancías', estaActivo: true },
+      { codigo: 'CARGA', nombre: 'Transporte de Carga', descripcion: 'Servicio de transporte de carga pesada', estaActivo: true },
+      { codigo: 'INFRAESTRUCTURA', nombre: 'Infraestructura', descripcion: 'Servicio de infraestructura de transporte', estaActivo: true },
+      { codigo: 'OTROS', nombre: 'Otros', descripcion: 'Otros servicios de transporte', estaActivo: true },
+      { codigo: 'MIXTO', nombre: 'Transporte Mixto', descripcion: 'Servicio combinado de múltiples tipos', estaActivo: true }
     ];
   }
 }

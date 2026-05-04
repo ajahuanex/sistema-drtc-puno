@@ -233,7 +233,7 @@ class ConfiguracionService:
             },
             {
                 "nombre": "TIPOS_SERVICIO",
-                "valor": "PERSONAS,TURISMO,TRABAJADORES,MERCANCIAS,ESTUDIANTES,TERMINAL_TERRESTRE,ESTACION_DE_RUTA,OTROS",
+                "valor": "PASAJEROS,TURISMO,TRABAJADORES,MERCANCIAS,CARGA,INFRAESTRUCTURA,OTROS,MIXTO",
                 "descripcion": "Tipos de servicio disponibles para empresas",
                 "categoria": CategoriaConfiguracion.EMPRESAS,
                 "activo": True,
