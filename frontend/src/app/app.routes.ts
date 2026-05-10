@@ -33,6 +33,13 @@ export const routes: Routes = [
       { path: 'rutas/carga-masiva', loadComponent: () => import('./components/rutas/carga-masiva-rutas.component').then(m => m.CargaMasivaRutasComponent) },
       { path: 'rutas/mapa', loadComponent: () => import('./components/rutas/mapa-rutas.component').then(m => m.MapaRutasComponent) },
       
+      // VEHÍCULOS
+      { path: 'vehiculos', loadComponent: () => import('./components/vehiculos/vehiculos.component').then(m => m.VehiculosComponent) },
+      { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
+      { path: 'vehiculos-solo', loadComponent: () => import('./components/vehiculos-solo/vehiculos-solo.component').then(m => m.VehiculosSoloComponent) },
+      { path: 'vehiculos-solo/carga-masiva', loadComponent: () => import('./components/vehiculos-solo/carga-masiva-vehiculos-solo.component').then(m => m.CargaMasivaVehiculosSoloComponent) },
+      { path: 'historial-vehiculos', loadComponent: () => import('./components/historial-vehiculos/historial-vehiculos.component').then(m => m.HistorialVehiculosComponent) },
+      
       // DESHABILITADO - Dashboard
       // { path: 'dashboard', component: DashboardComponent },
     ]
