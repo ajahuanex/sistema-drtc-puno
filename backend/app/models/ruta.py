@@ -132,6 +132,13 @@ class Ruta(BaseModel):
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
     
+    # ✅ NUEVO: Validación binaria de sincronizaciones
+    # Bit 0 (001): RUC validado - Bit 1 (010): Resolución validada - Bit 2 (100): Localidades validadas
+    # Ejemplos: "001" (solo RUC), "010" (solo resolución), "100" (solo localidades)
+    #           "011" (RUC+Resolución), "101" (RUC+Localidades), "110" (Resolución+Localidades)
+    #           "111" (todas validadas)
+    validacionBinaria: str = Field(default="000", description="Estado de validación de sincronizaciones (formato binario de 3 bits)")
+    
     # Control de estado
     estaActivo: bool = Field(default=True, description="Si la ruta está activa")
     fechaRegistro: datetime = Field(default_factory=datetime.utcnow, description="Fecha de registro")
@@ -169,6 +176,9 @@ class RutaCreate(BaseModel):
     restricciones: List[str] = Field(default_factory=list, description="Restricciones de operación")
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
+    
+    # ✅ NUEVO: Validación binaria (opcional al crear)
+    validacionBinaria: str = Field(default="000", description="Estado de validación de sincronizaciones (formato binario de 3 bits)")
 
 class RutaUpdate(BaseModel):
     """Modelo para actualizar una ruta existente"""
@@ -204,6 +214,10 @@ class RutaUpdate(BaseModel):
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
     estaActivo: Optional[bool] = Field(None, description="Si la ruta está activa")
+    
+    # ✅ NUEVO: Validación binaria (opcional al actualizar)
+    validacionBinaria: Optional[str] = Field(None, description="Estado de validación de sincronizaciones (formato binario de 3 bits)")
+    
     fechaActualizacion: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Fecha de actualización")
 
 class RutaResponse(Ruta):

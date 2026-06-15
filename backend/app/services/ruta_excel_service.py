@@ -1,6 +1,7 @@
 """
 Servicio para carga masiva de rutas desde archivos Excel
 """
+import re
 import pandas as pd
 import re
 from datetime import datetime
@@ -14,12 +15,15 @@ from app.models.ruta import (
     TipoRuta, 
     TipoServicio,
     LocalidadEmbebida,
+    LocalidadItinerario,
     EmpresaEmbebida,
     ResolucionEmbebida,
     FrecuenciaServicio,
     TipoFrecuencia,
     crear_frecuencia_diaria
 )
+from app.utils.validacion_binaria import ValidacionBinaria
+from app.utils.buscar_localidad import buscar_localidad_por_nombre
 
 class RutaExcelService:
     def __init__(self, db: AsyncIOMotorDatabase = None):
@@ -189,6 +193,7 @@ class RutaExcelService:
                 except Exception as e:
                     resultados['fallidas'] += 1
                     resultados['errores_procesamiento'].append({
+                        'fila': ruta_data.get('fila', 'N/A'),  # ✅ NUEVO: Incluir número de fila
                         'codigo_ruta': ruta_data.get('codigoRuta', 'N/A'),
                         'error': str(e)
                     })
@@ -210,13 +215,10 @@ class RutaExcelService:
     async def _crear_ruta_desde_datos(self, ruta_data: Dict[str, Any]) -> Any:
         """Crear una ruta desde los datos procesados del Excel"""
         try:
-            print(f"🔍 DEBUG: INICIANDO _crear_ruta_desde_datos para RUC {ruta_data['ruc']}")
-            from app.services.ruta_service import RutaService
+            fila_num = ruta_data.get('fila', 'N/A')
+            print(f"🔍 Procesando fila {fila_num}: {ruta_data['codigoRuta']} - {ruta_data['origen']} → {ruta_data['destino']}")
             
-            # DEBUG: Logging detallado
-            print(f"🔍 DEBUG: Buscando empresa con RUC: '{ruta_data['ruc']}'")
-            print(f"🔍 DEBUG: Tipo de RUC: {type(ruta_data['ruc'])}")
-            print(f"🔍 DEBUG: Longitud del RUC: {len(ruta_data['ruc'])}")
+            from app.services.ruta_service import RutaService
             
             # Buscar empresa por RUC
             empresa = await self.empresas_collection.find_one({
@@ -224,63 +226,166 @@ class RutaExcelService:
                 "estaActivo": True
             })
             
-            print(f"🔍 DEBUG: Resultado búsqueda empresa: {empresa is not None}")
+            # ✅ CAMBIO: No rechazar si no encuentra empresa, marcar en validacionBinaria
+            empresa_embebida = None
+            empresa_validada = False
+            
             if empresa:
                 print(f"🔍 DEBUG: Empresa encontrada - ID: {empresa.get('_id')}, RUC: {empresa.get('ruc')}")
+                
+                razon_social_principal = "Sin razón social"
+                if 'razonSocial' in empresa:
+                    if isinstance(empresa['razonSocial'], dict):
+                        razon_social_principal = empresa['razonSocial'].get('principal', 'Sin razón social')
+                    else:
+                        razon_social_principal = str(empresa['razonSocial'])
+                
+                empresa_embebida = EmpresaEmbebida(
+                    id=str(empresa["_id"]),
+                    ruc=empresa["ruc"],
+                    razonSocial=razon_social_principal
+                )
+                empresa_validada = True
             else:
-                print(f"🔍 DEBUG: Empresa no encontrada")
+                print(f"⚠️ WARNING: Empresa con RUC {ruta_data['ruc']} no encontrada - creando embebido temporal")
+                # Crear empresa embebida temporal con datos del Excel
+                empresa_embebida = EmpresaEmbebida(
+                    id="",  # Sin ID indica que no está en BD
+                    ruc=ruta_data['ruc'],
+                    razonSocial=ruta_data.get('razonSocial', 'Empresa por validar')
+                )
+                empresa_validada = False
             
-            if not empresa:
-                raise Exception(f"Empresa con RUC {ruta_data['ruc']} no encontrada o inactiva")
-            
-            # Buscar resolución por número
+            # Buscar resolución por número (sin validar tipo, ya que viene del usuario)
+            # Intentar búsqueda con normalización
             resolucion = await self.resoluciones_collection.find_one({
                 "nroResolucion": ruta_data['resolucionNormalizada'],
-                "tipoResolucion": "PADRE",
-                "estado": "VIGENTE",
                 "estaActivo": True
             })
             
-            print(f"🔍 DEBUG: Resultado búsqueda resolución: {resolucion is not None}")
+            # Si no encuentra, intentar variaciones
             if not resolucion:
-                raise Exception(f"Resolución {ruta_data['resolucionNormalizada']} no encontrada, no es PADRE o no está VIGENTE")
+                # Intentar sin el prefijo R-
+                resolucion_sin_prefijo = ruta_data['resolucionNormalizada'].replace('R-', '')
+                resolucion = await self.resoluciones_collection.find_one({
+                    "nroResolucion": resolucion_sin_prefijo,
+                    "estaActivo": True
+                })
             
-            # Buscar o crear localidades
-            origen_localidad = await self._buscar_o_crear_localidad(ruta_data['origen'])
-            destino_localidad = await self._buscar_o_crear_localidad(ruta_data['destino'])
+            # Si aún no encuentra, hacer búsqueda más flexible (contains)
+            if not resolucion:
+                resolucion = await self.resoluciones_collection.find_one({
+                    "nroResolucion": {"$regex": ruta_data['resolucionNormalizada'].replace('R-', ''), "$options": "i"},
+                    "estaActivo": True
+                })
             
-            origen_embebido = LocalidadEmbebida(
-                id=str(origen_localidad["_id"]),
-                nombre=origen_localidad["nombre"]
-            )
+            print(f"🔍 DEBUG: Resultado búsqueda resolución: {resolucion is not None}")
             
-            destino_embebido = LocalidadEmbebida(
-                id=str(destino_localidad["_id"]),
-                nombre=destino_localidad["nombre"]
-            )
+            # ✅ CAMBIO: No rechazar si no encuentra resolución, marcar en validacionBinaria
+            resolucion_embebida = None
+            resolucion_validada = False
+            
+            if not resolucion:
+                print(f"⚠️ WARNING: Resolución {ruta_data['resolucionNormalizada']} no encontrada - creando embebido temporal")
+                # Crear resolución embebida temporal con datos del Excel
+                resolucion_embebida = ResolucionEmbebida(
+                    id="",  # Sin ID indica que no está en BD
+                    nroResolucion=ruta_data['resolucionNormalizada'],
+                    tipoResolucion="PADRE",  # Asumir PADRE por defecto
+                    estado="VIGENTE"  # Asumir VIGENTE
+                )
+                resolucion_validada = False
+            else:
+                # Resolución encontrada, crear embebido con datos reales
+                resolucion_embebida = ResolucionEmbebida(
+                    id=str(resolucion["_id"]),
+                    nroResolucion=resolucion["nroResolucion"],
+                    tipoResolucion=resolucion["tipoResolucion"],
+                    estado=resolucion["estado"]
+                )
+                resolucion_validada = True
             
             # Crear empresa embebida
-            print(f"🔍 DEBUG: Creando EmpresaEmbebida...")
-            razon_social_principal = "Sin razón social"
-            if 'razonSocial' in empresa:
-                if isinstance(empresa['razonSocial'], dict):
-                    razon_social_principal = empresa['razonSocial'].get('principal', 'Sin razón social')
-                else:
-                    razon_social_principal = str(empresa['razonSocial'])
+            print(f"🔍 DEBUG FILA {fila_num}: Empresa embebida preparada con ID: {empresa_embebida.id}")
             
-            empresa_embebida = EmpresaEmbebida(
-                id=str(empresa["_id"]),
-                ruc=empresa["ruc"],
-                razonSocial=razon_social_principal
-            )
-            print(f"🔍 DEBUG: EmpresaEmbebida creada exitosamente")
+            # Buscar o crear localidades
+            print(f"🔍 DEBUG FILA {fila_num}: Buscando localidad origen: {ruta_data['origen']}")
+            origen_localidad = await self._buscar_o_crear_localidad(ruta_data['origen'])
+            print(f"🔍 DEBUG FILA {fila_num}: Origen localidad obtenida: {origen_localidad.get('_id')}")
+            print(f"🔍 DEBUG FILA {fila_num}: Origen coordenadas: {origen_localidad.get('coordenadas')}")
             
-            resolucion_embebida = ResolucionEmbebida(
-                id=str(resolucion["_id"]),
-                nroResolucion=resolucion["nroResolucion"],
-                tipoResolucion=resolucion["tipoResolucion"],
-                estado=resolucion["estado"]
-            )
+            print(f"🔍 DEBUG FILA {fila_num}: Buscando localidad destino: {ruta_data['destino']}")
+            destino_localidad = await self._buscar_o_crear_localidad(ruta_data['destino'])
+            print(f"🔍 DEBUG FILA {fila_num}: Destino localidad obtenida: {destino_localidad.get('_id')}")
+            print(f"🔍 DEBUG FILA {fila_num}: Destino coordenadas: {destino_localidad.get('coordenadas')}")
+            
+            # Las localidades siempre se validan porque se crean si no existen
+            localidades_validadas = True
+            
+            # Extraer coordenadas válidas
+            print(f"🔍 DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para origen...")
+            origen_coords = self._extraer_coordenadas_validas(origen_localidad.get("coordenadas"))
+            print(f"🔍 DEBUG FILA {fila_num}: Origen coordenadas extraídas: {origen_coords}")
+            
+            print(f"🔍 DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para destino...")
+            destino_coords = self._extraer_coordenadas_validas(destino_localidad.get("coordenadas"))
+            print(f"🔍 DEBUG FILA {fila_num}: Destino coordenadas extraídas: {destino_coords}")
+            
+            print(f"🔍 DEBUG FILA {fila_num}: Creando LocalidadEmbebida para origen...")
+            
+            # ✅ Construir diccionario dinámicamente, solo con campos que tienen valor
+            origen_dict = {
+                "id": str(origen_localidad["_id"]),
+                "nombre": origen_localidad["nombre"]
+            }
+            
+            # Agregar campos opcionales solo si tienen valor
+            if origen_localidad.get("tipo"):
+                origen_dict["tipo"] = origen_localidad.get("tipo")
+            if origen_localidad.get("ubigeo"):
+                origen_dict["ubigeo"] = origen_localidad.get("ubigeo")
+            if origen_localidad.get("departamento"):
+                origen_dict["departamento"] = origen_localidad.get("departamento")
+            if origen_localidad.get("provincia"):
+                origen_dict["provincia"] = origen_localidad.get("provincia")
+            if origen_localidad.get("distrito"):
+                origen_dict["distrito"] = origen_localidad.get("distrito")
+            
+            # Agregar coordenadas solo si son válidas
+            if origen_coords is not None:
+                origen_dict["coordenadas"] = origen_coords
+            
+            print(f"🔍 DEBUG FILA {fila_num}: Diccionario origen: {origen_dict}")
+            origen_embebido = LocalidadEmbebida(**origen_dict)
+            print(f"🔍 DEBUG FILA {fila_num}: LocalidadEmbebida origen creada OK")
+            
+            print(f"🔍 DEBUG FILA {fila_num}: Creando LocalidadEmbebida para destino...")
+            
+            # ✅ Mismo proceso para destino
+            destino_dict = {
+                "id": str(destino_localidad["_id"]),
+                "nombre": destino_localidad["nombre"]
+            }
+            
+            # Agregar campos opcionales solo si tienen valor
+            if destino_localidad.get("tipo"):
+                destino_dict["tipo"] = destino_localidad.get("tipo")
+            if destino_localidad.get("ubigeo"):
+                destino_dict["ubigeo"] = destino_localidad.get("ubigeo")
+            if destino_localidad.get("departamento"):
+                destino_dict["departamento"] = destino_localidad.get("departamento")
+            if destino_localidad.get("provincia"):
+                destino_dict["provincia"] = destino_localidad.get("provincia")
+            if destino_localidad.get("distrito"):
+                destino_dict["distrito"] = destino_localidad.get("distrito")
+            
+            # Agregar coordenadas solo si son válidas
+            if destino_coords is not None:
+                destino_dict["coordenadas"] = destino_coords
+            
+            print(f"🔍 DEBUG FILA {fila_num}: Diccionario destino: {destino_dict}")
+            destino_embebido = LocalidadEmbebida(**destino_dict)
+            print(f"🔍 DEBUG FILA {fila_num}: LocalidadEmbebida destino creada OK")
             
             # Crear frecuencia
             frecuencia = FrecuenciaServicio(
@@ -290,13 +395,117 @@ class RutaExcelService:
                 descripcion=ruta_data['frecuencia']
             )
             
+            # ✅ PARSEAR Y VINCULAR ITINERARIO DESDE EL TEXTO DEL EXCEL
+            itinerario_texto = ruta_data.get('itinerario', '')
+            itinerario_vinculado = []
+            
+            if itinerario_texto and itinerario_texto != 'SIN ITINERARIO':
+                print(f"🗺️ DEBUG FILA {fila_num}: Parseando itinerario: '{itinerario_texto}'")
+                
+                # Separar por guiones, comas, barras
+                paradas_nombres = re.split(r'\s*[-–/,]\s*', itinerario_texto.strip())
+                paradas_nombres = [p.strip().upper() for p in paradas_nombres if p.strip() and len(p.strip()) >= 2]
+                
+                print(f"  Paradas detectadas: {paradas_nombres}")
+                
+                for orden, nombre_parada in enumerate(paradas_nombres, start=1):
+                    # Buscar todas las coincidencias exactas
+                    candidatos = await self.localidades_collection.find({
+                        "nombre": {"$regex": f"^{re.escape(nombre_parada)}$", "$options": "i"},
+                        "estaActiva": True
+                    }).to_list(length=None)
+                    
+                    localidad_parada = None
+                    if candidatos:
+                        # ✅ PRIORIDAD CORRECTA: centro_poblado > distrito > provincia
+                        # Centros poblados tienen coordenadas exactas, provincias/distritos son centroides
+                        PRIORIDAD_TIPO = {
+                            "centro_poblado": 0, "CENTRO_POBLADO": 0,
+                            "ciudad": 0, "CIUDAD": 0,
+                            "distrito": 1, "DISTRITO": 1,
+                            "provincia": 2, "PROVINCIA": 2,
+                            "otros": 3, "OTROS": 3,
+                        }
+                        # Filtrar los que tienen coordenadas válidas
+                        con_coords = [
+                            c for c in candidatos
+                            if c.get("coordenadas") and
+                               c["coordenadas"].get("latitud") and
+                               c["coordenadas"].get("longitud")
+                        ]
+                        if con_coords:
+                            # Ordenar: menor número = mayor prioridad
+                            con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                            localidad_parada = con_coords[0]
+                        else:
+                            # Si ninguno tiene coords, usar cualquiera priorizando por tipo
+                            candidatos.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                            localidad_parada = candidatos[0]
+                    
+                    # Si no hay exacta, buscar parcial con misma lógica de prioridad
+                    if not localidad_parada:
+                        parciales = await self.localidades_collection.find({
+                            "nombre": {"$regex": re.escape(nombre_parada), "$options": "i"},
+                            "estaActiva": True
+                        }).to_list(length=None)
+                        if parciales:
+                            PRIORIDAD_TIPO = {
+                                "centro_poblado": 0, "CENTRO_POBLADO": 0,
+                                "ciudad": 0, "CIUDAD": 0,
+                                "distrito": 1, "DISTRITO": 1,
+                                "provincia": 2, "PROVINCIA": 2,
+                                "otros": 3, "OTROS": 3,
+                            }
+                            con_coords = [
+                                c for c in parciales
+                                if c.get("coordenadas") and
+                                   c["coordenadas"].get("latitud") and
+                                   c["coordenadas"].get("longitud")
+                            ]
+                            if con_coords:
+                                con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                                localidad_parada = con_coords[0]
+                            else:
+                                parciales.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                                localidad_parada = parciales[0]
+                    
+                    parada_kwargs = {
+                        "id": str(localidad_parada["_id"]) if localidad_parada else "",
+                        "nombre": localidad_parada["nombre"] if localidad_parada else nombre_parada,
+                        "orden": orden
+                    }
+                    
+                    # Agregar coordenadas si la localidad las tiene
+                    if localidad_parada and localidad_parada.get("coordenadas"):
+                        coords_raw = localidad_parada["coordenadas"]
+                        lat = coords_raw.get("latitud")
+                        lng = coords_raw.get("longitud")
+                        if lat is not None and lng is not None:
+                            parada_kwargs["coordenadas"] = {
+                                "latitud": float(lat),
+                                "longitud": float(lng)
+                            }
+                            print(f"    ✅ Parada {orden}: {nombre_parada} → coords [{lat}, {lng}]")
+                        else:
+                            print(f"    ⚠️ Parada {orden}: {nombre_parada} → localidad sin coords")
+                    else:
+                        print(f"    ℹ️ Parada {orden}: {nombre_parada} → no encontrada en BD (se guardará solo el nombre)")
+                    
+                    # Agregar campos opcionales si existen
+                    for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
+                        if localidad_parada and localidad_parada.get(campo):
+                            parada_kwargs[campo] = localidad_parada[campo]
+                    
+                    itinerario_vinculado.append(LocalidadItinerario(**parada_kwargs))                
+                print(f"  Total paradas procesadas: {len(itinerario_vinculado)}")
+            
             # Crear modelo de ruta
             ruta_create = RutaCreate(
                 codigoRuta=ruta_data['codigoRuta'],
-                nombre=f"{ruta_data['origen']} - {ruta_data['destino']}",  # Nombre descriptivo de la ruta
+                nombre=f"{ruta_data['origen']} - {ruta_data['destino']}",
                 origen=origen_embebido,
                 destino=destino_embebido,
-                itinerario=[],  # Por ahora vacío, se puede mejorar después
+                itinerario=itinerario_vinculado,  # ✅ Ahora con paradas vinculadas
                 empresa=empresa_embebida,
                 resolucion=resolucion_embebida,
                 frecuencia=frecuencia,
@@ -309,8 +518,19 @@ class RutaExcelService:
                 capacidadMaxima=ruta_data.get('capacidadMaxima'),
                 restricciones=[],
                 observaciones=ruta_data.get('observaciones'),
-                descripcion=ruta_data['itinerario']  # El itinerario va en descripción
+                descripcion=ruta_data['itinerario'],  # Mantener el texto original también
+                # ✅ VALIDACIÓN BINARIA basada en datos encontrados
+                validacionBinaria=ValidacionBinaria.crear_binaria(
+                    ruc_validado=empresa_validada,
+                    resolucion_validada=resolucion_validada,
+                    localidades_validadas=localidades_validadas
+                )
             )
+            
+            print(f"🔍 DEBUG: RutaCreate preparada con validacionBinaria: {ruta_create.validacionBinaria}")
+            print(f"  - Empresa validada: {empresa_validada}")
+            print(f"  - Resolución validada: {resolucion_validada}")
+            print(f"  - Localidades validadas: {localidades_validadas}")
             
             # Usar el servicio de rutas para crear
             ruta_service = RutaService(self.db)
@@ -320,10 +540,20 @@ class RutaExcelService:
             return resultado
             
         except Exception as e:
-            print(f"❌ ERROR en _crear_ruta_desde_datos: {str(e)}")
-            print(f"❌ ERROR tipo: {type(e)}")
+            fila_num = ruta_data.get('fila', 'N/A')
+            print(f"\n{'='*80}")
+            print(f"❌ ERROR FILA {fila_num}: {str(e)}")
+            print(f"❌ ERROR tipo: {type(e).__name__}")
+            print(f"❌ Datos de la ruta:")
+            print(f"   - RUC: {ruta_data.get('ruc')}")
+            print(f"   - Resolución: {ruta_data.get('resolucionNormalizada')}")
+            print(f"   - Código: {ruta_data.get('codigoRuta')}")
+            print(f"   - Origen: {ruta_data.get('origen')}")
+            print(f"   - Destino: {ruta_data.get('destino')}")
+            print(f"{'='*80}\n")
             import traceback
-            print(f"❌ ERROR traceback: {traceback.format_exc()}")
+            print(f"❌ Traceback completo:")
+            traceback.print_exc()
             raise e
     
     def _detectar_tipo_localidad(self, nombre_localidad: str) -> str:
@@ -371,15 +601,39 @@ class RutaExcelService:
             return "LOCALIDAD"
 
     async def _buscar_o_crear_localidad(self, nombre_localidad: str) -> Dict[str, Any]:
-        """Buscar localidad existente o crear nueva con departamento PUNO por defecto"""
-        # Primero buscar localidad existente
-        localidad_existente = await self.localidades_collection.find_one({
-            "nombre": {"$regex": f"^{nombre_localidad}$", "$options": "i"},
-            "estaActiva": True
-        })
+        """
+        Buscar localidad existente con prioridad:
+        1. Coincidencia exacta con coordenadas, tipo DISTRITO o PROVINCIA
+        2. Coincidencia exacta con coordenadas (cualquier tipo)
+        3. Coincidencia exacta sin coordenadas
+        4. Coincidencia parcial
+        5. Crear nueva si no existe
+        """
+        nombre_upper = nombre_localidad.upper().strip()
         
-        if localidad_existente:
-            return localidad_existente
+        # Buscar todas las coincidencias exactas activas
+        candidatos = await self.localidades_collection.find({
+            "nombre": {"$regex": f"^{re.escape(nombre_upper)}$", "$options": "i"},
+            "estaActiva": True
+        }).to_list(length=None)
+        
+        if candidatos:
+            # Priorizar localidades con coordenadas válidas
+            con_coords = [
+                c for c in candidatos
+                if c.get("coordenadas") and
+                   c["coordenadas"].get("latitud") and
+                   c["coordenadas"].get("longitud")
+            ]
+            
+            if con_coords:
+                # Entre las que tienen coords, priorizar por tipo
+                orden_tipo = {"PROVINCIA": 0, "DISTRITO": 1, "CENTRO_POBLADO": 2}
+                con_coords.sort(key=lambda x: orden_tipo.get(x.get("tipo", ""), 99))
+                return con_coords[0]
+            
+            # Si ninguna tiene coords, devolver la primera
+            return candidatos[0]
         
         # Detectar tipo automáticamente basado en el prefijo del nombre
         tipo_localidad = self._detectar_tipo_localidad(nombre_localidad)
@@ -388,16 +642,13 @@ class RutaExcelService:
         # Si no existe, crear nueva localidad con departamento PUNO por defecto
         nueva_localidad = {
             "_id": ObjectId(),
-            "nombre": nombre_localidad.upper(),
+            "nombre": nombre_upper,
             "tipo": tipo_localidad,
             "departamento": "PUNO",
             "provincia": None,
             "distrito": None,
             "ubigeo": None,
-            "coordenadas": {
-                "latitud": None,
-                "longitud": None
-            },
+            "coordenadas": None,
             "estaActiva": True,
             "fechaRegistro": datetime.utcnow(),
             "fechaActualizacion": datetime.utcnow(),
@@ -405,10 +656,77 @@ class RutaExcelService:
             "observaciones": f"Localidad creada automáticamente durante carga masiva de rutas. Tipo detectado: {tipo_localidad}"
         }
         
-        # Insertar la nueva localidad
         await self.localidades_collection.insert_one(nueva_localidad)
-        
         return nueva_localidad
+    
+    def _extraer_coordenadas_validas(self, coordenadas: Any) -> Optional[dict]:
+        """
+        Extraer coordenadas solo si tienen valores válidos.
+        Retorna None si las coordenadas son inválidas o están vacías.
+        """
+        # print(f"  🔍 _extraer_coordenadas_validas: Input type: {type(coordenadas)}, value: {coordenadas}")
+        
+        if coordenadas is None:
+            # print(f"  ✅ Coordenadas is None, returning None")
+            return None
+        
+        # ✅ NUEVO: Si es un objeto Pydantic/Coordenadas, convertir a dict
+        if hasattr(coordenadas, 'model_dump'):
+            # print(f"  🔄 Convirtiendo objeto Pydantic a dict con model_dump()")
+            try:
+                coordenadas = coordenadas.model_dump()
+                # print(f"  ✅ Convertido a dict: {coordenadas}")
+            except Exception as e:
+                # print(f"  ⚠️ Error en model_dump(): {e}")
+                # Intentar con __dict__
+                if hasattr(coordenadas, '__dict__'):
+                    coordenadas = coordenadas.__dict__
+                    # print(f"  ✅ Convertido con __dict__: {coordenadas}")
+        
+        # ✅ NUEVO: Si tiene atributos latitud/longitud pero no es dict, convertir
+        if not isinstance(coordenadas, dict):
+            if hasattr(coordenadas, 'latitud') and hasattr(coordenadas, 'longitud'):
+                # print(f"  🔄 Convirtiendo objeto con atributos a dict")
+                try:
+                    coordenadas = {
+                        "latitud": getattr(coordenadas, 'latitud'),
+                        "longitud": getattr(coordenadas, 'longitud')
+                    }
+                    # print(f"  ✅ Convertido a dict: {coordenadas}")
+                except Exception as e:
+                    # print(f"  ⚠️ Error convirtiendo atributos: {e}")
+                    return None
+            else:
+                # print(f"  ⚠️ No es dict y no tiene atributos latitud/longitud, returning None")
+                return None
+        
+        latitud = coordenadas.get("latitud")
+        longitud = coordenadas.get("longitud")
+        
+        # print(f"  🔍 latitud: {latitud} (type: {type(latitud)})")
+        # print(f"  🔍 longitud: {longitud} (type: {type(longitud)})")
+        
+        # Si ambos son None o no existen, retornar None
+        if latitud is None and longitud is None:
+            # print(f"  ✅ Ambos son None, returning None")
+            return None
+        
+        # Si alguno es None, también retornar None (coordenadas incompletas)
+        if latitud is None or longitud is None:
+            # print(f"  ⚠️ Coordenadas incompletas, returning None")
+            return None
+        
+        # Ambos tienen valores, retornar el diccionario
+        try:
+            result = {
+                "latitud": float(latitud),
+                "longitud": float(longitud)
+            }
+            # print(f"  ✅ Coordenadas válidas extraídas: {result}")
+            return result
+        except (ValueError, TypeError) as e:
+            # print(f"  ❌ Error convirtiendo coordenadas a float: {e}")
+            return None
     
     async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Validar archivo Excel de rutas"""
@@ -495,10 +813,9 @@ class RutaExcelService:
             # ✅ AGREGAR SEGUIMIENTO DE CÓDIGOS POR RESOLUCIÓN
             codigos_por_resolucion = {}  # {resolucion_normalizada: {codigo_normalizado: fila_num}}
             
+            # Procesar todas las filas
             for index, row in df.iterrows():
                 fila_num = index + 2  # +2 porque Excel empieza en 1 y tiene header
-                
-                print(f"DEBUG: Procesando fila {fila_num}: {dict(row)}")
                 
                 errores_fila = []
                 advertencias_fila = []
@@ -554,7 +871,7 @@ class RutaExcelService:
                     resultados['validos'] += 1
                     # Convertir fila a modelo de ruta
                     try:
-                        ruta = self._convertir_fila_a_ruta(row)
+                        ruta = self._convertir_fila_a_ruta(row, fila_num)
                         resultados['rutas_validas'].append(ruta)
                     except Exception as e:
                         print(f"DEBUG: Error al convertir fila {fila_num}: {str(e)}")
@@ -844,7 +1161,7 @@ class RutaExcelService:
             return f"{numero:02d}"  # Formato con 2 dígitos, rellenando con 0 si es necesario
         return codigo
     
-    def _convertir_fila_a_ruta(self, row: pd.Series) -> Dict[str, Any]:
+    def _convertir_fila_a_ruta(self, row: pd.Series, fila_num: int = None) -> Dict[str, Any]:
         """Convertir fila de Excel a datos de ruta"""
         
         # Verificar si es una ruta cancelada
@@ -946,6 +1263,7 @@ class RutaExcelService:
             itinerario = "SIN ITINERARIO"
         
         return {
+            'fila': fila_num,  # ✅ AGREGAR número de fila
             'ruc': ruc,
             'resolucionNormalizada': resolucion_normalizada,
             'codigoRuta': codigo_normalizado,
@@ -1005,6 +1323,7 @@ class RutaExcelService:
             itinerario = "SIN ITINERARIO"
         
         return {
+            'fila': fila_num,  # ✅ NUEVO: Agregar número de fila
             'ruc': ruc,
             'resolucionNormalizada': resolucion_normalizada,
             'codigoRuta': codigo_normalizado,
@@ -1176,16 +1495,36 @@ class RutaExcelService:
         origen_localidad = await self._buscar_o_crear_localidad(ruta_data['origen'])
         destino_localidad = await self._buscar_o_crear_localidad(ruta_data['destino'])
         
-        # Crear objetos embebidos
-        origen_embebido = LocalidadEmbebida(
-            id=str(origen_localidad["_id"]),
-            nombre=origen_localidad["nombre"]
-        )
+        # Extraer coordenadas válidas
+        origen_coords = self._extraer_coordenadas_validas(origen_localidad.get("coordenadas"))
+        destino_coords = self._extraer_coordenadas_validas(destino_localidad.get("coordenadas"))
         
-        destino_embebido = LocalidadEmbebida(
-            id=str(destino_localidad["_id"]),
-            nombre=destino_localidad["nombre"]
-        )
+        # Crear objetos embebidos con construcción dinámica
+        origen_dict = {
+            "id": str(origen_localidad["_id"]),
+            "nombre": origen_localidad["nombre"]
+        }
+        if origen_localidad.get("tipo"):
+            origen_dict["tipo"] = origen_localidad.get("tipo")
+        if origen_localidad.get("departamento"):
+            origen_dict["departamento"] = origen_localidad.get("departamento")
+        if origen_coords is not None:
+            origen_dict["coordenadas"] = origen_coords
+        
+        origen_embebido = LocalidadEmbebida(**origen_dict)
+        
+        destino_dict = {
+            "id": str(destino_localidad["_id"]),
+            "nombre": destino_localidad["nombre"]
+        }
+        if destino_localidad.get("tipo"):
+            destino_dict["tipo"] = destino_localidad.get("tipo")
+        if destino_localidad.get("departamento"):
+            destino_dict["departamento"] = destino_localidad.get("departamento")
+        if destino_coords is not None:
+            destino_dict["coordenadas"] = destino_coords
+        
+        destino_embebido = LocalidadEmbebida(**destino_dict)
         
         # Crear frecuencia
         frecuencia = FrecuenciaServicio(

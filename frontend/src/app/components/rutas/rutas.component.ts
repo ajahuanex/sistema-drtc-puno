@@ -198,6 +198,7 @@ export class RutasComponent implements OnInit, OnDestroy {
     return rutas;
   });
 
+
   rutasPaginadas = computed(() => {
     const rutas = this.rutasFiltradas();
     const pageSize = this.pageSize();

@@ -30,6 +30,7 @@ export const routes: Routes = [
       
       // RUTAS
       { path: 'rutas', loadComponent: () => import('./components/rutas/rutas.component').then(m => m.RutasComponent) },
+      { path: 'rutas/estadisticas', loadComponent: () => import('./components/rutas/rutas-estadisticas.component').then(m => m.RutasEstadisticasComponent) },
       { path: 'rutas/carga-masiva', loadComponent: () => import('./components/rutas/carga-masiva-rutas.component').then(m => m.CargaMasivaRutasComponent) },
       { path: 'rutas/mapa', loadComponent: () => import('./components/rutas/mapa-rutas.component').then(m => m.MapaRutasComponent) },
       

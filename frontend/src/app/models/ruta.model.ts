@@ -83,6 +83,10 @@ export interface Ruta {
   observaciones?: string;
   descripcion?: string;
   
+  // ✅ NUEVO: Validación binaria de sincronizaciones
+  // Bit 0 (001): RUC validado - Bit 1 (010): Resolución validada - Bit 2 (100): Localidades validadas
+  validacionBinaria?: string;
+  
   // Control de estado
   estaActivo: boolean;
   fechaRegistro?: Date;
@@ -121,6 +125,9 @@ export interface RutaCreate {
   restricciones?: string[];
   observaciones?: string;
   descripcion?: string;
+  
+  // ✅ NUEVO: Validación binaria (opcional al crear)
+  validacionBinaria?: string;
 }
 
 export interface RutaUpdate {
@@ -152,6 +159,10 @@ export interface RutaUpdate {
   observaciones?: string;
   descripcion?: string;
   estaActivo?: boolean;
+  
+  // ✅ NUEVO: Validación binaria (opcional al actualizar)
+  validacionBinaria?: string;
+  
   fechaActualizacion?: Date;
 }
 

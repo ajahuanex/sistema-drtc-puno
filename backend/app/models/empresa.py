@@ -16,6 +16,7 @@ class EstadoEmpresa(str, Enum):
 
 
 class TipoServicio(str, Enum):
+    PERSONAS = "PERSONAS"
     PASAJEROS = "PASAJEROS"
     TURISMO = "TURISMO"
     TRABAJADORES = "TRABAJADORES"

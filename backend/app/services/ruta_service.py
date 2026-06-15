@@ -107,6 +107,29 @@ class RutaService:
                     detail=f"La localidad {nombre_campo} '{localidad.nombre}' no está activa"
                 )
             
+            # Extraer coordenadas como dict si es necesario
+            coordenadas_dict = None
+            if hasattr(localidad, 'coordenadas') and localidad.coordenadas is not None:
+                coords = localidad.coordenadas
+                # Si es un objeto Pydantic, convertir a dict
+                if hasattr(coords, 'model_dump'):
+                    coordenadas_dict = coords.model_dump()
+                # Si tiene atributos latitud/longitud, extraerlos
+                elif hasattr(coords, 'latitud') and hasattr(coords, 'longitud'):
+                    coordenadas_dict = {
+                        "latitud": float(coords.latitud),
+                        "longitud": float(coords.longitud)
+                    }
+                # Si ya es dict, usarlo directamente
+                elif isinstance(coords, dict):
+                    lat = coords.get('latitud')
+                    lon = coords.get('longitud')
+                    if lat is not None and lon is not None:
+                        coordenadas_dict = {
+                            "latitud": float(lat),
+                            "longitud": float(lon)
+                        }
+            
             # Retornar LocalidadEmbebida con información completa
             return LocalidadEmbebida(
                 id=localidad.id,
@@ -116,7 +139,7 @@ class RutaService:
                 departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
                 provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
                 distrito=localidad.distrito if hasattr(localidad, 'distrito') else None,
-                coordenadas=localidad.coordenadas if hasattr(localidad, 'coordenadas') else None
+                coordenadas=coordenadas_dict
             )
             
         except HTTPException:
@@ -179,6 +202,29 @@ class RutaService:
                     detail=f"La localidad del itinerario '{localidad.nombre}' no está activa"
                 )
             
+            # Extraer coordenadas como dict si es necesario
+            coordenadas_dict = None
+            if hasattr(localidad, 'coordenadas') and localidad.coordenadas is not None:
+                coords = localidad.coordenadas
+                # Si es un objeto Pydantic, convertir a dict
+                if hasattr(coords, 'model_dump'):
+                    coordenadas_dict = coords.model_dump()
+                # Si tiene atributos latitud/longitud, extraerlos
+                elif hasattr(coords, 'latitud') and hasattr(coords, 'longitud'):
+                    coordenadas_dict = {
+                        "latitud": float(coords.latitud),
+                        "longitud": float(coords.longitud)
+                    }
+                # Si ya es dict, usarlo directamente
+                elif isinstance(coords, dict):
+                    lat = coords.get('latitud')
+                    lon = coords.get('longitud')
+                    if lat is not None and lon is not None:
+                        coordenadas_dict = {
+                            "latitud": float(lat),
+                            "longitud": float(lon)
+                        }
+            
             # Crear LocalidadItinerario con información completa
             localidades_itinerario.append(LocalidadItinerario(
                 id=localidad.id,
@@ -188,7 +234,7 @@ class RutaService:
                 departamento=localidad.departamento if hasattr(localidad, 'departamento') else None,
                 provincia=localidad.provincia if hasattr(localidad, 'provincia') else None,
                 distrito=localidad.distrito if hasattr(localidad, 'distrito') else None,
-                coordenadas=localidad.coordenadas if hasattr(localidad, 'coordenadas') else None,
+                coordenadas=coordenadas_dict,
                 orden=orden
             ))
         
@@ -313,37 +359,67 @@ class RutaService:
             # Validar itinerario si se proporciona
             itinerario_validado = []
             if ruta_data.itinerario:
-                itinerario_data = [
-                    {"id": loc.id, "orden": loc.orden} 
+                # Si las paradas ya vienen con coordenadas (desde importación masiva),
+                # usarlas directamente sin revalidar contra la BD
+                paradas_ya_validadas = all(
+                    loc.id == "" or (loc.nombre and loc.nombre.strip())
                     for loc in ruta_data.itinerario
-                ]
-                itinerario_validado = await self.validar_itinerario(itinerario_data)
-            
-            # 2. Validar empresa
-            empresa = await self.empresas_collection.find_one({
-                "_id": ObjectId(ruta_data.empresa.id)
-            })
-            
-            if not empresa:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Empresa con ID {ruta_data.empresa.id} no encontrada"
                 )
-            
-            if not empresa.get("estaActivo", False):
-                raise HTTPException(
-                    status_code=400,
-                    detail="La empresa no está activa"
+                
+                # Verificar si alguna parada ya tiene coordenadas (señal de que ya fue procesada)
+                paradas_con_coords = any(
+                    loc.coordenadas is not None
+                    for loc in ruta_data.itinerario
                 )
+                
+                if paradas_con_coords or paradas_ya_validadas:
+                    # Usar directamente sin revalidar
+                    itinerario_validado = list(ruta_data.itinerario)
+                    print(f"ℹ️ Itinerario con {len(itinerario_validado)} paradas, usando directamente (sin revalidar)")
+                else:
+                    # Validar por ID (flujo normal de creación manual)
+                    itinerario_data = [
+                        {"id": loc.id, "orden": loc.orden} 
+                        for loc in ruta_data.itinerario
+                        if loc.id and loc.id.strip()
+                    ]
+                    if itinerario_data:
+                        itinerario_validado = await self.validar_itinerario(itinerario_data)
             
-            # 3. Validar resolución VIGENTE y PADRE
-            await self.validar_resolucion_vigente(ruta_data.resolucion.id)
+            # 2. Validar empresa (solo si tiene ID válido)
+            if ruta_data.empresa.id and ruta_data.empresa.id.strip():
+                empresa = await self.empresas_collection.find_one({
+                    "_id": ObjectId(ruta_data.empresa.id)
+                })
+                
+                if not empresa:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Empresa con ID {ruta_data.empresa.id} no encontrada"
+                    )
+                
+                if not empresa.get("estaActivo", False):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="La empresa no está activa"
+                    )
+            else:
+                print(f"⚠️ WARNING: Empresa sin ID válido, saltando validación de existencia")
             
-            # 4. Validar código único en resolución
-            await self.validar_codigo_unico(
-                ruta_data.codigoRuta,
-                ruta_data.resolucion.id
-            )
+            # 3. Validar resolución VIGENTE y PADRE (solo si tiene ID válido)
+            if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
+                await self.validar_resolucion_vigente(ruta_data.resolucion.id)
+            else:
+                print(f"⚠️ WARNING: Resolución sin ID válido, saltando validación de vigencia")
+            
+            # 4. Validar código único en resolución (solo si tiene ID válido)
+            if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
+                await self.validar_codigo_unico(
+                    ruta_data.codigoRuta,
+                    ruta_data.resolucion.id
+                )
+            else:
+                print(f"⚠️ WARNING: Resolución sin ID válido, saltando validación de código único")
             
             # 5. Preparar documento para inserción con datos embebidos validados
             ruta_dict = ruta_data.model_dump()
@@ -376,23 +452,29 @@ class RutaService:
             ruta_guardada = await self.rutas_collection.find_one({"_id": result.inserted_id})
             print(f"🔍 DEBUG RUTA_SERVICE: Empresa en BD después de insertar: {ruta_guardada.get('empresa') if ruta_guardada else 'No encontrada'}")
             
-            # 7. Actualizar relaciones en empresa
-            await self.empresas_collection.update_one(
-                {"_id": ObjectId(ruta_data.empresa.id)},
-                {
-                    "$addToSet": {"rutasAutorizadasIds": ruta_id},
-                    "$set": {"fechaActualizacion": datetime.utcnow()}
-                }
-            )
+            # 7. Actualizar relaciones en empresa (solo si tiene ID válido)
+            if ruta_data.empresa.id and ruta_data.empresa.id.strip():
+                await self.empresas_collection.update_one(
+                    {"_id": ObjectId(ruta_data.empresa.id)},
+                    {
+                        "$addToSet": {"rutasAutorizadasIds": ruta_id},
+                        "$set": {"fechaActualizacion": datetime.utcnow()}
+                    }
+                )
+            else:
+                print(f"⚠️ WARNING: Empresa sin ID válido, saltando actualización de relaciones")
             
-            # 8. Actualizar relaciones en resolución
-            await self.resoluciones_collection.update_one(
-                {"_id": ObjectId(ruta_data.resolucion.id)},
-                {
-                    "$addToSet": {"rutasAutorizadasIds": ruta_id},
-                    "$set": {"fechaActualizacion": datetime.utcnow()}
-                }
-            )
+            # 8. Actualizar relaciones en resolución (solo si tiene ID válido)
+            if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
+                await self.resoluciones_collection.update_one(
+                    {"_id": ObjectId(ruta_data.resolucion.id)},
+                    {
+                        "$addToSet": {"rutasAutorizadasIds": ruta_id},
+                        "$set": {"fechaActualizacion": datetime.utcnow()}
+                    }
+                )
+            else:
+                print(f"⚠️ WARNING: Resolución sin ID válido, saltando actualización de relaciones")
             
             # 9. Obtener y retornar ruta creada
             ruta_creada = await self.rutas_collection.find_one({"_id": result.inserted_id})

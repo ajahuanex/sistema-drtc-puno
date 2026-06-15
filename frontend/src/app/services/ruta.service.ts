@@ -594,6 +594,17 @@ export class RutaService {
       );
   }
 
+  sincronizarItinerarios(): Observable<any> {
+    const url = `${this.apiUrl}/rutas/sincronizar-itinerarios`;
+    return this.http.post<any>(url, {}, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error sincronizando itinerarios:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
   verificarSincronizacionLocalidades(): Observable<any> {
     const url = `${this.apiUrl}/rutas/verificar-sincronizacion`;
     

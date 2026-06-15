@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
+import re
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
@@ -14,6 +15,7 @@ from app.utils.exceptions import (
     RutaAlreadyExistsException,
     ValidationErrorException
 )
+from app.utils.buscar_localidad import buscar_localidad_por_nombre
 
 router = APIRouter(prefix="/rutas", tags=["rutas"])
 
@@ -268,6 +270,125 @@ async def get_todas_resoluciones_primigenias(
             status_code=500,
             detail=f"Error al obtener resoluciones primigenias: {str(e)}"
         )
+
+@router.post("/sincronizar-itinerarios")
+async def sincronizar_itinerarios_desde_descripcion(
+    db = Depends(get_database)
+):
+    """
+    Sincroniza los itinerarios de rutas importadas desde Excel.
+    Parsea el campo 'descripcion' (texto del itinerario) y vincula
+    las paradas con las localidades de la BD para obtener coordenadas.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+
+    # Buscar rutas con itinerario vacío pero con descripción de itinerario
+    rutas = await rutas_collection.find({
+        "$or": [
+            {"itinerario": {"$exists": False}},
+            {"itinerario": []},
+            {"itinerario": None}
+        ],
+        "descripcion": {
+            "$exists": True,
+            "$nin": [None, "", "SIN ITINERARIO", "Sin itinerario"]
+        }
+    }).to_list(length=None)
+
+    print(f"\n🔄 Sincronizando itinerarios: {len(rutas)} rutas a procesar...")
+
+    total_rutas = len(rutas)
+    rutas_actualizadas = 0
+    total_paradas_vinculadas = 0
+    total_paradas_sin_coords = 0
+
+    for ruta in rutas:
+        descripcion = ruta.get("descripcion", "")
+        if not descripcion or descripcion in ["SIN ITINERARIO", "Sin itinerario"]:
+            continue
+
+        # Parsear el texto separando por guiones, comas, barras
+        paradas_nombres = re.split(r'\s*[-–/,]\s*', descripcion.strip())
+        paradas_nombres = [p.strip().upper() for p in paradas_nombres if p.strip() and len(p.strip()) >= 2]
+
+        if not paradas_nombres:
+            continue
+
+        itinerario = []
+        orden = 1
+
+        for nombre in paradas_nombres:
+            # Buscar todas las coincidencias activas
+            candidatos = await localidades_collection.find({
+                "nombre": {"$regex": f"^{re.escape(nombre)}$", "$options": "i"},
+                "estaActiva": True
+            }).to_list(length=None)
+
+            localidad = None
+            if candidatos:
+                # Priorizar las que tienen coordenadas
+                con_coords = [
+                    c for c in candidatos
+                    if c.get("coordenadas") and
+                       c["coordenadas"].get("latitud") and
+                       c["coordenadas"].get("longitud")
+                ]
+                if con_coords:
+                    orden_tipo = {"PROVINCIA": 0, "DISTRITO": 1, "CENTRO_POBLADO": 2}
+                    con_coords.sort(key=lambda x: orden_tipo.get(x.get("tipo", ""), 99))
+                    localidad = con_coords[0]
+                else:
+                    localidad = candidatos[0]
+            
+            # Si no hay exacta, intentar búsqueda parcial
+            if not localidad:
+                localidad = await localidades_collection.find_one({
+                    "nombre": {"$regex": re.escape(nombre), "$options": "i"},
+                    "estaActiva": True
+                })
+
+            parada = {
+                "id": str(localidad["_id"]) if localidad else "",
+                "nombre": localidad["nombre"] if localidad else nombre,
+                "orden": orden
+            }
+
+            if localidad:
+                coords = localidad.get("coordenadas", {})
+                lat = coords.get("latitud") if coords else None
+                lng = coords.get("longitud") if coords else None
+                if lat is not None and lng is not None:
+                    parada["coordenadas"] = {"latitud": float(lat), "longitud": float(lng)}
+                    total_paradas_vinculadas += 1
+                else:
+                    total_paradas_sin_coords += 1
+                for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
+                    if localidad.get(campo):
+                        parada[campo] = localidad[campo]
+            else:
+                total_paradas_sin_coords += 1
+
+            itinerario.append(parada)
+            orden += 1
+
+        if itinerario:
+            await rutas_collection.update_one(
+                {"_id": ruta["_id"]},
+                {"$set": {"itinerario": itinerario, "fechaActualizacion": datetime.utcnow()}}
+            )
+            rutas_actualizadas += 1
+
+    print(f"✅ Sincronización completada: {rutas_actualizadas} rutas, {total_paradas_vinculadas} paradas con coords")
+
+    return {
+        "total_rutas_procesadas": total_rutas,
+        "rutas_actualizadas": rutas_actualizadas,
+        "total_paradas_vinculadas": total_paradas_vinculadas,
+        "total_paradas_sin_coords": total_paradas_sin_coords,
+        "mensaje": f"Completado: {rutas_actualizadas} rutas, {total_paradas_vinculadas} paradas georeferenciadas, {total_paradas_sin_coords} sin coords."
+    }
+
 
 @router.get("/", response_model=List[Ruta])
 async def get_rutas(
@@ -2121,4 +2242,244 @@ async def verificar_coordenadas_rutas(db = Depends(get_database)):
         "rutas_sin_coordenadas": rutas_sin_coordenadas,
         "porcentaje_con_coordenadas": round(porcentaje_con_coordenadas, 2),
         "detalles_problemas": detalles_problemas
+    }
+
+
+@router.post("/sincronizar-itinerarios")
+async def sincronizar_itinerarios(
+    db = Depends(get_database)
+):
+    """
+    Sincroniza los itinerarios de rutas importadas masivamente.
+    Lee el campo 'descripcion' (donde se guardó el itinerario del Excel),
+    parsea los nombres de localidades y pobla el campo 'itinerario' con 
+    las localidades y sus coordenadas de la BD.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+    
+    # Obtener rutas donde itinerario está vacío pero descripcion tiene datos
+    rutas_a_procesar = await rutas_collection.find({
+        "$or": [
+            {"itinerario": {"$exists": False}},
+            {"itinerario": []},
+            {"itinerario": None}
+        ],
+        "descripcion": {"$exists": True, "$ne": None, "$ne": "", "$ne": "SIN ITINERARIO"}
+    }).to_list(length=10000)
+    
+    print(f"📦 Rutas a sincronizar: {len(rutas_a_procesar)}")
+    
+    total = len(rutas_a_procesar)
+    actualizadas = 0
+    sin_coordenadas = 0
+    errores = 0
+    
+    for ruta in rutas_a_procesar:
+        try:
+            descripcion = ruta.get("descripcion", "")
+            if not descripcion or descripcion == "SIN ITINERARIO":
+                continue
+            
+            # Parsear el itinerario del texto: "JULIACA - LAMPA - AREQUIPA"
+            separadores = [" - ", "-", " / ", ","]
+            partes = None
+            for sep in separadores:
+                if sep in descripcion:
+                    partes = [p.strip().upper() for p in descripcion.split(sep) if p.strip()]
+                    break
+            
+            if not partes or len(partes) < 2:
+                continue
+            
+            # Quitar el primero y el último (son origen y destino)
+            partes_intermedias = partes[1:-1]
+            
+            if not partes_intermedias:
+                continue
+            
+            # Para cada parada intermedia, buscar localidad y coordenadas
+            itinerario_nuevo = []
+            for orden, nombre_parada in enumerate(partes_intermedias, start=1):
+                # Buscar localidad por nombre (case insensitive)
+                localidad = await localidades_collection.find_one({
+                    "nombre": {"$regex": f"^{nombre_parada}$", "$options": "i"},
+                    "estaActiva": True
+                })
+                
+                if not localidad:
+                    # Buscar sin tilde o con variaciones
+                    localidad = await localidades_collection.find_one({
+                        "nombre": {"$regex": nombre_parada[:5], "$options": "i"},
+                        "estaActiva": True
+                    })
+                
+                coordenadas = None
+                if localidad and localidad.get("coordenadas"):
+                    coords = localidad["coordenadas"]
+                    lat = coords.get("latitud") if isinstance(coords, dict) else getattr(coords, "latitud", None)
+                    lng = coords.get("longitud") if isinstance(coords, dict) else getattr(coords, "longitud", None)
+                    if lat is not None and lng is not None:
+                        try:
+                            coordenadas = {"latitud": float(lat), "longitud": float(lng)}
+                        except (ValueError, TypeError):
+                            coordenadas = None
+                
+                parada_entry = {
+                    "id": str(localidad["_id"]) if localidad else "",
+                    "nombre": nombre_parada,
+                    "orden": orden,
+                    "coordenadas": coordenadas
+                }
+                
+                if localidad:
+                    for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
+                        if localidad.get(campo):
+                            parada_entry[campo] = localidad[campo]
+                
+                itinerario_nuevo.append(parada_entry)
+                
+                if coordenadas is None:
+                    sin_coordenadas += 1
+            
+            if itinerario_nuevo:
+                await rutas_collection.update_one(
+                    {"_id": ruta["_id"]},
+                    {"$set": {
+                        "itinerario": itinerario_nuevo,
+                        "fechaActualizacion": datetime.utcnow()
+                    }}
+                )
+                actualizadas += 1
+                print(f"  ✅ {ruta.get('codigoRuta')}: {len(itinerario_nuevo)} paradas procesadas")
+        
+        except Exception as e:
+            errores += 1
+            print(f"  ❌ Error en ruta {ruta.get('codigoRuta')}: {e}")
+    
+    return {
+        "total_rutas_procesadas": total,
+        "rutas_actualizadas": actualizadas,
+        "paradas_sin_coordenadas": sin_coordenadas,
+        "errores": errores,
+        "mensaje": f"Sincronización completada: {actualizadas}/{total} rutas actualizadas"
+    }
+
+
+# ========================================
+# ENDPOINT: SINCRONIZAR ITINERARIOS DESDE DESCRIPCIÓN
+# ========================================
+
+@router.post("/sincronizar-itinerarios")
+async def sincronizar_itinerarios_desde_descripcion(
+    db = Depends(get_database)
+):
+    """
+    Sincroniza los itinerarios de rutas importadas desde Excel.
+    
+    Las rutas importadas masivamente guardan el itinerario como texto en el campo
+    'descripcion'. Este endpoint parsea ese texto, busca las localidades por nombre
+    y pobla el campo 'itinerario' con las coordenadas correspondientes.
+    """
+    rutas_collection = db["rutas"]
+    localidades_collection = db["localidades"]
+
+    # Obtener rutas que tienen descripción (itinerario como texto) pero itinerario vacío
+    rutas = await rutas_collection.find({
+        "$or": [
+            {"itinerario": {"$exists": False}},
+            {"itinerario": []},
+            {"itinerario": None}
+        ],
+        "descripcion": {"$exists": True, "$ne": None, "$ne": "", "$ne": "SIN ITINERARIO"}
+    }).to_list(length=None)
+
+    print(f"\n🔄 Sincronizando itinerarios: {len(rutas)} rutas a procesar...")
+
+    total_rutas = len(rutas)
+    rutas_actualizadas = 0
+    rutas_sin_localidades = 0
+    total_paradas_vinculadas = 0
+
+    for ruta in rutas:
+        descripcion = ruta.get("descripcion", "")
+        if not descripcion or descripcion == "SIN ITINERARIO":
+            continue
+
+        # Parsear el texto del itinerario - separadores comunes: -, –, /, ,
+        paradas_nombres = re.split(r'\s*[-–/,]\s*', descripcion.strip())
+        paradas_nombres = [p.strip().upper() for p in paradas_nombres if p.strip()]
+
+        if not paradas_nombres:
+            continue
+
+        itinerario = []
+        orden = 1
+
+        for nombre_parada in paradas_nombres:
+            if not nombre_parada or len(nombre_parada) < 2:
+                continue
+
+            # Buscar localidad por nombre (case-insensitive)
+            localidad = await localidades_collection.find_one({
+                "nombre": {"$regex": f"^{re.escape(nombre_parada)}$", "$options": "i"},
+                "estaActiva": True
+            })
+
+            # Si no encuentra exacto, buscar parcial
+            if not localidad:
+                localidad = await localidades_collection.find_one({
+                    "nombre": {"$regex": nombre_parada, "$options": "i"},
+                    "estaActiva": True
+                })
+
+            parada_dict = {
+                "id": str(localidad["_id"]) if localidad else "",
+                "nombre": localidad["nombre"] if localidad else nombre_parada,
+                "orden": orden
+            }
+
+            # Agregar coordenadas si la localidad tiene
+            if localidad and localidad.get("coordenadas"):
+                coords = localidad["coordenadas"]
+                lat = coords.get("latitud")
+                lng = coords.get("longitud")
+                if lat and lng:
+                    parada_dict["coordenadas"] = {
+                        "latitud": float(lat),
+                        "longitud": float(lng)
+                    }
+                    total_paradas_vinculadas += 1
+
+            if localidad:
+                for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
+                    if localidad.get(campo):
+                        parada_dict[campo] = localidad[campo]
+
+            itinerario.append(parada_dict)
+            orden += 1
+
+        if itinerario:
+            await rutas_collection.update_one(
+                {"_id": ruta["_id"]},
+                {"$set": {
+                    "itinerario": itinerario,
+                    "fechaActualizacion": datetime.utcnow()
+                }}
+            )
+            rutas_actualizadas += 1
+        else:
+            rutas_sin_localidades += 1
+
+    print(f"✅ Sincronización completada:")
+    print(f"   Rutas procesadas: {total_rutas}")
+    print(f"   Rutas actualizadas: {rutas_actualizadas}")
+    print(f"   Paradas vinculadas con coords: {total_paradas_vinculadas}")
+
+    return {
+        "total_rutas_procesadas": total_rutas,
+        "rutas_actualizadas": rutas_actualizadas,
+        "rutas_sin_localidades": rutas_sin_localidades,
+        "total_paradas_vinculadas": total_paradas_vinculadas,
+        "mensaje": f"Sincronización completada. {rutas_actualizadas} rutas actualizadas con {total_paradas_vinculadas} paradas georreferenciadas."
     }

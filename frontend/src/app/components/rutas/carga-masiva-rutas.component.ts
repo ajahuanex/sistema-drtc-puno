@@ -124,6 +124,19 @@ interface ResultadoCargaMasiva {
             Importar múltiples rutas desde un archivo Excel
           </mat-card-subtitle>
         </mat-card-header>
+        <mat-card-actions style="padding: 8px 16px 16px;">
+          <button mat-stroked-button 
+                  color="accent"
+                  (click)="sincronizarItinerarios()"
+                  [disabled]="sincronizandoItinerarios"
+                  matTooltip="Vincula paradas del itinerario con coordenadas de la BD. Úsalo después de importar rutas.">
+            <mat-icon>sync</mat-icon>
+            {{ sincronizandoItinerarios ? 'Sincronizando itinerarios...' : 'Sincronizar Itinerarios' }}
+          </button>
+          <span *ngIf="resultadoSincronizacion" style="margin-left: 12px; font-size: 12px; color: #388e3c;">
+            ✅ {{ resultadoSincronizacion }}
+          </span>
+        </mat-card-actions>
       </mat-card>
 
       <mat-stepper #stepper [linear]="false" class="stepper-container">
@@ -598,6 +611,39 @@ interface ResultadoCargaMasiva {
                   <!-- Acciones finales -->
                   <div class="final-actions">
                     @if (!soloValidar && getRutasCreadas().length > 0) {
+                      <!-- Sincronizar itinerarios después de importar -->
+                      <div class="sync-section">
+                        <mat-card style="background: #e8f5e9; border: 1px solid #a5d6a7; margin-bottom: 16px;">
+                          <mat-card-content style="padding: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                              <div style="flex: 1; min-width: 200px;">
+                                <h5 style="margin: 0 0 4px 0; color: #2e7d32;">
+                                  <mat-icon style="vertical-align: middle; font-size: 18px;">route</mat-icon>
+                                  Sincronizar Itinerarios
+                                </h5>
+                                <p style="margin: 0; font-size: 12px; color: #555;">
+                                  Vincula las paradas del itinerario con coordenadas de la BD de localidades.
+                                  Necesario para verlas en el mapa.
+                                </p>
+                                @if (resultadoSincronizacion) {
+                                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #388e3c; font-weight: 500;">
+                                    ✅ {{ resultadoSincronizacion }}
+                                  </p>
+                                }
+                              </div>
+                              <button mat-raised-button 
+                                      color="primary"
+                                      style="background: #388e3c;"
+                                      (click)="sincronizarItinerarios()"
+                                      [disabled]="sincronizandoItinerarios">
+                                <mat-icon>sync</mat-icon>
+                                {{ sincronizandoItinerarios ? 'Sincronizando...' : 'Sincronizar Ahora' }}
+                              </button>
+                            </div>
+                          </mat-card-content>
+                        </mat-card>
+                      </div>
+
                       <button mat-raised-button color="primary" (click)="irAListaRutas()">
                         <mat-icon>list</mat-icon>
                         Ver Rutas Creadas
@@ -648,6 +694,10 @@ export class CargaMasivaRutasComponent implements OnInit {
   // Control de UI
   plantillaDescargada = false;
   isDragOver = false;
+
+  // Sincronización de itinerarios
+  sincronizandoItinerarios = false;
+  resultadoSincronizacion = '';
 
   constructor(
     private rutaService: RutaService,
@@ -974,5 +1024,30 @@ export class CargaMasivaRutasComponent implements OnInit {
     return resultado.rutas_actualizadas || 
            resultado.resultado?.rutas_actualizadas || 
            [];
+  }
+
+  sincronizarItinerarios() {
+    this.sincronizandoItinerarios = true;
+    this.resultadoSincronizacion = '';
+
+    this.rutaService.sincronizarItinerarios().subscribe({
+      next: (data: any) => {
+        this.sincronizandoItinerarios = false;
+        const rutas = data?.rutas_actualizadas || 0;
+        const paradas = data?.total_paradas_vinculadas || 0;
+        this.resultadoSincronizacion = `${rutas} rutas actualizadas, ${paradas} paradas con coordenadas vinculadas.`;
+        this.snackBar.open(
+          `Sincronización completada: ${rutas} rutas, ${paradas} paradas georeferenciadas`,
+          'Cerrar',
+          { duration: 5000 }
+        );
+      },
+      error: (err: any) => {
+        this.sincronizandoItinerarios = false;
+        this.resultadoSincronizacion = 'Error al sincronizar. Intenta nuevamente.';
+        console.error('Error sincronizando itinerarios:', err);
+        this.snackBar.open('Error al sincronizar itinerarios', 'Cerrar', { duration: 4000 });
+      }
+    });
   }
 }
