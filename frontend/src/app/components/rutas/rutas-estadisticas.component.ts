@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { RutaService } from '../../services/ruta.service';
 import { Ruta } from '../../models/ruta.model';
-import { MapaRutasComponent } from './mapa-rutas.component';
+import { MapaTabComponent } from './mapa-tab.component';
 import { SincronizarRutasModalComponent } from './sincronizar-rutas-modal.component';
 import { DiagnosticoRutasComponent } from './diagnostico-rutas.component';
 
@@ -28,7 +28,7 @@ import { DiagnosticoRutasComponent } from './diagnostico-rutas.component';
     MatTableModule,
     MatProgressBarModule,
     MatTooltipModule,
-    MapaRutasComponent,
+    MapaTabComponent,
     DiagnosticoRutasComponent
   ],
   template: `
@@ -55,7 +55,7 @@ import { DiagnosticoRutasComponent } from './diagnostico-rutas.component';
           <p>Cargando estadísticas...</p>
         </div>
       } @else {
-        <mat-tab-group (selectedTabChange)="onTabChange($event)">
+        <mat-tab-group>
               <!-- Tab 1: Resumen General -->
               <mat-tab>
                 <ng-template mat-tab-label>
@@ -185,8 +185,8 @@ import { DiagnosticoRutasComponent } from './diagnostico-rutas.component';
                   <span>Mapa</span>
                 </ng-template>
                 
-                <div class="tab-content mapa-tab-content">
-                  <app-mapa-rutas #mapaRutas [rutas]="rutas()"></app-mapa-rutas>
+                <div class="mapa-tab-content">
+                  <app-mapa-tab></app-mapa-tab>
                 </div>
               </mat-tab>
             </mat-tab-group>
@@ -268,7 +268,7 @@ import { DiagnosticoRutasComponent } from './diagnostico-rutas.component';
       display: flex;
     }
 
-    .mapa-tab-content app-mapa-rutas {
+    .mapa-tab-content app-mapa-tab {
       width: 100%;
       height: 100%;
       display: block;
@@ -487,8 +487,6 @@ export class RutasEstadisticasComponent implements OnInit {
   private rutaService = inject(RutaService);
   private dialog = inject(MatDialog);
 
-  @ViewChild('mapaRutas') mapaRutas!: MapaRutasComponent;
-
   cargando = signal(true);
   rutas = signal<Ruta[]>([]);
 
@@ -546,20 +544,8 @@ export class RutasEstadisticasComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(resultado => {
       if (resultado) {
-        // Recargar datos después de sincronizar
         this.cargarEstadisticas();
       }
     });
-  }
-
-  onTabChange(event: any) {
-    console.log('Tab changed to index:', event.index);
-    // Si es la pestaña del mapa (index 3)
-    if (event.index === 3 && this.mapaRutas) {
-      setTimeout(() => {
-        console.log('Llamando a inicializarMapa desde onTabChange');
-        this.mapaRutas.inicializarMapa();
-      }, 200);
-    }
   }
 }
