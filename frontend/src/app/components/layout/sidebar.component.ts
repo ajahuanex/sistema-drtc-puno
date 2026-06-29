@@ -116,10 +116,26 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Fiscalizaciones</span> }
         </a>
 
-        <a mat-list-item routerLink="/rutas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Rutas' : ''" matTooltipPosition="right">
+        <a mat-list-item routerLink="/rutas" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Rutas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Rutas</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('rutas')" (click)="toggleGroup('rutas', $event)">chevron_right</mat-icon> }
         </a>
+
+        @if (isExpanded() && expandedGroups().has('rutas')) {
+          <a mat-list-item routerLink="/rutas/mapa" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Mapa de Rutas' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">map</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Mapa de Rutas</span> }
+          </a>
+          <a mat-list-item routerLink="/rutas/estadisticas" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Estadísticas' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">analytics</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Estadísticas</span> }
+          </a>
+          <a mat-list-item routerLink="/rutas/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">upload</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva</span> }
+          </a>
+        }
 
         <a mat-list-item routerLink="/localidades" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Localidades' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'place'" [size]="24" class="nav-icon"></app-smart-icon>
@@ -244,7 +260,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 })
 export class SidebarComponent {
   isExpanded = input<boolean>(true);
-  expandedGroups = signal<Set<string>>(new Set());
+  expandedGroups = signal<Set<string>>(new Set(['rutas']));
   
   toggleGroup(groupName: string, event: Event) {
     event.preventDefault();

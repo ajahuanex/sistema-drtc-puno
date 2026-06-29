@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import * as L from 'leaflet';
 import 'leaflet.markercluster';
 import { Ruta } from '../../models/ruta.model';
+import { RutaService } from '../../services/ruta.service';
 import { MapaRutasFullscreenComponent } from './mapa-rutas-fullscreen.component';
 
 // Configurar iconos de Leaflet para que funcionen en Angular
@@ -38,10 +40,30 @@ declare module 'leaflet' {
 @Component({
   selector: 'app-mapa-rutas',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatTooltipModule, MatProgressSpinnerModule],
   template: `
-    <div class="mapa-wrapper">
-      <div id="leaflet-map" class="mapa-contenedor"></div>
+    <div class="pagina-mapa-wrapper">
+      <!-- Header solo cuando es página independiente (sin @Input rutas) -->
+      @if (modoStandalone) {
+        <div class="pagina-header">
+          <div class="header-info">
+            <mat-icon>map</mat-icon>
+            <div>
+              <h2>Mapa de Rutas</h2>
+              <p>Visualización geográfica del sistema de transporte</p>
+            </div>
+          </div>
+          @if (cargandoRutas) {
+            <div class="cargando-badge">
+              <mat-spinner diameter="18"></mat-spinner>
+              <span>Cargando rutas...</span>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="mapa-wrapper">
+        <div id="leaflet-map" class="mapa-contenedor"></div>
       
       <!-- Panel de información flotante -->
       <div class="info-panel" *ngIf="estadisticas">
@@ -113,8 +135,64 @@ declare module 'leaflet' {
         <mat-icon>fullscreen</mat-icon>
       </button>
     </div>
+    </div>
   `,
   styles: [`
+    /* Modo página standalone */
+    .pagina-mapa-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+    }
+
+    .pagina-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-info mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .header-info h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .header-info p {
+      margin: 2px 0 0 0;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .cargando-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .cargando-badge mat-spinner {
+      filter: brightness(10);
+    }
+
+    /* Modo embebido: el mapa ocupa todo el host */
     :host {
       display: block;
       width: 100%;
@@ -123,8 +201,8 @@ declare module 'leaflet' {
 
     .mapa-wrapper {
       position: relative;
-      width: 100%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
     }
 
     .mapa-contenedor {
@@ -360,6 +438,11 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
   private marcadores: L.Marker[] = [];
   private markerClusterGroup: any = null;
   private dialog = inject(MatDialog);
+  private rutaService = inject(RutaService);
+
+  // true cuando se usa como página independiente (sin @Input rutas)
+  modoStandalone = false;
+  cargandoRutas = false;
 
   // Estados de visualización
   mostrarLineas = true;
@@ -441,7 +524,26 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
   });
 
   ngOnInit() {
-    console.log('MapaRutasComponent - ngOnInit');
+    // Si no se pasaron rutas por @Input, cargarlas del servicio (modo página)
+    if (!this.rutas || this.rutas.length === 0) {
+      this.modoStandalone = true;
+      this.cargandoRutas = true;
+      this.rutaService.getRutas().subscribe({
+        next: (rutas) => {
+          this.rutas = rutas;
+          this.cargandoRutas = false;
+          this.actualizarEstadisticas();
+          // Si el mapa ya estaba inicializado, recargar los puntos
+          if (this.map) {
+            this.cargarPuntosRutas();
+          }
+        },
+        error: (err) => {
+          console.error('Error cargando rutas para el mapa:', err);
+          this.cargandoRutas = false;
+        }
+      });
+    }
   }
 
   ngAfterViewInit() {
