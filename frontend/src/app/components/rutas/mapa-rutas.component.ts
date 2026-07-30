@@ -9,7 +9,6 @@ import * as L from 'leaflet';
 import 'leaflet.markercluster';
 import { Ruta } from '../../models/ruta.model';
 import { RutaService } from '../../services/ruta.service';
-import { MapaRutasFullscreenComponent } from './mapa-rutas-fullscreen.component';
 
 // Configurar iconos de Leaflet para que funcionen en Angular
 // Esto soluciona el problema común de iconos faltantes
@@ -28,13 +27,9 @@ const iconDefault = L.icon({
 });
 L.Marker.prototype.options.icon = iconDefault;
 
-// Declarar tipos para MarkerClusterGroup y PolylineDecorator
+// Declarar tipos para MarkerClusterGroup
 declare module 'leaflet' {
   function markerClusterGroup(options?: any): any;
-  function polylineDecorator(line: any, options?: any): any;
-  namespace Symbol {
-    function arrowHead(options?: any): any;
-  }
 }
 
 @Component({
@@ -390,30 +385,9 @@ declare module 'leaflet' {
       height: 60px !important;
     }
 
-    /* Animación para líneas de ruta */
-    :host ::ng-deep .ruta-line {
-      animation: dashAnimation 3s linear infinite;
-    }
+    /* Animación para líneas de ruta — reservado para uso futuro */
 
-    @keyframes dashAnimation {
-      to {
-        stroke-dashoffset: -40;
-      }
-    }
-
-    /* Marcadores pulsantes */
-    :host ::ng-deep .marker-pulse {
-      animation: markerPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes markerPulse {
-      0%, 100% {
-        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.7);
-      }
-      50% {
-        box-shadow: 0 0 0 10px rgba(25, 118, 210, 0);
-      }
-    }
+    /* Marcadores pulsantes — aplicado via divIcon en JS */
 
     :host.fullscreen {
       position: fixed;
@@ -432,13 +406,16 @@ declare module 'leaflet' {
 export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() rutas: Ruta[] = [];
 
-  private map: L.Map | null = null;
+  public map: L.Map | null = null;
   private geoJsonLayers: L.GeoJSON[] = [];
   private lineasRutas: L.Polyline[] = [];
   private marcadores: L.Marker[] = [];
   private markerClusterGroup: any = null;
   private dialog = inject(MatDialog);
   private rutaService = inject(RutaService);
+
+  // Control de inicialización
+  public mapaInicializado = false;
 
   // true cuando se usa como página independiente (sin @Input rutas)
   modoStandalone = false;
@@ -543,22 +520,40 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
           this.cargandoRutas = false;
         }
       });
+    } else {
+      // Si ya tenemos rutas (modo embebido), actualizar estadísticas
+      this.actualizarEstadisticas();
     }
   }
 
   ngAfterViewInit() {
     console.log('MapaRutasComponent - ngAfterViewInit');
-    setTimeout(() => {
-      this.inicializarMapa();
-    }, 300);
+    if (!this.mapaInicializado) {
+      setTimeout(() => {
+        this.inicializarMapa();
+      }, 300);
+    } else {
+      console.log('⚠️ Mapa ya inicializado, saltando ngAfterViewInit');
+    }
   }
 
   ngOnDestroy() {
+    console.log('🧹 MapaRutasComponent - Limpiando en ngOnDestroy');
     this.limpiarCapas();
     if (this.map) {
       this.map.remove();
       this.map = null;
     }
+    
+    // Limpiar el contenedor DOM también
+    const container = document.getElementById('leaflet-map');
+    if (container) {
+      container.innerHTML = '';
+      container.className = container.className.replace(/leaflet-[^\s]*/g, '');
+      container.removeAttribute('style');
+    }
+    
+    this.mapaInicializado = false;
   }
 
   private limpiarCapas() {
@@ -594,13 +589,18 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleFullscreen() {
-    this.dialog.open(MapaRutasFullscreenComponent, {
-      data: this.rutas,
-      width: '100vw',
-      height: '100vh',
-      maxWidth: '100vw',
-      maxHeight: '100vh',
-      panelClass: 'fullscreen-dialog'
+    // Usar dynamic import para evitar dependencia circular
+    import('./mapa-rutas-fullscreen.component').then(module => {
+      this.dialog.open(module.MapaRutasFullscreenComponent, {
+        data: this.rutas,
+        width: '100vw',
+        height: '100vh',
+        maxWidth: '100vw',
+        maxHeight: '100vh',
+        panelClass: 'fullscreen-dialog'
+      });
+    }).catch(error => {
+      console.error('Error cargando componente fullscreen:', error);
     });
   }
 
@@ -657,12 +657,14 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  inicializarMapa() {
+  public inicializarMapa() {
     try {
+      console.log('🗺️ Iniciando inicializarMapa - mapaInicializado:', this.mapaInicializado);
+      
       const container = document.getElementById('leaflet-map') as HTMLElement;
 
       if (!container) {
-        console.error('Contenedor no encontrado');
+        console.error('Contenedor del mapa no encontrado');
         return;
       }
 
@@ -672,14 +674,49 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
         return;
       }
 
+      // Si ya está inicializado y funcionando, no reinicializar
+      if (this.mapaInicializado && this.map) {
+        console.log('✅ Mapa ya inicializado, saltando reinicialización');
+        return;
+      }
+
       // Si el mapa ya existe, removerlo primero
       if (this.map) {
-        this.map.remove();
+        console.log('🧹 Limpiando mapa existente');
+        try {
+          this.map.remove();
+        } catch (e) {
+          console.warn('Error al remover mapa anterior:', e);
+        }
         this.map = null;
         this.geoJsonLayers = [];
       }
 
+      // Limpiar completamente el contenedor DOM para evitar conflictos de Leaflet
+      container.innerHTML = '';
+      
+      // Remover cualquier clase o atributo que Leaflet haya agregado
+      container.className = container.className.replace(/leaflet-[^\s]*/g, '');
+      if (container.className.trim() === '') {
+        container.className = 'mapa-contenedor'; // Restaurar clase original
+      }
+      
+      // Remover todos los atributos que Leaflet pueda haber agregado
+      const attributesToRemove = ['style', 'tabindex', 'data-leaflet-id'];
+      attributesToRemove.forEach(attr => {
+        if (container.hasAttribute(attr)) {
+          container.removeAttribute(attr);
+        }
+      });
+
+      // Limpiar la referencia interna de Leaflet del contenedor
+      (container as any)._leaflet_id = null;
+      delete (container as any)._leaflet_id;
+      
+      console.log('🗺️ Creando nueva instancia del mapa Leaflet');
+
       this.map = L.map(container).setView([-15.5, -70.1], 8);
+      this.mapaInicializado = true;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 'OpenStreetMap',
@@ -687,6 +724,15 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
       }).addTo(this.map);
 
       this.cargarPoligonos();
+
+      // En modo standalone, esperar a que las rutas estén cargadas
+      if (this.modoStandalone && this.cargandoRutas) {
+        console.log('⏳ Mapa inicializado, esperando rutas...');
+        // Las rutas se cargarán automáticamente cuando lleguen del servicio
+      } else if (this.rutas && this.rutas.length > 0) {
+        // En modo embebido o cuando ya tenemos rutas, cargar inmediatamente
+        this.cargarPuntosRutas();
+      }
 
       // Actualizar estadísticas
       this.actualizarEstadisticas();
@@ -698,7 +744,8 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
       }, 100);
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error inicializando mapa:', error);
+      this.mapaInicializado = false;
     }
   }
 
@@ -736,10 +783,10 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
         });
         geoJsonLayer.addTo(this.map);
         this.geoJsonLayers.push(geoJsonLayer);
-        console.log('Provincias cargadas');
+        console.log('📍 Provincias cargadas');
       })
       .catch(error => {
-        console.warn('Error cargando provincias (esto es opcional):', error.message);
+        console.warn('Error cargando provincias (opcional):', error.message);
       });
 
     // Cargar distritos
@@ -774,17 +821,22 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
         });
         geoJsonLayer.addTo(this.map);
         this.geoJsonLayers.push(geoJsonLayer);
-        console.log('Distritos cargados');
+        console.log('🗺️ Distritos cargados');
       })
       .catch(error => {
-        console.warn('Error cargando distritos (esto es opcional):', error.message);
+        console.warn('Error cargando distritos (opcional):', error.message);
       });
 
-    // Cargar puntos de las rutas
-    this.cargarPuntosRutas();
+    // Solo cargar puntos de rutas si ya tenemos rutas disponibles
+    if (this.rutas && this.rutas.length > 0 && !this.cargandoRutas) {
+      console.log('📍 Cargando puntos de rutas desde cargarPoligonos');
+      this.cargarPuntosRutas();
+    } else if (this.modoStandalone) {
+      console.log('⏳ Esperando rutas para cargar puntos...');
+    }
   }
 
-  private cargarPuntosRutas() {
+  public cargarPuntosRutas() {
     if (!this.map || !this.rutas || this.rutas.length === 0) {
       console.log('No hay rutas para mostrar');
       return;
@@ -811,14 +863,19 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
         zoomToBoundsOnClick: true,
         iconCreateFunction: (cluster: any) => {
           const count = cluster.getChildCount();
-          let size = 'small';
-          if (count > 10) size = 'medium';
-          if (count > 50) size = 'large';
-          
+          const size = count > 50 ? 60 : count > 10 ? 50 : 40;
           return L.divIcon({
-            html: `<div><span>${count}</span></div>`,
-            className: `marker-cluster marker-cluster-${size}`,
-            iconSize: L.point(40, 40)
+            html: `<div style="
+              width:${size}px;height:${size}px;
+              background:linear-gradient(135deg,#667eea,#764ba2);
+              border:3px solid white;border-radius:50%;
+              box-shadow:0 4px 12px rgba(0,0,0,0.3);
+              display:flex;align-items:center;justify-content:center;
+              color:white;font-weight:bold;font-size:${count>99?12:14}px;
+            ">${count}</div>`,
+            className: '',
+            iconSize: L.point(size, size),
+            iconAnchor: L.point(size / 2, size / 2)
           });
         }
       });
@@ -828,167 +885,97 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
     let conexionesCreadas = 0;
     let paradasTotales = 0;
 
+    // Un Set global para no duplicar marcadores en la misma coordenada
+    const coordsUsadas = new Set<string>();
+    const coordKey = (lat: number, lng: number) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
     this.rutas.forEach((ruta, index) => {
       let rutaTieneCoordenadas = false;
       const coordenadasRuta: L.LatLngExpression[] = [];
-      // Set para evitar marcadores duplicados en la misma coordenada
-      const coordsUsadas = new Set<string>();
 
-      const coordKey = (lat: number, lng: number) =>
-        `${lat.toFixed(5)},${lng.toFixed(5)}`;
-
-      // Marcador de origen con icono personalizado
-      if (ruta.origen?.coordenadas?.latitud && 
-          ruta.origen?.coordenadas?.longitud &&
-          typeof ruta.origen.coordenadas.latitud === 'number' &&
-          typeof ruta.origen.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.origen.coordenadas.latitud) &&
-          !isNaN(ruta.origen.coordenadas.longitud)) {
-        const key = coordKey(ruta.origen.coordenadas.latitud, ruta.origen.coordenadas.longitud);
-        coordsUsadas.add(key);
-        try {
-          const originMarker = L.marker(
-            [ruta.origen.coordenadas.latitud, ruta.origen.coordenadas.longitud],
-            { icon: this.iconoOrigen }
-          );
-
-          originMarker.bindPopup(`
-            <div style="font-family: 'Roboto', sans-serif;">
-              <div style="
-                background: linear-gradient(135deg, #00d084 0%, #00aa66 100%);
-                color: white;
-                padding: 8px;
-                margin: -12px -12px 8px -12px;
-                border-radius: 12px 12px 0 0;
-                font-weight: 600;
-              ">
-                🚀 ORIGEN
-              </div>
-              <div style="padding: 4px 0;">
-                <strong style="color: #00aa66;">${ruta.origen.nombre}</strong>
-              </div>
-              <div style="font-size: 11px; color: #666; margin-top: 4px;">
-                📍 Ruta: <strong>${ruta.codigoRuta}</strong><br>
-                🏢 Empresa: ${ruta.empresa?.razonSocial || 'N/A'}<br>
-                📊 Estado: ${ruta.estado || 'N/A'}
-              </div>
-            </div>
-          `);
-
-          this.agregarMarcador(originMarker);
-          coordenadasRuta.push([ruta.origen.coordenadas.latitud, ruta.origen.coordenadas.longitud]);
-          rutaTieneCoordenadas = true;
-        } catch (e) {
-          console.error('Error al agregar origen:', e);
-        }
-      }
-
-      // Marcadores de itinerario (paradas intermedias)
-      if (this.mostrarItinerario && ruta.itinerario && ruta.itinerario.length > 0) {
-        ruta.itinerario.forEach((parada, orden) => {
-          if (parada.coordenadas?.latitud && 
-              parada.coordenadas?.longitud &&
-              typeof parada.coordenadas.latitud === 'number' &&
-              typeof parada.coordenadas.longitud === 'number' &&
-              !isNaN(parada.coordenadas.latitud) &&
-              !isNaN(parada.coordenadas.longitud)) {
-            
-            // Saltar si ya existe un marcador en esas coordenadas
-            const key = coordKey(parada.coordenadas.latitud, parada.coordenadas.longitud);
-            if (coordsUsadas.has(key)) {
-              return; // Es la misma posición que el origen o parada anterior
-            }
-            coordsUsadas.add(key);
-            try {
-              const itinerarioMarker = L.marker(
-                [parada.coordenadas.latitud, parada.coordenadas.longitud],
-                { icon: this.iconoParada(orden + 1) }
-              );
-
-              itinerarioMarker.bindPopup(`
-                <div style="font-family: 'Roboto', sans-serif;">
-                  <div style="
-                    background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
-                    color: white;
-                    padding: 8px;
-                    margin: -12px -12px 8px -12px;
-                    border-radius: 12px 12px 0 0;
-                    font-weight: 600;
-                  ">
-                    🛑 PARADA ${orden + 1}
-                  </div>
-                  <div style="padding: 4px 0;">
-                    <strong style="color: #fb8c00;">${parada.nombre}</strong>
-                  </div>
-                  <div style="font-size: 11px; color: #666; margin-top: 4px;">
-                    📍 Ruta: <strong>${ruta.codigoRuta}</strong>
-                  </div>
-                </div>
-              `);
-
-              this.agregarMarcador(itinerarioMarker);
-              coordenadasRuta.push([parada.coordenadas.latitud, parada.coordenadas.longitud]);
-              paradasTotales++;
-            } catch (e) {
-              console.error('Error al agregar parada:', e);
-            }
-          }
-        });
-      }
-
-      // Marcador de destino con icono personalizado
-      if (ruta.destino?.coordenadas?.latitud && 
-          ruta.destino?.coordenadas?.longitud &&
-          typeof ruta.destino.coordenadas.latitud === 'number' &&
-          typeof ruta.destino.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.destino.coordenadas.latitud) &&
-          !isNaN(ruta.destino.coordenadas.longitud)) {
-        
-        const keyDest = coordKey(ruta.destino.coordenadas.latitud, ruta.destino.coordenadas.longitud);
-        if (!coordsUsadas.has(keyDest)) {
-          coordsUsadas.add(keyDest);
+      // Marcador de origen (solo si la coordenada no fue usada antes)
+      const latO = ruta.origen?.coordenadas?.latitud;
+      const lngO = ruta.origen?.coordenadas?.longitud;
+      if (latO != null && lngO != null && typeof latO === 'number' && typeof lngO === 'number' && !isNaN(latO) && !isNaN(lngO)) {
+        const key = coordKey(latO, lngO);
+        coordenadasRuta.push([latO, lngO]);
+        rutaTieneCoordenadas = true;
+        if (!coordsUsadas.has(key)) {
+          coordsUsadas.add(key);
           try {
-            const destMarker = L.marker(
-              [ruta.destino.coordenadas.latitud, ruta.destino.coordenadas.longitud],
-              { icon: this.iconoDestino }
-            );
-
-            destMarker.bindPopup(`
-              <div style="font-family: 'Roboto', sans-serif;">
-                <div style="
-                  background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
-                  color: white;
-                  padding: 8px;
-                  margin: -12px -12px 8px -12px;
-                  border-radius: 12px 12px 0 0;
-                  font-weight: 600;
-                ">
-                  🏁 DESTINO
-                </div>
-                <div style="padding: 4px 0;">
-                  <strong style="color: #d32f2f;">${ruta.destino.nombre}</strong>
-                </div>
-                <div style="font-size: 11px; color: #666; margin-top: 4px;">
+            const originMarker = L.marker([latO, lngO], { icon: this.iconoOrigen });
+            originMarker.bindPopup(`
+              <div style="font-family:'Roboto',sans-serif;">
+                <div style="background:linear-gradient(135deg,#00d084,#00aa66);color:white;padding:8px;margin:-12px -12px 8px -12px;border-radius:12px 12px 0 0;font-weight:600;">🚀 ORIGEN</div>
+                <div style="padding:4px 0;"><strong style="color:#00aa66;">${ruta.origen!.nombre}</strong></div>
+                <div style="font-size:11px;color:#666;margin-top:4px;">
                   📍 Ruta: <strong>${ruta.codigoRuta}</strong><br>
                   🏢 Empresa: ${ruta.empresa?.razonSocial || 'N/A'}<br>
                   📊 Estado: ${ruta.estado || 'N/A'}
                 </div>
               </div>
             `);
+            this.agregarMarcador(originMarker);
+          } catch (e) { console.error('Error al agregar origen:', e); }
+        }
+      }
 
-            this.agregarMarcador(destMarker);
-            coordenadasRuta.push([ruta.destino.coordenadas.latitud, ruta.destino.coordenadas.longitud]);
-            rutaTieneCoordenadas = true;
-          } catch (e) {
-            console.error('Error al agregar destino:', e);
+      // Marcadores de itinerario (paradas intermedias)
+      if (this.mostrarItinerario && ruta.itinerario && ruta.itinerario.length > 0) {
+        ruta.itinerario.forEach((parada, orden) => {
+          if (parada.coordenadas?.latitud && parada.coordenadas?.longitud &&
+              typeof parada.coordenadas.latitud === 'number' && typeof parada.coordenadas.longitud === 'number' &&
+              !isNaN(parada.coordenadas.latitud) && !isNaN(parada.coordenadas.longitud)) {
+            const key = coordKey(parada.coordenadas.latitud, parada.coordenadas.longitud);
+            coordenadasRuta.push([parada.coordenadas.latitud, parada.coordenadas.longitud]);
+            paradasTotales++;
+            if (!coordsUsadas.has(key)) {
+              coordsUsadas.add(key);
+              try {
+                const itinerarioMarker = L.marker([parada.coordenadas.latitud, parada.coordenadas.longitud], { icon: this.iconoParada(orden + 1) });
+                itinerarioMarker.bindPopup(`
+                  <div style="font-family:'Roboto',sans-serif;">
+                    <div style="background:linear-gradient(135deg,#ffa726,#fb8c00);color:white;padding:8px;margin:-12px -12px 8px -12px;border-radius:12px 12px 0 0;font-weight:600;">🛑 PARADA ${orden + 1}</div>
+                    <div style="padding:4px 0;"><strong style="color:#fb8c00;">${parada.nombre}</strong></div>
+                    <div style="font-size:11px;color:#666;margin-top:4px;">📍 Ruta: <strong>${ruta.codigoRuta}</strong></div>
+                  </div>
+                `);
+                this.agregarMarcador(itinerarioMarker);
+              } catch (e) { console.error('Error al agregar parada:', e); }
+            }
           }
+        });
+      }
+
+      // Marcador de destino (solo si la coordenada no fue usada antes)
+      const latD = ruta.destino?.coordenadas?.latitud;
+      const lngD = ruta.destino?.coordenadas?.longitud;
+      if (latD != null && lngD != null && typeof latD === 'number' && typeof lngD === 'number' && !isNaN(latD) && !isNaN(lngD)) {
+        const key = coordKey(latD, lngD);
+        coordenadasRuta.push([latD, lngD]);
+        rutaTieneCoordenadas = true;
+        if (!coordsUsadas.has(key)) {
+          coordsUsadas.add(key);
+          try {
+            const destMarker = L.marker([latD, lngD], { icon: this.iconoDestino });
+            destMarker.bindPopup(`
+              <div style="font-family:'Roboto',sans-serif;">
+                <div style="background:linear-gradient(135deg,#ff5252,#d32f2f);color:white;padding:8px;margin:-12px -12px 8px -12px;border-radius:12px 12px 0 0;font-weight:600;">🏁 DESTINO</div>
+                <div style="padding:4px 0;"><strong style="color:#d32f2f;">${ruta.destino!.nombre}</strong></div>
+                <div style="font-size:11px;color:#666;margin-top:4px;">
+                  📍 Ruta: <strong>${ruta.codigoRuta}</strong><br>
+                  🏢 Empresa: ${ruta.empresa?.razonSocial || 'N/A'}<br>
+                  📊 Estado: ${ruta.estado || 'N/A'}
+                </div>
+              </div>
+            `);
+            this.agregarMarcador(destMarker);
+          } catch (e) { console.error('Error al agregar destino:', e); }
         }
       }
 
       if (rutaTieneCoordenadas) {
         rutasConCoordenadas++;
-        
-        // Dibujar línea de la ruta si está habilitado y hay al menos 2 puntos
         if (this.mostrarLineas && coordenadasRuta.length >= 2) {
           this.dibujarLineaRuta(coordenadasRuta, ruta, index);
           conexionesCreadas++;
@@ -1120,20 +1107,35 @@ export class MapaRutasComponent implements OnInit, AfterViewInit, OnDestroy {
     let paradasTotales = 0;
 
     this.rutas.forEach(ruta => {
-      if ((ruta.origen?.coordenadas?.latitud && ruta.origen?.coordenadas?.longitud) ||
-          (ruta.destino?.coordenadas?.latitud && ruta.destino?.coordenadas?.longitud)) {
+      // Verificar si la ruta tiene coordenadas válidas
+      const tieneOrigen = ruta.origen?.coordenadas?.latitud && 
+                         ruta.origen?.coordenadas?.longitud &&
+                         !isNaN(ruta.origen.coordenadas.latitud) &&
+                         !isNaN(ruta.origen.coordenadas.longitud);
+                         
+      const tieneDestino = ruta.destino?.coordenadas?.latitud && 
+                          ruta.destino?.coordenadas?.longitud &&
+                          !isNaN(ruta.destino.coordenadas.latitud) &&
+                          !isNaN(ruta.destino.coordenadas.longitud);
+
+      if (tieneOrigen || tieneDestino) {
         rutasConCoordenadas++;
       }
+
+      // Contar paradas del itinerario
       if (ruta.itinerario) {
-        paradasTotales += ruta.itinerario.filter(p => 
-          p.coordenadas?.latitud && p.coordenadas?.longitud
+        paradasTotales += ruta.itinerario.filter((parada: any) => 
+          parada.coordenadas?.latitud && 
+          parada.coordenadas?.longitud &&
+          !isNaN(parada.coordenadas.latitud) &&
+          !isNaN(parada.coordenadas.longitud)
         ).length;
       }
     });
 
     this.estadisticas = {
       rutasVisibles: rutasConCoordenadas,
-      conexiones: rutasConCoordenadas,
+      conexiones: this.lineasRutas.length,
       paradasTotales: paradasTotales
     };
   }

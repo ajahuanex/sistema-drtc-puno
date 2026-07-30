@@ -6,6 +6,13 @@
 /* Importar estilos de Leaflet */
 @import 'leaflet/dist/leaflet.css';
 
+/* Estilos globales del diálogo fullscreen */
+.fullscreen-dialog .mat-mdc-dialog-container {
+  padding: 0 !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
 /* Estilos globales para iconos */
 .material-icons {
   font-family: 'Material Icons';
@@ -1819,4 +1826,33 @@ ilos para el modal de cambio de estado individual */
 .dropdown-resultados-global .resultado-item .ubicacion {
   font-size: 12px;
   color: #666;
+}
+
+/* Estilos para el diálogo fullscreen del mapa de rutas */
+.mat-dialog-container.fullscreen-dialog {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+}
+
+.cdk-overlay-pane.fullscreen-dialog {
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.cdk-global-overlay-wrapper .fullscreen-dialog {
+  pointer-events: auto !important;
+}
+
+/* Asegurar que el contenido del diálogo fullscreen ocupe todo el espacio */
+.mat-dialog-container.fullscreen-dialog > * {
+  width: 100% !important;
+  height: 100% !important;
 }

@@ -1,123 +1,125 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, Inject } from '@angular/core';
+import { Component, OnInit, Inject, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
-import * as L from 'leaflet';
 import { Ruta } from '../../models/ruta.model';
-
-// Configurar iconos de Leaflet (igual que en el componente principal)
-const iconRetinaUrl = 'assets/marker-icon-2x.png';
-const iconUrl = 'assets/marker-icon.png';
-const shadowUrl = 'assets/marker-shadow.png';
-const iconDefault = L.icon({
-  iconRetinaUrl,
-  iconUrl,
-  shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
-});
-L.Marker.prototype.options.icon = iconDefault;
+import * as L from 'leaflet';
+import 'leaflet.markercluster';
 
 @Component({
   selector: 'app-mapa-rutas-fullscreen',
   standalone: true,
   imports: [
-    CommonModule, 
-    MatButtonModule, 
-    MatIconModule, 
-    MatTooltipModule, 
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
     MatDialogModule,
     MatCheckboxModule,
-    MatSelectModule,
     MatFormFieldModule,
     FormsModule
   ],
   template: `
-    <div class="fullscreen-mapa-container">
-      <div class="mapa-header">
-        <h2>Mapa de Rutas - Pantalla Completa</h2>
-        <button 
-          mat-icon-button 
-          (click)="cerrar()"
-          matTooltip="Cerrar">
+    <div class="fullscreen-container">
+      <div class="fs-header">
+        <div class="fs-header-left">
+          <mat-icon>map</mat-icon>
+          <span>Mapa de Rutas</span>
+          <span class="rutas-badge">{{ rutasFiltradas.length }} rutas</span>
+        </div>
+        <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar">
           <mat-icon>close</mat-icon>
         </button>
       </div>
-      <div class="mapa-content">
-        <div class="mapa-sidebar">
-          <div class="sidebar-section">
-            <h3>Capas</h3>
-            <div class="layer-option">
-              <mat-checkbox 
-                [(ngModel)]="mostrarProvincias"
-                (change)="actualizarCapas()">
-                Provincias
-              </mat-checkbox>
-            </div>
-            <div class="layer-option">
-              <mat-checkbox 
-                [(ngModel)]="mostrarDistritos"
-                (change)="actualizarCapas()">
-                Distritos
-              </mat-checkbox>
-            </div>
-            <div class="layer-option">
-              <mat-checkbox 
-                [(ngModel)]="mostrarRutas"
-                (change)="actualizarCapas()">
-                Rutas
-              </mat-checkbox>
-            </div>
+
+      <div class="fs-body">
+        <div class="fs-sidebar">
+          <div class="fs-section">
+            <h4>Capas</h4>
+            <mat-checkbox [(ngModel)]="mostrarProvincias" (change)="toggleCapa('provincias')" class="fs-check">Provincias</mat-checkbox>
+            <mat-checkbox [(ngModel)]="mostrarDistritos" (change)="toggleCapa('distritos')" class="fs-check">Distritos</mat-checkbox>
+            <mat-checkbox [(ngModel)]="mostrarRutas" (change)="aplicarFiltros()" class="fs-check">Rutas</mat-checkbox>
           </div>
 
-          <div class="sidebar-section">
-            <h3>Filtros de Rutas</h3>
-            
-            <!-- Búsqueda por Origen-Destino -->
-            <div class="filter-option">
-              <label>Buscar Origen → Destino:</label>
-              <input 
-                type="text" 
-                [(ngModel)]="busquedaOrigenDestino"
-                (input)="aplicarFiltros()"
-                placeholder="Ej: Juliaca-Puno o Puno-Juliaca"
-                class="filter-input">
-              <small style="color: #666; font-size: 10px; display: block; margin-top: 4px;">
-                Busca en ambas direcciones
-              </small>
+          <div class="fs-section">
+            <h4>Filtros de Rutas</h4>
+            <div class="fs-field">
+              <label>Rutas Seleccionadas</label>
+              <!-- Chips de rutas seleccionadas -->
+              <div class="rutas-seleccionadas" *ngIf="rutasSeleccionadas.length > 0">
+                <div class="ruta-chip" *ngFor="let ruta of rutasSeleccionadas">
+                  <span>{{ ruta.origen }} → {{ ruta.destino }}</span>
+                  <button type="button" (click)="removerRutaSeleccionada(ruta)" class="chip-remove">×</button>
+                </div>
+              </div>
+              <!-- Campo de búsqueda -->
+              <div class="ruta-autocomplete-container">
+                <input type="text" 
+                       [(ngModel)]="busquedaOrigenDestino" 
+                       (input)="onBusquedaRutaChange($event)"
+                       (focus)="mostrarSugerenciasRutas = true"
+                       (blur)="ocultarSugerenciasConDelay()"
+                       placeholder="Escriba para buscar por origen o destino (ej: jul, puno...)" 
+                       class="fs-input"
+                       autocomplete="off">
+                
+                <!-- Lista de sugerencias -->
+                <div class="sugerencias-rutas" *ngIf="mostrarSugerenciasRutas && sugerenciasRutas.length > 0">
+                  <div class="sugerencia-item" 
+                       *ngFor="let sugerencia of sugerenciasRutas" 
+                       (mousedown)="agregarRutaSeleccionada(sugerencia)">
+                    <div class="ruta-origen-destino">
+                      <strong>{{ sugerencia.origen }}</strong> → <strong>{{ sugerencia.destino }}</strong>
+                    </div>
+                    <div class="ruta-detalles">
+                      <span class="ruta-empresa">{{ sugerencia.empresa }}</span>
+                      <span class="ruta-count">{{ sugerencia.count }} rutas</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <!-- Filtro por empresa con búsqueda -->
-            <div class="filter-option">
-              <label>Empresa (búsqueda):</label>
-              <input 
-                type="text" 
-                [(ngModel)]="filtroEmpresa"
-                (input)="aplicarFiltros()"
-                placeholder="Buscar empresa..."
-                class="filter-input"
-                list="empresas-list">
-              <datalist id="empresas-list">
-                <option *ngFor="let empresa of empresasUnicas" [value]="empresa">
-              </datalist>
-              <small style="color: #666; font-size: 10px; display: block; margin-top: 4px;">
-                Escribe para buscar o seleccionar
-              </small>
+            <div class="fs-field">
+              <label>Empresa</label>
+              <!-- Chips de empresas seleccionadas -->
+              <div class="rutas-seleccionadas" *ngIf="empresasSeleccionadas.length > 0">
+                <div class="ruta-chip empresa-chip-sel" *ngFor="let emp of empresasSeleccionadas">
+                  <span>{{ emp.nombre }}</span>
+                  <button type="button" (click)="removerEmpresaSeleccionada(emp)" class="chip-remove">×</button>
+                </div>
+              </div>
+              <div class="ruta-autocomplete-container">
+                <input type="text"
+                       [(ngModel)]="busquedaEmpresa"
+                       (input)="onBusquedaEmpresaChange($event)"
+                       (focus)="mostrarSugerenciasEmpresas = true"
+                       (blur)="ocultarSugerenciasConDelay()"
+                       placeholder="Buscar por empresa o RUC..."
+                       class="fs-input"
+                       autocomplete="off">
+                <div class="sugerencias-rutas" *ngIf="mostrarSugerenciasEmpresas && sugerenciasEmpresas.length > 0">
+                  <div class="sugerencia-item"
+                       *ngFor="let emp of sugerenciasEmpresas"
+                       (mousedown)="agregarEmpresaSeleccionada(emp)">
+                    <div class="ruta-origen-destino">
+                      <strong>{{ emp.nombre }}</strong>
+                    </div>
+                    <div class="ruta-detalles">
+                      <span class="ruta-count">RUC: {{ emp.ruc }}</span>
+                      <span class="ruta-empresa">{{ emp.count }} rutas</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <!-- Filtro por estado -->
-            <div class="filter-option">
-              <label>Estado:</label>
-              <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()">
+            <div class="fs-field">
+              <label>Estado</label>
+              <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" class="fs-select">
                 <option value="">Todos</option>
                 <option value="ACTIVA">Activa</option>
                 <option value="INACTIVA">Inactiva</option>
@@ -125,949 +127,1375 @@ L.Marker.prototype.options.icon = iconDefault;
                 <option value="EN_TRAMITE">En Trámite</option>
               </select>
             </div>
-
-            <!-- Filtro por tipo de ruta -->
-            <div class="filter-option">
-              <label>Tipo de Ruta:</label>
-              <select [(ngModel)]="filtroTipo" (change)="aplicarFiltros()">
-                <option value="">Todos</option>
-                <option value="URBANA">Urbana</option>
-                <option value="INTERURBANA">Interurbana</option>
-                <option value="INTERPROVINCIAL">Interprovincial</option>
-                <option value="INTERREGIONAL">Interregional</option>
-                <option value="RURAL">Rural</option>
-              </select>
-            </div>
-
-            <!-- Filtro por tipo de servicio -->
-            <div class="filter-option">
-              <label>Tipo de Servicio:</label>
-              <select [(ngModel)]="filtroServicio" (change)="aplicarFiltros()">
-                <option value="">Todos</option>
-                <option value="PASAJEROS">Pasajeros</option>
-                <option value="CARGA">Carga</option>
-                <option value="MIXTO">Mixto</option>
-              </select>
-            </div>
-
-            <!-- Filtro por origen -->
-            <div class="filter-option">
-              <label>Origen:</label>
-              <select [(ngModel)]="filtroOrigen" (change)="aplicarFiltros()">
-                <option value="">Todos</option>
-                <option *ngFor="let origen of origenesUnicos" [value]="origen">
-                  {{ origen }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Filtro por destino -->
-            <div class="filter-option">
-              <label>Destino:</label>
-              <select [(ngModel)]="filtroDestino" (change)="aplicarFiltros()">
-                <option value="">Todos</option>
-                <option *ngFor="let destino of destinosUnicos" [value]="destino">
-                  {{ destino }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Filtro por validación -->
-            <div class="filter-option">
-              <label>Validación de Datos:</label>
-              <select [(ngModel)]="filtroValidacion" (change)="aplicarFiltros()">
-                <option value="">Todos</option>
-                <option value="completo">Con coordenadas completas</option>
-                <option value="incompleto">Con datos faltantes</option>
-                <option value="sinCoordenadas">Sin coordenadas</option>
-              </select>
-            </div>
-
-            <!-- Filtro por cantidad de paradas -->
-            <div class="filter-option">
-              <label>Paradas en itinerario:</label>
-              <select [(ngModel)]="filtroParadas" (change)="aplicarFiltros()">
-                <option value="">Todas</option>
-                <option value="0">Sin paradas</option>
-                <option value="1-5">1 a 5 paradas</option>
-                <option value="6-10">6 a 10 paradas</option>
-                <option value="11+">Más de 10 paradas</option>
-              </select>
-            </div>
           </div>
 
-          <!-- Nueva sección: Opciones de visualización -->
-          <div class="sidebar-section">
-            <h3>Visualización</h3>
-            <div class="layer-option">
-              <mat-checkbox 
-                [(ngModel)]="mostrarItinerarioCompleto"
-                (change)="actualizarVisualizacion()">
-                Mostrar paradas de itinerario
-              </mat-checkbox>
-            </div>
-            <div class="layer-option">
-              <mat-checkbox 
-                [(ngModel)]="mostrarFlechas"
-                (change)="actualizarVisualizacion()">
-                Mostrar flechas direccionales
-              </mat-checkbox>
-            </div>
-            <div style="margin-top: 8px; padding: 8px; background: #fff8e1; border-radius: 4px; font-size: 11px; color: #795548; line-height: 1.4;" *ngIf="mostrarItinerarioCompleto && paradasSincronizadas === 0">
-              ⚠️ Las rutas importadas no tienen coordenadas en sus paradas. Usa el botón para sincronizarlas.
-            </div>
-            <button 
-              mat-stroked-button 
-              color="accent" 
-              style="margin-top: 8px; width: 100%; font-size: 11px;"
-              (click)="sincronizarItinerarios()"
-              [disabled]="sincronizando"
-              matTooltip="Vincula las paradas del itinerario con coordenadas de las localidades">
-              <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">sync</mat-icon>
-              {{ sincronizando ? 'Sincronizando...' : 'Sincronizar Itinerarios' }}
-            </button>
-            <div style="margin-top: 6px; font-size: 11px; color: #388e3c;" *ngIf="mensajeSincronizacion">
-              ✅ {{ mensajeSincronizacion }}
-            </div>
-          </div>
-
-          <div class="sidebar-section">
-            <h3>Información</h3>
-            <div class="info-item">
+          <div class="fs-section fs-info">
+            <div class="fs-info-row">
               <span>Rutas mostradas:</span>
               <strong>{{ rutasFiltradas.length }}</strong>
             </div>
-            <div class="info-item">
+            <div class="fs-info-row">
               <span>Total de rutas:</span>
               <strong>{{ rutas.length }}</strong>
             </div>
           </div>
 
-          <div class="sidebar-section">
-            <button mat-raised-button color="primary" (click)="limpiarFiltros()">
-              Limpiar Filtros
+          <div class="fs-section">
+            <button mat-raised-button color="warn" (click)="limpiarFiltros()" style="width:100%; margin-bottom: 8px;">
+              <mat-icon>clear</mat-icon> Limpiar filtros
+            </button>
+            <button mat-raised-button color="accent" (click)="mostrarReporteAvanzado()" style="width:100%;">
+              <mat-icon>analytics</mat-icon> Reporte Avanzado
             </button>
           </div>
         </div>
-        <div id="leaflet-map-fullscreen" class="mapa-contenedor"></div>
+
+        <div class="fs-map">
+          <div id="leaflet-map-fullscreen" class="mapa-contenedor" style="width:100%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Modal de Reporte Avanzado -->
+      <div class="reporte-modal" *ngIf="mostrarModalReporte" (click)="cerrarReporteAvanzado()">
+        <div class="reporte-content" (click)="$event.stopPropagation()">
+          <div class="reporte-header">
+            <h3><mat-icon>analytics</mat-icon> Reporte Avanzado de Rutas</h3>
+            <button mat-icon-button (click)="cerrarReporteAvanzado()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <div class="reporte-body">
+            <div class="reporte-section">
+              <h4>Resumen General</h4>
+              <div class="reporte-stats">
+                <div class="stat-card">
+                  <div class="stat-number">{{ rutasFiltradas.length }}</div>
+                  <div class="stat-label">Rutas Filtradas</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">{{ reporteData.empresasUnicas.length }}</div>
+                  <div class="stat-label">Empresas</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number">{{ reporteData.rutasUnicas.length }}</div>
+                  <div class="stat-label">Rutas Únicas</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="reporte-section">
+              <h4>Empresas por Ruta</h4>
+              <div class="empresas-por-ruta">
+                <div class="ruta-empresa-item" *ngFor="let item of reporteData.empresasPorRuta">
+                  <div class="ruta-info">
+                    <strong>{{ item.origen }} → {{ item.destino }}</strong>
+                    <span class="ruta-count">({{ item.empresas.length }} empresas)</span>
+                  </div>
+                  <div class="empresas-list">
+                    <div class="empresa-chip" *ngFor="let empresa of item.empresas">
+                      {{ empresa }}
+                    </div>
+                  </div>
+                  <div class="resoluciones-list" *ngIf="item.resoluciones && item.resoluciones.length > 0">
+                    <div class="resolucion-chip" *ngFor="let r of item.resoluciones">
+                      📜 {{ r.nro }} <span class="res-tipo">{{ r.tipo }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="reporte-section">
+              <h4>Ranking de Empresas</h4>
+              <div class="ranking-empresas">
+                <div class="empresa-ranking-item" *ngFor="let empresa of reporteData.rankingEmpresas">
+                  <div class="empresa-name">{{ empresa.nombre }}</div>
+                  <div class="empresa-count">{{ empresa.count }} rutas</div>
+                  <div class="empresa-bar">
+                    <div class="bar-fill" [style.width.%]="(empresa.count / reporteData.maxRutasPorEmpresa) * 100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .fullscreen-mapa-container {
+    :host { display: block; width: 100%; height: 100%; }
+    .fullscreen-container {
       display: flex;
       flex-direction: column;
       width: 100%;
       height: 100%;
       background: white;
     }
-
-    .mapa-header {
+    .fs-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
+      padding: 10px 16px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
     }
-
-    .mapa-header h2 {
-      margin: 0;
-      font-size: 20px;
+    .fs-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
       font-weight: 600;
     }
-
-    .mapa-header button {
-      color: white !important;
+    .rutas-badge {
+      background: rgba(255,255,255,0.25);
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
     }
-
-    .mapa-content {
+    .fs-header button { color: white !important; }
+    .fs-body {
       display: flex;
       flex: 1;
+      min-height: 0;
       overflow: hidden;
     }
-
-    .mapa-sidebar {
-      width: 300px;
-      background: white;
+    .fs-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: #fafafa;
       border-right: 1px solid #e0e0e0;
       overflow-y: auto;
-      padding: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-
-    .sidebar-section {
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .sidebar-section:last-child {
-      border-bottom: none;
-    }
-
-    .sidebar-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #2d3748;
-    }
-
-    .layer-option {
+    .fs-section {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #e8eaed;
       margin-bottom: 8px;
     }
-
-    .layer-option mat-checkbox {
-      display: block;
-    }
-
-    .filter-option {
-      margin-bottom: 12px;
-    }
-
-    .filter-option label {
-      display: block;
+    .fs-section h4 {
+      margin: 0 0 10px 0;
       font-size: 12px;
-      font-weight: 500;
-      color: #4a5568;
+      font-weight: 600;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .fs-check {
+      display: block;
       margin-bottom: 4px;
+      font-size: 13px;
     }
-
-    .filter-option select {
+    .fs-field {
+      margin-bottom: 10px;
+    }
+    .fs-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .fs-input, .fs-select {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #cbd5e0;
-      border-radius: 4px;
+      padding: 6px 8px;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
       font-size: 12px;
       background: white;
-      cursor: pointer;
+      box-sizing: border-box;
     }
-
-    .filter-option select:hover {
-      border-color: #a0aec0;
+    .fs-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
-
-    .filter-option select:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .filter-input {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #cbd5e0;
-      border-radius: 4px;
-      font-size: 12px;
-      background: white;
-    }
-
-    .filter-input:hover {
-      border-color: #a0aec0;
-    }
-
-    .filter-input:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .filter-input::placeholder {
-      color: #a0aec0;
-      font-style: italic;
-    }
-
-    .info-item {
+    .fs-info-row {
       display: flex;
       justify-content: space-between;
       font-size: 12px;
+      color: #555;
+    }
+    .fs-info-row strong {
+      color: #667eea;
+      font-size: 16px;
+    }
+    .fs-map {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      position: relative;
+    }
+    
+    /* Estilos para rutas seleccionadas (chips) */
+    .rutas-seleccionadas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
       margin-bottom: 8px;
-      color: #4a5568;
+    }
+    
+    .ruta-chip {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .chip-remove {
+      background: none;
+      border: none;
+      color: #1976d2;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .chip-remove:hover {
+      background: #1976d2;
+      color: white;
+    }
+    
+    /* Estilos para autocompletado de rutas */
+    .ruta-autocomplete-container {
+      position: relative;
+    }
+    
+    .sugerencias-rutas {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 2px;
+    }
+    
+    .sugerencia-item {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s;
+    }
+    
+    .sugerencia-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .sugerencia-item:last-child {
+      border-bottom: none;
+    }
+    
+    .ruta-origen-destino {
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    
+    .ruta-detalles {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #666;
+    }
+    
+    .ruta-empresa {
+      font-style: italic;
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .ruta-count {
+      background: #f0f0f0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: 500;
     }
 
-    .info-item strong {
-      color: #2d3748;
+    /* Estilos para modal de reporte avanzado */
+    .reporte-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .reporte-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80%;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      animation: slideUp 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .reporte-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e0e0e0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .reporte-header h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+    }
+    
+    .reporte-header button {
+      color: white !important;
+    }
+    
+    .reporte-body {
+      padding: 20px;
+    }
+    
+    .reporte-section {
+      margin-bottom: 24px;
+    }
+    
+    .reporte-section h4 {
+      margin: 0 0 12px 0;
+      color: #333;
+      font-size: 16px;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 4px;
+    }
+    
+    .reporte-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .empresas-por-ruta {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .ruta-empresa-item {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .ruta-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .ruta-count {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .empresas-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    
+    .empresa-chip {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #555;
+    }
+    
+    .resoluciones-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    
+    .resolucion-chip {
+      background: #fff8e1;
+      border: 1px solid #f9a825;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #e65100;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .res-tipo {
+      background: #f9a825;
+      color: white;
+      padding: 1px 5px;
+      border-radius: 6px;
+      font-size: 10px;
       font-weight: 600;
     }
-
-    .mapa-contenedor {
+    
+    .ranking-empresas {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .empresa-ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .empresa-name {
       flex: 1;
-      width: 100%;
-      background: #f0f0f0;
+      font-size: 13px;
+      color: #333;
     }
-
-    :host ::ng-deep .leaflet-container {
-      background: white;
-      font-family: inherit;
-    }
-
-    :host ::ng-deep mat-checkbox {
+    
+    .empresa-count {
       font-size: 12px;
+      color: #666;
+      min-width: 60px;
     }
+    
+    .empresa-bar {
+      flex: 0 0 100px;
+      height: 6px;
+      background: #f0f0f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .empresa-chip-sel {
+      background: #fce4ec;
+      color: #c2185b;
+    }
+    
+    .empresa-chip-sel .chip-remove {
+      color: #c2185b;
+    }
+    
+    .empresa-chip-sel .chip-remove:hover {
+      background: #c2185b;
+      color: white;
+    }
+
+    /* Animación gusanito para rutas de empresa — aplicada por JS vía SVG */
   `]
 })
-export class MapaRutasFullscreenComponent implements OnInit, AfterViewInit, OnDestroy {
+export class MapaRutasFullscreenComponent implements OnInit, AfterViewInit {
+
   private map: L.Map | null = null;
   private geoJsonLayers: L.GeoJSON[] = [];
-  private rutasMarkers: L.Layer[] = [];
+  private lineasRutas: L.Polyline[] = [];
+  private marcadores: L.Marker[] = [];
+  private markerClusterGroup: any = null;
+  public mapaInicializado = false;
 
-  // Capas - cambiar de signal() a boolean simple
+  // Filtros
+  busquedaOrigenDestino = '';
+  filtroEstado = '';
+
+  // Capas
   mostrarProvincias = true;
   mostrarDistritos = true;
   mostrarRutas = true;
 
-  // Filtros
-  busquedaOrigenDestino = '';
-  filtroEmpresa = '';
-  filtroEstado = '';
-  filtroTipo = '';
-  filtroServicio = '';
-  filtroOrigen = '';
-  filtroDestino = '';
-  filtroValidacion = '';
-  filtroParadas = '';
-  
   rutasFiltradas: Ruta[] = [];
 
-  // Opciones de visualización
-  mostrarItinerarioCompleto = true;
-  mostrarFlechas = true;
-  paradasSincronizadas = 0;
-  sincronizando = false;
-  mensajeSincronizacion = '';
+  // Autocompletado y selección múltiple de rutas
+  mostrarSugerenciasRutas = false;
+  sugerenciasRutas: RutaSugerencia[] = [];
+  rutasSeleccionadas: RutaSeleccionada[] = [];
+  rutasOriginales: RutaSugerencia[] = [];
+  private timeoutSugerencias: any;
 
-  // Listas únicas para selectores
-  empresasUnicas: string[] = [];
-  origenesUnicos: string[] = [];
-  destinosUnicos: string[] = [];
+  // Autocompletado y selección múltiple de empresas
+  busquedaEmpresa = '';
+  mostrarSugerenciasEmpresas = false;
+  sugerenciasEmpresas: EmpresaSugerencia[] = [];
+  empresasSeleccionadas: EmpresaSeleccionada[] = [];
+  empresasOriginales: EmpresaSugerencia[] = [];
+
+  // Reporte avanzado
+  mostrarModalReporte = false;
+  reporteData: ReporteAvanzado = {
+    empresasUnicas: [],
+    rutasUnicas: [],
+    empresasPorRuta: [],
+    rankingEmpresas: [],
+    maxRutasPorEmpresa: 0
+  };
+
+  // Intervalos de animación gusanito
+  private animacionIntervalos: any[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public rutas: Ruta[],
     private dialogRef: MatDialogRef<MapaRutasFullscreenComponent>
   ) {
-    this.rutasFiltradas = [...this.rutas];
-    this.inicializarListasUnicas();
+    console.log('🔧 MapaRutasFullscreenComponent - rutas:', this.rutas?.length);
+    this.rutasFiltradas = [...(this.rutas || [])];
+    this.inicializarRutasAutocompletado();
+    this.inicializarEmpresasAutocompletado();
   }
 
-  ngOnInit() {
-    console.log('MapaRutasFullscreenComponent - ngOnInit');
-    console.log('  Estado inicial checkboxes:');
-    console.log('    mostrarItinerarioCompleto:', this.mostrarItinerarioCompleto);
-    console.log('    mostrarFlechas:', this.mostrarFlechas);
-  }
-
-  private inicializarListasUnicas() {
-    // Extraer empresas únicas
-    const empresasSet = new Set<string>();
-    const origenesSet = new Set<string>();
-    const destinosSet = new Set<string>();
-
-    this.rutas.forEach(ruta => {
-      // Manejar razonSocial que puede ser string o objeto
-      if (ruta.empresa?.razonSocial) {
-        const razonSocial = typeof ruta.empresa.razonSocial === 'string' 
-          ? ruta.empresa.razonSocial 
-          : (ruta.empresa.razonSocial as any).principal || '';
-        if (razonSocial) {
-          empresasSet.add(razonSocial);
-        }
-      }
-      
-      if (ruta.origen?.nombre) {
-        origenesSet.add(ruta.origen.nombre);
-      }
-      if (ruta.destino?.nombre) {
-        destinosSet.add(ruta.destino.nombre);
-      }
-    });
-
-    this.empresasUnicas = Array.from(empresasSet).sort();
-    this.origenesUnicos = Array.from(origenesSet).sort();
-    this.destinosUnicos = Array.from(destinosSet).sort();
-
-    console.log('📊 Listas únicas inicializadas:');
-    console.log('  Empresas:', this.empresasUnicas.length);
-    console.log('  Orígenes:', this.origenesUnicos.length);
-    console.log('  Destinos:', this.destinosUnicos.length);
-  }
+  ngOnInit() {}
 
   ngAfterViewInit() {
-    console.log('MapaRutasFullscreenComponent - ngAfterViewInit');
     setTimeout(() => {
-      this.inicializarMapa();
-    }, 300);
+      this.inicializarMapaFullscreen();
+      this.aplicarFiltros();
+    }, 500);
   }
 
-  ngOnDestroy() {
-    if (this.map) {
-      this.map.remove();
-      this.map = null;
-    }
-    this.geoJsonLayers = [];
-    this.rutasMarkers = [];
-  }
-
-  cerrar() {
-    this.dialogRef.close();
-  }
-
-  sincronizarItinerarios() {
-    this.sincronizando = true;
-    this.mensajeSincronizacion = '';
-
-    fetch('/api/rutas/sincronizar-itinerarios', { method: 'POST' })
-      .then(res => res.json())
-      .then(data => {
-        this.paradasSincronizadas = data.total_paradas_vinculadas || 0;
-        this.mensajeSincronizacion = `${data.rutas_actualizadas} rutas y ${data.total_paradas_vinculadas} paradas vinculadas.`;
-        this.sincronizando = false;
-        console.log('✅ Sincronización:', data);
-        // Recargar el mapa con los nuevos datos
-        this.limpiarRutasMarkers();
-        // Recargar rutas desde el servidor si es posible
-        alert(`Sincronización completada:\n${data.mensaje}\n\nRecarga la página para ver los itinerarios actualizados.`);
-      })
-      .catch(err => {
-        console.error('Error sincronizando:', err);
-        this.mensajeSincronizacion = 'Error al sincronizar.';
-        this.sincronizando = false;
-      });
-  }
-
-  actualizarCapas() {
-    if (!this.map) return;
-
-    // Limpiar capas anteriores
-    this.geoJsonLayers.forEach(layer => this.map!.removeLayer(layer));
-    this.geoJsonLayers = [];
-
-    // Limpiar también las rutas al actualizar capas
-    this.limpiarRutasMarkers();
-
-    if (this.mostrarProvincias) {
-      this.cargarProvincias();
-    }
-
-    if (this.mostrarDistritos) {
-      this.cargarDistritos();
-    }
-
-    if (this.mostrarRutas) {
-      this.cargarPuntosRutas();
-    }
-  }
-
-  aplicarFiltros() {
-    console.log('🔍 APLICANDO FILTROS AVANZADOS');
-    console.log('  Búsqueda Origen-Destino:', this.busquedaOrigenDestino || 'N/A');
-    console.log('  Empresa:', this.filtroEmpresa || 'Todas');
-    console.log('  Estado:', this.filtroEstado || 'Todos');
-    console.log('  Tipo:', this.filtroTipo || 'Todos');
-    console.log('  Servicio:', this.filtroServicio || 'Todos');
-    console.log('  Origen:', this.filtroOrigen || 'Todos');
-    console.log('  Destino:', this.filtroDestino || 'Todos');
-    console.log('  Validación:', this.filtroValidacion || 'Todos');
-    console.log('  Paradas:', this.filtroParadas || 'Todas');
-    console.log('  Total rutas antes de filtrar:', this.rutas.length);
-    
-    this.rutasFiltradas = this.rutas.filter(ruta => {
-      // Filtro por búsqueda Origen-Destino (bidireccional)
-      if (this.busquedaOrigenDestino) {
-        const busqueda = this.busquedaOrigenDestino.toLowerCase();
-        const origen = (ruta.origen?.nombre || '').toLowerCase();
-        const destino = (ruta.destino?.nombre || '').toLowerCase();
-        
-        // Buscar en ambas direcciones: "origen-destino" o "destino-origen"
-        const coincideDirecto = (origen + '-' + destino).includes(busqueda) || 
-                               (origen + ' ' + destino).includes(busqueda);
-        const coincideInverso = (destino + '-' + origen).includes(busqueda) || 
-                               (destino + ' ' + origen).includes(busqueda);
-        const coincideOrigen = origen.includes(busqueda);
-        const coincideDestino = destino.includes(busqueda);
-        
-        if (!coincideDirecto && !coincideInverso && !coincideOrigen && !coincideDestino) {
-          return false;
-        }
-      }
-
-      // Filtro por empresa (búsqueda parcial)
-      if (this.filtroEmpresa) {
-        const razonSocial = typeof ruta.empresa?.razonSocial === 'string' 
-          ? ruta.empresa.razonSocial 
-          : (ruta.empresa?.razonSocial as any)?.principal || '';
-        
-        const busquedaEmpresa = this.filtroEmpresa.toLowerCase();
-        const razonSocialLower = razonSocial.toLowerCase();
-        
-        if (!razonSocialLower.includes(busquedaEmpresa)) {
-          return false;
-        }
-      }
-
-      // Filtro por estado
-      if (this.filtroEstado && ruta.estado !== this.filtroEstado) {
-        return false;
-      }
-
-      // Filtro por tipo de ruta
-      if (this.filtroTipo && ruta.tipoRuta !== this.filtroTipo) {
-        return false;
-      }
-
-      // Filtro por tipo de servicio
-      if (this.filtroServicio && ruta.tipoServicio !== this.filtroServicio) {
-        return false;
-      }
-
-      // Filtro por origen
-      if (this.filtroOrigen && ruta.origen?.nombre !== this.filtroOrigen) {
-        return false;
-      }
-
-      // Filtro por destino
-      if (this.filtroDestino && ruta.destino?.nombre !== this.filtroDestino) {
-        return false;
-      }
-
-      // Filtro por validación de datos
-      if (this.filtroValidacion) {
-        const tieneOrigenCoords = !!(ruta.origen?.coordenadas?.latitud && ruta.origen?.coordenadas?.longitud);
-        const tieneDestinoCoords = !!(ruta.destino?.coordenadas?.latitud && ruta.destino?.coordenadas?.longitud);
-        
-        if (this.filtroValidacion === 'completo') {
-          if (!tieneOrigenCoords || !tieneDestinoCoords) return false;
-        } else if (this.filtroValidacion === 'incompleto') {
-          if (tieneOrigenCoords && tieneDestinoCoords) return false;
-        } else if (this.filtroValidacion === 'sinCoordenadas') {
-          if (tieneOrigenCoords || tieneDestinoCoords) return false;
-        }
-      }
-
-      // Filtro por cantidad de paradas
-      if (this.filtroParadas) {
-        const numParadas = ruta.itinerario?.length || 0;
-        
-        if (this.filtroParadas === '0' && numParadas !== 0) return false;
-        if (this.filtroParadas === '1-5' && (numParadas < 1 || numParadas > 5)) return false;
-        if (this.filtroParadas === '6-10' && (numParadas < 6 || numParadas > 10)) return false;
-        if (this.filtroParadas === '11+' && numParadas <= 10) return false;
-      }
-
-      return true;
-    });
-    
-    console.log('  Rutas después de filtrar:', this.rutasFiltradas.length);
-
-    // Actualizar mapa con rutas filtradas
-    this.actualizarVisualizacion();
-  }
-
-  actualizarVisualizacion() {
-    console.log('🔄 Actualizando visualización');
-    console.log('  mostrarItinerarioCompleto:', this.mostrarItinerarioCompleto);
-    console.log('  mostrarFlechas:', this.mostrarFlechas);
-    console.log('  Limpiando markers...');
-    this.limpiarRutasMarkers();
-    
-    if (this.mostrarRutas) {
-      console.log('  Cargando puntos de rutas filtradas...');
-      this.cargarPuntosRutas();
-    } else {
-      console.log('  ⚠️ Checkbox "Rutas" está desmarcado, no se cargan puntos');
-    }
-  }
-
-  limpiarFiltros() {
-    this.busquedaOrigenDestino = '';
-    this.filtroEmpresa = '';
-    this.filtroEstado = '';
-    this.filtroTipo = '';
-    this.filtroServicio = '';
-    this.filtroOrigen = '';
-    this.filtroDestino = '';
-    this.filtroValidacion = '';
-    this.filtroParadas = '';
-    this.aplicarFiltros();
-  }
-
-  private limpiarRutasMarkers() {
-    this.rutasMarkers.forEach(marker => {
-      if (this.map) {
-        this.map.removeLayer(marker);
-      }
-    });
-    this.rutasMarkers = [];
-  }
-
-  inicializarMapa() {
+  private inicializarMapaFullscreen() {
     try {
       const container = document.getElementById('leaflet-map-fullscreen') as HTMLElement;
-
       if (!container) {
-        console.error('Contenedor no encontrado');
+        console.error('❌ Contenedor del mapa fullscreen no encontrado');
         return;
       }
 
-      if (container.offsetHeight === 0 || container.offsetWidth === 0) {
-        console.warn('Contenedor sin dimensiones, reintentando...');
-        setTimeout(() => this.inicializarMapa(), 200);
-        return;
-      }
-
-      // Si el mapa ya existe, removerlo primero
-      if (this.map) {
-        this.map.remove();
-        this.map = null;
-        this.geoJsonLayers = [];
-      }
+      console.log('🗺️ Inicializando mapa fullscreen');
 
       this.map = L.map(container).setView([-15.5, -70.1], 8);
+      this.mapaInicializado = true;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: 'OpenStreetMap',
         maxZoom: 19
       }).addTo(this.map);
 
-      this.cargarPoligonos();
-
-      setTimeout(() => {
-        if (this.map) {
-          this.map.invalidateSize();
-        }
-      }, 100);
+      this.cargarPoligonosFullscreen();
+      this.cargarPuntosRutasFullscreen();
 
     } catch (error) {
-      console.error('Error:', error);
+      console.error('❌ Error inicializando mapa fullscreen:', error);
     }
   }
 
-  private cargarPoligonos() {
+  private cargarPoligonosFullscreen() {
     if (!this.map) return;
 
+    console.log('🗺️ Intentando cargar polígonos fullscreen con geometrías completas');
+
     if (this.mostrarProvincias) {
-      this.cargarProvincias();
+      fetch('assets/geojson/puno-provincias-geometria.geojson')
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          if (!this.map) return;
+          const layer = L.geoJSON(data, {
+            style: { 
+              color: '#3388ff', 
+              weight: 2, 
+              opacity: 0.8, 
+              fillOpacity: 0.2,
+              fillColor: '#3388ff'
+            },
+            onEachFeature: (feature, layer) => {
+              const props = feature.properties || {};
+              layer.bindPopup(`<strong>🏛️ ${props.NOMBPROV || props.nombre || 'Provincia'}</strong>`);
+            }
+          });
+          layer.addTo(this.map!);
+          (layer as any)._capaId = 'provincias';
+          this.geoJsonLayers.push(layer);
+          console.log('✅ Provincias (polígonos) cargadas');
+        })
+        .catch(error => {
+          console.warn('⚠️ Error polígonos provincias, usando puntos:', error.message);
+          this.cargarProvinciasPuntos();
+        });
     }
 
     if (this.mostrarDistritos) {
-      this.cargarDistritos();
-    }
-
-    if (this.mostrarRutas) {
-      this.cargarPuntosRutas();
+      fetch('assets/geojson/puno-distritos-geometria.geojson')
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(data => {
+          if (!this.map) return;
+          const layer = L.geoJSON(data, {
+            style: { 
+              color: '#ff7800', 
+              weight: 1, 
+              opacity: 0.6, 
+              fillOpacity: 0.1,
+              fillColor: '#ff7800'
+            },
+            onEachFeature: (feature, layer) => {
+              const props = feature.properties || {};
+              layer.bindPopup(`<strong>🏘️ ${props.NOMBDIST || props.nombre || 'Distrito'}</strong>`);
+            }
+          });
+          layer.addTo(this.map!);
+          (layer as any)._capaId = 'distritos';
+          this.geoJsonLayers.push(layer);
+          console.log('✅ Distritos (polígonos) cargados');
+        })
+        .catch(error => {
+          console.warn('⚠️ Error polígonos distritos, usando puntos:', error.message);
+          this.cargarDistritosPuntos();
+        });
     }
   }
 
-  private cargarProvincias() {
+  private cargarProvinciasPuntos() {
     if (!this.map) return;
-
     fetch('assets/geojson/puno-provincias-point.geojson')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
         if (!this.map) return;
-        
-        const geoJsonLayer = L.geoJSON(data, {
-          style: {
-            color: '#3388ff',
-            weight: 2,
-            opacity: 0.7,
-            fillOpacity: 0.1
-          },
+        const layer = L.geoJSON(data, {
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
-            const popupContent = `
-              <div style="font-size: 12px;">
-                <strong>${props.NOMBPROV || 'Provincia'}</strong><br>
-                Código: ${props.CODPROV || 'N/A'}
-              </div>
-            `;
-            layer.bindPopup(popupContent);
+            layer.bindPopup(`<strong>📍 ${props.NOMBPROV || 'Provincia'}</strong>`);
           }
         });
-        geoJsonLayer.addTo(this.map);
-        this.geoJsonLayers.push(geoJsonLayer);
-        console.log('Provincias cargadas');
+        layer.addTo(this.map);
+        (layer as any)._capaId = 'provincias';
+        this.geoJsonLayers.push(layer);
+        console.log('✅ Provincias (puntos) cargadas como fallback');
       })
-      .catch(error => {
-        console.warn('Error cargando provincias (esto es opcional):', error.message);
-      });
+      .catch(console.warn);
   }
 
-  private cargarDistritos() {
+  private cargarDistritosPuntos() {
     if (!this.map) return;
-
     fetch('assets/geojson/puno-distritos-point.geojson')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
         if (!this.map) return;
-        
-        const geoJsonLayer = L.geoJSON(data, {
-          style: {
-            color: '#ff7800',
-            weight: 1,
-            opacity: 0.5,
-            fillOpacity: 0.05
-          },
+        const layer = L.geoJSON(data, {
           onEachFeature: (feature, layer) => {
             const props = feature.properties || {};
-            const popupContent = `
-              <div style="font-size: 12px;">
-                <strong>${props.NOMBDIST || 'Distrito'}</strong><br>
-                Provincia: ${props.NOMBPROV || 'N/A'}<br>
-                Código: ${props.CODDIST || 'N/A'}
-              </div>
-            `;
-            layer.bindPopup(popupContent);
+            layer.bindPopup(`<strong>🏘️ ${props.NOMBDIST || 'Distrito'}</strong>`);
           }
         });
-        geoJsonLayer.addTo(this.map);
-        this.geoJsonLayers.push(geoJsonLayer);
-        console.log('Distritos cargados');
+        layer.addTo(this.map);
+        (layer as any)._capaId = 'distritos';
+        this.geoJsonLayers.push(layer);
+        console.log('✅ Distritos (puntos) cargados como fallback');
       })
-      .catch(error => {
-        console.warn('Error cargando distritos (esto es opcional):', error.message);
-      });
+      .catch(console.warn);
   }
 
-  private cargarPuntosRutas() {
-    if (!this.map || !this.rutasFiltradas || this.rutasFiltradas.length === 0) {
-      console.log('⚠️ No hay rutas filtradas para mostrar');
-      console.log('  map:', !!this.map);
-      console.log('  rutasFiltradas:', this.rutasFiltradas?.length || 0);
+  private cargarPuntosRutasFullscreen() {
+    if (!this.map || !this.mapaInicializado || !this.mostrarRutas) {
+      this.limpiarMarcadoresYLineas();
+      return;
+    }
+    
+    if (!this.rutasFiltradas?.length) {
+      this.limpiarMarcadoresYLineas();
       return;
     }
 
-    console.log('🗺️ CARGANDO PUNTOS DE RUTAS FILTRADAS');
-    console.log('  Total a procesar:', this.rutasFiltradas.length);
-    console.log('  Mostrar itinerario:', this.mostrarItinerarioCompleto);
-    console.log('  Mostrar flechas:', this.mostrarFlechas);
+    console.log(`🗺️ Cargando ${this.rutasFiltradas.length} rutas filtradas`);
 
-    let puntosAgregados = 0;
-    let rutasConOrigen = 0;
-    let rutasConDestino = 0;
-    let rutasConItinerario = 0;
-    let paradasItinerario = 0;
+    this.limpiarMarcadoresYLineas();
+    this.limpiarAnimaciones();
 
+    const modoGusanito = this.empresasSeleccionadas.length > 0;
+    const rutasParaDibujar: { latOrig: number; lngOrig: number; latDest: number; lngDest: number; color: string; popupContent: string; index: number }[] = [];
+
+    this.markerClusterGroup = (L as any).markerClusterGroup({
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      iconCreateFunction: (cluster: any) => {
+        const count = cluster.getChildCount();
+        const size = count > 50 ? 60 : count > 10 ? 50 : 40;
+        return L.divIcon({
+          html: `<div style="
+            width:${size}px;height:${size}px;
+            background:linear-gradient(135deg,#667eea,#764ba2);
+            border:3px solid white;border-radius:50%;
+            box-shadow:0 4px 12px rgba(0,0,0,0.3);
+            display:flex;align-items:center;justify-content:center;
+            color:white;font-weight:bold;font-size:${count>99?12:14}px;
+          ">${count}</div>`,
+          className: '',
+          iconSize: L.point(size, size),
+          iconAnchor: L.point(size / 2, size / 2)
+        });
+      }
+    });
+
+    // Un marcador por ruta — sin deduplicar, para que el cluster cuente correctamente
     this.rutasFiltradas.forEach((ruta, index) => {
-      // Marcador de origen - con validación exhaustiva
-      if (ruta.origen?.coordenadas?.latitud && 
-          ruta.origen?.coordenadas?.longitud &&
-          typeof ruta.origen.coordenadas.latitud === 'number' &&
-          typeof ruta.origen.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.origen.coordenadas.latitud) &&
-          !isNaN(ruta.origen.coordenadas.longitud)) {
-        try {
-          const originMarker = L.circleMarker(
-            [ruta.origen.coordenadas.latitud, ruta.origen.coordenadas.longitud],
-            {
-              radius: 6,
-              fillColor: '#00aa00',
-              color: '#006600',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
-            }
-          );
-          originMarker.bindPopup(`
-            <div style="font-size: 12px;">
-              <strong>Origen: ${ruta.origen.nombre}</strong><br>
-              Ruta: ${ruta.codigoRuta}
-            </div>
-          `);
-          originMarker.addTo(this.map!);
-          this.rutasMarkers.push(originMarker);
-          puntosAgregados++;
-          rutasConOrigen++;
-        } catch (e) {
-          console.error('Error al agregar origen:', e);
-        }
+      const latOrig = ruta.origen?.coordenadas?.latitud;
+      const lngOrig = ruta.origen?.coordenadas?.longitud;
+      const latDest = ruta.destino?.coordenadas?.latitud;
+      const lngDest = ruta.destino?.coordenadas?.longitud;
+
+      const tieneOrigen = latOrig != null && lngOrig != null && !isNaN(Number(latOrig)) && !isNaN(Number(lngOrig));
+      const tieneDestino = latDest != null && lngDest != null && !isNaN(Number(latDest)) && !isNaN(Number(lngDest));
+
+      if (tieneOrigen) {
+        const marker = L.marker([Number(latOrig), Number(lngOrig)])
+          .bindPopup(`<strong>🚀 ORIGEN</strong><br>${ruta.origen!.nombre}<br><small>${ruta.codigoRuta}</small>`);
+        this.markerClusterGroup.addLayer(marker);
+        this.marcadores.push(marker);
       }
 
-      // Marcador de destino - con validación exhaustiva
-      if (ruta.destino?.coordenadas?.latitud && 
-          ruta.destino?.coordenadas?.longitud &&
-          typeof ruta.destino.coordenadas.latitud === 'number' &&
-          typeof ruta.destino.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.destino.coordenadas.latitud) &&
-          !isNaN(ruta.destino.coordenadas.longitud)) {
-        try {
-          const destMarker = L.circleMarker(
-            [ruta.destino.coordenadas.latitud, ruta.destino.coordenadas.longitud],
-            {
-              radius: 6,
-              fillColor: '#ff0000',
-              color: '#990000',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.8
-            }
-          );
-          destMarker.bindPopup(`
-            <div style="font-size: 12px;">
-              <strong>Destino: ${ruta.destino.nombre}</strong><br>
-              Ruta: ${ruta.codigoRuta}
-            </div>
-          `);
-          destMarker.addTo(this.map!);
-          this.rutasMarkers.push(destMarker);
-          rutasConDestino++;
-        } catch (e) {
-          console.error('Error al agregar destino:', e);
-        }
+      if (tieneDestino) {
+        const marker = L.marker([Number(latDest), Number(lngDest)])
+          .bindPopup(`<strong>🏁 DESTINO</strong><br>${ruta.destino!.nombre}<br><small>${ruta.codigoRuta}</small>`);
+        this.markerClusterGroup.addLayer(marker);
+        this.marcadores.push(marker);
       }
 
-      // Marcadores de itinerario - con validación exhaustiva Y checkbox
-      if (this.mostrarItinerarioCompleto && ruta.itinerario && ruta.itinerario.length > 0) {
-        let paradasConCoords = 0;
-        let paradasSinCoords = 0;
+      if (tieneOrigen && tieneDestino && this.map) {
+        const color = modoGusanito
+          ? `hsl(${(index * 60) % 360}, 90%, 50%)`
+          : `hsl(${(index * 137.5) % 360}, 70%, 45%)`;
 
-        ruta.itinerario.forEach((parada, orden) => {
-          // Intentar obtener coords directas o por objeto anidado
-          const lat = parada.coordenadas?.latitud ?? (parada as any).coordenadas?.lat;
-          const lng = parada.coordenadas?.longitud ?? (parada as any).coordenadas?.lng ?? (parada as any).coordenadas?.lon;
+        const popupContent = `<strong>🛣️ ${ruta.codigoRuta}</strong><br>${ruta.origen!.nombre} → ${ruta.destino!.nombre}<br><small>${this.obtenerNombreEmpresa(ruta)}</small>`;
 
-          if (lat !== null && lat !== undefined && lng !== null && lng !== undefined &&
-              typeof lat === 'number' && typeof lng === 'number' &&
-              !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-            try {
-              const itinerarioMarker = L.circleMarker(
-                [lat, lng],
-                { radius: 4, fillColor: '#ffaa00', color: '#ff8800', weight: 1, opacity: 1, fillOpacity: 0.7 }
-              );
-              itinerarioMarker.bindPopup(`
-                <div style="font-size: 12px;">
-                  <strong>Parada ${orden + 1}: ${parada.nombre}</strong><br>
-                  Ruta: ${ruta.codigoRuta}<br>
-                  Coords: [${lat.toFixed(4)}, ${lng.toFixed(4)}]
-                </div>
-              `);
-              itinerarioMarker.addTo(this.map!);
-              this.rutasMarkers.push(itinerarioMarker);
-              paradasConCoords++;
-            } catch (e) {
-              console.error(`Error parada ${orden + 1}:`, e);
-            }
-          } else {
-            paradasSinCoords++;
-          }
-        });
-
-        if (paradasConCoords > 0) {
-          rutasConItinerario++;
-          paradasItinerario += paradasConCoords;
-        }
-        if (paradasSinCoords > 0 && paradasConCoords === 0) {
-          console.log(`  ℹ️ Ruta ${ruta.codigoRuta}: ${paradasSinCoords} paradas sin coordenadas (importadas sin georef.)`);
-        }
-      }
-
-      // Línea conectando origen, itinerario (si está activado) y destino
-      const puntos: L.LatLngExpression[] = [];
-
-      if (ruta.origen?.coordenadas?.latitud && 
-          ruta.origen?.coordenadas?.longitud &&
-          typeof ruta.origen.coordenadas.latitud === 'number' &&
-          typeof ruta.origen.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.origen.coordenadas.latitud) &&
-          !isNaN(ruta.origen.coordenadas.longitud)) {
-        puntos.push([ruta.origen.coordenadas.latitud, ruta.origen.coordenadas.longitud]);
-      }
-
-      // Solo agregar itinerario a la línea si el checkbox está activo
-      if (this.mostrarItinerarioCompleto && ruta.itinerario && ruta.itinerario.length > 0) {
-        ruta.itinerario.forEach(parada => {
-          if (parada.coordenadas?.latitud && 
-              parada.coordenadas?.longitud &&
-              typeof parada.coordenadas.latitud === 'number' &&
-              typeof parada.coordenadas.longitud === 'number' &&
-              !isNaN(parada.coordenadas.latitud) &&
-              !isNaN(parada.coordenadas.longitud)) {
-            puntos.push([parada.coordenadas.latitud, parada.coordenadas.longitud]);
-          }
-        });
-      }
-
-      if (ruta.destino?.coordenadas?.latitud && 
-          ruta.destino?.coordenadas?.longitud &&
-          typeof ruta.destino.coordenadas.latitud === 'number' &&
-          typeof ruta.destino.coordenadas.longitud === 'number' &&
-          !isNaN(ruta.destino.coordenadas.latitud) &&
-          !isNaN(ruta.destino.coordenadas.longitud)) {
-        puntos.push([ruta.destino.coordenadas.latitud, ruta.destino.coordenadas.longitud]);
-      }
-
-      if (puntos.length > 1) {
-        try {
-          // Color único por ruta (algoritmo ángulo dorado)
-          const hue = (index * 137.5) % 360;
-          const color = `hsl(${hue}, 70%, 50%)`;
-          
-          const polyline = L.polyline(puntos, {
-            color: color,
-            weight: 2,
-            opacity: 0.7,
-            smoothFactor: 1
+        if (modoGusanito) {
+          // Acumular para dibujar en dos fases: pistas primero, gusanitos después
+          rutasParaDibujar.push({
+            latOrig: Number(latOrig), lngOrig: Number(lngOrig),
+            latDest: Number(latDest), lngDest: Number(lngDest),
+            color, popupContent, index
           });
-          
-          polyline.bindPopup(`
-            <div style="font-size: 12px;">
-              <strong>Ruta: ${ruta.codigoRuta}</strong><br>
-              ${ruta.origen?.nombre || 'N/A'} → ${ruta.destino?.nombre || 'N/A'}<br>
-              Paradas: ${ruta.itinerario?.length || 0}
-            </div>
-          `);
-          
-          polyline.addTo(this.map!);
-          this.rutasMarkers.push(polyline);
-          
-          // Agregar flechas direccionales si está activado
-          if (this.mostrarFlechas && (window as any).L && (L as any).polylineDecorator) {
-            try {
-              const decorator = (L as any).polylineDecorator(polyline, {
-                patterns: [
-                  {
-                    offset: '10%',
-                    repeat: '20%',
-                    symbol: (L as any).Symbol.arrowHead({
-                      pixelSize: 6,
-                      pathOptions: {
-                        fillOpacity: 1,
-                        weight: 0,
-                        color: color
-                      }
-                    })
-                  }
-                ]
-              });
-              decorator.addTo(this.map!);
-              this.rutasMarkers.push(decorator);
-            } catch (e) {
-              console.warn('Flechas no disponibles:', e);
-            }
-          }
-        } catch (e) {
-          console.error('Error al agregar línea:', e);
+        } else {
+          // Línea recta para vista general
+          const line = L.polyline([
+            [Number(latOrig), Number(lngOrig)],
+            [Number(latDest), Number(lngDest)]
+          ], { color, weight: 3, opacity: 0.75 }).bindPopup(popupContent);
+          line.addTo(this.map!);
+          this.lineasRutas.push(line);
         }
       }
     });
 
-    console.log('\n📊 RESUMEN DE CARGA:');
-    console.log('  ✅ Orígenes:', rutasConOrigen, '| Destinos:', rutasConDestino);
-    console.log('  ✅ Rutas con paradas georreferenciadas:', rutasConItinerario, '| Paradas:', paradasItinerario);
-    console.log('  📍 Total markers:', this.rutasMarkers.length, '| Rutas procesadas:', this.rutasFiltradas.length);
+    if (modoGusanito && rutasParaDibujar.length > 0) {
+      // Dibuja todas las pistas primero y luego todos los gusanitos encima
+      this.trazarRutasConPrioridad(rutasParaDibujar);
+    }
+
+    if (this.markerClusterGroup && this.map) {
+      this.map.addLayer(this.markerClusterGroup);
+    }
+
+    console.log(`✅ ${this.marcadores.length} marcadores y ${this.lineasRutas.length} líneas agregadas`);
+  }
+
+  aplicarFiltros() {
+    console.log('🔍 Aplicando filtros fullscreen...');
     
-    if (this.mostrarItinerarioCompleto && paradasItinerario === 0) {
-      console.warn('  ℹ️ Las rutas importadas masivamente no tienen coordenadas en sus paradas.');
-      console.warn('  ℹ️ Solo las rutas creadas manualmente con localidades vinculadas tienen coordenadas en el itinerario.');
+    this.rutasFiltradas = this.rutas.filter(ruta => {
+      // Filtrar por rutas seleccionadas si hay alguna
+      if (this.rutasSeleccionadas.length > 0) {
+        const coincideRutaSeleccionada = this.rutasSeleccionadas.some(seleccionada =>
+          (ruta.origen?.nombre === seleccionada.origen && ruta.destino?.nombre === seleccionada.destino)
+        );
+        if (!coincideRutaSeleccionada) return false;
+      }
+
+      // Filtrar por búsqueda directa (si no hay rutas seleccionadas)
+      if (this.busquedaOrigenDestino && this.rutasSeleccionadas.length === 0) {
+        const b = this.busquedaOrigenDestino.toLowerCase();
+        const o = (ruta.origen?.nombre || '').toLowerCase();
+        const d = (ruta.destino?.nombre || '').toLowerCase();
+        if (!o.includes(b) && !d.includes(b) && !(o + '-' + d).includes(b) && !(d + '-' + o).includes(b)) {
+          return false;
+        }
+      }
+
+      // Filtro por empresa (chips o texto libre)
+      if (this.empresasSeleccionadas.length > 0) {
+        const razon = typeof ruta.empresa?.razonSocial === 'string'
+          ? ruta.empresa.razonSocial
+          : (ruta.empresa?.razonSocial as any)?.principal || '';
+        const ruc = (ruta.empresa as any)?.ruc || '';
+        const coincideEmpresa = this.empresasSeleccionadas.some(e =>
+          razon.toLowerCase().includes(e.nombre.toLowerCase()) ||
+          ruc === e.ruc
+        );
+        if (!coincideEmpresa) return false;
+      }
+
+      // Filtro por estado
+      if (this.filtroEstado && ruta.estado !== this.filtroEstado) return false;
+
+      return true;
+    });
+
+    console.log(`🔍 Filtros aplicados: ${this.rutasFiltradas.length}/${this.rutas.length} rutas`);
+    console.log(`📍 Rutas seleccionadas: ${this.rutasSeleccionadas.length}`);
+
+    if (this.map && this.mapaInicializado) {
+      this.cargarPuntosRutasFullscreen();
     }
   }
+
+  toggleCapa(tipoCapa: string) {
+    console.log(`🔄 Alternando capa: ${tipoCapa}`);
+    
+    if (!this.map) return;
+
+    this.geoJsonLayers = this.geoJsonLayers.filter(layer => {
+      if ((layer as any)._capaId === tipoCapa) {
+        this.map?.removeLayer(layer);
+        return false;
+      }
+      return true;
+    });
+
+    if (tipoCapa === 'provincias' && this.mostrarProvincias) {
+      this.cargarCapaProvincias();
+    } else if (tipoCapa === 'distritos' && this.mostrarDistritos) {
+      this.cargarCapaDistritos();
+    }
+  }
+
+  private cargarCapaProvincias() {
+    if (!this.map) return;
+    
+    fetch('assets/geojson/puno-provincias-geometria.geojson')
+      .then(response => response.ok ? response.json() : Promise.reject('Error geometría'))
+      .then(data => {
+        if (!this.map) return;
+        const layer = L.geoJSON(data, {
+          style: { color: '#3388ff', weight: 2, opacity: 0.8, fillOpacity: 0.2, fillColor: '#3388ff' },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            layer.bindPopup(`<strong>🏛️ ${props.NOMBPROV || 'Provincia'}</strong>`);
+          }
+        });
+        layer.addTo(this.map);
+        (layer as any)._capaId = 'provincias';
+        this.geoJsonLayers.push(layer);
+      })
+      .catch(() => this.cargarProvinciasPuntos());
+  }
+
+  private cargarCapaDistritos() {
+    if (!this.map) return;
+    
+    fetch('assets/geojson/puno-distritos-geometria.geojson')
+      .then(response => response.ok ? response.json() : Promise.reject('Error geometría'))
+      .then(data => {
+        if (!this.map) return;
+        const layer = L.geoJSON(data, {
+          style: { color: '#ff7800', weight: 1, opacity: 0.6, fillOpacity: 0.1, fillColor: '#ff7800' },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            layer.bindPopup(`<strong>🏘️ ${props.NOMBDIST || 'Distrito'}</strong>`);
+          }
+        });
+        layer.addTo(this.map);
+        (layer as any)._capaId = 'distritos';
+        this.geoJsonLayers.push(layer);
+      })
+      .catch(() => this.cargarDistritosPuntos());
+  }
+
+  private limpiarMarcadoresYLineas() {
+    if (this.markerClusterGroup && this.map) {
+      this.map.removeLayer(this.markerClusterGroup);
+    }
+    
+    this.marcadores.forEach(m => {
+      if (this.map) {
+        this.map.removeLayer(m);
+      }
+    });
+    this.marcadores = [];
+    
+    this.lineasRutas.forEach(l => {
+      if (this.map) {
+        this.map.removeLayer(l);
+      }
+    });
+    this.lineasRutas = [];
+  }
+
+  limpiarFiltros() {
+    console.log('🧹 Limpiando filtros fullscreen');
+    this.busquedaOrigenDestino = '';
+    this.filtroEstado = '';
+    this.rutasSeleccionadas = [];
+    this.sugerenciasRutas = [];
+    this.mostrarSugerenciasRutas = false;
+    this.empresasSeleccionadas = [];
+    this.busquedaEmpresa = '';
+    this.sugerenciasEmpresas = [];
+    this.mostrarSugerenciasEmpresas = false;
+    this.aplicarFiltros();
+  }
+
+  // Métodos para autocompletado y selección múltiple de rutas
+  private inicializarRutasAutocompletado() {
+    if (!this.rutas || this.rutas.length === 0) return;
+
+    // Crear un mapa de combinaciones origen-destino únicas con todas las empresas
+    const rutasMap = new Map<string, RutaSugerencia>();
+    
+    this.rutas.forEach(ruta => {
+      const origen = ruta.origen?.nombre || 'Sin origen';
+      const destino = ruta.destino?.nombre || 'Sin destino';
+      const clave = `${origen}→${destino}`;
+      const empresa = this.obtenerNombreEmpresa(ruta);
+      
+      if (rutasMap.has(clave)) {
+        const existing = rutasMap.get(clave)!;
+        existing.count++;
+        if (!existing.empresas.includes(empresa)) {
+          existing.empresas.push(empresa);
+          existing.empresa = existing.empresas.length > 1 ? `${existing.empresas.length} empresas` : existing.empresas[0];
+        }
+      } else {
+        rutasMap.set(clave, {
+          origen,
+          destino,
+          empresa,
+          empresas: [empresa],
+          count: 1,
+          rutaCompleta: ruta
+        });
+      }
+    });
+
+    this.rutasOriginales = Array.from(rutasMap.values());
+    console.log('📋 Rutas únicas para autocompletado:', this.rutasOriginales.length);
+  }
+
+  private obtenerNombreEmpresa(ruta: Ruta): string {
+    if (!ruta.empresa?.razonSocial) return 'Sin empresa';
+    
+    if (typeof ruta.empresa.razonSocial === 'string') {
+      return ruta.empresa.razonSocial;
+    }
+    
+    return (ruta.empresa.razonSocial as any)?.principal || 'Sin empresa';
+  }
+
+  onBusquedaRutaChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value.toLowerCase().trim();
+
+    if (valor.length < 2) {
+      this.sugerenciasRutas = [];
+      this.mostrarSugerenciasRutas = false;
+      return;
+    }
+
+    // Buscar por origen o destino, excluyendo las ya seleccionadas
+    this.sugerenciasRutas = this.rutasOriginales.filter(ruta => {
+      const coincide = ruta.origen.toLowerCase().includes(valor) ||
+                       ruta.destino.toLowerCase().includes(valor);
+      const yaSeleccionada = this.rutasSeleccionadas.some(
+        s => s.origen === ruta.origen && s.destino === ruta.destino
+      );
+      return coincide && !yaSeleccionada;
+    }).slice(0, 8);
+
+    this.mostrarSugerenciasRutas = this.sugerenciasRutas.length > 0;
+  }
+
+  agregarRutaSeleccionada(sugerencia: RutaSugerencia) {
+    // Verificar que no esté ya seleccionada
+    const yaSeleccionada = this.rutasSeleccionadas.some(r =>
+      r.origen === sugerencia.origen && r.destino === sugerencia.destino
+    );
+
+    if (!yaSeleccionada) {
+      this.rutasSeleccionadas.push({ origen: sugerencia.origen, destino: sugerencia.destino });
+    }
+
+    // Limpiar campo y cerrar lista para poder seguir buscando
+    this.busquedaOrigenDestino = '';
+    this.sugerenciasRutas = [];
+    this.mostrarSugerenciasRutas = false;
+
+    this.aplicarFiltros();
+  }
+
+  removerRutaSeleccionada(ruta: RutaSeleccionada) {
+    this.rutasSeleccionadas = this.rutasSeleccionadas.filter(r => 
+      !(r.origen === ruta.origen && r.destino === ruta.destino)
+    );
+    this.aplicarFiltros();
+  }
+
+  mostrarReporteAvanzado() {
+    this.generarReporteAvanzado();
+    this.mostrarModalReporte = true;
+  }
+
+  cerrarReporteAvanzado() {
+    this.mostrarModalReporte = false;
+  }
+
+  private generarReporteAvanzado() {
+    const empresasSet = new Set<string>();
+    const rutasUnicasSet = new Set<string>();
+    const empresasPorRutaMap = new Map<string, Set<string>>();
+    const resolucionesPorRutaMap = new Map<string, Map<string, string>>();  // rutaKey -> Map<nro, tipo>
+    const conteoEmpresas = new Map<string, number>();
+
+    // Analizar rutas filtradas
+    this.rutasFiltradas.forEach(ruta => {
+      const empresa = this.obtenerNombreEmpresa(ruta);
+      const rutaKey = `${ruta.origen?.nombre || 'Sin origen'} → ${ruta.destino?.nombre || 'Sin destino'}`;
+      
+      empresasSet.add(empresa);
+      rutasUnicasSet.add(rutaKey);
+      
+      // Empresas por ruta
+      if (!empresasPorRutaMap.has(rutaKey)) {
+        empresasPorRutaMap.set(rutaKey, new Set());
+      }
+      empresasPorRutaMap.get(rutaKey)!.add(empresa);
+      
+      // Resoluciones por ruta
+      if (ruta.resolucion?.nroResolucion) {
+        if (!resolucionesPorRutaMap.has(rutaKey)) {
+          resolucionesPorRutaMap.set(rutaKey, new Map());
+        }
+        const nro = ruta.resolucion.nroResolucion;
+        const tipo = ruta.resolucion.tipoResolucion || 'N/A';
+        resolucionesPorRutaMap.get(rutaKey)!.set(nro, tipo);
+      }
+      
+      // Conteo de empresas
+      conteoEmpresas.set(empresa, (conteoEmpresas.get(empresa) || 0) + 1);
+    });
+
+    // Empresas por ruta (con resoluciones)
+    const empresasPorRuta = Array.from(empresasPorRutaMap.entries()).map(([ruta, empresas]) => {
+      const [origen, destino] = ruta.split(' → ');
+      const resolucionesMap = resolucionesPorRutaMap.get(ruta) || new Map();
+      const resoluciones = Array.from(resolucionesMap.entries()).map(([nro, tipo]) => ({ nro, tipo }));
+      return {
+        origen,
+        destino,
+        empresas: Array.from(empresas).sort(),
+        resoluciones
+      };
+    }).sort((a, b) => b.empresas.length - a.empresas.length);
+
+    // Ranking de empresas
+    const rankingEmpresas = Array.from(conteoEmpresas.entries())
+      .map(([nombre, count]) => ({ nombre, count }))
+      .sort((a, b) => b.count - a.count);
+
+    this.reporteData = {
+      empresasUnicas: Array.from(empresasSet).sort(),
+      rutasUnicas: Array.from(rutasUnicasSet).sort(),
+      empresasPorRuta,
+      rankingEmpresas,
+      maxRutasPorEmpresa: Math.max(...rankingEmpresas.map(e => e.count), 1)
+    };
+  }
+
+  ocultarSugerenciasConDelay() {
+    this.timeoutSugerencias = setTimeout(() => {
+      this.mostrarSugerenciasRutas = false;
+      this.mostrarSugerenciasEmpresas = false;
+    }, 200);
+  }
+
+  // ── Autocompletado de empresas ──────────────────────────────────────
+
+  private inicializarEmpresasAutocompletado() {
+    if (!this.rutas || this.rutas.length === 0) return;
+
+    const empresasMap = new Map<string, EmpresaSugerencia>();
+
+    this.rutas.forEach(ruta => {
+      const nombre = this.obtenerNombreEmpresa(ruta);
+      const ruc = (ruta.empresa as any)?.ruc || '';
+      const clave = ruc || nombre;
+
+      if (empresasMap.has(clave)) {
+        empresasMap.get(clave)!.count++;
+      } else {
+        empresasMap.set(clave, { nombre, ruc, count: 1 });
+      }
+    });
+
+    this.empresasOriginales = Array.from(empresasMap.values())
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    console.log('📋 Empresas para autocompletado:', this.empresasOriginales.length);
+  }
+
+  onBusquedaEmpresaChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const valor = input.value.toLowerCase().trim();
+
+    if (valor.length < 2) {
+      this.sugerenciasEmpresas = [];
+      this.mostrarSugerenciasEmpresas = false;
+      return;
+    }
+
+    this.sugerenciasEmpresas = this.empresasOriginales.filter(emp => {
+      const coincide = emp.nombre.toLowerCase().includes(valor) ||
+                       emp.ruc.includes(valor);
+      const yaSeleccionada = this.empresasSeleccionadas.some(
+        s => s.nombre === emp.nombre && s.ruc === emp.ruc
+      );
+      return coincide && !yaSeleccionada;
+    }).slice(0, 8);
+
+    this.mostrarSugerenciasEmpresas = this.sugerenciasEmpresas.length > 0;
+  }
+
+  agregarEmpresaSeleccionada(emp: EmpresaSugerencia) {
+    const yaSeleccionada = this.empresasSeleccionadas.some(
+      e => e.nombre === emp.nombre && e.ruc === emp.ruc
+    );
+    if (!yaSeleccionada) {
+      this.empresasSeleccionadas.push({ nombre: emp.nombre, ruc: emp.ruc });
+    }
+    this.busquedaEmpresa = '';
+    this.sugerenciasEmpresas = [];
+    this.mostrarSugerenciasEmpresas = false;
+    this.aplicarFiltros();
+  }
+
+  removerEmpresaSeleccionada(emp: EmpresaSeleccionada) {
+    this.empresasSeleccionadas = this.empresasSeleccionadas.filter(
+      e => !(e.nombre === emp.nombre && e.ruc === emp.ruc)
+    );
+    this.aplicarFiltros();
+  }
+
+  // ── Gusanito animado ─────────────────────────────────────────────────
+
+  private animarGusanito(line: L.Polyline, index: number) {
+    const el = (line as any)._path as SVGPathElement | undefined;
+    if (!el) return;
+
+    // Segmento visible: 8-16px, gap aleatorio amplio: 25-70px
+    const dash = 8 + Math.floor(Math.random() * 9);
+    const gap  = 25 + Math.floor(Math.random() * 46);
+    el.style.strokeDasharray = `${dash} ${gap}`;
+    el.style.transition = 'none';
+
+    // Desfase de posición inicial variado
+    let offset = Math.floor(Math.random() * 600);
+
+    // Velocidad un poco más rápida: 0.7 - 1.4 px por tick
+    const speed = 0.7 + Math.random() * 0.7;
+
+    // ← Cada gusanito arranca en un momento aleatorio (0 - 2500ms)
+    const startDelay = Math.floor(Math.random() * 2500);
+
+    const to = setTimeout(() => {
+      const step = () => {
+        offset = (offset - speed + 6000) % 6000;
+        el.style.strokeDashoffset = String(offset);
+      };
+      const id = setInterval(step, 40); // 40ms ≈ 25fps
+      this.animacionIntervalos.push(id);
+    }, startDelay);
+
+    // Guardar también el timeout para limpiarlo si se cierra antes de arrancar
+    this.animacionIntervalos.push(to as any);
+  }
+
+  // ── Routing por caminos reales (OSRM) ────────────────────────────────
+
+  // Devuelve la geometría (latlngs) de la ruta por carretera o línea recta como fallback
+  private obtenerGeometriaRuta(
+    latOrig: number, lngOrig: number,
+    latDest: number, lngDest: number
+  ): Promise<[number, number][]> {
+    const url = `https://router.project-osrm.org/route/v1/driving/${lngOrig},${latOrig};${lngDest},${latDest}?overview=full&geometries=geojson`;
+
+    return fetch(url)
+      .then(r => r.ok ? r.json() : Promise.reject(`OSRM HTTP ${r.status}`))
+      .then(data => {
+        const coords: [number, number][] = data?.routes?.[0]?.geometry?.coordinates;
+        if (!coords || coords.length === 0) throw new Error('Sin coordenadas OSRM');
+        return coords.map(([lng, lat]): [number, number] => [lat, lng]);
+      })
+      .catch(err => {
+        console.warn(`⚠️ OSRM falló (${err}), usando línea recta`);
+        return [[latOrig, lngOrig], [latDest, lngDest]] as [number, number][];
+      });
+  }
+
+  private trazarRutasConPrioridad(
+    rutas: { latOrig: number; lngOrig: number; latDest: number; lngDest: number; color: string; popupContent: string; index: number }[]
+  ) {
+    if (!this.map || rutas.length === 0) return;
+
+    // 1. Obtener todas las geometrías en paralelo
+    const promesas = rutas.map(r =>
+      this.obtenerGeometriaRuta(r.latOrig, r.lngOrig, r.latDest, r.lngDest)
+    );
+
+    Promise.all(promesas).then(geometrias => {
+      if (!this.map) return;
+
+      // 2. Primero dibujar TODAS las pistas (capa inferior)
+      geometrias.forEach(latlngs => {
+        const pista = L.polyline(latlngs, {
+          color: '#000000',
+          weight: 7,
+          opacity: 0.35
+        });
+        pista.addTo(this.map!);
+        this.lineasRutas.push(pista);
+      });
+
+      // 3. Luego dibujar TODOS los gusanitos encima
+      geometrias.forEach((latlngs, i) => {
+        if (!this.map) return;
+        const { color, popupContent, index } = rutas[i];
+        const line = L.polyline(latlngs, {
+          color,
+          weight: 5,
+          opacity: 0.9,
+          dashArray: '12 6',
+          dashOffset: '0'
+        }).bindPopup(popupContent);
+        line.addTo(this.map);
+        this.lineasRutas.push(line);
+        setTimeout(() => this.animarGusanito(line, index), 50);
+      });
+
+      console.log(`✅ ${geometrias.length} rutas dibujadas (pistas → gusanitos)`);
+    });
+  }
+
+  private limpiarAnimaciones() {
+    this.animacionIntervalos.forEach(id => {
+      clearInterval(id);
+      clearTimeout(id); // cubre los timeouts pendientes
+    });
+    this.animacionIntervalos = [];
+  }
+
+  cerrar() {
+    console.log('🚪 Cerrando mapa fullscreen');
+    if (this.timeoutSugerencias) {
+      clearTimeout(this.timeoutSugerencias);
+    }
+    this.limpiarAnimaciones();
+    if (this.map) {
+      this.map.remove();
+      this.map = null;
+    }
+    this.mapaInicializado = false;
+    this.dialogRef.close();
+  }
+}
+
+// Interfaz para las sugerencias de rutas
+interface RutaSugerencia {
+  origen: string;
+  destino: string;
+  empresa: string;
+  empresas: string[];
+  count: number;
+  rutaCompleta: Ruta;
+}
+
+interface RutaSeleccionada {
+  origen: string;
+  destino: string;
+}
+
+interface EmpresaSugerencia {
+  nombre: string;
+  ruc: string;
+  count: number;
+}
+
+interface EmpresaSeleccionada {
+  nombre: string;
+  ruc: string;
+}
+
+interface ReporteAvanzado {
+  empresasUnicas: string[];
+  rutasUnicas: string[];
+  empresasPorRuta: { origen: string; destino: string; empresas: string[]; resoluciones: { nro: string; tipo: string }[] }[];
+  rankingEmpresas: { nombre: string; count: number }[];
+  maxRutasPorEmpresa: number;
 }
