@@ -25,7 +25,26 @@ from app.models.ruta import (
 from app.utils.validacion_binaria import ValidacionBinaria
 from app.utils.buscar_localidad import buscar_localidad_por_nombre
 
+# Constantes de nombres de columnas flexibles
+KEYS_RUC = ['RUC_ASOCIADA', 'RUC', 'RUC_EMPRESA', 'RUC EMPRESA', 'RUC_ASOCIADO']
+KEYS_RESOLUCION = [
+    'RESOLUCION_ASOCIADA', 'Resolución', 'Resolucion', 'RESOLUCION',
+    'NRO_RESOLUCION', 'Resolución Primigenia', 'RESOLUCION_PRIMIGENIA',
+    'RES_PRIMIGENIA', 'NRO_RES', 'NRO RESOLUCION', 'NUMERO_RESOLUCION',
+    'RESOLUCION PRIMIGENIA', 'RES. PRIMIGENIA'
+]
+KEYS_CODIGO_RUTA = [
+    'RUTA_NUMERO', 'ID_RUTA', 'Código Ruta', 'Codigo Ruta', 'CODIGO_RUTA',
+    'NUMERO_RUTA', 'ID', 'CODIGO', 'CÓDIGO', 'RUTA', 'NRO', 'Nº', 'N°',
+    'COD', 'ITEM', 'COD_RUTA', 'NRO_RUTA', 'Nº RUTA', 'N° RUTA',
+    'CODIGO DE RUTA', 'CÓDIGO DE RUTA'
+]
+KEYS_ESTADO = ['ESTADO_RUTA', 'Estado', 'ESTADO', 'CONDICION', 'CONDICIÓN']
+
+
+
 class RutaExcelService:
+
     def __init__(self, db: AsyncIOMotorDatabase = None):
         self.db = db
         if db is not None:
@@ -153,7 +172,7 @@ class RutaExcelService:
     
     async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Procesar carga masiva de rutas desde Excel"""
-        print("🔍 DEBUG PROCESAMIENTO: Iniciando procesamiento de carga masiva")
+        print("[LOG] DEBUG PROCESAMIENTO: Iniciando procesamiento de carga masiva")
         try:
             # Primero validar el archivo
             validacion = await self.validar_archivo_excel(archivo_excel)
@@ -178,7 +197,7 @@ class RutaExcelService:
             }
             
             for ruta_data in validacion['rutas_validas']:
-                print(f"🔍 DEBUG PROCESAMIENTO: Procesando ruta con RUC {ruta_data.get('ruc')} y código {ruta_data.get('codigoRuta')}")
+                print(f"[LOG] DEBUG PROCESAMIENTO: Procesando ruta con RUC {ruta_data.get('ruc')} y código {ruta_data.get('codigoRuta')}")
                 try:
                     # Crear la ruta usando el servicio
                     ruta_creada = await self._crear_ruta_desde_datos(ruta_data)
@@ -193,7 +212,7 @@ class RutaExcelService:
                 except Exception as e:
                     resultados['fallidas'] += 1
                     resultados['errores_procesamiento'].append({
-                        'fila': ruta_data.get('fila', 'N/A'),  # ✅ NUEVO: Incluir número de fila
+                        'fila': ruta_data.get('fila', 'N/A'),  # [LOG] NUEVO: Incluir número de fila
                         'codigo_ruta': ruta_data.get('codigoRuta', 'N/A'),
                         'error': str(e)
                     })
@@ -216,7 +235,7 @@ class RutaExcelService:
         """Crear una ruta desde los datos procesados del Excel"""
         try:
             fila_num = ruta_data.get('fila', 'N/A')
-            print(f"🔍 Procesando fila {fila_num}: {ruta_data['codigoRuta']} - {ruta_data['origen']} → {ruta_data['destino']}")
+            print(f"[LOG] Procesando fila {fila_num}: {ruta_data['codigoRuta']} - {ruta_data['origen']} -> {ruta_data['destino']}")
             
             from app.services.ruta_service import RutaService
             
@@ -226,12 +245,12 @@ class RutaExcelService:
                 "estaActivo": True
             })
             
-            # ✅ CAMBIO: No rechazar si no encuentra empresa, marcar en validacionBinaria
+            # [LOG] CAMBIO: No rechazar si no encuentra empresa, marcar en validacionBinaria
             empresa_embebida = None
             empresa_validada = False
             
             if empresa:
-                print(f"🔍 DEBUG: Empresa encontrada - ID: {empresa.get('_id')}, RUC: {empresa.get('ruc')}")
+                print(f"[LOG] DEBUG: Empresa encontrada - ID: {empresa.get('_id')}, RUC: {empresa.get('ruc')}")
                 
                 razon_social_principal = "Sin razón social"
                 if 'razonSocial' in empresa:
@@ -247,7 +266,7 @@ class RutaExcelService:
                 )
                 empresa_validada = True
             else:
-                print(f"⚠️ WARNING: Empresa con RUC {ruta_data['ruc']} no encontrada - creando embebido temporal")
+                print(f"[LOG] WARNING: Empresa con RUC {ruta_data['ruc']} no encontrada - creando embebido temporal")
                 # Crear empresa embebida temporal con datos del Excel
                 empresa_embebida = EmpresaEmbebida(
                     id="",  # Sin ID indica que no está en BD
@@ -279,14 +298,14 @@ class RutaExcelService:
                     "estaActivo": True
                 })
             
-            print(f"🔍 DEBUG: Resultado búsqueda resolución: {resolucion is not None}")
+            print(f"[LOG] DEBUG: Resultado búsqueda resolución: {resolucion is not None}")
             
-            # ✅ CAMBIO: No rechazar si no encuentra resolución, marcar en validacionBinaria
+            # [LOG] CAMBIO: No rechazar si no encuentra resolución, marcar en validacionBinaria
             resolucion_embebida = None
             resolucion_validada = False
             
             if not resolucion:
-                print(f"⚠️ WARNING: Resolución {ruta_data['resolucionNormalizada']} no encontrada - creando embebido temporal")
+                print(f"[LOG] WARNING: Resolución {ruta_data['resolucionNormalizada']} no encontrada - creando embebido temporal")
                 # Crear resolución embebida temporal con datos del Excel
                 resolucion_embebida = ResolucionEmbebida(
                     id="",  # Sin ID indica que no está en BD
@@ -306,34 +325,34 @@ class RutaExcelService:
                 resolucion_validada = True
             
             # Crear empresa embebida
-            print(f"🔍 DEBUG FILA {fila_num}: Empresa embebida preparada con ID: {empresa_embebida.id}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Empresa embebida preparada con ID: {empresa_embebida.id}")
             
             # Buscar o crear localidades
-            print(f"🔍 DEBUG FILA {fila_num}: Buscando localidad origen: {ruta_data['origen']}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Buscando localidad origen: {ruta_data['origen']}")
             origen_localidad = await self._buscar_o_crear_localidad(ruta_data['origen'])
-            print(f"🔍 DEBUG FILA {fila_num}: Origen localidad obtenida: {origen_localidad.get('_id')}")
-            print(f"🔍 DEBUG FILA {fila_num}: Origen coordenadas: {origen_localidad.get('coordenadas')}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Origen localidad obtenida: {origen_localidad.get('_id')}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Origen coordenadas: {origen_localidad.get('coordenadas')}")
             
-            print(f"🔍 DEBUG FILA {fila_num}: Buscando localidad destino: {ruta_data['destino']}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Buscando localidad destino: {ruta_data['destino']}")
             destino_localidad = await self._buscar_o_crear_localidad(ruta_data['destino'])
-            print(f"🔍 DEBUG FILA {fila_num}: Destino localidad obtenida: {destino_localidad.get('_id')}")
-            print(f"🔍 DEBUG FILA {fila_num}: Destino coordenadas: {destino_localidad.get('coordenadas')}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Destino localidad obtenida: {destino_localidad.get('_id')}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Destino coordenadas: {destino_localidad.get('coordenadas')}")
             
             # Las localidades siempre se validan porque se crean si no existen
             localidades_validadas = True
             
             # Extraer coordenadas válidas
-            print(f"🔍 DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para origen...")
+            print(f"[LOG] DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para origen...")
             origen_coords = self._extraer_coordenadas_validas(origen_localidad.get("coordenadas"))
-            print(f"🔍 DEBUG FILA {fila_num}: Origen coordenadas extraídas: {origen_coords}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Origen coordenadas extraídas: {origen_coords}")
             
-            print(f"🔍 DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para destino...")
+            print(f"[LOG] DEBUG FILA {fila_num}: Extrayendo coordenadas válidas para destino...")
             destino_coords = self._extraer_coordenadas_validas(destino_localidad.get("coordenadas"))
-            print(f"🔍 DEBUG FILA {fila_num}: Destino coordenadas extraídas: {destino_coords}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Destino coordenadas extraídas: {destino_coords}")
             
-            print(f"🔍 DEBUG FILA {fila_num}: Creando LocalidadEmbebida para origen...")
+            print(f"[LOG] DEBUG FILA {fila_num}: Creando LocalidadEmbebida para origen...")
             
-            # ✅ Construir diccionario dinámicamente, solo con campos que tienen valor
+            # [LOG] Construir diccionario dinámicamente, solo con campos que tienen valor
             origen_dict = {
                 "id": str(origen_localidad["_id"]),
                 "nombre": origen_localidad["nombre"]
@@ -355,13 +374,13 @@ class RutaExcelService:
             if origen_coords is not None:
                 origen_dict["coordenadas"] = origen_coords
             
-            print(f"🔍 DEBUG FILA {fila_num}: Diccionario origen: {origen_dict}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Diccionario origen: {origen_dict}")
             origen_embebido = LocalidadEmbebida(**origen_dict)
-            print(f"🔍 DEBUG FILA {fila_num}: LocalidadEmbebida origen creada OK")
+            print(f"[LOG] DEBUG FILA {fila_num}: LocalidadEmbebida origen creada OK")
             
-            print(f"🔍 DEBUG FILA {fila_num}: Creando LocalidadEmbebida para destino...")
+            print(f"[LOG] DEBUG FILA {fila_num}: Creando LocalidadEmbebida para destino...")
             
-            # ✅ Mismo proceso para destino
+            # [LOG] Mismo proceso para destino
             destino_dict = {
                 "id": str(destino_localidad["_id"]),
                 "nombre": destino_localidad["nombre"]
@@ -383,9 +402,9 @@ class RutaExcelService:
             if destino_coords is not None:
                 destino_dict["coordenadas"] = destino_coords
             
-            print(f"🔍 DEBUG FILA {fila_num}: Diccionario destino: {destino_dict}")
+            print(f"[LOG] DEBUG FILA {fila_num}: Diccionario destino: {destino_dict}")
             destino_embebido = LocalidadEmbebida(**destino_dict)
-            print(f"🔍 DEBUG FILA {fila_num}: LocalidadEmbebida destino creada OK")
+            print(f"[LOG] DEBUG FILA {fila_num}: LocalidadEmbebida destino creada OK")
             
             # Crear frecuencia
             frecuencia = FrecuenciaServicio(
@@ -395,12 +414,12 @@ class RutaExcelService:
                 descripcion=ruta_data['frecuencia']
             )
             
-            # ✅ PARSEAR Y VINCULAR ITINERARIO DESDE EL TEXTO DEL EXCEL
+            # [LOG] PARSEAR Y VINCULAR ITINERARIO DESDE EL TEXTO DEL EXCEL
             itinerario_texto = ruta_data.get('itinerario', '')
             itinerario_vinculado = []
             
             if itinerario_texto and itinerario_texto != 'SIN ITINERARIO':
-                print(f"🗺️ DEBUG FILA {fila_num}: Parseando itinerario: '{itinerario_texto}'")
+                print(f"[LOG] DEBUG FILA {fila_num}: Parseando itinerario: '{itinerario_texto}'")
                 
                 # Separar por guiones, comas, barras
                 paradas_nombres = re.split(r'\s*[-–/,]\s*', itinerario_texto.strip())
@@ -417,7 +436,7 @@ class RutaExcelService:
                     
                     localidad_parada = None
                     if candidatos:
-                        # ✅ PRIORIDAD CORRECTA: centro_poblado > distrito > provincia
+                        # [LOG] PRIORIDAD CORRECTA: centro_poblado > distrito > provincia
                         # Centros poblados tienen coordenadas exactas, provincias/distritos son centroides
                         PRIORIDAD_TIPO = {
                             "centro_poblado": 0, "CENTRO_POBLADO": 0,
@@ -485,11 +504,11 @@ class RutaExcelService:
                                 "latitud": float(lat),
                                 "longitud": float(lng)
                             }
-                            print(f"    ✅ Parada {orden}: {nombre_parada} → coords [{lat}, {lng}]")
+                            print(f"    [LOG] Parada {orden}: {nombre_parada} -> coords [{lat}, {lng}]")
                         else:
-                            print(f"    ⚠️ Parada {orden}: {nombre_parada} → localidad sin coords")
+                            print(f"    [LOG] Parada {orden}: {nombre_parada} -> localidad sin coords")
                     else:
-                        print(f"    ℹ️ Parada {orden}: {nombre_parada} → no encontrada en BD (se guardará solo el nombre)")
+                        print(f"    [LOG] Parada {orden}: {nombre_parada} -> no encontrada en BD (se guardará solo el nombre)")
                     
                     # Agregar campos opcionales si existen
                     for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
@@ -505,13 +524,14 @@ class RutaExcelService:
                 nombre=f"{ruta_data['origen']} - {ruta_data['destino']}",
                 origen=origen_embebido,
                 destino=destino_embebido,
-                itinerario=itinerario_vinculado,  # ✅ Ahora con paradas vinculadas
+                itinerario=itinerario_vinculado,  # [LOG] Ahora con paradas vinculadas
                 empresa=empresa_embebida,
                 resolucion=resolucion_embebida,
                 frecuencia=frecuencia,
                 horarios=[],
                 tipoRuta=TipoRuta(ruta_data.get('tipoRuta', 'INTERREGIONAL')),
                 tipoServicio=TipoServicio(ruta_data.get('tipoServicio', 'PASAJEROS')),
+                estado=EstadoRuta(ruta_data.get('estado', 'ACTIVA')),
                 distancia=ruta_data.get('distancia'),
                 tiempoEstimado=ruta_data.get('tiempoEstimado'),
                 tarifaBase=ruta_data.get('tarifaBase'),
@@ -519,7 +539,7 @@ class RutaExcelService:
                 restricciones=[],
                 observaciones=ruta_data.get('observaciones'),
                 descripcion=ruta_data['itinerario'],  # Mantener el texto original también
-                # ✅ VALIDACIÓN BINARIA basada en datos encontrados
+                # [LOG] VALIDACIÓN BINARIA basada en datos encontrados
                 validacionBinaria=ValidacionBinaria.crear_binaria(
                     ruc_validado=empresa_validada,
                     resolucion_validada=resolucion_validada,
@@ -527,24 +547,24 @@ class RutaExcelService:
                 )
             )
             
-            print(f"🔍 DEBUG: RutaCreate preparada con validacionBinaria: {ruta_create.validacionBinaria}")
+            print(f"[LOG] DEBUG: RutaCreate preparada con validacionBinaria: {ruta_create.validacionBinaria}")
             print(f"  - Empresa validada: {empresa_validada}")
             print(f"  - Resolución validada: {resolucion_validada}")
             print(f"  - Localidades validadas: {localidades_validadas}")
             
             # Usar el servicio de rutas para crear
             ruta_service = RutaService(self.db)
-            print(f"🔍 DEBUG: Llamando a ruta_service.create_ruta...")
+            print(f"[LOG] DEBUG: Llamando a ruta_service.create_ruta...")
             resultado = await ruta_service.create_ruta(ruta_create)
-            print(f"🔍 DEBUG: Ruta creada exitosamente con ID: {resultado.id}")
+            print(f"[LOG] DEBUG: Ruta creada exitosamente con ID: {resultado.id}")
             return resultado
             
         except Exception as e:
             fila_num = ruta_data.get('fila', 'N/A')
             print(f"\n{'='*80}")
-            print(f"❌ ERROR FILA {fila_num}: {str(e)}")
-            print(f"❌ ERROR tipo: {type(e).__name__}")
-            print(f"❌ Datos de la ruta:")
+            print(f"[LOG] ERROR FILA {fila_num}: {str(e)}")
+            print(f"[LOG] ERROR tipo: {type(e).__name__}")
+            print(f"[LOG] Datos de la ruta:")
             print(f"   - RUC: {ruta_data.get('ruc')}")
             print(f"   - Resolución: {ruta_data.get('resolucionNormalizada')}")
             print(f"   - Código: {ruta_data.get('codigoRuta')}")
@@ -552,7 +572,7 @@ class RutaExcelService:
             print(f"   - Destino: {ruta_data.get('destino')}")
             print(f"{'='*80}\n")
             import traceback
-            print(f"❌ Traceback completo:")
+            print(f"[LOG] Traceback completo:")
             traceback.print_exc()
             raise e
     
@@ -637,7 +657,7 @@ class RutaExcelService:
         
         # Detectar tipo automáticamente basado en el prefijo del nombre
         tipo_localidad = self._detectar_tipo_localidad(nombre_localidad)
-        print(f"🏘️ TIPO DETECTADO: {nombre_localidad} -> {tipo_localidad}")
+        print(f"[LOG] TIPO DETECTADO: {nombre_localidad} -> {tipo_localidad}")
         
         # Si no existe, crear nueva localidad con departamento PUNO por defecto
         nueva_localidad = {
@@ -664,56 +684,56 @@ class RutaExcelService:
         Extraer coordenadas solo si tienen valores válidos.
         Retorna None si las coordenadas son inválidas o están vacías.
         """
-        # print(f"  🔍 _extraer_coordenadas_validas: Input type: {type(coordenadas)}, value: {coordenadas}")
+        # print(f"  [LOG] _extraer_coordenadas_validas: Input type: {type(coordenadas)}, value: {coordenadas}")
         
         if coordenadas is None:
-            # print(f"  ✅ Coordenadas is None, returning None")
+            # print(f"  [LOG] Coordenadas is None, returning None")
             return None
         
-        # ✅ NUEVO: Si es un objeto Pydantic/Coordenadas, convertir a dict
+        # [LOG] NUEVO: Si es un objeto Pydantic/Coordenadas, convertir a dict
         if hasattr(coordenadas, 'model_dump'):
-            # print(f"  🔄 Convirtiendo objeto Pydantic a dict con model_dump()")
+            # print(f"  [LOG] Convirtiendo objeto Pydantic a dict con model_dump()")
             try:
                 coordenadas = coordenadas.model_dump()
-                # print(f"  ✅ Convertido a dict: {coordenadas}")
+                # print(f"  [LOG] Convertido a dict: {coordenadas}")
             except Exception as e:
-                # print(f"  ⚠️ Error en model_dump(): {e}")
+                # print(f"  [LOG] Error en model_dump(): {e}")
                 # Intentar con __dict__
                 if hasattr(coordenadas, '__dict__'):
                     coordenadas = coordenadas.__dict__
-                    # print(f"  ✅ Convertido con __dict__: {coordenadas}")
+                    # print(f"  [LOG] Convertido con __dict__: {coordenadas}")
         
-        # ✅ NUEVO: Si tiene atributos latitud/longitud pero no es dict, convertir
+        # [LOG] NUEVO: Si tiene atributos latitud/longitud pero no es dict, convertir
         if not isinstance(coordenadas, dict):
             if hasattr(coordenadas, 'latitud') and hasattr(coordenadas, 'longitud'):
-                # print(f"  🔄 Convirtiendo objeto con atributos a dict")
+                # print(f"  [LOG] Convirtiendo objeto con atributos a dict")
                 try:
                     coordenadas = {
                         "latitud": getattr(coordenadas, 'latitud'),
                         "longitud": getattr(coordenadas, 'longitud')
                     }
-                    # print(f"  ✅ Convertido a dict: {coordenadas}")
+                    # print(f"  [LOG] Convertido a dict: {coordenadas}")
                 except Exception as e:
-                    # print(f"  ⚠️ Error convirtiendo atributos: {e}")
+                    # print(f"  [LOG] Error convirtiendo atributos: {e}")
                     return None
             else:
-                # print(f"  ⚠️ No es dict y no tiene atributos latitud/longitud, returning None")
+                # print(f"  [LOG] No es dict y no tiene atributos latitud/longitud, returning None")
                 return None
         
         latitud = coordenadas.get("latitud")
         longitud = coordenadas.get("longitud")
         
-        # print(f"  🔍 latitud: {latitud} (type: {type(latitud)})")
-        # print(f"  🔍 longitud: {longitud} (type: {type(longitud)})")
+        # print(f"  [LOG] latitud: {latitud} (type: {type(latitud)})")
+        # print(f"  [LOG] longitud: {longitud} (type: {type(longitud)})")
         
         # Si ambos son None o no existen, retornar None
         if latitud is None and longitud is None:
-            # print(f"  ✅ Ambos son None, returning None")
+            # print(f"  [LOG] Ambos son None, returning None")
             return None
         
         # Si alguno es None, también retornar None (coordenadas incompletas)
         if latitud is None or longitud is None:
-            # print(f"  ⚠️ Coordenadas incompletas, returning None")
+            # print(f"  [LOG] Coordenadas incompletas, returning None")
             return None
         
         # Ambos tienen valores, retornar el diccionario
@@ -722,15 +742,15 @@ class RutaExcelService:
                 "latitud": float(latitud),
                 "longitud": float(longitud)
             }
-            # print(f"  ✅ Coordenadas válidas extraídas: {result}")
+            # print(f"  [LOG] Coordenadas válidas extraídas: {result}")
             return result
         except (ValueError, TypeError) as e:
-            # print(f"  ❌ Error convirtiendo coordenadas a float: {e}")
+            # print(f"  [LOG] Error convirtiendo coordenadas a float: {e}")
             return None
     
     async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
         """Validar archivo Excel de rutas"""
-        print("🔍 DEBUG VALIDACIÓN: Iniciando validación de archivo Excel")
+        print("[LOG] DEBUG VALIDACIÓN: Iniciando validación de archivo Excel")
         try:
             # Intentar leer diferentes hojas
             df = None
@@ -748,16 +768,27 @@ class RutaExcelService:
                         df = pd.read_excel(archivo_excel)
                         sheet_name_used = 'Hoja por defecto'
                     except Exception as e3:
-                        return {
-                            'error': f'No se pudo leer el archivo Excel. Errores: DATOS={str(e1)}, Índice0={str(e2)}, Default={str(e3)}',
-                            'total_filas': 0,
-                            'validos': 0,
-                            'invalidos': 0,
-                            'con_advertencias': 0,
-                            'errores': [],
-                            'advertencias': [],
-                            'rutas_validas': []
-                        }
+                        # Intentar leer como CSV si falla Excel
+                        try:
+                            archivo_excel.seek(0)
+                            df = pd.read_csv(archivo_excel, encoding='utf-8')
+                            sheet_name_used = 'Archivo CSV (utf-8)'
+                        except Exception as e_csv1:
+                            try:
+                                archivo_excel.seek(0)
+                                df = pd.read_csv(archivo_excel, encoding='latin-1')
+                                sheet_name_used = 'Archivo CSV (latin-1)'
+                            except Exception as e_csv2:
+                                return {
+                                    'error': f'No se pudo leer el archivo Excel o CSV. Errores: DATOS={str(e1)}, CSV={str(e_csv1)}',
+                                    'total_filas': 0,
+                                    'validos': 0,
+                                    'invalidos': 0,
+                                    'con_advertencias': 0,
+                                    'errores': [],
+                                    'advertencias': [],
+                                    'rutas_validas': []
+                                }
             
             if df is None or df.empty:
                 return {
@@ -810,8 +841,8 @@ class RutaExcelService:
                 'rutas_validas': []
             }
             
-            # ✅ AGREGAR SEGUIMIENTO DE CÓDIGOS POR RESOLUCIÓN
-            codigos_por_resolucion = {}  # {resolucion_normalizada: {codigo_normalizado: fila_num}}
+            # [LOG] AGREGAR SEGUIMIENTO DE CÓDIGOS POR RUC + RESOLUCIÓN + CÓDIGO
+            codigos_por_empresa_res = {}  # {(ruc, resolucion_normalizada, codigo_normalizado): fila_num}
             
             # Procesar todas las filas
             for index, row in df.iterrows():
@@ -826,42 +857,57 @@ class RutaExcelService:
                 except Exception as e:
                     errores_fila = [f"Error en validación: {str(e)}"]
                 
-                # ✅ VALIDAR CÓDIGOS ÚNICOS POR RESOLUCIÓN EN EL EXCEL
+                # [LOG] VALIDAR CÓDIGOS ÚNICOS POR RUC + RESOLUCIÓN + CÓDIGO EN EL EXCEL (SOLO PARA RUTAS ACTIVAS)
                 if not errores_fila:  # Solo si no hay errores básicos
                     try:
-                        # Obtener datos normalizados
-                        resolucion_raw = str(row.get('Resolución', '')).strip() if pd.notna(row.get('Resolución')) else ''
-                        codigo_raw = str(row.get('Código Ruta', '')).strip() if pd.notna(row.get('Código Ruta')) else ''
+                        ruc_raw = self._get_val(row, KEYS_RUC, pos_index=0)
+                        resolucion_raw = self._get_val(row, KEYS_RESOLUCION, pos_index=2)
+                        codigo_raw = self._get_val(row, KEYS_CODIGO_RUTA, pos_index=3)
                         
-                        if resolucion_raw and codigo_raw:
+                        # Verificar si es una ruta cancelada o inactiva
+                        es_cancelada = self._es_fila_con_guiones(row)
+                        estado_temp = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
+                        es_inactiva_o_cancelada = es_cancelada or estado_temp in ['CANCELADA', 'INACTIVA']
+                        
+                        # Las rutas CANCELADAS pueden repetirse porque quedan para el histórico
+                        if ruc_raw and resolucion_raw and codigo_raw and not es_inactiva_o_cancelada:
                             resolucion_normalizada = self._normalizar_resolucion(resolucion_raw)
                             codigo_normalizado = self._normalizar_codigo_ruta(codigo_raw)
+                            clave_unica = (ruc_raw, resolucion_normalizada, codigo_normalizado)
                             
-                            if resolucion_normalizada and codigo_normalizado:
-                                # Verificar si ya existe este código en esta resolución
-                                if resolucion_normalizada not in codigos_por_resolucion:
-                                    codigos_por_resolucion[resolucion_normalizada] = {}
-                                
-                                if codigo_normalizado in codigos_por_resolucion[resolucion_normalizada]:
-                                    fila_anterior = codigos_por_resolucion[resolucion_normalizada][codigo_normalizado]
-                                    errores_fila.append(f"Código de ruta {codigo_normalizado} duplicado en resolución {resolucion_normalizada} (ya usado en fila {fila_anterior})")
-                                else:
-                                    codigos_por_resolucion[resolucion_normalizada][codigo_normalizado] = fila_num
+                            if clave_unica in codigos_por_empresa_res:
+                                fila_anterior = codigos_por_empresa_res[clave_unica]
+                                errores_fila.append(f"Ruta activa duplicada en el archivo: Código '{codigo_normalizado}' para RUC {ruc_raw} y resolución {resolucion_normalizada} (ya usado en fila {fila_anterior})")
+                            else:
+                                codigos_por_empresa_res[clave_unica] = fila_num
                     except Exception as e:
                         advertencias_fila.append(f"No se pudo validar unicidad de código: {str(e)}")
+
                 
                 if errores_fila:
                     resultados['invalidos'] += 1
-                    codigo_ruta = str(row.get('Código Ruta', 'N/A')).strip()
+                    codigo_ruta = self._get_val(row, KEYS_CODIGO_RUTA, default='N/A', pos_index=3)
+                    ruc_val = self._get_val(row, KEYS_RUC, default='N/A', pos_index=0)
+                    res_val = self._get_val(row, KEYS_RESOLUCION, default='N/A', pos_index=2)
+                    orig_val = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'], default='N/A')
+                    dest_val = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'], default='N/A')
+                    est_val = self._get_val(row, KEYS_ESTADO, default='ACTIVA')
+                    
                     resultados['errores'].append({
                         'fila': fila_num,
                         'codigo_ruta': codigo_ruta,
+                        'ruc': ruc_val,
+                        'resolucion': res_val,
+                        'origen': orig_val,
+                        'destino': dest_val,
+                        'estado': est_val,
+                        'error': ', '.join(errores_fila),
                         'errores': errores_fila
                     })
                 else:
                     if advertencias_fila:
                         resultados['con_advertencias'] += 1
-                        codigo_ruta = str(row.get('Código Ruta', 'N/A')).strip()
+                        codigo_ruta = self._get_val(row, KEYS_CODIGO_RUTA, default='N/A', pos_index=3)
                         resultados['advertencias'].append({
                             'fila': fila_num,
                             'codigo_ruta': codigo_ruta,
@@ -877,15 +923,30 @@ class RutaExcelService:
                         print(f"DEBUG: Error al convertir fila {fila_num}: {str(e)}")
                         resultados['validos'] -= 1
                         resultados['invalidos'] += 1
-                        codigo_ruta = str(row.get('Código Ruta', 'N/A')).strip()
+                        codigo_ruta = self._get_val(row, KEYS_CODIGO_RUTA, default='N/A', pos_index=3)
+                        ruc_val = self._get_val(row, KEYS_RUC, default='N/A', pos_index=0)
+                        res_val = self._get_val(row, KEYS_RESOLUCION, default='N/A', pos_index=2)
+                        orig_val = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'], default='N/A')
+                        dest_val = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'], default='N/A')
+                        est_val = self._get_val(row, KEYS_ESTADO, default='ACTIVA')
+                        
                         resultados['errores'].append({
                             'fila': fila_num,
                             'codigo_ruta': codigo_ruta,
+                            'ruc': ruc_val,
+                            'resolucion': res_val,
+                            'origen': orig_val,
+                            'destino': dest_val,
+                            'estado': est_val,
+                            'error': f"Error al procesar ruta: {str(e)}",
                             'errores': [f"Error al procesar ruta: {str(e)}"]
                         })
+
+
             
-            # ✅ AGREGAR RESUMEN DE CÓDIGOS POR RESOLUCIÓN
-            print(f"DEBUG: Códigos por resolución encontrados: {codigos_por_resolucion}")
+            # [LOG] AGREGAR RESUMEN DE CÓDIGOS POR RUC + RESOLUCIÓN
+            print(f"DEBUG: Códigos por RUC y resolución encontrados: {codigos_por_empresa_res}")
+
             
             print(f"DEBUG: Resultados finales: {resultados}")
             return resultados
@@ -905,6 +966,60 @@ class RutaExcelService:
                 'rutas_validas': []
             }
     
+    def _get_val(self, row: Any, keys: List[str], default: str = "", pos_index: int = None) -> str:
+        """Extrae un valor soportando nombres flexibles, cabeceras oficiales de Google Sheets y posición de columna (A=0, B=1, C=2, D=3, etc.)"""
+        if isinstance(row, dict):
+            d = row
+        elif hasattr(row, 'to_dict'):
+            d = row.to_dict()
+        else:
+            try:
+                d = dict(row)
+            except:
+                d = {}
+
+        # Búsqueda directa por clave exacta
+        for k in keys:
+            if k in d and d[k] is not None and pd.notna(d[k]):
+                v = str(d[k]).strip()
+                if v and v.lower() not in ['nan', 'none', 'null']:
+                    return v
+
+        # Búsqueda normalizada (insensible a mayúsculas, acentos, espacios y guiones)
+        norm_map = {}
+        for k, v in d.items():
+            if pd.notna(v):
+                norm_key = re.sub(r'[^A-Z0-9]', '', str(k).upper())
+                norm_map[norm_key] = str(v).strip()
+
+        for k in keys:
+            norm_search = re.sub(r'[^A-Z0-9]', '', str(k).upper())
+            if norm_search in norm_map:
+                val = norm_map[norm_search]
+                if val and val.lower() not in ['nan', 'none', 'null']:
+                    return val
+
+        # Fallback posicional si pos_index fue provisto (ej. D = 3)
+        if pos_index is not None:
+            try:
+                if isinstance(row, pd.Series) and len(row) > pos_index:
+                    val_pos = row.iloc[pos_index]
+                    if pd.notna(val_pos):
+                        v = str(val_pos).strip()
+                        if v and v.lower() not in ['nan', 'none', 'null']:
+                            return v
+                elif hasattr(row, 'values') and len(row.values) > pos_index:
+                    val_pos = row.values[pos_index]
+                    if pd.notna(val_pos):
+                        v = str(val_pos).strip()
+                        if v and v.lower() not in ['nan', 'none', 'null']:
+                            return v
+            except Exception:
+                pass
+
+        return default
+
+
     def _validar_fila_ruta(self, row: pd.Series, fila_num: int) -> Tuple[List[str], List[str]]:
         """Validar una fila de ruta"""
         errores = []
@@ -913,9 +1028,10 @@ class RutaExcelService:
         # Verificar si es una fila con guiones (ruta cancelada)
         es_ruta_cancelada = self._es_fila_con_guiones(row)
         
-        # Obtener datos básicos
-        ruc = str(row.get('RUC', '')).strip() if pd.notna(row.get('RUC')) else ''
-        resolucion = str(row.get('Resolución', '')).strip() if pd.notna(row.get('Resolución')) else ''
+        # Obtener datos básicos con alias flexibles y fallback posicional (A=0, C=2, D=3)
+        ruc = self._get_val(row, KEYS_RUC, pos_index=0)
+        resolucion = self._get_val(row, KEYS_RESOLUCION, pos_index=2)
+        codigo_ruta = self._get_val(row, KEYS_CODIGO_RUTA, pos_index=3)
         
         # Validar RUC (requerido)
         if not ruc:
@@ -923,12 +1039,11 @@ class RutaExcelService:
         elif not self._validar_formato_ruc(ruc):
             errores.append(f"Formato de RUC inválido: {ruc}")
         
-        # Validar Resolución (requerido)
-        if not resolucion:
-            errores.append("Resolución es requerida")
+        # Validar Resolución (requerido en todas las rutas, incluidas canceladas)
+        if not resolucion or not self._validar_formato_resolucion(resolucion):
+            errores.append(f"Resolución inválida o con guión ('{resolucion}'). Debe tener estructura válida de resolución (ej: 0123-2026 o R-0123-2026), no se permite '-'")
         
         # Validar código de ruta (requerido)
-        codigo_ruta = str(row.get('Código Ruta', '')).strip() if pd.notna(row.get('Código Ruta')) else ''
         if not codigo_ruta:
             errores.append("Código de ruta es requerido")
         elif not self._validar_formato_codigo_ruta(codigo_ruta):
@@ -936,60 +1051,63 @@ class RutaExcelService:
         
         if es_ruta_cancelada:
             # Para rutas canceladas, solo validar campos básicos y marcar como cancelada
-            advertencias.append("Ruta detectada como CANCELADA (contiene guiones)")
+            advertencias.append("Ruta detectada como CANCELADA (contiene guiones o estado INACTIVA/CANCELADA)")
             
-            # Validar que al menos origen o destino no sean guiones
-            origen = str(row.get('Origen', '')).strip() if pd.notna(row.get('Origen')) else ''
-            destino = str(row.get('Destino', '')).strip() if pd.notna(row.get('Destino')) else ''
+            origen = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
+            destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
             
-            if origen == '-' and destino == '-':
-                errores.append("Al menos origen o destino debe estar especificado (no ambos pueden ser guiones)")
+            if (origen and destino 
+                and origen.strip() not in ['-', '', 'nan', 'null'] 
+                and destino.strip() not in ['-', '', 'nan', 'null']
+                and origen.strip().upper() == destino.strip().upper()):
+                errores.append(f"El origen y destino no pueden ser la misma localidad (ambos son '{origen}')")
         else:
             # Verificar si el estado indica que es una ruta inactiva/cancelada
-            estado_temp = str(row.get('Estado', 'ACTIVA')).strip().upper() if pd.notna(row.get('Estado')) else 'ACTIVA'
+            estado_temp = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
             es_estado_inactivo = estado_temp in ['INACTIVA', 'CANCELADA']
             
             if es_estado_inactivo:
-                # Para rutas con estado INACTIVA/CANCELADA, ser más flexible con validaciones
                 advertencias.append(f"Ruta con estado {estado_temp} - validaciones relajadas")
                 
-                # Validar origen (más flexible para rutas inactivas)
-                origen = str(row.get('Origen', '')).strip() if pd.notna(row.get('Origen')) else ''
+                origen = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
                 if not origen:
                     advertencias.append("Origen no especificado para ruta inactiva")
                 
-                # Validar destino (más flexible para rutas inactivas)
-                destino = str(row.get('Destino', '')).strip() if pd.notna(row.get('Destino')) else ''
+                destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
                 if not destino:
                     advertencias.append("Destino no especificado para ruta inactiva")
-                elif origen == destino:
-                    advertencias.append("Origen y destino son iguales")
+                elif (origen and destino 
+                      and origen.strip() not in ['-', '', 'nan', 'null'] 
+                      and destino.strip() not in ['-', '', 'nan', 'null']
+                      and origen.strip().upper() == destino.strip().upper()):
+                    errores.append(f"El origen y destino no pueden ser la misma localidad (ambos son '{origen}')")
                 
-                # Validar frecuencia (más flexible para rutas inactivas)
-                frecuencia = str(row.get('Frecuencia', '')).strip() if pd.notna(row.get('Frecuencia')) else ''
+                frecuencia = self._get_val(row, ['RUTA_FRECUENCIA', 'Frecuencia', 'FRECUENCIA'])
                 if not frecuencia:
                     advertencias.append("Frecuencia no especificada para ruta inactiva")
             else:
-                # Validación normal para rutas activas
-                # Validar origen (requerido)
-                origen = str(row.get('Origen', '')).strip() if pd.notna(row.get('Origen')) else ''
+                origen = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
                 if not origen:
                     errores.append("Origen es requerido")
                 
-                # Validar destino (requerido)
-                destino = str(row.get('Destino', '')).strip() if pd.notna(row.get('Destino')) else ''
+                destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
                 if not destino:
                     errores.append("Destino es requerido")
-                elif origen == destino:
-                    advertencias.append("Origen y destino son iguales")
+                elif (origen and destino 
+                      and origen.strip() not in ['-', '', 'nan', 'null'] 
+                      and destino.strip() not in ['-', '', 'nan', 'null']
+                      and origen.strip().upper() == destino.strip().upper()):
+                    errores.append(f"El origen y destino no pueden ser la misma localidad (ambos son '{origen}')")
+
+
                 
-                # Validar frecuencia (requerido)
-                frecuencia = str(row.get('Frecuencia', '')).strip() if pd.notna(row.get('Frecuencia')) else ''
+                frecuencia = self._get_val(row, ['RUTA_FRECUENCIA', 'Frecuencia', 'FRECUENCIA'])
                 if not frecuencia:
                     errores.append("Frecuencia es requerida")
         
         # Validar itinerario (opcional)
-        itinerario = str(row.get('Itinerario', '')).strip() if pd.notna(row.get('Itinerario')) else ''
+        itinerario = self._get_val(row, ['RUTA_ITINERARIO', 'Itinerario', 'ITINERARIO', 'TRAMOS'])
+
         if not itinerario:
             if es_ruta_cancelada:
                 advertencias.append("Itinerario no especificado para ruta cancelada, se usará 'RUTA CANCELADA'")
@@ -1008,11 +1126,6 @@ class RutaExcelService:
             errores.append(f"Tipo de servicio inválido: {tipo_servicio}. Valores válidos: {', '.join([e.value for e in TipoServicio])}")
         
         estado = str(row.get('Estado', 'ACTIVA')).strip().upper() if pd.notna(row.get('Estado')) else 'ACTIVA'
-        # Normalizar CANCELADA a INACTIVA
-        if estado == 'CANCELADA':
-            estado = 'INACTIVA'
-            advertencias.append("Estado 'CANCELADA' normalizado a 'INACTIVA'")
-        
         if estado and estado not in [e.value for e in EstadoRuta]:
             errores.append(f"Estado inválido: {estado}. Valores válidos: {', '.join([e.value for e in EstadoRuta])}")
         
@@ -1037,73 +1150,60 @@ class RutaExcelService:
         """Validar formato de RUC: 11 dígitos"""
         return ruc.isdigit() and len(ruc) == 11
     
-    def _normalizar_resolucion(self, resolucion: str) -> str:
-        """Normalizar formato de resolución a R-XXXX-YYYY (mínimo 4 dígitos, puede ser 5 o 6)"""
-        # ✅ PROTECCIÓN CONTRA VALORES NULOS
-        if resolucion is None:
-            return ""
-        
-        # Remover espacios y convertir a mayúsculas
-        resolucion = str(resolucion).strip().upper()
-        
-        # ✅ VERIFICAR QUE NO ESTÉ VACÍO DESPUÉS DEL STRIP
+    def _validar_formato_resolucion(self, resolucion: str) -> bool:
+        """Validar que la resolución tenga formato estructural válido (ej: 0123-2026, R-0123-2026) y NO sea '-'"""
         if not resolucion:
+            return False
+        res_clean = str(resolucion).strip()
+        if not res_clean or res_clean in ['-', '--', '---', 'NAN', 'NULL', 'NONE']:
+            return False
+        # Debe contener al menos dígitos numéricos indicando número o año de resolución
+        if not re.search(r'\d', res_clean):
+            return False
+        return True
+
+    def _normalizar_resolucion(self, resolucion: str) -> str:
+        """
+        Normalizar formato de resolución a R-XXXX-YYYY
+        Limpia sufijos institucionales (ej: -DRTC, -GRTC, -MTC, /DRTC, DRTC, etc.)
+        """
+        if not resolucion or not self._validar_formato_resolucion(resolucion):
             return ""
         
-        # Si ya tiene el formato correcto R-XXXX-YYYY (4+ dígitos), devolverlo
-        if re.match(r'^R-\d{4,6}-\d{4}$', resolucion):
-            return resolucion
+        res_str = str(resolucion).strip().upper()
         
-        # Si tiene formato XXXX-YYYY (4+ dígitos sin R-), agregar R-
-        if re.match(r'^\d{4,6}-\d{4}$', resolucion):
-            return f"R-{resolucion}"
-        
-        # Si tiene formato R-XXX-YYYY (3 dígitos), convertir a 4 dígitos
-        match = re.match(r'^R-(\d{3})-(\d{4})$', resolucion)
+        # Buscar patrón de número y año (ej: 0685-2021-DRTC -> num: 0685, anio: 2021)
+        match = re.search(r'(?:R-|\b)(\d{1,6})[-/](\d{4})', res_str)
         if match:
-            return f"R-0{match.group(1)}-{match.group(2)}"
+            num_str = match.group(1)
+            anio_str = match.group(2)
+            # Rellenar con ceros a la izquierda a mínimo 4 dígitos (0685)
+            num_formatted = f"{int(num_str):04d}" if len(num_str) <= 4 else num_str
+            return f"R-{num_formatted}-{anio_str}"
         
-        # Si tiene formato XXX-YYYY (3 dígitos), convertir a R-0XXX-YYYY
-        match = re.match(r'^(\d{3})-(\d{4})$', resolucion)
-        if match:
-            return f"R-0{match.group(1)}-{match.group(2)}"
-        
-        # Si tiene formato R-XX-YYYY (2 dígitos), convertir a 4 dígitos
-        match = re.match(r'^R-(\d{2})-(\d{4})$', resolucion)
-        if match:
-            return f"R-00{match.group(1)}-{match.group(2)}"
-        
-        # Si tiene formato XX-YYYY (2 dígitos), convertir a R-00XX-YYYY
-        match = re.match(r'^(\d{2})-(\d{4})$', resolucion)
-        if match:
-            return f"R-00{match.group(1)}-{match.group(2)}"
-        
-        # Si tiene formato R-X-YYYY (1 dígito), convertir a 4 dígitos
-        match = re.match(r'^R-(\d{1})-(\d{4})$', resolucion)
-        if match:
-            return f"R-000{match.group(1)}-{match.group(2)}"
-        
-        # Si tiene formato X-YYYY (1 dígito), convertir a R-000X-YYYY
-        match = re.match(r'^(\d{1})-(\d{4})$', resolucion)
-        if match:
-            return f"R-000{match.group(1)}-{match.group(2)}"
-        
-        # Si no coincide con ningún patrón, devolver tal como está
-        return resolucion
+        # Fallback si no coincide con el patrón año 4 dígitos
+        if not res_str.startswith('R-'):
+            res_str = f"R-{res_str}"
+            
+        return res_str
+
     
-    def _es_fila_con_guiones(self, row: pd.Series) -> bool:
-        """Detectar si una fila contiene guiones indicando ruta cancelada"""
-        # Verificar si los campos principales contienen solo guiones
-        origen = str(row.get('Origen', '')).strip() if pd.notna(row.get('Origen')) else ''
-        destino = str(row.get('Destino', '')).strip() if pd.notna(row.get('Destino')) else ''
-        frecuencia = str(row.get('Frecuencia', '')).strip() if pd.notna(row.get('Frecuencia')) else ''
+    def _es_fila_con_guiones(self, row: Any) -> bool:
+        """Detectar si una fila contiene guiones o estado CANCELADA/INACTIVA"""
+        origen = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
+        destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
+        frecuencia = self._get_val(row, ['RUTA_FRECUENCIA', 'Frecuencia', 'FRECUENCIA'])
+        estado = self._get_val(row, KEYS_ESTADO)
         
-        # Si origen, destino o frecuencia son solo guiones, es una ruta cancelada
+        if estado and estado.upper() in ['CANCELADA', 'INACTIVA']:
+            return True
+            
         return origen == '-' or destino == '-' or frecuencia == '-'
+
     
     def _normalizar_campo_con_guion(self, valor: str, campo_nombre: str) -> str:
         """Normalizar campos que contienen guiones"""
-        # ✅ PROTECCIÓN CONTRA VALORES NULOS
+        # [LOG] PROTECCIÓN CONTRA VALORES NULOS
         if valor is None:
             valor = ''
         else:
@@ -1118,87 +1218,66 @@ class RutaExcelService:
                 return 'RUTA CANCELADA'
         
         return valor
+
     def _validar_formato_codigo_ruta(self, codigo: str) -> bool:
-        """Validar formato de código de ruta: debe ser numérico para normalizar a 2 dígitos"""
-        # Limpiar el código primero
-        codigo = str(codigo).strip()
-        
-        # Si es un número flotante como "1.0", extraer la parte entera
-        if '.' in codigo and codigo.replace('.', '').isdigit():
-            try:
-                numero = float(codigo)
-                if numero == int(numero):  # Es un entero representado como float
-                    codigo = str(int(numero))
-            except:
-                pass
-        
-        return codigo.isdigit() and 1 <= len(codigo) <= 3
-    
+        """Validar formato de código de ruta (numérico o alfanumérico estándar como 01, R-01, R-101)"""
+        if not codigo:
+            return False
+        codigo_str = str(codigo).strip()
+        if not codigo_str:
+            return False
+        return len(codigo_str) <= 15
+
     def _normalizar_codigo_ruta(self, codigo: str) -> str:
-        """Normalizar código de ruta a formato de 2 dígitos (01, 02, 03, etc.)"""
-        # ✅ PROTECCIÓN CONTRA VALORES NULOS
-        if codigo is None:
-            return ""
-        
-        codigo = str(codigo).strip()
-        
-        # ✅ VERIFICAR QUE NO ESTÉ VACÍO DESPUÉS DEL STRIP
+        """Normalizar código de ruta"""
         if not codigo:
             return ""
+        codigo_str = str(codigo).strip()
         
-        # ✅ MANEJAR NÚMEROS FLOTANTES COMO "1.0", "2.0"
-        if '.' in codigo and codigo.replace('.', '').isdigit():
+        # Manejar números flotantes como "1.0", "2.0"
+        if '.' in codigo_str and codigo_str.replace('.', '').isdigit():
             try:
-                numero = float(codigo)
-                if numero == int(numero):  # Es un entero representado como float
-                    codigo = str(int(numero))
+                numero = float(codigo_str)
+                if numero == int(numero):
+                    codigo_str = str(int(numero))
             except:
                 pass
             
-        if codigo.isdigit():
-            # Convertir a entero y luego formatear con 2 dígitos mínimo
-            numero = int(codigo)
-            return f"{numero:02d}"  # Formato con 2 dígitos, rellenando con 0 si es necesario
-        return codigo
+        if codigo_str.isdigit():
+            numero = int(codigo_str)
+            return f"{numero:02d}"
+            
+        return codigo_str
     
     def _convertir_fila_a_ruta(self, row: pd.Series, fila_num: int = None) -> Dict[str, Any]:
-        """Convertir fila de Excel a datos de ruta"""
+        """Convertir fila de Excel o Google Sheet a datos de ruta"""
         
         # Verificar si es una ruta cancelada
         es_ruta_cancelada = self._es_fila_con_guiones(row)
         
-        # Datos básicos - VALIDAR QUE NO ESTÉN VACÍOS
-        ruc_raw = row.get('RUC', '')
-        resolucion_raw = row.get('Resolución', '')
-        codigo_raw = row.get('Código Ruta', '')
+        # Datos básicos con alias flexibles y fallback posicional (A=0, C=2, D=3)
+        ruc = self._get_val(row, KEYS_RUC, pos_index=0)
+        resolucion = self._get_val(row, KEYS_RESOLUCION, pos_index=2)
+        codigo_ruta = self._get_val(row, KEYS_CODIGO_RUTA, pos_index=3)
         
-        # Convertir a string y limpiar, manejando números flotantes
-        ruc = str(ruc_raw).strip() if pd.notna(ruc_raw) else ''
-        resolucion = str(resolucion_raw).strip() if pd.notna(resolucion_raw) else ''
-        codigo_ruta = str(codigo_raw).strip() if pd.notna(codigo_raw) else ''
-        
-        # Limpiar valores que pandas convierte a 'nan' string
-        if ruc in ['nan', 'None']:
-            ruc = ''
-        if resolucion in ['nan', 'None']:
-            resolucion = ''
-        if codigo_ruta in ['nan', 'None']:
-            codigo_ruta = ''
-        
-        # ✅ VALIDACIÓN OBLIGATORIA - NO CREAR RUTAS CON DATOS VACÍOS
+        # [LOG] VALIDACIÓN OBLIGATORIA
         if not ruc:
             raise ValueError("RUC es obligatorio y no puede estar vacío")
-        if not resolucion:
-            raise ValueError("Resolución es obligatoria y no puede estar vacía")
+        if not resolucion or not self._validar_formato_resolucion(resolucion):
+            raise ValueError(f"Resolución obligatoria con estructura válida (ej: 0123-2026). No se permite '{resolucion}'")
         if not codigo_ruta:
             raise ValueError("Código de ruta es obligatorio y no puede estar vacío")
         
         # Normalizar campos que pueden tener guiones
-        origen = self._normalizar_campo_con_guion(row.get('Origen', ''), 'origen')
-        destino = self._normalizar_campo_con_guion(row.get('Destino', ''), 'destino')
-        frecuencia = self._normalizar_campo_con_guion(row.get('Frecuencia', ''), 'frecuencia')
+        origen_raw = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
+        destino_raw = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
+        frecuencia_raw = self._get_val(row, ['RUTA_FRECUENCIA', 'Frecuencia', 'FRECUENCIA'])
         
-        # ✅ VALIDAR CAMPOS OBLIGATORIOS ADICIONALES
+        origen = self._normalizar_campo_con_guion(origen_raw, 'origen')
+        destino = self._normalizar_campo_con_guion(destino_raw, 'destino')
+        frecuencia = self._normalizar_campo_con_guion(frecuencia_raw, 'frecuencia')
+        
+        # [LOG] VALIDAR CAMPOS OBLIGATORIOS ADICIONALES
         if not origen or origen == 'nan':
             raise ValueError("Origen es obligatorio y no puede estar vacío")
         if not destino or destino == 'nan':
@@ -1206,25 +1285,27 @@ class RutaExcelService:
         if not frecuencia or frecuencia == 'nan':
             raise ValueError("Frecuencia es obligatoria y no puede estar vacía")
         
-        itinerario_excel = self._normalizar_campo_con_guion(row.get('Itinerario', ''), 'itinerario') if pd.notna(row.get('Itinerario')) else ''
+        itinerario_raw = self._get_val(row, ['RUTA_ITINERARIO', 'Itinerario', 'ITINERARIO', 'TRAMOS'])
+        itinerario_excel = self._normalizar_campo_con_guion(itinerario_raw, 'itinerario')
         
-        # Campos opcionales - Solo usar por defecto si están vacíos
-        tipo_ruta_raw = str(row.get('Tipo Ruta', '')).strip().upper() if pd.notna(row.get('Tipo Ruta')) else ''
-        tipo_ruta = tipo_ruta_raw if tipo_ruta_raw else 'INTERREGIONAL'  # Solo por defecto si está vacío
+        # Campos opcionales
+        tipo_ruta_raw = self._get_val(row, ['Tipo Ruta', 'TIPO_RUTA', 'TIPO'], '').upper()
+        tipo_ruta = tipo_ruta_raw if tipo_ruta_raw else 'INTERREGIONAL'
         
-        tipo_servicio = str(row.get('Tipo Servicio', 'PASAJEROS')).strip().upper() if pd.notna(row.get('Tipo Servicio')) else 'PASAJEROS'
-        estado = str(row.get('Estado', 'ACTIVA')).strip().upper() if pd.notna(row.get('Estado')) else 'ACTIVA'
+        tipo_servicio_raw = self._get_val(row, ['Tipo Servicio', 'TIPO_SERVICIO'], 'PASAJEROS').upper()
+        tipo_servicio = tipo_servicio_raw if tipo_servicio_raw else 'PASAJEROS'
         
-        # Si es ruta cancelada, forzar estado a INACTIVA
-        if es_ruta_cancelada:
-            estado = 'INACTIVA'
+        estado_raw = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
+        estado = estado_raw if estado_raw else 'ACTIVA'
         
-        # Normalizar CANCELADA a INACTIVA
-        if estado == 'CANCELADA':
-            estado = 'INACTIVA'
+        # Si es ruta cancelada (con guiones) y el estado no fue indicado explícitamente como diferente
+        if es_ruta_cancelada and estado_raw in ['', 'ACTIVA']:
+            estado = 'CANCELADA'
         
-        tiempo_estimado = str(row.get('Tiempo Estimado', '')).strip() if pd.notna(row.get('Tiempo Estimado')) else None
-        observaciones = str(row.get('Observaciones', '')).strip() if pd.notna(row.get('Observaciones')) else None
+        tiempo_estimado = self._get_val(row, ['Tiempo Estimado', 'TIEMPO_ESTIMADO']) or None
+        observaciones = self._get_val(row, ['OBSERVACIONES', 'Observaciones', 'OBSERVACION']) or None
+        usuario = self._get_val(row, ['USUARIO', 'Usuario', 'CREADO_POR']) or 'CARGA_MASIVA'
+        id_original = self._get_val(row, ['ID_RUTA', 'id_ruta'])
         
         # Agregar observación para rutas canceladas
         if es_ruta_cancelada:
@@ -1236,16 +1317,26 @@ class RutaExcelService:
         
         # Campos numéricos
         distancia = None
-        if pd.notna(row.get('Distancia')) and row.get('Distancia') != '':
+        dist_val = self._get_val(row, ['Distancia', 'DISTANCIA'])
+        if dist_val:
             try:
-                distancia = float(row.get('Distancia'))
+                distancia = float(dist_val)
             except:
                 pass
         
         tarifa_base = None
-        if pd.notna(row.get('Tarifa Base')) and row.get('Tarifa Base') != '':
+        tarifa_val = self._get_val(row, ['Tarifa Base', 'TARIFA_BASE'])
+        if tarifa_val:
             try:
-                tarifa_base = float(row.get('Tarifa Base'))
+                tarifa_base = float(tarifa_val)
+            except:
+                pass
+
+        cantidad_vehiculos = None
+        cant_veh_val = self._get_val(row, ['CANTIDAD_VEHICULOS_POR_RUTA', 'CANTIDAD_VEHICULOS', 'Capacidad Máxima', 'Capacidad Maxima'])
+        if cant_veh_val:
+            try:
+                cantidad_vehiculos = int(float(cant_veh_val))
             except:
                 pass
         
@@ -1253,17 +1344,23 @@ class RutaExcelService:
         resolucion_normalizada = self._normalizar_resolucion(resolucion)
         codigo_normalizado = self._normalizar_codigo_ruta(codigo_ruta)
         
-        # Crear nombre de ruta - Manejar itinerarios vacíos
+        # Crear itinerario
         if es_ruta_cancelada and not itinerario_excel:
             itinerario = "RUTA CANCELADA"
         elif itinerario_excel and itinerario_excel.strip():
             itinerario = itinerario_excel
         else:
-            # Si itinerario está vacío, usar "SIN ITINERARIO"
             itinerario = "SIN ITINERARIO"
         
+        metadata = {
+            "fuente": "google_sheets_import",
+            "usuario": usuario
+        }
+        if id_original:
+            metadata["id_original"] = id_original
+
         return {
-            'fila': fila_num,  # ✅ AGREGAR número de fila
+            'fila': fila_num,
             'ruc': ruc,
             'resolucionNormalizada': resolucion_normalizada,
             'codigoRuta': codigo_normalizado,
@@ -1277,9 +1374,13 @@ class RutaExcelService:
             'distancia': distancia,
             'tiempoEstimado': tiempo_estimado,
             'tarifaBase': tarifa_base,
+            'cantidadVehiculos': cantidad_vehiculos,
+            'capacidadMaxima': cantidad_vehiculos,
             'observaciones': observaciones,
+            'metadata': metadata,
             'esCancelada': es_ruta_cancelada
         }
+
         if estado == 'CANCELADA':
             estado = 'INACTIVA'
         
@@ -1323,7 +1424,7 @@ class RutaExcelService:
             itinerario = "SIN ITINERARIO"
         
         return {
-            'fila': fila_num,  # ✅ NUEVO: Agregar número de fila
+            'fila': fila_num,  # [LOG] NUEVO: Agregar número de fila
             'ruc': ruc,
             'resolucionNormalizada': resolucion_normalizada,
             'codigoRuta': codigo_normalizado,
@@ -1352,56 +1453,44 @@ class RutaExcelService:
         codigo_ruta: str
     ) -> Optional[Dict]:
         """
-        Buscar ruta existente por la clave única:
+        Buscar ruta existente por la clave única estricta de 3 partes:
         RUC + Resolución + Código de Ruta
-        
-        Args:
-            ruc: RUC de la empresa
-            numero_resolucion: Número de resolución normalizado
-            codigo_ruta: Código de ruta normalizado
-            
-        Returns:
-            Documento de ruta si existe, None si no existe
         """
         try:
-            # Buscar empresa por RUC
-            empresa = await self.empresas_collection.find_one({
-                "ruc": ruc,
+            if not ruc or not codigo_ruta or not numero_resolucion:
+                return None
+                
+            # 1. Búsqueda directa por RUC + Resolución + Código de Ruta en el objeto embebido
+            ruta = await self.rutas_collection.find_one({
+                "empresa.ruc": ruc,
+                "resolucion.nroResolucion": numero_resolucion,
+                "codigoRuta": codigo_ruta,
                 "estaActivo": True
             })
-            
-            if not empresa:
-                print(f"🔍 UPSERT: Empresa con RUC {ruc} no encontrada")
-                return None
-            
-            # Buscar resolución por número
-            resolucion = await self.resoluciones_collection.find_one({
-                "nroResolucion": numero_resolucion,
-                "tipoResolucion": "PADRE",
-                "estado": "VIGENTE"
-            })
-            
-            if not resolucion:
-                print(f"🔍 UPSERT: Resolución {numero_resolucion} no encontrada")
-                return None
-            
-            # Buscar ruta por código, empresa y resolución
-            ruta = await self.rutas_collection.find_one({
-                "codigoRuta": codigo_ruta,
-                "empresa.id": str(empresa["_id"]),
-                "resolucion.id": str(resolucion["_id"])
-            })
-            
             if ruta:
-                print(f"✅ UPSERT: Ruta encontrada - Código: {codigo_ruta}, ID: {ruta.get('_id')}")
-            else:
-                print(f"🔍 UPSERT: Ruta no encontrada - Código: {codigo_ruta}")
-            
-            return ruta
+                print(f"[LOG] UPSERT: Ruta encontrada por RUC + Res. + Código - ID: {ruta.get('_id')}")
+                return ruta
+                
+            # 1b. Probar sin prefijo R-
+            res_sin_r = numero_resolucion.replace('R-', '')
+            ruta = await self.rutas_collection.find_one({
+                "empresa.ruc": ruc,
+                "resolucion.nroResolucion": res_sin_r,
+                "codigoRuta": codigo_ruta,
+                "estaActivo": True
+            })
+            if ruta:
+                print(f"[LOG] UPSERT: Ruta encontrada por RUC + Res(sin R) + Código - ID: {ruta.get('_id')}")
+                return ruta
+
+            print(f"[LOG] UPSERT: Ruta no encontrada - RUC: {ruc}, Res: {numero_resolucion}, Código: {codigo_ruta}")
+            return None
             
         except Exception as e:
-            print(f"❌ ERROR en _buscar_ruta_existente: {str(e)}")
+            print(f"[LOG] ERROR en _buscar_ruta_existente: {str(e)}")
             return None
+
+
     
     async def _upsert_ruta_desde_datos(
         self, 
@@ -1430,7 +1519,7 @@ class RutaExcelService:
             
             if ruta_existente:
                 # ACTUALIZAR ruta existente
-                print(f"🔄 UPSERT: Actualizando ruta existente - Código: {ruta_data['codigoRuta']}")
+                print(f"[LOG] UPSERT: Actualizando ruta existente - Código: {ruta_data['codigoRuta']}")
                 
                 # Preparar datos de actualización
                 ruta_update = await self._preparar_datos_actualizacion(
@@ -1451,7 +1540,7 @@ class RutaExcelService:
                 # Detectar qué campos cambiaron
                 cambios = self._detectar_cambios(ruta_existente, ruta_update)
                 
-                print(f"✅ UPSERT: Ruta actualizada - Cambios: {len(cambios)}")
+                print(f"[LOG] UPSERT: Ruta actualizada - Cambios: {len(cambios)}")
                 
                 return {
                     'accion': 'actualizada',
@@ -1471,7 +1560,7 @@ class RutaExcelService:
                 }
                 
         except Exception as e:
-            print(f"❌ ERROR en _upsert_ruta_desde_datos: {str(e)}")
+            print(f"[LOG] ERROR en _upsert_ruta_desde_datos: {str(e)}")
             raise e
     
     async def _preparar_datos_actualizacion(
@@ -1542,6 +1631,7 @@ class RutaExcelService:
             frecuencia=frecuencia,
             tipoRuta=TipoRuta(ruta_data.get('tipoRuta', 'INTERREGIONAL')) if ruta_data.get('tipoRuta') else None,
             tipoServicio=TipoServicio(ruta_data.get('tipoServicio', 'PASAJEROS')) if ruta_data.get('tipoServicio') else None,
+            estado=EstadoRuta(ruta_data.get('estado')) if ruta_data.get('estado') else None,
             distancia=ruta_data.get('distancia'),
             tiempoEstimado=ruta_data.get('tiempoEstimado'),
             tarifaBase=ruta_data.get('tarifaBase'),
@@ -1590,14 +1680,24 @@ class RutaExcelService:
             # Comparar tipo de ruta
             if ruta_nueva.tipoRuta:
                 tipo_anterior = ruta_anterior.get('tipoRuta', '')
-                if str(ruta_nueva.tipoRuta) != tipo_anterior:
-                    cambios.append(f"Tipo: {tipo_anterior} → {ruta_nueva.tipoRuta}")
+                tipo_val = ruta_nueva.tipoRuta.value if hasattr(ruta_nueva.tipoRuta, 'value') else str(ruta_nueva.tipoRuta)
+                if tipo_val != tipo_anterior:
+                    cambios.append(f"Tipo: {tipo_anterior} → {tipo_val}")
             
             # Comparar tipo de servicio
             if ruta_nueva.tipoServicio:
                 servicio_anterior = ruta_anterior.get('tipoServicio', '')
-                if str(ruta_nueva.tipoServicio) != servicio_anterior:
-                    cambios.append(f"Servicio: {servicio_anterior} → {ruta_nueva.tipoServicio}")
+                servicio_val = ruta_nueva.tipoServicio.value if hasattr(ruta_nueva.tipoServicio, 'value') else str(ruta_nueva.tipoServicio)
+                if servicio_val != servicio_anterior:
+                    cambios.append(f"Servicio: {servicio_anterior} → {servicio_val}")
+
+            # Comparar estado
+            if ruta_nueva.estado:
+                estado_anterior = ruta_anterior.get('estado', '')
+                estado_val = ruta_nueva.estado.value if hasattr(ruta_nueva.estado, 'value') else str(ruta_nueva.estado)
+                if estado_val != estado_anterior:
+                    cambios.append(f"Estado: {estado_anterior} → {estado_val}")
+
             
             # Comparar distancia
             if ruta_nueva.distancia is not None:
@@ -1618,7 +1718,7 @@ class RutaExcelService:
                     cambios.append("Itinerario actualizado")
             
         except Exception as e:
-            print(f"⚠️ Error detectando cambios: {str(e)}")
+            print(f"[LOG] Error detectando cambios: {str(e)}")
         
         return cambios
     
@@ -1637,7 +1737,7 @@ class RutaExcelService:
         Returns:
             Resultados del procesamiento con estadísticas
         """
-        print(f"🔍 DEBUG PROCESAMIENTO: Iniciando en modo '{modo}'")
+        print(f"[LOG] DEBUG PROCESAMIENTO: Iniciando en modo '{modo}'")
         
         try:
             # Validar archivo primero
@@ -1667,7 +1767,7 @@ class RutaExcelService:
             }
             
             for ruta_data in validacion['rutas_validas']:
-                print(f"🔍 Procesando ruta: RUC {ruta_data.get('ruc')}, Código {ruta_data.get('codigoRuta')}")
+                print(f"[LOG] Procesando ruta: RUC {ruta_data.get('ruc')}, Código {ruta_data.get('codigoRuta')}")
                 
                 try:
                     if modo == "upsert":
@@ -1679,7 +1779,9 @@ class RutaExcelService:
                             resultados['rutas_creadas'].append({
                                 'codigo': resultado['ruta'].codigoRuta,
                                 'nombre': resultado['ruta'].nombre,
-                                'id': resultado['ruta'].id
+                                'id': resultado['ruta'].id,
+                                'ruc': ruta_data.get('ruc'),
+                                'resolucion': ruta_data.get('resolucionNormalizada')
                             })
                         else:
                             resultados['actualizadas'] += 1
@@ -1687,6 +1789,8 @@ class RutaExcelService:
                                 'codigo': resultado['ruta'].codigoRuta,
                                 'nombre': resultado['ruta'].nombre,
                                 'id': resultado['ruta'].id,
+                                'ruc': ruta_data.get('ruc'),
+                                'resolucion': ruta_data.get('resolucionNormalizada'),
                                 'cambios': resultado['cambios']
                             })
                         
@@ -1701,16 +1805,26 @@ class RutaExcelService:
                         resultados['rutas_creadas'].append({
                             'codigo': ruta_creada.codigoRuta,
                             'nombre': ruta_creada.nombre,
-                            'id': ruta_creada.id
+                            'id': ruta_creada.id,
+                            'ruc': ruta_data.get('ruc'),
+                            'resolucion': ruta_data.get('resolucionNormalizada')
                         })
+
                     
                 except Exception as e:
                     resultados['fallidas'] += 1
                     resultados['errores_procesamiento'].append({
+                        'fila': ruta_data.get('fila', 'N/A'),
                         'codigo_ruta': ruta_data.get('codigoRuta', 'N/A'),
-                        'error': str(e)
+                        'ruc': ruta_data.get('ruc', 'N/A'),
+                        'resolucion': ruta_data.get('resolucionNormalizada', 'N/A'),
+                        'origen': ruta_data.get('origen', 'N/A'),
+                        'destino': ruta_data.get('destino', 'N/A'),
+                        'error': str(e),
+                        'errores': [str(e)]
                     })
-                    print(f"❌ ERROR: {str(e)}")
+                    print(f"[LOG] ERROR EN FILA {ruta_data.get('fila', 'N/A')}: {str(e)}")
+
                 
                 resultados['total_procesadas'] += 1
             

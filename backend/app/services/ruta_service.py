@@ -313,8 +313,12 @@ class RutaService:
         """
         query = {
             "codigoRuta": codigo_ruta,
-            "resolucionId": resolucion_id,
-            "estaActivo": True
+            "$or": [
+                {"resolucion.id": resolucion_id},
+                {"resolucionId": resolucion_id}
+            ],
+            "estaActivo": True,
+            "estado": EstadoRuta.ACTIVA
         }
         
         # Excluir ruta actual en caso de edición
@@ -326,7 +330,7 @@ class RutaService:
         if ruta_existente:
             raise HTTPException(
                 status_code=400,
-                detail=f"Ya existe una ruta con código {codigo_ruta} en esta resolución"
+                detail=f"Ya existe una ruta ACTIVA con código {codigo_ruta} en esta resolución"
             )
         
         return True
@@ -375,7 +379,7 @@ class RutaService:
                 if paradas_con_coords or paradas_ya_validadas:
                     # Usar directamente sin revalidar
                     itinerario_validado = list(ruta_data.itinerario)
-                    print(f"ℹ️ Itinerario con {len(itinerario_validado)} paradas, usando directamente (sin revalidar)")
+                    print(f"[INFO] Itinerario con {len(itinerario_validado)} paradas, usando directamente (sin revalidar)")
                 else:
                     # Validar por ID (flujo normal de creación manual)
                     itinerario_data = [
@@ -404,53 +408,54 @@ class RutaService:
                         detail="La empresa no está activa"
                     )
             else:
-                print(f"⚠️ WARNING: Empresa sin ID válido, saltando validación de existencia")
+                print(f"[WARNING] Empresa sin ID válido, saltando validación de existencia")
             
             # 3. Validar resolución VIGENTE y PADRE (solo si tiene ID válido)
             if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
                 await self.validar_resolucion_vigente(ruta_data.resolucion.id)
             else:
-                print(f"⚠️ WARNING: Resolución sin ID válido, saltando validación de vigencia")
+                print(f"[WARNING] Resolución sin ID válido, saltando validación de vigencia")
             
-            # 4. Validar código único en resolución (solo si tiene ID válido)
+            # 4. Validar código único en resolución (solo si tiene ID válido y la ruta es ACTIVA)
             if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
-                await self.validar_codigo_unico(
-                    ruta_data.codigoRuta,
-                    ruta_data.resolucion.id
-                )
+                if (ruta_data.estado or EstadoRuta.ACTIVA) == EstadoRuta.ACTIVA:
+                    await self.validar_codigo_unico(
+                        ruta_data.codigoRuta,
+                        ruta_data.resolucion.id
+                    )
             else:
-                print(f"⚠️ WARNING: Resolución sin ID válido, saltando validación de código único")
+                print(f"[WARNING] Resolución sin ID válido, saltando validación de código único")
             
             # 5. Preparar documento para inserción con datos embebidos validados
             ruta_dict = ruta_data.model_dump()
             
-            print(f"🔍 DEBUG RUTA_SERVICE: Empresa recibida en ruta_data: {ruta_data.empresa}")
-            print(f"🔍 DEBUG RUTA_SERVICE: Frecuencia recibida en ruta_data: {ruta_data.frecuencia}")
-            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict empresa antes: {ruta_dict.get('empresa')}")
-            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict frecuencia antes: {ruta_dict.get('frecuencia')}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: Empresa recibida en ruta_data: {ruta_data.empresa}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: Frecuencia recibida en ruta_data: {ruta_data.frecuencia}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: ruta_dict empresa antes: {ruta_dict.get('empresa')}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: ruta_dict frecuencia antes: {ruta_dict.get('frecuencia')}")
             
             # Actualizar con datos validados
             ruta_dict["origen"] = origen_embebido.model_dump()
             ruta_dict["destino"] = destino_embebido.model_dump()
             ruta_dict["itinerario"] = [loc.model_dump() for loc in itinerario_validado]
             
-            print(f"🔍 DEBUG RUTA_SERVICE: ruta_dict empresa después: {ruta_dict.get('empresa')}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: ruta_dict empresa después: {ruta_dict.get('empresa')}")
             
             # Metadatos
             ruta_dict["fechaRegistro"] = datetime.utcnow()
             ruta_dict["fechaActualizacion"] = datetime.utcnow()
             ruta_dict["estaActivo"] = True
-            ruta_dict["estado"] = EstadoRuta.ACTIVA
+            ruta_dict["estado"] = ruta_data.estado or EstadoRuta.ACTIVA
             
             # 6. Insertar ruta
-            print(f"🔍 DEBUG RUTA_SERVICE: Insertando ruta en BD con empresa: {ruta_dict.get('empresa')}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: Insertando ruta en BD con empresa: {ruta_dict.get('empresa')}")
             result = await self.rutas_collection.insert_one(ruta_dict)
             ruta_id = str(result.inserted_id)
-            print(f"🔍 DEBUG RUTA_SERVICE: Ruta insertada con ID: {ruta_id}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: Ruta insertada con ID: {ruta_id}")
             
             # Verificar lo que se guardó realmente
             ruta_guardada = await self.rutas_collection.find_one({"_id": result.inserted_id})
-            print(f"🔍 DEBUG RUTA_SERVICE: Empresa en BD después de insertar: {ruta_guardada.get('empresa') if ruta_guardada else 'No encontrada'}")
+            print(f"[LOG] DEBUG RUTA_SERVICE: Empresa en BD después de insertar: {ruta_guardada.get('empresa') if ruta_guardada else 'No encontrada'}")
             
             # 7. Actualizar relaciones en empresa (solo si tiene ID válido)
             if ruta_data.empresa.id and ruta_data.empresa.id.strip():
@@ -462,7 +467,7 @@ class RutaService:
                     }
                 )
             else:
-                print(f"⚠️ WARNING: Empresa sin ID válido, saltando actualización de relaciones")
+                print(f"[WARNING] Empresa sin ID válido, saltando actualización de relaciones")
             
             # 8. Actualizar relaciones en resolución (solo si tiene ID válido)
             if ruta_data.resolucion.id and ruta_data.resolucion.id.strip():
@@ -474,7 +479,7 @@ class RutaService:
                     }
                 )
             else:
-                print(f"⚠️ WARNING: Resolución sin ID válido, saltando actualización de relaciones")
+                print(f"[WARNING] Resolución sin ID válido, saltando actualización de relaciones")
             
             # 9. Obtener y retornar ruta creada
             ruta_creada = await self.rutas_collection.find_one({"_id": result.inserted_id})
@@ -986,8 +991,17 @@ class RutaService:
     async def soft_delete_ruta(self, ruta_id: str) -> bool:
         """Desactivar ruta (borrado lógico)"""
         try:
+            filter_query = {"$or": [{"_id": ruta_id}, {"id": ruta_id}, {"codigoRuta": ruta_id}]}
+            if ObjectId.is_valid(ruta_id):
+                filter_query["$or"].append({"_id": ObjectId(ruta_id)})
+                
+            ruta = await self.rutas_collection.find_one(filter_query)
+            if not ruta:
+                return False
+
+            doc_id = ruta["_id"]
             result = await self.rutas_collection.update_one(
-                {"_id": ObjectId(ruta_id)},
+                {"_id": doc_id},
                 {
                     "$set": {
                         "estaActivo": False,
@@ -997,67 +1011,75 @@ class RutaService:
                 }
             )
             
-            if result.modified_count > 0:
-                # Remover de relaciones
-                ruta = await self.rutas_collection.find_one({"_id": ObjectId(ruta_id)})
-                
-                if ruta and ruta.get("empresaId"):
-                    await self.empresas_collection.update_one(
-                        {"_id": ObjectId(ruta["empresaId"])},
-                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
-                    )
-                
-                if ruta and ruta.get("resolucionId"):
-                    await self.resoluciones_collection.update_one(
-                        {"_id": ObjectId(ruta["resolucionId"])},
-                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
-                    )
+            # Remover de relaciones en empresas y resoluciones
+            empresa_id = ruta.get("empresaId") or (ruta.get("empresa") or {}).get("id")
+            resolucion_id = ruta.get("resolucionId") or (ruta.get("resolucion") or {}).get("id")
+            str_id = str(doc_id)
             
-            return result.modified_count > 0
+            if empresa_id and ObjectId.is_valid(str(empresa_id)):
+                await self.empresas_collection.update_one(
+                    {"_id": ObjectId(str(empresa_id))},
+                    {"$pull": {"rutasAutorizadasIds": str_id}}
+                )
+            
+            if resolucion_id and ObjectId.is_valid(str(resolucion_id)):
+                await self.resoluciones_collection.update_one(
+                    {"_id": ObjectId(str(resolucion_id))},
+                    {"$pull": {"rutasAutorizadasIds": str_id}}
+                )
+            
+            return True
             
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Error al eliminar ruta: {str(e)}"
+                detail=f"Error al desactivar ruta: {str(e)}"
             )
     
     async def delete_ruta(self, ruta_id: str) -> bool:
         """Eliminar ruta físicamente de la base de datos"""
         try:
-            # Validar que la ruta existe
-            ruta_existente = await self.get_ruta_by_id(ruta_id)
-            if not ruta_existente:
+            filter_query = {"$or": [{"_id": ruta_id}, {"id": ruta_id}, {"codigoRuta": ruta_id}]}
+            if ObjectId.is_valid(ruta_id):
+                filter_query["$or"].append({"_id": ObjectId(ruta_id)})
+            
+            # Buscar documento original directamente sin validaciones estrictas
+            ruta = await self.rutas_collection.find_one(filter_query)
+            if not ruta:
                 return False
             
-            # Obtener datos de la ruta antes de eliminar
-            ruta = await self.rutas_collection.find_one({"_id": ObjectId(ruta_id)})
+            doc_id = ruta["_id"]
+            str_id = str(doc_id)
             
             # Eliminar físicamente
-            resultado = await self.rutas_collection.delete_one(
-                {"_id": ObjectId(ruta_id)}
-            )
+            resultado = await self.rutas_collection.delete_one({"_id": doc_id})
             
             if resultado.deleted_count > 0:
                 # Remover de relaciones si existían
-                if ruta and ruta.get("empresaId"):
+                empresa_id = ruta.get("empresaId") or (ruta.get("empresa") or {}).get("id")
+                resolucion_id = ruta.get("resolucionId") or (ruta.get("resolucion") or {}).get("id")
+                
+                if empresa_id and ObjectId.is_valid(str(empresa_id)):
                     await self.empresas_collection.update_one(
-                        {"_id": ObjectId(ruta["empresaId"])},
-                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
+                        {"_id": ObjectId(str(empresa_id))},
+                        {"$pull": {"rutasAutorizadasIds": str_id}}
                     )
                 
-                if ruta and ruta.get("resolucionId"):
+                if resolucion_id and ObjectId.is_valid(str(resolucion_id)):
                     await self.resoluciones_collection.update_one(
-                        {"_id": ObjectId(ruta["resolucionId"])},
-                        {"$pull": {"rutasAutorizadasIds": ruta_id}}
+                        {"_id": ObjectId(str(resolucion_id))},
+                        {"$pull": {"rutasAutorizadasIds": str_id}}
                     )
+                return True
             
-            return resultado.deleted_count > 0
+            return False
             
         except Exception as e:
             raise HTTPException(
                 status_code=500,
                 detail=f"Error al eliminar ruta físicamente: {str(e)}"
             )
+
     
     async def generar_siguiente_codigo(self, resolucion_id: str) -> str:
         """Generar el siguiente código disponible para una resolución"""

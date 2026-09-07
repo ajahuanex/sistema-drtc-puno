@@ -557,10 +557,25 @@ export class RutasComponent implements OnInit, OnDestroy {
     const confirmacion = confirm(`¿Está seguro de eliminar ${seleccionadas.length} ruta(s) seleccionada(s)?`);
     if (!confirmacion) return;
 
-    this.snackBar.open(`${seleccionadas.length} rutas eliminadas`, 'Cerrar', { duration: 3000 });
-    this.limpiarSeleccion();
-    this.recargarRutas();
+    this.isLoading.set(true);
+    const deletePromises = seleccionadas.map(id =>
+      this.rutaService.deleteRuta(id).toPromise().catch(err => {
+        console.error(`Error al eliminar ruta ${id}:`, err);
+        return null;
+      })
+    );
+
+    Promise.all(deletePromises).then(() => {
+      this.snackBar.open(`${seleccionadas.length} ruta(s) eliminada(s) correctamente`, 'Cerrar', { duration: 3000 });
+      this.limpiarSeleccion();
+      this.recargarRutas();
+    }).catch(err => {
+      console.error('Error al procesar eliminación masiva:', err);
+      this.snackBar.open('Error al eliminar algunas rutas', 'Cerrar', { duration: 3000 });
+      this.recargarRutas();
+    });
   }
+
 
   exportarSeleccionadas(): void {
     const idsSeleccionados = Array.from(this.rutasSeleccionadas());

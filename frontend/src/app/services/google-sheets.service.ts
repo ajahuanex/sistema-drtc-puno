@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, from, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
-interface SheetInfo {
+export interface SheetInfo {
   encabezados: string[];
   datos: string[][];
   totalFilas: number;
@@ -17,35 +17,54 @@ export class GoogleSheetsService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Obtener datos reales de Google Sheets sin API key (usando CSV export)
+   * Obtener datos reales de Google Sheets sin API key usando fetch() nativo
+   * (Evita la inyección de encabezados Authorization y problemas de interceptores)
    */
   obtenerDatosReales(spreadsheetId: string, sheetName: string = ''): Observable<SheetInfo> {
-    // Usar la URL de exportación CSV de Google Sheets (no requiere API key)
-    // Si no especifica hoja, usa la primera (gid=0)
     const gid = sheetName ? `&gid=0` : '';
     const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv${gid}`;
 
-    return this.http.get(csvUrl, { responseType: 'text' }).pipe(
+    // Usar fetch() nativo del navegador para evitar que el interceptor de Angular inserte Bearer token
+    return from(
+      fetch(csvUrl, { method: 'GET' })
+        .then(async (response) => {
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error('Google Sheets denegó el acceso (401/403). Por favor verifica que la hoja sea PÚBLICA ("Cualquier persona con el enlace puede ver").');
+            }
+            if (response.status === 404) {
+              throw new Error('Hoja de Google Sheets no encontrada. Verifica el ID o URL proporcionado.');
+            }
+            throw new Error(`Error HTTP ${response.status} al acceder a Google Sheets.`);
+          }
+          return await response.text();
+        })
+    ).pipe(
       map(csv => this.parsearCSV(csv)),
-      catchError(error => this.handleError('obtenerDatosReales', error))
+      catchError(error => {
+        console.error('❌ Error en GoogleSheetsService:', error);
+        return throwError(() => new Error(error.message || 'Error de conexión con Google Sheets.'));
+      })
     );
   }
 
   /**
    * Parsear CSV a formato estructurado
    */
-  private parsearCSV(csv: string): SheetInfo {
-    const lineas = csv.trim().split('\n');
-    
-    if (lineas.length === 0) {
-      throw new Error('El archivo CSV está vacío');
+  parsearCSV(csv: string): SheetInfo {
+    const lineas = csv.trim().split(/\r?\n/);
+
+    if (lineas.length === 0 || !lineas[0].trim()) {
+      throw new Error('El archivo descargado de Google Sheets está vacío.');
     }
 
     // Primera línea son los encabezados
     const encabezados = this.parsearLinea(lineas[0]);
-    
+
     // Resto son datos
-    const datos = lineas.slice(1).map(linea => this.parsearLinea(linea));
+    const datos = lineas.slice(1)
+      .filter(l => l.trim().length > 0)
+      .map(linea => this.parsearLinea(linea));
 
     return {
       encabezados,
@@ -74,7 +93,7 @@ export class GoogleSheetsService {
         } else {
           entreComillas = !entreComillas;
         }
-      } else if (char === ',' && !entreComillas) {
+      } else if ((char === ',' || char === ';') && !entreComillas) {
         resultado.push(actual.trim());
         actual = '';
       } else {
@@ -90,38 +109,22 @@ export class GoogleSheetsService {
    * Extraer ID de una URL de Google Sheets
    */
   extraerIdDeUrl(url: string): string | null {
+    if (!url) return null;
     const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (match) return match[1];
+
+    // Si pasaron directamente el ID sin URL
+    if (/^[a-zA-Z0-9-_]{20,}$/.test(url.trim())) {
+      return url.trim();
+    }
+    return null;
   }
 
   /**
    * Validar si una URL o ID es válido
    */
   validarUrl(url: string): boolean {
-    if (!url.trim()) return false;
-    
-    if (url.includes('docs.google.com')) {
-      return this.extraerIdDeUrl(url) !== null;
-    }
-    
-    return /^[a-zA-Z0-9-_]+$/.test(url);
-  }
-
-  private handleError(context: string, error: any): Observable<never> {
-    console.error(`❌ Error en ${context}:`, error);
-    
-    let mensaje = 'Error al acceder a Google Sheets';
-    
-    if (error.status === 404) {
-      mensaje = 'Hoja de cálculo no encontrada. Verifica el ID o URL.';
-    } else if (error.status === 403) {
-      mensaje = 'Acceso denegado. Asegúrate de que la hoja sea pública o compartida.';
-    } else if (error.status === 400) {
-      mensaje = 'Solicitud inválida. Verifica el rango de celdas.';
-    } else if (error.status === 0) {
-      mensaje = 'Error de conexión. Verifica tu conexión a internet.';
-    }
-
-    return throwError(() => new Error(mensaje));
+    if (!url || !url.trim()) return false;
+    return this.extraerIdDeUrl(url) !== null;
   }
 }

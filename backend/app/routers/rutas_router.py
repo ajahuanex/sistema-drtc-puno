@@ -1331,12 +1331,6 @@ async def delete_ruta(
     ruta_service = RutaService(db)
     
     try:
-        # Verificar que la ruta existe
-        ruta_existente = await ruta_service.get_ruta_by_id(ruta_id)
-        if not ruta_existente:
-            raise RutaNotFoundException(ruta_id)
-        
-        # Eliminar la ruta
         resultado = await ruta_service.delete_ruta(ruta_id)
         
         if resultado:
@@ -1346,10 +1340,7 @@ async def delete_ruta(
                 "eliminada": True
             }
         else:
-            raise HTTPException(
-                status_code=500,
-                detail="No se pudo eliminar la ruta"
-            )
+            raise RutaNotFoundException(ruta_id)
             
     except RutaNotFoundException:
         raise
@@ -1360,6 +1351,7 @@ async def delete_ruta(
             status_code=500,
             detail=f"Error al eliminar ruta: {str(e)}"
         )
+
 
 # ========================================
 # ENDPOINTS DE CARGA MASIVA DESDE EXCEL
@@ -1388,10 +1380,10 @@ async def validar_archivo_rutas(
     """Validar archivo Excel de rutas sin procesarlo"""
     
     # Validar tipo de archivo
-    if not archivo.filename.endswith(('.xlsx', '.xls')):
+    if not archivo.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
         raise HTTPException(
             status_code=400, 
-            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+            detail="El archivo debe ser un Excel (.xlsx, .xls) o CSV (.csv)"
         )
     
     try:
@@ -1432,10 +1424,10 @@ async def procesar_carga_masiva_rutas(
     """
     
     # Validar tipo de archivo
-    if not archivo.filename.endswith(('.xlsx', '.xls')):
+    if not archivo.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
         raise HTTPException(
             status_code=400, 
-            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+            detail="El archivo debe ser un Excel (.xlsx, .xls) o CSV (.csv)"
         )
     
     # Validar modo
@@ -1510,10 +1502,10 @@ async def validar_archivo_rutas_completo(
     """Validar archivo Excel de rutas con validaciones completas de BD"""
     
     # Validar tipo de archivo
-    if not archivo.filename.endswith(('.xlsx', '.xls')):
+    if not archivo.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
         raise HTTPException(
             status_code=400, 
-            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+            detail="El archivo debe ser un Excel (.xlsx, .xls) o CSV (.csv)"
         )
     
     try:
@@ -1552,10 +1544,10 @@ async def procesar_carga_masiva_rutas_completo(
     """Procesar carga masiva de rutas desde Excel con validaciones completas"""
     
     # Validar tipo de archivo
-    if not archivo.filename.endswith(('.xlsx', '.xls')):
+    if not archivo.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
         raise HTTPException(
             status_code=400, 
-            detail="El archivo debe ser un Excel (.xlsx o .xls)"
+            detail="El archivo debe ser un Excel (.xlsx, .xls) o CSV (.csv)"
         )
     
     try:

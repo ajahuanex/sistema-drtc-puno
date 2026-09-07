@@ -126,11 +126,13 @@ class Ruta(BaseModel):
     tiempoEstimado: Optional[str] = Field(None, description="Tiempo estimado de viaje")
     tarifaBase: Optional[float] = Field(None, description="Tarifa base en soles")
     capacidadMaxima: Optional[int] = Field(None, description="Capacidad máxima de pasajeros")
+    cantidadVehiculos: Optional[int] = Field(None, description="Cantidad de vehículos autorizados por ruta")
     
     # Datos adicionales
     restricciones: List[str] = Field(default_factory=list, description="Restricciones de operación")
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
+    metadata: Optional[dict] = Field(default_factory=dict, description="Metadatos adicionales flexible (ej: id_original, usuario)")
     
     # ✅ NUEVO: Validación binaria de sincronizaciones
     # Bit 0 (001): RUC validado - Bit 1 (010): Resolución validada - Bit 2 (100): Localidades validadas
@@ -165,17 +167,20 @@ class RutaCreate(BaseModel):
     # Datos operativos
     tipoRuta: Optional[TipoRuta] = Field(None, description="Tipo de ruta")
     tipoServicio: TipoServicio = Field(..., description="Tipo de servicio")
+    estado: Optional[EstadoRuta] = Field(default=EstadoRuta.ACTIVA, description="Estado de la ruta")
     
     # Datos técnicos opcionales
     distancia: Optional[float] = Field(None, description="Distancia total en kilómetros")
     tiempoEstimado: Optional[str] = Field(None, description="Tiempo estimado de viaje")
     tarifaBase: Optional[float] = Field(None, description="Tarifa base en soles")
     capacidadMaxima: Optional[int] = Field(None, description="Capacidad máxima de pasajeros")
+    cantidadVehiculos: Optional[int] = Field(None, description="Cantidad de vehículos autorizados por ruta")
     
     # Datos adicionales
     restricciones: List[str] = Field(default_factory=list, description="Restricciones de operación")
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
+    metadata: Optional[dict] = Field(default_factory=dict, description="Metadatos adicionales flexible (ej: id_original, usuario)")
     
     # ✅ NUEVO: Validación binaria (opcional al crear)
     validacionBinaria: str = Field(default="000", description="Estado de validación de sincronizaciones (formato binario de 3 bits)")
@@ -208,15 +213,18 @@ class RutaUpdate(BaseModel):
     tiempoEstimado: Optional[str] = Field(None, description="Tiempo estimado de viaje")
     tarifaBase: Optional[float] = Field(None, description="Tarifa base en soles")
     capacidadMaxima: Optional[int] = Field(None, description="Capacidad máxima de pasajeros")
+    cantidadVehiculos: Optional[int] = Field(None, description="Cantidad de vehículos autorizados por ruta")
     
     # Datos adicionales
     restricciones: Optional[List[str]] = Field(None, description="Restricciones de operación")
     observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
     descripcion: Optional[str] = Field(None, description="Descripción detallada")
+    metadata: Optional[dict] = Field(None, description="Metadatos adicionales flexible (ej: id_original, usuario)")
     estaActivo: Optional[bool] = Field(None, description="Si la ruta está activa")
     
     # ✅ NUEVO: Validación binaria (opcional al actualizar)
     validacionBinaria: Optional[str] = Field(None, description="Estado de validación de sincronizaciones (formato binario de 3 bits)")
+
     
     fechaActualizacion: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Fecha de actualización")
 

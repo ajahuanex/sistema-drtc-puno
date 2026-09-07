@@ -10,11 +10,14 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
   const autoLoginService = inject(AutoLoginService);
   const router = inject(Router);
 
-  // Agregar token de autorización si está disponible
+  const isExternalUrl = req.url.startsWith('http://') || req.url.startsWith('https://');
+  const isGoogleSheets = req.url.includes('docs.google.com') || req.url.includes('google.com');
+
+  // Agregar token de autorización solo a solicitudes internas a la API
   let modifiedRequest = req;
   const token = authService.getToken();
 
-  if (token && token !== 'undefined' && token !== 'null') {
+  if (!isGoogleSheets && (!isExternalUrl || req.url.includes('/api/')) && token && token !== 'undefined' && token !== 'null') {
     modifiedRequest = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -24,6 +27,12 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
 
   return next(modifiedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
+      // Si el error es de un servicio externo como Google Sheets, no cerrar sesión
+      if (isGoogleSheets || (isExternalUrl && !req.url.includes('/api/'))) {
+        console.warn('⚠️ Error HTTP en servicio externo (ignorado para auth):', req.url, error.status);
+        return throwError(() => error);
+      }
+
       console.log('🔴 HTTP Error interceptado:', {
         status: error.status,
         url: req.url,
@@ -42,8 +51,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
           requestUrl: req.url
         });
         
-        // TEMPORALMENTE DESHABILITADO: No hacer auto-login, solo redirigir
-        console.log('❌ Error 401 detectado, redirigiendo a login SIN auto-login');
+        console.log('❌ Error 401 detectado en API de aplicación, redirigiendo a login');
         authService.logout();
         router.navigate(['/login'], { replaceUrl: true });
         return throwError(() => error);

@@ -392,8 +392,11 @@ async def validar_carga_masiva_rutas(
         import pandas as pd
         from io import BytesIO
         
-        # Leer archivo Excel
-        df = pd.read_excel(BytesIO(archivo))
+        # Leer archivo Excel o CSV
+        try:
+            df = pd.read_excel(BytesIO(archivo))
+        except Exception:
+            df = pd.read_csv(BytesIO(archivo))
         
         # Validar columnas requeridas
         columnas_requeridas = [
@@ -482,8 +485,11 @@ async def procesar_carga_masiva_rutas(
         from io import BytesIO
         from bson import ObjectId
         
-        # Leer archivo Excel
-        df = pd.read_excel(BytesIO(archivo))
+        # Leer archivo Excel o CSV
+        try:
+            df = pd.read_excel(BytesIO(archivo))
+        except Exception:
+            df = pd.read_csv(BytesIO(archivo))
         
         # Obtener colecciones
         rutas_collection = db.rutas

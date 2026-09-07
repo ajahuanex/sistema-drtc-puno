@@ -1,37 +1,37 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { RutaService } from '../../services/ruta.service';
+import { GoogleSheetsService } from '../../services/google-sheets.service';
 
-// Interfaces unificadas
-interface ResultadoCargaMasiva {
-  // Datos de validación
+export interface ResultadoCargaMasiva {
   total_filas?: number;
   validos?: number;
   invalidos?: number;
   con_advertencias?: number;
 
-  // Datos de procesamiento
   total_procesadas?: number;
   exitosas?: number;
   fallidas?: number;
   total_creadas?: number;
 
-  // Rutas creadas
+  rutas_validas?: Array<any>;
+
   rutas_creadas?: Array<{
     codigo?: string;
     codigo_ruta?: string;
@@ -39,9 +39,18 @@ interface ResultadoCargaMasiva {
     id: string;
     tipo_ruta?: string;
     estado?: string;
+    origen?: any;
+    destino?: any;
   }>;
 
-  // Errores y advertencias
+  rutas_actualizadas?: Array<{
+    codigo?: string;
+    codigo_ruta?: string;
+    nombre: string;
+    id: string;
+    cambios?: string[];
+  }>;
+
   errores?: Array<{
     fila?: number;
     codigo_ruta?: string;
@@ -66,17 +75,17 @@ interface ResultadoCargaMasiva {
     error?: string;
   }>;
 
-  // Resultado anidado (para compatibilidad)
   resultado?: {
     total_procesadas?: number;
     exitosas?: number;
     fallidas?: number;
+    rutas_validas?: Array<any>;
     rutas_creadas?: Array<any>;
+    rutas_actualizadas?: Array<any>;
     errores_procesamiento?: Array<any>;
     errores_creacion?: Array<any>;
   };
 
-  // NUEVO: Estructura de respuesta del backend
   validacion?: {
     total_filas?: number;
     validos?: number;
@@ -87,7 +96,6 @@ interface ResultadoCargaMasiva {
     rutas_validas?: Array<any>;
   };
 
-  // Metadatos de respuesta
   archivo?: string;
   mensaje?: string;
 }
@@ -104,620 +112,806 @@ interface ResultadoCargaMasiva {
     MatIconModule,
     MatProgressBarModule,
     MatTableModule,
-    MatStepperModule,
+    MatTabsModule,
     MatChipsModule,
     MatTooltipModule,
     MatRadioModule,
     MatSlideToggleModule,
     MatSelectModule,
-    MatFormFieldModule
+    MatFormFieldModule,
+    MatInputModule
   ],
   template: `
-    <div class="carga-masiva-container">
-      <mat-card class="header-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon class="title-icon">upload</mat-icon>
-            Carga Masiva de Rutas
-          </mat-card-title>
-          <mat-card-subtitle>
-            Importar múltiples rutas desde un archivo Excel
-          </mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-actions style="padding: 8px 16px 16px;">
-          <button mat-stroked-button 
-                  color="accent"
-                  (click)="sincronizarItinerarios()"
-                  [disabled]="sincronizandoItinerarios"
-                  matTooltip="Vincula paradas del itinerario con coordenadas de la BD. Úsalo después de importar rutas.">
-            <mat-icon>sync</mat-icon>
-            {{ sincronizandoItinerarios ? 'Sincronizando itinerarios...' : 'Sincronizar Itinerarios' }}
+    <div class="carga-masiva-wrapper">
+      <!-- HEADER CON CORDÓN DE NAVEGACIÓN Y ACCIÓN RÁPIDA -->
+      <header class="header-banner">
+        <div class="header-title-group">
+          <button mat-icon-button routerLink="/rutas" class="back-btn" matTooltip="Volver a lista de rutas">
+            <mat-icon>arrow_back</mat-icon>
           </button>
-          <span *ngIf="resultadoSincronizacion" style="margin-left: 12px; font-size: 12px; color: #388e3c;">
-            ✅ {{ resultadoSincronizacion }}
-          </span>
-        </mat-card-actions>
-      </mat-card>
+          <div class="title-text">
+            <div class="badge-tag">Módulo de Rutas</div>
+            <h1>Carga Masiva de Rutas</h1>
+            <p>Importa rutas desde archivos Excel, CSV o directamente mediante enlace de Google Sheets</p>
+          </div>
+        </div>
 
-      <mat-stepper #stepper [linear]="false" class="stepper-container">
-        <!-- Paso 1: Descargar Plantilla -->
-        <mat-step label="Descargar Plantilla" [completed]="plantillaDescargada">
-          <mat-card class="step-card">
-            <mat-card-content>
-              <div class="step-content">
-                <mat-icon class="step-icon">download</mat-icon>
-                <h3>Paso 1: Descargar la plantilla Excel</h3>
-                <p>Descarga la plantilla oficial para cargar rutas con validaciones automáticas.</p>
-                
-                <!-- Información importante sobre localidades -->
-                <div class="info-section localidades-info">
-                  <mat-icon class="info-icon">info</mat-icon>
-                  <div class="info-content">
-                    <h5>📍 Información Importante sobre Localidades</h5>
-                    <p>Las localidades que incluyas en tu archivo Excel serán procesadas automáticamente:</p>
-                    <ul>
-                      <li><strong>Localidades existentes:</strong> Se vincularán con la base de datos principal</li>
-                      <li><strong>Localidades nuevas:</strong> Se crearán automáticamente como tipo "OTROS"</li>
-                    </ul>
-                    <p class="info-note">No necesitas preocuparte por crear las localidades previamente.</p>
+        <div class="header-actions">
+          <button mat-raised-button color="primary" class="action-btn download-btn" (click)="descargarPlantilla()" [disabled]="cargando()">
+            <mat-icon>download</mat-icon>
+            Descargar Plantilla Excel
+          </button>
+
+          <button mat-stroked-button color="accent" class="action-btn sync-btn" (click)="sincronizarItinerarios()" [disabled]="sincronizandoItinerarios()" matTooltip="Vincula paradas del itinerario con coordenadas en la BD">
+            <mat-icon [class.spin-icon]="sincronizandoItinerarios()">sync</mat-icon>
+            {{ sincronizandoItinerarios() ? 'Sincronizando...' : 'Sincronizar Itinerarios' }}
+          </button>
+        </div>
+      </header>
+
+      @if (resultadoSincronizacion()) {
+        <div class="toast-banner success">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ resultadoSincronizacion() }}</span>
+          <button mat-icon-button (click)="resultadoSincronizacion.set('')"><mat-icon>close</mat-icon></button>
+        </div>
+      }
+
+      <div class="main-content-grid">
+        <!-- SECCIÓN 1: SUBIR ARCHIVO Y CONFIGURACIÓN (HERO PANEL) -->
+        <mat-card class="upload-panel-card glass-panel">
+          <mat-card-header>
+            <mat-card-title class="card-title-flex">
+              <mat-icon class="panel-icon">cloud_upload</mat-icon>
+              <span>Origen de Datos</span>
+            </mat-card-title>
+            <mat-card-subtitle>
+              Selecciona si subirás un archivo local (.xlsx, .csv) o una hoja de Google Sheets
+            </mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="card-body">
+
+            <!-- Selector de Origen de Datos (Tab Switcher) -->
+            <div class="source-selector">
+              <button type="button"
+                      class="source-tab"
+                      [class.active]="origenCarga() === 'archivo'"
+                      (click)="origenCarga.set('archivo')">
+                <mat-icon>insert_drive_file</mat-icon>
+                Archivo Local (.xlsx, .xls, .csv)
+              </button>
+              <button type="button"
+                      class="source-tab"
+                      [class.active]="origenCarga() === 'google-sheets'"
+                      (click)="origenCarga.set('google-sheets')">
+                <mat-icon class="text-green">grid_on</mat-icon>
+                Google Sheets (URL Pública)
+              </button>
+            </div>
+
+            @if (origenCarga() === 'archivo') {
+              <!-- Zona Drag and Drop -->
+              <div class="dropzone"
+                   [class.drag-active]="isDragOver()"
+                   [class.has-file]="archivoSeleccionado()"
+                   (dragover)="onDragOver($event)"
+                   (dragleave)="onDragLeave($event)"
+                   (drop)="onDrop($event)"
+                   (click)="fileInput.click()">
+
+                <input #fileInput
+                       type="file"
+                       accept=".xlsx,.xls,.csv,text/csv"
+                       (change)="onFileSelected($event)"
+                       style="display: none;">
+
+                @if (archivoSeleccionado(); as file) {
+                  <div class="dropzone-file-selected">
+                    <div class="file-icon-wrapper">
+                      <mat-icon>{{ file.name.endsWith('.csv') ? 'description' : 'insert_drive_file' }}</mat-icon>
+                    </div>
+                    <div class="file-details">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                    </div>
+                    <button mat-icon-button color="warn" (click)="$event.stopPropagation(); limpiarArchivo()" matTooltip="Remover archivo">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </div>
+                } @else {
+                  <div class="dropzone-prompt">
+                    <div class="cloud-icon-circle">
+                      <mat-icon>upload_file</mat-icon>
+                    </div>
+                    <h3>Arrastra tu archivo aquí</h3>
+                    <p>Soporta hojas de cálculo Excel (.xlsx, .xls) o archivos CSV (.csv)</p>
+                    <span class="file-limit-hint">Tamaño máximo recomendado: 10MB</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <!-- Input de Google Sheets -->
+              <div class="google-sheets-box">
+                <div class="sheets-header-info">
+                  <mat-icon class="sheets-icon">table_chart</mat-icon>
+                  <div>
+                    <h4>Importar desde Google Sheets sin API Key</h4>
+                    <p>Asegúrate de que tu hoja de Google Sheets esté configurada como <strong>"Cualquier persona con el enlace puede ver"</strong>.</p>
                   </div>
                 </div>
-                
-                <div class="action-buttons">
-                  <button mat-raised-button 
-                          color="primary" 
-                          (click)="descargarPlantilla()"
-                          [disabled]="cargando">
-                    <mat-icon>download</mat-icon>
-                    Descargar Plantilla Excel
+
+                <div class="sheets-input-row">
+                  <mat-form-field appearance="outline" class="url-input-field">
+                    <mat-label>Enlace público de Google Sheets</mat-label>
+                    <input matInput
+                           [ngModel]="googleSheetsUrl()"
+                           (ngModelChange)="googleSheetsUrl.set($event)"
+                           placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit">
+                    <mat-icon matPrefix>link</mat-icon>
+                    @if (googleSheetsUrl()) {
+                      <button matSuffix mat-icon-button (click)="googleSheetsUrl.set('')">
+                        <mat-icon>clear</mat-icon>
+                      </button>
+                    }
+                  </mat-form-field>
+
+                  <button mat-raised-button
+                          color="primary"
+                          class="btn-fetch-sheets"
+                          [disabled]="!googleSheetsUrl() || cargandoGoogleSheets()"
+                          (click)="cargarDesdeGoogleSheets()">
+                    @if (cargandoGoogleSheets()) {
+                      <mat-icon class="spin-icon">sync</mat-icon>
+                      Cargando...
+                    } @else {
+                      <mat-icon>cloud_download</mat-icon>
+                      Obtener Datos
+                    }
                   </button>
                 </div>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </mat-step>
 
-        <!-- Paso 2: Subir Archivo -->
-        <mat-step label="Subir Archivo" [completed]="archivoSeleccionado !== null">
-          <mat-card class="step-card">
-            <mat-card-content>
-              <div class="step-content">
-                <mat-icon class="step-icon">upload</mat-icon>
-                <h3>Paso 2: Subir archivo Excel</h3>
-                
-                <!-- Zona de arrastrar y soltar -->
-                <div class="upload-zone" 
-                     [class.drag-over]="isDragOver"
-                     (dragover)="onDragOver($event)"
-                     (dragleave)="onDragLeave($event)"
-                     (drop)="onDrop($event)"
-                     (click)="fileInput.click()">
-                  
-                  <input #fileInput 
-                         type="file" 
-                         accept=".xlsx,.xls" 
-                         (change)="onFileSelected($event)"
-                         style="display: none;">
-                  
-                  <div class="upload-content">
-                    @if (archivoSeleccionado) {
-                      <mat-icon class="upload-icon success">check_circle</mat-icon>
-                      <h4>Archivo seleccionado</h4>
-                      <p>{{ archivoSeleccionado.name }}</p>
-                      <p class="file-size">{{ formatFileSize(archivoSeleccionado.size) }}</p>
-                    } @else {
-                      <mat-icon class="upload-icon">cloud_upload</mat-icon>
-                      <h4>Arrastra tu archivo aquí o haz clic para seleccionar</h4>
-                      <p>Archivos Excel (.xlsx, .xls)</p>
-                    }
-                  </div>
-                </div>
-                
-                @if (archivoSeleccionado) {
-                  <div class="file-actions">
-                    <button mat-button 
-                            color="warn" 
-                            (click)="limpiarArchivo()">
-                      <mat-icon>clear</mat-icon>
-                      Cambiar archivo
+                @if (archivoSeleccionado(); as file) {
+                  <div class="dropzone-file-selected sheets-success-file">
+                    <div class="file-icon-wrapper">
+                      <mat-icon>check_circle</mat-icon>
+                    </div>
+                    <div class="file-details">
+                      <span class="file-name">Google Sheet Convertido (CSV)</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }} | Listo para procesar</span>
+                    </div>
+                    <button mat-icon-button color="warn" (click)="limpiarArchivo()" matTooltip="Remover datos">
+                      <mat-icon>cancel</mat-icon>
                     </button>
                   </div>
                 }
               </div>
-            </mat-card-content>
-          </mat-card>
-        </mat-step>
+            }
 
-        <!-- Paso 3: Configurar y Procesar -->
-        <mat-step label="Configurar y Procesar" [completed]="resultado !== null">
-          <mat-card class="step-card">
-            <mat-card-content>
-              <div class="step-content">
-                <mat-icon class="step-icon">settings</mat-icon>
-                <h3>Paso 3: Configurar procesamiento</h3>
-                
-                <!-- Opciones de procesamiento -->
-                <div class="processing-options">
-                  <h4>Modo de Procesamiento</h4>
-                  <mat-radio-group [(ngModel)]="soloValidar" class="radio-group">
-                    <mat-radio-button [value]="true">
-                      Solo validar archivo (recomendado primero)
-                    </mat-radio-button>
-                    <mat-radio-button [value]="false">
-                      Validar y procesar rutas
-                    </mat-radio-button>
-                  </mat-radio-group>
-                  
-                  <!-- ✅ NUEVO: Selector de modo UPSERT -->
-                  @if (!soloValidar) {
-                    <div class="modo-upsert-section">
-                      <h5>🔄 Modo de Actualización</h5>
-                      <mat-radio-group [(ngModel)]="modoProcesamiento" class="radio-group-vertical">
-                        <mat-radio-button value="crear">
-                          <div class="radio-content">
-                            <strong>Solo Crear</strong>
-                            <p>Crear solo rutas nuevas (error si ya existe)</p>
-                          </div>
-                        </mat-radio-button>
-                        
-                        <mat-radio-button value="upsert">
-                          <div class="radio-content">
-                            <strong>Crear o Actualizar (Recomendado)</strong>
-                            <p>Crear si no existe, actualizar si existe</p>
-                          </div>
-                        </mat-radio-button>
-                      </mat-radio-group>
-                      
-                      <!-- Información sobre la clave única -->
-                      <div class="info-box upsert-info">
-                        <mat-icon>key</mat-icon>
-                        <div>
-                          <h6>Identificación Única de Rutas</h6>
-                          <p>Las rutas se identifican por: <strong>RUC + Resolución + Código</strong></p>
-                          <p class="example">Ejemplo: 20448048242 + R-0921-2023 + 01</p>
-                        </div>
-                      </div>
-                    </div>
-                  }
-                  
-                  <!-- Información sobre localidades -->
-                  <div class="info-section localidades-info">
-                    <mat-icon class="info-icon">info</mat-icon>
-                    <div class="info-content">
-                      <h5>📍 Manejo de Localidades</h5>
-                      <p>Las localidades que no se encuentren en la base de datos principal serán automáticamente clasificadas como:</p>
-                      <ul>
-                        <li><strong>Tipo:</strong> OTROS</li>
-                        <li><strong>Nivel:</strong> OTROS</li>
-                      </ul>
-                      <p class="info-note">Esto permite importar rutas con localidades nuevas sin errores de validación.</p>
-                    </div>
-                  </div>
-                  
-                  <!-- Configuración de lotes -->
-                  @if (!soloValidar) {
-                    <div class="batch-config">
-                      <h5>⚡ Configuración de Procesamiento</h5>
-                      <mat-slide-toggle [(ngModel)]="procesarEnLotes" color="primary">
-                        Procesar en lotes (recomendado para archivos grandes)
-                      </mat-slide-toggle>
-                      
-                      @if (procesarEnLotes) {
-                        <div class="batch-size-config">
-                          <mat-form-field appearance="outline">
-                            <mat-label>Tamaño del lote</mat-label>
-                            <mat-select [(ngModel)]="tamanoLote">
-                              <mat-option [value]="25">25 rutas por lote (más seguro)</mat-option>
-                              <mat-option [value]="50">50 rutas por lote (recomendado)</mat-option>
-                              <mat-option [value]="100">100 rutas por lote (más rápido)</mat-option>
-                            </mat-select>
-                            <mat-hint>Lotes más pequeños son más seguros pero más lentos</mat-hint>
-                          </mat-form-field>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-                
-                <div class="action-buttons">
-                  <button mat-raised-button 
-                          color="accent" 
-                          (click)="procesarArchivo()"
-                          [disabled]="!archivoSeleccionado || cargando">
-                    <mat-icon>{{ soloValidar ? 'verified' : 'play_arrow' }}</mat-icon>
-                    {{ soloValidar ? 'Validar Archivo' : 'Procesar Rutas' }}
+            <!-- Panel de Opciones de Procesamiento Compacto -->
+            <div class="options-container">
+              <div class="option-group">
+                <label class="option-label">
+                  <mat-icon>tune</mat-icon>
+                  Modo de Operación
+                </label>
+                <div class="pill-toggle-group">
+                  <button type="button"
+                          class="pill-btn"
+                          [class.active]="soloValidar()"
+                          (click)="soloValidar.set(true)">
+                    <mat-icon>fact_check</mat-icon>
+                    Solo Validar
+                  </button>
+                  <button type="button"
+                          class="pill-btn"
+                          [class.active]="!soloValidar()"
+                          (click)="soloValidar.set(false)">
+                    <mat-icon>play_circle</mat-icon>
+                    Validar y Cargar
                   </button>
                 </div>
-                
-                <!-- Indicador de progreso -->
-                @if (cargando) {
-                  <div class="loading-section">
-                    @if (procesarEnLotes && !soloValidar && totalLotes > 0) {
-                      <div class="batch-progress">
-                        <h5>🔄 Procesando en lotes...</h5>
-                        <mat-progress-bar 
-                          mode="determinate" 
-                          [value]="progresoPorLotes">
-                        </mat-progress-bar>
-                        <div class="batch-info">
-                          <span>Lote {{ loteActual }} de {{ totalLotes }}</span>
-                          <span>{{ progresoPorLotes.toFixed(1) }}% completado</span>
-                        </div>
-                        <p class="batch-description">
-                          Procesando {{ tamanoLote }} rutas por lote para mayor estabilidad...
-                        </p>
-                      </div>
-                    } @else {
-                      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-                      <p>{{ soloValidar ? 'Validando archivo...' : 'Procesando rutas...' }}</p>
-                    }
+              </div>
+
+              @if (!soloValidar()) {
+                <div class="option-group">
+                  <label class="option-label">
+                    <mat-icon>published_with_changes</mat-icon>
+                    Estrategia de Actualización
+                  </label>
+                  <div class="pill-toggle-group">
+                    <button type="button"
+                            class="pill-btn"
+                            [class.active]="modoProcesamiento() === 'upsert'"
+                            (click)="modoProcesamiento.set('upsert')"
+                            matTooltip="Crea si no existe, actualiza si ya existe por RUC + Res. + Código">
+                      <mat-icon>sync_alt</mat-icon>
+                      Crear o Actualizar (Upsert)
+                    </button>
+                    <button type="button"
+                            class="pill-btn"
+                            [class.active]="modoProcesamiento() === 'crear'"
+                            (click)="modoProcesamiento.set('crear')"
+                            matTooltip="Solo inserta registros nuevos">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      Solo Crear
+                    </button>
                   </div>
+                </div>
+
+                <div class="option-group inline-toggle">
+                  <mat-slide-toggle [checked]="procesarEnLotes()" (change)="procesarEnLotes.set($event.checked)" color="primary">
+                    Procesamiento en Lotes (Archivos Grandes)
+                  </mat-slide-toggle>
+
+                  @if (procesarEnLotes()) {
+                    <mat-form-field appearance="outline" class="lote-select">
+                      <mat-label>Tamaño de Lote</mat-label>
+                      <mat-select [ngModel]="tamanoLote()" (ngModelChange)="tamanoLote.set($event)">
+                        <mat-option [value]="25">25 por lote</mat-option>
+                        <mat-option [value]="50">50 por lote (Recomendado)</mat-option>
+                        <mat-option [value]="100">100 por lote</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Banner Informativo Ligero sobre Localidades -->
+            <div class="info-pill-bar">
+              <mat-icon>info</mat-icon>
+              <span><strong>Localidades automáticas:</strong> Si alguna localidad de la ruta no existe en BD, el sistema la registrará automáticamente sin interrumpir la carga.</span>
+            </div>
+
+            <!-- Botón Principal de Acción -->
+            <div class="main-action-area">
+              <button mat-raised-button
+                      color="accent"
+                      class="btn-process-hero"
+                      [disabled]="!archivoSeleccionado() || cargando()"
+                      (click)="procesarArchivo()">
+                @if (cargando()) {
+                  <mat-icon class="spin-icon">sync</mat-icon>
+                  Procesando Datos...
+                } @else {
+                  <mat-icon>{{ soloValidar() ? 'task_alt' : 'rocket_launch' }}</mat-icon>
+                  {{ soloValidar() ? 'Validar Estructura' : 'Iniciar Carga Masiva' }}
+                }
+              </button>
+            </div>
+
+            <!-- Barra de Progreso cuando se ejecuta el proceso -->
+            @if (cargando()) {
+              <div class="loading-progress-box">
+                @if (procesarEnLotes() && !soloValidar() && totalLotes() > 0) {
+                  <div class="batch-status">
+                    <span>Procesando Lote {{ loteActual() }} de {{ totalLotes() }}</span>
+                    <span>{{ progresoPorLotes().toFixed(0) }}%</span>
+                  </div>
+                  <mat-progress-bar mode="determinate" [value]="progresoPorLotes()"></mat-progress-bar>
+                } @else {
+                  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                  <p class="progress-subtext">{{ soloValidar() ? 'Validando registros...' : 'Insertando y sincronizando rutas...' }}</p>
                 }
               </div>
-            </mat-card-content>
-          </mat-card>
-        </mat-step>
+            }
+          </mat-card-content>
+        </mat-card>
 
-        <!-- Paso 4: Resultados -->
-        <mat-step label="Resultados" [completed]="mostrarResultados">
-          <mat-card class="step-card">
-            <mat-card-content>
-              <div class="step-content">
-                <mat-icon class="step-icon">assessment</mat-icon>
-                <h3>Paso 4: Resultados</h3>
-                
-                @if (resultado) {
-                  <!-- Resumen de estadísticas -->
-                  <div class="results-summary" [class]="soloValidar ? 'validation' : 'processing'">
-                    <h4>{{ soloValidar ? 'Validación Completada' : 'Procesamiento Completado' }}</h4>
-                    <div class="summary-stats">
-                      <div class="stat-item total">
-                        <mat-icon>description</mat-icon>
-                        <span class="stat-number">{{ getEstadistica('total') }}</span>
-                        <span class="stat-label">{{ soloValidar ? 'Total filas' : 'Total procesadas' }}</span>
-                      </div>
-                      
-                      @if (!soloValidar && modoProcesamiento === 'upsert') {
-                        <!-- Mostrar creadas y actualizadas por separado en modo UPSERT -->
-                        <div class="stat-item success">
-                          <mat-icon>add_circle</mat-icon>
-                          <span class="stat-number">{{ getRutasCreadas().length }}</span>
-                          <span class="stat-label">Creadas</span>
-                        </div>
-                        <div class="stat-item info">
-                          <mat-icon>update</mat-icon>
-                          <span class="stat-number">{{ getRutasActualizadas().length }}</span>
-                          <span class="stat-label">Actualizadas</span>
-                        </div>
-                      } @else {
-                        <!-- Mostrar solo exitosas en otros modos -->
-                        <div class="stat-item success">
-                          <mat-icon>check_circle</mat-icon>
-                          <span class="stat-number">{{ getEstadistica('exitosas') }}</span>
-                          <span class="stat-label">{{ soloValidar ? 'Válidos' : 'Rutas creadas' }}</span>
-                        </div>
-                      }
-                      
-                      @if (getEstadistica('errores') > 0) {
-                        <div class="stat-item error">
-                          <mat-icon>error</mat-icon>
-                          <span class="stat-number">{{ getEstadistica('errores') }}</span>
-                          <span class="stat-label">{{ soloValidar ? 'Inválidos' : 'Fallidas' }}</span>
-                        </div>
-                      }
-                      @if (getEstadistica('advertencias') > 0) {
-                        <div class="stat-item warning">
-                          <mat-icon>warning</mat-icon>
-                          <span class="stat-number">{{ getEstadistica('advertencias') }}</span>
-                          <span class="stat-label">Con advertencias</span>
-                        </div>
-                      }
+        <!-- SECCIÓN 2: DASHBOARD DE RESULTADOS (CUANDO HAYA RESULTADOS) -->
+        @if (mostrarResultados() && resultado()) {
+          <div class="results-section">
+            <mat-card class="results-card glass-panel">
+              <mat-card-header>
+                <mat-card-title class="card-title-flex">
+                  <mat-icon [class.text-success]="totalErrores() === 0" [class.text-warn]="totalErrores() > 0">
+                    {{ totalErrores() === 0 ? 'check_circle' : 'assessment' }}
+                  </mat-icon>
+                  <span>Resumen de {{ soloValidar() ? 'Validación' : 'Procesamiento' }}</span>
+                </mat-card-title>
+
+                <mat-card-subtitle>
+                  {{ soloValidar() ? 'Se completó la verificación del archivo sin modificar la base de datos' : 'Se procesaron las rutas correctamente' }}
+                </mat-card-subtitle>
+              </mat-card-header>
+
+              <mat-card-content class="card-body">
+                <!-- KPI Tiles Grid -->
+                <div class="kpi-grid">
+                  <div class="kpi-card total">
+                    <mat-icon>receipt_long</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalFilas() }}</span>
+                      <span class="kpi-label">Total Filas</span>
                     </div>
                   </div>
-                  
-                  <!-- Rutas creadas exitosamente -->
-                  @if (!soloValidar && getRutasCreadas().length > 0) {
-                    <mat-card class="results-card success">
-                      <mat-card-header>
-                        <mat-card-title>
-                          <mat-icon>check_circle</mat-icon>
-                          Rutas Creadas Exitosamente ({{ (getRutasCreadas())?.length || 0 }})
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="table-container">
-                          <table mat-table [dataSource]="getRutasCreadas().slice(0, 10)" class="results-table">
-                            <ng-container matColumnDef="codigo">
-                              <th mat-header-cell *matHeaderCellDef>Código</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.codigo || ruta.codigo_ruta }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="nombre">
-                              <th mat-header-cell *matHeaderCellDef>Nombre</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.nombre }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="id">
-                              <th mat-header-cell *matHeaderCellDef>ID</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.id }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="estado">
-                              <th mat-header-cell *matHeaderCellDef>Estado</th>
-                              <td mat-cell *matCellDef="let ruta">
-                                <mat-chip class="status-chip success">CREADA</mat-chip>
-                              </td>
-                            </ng-container>
-                            
-                            <tr mat-header-row *matHeaderRowDef="['codigo', 'nombre', 'id', 'estado']"></tr>
-                            <tr mat-row *matRowDef="let row; columns: ['codigo', 'nombre', 'id', 'estado'];"></tr>
-                          </table>
-                          
-                          @if (getRutasCreadas().length > 10) {
-                            <div class="more-results">
-                              <p><strong>... y {{ getRutasCreadas().length - 10 }} rutas más creadas exitosamente</strong></p>
-                            </div>
-                          }
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
+
+                  @if (!soloValidar() && modoProcesamiento() === 'upsert') {
+                    <div class="kpi-card success">
+                      <mat-icon>add_box</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ rutasCreadas().length }}</span>
+                        <span class="kpi-label">Creadas</span>
+                      </div>
+                    </div>
+
+                    <div class="kpi-card info">
+                      <mat-icon>published_with_changes</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ rutasActualizadas().length }}</span>
+                        <span class="kpi-label">Actualizadas</span>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="kpi-card success">
+                      <mat-icon>check_circle</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalExitosas() }}</span>
+                        <span class="kpi-label">{{ soloValidar() ? 'Válidos' : 'Exitosas' }}</span>
+                      </div>
+                    </div>
                   }
-                  
-                  <!-- ✅ NUEVO: Rutas actualizadas exitosamente -->
-                  @if (!soloValidar && getRutasActualizadas().length > 0) {
-                    <mat-card class="results-card info">
-                      <mat-card-header>
-                        <mat-card-title>
-                          <mat-icon>update</mat-icon>
-                          Rutas Actualizadas Exitosamente ({{ (getRutasActualizadas())?.length || 0 }})
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="table-container">
-                          <table mat-table [dataSource]="getRutasActualizadas().slice(0, 10)" class="results-table">
-                            <ng-container matColumnDef="codigo">
-                              <th mat-header-cell *matHeaderCellDef>Código</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.codigo || ruta.codigo_ruta }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="nombre">
-                              <th mat-header-cell *matHeaderCellDef>Nombre</th>
-                              <td mat-cell *matCellDef="let ruta">{{ ruta.nombre }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="cambios">
-                              <th mat-header-cell *matHeaderCellDef>Cambios</th>
-                              <td mat-cell *matCellDef="let ruta">
-                                @if (ruta.cambios && ruta.cambios.length > 0) {
-                                  <ul class="cambios-list">
-                                    @for (cambio of ruta.cambios; track $index) {
-                                      <li>{{ cambio }}</li>
-                                    }
-                                  </ul>
-                                } @else {
-                                  <span class="no-cambios">Sin cambios detectados</span>
-                                }
-                              </td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="estado">
-                              <th mat-header-cell *matHeaderCellDef>Estado</th>
-                              <td mat-cell *matCellDef="let ruta">
-                                <mat-chip class="status-chip info">ACTUALIZADA</mat-chip>
-                              </td>
-                            </ng-container>
-                            
-                            <tr mat-header-row *matHeaderRowDef="['codigo', 'nombre', 'cambios', 'estado']"></tr>
-                            <tr mat-row *matRowDef="let row; columns: ['codigo', 'nombre', 'cambios', 'estado'];"></tr>
-                          </table>
-                          
-                          @if (getRutasActualizadas().length > 10) {
-                            <div class="more-results">
-                              <p><strong>... y {{ getRutasActualizadas().length - 10 }} rutas más actualizadas exitosamente</strong></p>
-                            </div>
-                          }
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
+
+                  @if (totalErrores() > 0) {
+                    <div class="kpi-card danger">
+                      <mat-icon>error_outline</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalErrores() }}</span>
+                        <span class="kpi-label">Con Errores</span>
+                      </div>
+                    </div>
                   }
-                  
-                  <!-- Errores encontrados -->
-                  @if (getErrores().length > 0) {
-                    <mat-card class="results-card error">
-                      <mat-card-header>
-                        <mat-card-title>
-                          <mat-icon>error</mat-icon>
-                          {{ soloValidar ? 'Errores de Validación' : 'Rutas Fallidas' }} ({{ (getErrores())?.length || 0 }})
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="error-table">
-                          <table mat-table [dataSource]="getErrores().slice(0, 20)" class="results-table error-table">
-                            <ng-container matColumnDef="fila">
-                              <th mat-header-cell *matHeaderCellDef>Fila</th>
-                              <td mat-cell *matCellDef="let error">{{ error.fila || 'N/A' }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="codigo">
-                              <th mat-header-cell *matHeaderCellDef>Código</th>
-                              <td mat-cell *matCellDef="let error">{{ error.codigo_ruta || error.codigo || 'N/A' }}</td>
-                            </ng-container>
-                            
-                            <ng-container matColumnDef="error">
-                              <th mat-header-cell *matHeaderCellDef>Error</th>
-                              <td mat-cell *matCellDef="let error" class="error-cell">
-                                <div class="error-details">
-                                  @if (error.error) {
-                                    <span class="error-message">{{ error.error }}</span>
-                                  }
-                                  @if (error.errores && error.errores.length > 0) {
-                                    <ul class="error-list">
-                                      @for (detalle of error.errores; track $index) {
-                                        <li>{{ detalle }}</li>
-                                      }
-                                    </ul>
+
+                  @if (totalAdvertencias() > 0) {
+                    <div class="kpi-card warning">
+                      <mat-icon>warning_amber</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalAdvertencias() }}</span>
+                        <span class="kpi-label">Advertencias</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- ✅ NUEVA SECCIÓN: VISTA PREVIA DE CORRESPONDENCIA DE COLUMNAS (PRIMEROS 5 REGISTROS) -->
+                @if (rutasValidasMuestra().length > 0) {
+                  <div class="preview-section-card">
+                    <div class="preview-header">
+                      <mat-icon class="preview-icon">preview</mat-icon>
+                      <div>
+                        <h4>Vista Previa de Correspondencia de Columnas (Primeros 5 registros)</h4>
+                        <p>Verifica que los datos del Excel/CSV/Google Sheets hayan correspondido correctamente a cada campo antes de procesar</p>
+                      </div>
+                    </div>
+
+                    <div class="tab-table-wrapper">
+                      <table mat-table [dataSource]="rutasValidasMuestra()" class="modern-table preview-table">
+                        <ng-container matColumnDef="fila">
+                          <th mat-header-cell *matHeaderCellDef>Fila</th>
+                          <td mat-cell *matCellDef="let r"><strong>#{{ r.fila || '1' }}</strong></td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="ruc">
+                          <th mat-header-cell *matHeaderCellDef>RUC Empresa</th>
+                          <td mat-cell *matCellDef="let r"><span class="code-badge">{{ r.ruc }}</span></td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="resolucion">
+                          <th mat-header-cell *matHeaderCellDef>Resolución</th>
+                          <td mat-cell *matCellDef="let r"><span class="code-badge info-code">{{ r.resolucionNormalizada || r.resolucion }}</span></td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="codigo">
+                          <th mat-header-cell *matHeaderCellDef>Código</th>
+                          <td mat-cell *matCellDef="let r"><strong>{{ r.codigoRuta }}</strong></td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="recorrido">
+                          <th mat-header-cell *matHeaderCellDef>Origen → Destino</th>
+                          <td mat-cell *matCellDef="let r">
+                            <div class="route-path-flex">
+                              <span>{{ r.origen }}</span>
+                              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                              <span>{{ r.destino }}</span>
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="itinerario">
+                          <th mat-header-cell *matHeaderCellDef>Itinerario</th>
+                          <td mat-cell *matCellDef="let r">
+                            <span class="itinerario-text-preview">{{ r.itinerario || 'SIN ITINERARIO' }}</span>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="frecuencia">
+                          <th mat-header-cell *matHeaderCellDef>Frecuencia</th>
+                          <td mat-cell *matCellDef="let r">{{ r.frecuencia }}</td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="tipo">
+                          <th mat-header-cell *matHeaderCellDef>Tipo / Servicio</th>
+                          <td mat-cell *matCellDef="let r">
+                            <div class="tags-flex">
+                              <span class="type-tag">{{ r.tipoRuta || 'INTERREGIONAL' }}</span>
+                              <span class="service-tag">{{ r.tipoServicio || 'PASAJEROS' }}</span>
+                            </div>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="estado">
+                          <th mat-header-cell *matHeaderCellDef>Estado</th>
+                          <td mat-cell *matCellDef="let r">
+                            <span class="status-chip"
+                                  [class.success]="r.estado === 'ACTIVA'"
+                                  [class.danger]="r.estado === 'INACTIVA' || r.estado === 'CANCELADA' || r.esCancelada">
+                              {{ r.estado || (r.esCancelada ? 'CANCELADA' : 'ACTIVA') }}
+                            </span>
+                          </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="['fila', 'ruc', 'resolucion', 'codigo', 'recorrido', 'itinerario', 'frecuencia', 'tipo', 'estado']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['fila', 'ruc', 'resolucion', 'codigo', 'recorrido', 'itinerario', 'frecuencia', 'tipo', 'estado'];"></tr>
+
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                <!-- Tabs Limpios con Detalle de Listas -->
+                <mat-tab-group class="modern-tabs" animationDuration="200ms">
+                  <!-- Tab: Rutas Creadas -->
+                  @if (rutasCreadas().length > 0) {
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon success-icon">add_circle</mat-icon>
+                        <span>Rutas Creadas ({{ rutasCreadas().length }})</span>
+                      </ng-template>
+
+                      <div class="tab-table-wrapper">
+                        <table mat-table [dataSource]="rutasCreadas().slice(0, 15)" class="modern-table">
+                          <ng-container matColumnDef="codigo">
+                            <th mat-header-cell *matHeaderCellDef>Código</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <span class="code-badge">{{ ruta.codigo || ruta.codigo_ruta }}</span>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="ruc_res">
+                            <th mat-header-cell *matHeaderCellDef>RUC / Resolución</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <div class="tags-flex">
+                                <span class="code-badge">{{ ruta.ruc || 'N/A' }}</span>
+                                <span class="code-badge info-code">{{ ruta.resolucion || 'N/A' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="nombre">
+                            <th mat-header-cell *matHeaderCellDef>Origen - Destino</th>
+                            <td mat-cell *matCellDef="let ruta"><strong>{{ ruta.nombre }}</strong></td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="estado">
+                            <th mat-header-cell *matHeaderCellDef>Estado</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <span class="status-chip success">CREADA</span>
+                            </td>
+                          </ng-container>
+
+                          <tr mat-header-row *matHeaderRowDef="['codigo', 'ruc_res', 'nombre', 'estado']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['codigo', 'ruc_res', 'nombre', 'estado'];"></tr>
+                        </table>
+
+                        @if (rutasCreadas().length > 15) {
+                          <div class="table-footer-hint">
+                            ... y {{ rutasCreadas().length - 15 }} rutas adicionales creadas exitosamente.
+                          </div>
+                        }
+                      </div>
+                    </mat-tab>
+                  }
+
+                  <!-- Tab: Rutas Actualizadas -->
+                  @if (rutasActualizadas().length > 0) {
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon info-icon">update</mat-icon>
+                        <span>Rutas Actualizadas ({{ rutasActualizadas().length }})</span>
+                      </ng-template>
+
+                      <div class="tab-table-wrapper">
+                        <table mat-table [dataSource]="rutasActualizadas().slice(0, 15)" class="modern-table">
+                          <ng-container matColumnDef="codigo">
+                            <th mat-header-cell *matHeaderCellDef>Código</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <span class="code-badge info-code">{{ ruta.codigo || ruta.codigo_ruta }}</span>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="ruc_res">
+                            <th mat-header-cell *matHeaderCellDef>RUC / Resolución</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <div class="tags-flex">
+                                <span class="code-badge">{{ ruta.ruc || 'N/A' }}</span>
+                                <span class="code-badge info-code">{{ ruta.resolucion || 'N/A' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="nombre">
+                            <th mat-header-cell *matHeaderCellDef>Ruta</th>
+                            <td mat-cell *matCellDef="let ruta"><strong>{{ ruta.nombre }}</strong></td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="cambios">
+                            <th mat-header-cell *matHeaderCellDef>Modificaciones</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              @if (ruta.cambios && ruta.cambios.length > 0) {
+                                <div class="changes-tags">
+                                  @for (cambio of ruta.cambios; track $index) {
+                                    <span class="change-tag">{{ cambio }}</span>
                                   }
                                 </div>
-                              </td>
-                            </ng-container>
-                            
-                            <tr mat-header-row *matHeaderRowDef="['fila', 'codigo', 'error']"></tr>
-                            <tr mat-row *matRowDef="let row; columns: ['fila', 'codigo', 'error'];"></tr>
-                          </table>
-                          
-                          @if (getErrores().length > 20) {
-                            <div class="more-results">
-                              <p><strong>... y {{ getErrores().length - 20 }} errores más</strong></p>
-                            </div>
-                          }
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
-                  }
-                  
-                  <!-- Advertencias -->
-                  @if (getAdvertencias().length > 0) {
-                    <mat-card class="results-card warning">
-                      <mat-card-header>
-                        <mat-card-title>
-                          <mat-icon>warning</mat-icon>
-                          Advertencias ({{ (getAdvertencias())?.length || 0 }})
-                        </mat-card-title>
-                      </mat-card-header>
-                      <mat-card-content>
-                        <div class="warning-list">
-                          @for (advertencia of getAdvertencias().slice(0, 10); track $index) {
-                            <div class="warning-item">
-                              <strong>Fila {{ advertencia.fila }} - {{ advertencia.codigo_ruta }}:</strong>
-                              @if (advertencia.advertencias) {
-                                <ul>
-                                  @for (adv of advertencia.advertencias; track $index) {
-                                    <li>{{ adv }}</li>
-                                  }
-                                </ul>
+                              } @else {
+                                <span class="no-change">Re-sincronizada</span>
                               }
-                            </div>
-                          }
-                          @if (getAdvertencias().length > 10) {
-                            <div class="warning-item">
-                              <strong>... y {{ getAdvertencias().length - 10 }} advertencias más</strong>
-                            </div>
-                          }
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
-                  }
-                  
-                  <!-- Acciones finales -->
-                  <div class="final-actions">
-                    @if (!soloValidar && getRutasCreadas().length > 0) {
-                      <!-- Sincronizar itinerarios después de importar -->
-                      <div class="sync-section">
-                        <mat-card style="background: #e8f5e9; border: 1px solid #a5d6a7; margin-bottom: 16px;">
-                          <mat-card-content style="padding: 16px;">
-                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                              <div style="flex: 1; min-width: 200px;">
-                                <h5 style="margin: 0 0 4px 0; color: #2e7d32;">
-                                  <mat-icon style="vertical-align: middle; font-size: 18px;">route</mat-icon>
-                                  Sincronizar Itinerarios
-                                </h5>
-                                <p style="margin: 0; font-size: 12px; color: #555;">
-                                  Vincula las paradas del itinerario con coordenadas de la BD de localidades.
-                                  Necesario para verlas en el mapa.
-                                </p>
-                                @if (resultadoSincronizacion) {
-                                  <p style="margin: 4px 0 0 0; font-size: 12px; color: #388e3c; font-weight: 500;">
-                                    ✅ {{ resultadoSincronizacion }}
-                                  </p>
-                                }
-                              </div>
-                              <button mat-raised-button 
-                                      color="primary"
-                                      style="background: #388e3c;"
-                                      (click)="sincronizarItinerarios()"
-                                      [disabled]="sincronizandoItinerarios">
-                                <mat-icon>sync</mat-icon>
-                                {{ sincronizandoItinerarios ? 'Sincronizando...' : 'Sincronizar Ahora' }}
-                              </button>
-                            </div>
-                          </mat-card-content>
-                        </mat-card>
-                      </div>
+                            </td>
+                          </ng-container>
 
-                      <button mat-raised-button color="primary" (click)="irAListaRutas()">
-                        <mat-icon>list</mat-icon>
-                        Ver Rutas Creadas
-                      </button>
-                    }
-                    
-                    @if (soloValidar && getEstadistica('exitosas') > 0) {
-                      <button mat-raised-button color="accent" (click)="procesarDespuesDeValidar()">
-                        <mat-icon>play_arrow</mat-icon>
-                        Procesar Rutas Válidas
-                      </button>
-                    }
-                    
-                    <button mat-button (click)="reiniciarProceso()">
-                      <mat-icon>refresh</mat-icon>
-                      Nuevo Proceso
+                          <tr mat-header-row *matHeaderRowDef="['codigo', 'ruc_res', 'nombre', 'cambios']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['codigo', 'ruc_res', 'nombre', 'cambios'];"></tr>
+                        </table>
+                      </div>
+                    </mat-tab>
+                  }
+
+
+                  <!-- Tab: Errores -->
+                  @if (errores().length > 0) {
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon warn-icon">error_outline</mat-icon>
+                        <span>Errores ({{ errores().length }})</span>
+                      </ng-template>
+
+                      <div class="tab-table-wrapper">
+                        <table mat-table [dataSource]="errores().slice(0, 50)" class="modern-table error-table">
+                          <ng-container matColumnDef="fila">
+                            <th mat-header-cell *matHeaderCellDef>Fila</th>
+                            <td mat-cell *matCellDef="let err">
+                              <span class="type-tag" style="background: #fee2e2; color: #991b1b; font-weight: 800;">
+                                #{{ err.fila || 'N/A' }}
+                              </span>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="ruc_res">
+                            <th mat-header-cell *matHeaderCellDef>RUC / Res.</th>
+                            <td mat-cell *matCellDef="let err">
+                              <div class="tags-flex">
+                                <span class="code-badge">{{ err.ruc || 'N/A' }}</span>
+                                <span class="code-badge info-code">{{ err.resolucion || err.resolucionNormalizada || 'N/A' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="codigo">
+                            <th mat-header-cell *matHeaderCellDef>Código</th>
+                            <td mat-cell *matCellDef="let err"><strong>{{ err.codigo_ruta || err.codigo || 'N/A' }}</strong></td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="recorrido">
+                            <th mat-header-cell *matHeaderCellDef>Origen → Destino</th>
+                            <td mat-cell *matCellDef="let err">
+                              <div class="route-path-flex">
+                                <span>{{ err.origen || 'N/A' }}</span>
+                                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                                <span>{{ err.destino || 'N/A' }}</span>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="estado">
+                            <th mat-header-cell *matHeaderCellDef>Estado</th>
+                            <td mat-cell *matCellDef="let err">
+                              <span class="status-chip"
+                                    [class.success]="err.estado === 'ACTIVA'"
+                                    [class.danger]="err.estado === 'INACTIVA' || err.estado === 'CANCELADA'">
+                                {{ err.estado || 'ACTIVA' }}
+                              </span>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="detalle">
+                            <th mat-header-cell *matHeaderCellDef>Detalle del Error</th>
+                            <td mat-cell *matCellDef="let err">
+                              <span class="err-text">{{ err.error || err.errores?.join(', ') || 'Error al procesar fila' }}</span>
+                            </td>
+                          </ng-container>
+
+                          <tr mat-header-row *matHeaderRowDef="['fila', 'ruc_res', 'codigo', 'recorrido', 'estado', 'detalle']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['fila', 'ruc_res', 'codigo', 'recorrido', 'estado', 'detalle'];"></tr>
+
+                        </table>
+                      </div>
+                    </mat-tab>
+                  }
+
+
+                  <!-- Tab: Advertencias -->
+                  @if (advertencias().length > 0) {
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon amber-icon">warning_amber</mat-icon>
+                        <span>Advertencias ({{ advertencias().length }})</span>
+                      </ng-template>
+
+                      <div class="tab-table-wrapper">
+                        <ul class="warning-list">
+                          @for (adv of advertencias(); track $index) {
+                            <li>
+                              <strong>Fila {{ adv.fila }} ({{ adv.codigo_ruta }}):</strong>
+                              <span>{{ adv.advertencias?.join(' | ') || 'Advertencia en validación' }}</span>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    </mat-tab>
+                  }
+                </mat-tab-group>
+
+                <!-- Footer de Acciones del Dashboard -->
+                <div class="results-actions-bar">
+                  @if (soloValidar() && totalExitosas() > 0) {
+                    <button mat-raised-button color="accent" (click)="procesarDespuesDeValidar()">
+                      <mat-icon>play_circle</mat-icon>
+                      Procesar Rutas Válidas Ahora
                     </button>
-                  </div>
-                }
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </mat-step>
-      </mat-stepper>
+                  }
+
+                  @if (!soloValidar() && rutasCreadas().length > 0) {
+                    <button mat-raised-button color="primary" (click)="irAListaRutas()">
+                      <mat-icon>format_list_bulleted</mat-icon>
+                      Ver Rutas en el Sistema
+                    </button>
+                  }
+
+                  <button mat-stroked-button (click)="reiniciarProceso()">
+                    <mat-icon>refresh</mat-icon>
+                    Cargar Otro Archivo
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+        }
+      </div>
     </div>
   `,
   styleUrls: ['./carga-masiva-rutas.component.scss']
 })
 export class CargaMasivaRutasComponent implements OnInit {
 
-  // Estado del componente
-  archivoSeleccionado: File | null = null;
-  cargando = false;
-  mostrarResultados = false;
-  soloValidar = true;
+  // Signals de estado
+  origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
+  googleSheetsUrl = signal<string>('');
+  cargandoGoogleSheets = signal<boolean>(false);
 
-  // Configuración de procesamiento
-  modoProcesamiento: 'crear' | 'actualizar' | 'upsert' = 'upsert';  // ✅ NUEVO
-  procesarEnLotes = true;
-  tamanoLote = 50;
-  loteActual = 0;
-  totalLotes = 0;
-  progresoPorLotes = 0;
+  archivoSeleccionado = signal<File | null>(null);
+  cargando = signal<boolean>(false);
+  mostrarResultados = signal<boolean>(false);
+  soloValidar = signal<boolean>(true);
 
-  // Resultado unificado
-  resultado: ResultadoCargaMasiva | null = null;
+  modoProcesamiento = signal<'crear' | 'actualizar' | 'upsert'>('upsert');
+  procesarEnLotes = signal<boolean>(true);
+  tamanoLote = signal<number>(50);
+  loteActual = signal<number>(0);
+  totalLotes = signal<number>(0);
+  progresoPorLotes = signal<number>(0);
 
-  // Control de UI
-  plantillaDescargada = false;
-  isDragOver = false;
+  isDragOver = signal<boolean>(false);
+  sincronizandoItinerarios = signal<boolean>(false);
+  resultadoSincronizacion = signal<string>('');
 
-  // Sincronización de itinerarios
-  sincronizandoItinerarios = false;
-  resultadoSincronizacion = '';
+  resultado = signal<ResultadoCargaMasiva | null>(null);
+
+  // Computed signals para los datos unificados
+  totalFilas = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return 0;
+    if (this.soloValidar()) {
+      return res.validacion?.total_filas || res.total_filas || 0;
+    }
+    return res.resultado?.total_procesadas || res.total_procesadas || res.validacion?.total_filas || res.total_filas || 0;
+  });
+
+  totalExitosas = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return 0;
+    if (this.soloValidar()) {
+      return res.validacion?.validos || res.validos || 0;
+    }
+    return res.resultado?.exitosas || res.resultado?.total_creadas || res.exitosas || res.total_creadas || 0;
+  });
+
+  totalErrores = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return 0;
+    if (this.soloValidar()) {
+      return res.validacion?.invalidos || res.invalidos || 0;
+    }
+    return res.resultado?.fallidas || res.fallidas || 0;
+  });
+
+  totalAdvertencias = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return 0;
+    return res.validacion?.con_advertencias || res.con_advertencias || 0;
+  });
+
+  rutasValidasMuestra = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return [];
+    const validas = res.validacion?.rutas_validas || res.rutas_validas || res.resultado?.rutas_validas || [];
+    return validas.slice(0, 5);
+  });
+
+  rutasCreadas = computed(() => {
+    const res: any = this.resultado();
+    if (!res || this.soloValidar()) return [];
+    const creadas = res.resultado?.rutas_creadas || res.rutas_creadas || [];
+
+    return creadas.map((ruta: any) => {
+      let nombreFormateado = ruta.nombre;
+      if (ruta.origen && ruta.destino) {
+        const o = typeof ruta.origen === 'string' ? ruta.origen : ruta.origen.nombre;
+        const d = typeof ruta.destino === 'string' ? ruta.destino : ruta.destino.nombre;
+        nombreFormateado = `${o} - ${d}`;
+      }
+      return {
+        ...ruta,
+        nombre: nombreFormateado
+      };
+    });
+  });
+
+  rutasActualizadas = computed(() => {
+    const res: any = this.resultado();
+    if (!res || this.soloValidar()) return [];
+    return res.resultado?.rutas_actualizadas || res.rutas_actualizadas || [];
+  });
+
+  errores = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return [];
+    const errValidacion = res.validacion?.errores || res.errores || [];
+    const errProc = res.resultado?.errores_procesamiento || res.errores_procesamiento || [];
+    const errCrea = res.resultado?.errores_creacion || res.errores_creacion || [];
+    return [...errValidacion, ...errProc, ...errCrea];
+  });
+
+  advertencias = computed(() => {
+    const res: any = this.resultado();
+    if (!res) return [];
+    return res.validacion?.advertencias || res.advertencias || [];
+  });
 
   constructor(
     private rutaService: RutaService,
-    private snackBar: MatSnackBar
+    private googleSheetsService: GoogleSheetsService,
+    private snackBar: MatSnackBar,
+    private router: Router
   ) { }
 
-  ngOnInit() {
-  }
-
-  // ========================================
-  // MÉTODOS DE DESCARGA DE PLANTILLA
-  // ========================================
+  ngOnInit() { }
 
   async descargarPlantilla() {
     try {
-      this.cargando = true;
-
+      this.cargando.set(true);
       const blob = await this.rutaService.descargarPlantillaCargaMasiva();
-
-      // Crear enlace de descarga
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -726,38 +920,78 @@ export class CargaMasivaRutasComponent implements OnInit {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
-      this.plantillaDescargada = true;
-      this.snackBar.open('Plantilla descargada exitosamente', 'Cerrar', { duration: 3000 });
-
+      this.snackBar.open('Plantilla Excel descargada exitosamente', 'Cerrar', { duration: 3000 });
     } catch (error: any) {
-      console.error('Error descargando plantilla:', error);
-      this.snackBar.open('Error al descargar la plantilla', 'Cerrar', { duration: 5000 });
+      console.error('Error al descargar la plantilla:', error);
+      this.snackBar.open('Error al descargar la plantilla Excel', 'Cerrar', { duration: 5000 });
     } finally {
-      this.cargando = false;
+      this.cargando.set(false);
     }
   }
 
-  // ========================================
-  // MÉTODOS DE MANEJO DE ARCHIVOS
-  // ========================================
+  cargarDesdeGoogleSheets() {
+    const url = this.googleSheetsUrl().trim();
+    if (!url) {
+      this.snackBar.open('Ingresa un enlace de Google Sheets', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    if (!this.googleSheetsService.validarUrl(url)) {
+      this.snackBar.open('Enlace de Google Sheets no válido', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
+    const id = this.googleSheetsService.extraerIdDeUrl(url) || url;
+    this.cargandoGoogleSheets.set(true);
+
+    this.googleSheetsService.obtenerDatosReales(id).subscribe({
+      next: (sheetInfo) => {
+        this.cargandoGoogleSheets.set(false);
+        if (!sheetInfo || sheetInfo.datos.length === 0) {
+          this.snackBar.open('La hoja de Google Sheets no contiene registros', 'Cerrar', { duration: 4000 });
+          return;
+        }
+
+        // Reconstruir CSV
+        const csvRows: string[] = [];
+        csvRows.push(sheetInfo.encabezados.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
+        for (const fila of sheetInfo.datos) {
+          csvRows.push(fila.map(c => `"${(c || '').replace(/"/g, '""')}"`).join(','));
+        }
+        const csvContent = csvRows.join('\n');
+
+        // Convertir a File
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const file = new File([blob], `google_sheet_rutas_${Date.now()}.csv`, { type: 'text/csv' });
+
+        this.archivoSeleccionado.set(file);
+        this.limpiarResultados();
+        this.snackBar.open(`✅ Google Sheet descargado exitosamente: ${sheetInfo.totalFilas} filas obtenidas`, 'Cerrar', { duration: 4000 });
+      },
+      error: (err) => {
+        this.cargandoGoogleSheets.set(false);
+        console.error('Error obteniendo Google Sheets:', err);
+        this.snackBar.open(`Error: ${err.message || 'No se pudo acceder a Google Sheets. Verifica que sea pública.'}`, 'Cerrar', { duration: 6000 });
+      }
+    });
+  }
 
   onDragOver(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
-    this.isDragOver = true;
+    this.isDragOver.set(true);
   }
 
   onDragLeave(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
-    this.isDragOver = false;
+    this.isDragOver.set(false);
   }
 
   onDrop(event: DragEvent) {
     event.preventDefault();
     event.stopPropagation();
-    this.isDragOver = false;
+    this.isDragOver.set(false);
 
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
@@ -773,39 +1007,34 @@ export class CargaMasivaRutasComponent implements OnInit {
   }
 
   private procesarArchivoSeleccionado(file: File) {
-    // Validar tipo de archivo
-    const allowedTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
-    ];
+    const isCsv = file.name.match(/\.csv$/i) || file.type === 'text/csv';
+    const isExcel = file.name.match(/\.(xlsx|xls)$/i) || file.type.includes('spreadsheet') || file.type.includes('excel');
 
-    if (!allowedTypes.includes(file.type)) {
-      this.snackBar.open('Por favor selecciona un archivo Excel (.xlsx o .xls)', 'Cerrar', { duration: 5000 });
+    if (!isCsv && !isExcel) {
+      this.snackBar.open('Por favor selecciona un archivo Excel (.xlsx, .xls) o CSV (.csv)', 'Cerrar', { duration: 5000 });
       return;
     }
 
-    // Validar tamaño (máximo 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      this.snackBar.open('El archivo es demasiado grande. Máximo 10MB permitido.', 'Cerrar', { duration: 5000 });
+    if (file.size > 10 * 1024 * 1024) {
+      this.snackBar.open('El archivo supera los 10MB permitidos.', 'Cerrar', { duration: 5000 });
       return;
     }
 
-    this.archivoSeleccionado = file;
+    this.archivoSeleccionado.set(file);
     this.limpiarResultados();
   }
 
   limpiarArchivo() {
-    this.archivoSeleccionado = null;
+    this.archivoSeleccionado.set(null);
     this.limpiarResultados();
   }
 
   private limpiarResultados() {
-    this.resultado = null;
-    this.mostrarResultados = false;
-    this.loteActual = 0;
-    this.totalLotes = 0;
-    this.progresoPorLotes = 0;
+    this.resultado.set(null);
+    this.mostrarResultados.set(false);
+    this.loteActual.set(0);
+    this.totalLotes.set(0);
+    this.progresoPorLotes.set(0);
   }
 
   formatFileSize(bytes: number): string {
@@ -816,235 +1045,76 @@ export class CargaMasivaRutasComponent implements OnInit {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  // ========================================
-  // MÉTODO PRINCIPAL DE PROCESAMIENTO
-  // ========================================
-
   async procesarArchivo() {
-    if (!this.archivoSeleccionado) {
-      this.snackBar.open('Por favor selecciona un archivo', 'Cerrar', { duration: 3000 });
+    const file = this.archivoSeleccionado();
+    if (!file) {
+      this.snackBar.open('Por favor selecciona un archivo o descarga una hoja de Google Sheets', 'Cerrar', { duration: 3000 });
       return;
     }
 
-    this.cargando = true;
+    this.cargando.set(true);
     this.limpiarResultados();
 
     try {
-      if (this.soloValidar) {
-        await this.ejecutarValidacion();
+      if (this.soloValidar()) {
+        const res = await this.rutaService.validarCargaMasiva(file);
+        this.resultado.set(res);
       } else {
-        await this.ejecutarProcesamiento();
+        const opciones = {
+          soloValidar: false,
+          modo: this.modoProcesamiento(),
+          procesarEnLotes: this.procesarEnLotes(),
+          tamanoLote: this.tamanoLote()
+        };
+        const res = await this.rutaService.procesarCargaMasiva(file, opciones);
+        this.resultado.set(res);
       }
-
-      this.mostrarResultados = true;
-
+      this.mostrarResultados.set(true);
     } catch (error: any) {
-      console.error('ERROR EN PROCESAMIENTO:', error);
+      console.error('Error al procesar archivo:', error);
       this.snackBar.open(
-        `Error: ${error.error?.mensaje || error.message || 'Error desconocido'}`,
+        `Error: ${error.error?.mensaje || error.message || 'Error en el procesamiento'}`,
         'Cerrar',
         { duration: 5000 }
       );
     } finally {
-      this.cargando = false;
+      this.cargando.set(false);
     }
   }
-
-  private async ejecutarValidacion() {
-    this.resultado = await this.rutaService.validarCargaMasiva(this.archivoSeleccionado!);
-  }
-
-  private async ejecutarProcesamiento() {
-    const opciones = {
-      soloValidar: false,
-      modo: this.modoProcesamiento,
-      procesarEnLotes: this.procesarEnLotes,
-      tamanoLote: this.tamanoLote
-    };
-
-    this.resultado = await this.rutaService.procesarCargaMasiva(this.archivoSeleccionado!, opciones);
-  }
-
-  // ========================================
-  // MÉTODOS DE OBTENCIÓN DE DATOS UNIFICADOS
-  // ========================================
-
-  getEstadistica(tipo: 'total' | 'exitosas' | 'errores' | 'advertencias'): number {
-    if (!this.resultado) return 0;
-
-    // Manejar diferentes estructuras de respuesta del backend
-    const resultado: any = this.resultado as any;
-
-    // Para validación: { validacion: {...} }
-    // Para procesamiento: { resultado: {...} }
-    const datosValidacion = resultado.validacion;
-    const datosProcesamiento = resultado.resultado;
-    const datosDirect = resultado;
-
-    switch (tipo) {
-      case 'total':
-        if (this.soloValidar) {
-          return datosValidacion?.total_filas || datosDirect.total_filas || 0;
-        } else {
-          return datosProcesamiento?.total_procesadas ||
-            datosDirect.total_procesadas ||
-            datosValidacion?.total_filas ||
-            datosDirect.total_filas || 0;
-        }
-
-      case 'exitosas':
-        if (this.soloValidar) {
-          return datosValidacion?.validos || datosDirect.validos || 0;
-        } else {
-          return datosProcesamiento?.exitosas ||
-            datosProcesamiento?.total_creadas ||
-            datosDirect.exitosas ||
-            datosDirect.total_creadas || 0;
-        }
-
-      case 'errores':
-        if (this.soloValidar) {
-          return datosValidacion?.invalidos || datosDirect.invalidos || 0;
-        } else {
-          return datosProcesamiento?.fallidas ||
-            datosDirect.fallidas || 0;
-        }
-
-      case 'advertencias':
-        return datosValidacion?.con_advertencias ||
-          datosDirect.con_advertencias || 0;
-
-      default:
-        return 0;
-    }
-  }
-
-  getRutasCreadas(): any[] {
-    if (!this.resultado || this.soloValidar) return [];
-
-    const resultado: any = this.resultado as any;
-    const datosProcesamiento = resultado.resultado;
-
-    const rutasOriginales = datosProcesamiento?.rutas_creadas ||
-      resultado.rutas_creadas ||
-      [];
-
-    // Transformar las rutas para mostrar nombre como "ORIGEN - DESTINO"
-    return rutasOriginales.map((ruta: any) => {
-      // Intentar extraer origen y destino del nombre o itinerario
-      let nombreTransformado = ruta.nombre;
-
-      if (ruta.nombre && ruta.nombre.includes(' - ')) {
-        // Si ya tiene el formato correcto, mantenerlo
-        const partes = ruta.nombre.split(' - ');
-        if (partes.length >= 2) {
-          nombreTransformado = `${partes[0]} - ${partes[partes.length - 1]}`;
-        }
-      } else if (ruta.origen && ruta.destino) {
-        // Si tiene origen y destino separados
-        const origen = typeof ruta.origen === 'string' ? ruta.origen : ruta.origen.nombre;
-        const destino = typeof ruta.destino === 'string' ? ruta.destino : ruta.destino.nombre;
-        nombreTransformado = `${origen} - ${destino}`;
-      } else if (ruta.nombre) {
-        // Intentar extraer origen y destino del itinerario completo
-        const itinerario = ruta.nombre.replace(/\s*-\s*/g, ' - ');
-        const localidades = itinerario.split(' - ').map((loc: string) => loc.trim());
-
-        if (localidades.length >= 2) {
-          nombreTransformado = `${localidades[0]} - ${localidades[localidades.length - 1]}`;
-        }
-      }
-
-      return {
-        ...ruta,
-        nombre: nombreTransformado
-      };
-    });
-  }
-
-  getErrores(): any[] {
-    if (!this.resultado) return [];
-
-    const resultado: any = this.resultado as any;
-    const datosValidacion = resultado.validacion;
-    const datosProcesamiento = resultado.resultado;
-
-    // Errores de validación
-    const erroresValidacion = datosValidacion?.errores || resultado.errores || [];
-
-    // Errores de procesamiento
-    const erroresProcesamiento = datosProcesamiento?.errores_procesamiento ||
-      resultado.errores_procesamiento ||
-      [];
-    const erroresCreacion = datosProcesamiento?.errores_creacion ||
-      resultado.errores_creacion ||
-      [];
-
-    return [...erroresValidacion, ...erroresProcesamiento, ...erroresCreacion];
-  }
-
-  getAdvertencias(): any[] {
-    if (!this.resultado) return [];
-
-    const resultado: any = this.resultado as any;
-    const datosValidacion = resultado.validacion;
-
-    return datosValidacion?.advertencias || resultado.advertencias || [];
-  }
-
-  // ========================================
-  // MÉTODOS DE ACCIONES FINALES
-  // ========================================
 
   procesarDespuesDeValidar() {
-    this.soloValidar = false;
+    this.soloValidar.set(false);
     this.procesarArchivo();
   }
 
   irAListaRutas() {
-    // Navegar a la lista de rutas
-    window.location.href = '/rutas';
+    this.router.navigate(['/rutas']);
   }
 
   reiniciarProceso() {
-    this.archivoSeleccionado = null;
+    this.archivoSeleccionado.set(null);
+    this.googleSheetsUrl.set('');
     this.limpiarResultados();
-    this.soloValidar = true;
-    this.procesarEnLotes = true;
-    this.tamanoLote = 50;
-    this.plantillaDescargada = false;
-  }
-
-  getRutasActualizadas(): any[] {
-    if (!this.resultado || this.soloValidar) return [];
-
-    const resultado: any = this.resultado as any;
-    
-    // Intentar obtener de diferentes estructuras posibles
-    return resultado.rutas_actualizadas || 
-           resultado.resultado?.rutas_actualizadas || 
-           [];
+    this.soloValidar.set(true);
+    this.modoProcesamiento.set('upsert');
   }
 
   sincronizarItinerarios() {
-    this.sincronizandoItinerarios = true;
-    this.resultadoSincronizacion = '';
+    this.sincronizandoItinerarios.set(true);
+    this.resultadoSincronizacion.set('');
 
     this.rutaService.sincronizarItinerarios().subscribe({
       next: (data: any) => {
-        this.sincronizandoItinerarios = false;
+        this.sincronizandoItinerarios.set(false);
         const rutas = data?.rutas_actualizadas || 0;
         const paradas = data?.total_paradas_vinculadas || 0;
-        this.resultadoSincronizacion = `${rutas} rutas actualizadas, ${paradas} paradas con coordenadas vinculadas.`;
-        this.snackBar.open(
-          `Sincronización completada: ${rutas} rutas, ${paradas} paradas georeferenciadas`,
-          'Cerrar',
-          { duration: 5000 }
-        );
+        const msg = `${rutas} rutas actualizadas, ${paradas} paradas vinculadas.`;
+        this.resultadoSincronizacion.set(msg);
+        this.snackBar.open(`Sincronización completada: ${msg}`, 'Cerrar', { duration: 5000 });
       },
       error: (err: any) => {
-        this.sincronizandoItinerarios = false;
-        this.resultadoSincronizacion = 'Error al sincronizar. Intenta nuevamente.';
+        this.sincronizandoItinerarios.set(false);
+        this.resultadoSincronizacion.set('Error al sincronizar itinerarios.');
         console.error('Error sincronizando itinerarios:', err);
         this.snackBar.open('Error al sincronizar itinerarios', 'Cerrar', { duration: 4000 });
       }
