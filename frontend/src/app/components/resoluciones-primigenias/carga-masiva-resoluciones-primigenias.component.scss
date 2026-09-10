@@ -1,0 +1,867 @@
+// ============================================================================
+// DISEÑO ULTRA-MODERNO: CARGA MASIVA DE RESOLUCIONES PRIMIGENIAS (EXCEL, CSV & GOOGLE SHEETS)
+// Estilos limpios, responsivos, glassmorphism y micro-interacciones
+// ============================================================================
+
+.carga-masiva-wrapper {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+// ----------------------------------------------------------------------------
+// 1. BANNER HEADER
+// ----------------------------------------------------------------------------
+.header-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
+  border-radius: 20px;
+  padding: 28px 32px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+
+  .header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .back-btn {
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateX(-3px);
+      }
+    }
+
+    .title-text {
+      .badge-tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #818cf8;
+        background: rgba(99, 102, 241, 0.15);
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+      }
+
+      p {
+        margin: 4px 0 0 0;
+        font-size: 14px;
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    .action-btn {
+      border-radius: 12px;
+      padding: 8px 20px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+
+    .download-btn {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+      }
+    }
+  }
+}
+
+.toast-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+
+  &.success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+
+    mat-icon {
+      color: #22c55e;
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 2. GLASS PANEL CONTAINER
+// ----------------------------------------------------------------------------
+.main-content-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.glass-panel {
+  border-radius: 20px !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  mat-card-header {
+    padding: 24px 28px 16px 28px;
+
+    .card-title-flex {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+
+      .panel-icon {
+        color: #4f46e5;
+      }
+    }
+
+    mat-card-subtitle {
+      color: #64748b;
+      margin-top: 4px;
+    }
+  }
+
+  .card-body {
+    padding: 0 28px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 3. SELECTOR DE ORIGEN (TAB SWITCHER)
+// ----------------------------------------------------------------------------
+.source-selector {
+  display: flex;
+  gap: 12px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 14px;
+
+  .source-tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .text-green {
+      color: #16a34a;
+    }
+
+    &:hover {
+      color: #1e293b;
+    }
+
+    &.active {
+      background: #ffffff;
+      color: #4f46e5;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+      .text-green {
+        color: #16a34a;
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 4. DROPZONE Y PANEL DE GOOGLE SHEETS
+// ----------------------------------------------------------------------------
+.dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 36px 24px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+
+  &:hover, &.drag-active {
+    border-color: #6366f1;
+    background: #f5f3ff;
+    transform: translateY(-2px);
+
+    .cloud-icon-circle {
+      background: #e0e7ff;
+      color: #4f46e5;
+      transform: scale(1.08);
+    }
+  }
+
+  &.has-file {
+    border-color: #22c55e;
+    background: #f0fdf4;
+  }
+
+  .dropzone-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .cloud-icon-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      margin-bottom: 6px;
+
+      mat-icon {
+        font-size: 32px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .file-limit-hint {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+  }
+}
+
+.dropzone-file-selected {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+  max-width: 500px;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.08);
+
+  .file-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #dcfce7;
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+    }
+  }
+
+  .file-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+
+    .file-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      word-break: break-all;
+    }
+
+    .file-size {
+      font-size: 13px;
+      color: #64748b;
+    }
+  }
+}
+
+.google-sheets-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+
+  .sheets-header-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .sheets-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      color: #16a34a;
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #14532d;
+    }
+
+    p {
+      margin: 2px 0 0 0;
+      font-size: 13px;
+      color: #166534;
+    }
+  }
+
+  .sheets-input-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    .url-input-field {
+      flex: 1;
+      margin-bottom: -1.25em;
+    }
+
+    .btn-fetch-sheets {
+      height: 52px;
+      padding: 0 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      background: #16a34a;
+      color: #ffffff;
+
+      &:hover:not([disabled]) {
+        background: #15803d;
+      }
+    }
+  }
+
+  .sheets-success-file {
+    margin-top: 8px;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 5. OPCIONES COMPACTAS ULTRA-ELEGANTES
+// ----------------------------------------------------------------------------
+.options-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 28px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 22px 28px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.03);
+
+  .option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .option-label {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: #4f46e5;
+      }
+    }
+  }
+
+  .pill-toggle-group {
+    display: inline-flex;
+    background: #e2e8f0;
+    padding: 5px;
+    border-radius: 14px;
+    gap: 4px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+
+    .pill-btn {
+      border: none;
+      background: transparent;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        transition: transform 0.2s ease;
+      }
+
+      &:hover {
+        color: #1e293b;
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        background: #ffffff;
+        color: #4f46e5;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2), 0 2px 4px rgba(0, 0, 0, 0.05);
+
+        mat-icon {
+          color: #4f46e5;
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+}
+
+.info-pill-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  font-size: 13px;
+
+  mat-icon {
+    color: #0284c7;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.main-action-area {
+  display: flex;
+  justify-content: center;
+
+  .btn-process-hero {
+    height: 52px;
+    padding: 0 40px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s ease;
+
+    mat-icon {
+      margin-right: 10px;
+    }
+
+    &:hover:not([disabled]) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    }
+  }
+}
+
+.loading-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+
+  .progress-subtext {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 6. DASHBOARD DE RESULTADOS (KPI TILES, PREVIEW & TABLES)
+// ----------------------------------------------------------------------------
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+
+  .kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+
+    mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .kpi-data {
+      display: flex;
+      flex-direction: column;
+
+      .kpi-num {
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+
+      .kpi-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+    }
+
+    &.total {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      mat-icon, .kpi-num { color: #334155; }
+    }
+
+    &.success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      mat-icon, .kpi-num { color: #16a34a; }
+    }
+
+    &.danger {
+      background: #fef2f2;
+      border-color: #fecaca;
+      mat-icon, .kpi-num { color: #dc2626; }
+    }
+
+    &.warning {
+      background: #fffbeb;
+      border-color: #fde68a;
+      mat-icon, .kpi-num { color: #d97706; }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 7. VISTA PREVIA DE CORRESPONDENCIA DE COLUMNAS (PRIMEROS 5 REGISTROS)
+// ----------------------------------------------------------------------------
+.preview-section-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.06);
+
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    .preview-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #4f46e5;
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e1b4b;
+    }
+
+    p {
+      margin: 2px 0 0 0;
+      font-size: 13px;
+      color: #4338ca;
+    }
+  }
+
+  .date-range-flex {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #334155;
+    font-weight: 600;
+
+    .text-muted {
+      color: #94a3b8;
+    }
+  }
+
+  .type-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #e0e7ff;
+    color: #3730a3;
+    letter-spacing: 0.03em;
+  }
+}
+
+.modern-tabs {
+  margin-top: 12px;
+
+  .tab-icon {
+    margin-right: 8px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+
+    &.success-icon { color: #16a34a; }
+    &.warn-icon { color: #dc2626; }
+  }
+
+  .tab-table-wrapper {
+    padding-top: 16px;
+    overflow-x: auto;
+  }
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  tr:hover td {
+    background: #f8fafc;
+  }
+}
+
+.code-badge {
+  display: inline-block;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+
+  &.info-code {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+  }
+}
+
+.status-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+
+  &.success {
+    background: #dcfce7;
+    color: #15803d;
+  }
+}
+
+.error-table {
+  .err-text {
+    color: #dc2626;
+    font-weight: 500;
+  }
+}
+
+.table-footer-hint {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.no-change {
+  font-size: 13px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.results-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+
+  button {
+    border-radius: 10px;
+    font-weight: 600;
+
+    mat-icon {
+      margin-right: 6px;
+    }
+  }
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+// ----------------------------------------------------------------------------
+// RESPONSIVO
+// ----------------------------------------------------------------------------
+@media (max-width: 768px) {
+  .carga-masiva-wrapper {
+    padding: 16px;
+  }
+
+  .header-banner {
+    padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .source-selector {
+    flex-direction: column;
+  }
+
+  .sheets-input-row {
+    flex-direction: column;
+
+    .btn-fetch-sheets {
+      width: 100%;
+    }
+  }
+
+  .options-container {
+    flex-direction: column;
+  }
+
+  .pill-toggle-group {
+    width: 100%;
+
+    .pill-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  .results-actions-bar {
+    justify-content: center;
+
+    button {
+      width: 100%;
+    }
+  }
+}

@@ -31,8 +31,12 @@ export class PerformanceMonitor {
    * Inicia la medición de rendimiento
    */
   static startMeasure(label: string): void {
-    this.marks.set(label, performance.now());
-    performance.mark(`${label}-start`);
+    try {
+      this.marks.set(label, performance.now());
+      if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+        performance.mark(`${label}-start`);
+      }
+    } catch (e) {}
   }
 
   /**
@@ -41,19 +45,22 @@ export class PerformanceMonitor {
   static endMeasure(label: string): number {
     const startTime = this.marks.get(label);
     if (!startTime) {
-      console.warn(`No se encontró marca de inicio para: ${label}`);
       return 0;
     }
 
     const endTime = performance.now();
     const duration = endTime - startTime;
     
-    performance.mark(`${label}-end`);
-    performance.measure(label, `${label}-start`, `${label}-end`);
+    try {
+      if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+        performance.mark(`${label}-end`);
+        if (typeof performance.measure === 'function') {
+          performance.measure(label, `${label}-start`, `${label}-end`);
+        }
+      }
+    } catch (e) {}
     
     this.marks.delete(label);
-    
-    console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
     return duration;
   }
 

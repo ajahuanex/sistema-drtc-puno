@@ -293,7 +293,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     { id: 4, text: 'PREPARANDO COMPONENTES UI', completed: this.isHydrated() }
   ]);
 
-  private startTime = Date.now();
+  private startTime: number = Date.now();
   private hydrationSimulated = false;
 
   constructor() {
@@ -320,7 +320,8 @@ export class AppComponent implements OnInit, AfterViewInit {
     console.log('🎯 [APP] 6. Configurando effect de tiempo...');
     effect(() => {
       if (this.isInitialized()) {
-        const time = Date.now() - this.startTime;
+        const start = this.startTime || Date.now();
+        const time = Date.now() - start;
         console.log('🎯 [APP-EFFECT] Tiempo de inicialización:', time, 'ms');
         this._initTime.set(time);
       }

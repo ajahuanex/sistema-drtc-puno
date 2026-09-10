@@ -20,6 +20,8 @@ from app.routers.importar_geojson import router as importar_geojson_router
 from app.routers.localidades_import_geojson import router as localidades_import_geojson_router
 from app.api.endpoints.localidades_geojson import router as localidades_geojson_router
 from app.routers.geometrias import router as geometrias_router
+from app.routers.resoluciones_primigenias_router import router as resoluciones_primigenias_router
+from app.routers.resoluciones_hijas_router import router as resoluciones_hijas_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -102,6 +104,8 @@ app.include_router(conductores_router, prefix=settings.API_V1_STR)
 app.include_router(rutas_router, prefix=settings.API_V1_STR)  # Router principal de rutas
 app.include_router(rutas_simples_router, prefix=settings.API_V1_STR)
 app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
+app.include_router(resoluciones_primigenias_router, prefix=settings.API_V1_STR)
+app.include_router(resoluciones_hijas_router, prefix=settings.API_V1_STR)
 app.include_router(expedientes_router, prefix=settings.API_V1_STR)
 app.include_router(tucs_router, prefix=settings.API_V1_STR)
 app.include_router(infracciones_router, prefix=settings.API_V1_STR)

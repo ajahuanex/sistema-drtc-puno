@@ -157,6 +157,24 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
+        <a mat-list-item routerLink="/resoluciones-primigenias" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: true}" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Resoluciones Primigenias' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'auto_awesome'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones Primigenias</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('resolucionesPrimigenias')" (click)="toggleGroup('resolucionesPrimigenias', $event)">chevron_right</mat-icon> }
+        </a>
+
+        @if (isExpanded() && expandedGroups().has('resolucionesPrimigenias')) {
+          <a mat-list-item routerLink="/resoluciones-primigenias/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">upload</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva</span> }
+          </a>
+        }
+
+        <a mat-list-item routerLink="/resoluciones-hijas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones Hijas / Modificatorias' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'alt_route'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones Hijas</span> }
+        </a>
+
         <a mat-list-item routerLink="/resoluciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones</span> }
@@ -260,7 +278,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 })
 export class SidebarComponent {
   isExpanded = input<boolean>(true);
-  expandedGroups = signal<Set<string>>(new Set(['rutas']));
+  expandedGroups = signal<Set<string>>(new Set(['rutas', 'resolucionesPrimigenias']));
   
   toggleGroup(groupName: string, event: Event) {
     event.preventDefault();
