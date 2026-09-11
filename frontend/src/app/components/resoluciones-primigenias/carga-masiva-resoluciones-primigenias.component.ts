@@ -23,17 +23,24 @@ import { GoogleSheetsService } from '../../services/google-sheets.service';
 
 export interface RegistroResolucionPreview {
   fila: number;
+  idResolucion?: string;
   ruc: string;
   nroResolucion: string;
+  siglas?: string;
+  resolucionAsociada?: string;
+  tipoResolucion?: string;
   fechaResolucion: string;
   fechaInicioVigencia: string;
   fechaFinVigencia: string;
   aniosVigencia: number | string;
-  tipoAutorizacion: string;
   estado: string;
-  linkDocumento?: string;
-  expedientes?: string;
   observaciones?: string;
+  eficaciaAnticipada?: string;
+  tipoAutorizacion: string;
+  linkDocumento?: string;
+  feDeErratas?: string;
+  historialCambios?: string;
+  expedientes?: string;
   esValido?: boolean;
   errores?: string[];
 }
@@ -359,8 +366,8 @@ export interface RegistroResolucionPreview {
                     <div class="preview-header">
                       <mat-icon class="preview-icon">preview</mat-icon>
                       <div>
-                        <h4>Vista Previa de Correspondencia de Columnas (Primeros 5 registros)</h4>
-                        <p>Verifica que los datos del Excel/CSV/Google Sheets hayan correspondido correctamente a cada campo de Resolución Primigenia</p>
+                        <h4>Vista Previa de Mapeo de Columnas (Primeros 5 registros)</h4>
+                        <p>Mapeo verificado para <strong>RUC_EMPRESA_ASOCIADA, RESOLUCION_NUMERO, TIPO AUTORIZACION, FECHAS, EXPEDIENTES</strong> y demás atributos.</p>
                       </div>
                     </div>
 
@@ -372,12 +379,12 @@ export interface RegistroResolucionPreview {
                         </ng-container>
 
                         <ng-container matColumnDef="ruc">
-                          <th mat-header-cell *matHeaderCellDef>RUC Empresa</th>
+                          <th mat-header-cell *matHeaderCellDef>RUC Empresa (RUC_EMPRESA_ASOCIADA)</th>
                           <td mat-cell *matCellDef="let r"><span class="code-badge">{{ r.ruc }}</span></td>
                         </ng-container>
 
                         <ng-container matColumnDef="nroResolucion">
-                          <th mat-header-cell *matHeaderCellDef>N° Resolución</th>
+                          <th mat-header-cell *matHeaderCellDef>N° Resolución (RESOLUCION_NUMERO)</th>
                           <td mat-cell *matCellDef="let r"><span class="code-badge info-code">{{ r.nroResolucion }}</span></td>
                         </ng-container>
 
@@ -392,15 +399,17 @@ export interface RegistroResolucionPreview {
                           </td>
                         </ng-container>
 
-                        <ng-container matColumnDef="anios">
-                          <th mat-header-cell *matHeaderCellDef>Vigencia</th>
-                          <td mat-cell *matCellDef="let r">{{ r.aniosVigencia ? r.aniosVigencia + ' Años' : '10 Años (def)' }}</td>
-                        </ng-container>
-
                         <ng-container matColumnDef="tipoAutorizacion">
                           <th mat-header-cell *matHeaderCellDef>Tipo Autorización</th>
                           <td mat-cell *matCellDef="let r">
                             <span class="type-tag">{{ r.tipoAutorizacion || 'TURISMO' }}</span>
+                          </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="expedientes">
+                          <th mat-header-cell *matHeaderCellDef>Expediente</th>
+                          <td mat-cell *matCellDef="let r">
+                            <span>{{ r.expedientes || '-' }}</span>
                           </td>
                         </ng-container>
 
@@ -411,8 +420,15 @@ export interface RegistroResolucionPreview {
                           </td>
                         </ng-container>
 
-                        <tr mat-header-row *matHeaderRowDef="['fila', 'ruc', 'nroResolucion', 'fechas', 'anios', 'tipoAutorizacion', 'estado']"></tr>
-                        <tr mat-row *matRowDef="let row; columns: ['fila', 'ruc', 'nroResolucion', 'fechas', 'anios', 'tipoAutorizacion', 'estado'];"></tr>
+                        <ng-container matColumnDef="observaciones">
+                          <th mat-header-cell *matHeaderCellDef>Observaciones</th>
+                          <td mat-cell *matCellDef="let r">
+                            <span class="obs-cell" [matTooltip]="r.observaciones || ''">{{ r.observaciones || '-' }}</span>
+                          </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="['fila', 'ruc', 'nroResolucion', 'fechas', 'tipoAutorizacion', 'expedientes', 'estado', 'observaciones']"></tr>
+                        <tr mat-row *matRowDef="let row; columns: ['fila', 'ruc', 'nroResolucion', 'fechas', 'tipoAutorizacion', 'expedientes', 'estado', 'observaciones'];"></tr>
                       </table>
                     </div>
                   </div>
@@ -744,8 +760,12 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
         const filaNum = index + 2;
         const getVal = (...keys: string[]) => {
           for (const k of keys) {
+            const cleanK = k.trim().toUpperCase();
+            const cleanK_underscore = cleanK.replace(/ /g, '_');
             for (const rowKey of Object.keys(row)) {
-              if (rowKey.trim().toUpperCase() === k.trim().toUpperCase() && row[rowKey] !== undefined) {
+              const cleanRowKey = rowKey.trim().toUpperCase();
+              const cleanRowKey_underscore = cleanRowKey.replace(/ /g, '_');
+              if (cleanRowKey === cleanK || cleanRowKey_underscore === cleanK_underscore) {
                 const val = String(row[rowKey]).trim();
                 if (val !== '' && val.toLowerCase() !== 'nan') return val;
               }
@@ -754,21 +774,29 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
           return '';
         };
 
-        const ruc = getVal('RUC_EMPRESA', 'RUC', 'RUC_TITULAR', 'RUC EMPRESA');
+        const idRes = getVal('ID_RESOLUCION', 'ID');
+        const ruc = getVal('RUC_EMPRESA_ASOCIADA', 'RUC_EMPRESA', 'RUC', 'RUC_TITULAR', 'RUC EMPRESA', 'RUC_ASOCIADA', 'RUC_ASOCIADO');
         const nroRes = getVal('RESOLUCION_NUMERO', 'NRO_RESOLUCION', 'NUMERO_RESOLUCION', 'RESOLUCION', 'RESOLUCION_NUM');
+        const siglas = getVal('SIGLAS', 'SIGLA', 'SIGLAS_RESOLUCION', 'SIGLA_RESOLUCION');
+        const resAsoc = getVal('RESOLUCION_ASOCIADA');
+        const tipoRes = getVal('TIPO_RESOLUCION');
         const fechaRes = getVal('FECHA_RESOLUCION', 'FECHA_EMISION', 'FECHA RESOLUCION');
         const fechaIni = getVal('FECHA_INICIO_VIGENCIA', 'FECHA_INICIO', 'FECHA INICIO');
         const fechaFin = getVal('FECHA_FIN_VIGENCIA', 'FECHA_FIN', 'FECHA FIN');
-        const anios = getVal('ANIOS_VIGENCIA', 'VIGENCIA_ANIOS', 'VIGENCIA');
-        const tipoAut = getVal('TIPO_AUTORIZACION', 'MODALIDAD', 'TIPO_SERVICIO', 'TIPO AUTORIZACION');
+        const anios = getVal('ANIOS_VIGENCIA', 'AÑOS_VIGENCIA', 'VIGENCIA_ANIOS', 'VIGENCIA');
         const estado = getVal('ESTADO', 'ESTADO_LEGAL');
-        const link = getVal('LINK_DOCUMENTO', 'LINK', 'DRIVE', 'URL');
-        const exps = getVal('EXPEDIENTES', 'NRO_EXPEDIENTE', 'CODIGOS_EXPEDIENTE');
         const obs = getVal('OBSERVACIONES', 'OBSERVACION', 'NOTAS');
+        const eficaciaAnt = getVal('EFICACIA ANTICIPADA', 'EFICACIA_ANTICIPADA', 'EFICACIA');
+        const tipoAut = getVal('TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 'TIPO_RESOLUCION', 'MODALIDAD', 'TIPO_SERVICIO');
+        const link = getVal('LINK', 'LINK_DOCUMENTO', 'DRIVE', 'URL');
+        const feErr = getVal('FE_DE_ERRTAS', 'FE_DE_ERRATAS', 'FE DE ERRATAS');
+        const histCambios = getVal('HISTORIAL_CAMBIOS', 'HISTORIAL_MODIFICACIONES', 'HISTORIAL');
+        const exps = getVal('EXPEDIENTE', 'EXPEDIENTES', 'NRO_EXPEDIENTE', 'CODIGOS_EXPEDIENTE');
 
         const errores: string[] = [];
-        if (!ruc || ruc.length !== 11 || !/^\d+$/.test(ruc)) {
-          errores.push('RUC debe tener exactamente 11 dígitos');
+        const cleanRucDigits = ruc ? ruc.replace(/\D/g, '') : '';
+        if (!cleanRucDigits || cleanRucDigits.length !== 11) {
+          errores.push(`RUC inválido ('${ruc}'). Debe contener exactamente 11 dígitos.`);
         }
         if (!nroRes) {
           errores.push('Número de resolución es obligatorio');
@@ -776,17 +804,24 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
 
         previews.push({
           fila: filaNum,
-          ruc: ruc || 'N/A',
+          idResolucion: idRes,
+          ruc: cleanRucDigits || ruc || 'N/A',
           nroResolucion: nroRes || 'SIN NÚMERO',
+          siglas,
+          resolucionAsociada: resAsoc,
+          tipoResolucion: tipoRes,
           fechaResolucion: fechaRes || 'N/A',
           fechaInicioVigencia: fechaIni || 'N/A',
           fechaFinVigencia: fechaFin || 'Auto-calculada',
           aniosVigencia: anios || 10,
-          tipoAutorizacion: tipoAut ? tipoAut.toUpperCase() : 'TURISMO',
           estado: estado ? estado.toUpperCase() : 'VIGENTE',
-          linkDocumento: link,
-          expedientes: exps,
           observaciones: obs,
+          eficaciaAnticipada: eficaciaAnt,
+          tipoAutorizacion: tipoAut ? tipoAut.toUpperCase() : 'TURISMO',
+          linkDocumento: link,
+          feDeErratas: feErr,
+          historialCambios: histCambios,
+          expedientes: exps,
           esValido: errores.length === 0,
           errores
         });

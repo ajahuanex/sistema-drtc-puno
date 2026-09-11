@@ -19,6 +19,7 @@ export interface ResolucionPrimigenia {
   id: string;
   ruc_empresa: string;
   nro_resolucion: string;
+  siglas?: string;
   fecha_resolucion: Date | string;
   fecha_inicio_vigencia: Date | string;
   anios_vigencia: number;
@@ -39,6 +40,7 @@ export interface ResolucionPrimigenia {
 export interface ResolucionPrimigeniaCreate {
   ruc_empresa: string;
   nro_resolucion: string;
+  siglas?: string;
   fecha_resolucion: Date | string;
   fecha_inicio_vigencia: Date | string;
   anios_vigencia?: number;
@@ -53,6 +55,7 @@ export interface ResolucionPrimigeniaCreate {
 
 export interface ResolucionPrimigeniaUpdate {
   nro_resolucion?: string;
+  siglas?: string;
   fecha_resolucion?: Date | string;
   fecha_inicio_vigencia?: Date | string;
   anios_vigencia?: number;

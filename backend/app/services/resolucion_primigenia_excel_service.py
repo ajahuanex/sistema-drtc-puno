@@ -15,22 +15,28 @@ class ResolucionPrimigeniaExcelService:
         self.service = ResolucionPrimigeniaService(db)
 
     def generar_plantilla_excel(self) -> BytesIO:
-        """Generar plantilla Excel oficial (sin datos de ejemplo) para Carga Masiva de Resoluciones Primigenias"""
+        """Generar plantilla Excel oficial para Carga Masiva de Resoluciones Primigenias"""
         columnas = [
-            'RUC_EMPRESA',
+            'ID_RESOLUCION',
+            'RUC_EMPRESA_ASOCIADA',
             'RESOLUCION_NUMERO',
+            'RESOLUCION_ASOCIADA',
+            'TIPO_RESOLUCION',
             'FECHA_RESOLUCION',
             'FECHA_INICIO_VIGENCIA',
             'ANIOS_VIGENCIA',
             'FECHA_FIN_VIGENCIA',
             'ESTADO',
-            'TIPO_AUTORIZACION',
-            'LINK_DOCUMENTO',
-            'EXPEDIENTES',
-            'OBSERVACIONES'
+            'OBSERVACIONES',
+            'EFICACIA ANTICIPADA',
+            'TIPO AUTORIZACION',
+            'LINK',
+            'FE_DE_ERRTAS',
+            'HISTORIAL_CAMBIOS',
+            'EXPEDIENTE'
         ]
 
-        # Plantilla limpia sin datos de prueba falsos
+        # Plantilla limpia con la estructura exacta requerida
         df = pd.DataFrame(columns=columnas)
         buffer = BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
@@ -40,19 +46,25 @@ class ResolucionPrimigeniaExcelService:
                 ['INSTRUCCIONES PARA LA CARGA MASIVA DE RESOLUCIONES PRIMIGENIAS'],
                 [''],
                 ['CAMPOS OBLIGATORIOS:'],
-                ['- RUC_EMPRESA: RUC del titular (exactamente 11 dígitos)'],
-                ['- RESOLUCION_NUMERO: Número correlativo y año (ej. 0100-2021)'],
+                ['- RUC_EMPRESA_ASOCIADA: RUC del titular de la empresa (exactamente 11 dígitos)'],
+                ['- RESOLUCION_NUMERO: Número correlativo y año (ej. 0100-2021-DRTC)'],
                 ['- FECHA_RESOLUCION: Fecha de emisión en formato DD/MM/AAAA'],
-                ['- FECHA_INICIO_VIGENCIA: Fecha de inicio de efectos en formato DD/MM/AAAA'],
-                ['- TIPO_AUTORIZACION: Modalidad de servicio (TURISMO, PERSONAS, CARGA, REGIONAL)'],
+                ['- FECHA_INICIO_VIGENCIA: Fecha de inicio de efectos legales en formato DD/MM/AAAA'],
+                ['- TIPO AUTORIZACION: Modalidad de servicio (TURISMO, PERSONAS, CARGA, REGIONAL)'],
                 [''],
                 ['CAMPOS OPCIONALES:'],
-                ['- ANIOS_VIGENCIA: Período en años (4 o 10). Si no se ingresa, se asume 10 por defecto.'],
+                ['- ID_RESOLUCION: Identificador o código de sistema (opcional)'],
+                ['- RESOLUCION_ASOCIADA: Número de resolución referenciada o vinculada'],
+                ['- TIPO_RESOLUCION: Tipo de acto administrativo (ej. AUTORIZACION PRIMIGENIA, PRIMIGENIA)'],
+                ['- ANIOS_VIGENCIA: Período en años (ej. 10 o 4). Si no se ingresa, se asume 10 por defecto.'],
                 ['- FECHA_FIN_VIGENCIA: Si no se especifica, se calcula automáticamente sumando los años.'],
                 ['- ESTADO: VIGENTE, SUSPENDIDA, CANCELADA, VENCIDA, ANULADA. Por defecto VIGENTE.'],
-                ['- LINK_DOCUMENTO: Enlace URL a Google Drive o repositorio digital del expediente.'],
-                ['- EXPEDIENTES: Números de expedientes separados por coma (ej. EXP-001, EXP-002)'],
-                ['- OBSERVACIONES: Comentarios o anotaciones operativas generales.']
+                ['- EFICACIA ANTICIPADA: SI / NO (indica si aplica efectos retroactivos a la fecha de inicio)'],
+                ['- LINK: Enlace URL a Google Drive o repositorio digital del documento.'],
+                ['- FE_DE_ERRTAS: Detalle o registro de fe de erratas o rectificación material.'],
+                ['- HISTORIAL_CAMBIOS: Anotaciones o resumen de actos modificatorios posteriores.'],
+                ['- EXPEDIENTE: Número de expediente de origen (ej. EXP-2023-0012)'],
+                ['- OBSERVACIONES: Comentarios o notas adicionales.']
             ]
             df_inst = pd.DataFrame(instrucciones)
             df_inst.to_excel(writer, sheet_name='Instrucciones', index=False, header=False)
@@ -103,22 +115,30 @@ class ResolucionPrimigeniaExcelService:
 
         def get_col_val(row, *aliases):
             for a in aliases:
-                val = row.get(a)
-                c_val = clean_val(val)
-                if c_val != '':
-                    return c_val
+                a_clean = a.strip().upper()
+                a_underscore = a_clean.replace(' ', '_')
+                for k in row.keys():
+                    k_clean = str(k).strip().upper()
+                    k_underscore = k_clean.replace(' ', '_')
+                    if k_clean == a_clean or k_underscore == a_underscore:
+                        val = row.get(k)
+                        c_val = clean_val(val)
+                        if c_val != '':
+                            return c_val
             return ''
 
         for idx, row in df.iterrows():
             fila = idx + 2
             try:
-                ruc_raw = row.get('RUC_EMPRESA') if pd.notna(row.get('RUC_EMPRESA')) else row.get('RUC')
-                if not ruc_raw or pd.isna(ruc_raw):
-                    ruc_raw = get_col_val(row, 'RUC_TITULAR', 'RUC EMPRESA', 'RUC_ASOCIADA', 'RUC_ASOCIADO')
+                ruc_raw = get_col_val(
+                    row,
+                    'RUC_EMPRESA_ASOCIADA', 'RUC_EMPRESA', 'RUC', 
+                    'RUC_TITULAR', 'RUC EMPRESA', 'RUC_ASOCIADA', 'RUC_ASOCIADO'
+                )
                 
                 ruc = clean_ruc(ruc_raw)
                 if not ruc or len(ruc) != 11:
-                    errores.append(f"Fila {fila}: RUC inválido '{ruc_raw}'. Debe tener 11 dígitos numericos.")
+                    errores.append(f"Fila {fila}: RUC inválido '{ruc_raw}'. Debe tener 11 dígitos numéricos.")
                     continue
 
                 numero = get_col_val(
@@ -126,36 +146,36 @@ class ResolucionPrimigeniaExcelService:
                     'RESOLUCION_NUMERO', 'NRO_RESOLUCION', 'NUMERO_RESOLUCION', 
                     'RESOLUCION', 'RESOLUCION_NUM', 'RESOLUCION_PRIMIGENIA', 
                     'NRO_RES', 'NRO RESOLUCION', 'N° RESOLUCION', 'Nº RESOLUCION', 
-                    'RESOLUCION PRIMIGENIA', 'RES_PRIMIGENIA', 'RES. PRIMIGENIA', 
-                    'N°_RESOLUCION', 'Nº_RESOLUCION'
+                    'RESOLUCION PRIMIGENIA', 'RES_PRIMIGENIA', 'RES. PRIMIGENIA'
                 )
                 if not numero:
                     errores.append(f"Fila {fila}: Número de resolución no proporcionado.")
                     continue
 
                 # Parsear fechas
-                fecha_res_raw = row.get('FECHA_RESOLUCION') if pd.notna(row.get('FECHA_RESOLUCION')) else row.get('FECHA_EMISION')
-                if pd.isna(fecha_res_raw):
-                    fecha_res_raw = row.get('FECHA RESOLUCION') or row.get('FECHA EMISION')
-                
-                fecha_ini_raw = row.get('FECHA_INICIO_VIGENCIA') if pd.notna(row.get('FECHA_INICIO_VIGENCIA')) else row.get('FECHA_INICIO')
-                if pd.isna(fecha_ini_raw):
-                    fecha_ini_raw = row.get('FECHA INICIO') or row.get('FECHA_INICIO_VIGENCIA')
+                fecha_res_raw = get_col_val(row, 'FECHA_RESOLUCION', 'FECHA_EMISION', 'FECHA RESOLUCION', 'FECHA EMISION')
+                fecha_ini_raw = get_col_val(row, 'FECHA_INICIO_VIGENCIA', 'FECHA_INICIO', 'FECHA INICIO', 'INICIO_VIGENCIA')
 
                 fecha_res = self._parse_fecha(fecha_res_raw, fila, 'FECHA_RESOLUCION')
                 fecha_ini = self._parse_fecha(fecha_ini_raw, fila, 'FECHA_INICIO_VIGENCIA')
-                
-                if not fecha_res or not fecha_ini:
-                    errores.append(f"Fila {fila}: Las fechas de emisión e inicio de vigencia son obligatorias.")
+
+                # Fallback de fechas si una de las dos no está presente
+                if not fecha_ini and fecha_res:
+                    fecha_ini = fecha_res
+                elif not fecha_res and fecha_ini:
+                    fecha_res = fecha_ini
+
+                # Solo es error si ninguna fecha fue proporcionada
+                if not fecha_ini and not fecha_res:
+                    errores.append(f"Fila {fila}: Se requiere al menos la fecha de inicio de vigencia.")
                     continue
 
-                anios_val = row.get('ANIOS_VIGENCIA') if pd.notna(row.get('ANIOS_VIGENCIA')) else row.get('VIGENCIA_ANIOS')
-                anios_str = clean_val(anios_val)
+                anios_val = get_col_val(row, 'ANIOS_VIGENCIA', 'AÑOS_VIGENCIA', 'VIGENCIA_ANIOS', 'VIGENCIA')
                 anios = 10
-                if anios_str.isdigit():
-                    anios = int(anios_str)
+                if anios_val.isdigit():
+                    anios = int(anios_val)
 
-                fecha_fin_raw = row.get('FECHA_FIN_VIGENCIA') if pd.notna(row.get('FECHA_FIN_VIGENCIA')) else row.get('FECHA_FIN')
+                fecha_fin_raw = get_col_val(row, 'FECHA_FIN_VIGENCIA', 'FECHA_FIN', 'FECHA FIN', 'FIN_VIGENCIA')
                 fecha_fin = self._parse_fecha(fecha_fin_raw, fila, 'FECHA_FIN_VIGENCIA')
 
                 estado_str = get_col_val(row, 'ESTADO', 'ESTADO_LEGAL').upper() or 'VIGENTE'
@@ -163,11 +183,20 @@ class ResolucionPrimigeniaExcelService:
                 if estado_str in EstadoResolucionPrimigenia.__members__:
                     estado = EstadoResolucionPrimigenia[estado_str]
 
-                tipo_aut = get_col_val(row, 'TIPO_AUTORIZACION', 'MODALIDAD', 'TIPO_SERVICIO', 'MODALIDAD_SERVICIO').upper() or 'TURISMO'
-                link_doc = get_col_val(row, 'LINK_DOCUMENTO', 'LINK', 'DRIVE', 'DRIVE_LINK', 'URL') or None
-                obs = get_col_val(row, 'OBSERVACIONES', 'OBSERVACION', 'NOTAS') or None
+                tipo_aut = get_col_val(
+                    row, 
+                    'TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 'TIPO_RESOLUCION', 
+                    'MODALIDAD', 'TIPO_SERVICIO', 'MODALIDAD_SERVICIO'
+                ).upper() or 'TURISMO'
 
-                expedientes_raw = get_col_val(row, 'EXPEDIENTES', 'EXPEDIENTE_NUMERO', 'NRO_EXPEDIENTE', 'CODIGOS_EXPEDIENTE')
+                eficacia_raw = get_col_val(row, 'EFICACIA ANTICIPADA', 'EFICACIA_ANTICIPADA', 'EFICACIA').upper()
+                tiene_eficacia = (eficacia_raw in ['SI', 'SÍ', 'TRUE', '1', 'VERDADERO']) if eficacia_raw else None
+
+                link_doc = get_col_val(row, 'LINK', 'LINK_DOCUMENTO', 'DRIVE', 'DRIVE_LINK', 'URL') or None
+                obs = get_col_val(row, 'OBSERVACIONES', 'OBSERVACION', 'NOTAS') or None
+                siglas_val = get_col_val(row, 'SIGLAS', 'SIGLA', 'SIGLAS_RESOLUCION', 'SIGLA_RESOLUCION') or None
+
+                expedientes_raw = get_col_val(row, 'EXPEDIENTE', 'EXPEDIENTES', 'EXPEDIENTE_NUMERO', 'NRO_EXPEDIENTE', 'CODIGOS_EXPEDIENTE')
                 expedientes_list = [e.strip() for e in expedientes_raw.split(',') if e.strip()] if expedientes_raw else []
 
                 # Verificar si ya existe por número de resolución
@@ -180,11 +209,13 @@ class ResolucionPrimigeniaExcelService:
                         from app.models.resolucion_primigenia import ResolucionPrimigeniaUpdate
                         update_dto = ResolucionPrimigeniaUpdate(
                             ruc_empresa=ruc,
+                            siglas=siglas_val or existente.siglas,
                             fecha_resolucion=fecha_res,
                             fecha_inicio_vigencia=fecha_ini,
                             anios_vigencia=anios,
                             fecha_fin_vigencia=fecha_fin,
                             estado=estado,
+                            tiene_eficacia_anticipada=tiene_eficacia if tiene_eficacia is not None else existente.tiene_eficacia_anticipada,
                             tipo_autorizacion=tipo_aut,
                             link_documento=link_doc or existente.link_documento,
                             expedientes_codigos=expedientes_list or existente.expedientes_codigos,
@@ -203,11 +234,13 @@ class ResolucionPrimigeniaExcelService:
                     dto = ResolucionPrimigeniaCreate(
                         ruc_empresa=ruc,
                         nro_resolucion=numero,
+                        siglas=siglas_val,
                         fecha_resolucion=fecha_res,
                         fecha_inicio_vigencia=fecha_ini,
                         anios_vigencia=anios,
                         fecha_fin_vigencia=fecha_fin,
                         estado=estado,
+                        tiene_eficacia_anticipada=tiene_eficacia,
                         tipo_autorizacion=tipo_aut,
                         link_documento=link_doc,
                         expedientes_codigos=expedientes_list,
@@ -260,3 +293,4 @@ class ResolucionPrimigeniaExcelService:
         except Exception:
             pass
         return None
+

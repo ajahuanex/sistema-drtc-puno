@@ -36,12 +36,13 @@ class ResolucionPrimigenia(BaseModel):
     id: Optional[str] = None
     ruc_empresa: str = Field(..., description="RUC del titular de la autorización (11 dígitos)")
     nro_resolucion: str = Field(..., description="Número correlativo y año de la resolución primigenia (ej: 0100-2021)")
+    siglas: Optional[str] = Field(None, description="Siglas institucionales (ej. GRP/GRI/DRTC, GR PUNO/GRI/DRTC, GRP/DRTC)")
     
     # Fechas y vigencia
-    fecha_resolucion: datetime = Field(..., description="Fecha oficial de emisión del acto originario")
-    fecha_inicio_vigencia: datetime = Field(..., description="Fecha de inicio de efectos legales")
+    fecha_resolucion: Optional[datetime] = Field(None, description="Fecha oficial de emisión del acto originario (opcional)")
+    fecha_inicio_vigencia: Optional[datetime] = Field(None, description="Fecha de inicio de efectos legales")
     anios_vigencia: int = Field(default=10, description="Período de vigencia otorgado en años (4 o 10)")
-    fecha_fin_vigencia: datetime = Field(..., description="Fecha exacta de vencimiento")
+    fecha_fin_vigencia: Optional[datetime] = Field(None, description="Fecha exacta de vencimiento")
     
     # Clasificación y estado
     estado: EstadoResolucionPrimigenia = EstadoResolucionPrimigenia.VIGENTE
@@ -65,8 +66,9 @@ class ResolucionPrimigenia(BaseModel):
 class ResolucionPrimigeniaCreate(BaseModel):
     ruc_empresa: str = Field(..., description="RUC del titular de la autorización (11 dígitos)")
     nro_resolucion: str = Field(..., description="Número de resolución (ej. 0100-2021)")
-    fecha_resolucion: datetime
-    fecha_inicio_vigencia: datetime
+    siglas: Optional[str] = Field(None, description="Siglas institucionales (ej: GRP/GRI/DRTC)")
+    fecha_resolucion: Optional[datetime] = None
+    fecha_inicio_vigencia: Optional[datetime] = None
     anios_vigencia: int = Field(default=10, description="Años de vigencia (4 o 10)")
     fecha_fin_vigencia: Optional[datetime] = None  # Si se omite, se calcula automáticamente
     estado: EstadoResolucionPrimigenia = EstadoResolucionPrimigenia.VIGENTE
@@ -78,6 +80,7 @@ class ResolucionPrimigeniaCreate(BaseModel):
 
 class ResolucionPrimigeniaUpdate(BaseModel):
     nro_resolucion: Optional[str] = None
+    siglas: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
     fecha_inicio_vigencia: Optional[datetime] = None
     anios_vigencia: Optional[int] = None

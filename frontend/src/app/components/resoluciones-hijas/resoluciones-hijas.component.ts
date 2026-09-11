@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
@@ -15,6 +16,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { ActivatedRoute } from '@angular/router';
 
 import { ResolucionHijaService } from '../../services/resolucion-hija.service';
@@ -44,7 +48,10 @@ import {
     MatSelectModule,
     MatDialogModule,
     MatTooltipModule,
-    MatTabsModule
+    MatTabsModule,
+    MatMenuModule,
+    MatDividerModule,
+    MatCheckboxModule
   ],
   template: `
     <div class="page-container">
@@ -102,6 +109,30 @@ import {
               <button mat-stroked-button (click)="limpiarFiltros()" class="btn-clear">
                 <mat-icon>clear_all</mat-icon> Limpiar
               </button>
+
+              <button mat-stroked-button [matMenuTriggerFor]="columnsMenu" class="btn-clear" matTooltip="Configurar columnas visibles de la tabla">
+                <mat-icon>tune</mat-icon> Columnas
+              </button>
+
+              <mat-menu #columnsMenu="matMenu">
+                <div class="columns-menu-header" (click)="$event.stopPropagation()">
+                  <span>Columnas Visibles</span>
+                  <button mat-button color="primary" (click)="restablecerColumnas()">Restablecer</button>
+                </div>
+                <mat-divider></mat-divider>
+                @for (col of columnasDisponibles; track col.key) {
+                  @if (!col.required) {
+                    <div mat-menu-item (click)="$event.stopPropagation(); toggleColumna(col.key)" class="col-item">
+                      <mat-checkbox
+                        [checked]="columnaVisible(col.key)"
+                        (change)="toggleColumna(col.key)"
+                        (click)="$event.stopPropagation()">
+                        {{ col.label }}
+                      </mat-checkbox>
+                    </div>
+                  }
+                }
+              </mat-menu>
             </div>
           </mat-card-content>
         </mat-card>
@@ -270,69 +301,89 @@ import {
                 <table class="custom-table">
                   <thead>
                     <tr>
-                      <th>N° Res. Hija</th>
-                      <th>N° Primigenia Matriz</th>
-                      <th>RUC Empresa</th>
-                      <th>Acto Modificatorio</th>
-                      <th>F. Emisión</th>
-                      <th>N° Expediente</th>
-                      <th>Flota Ingresante</th>
-                      <th>Flota Saliente</th>
-                      <th>Drive</th>
-                      <th>Acciones</th>
+                      @if (columnaVisible('nro_resolucion')) { <th>N° Res. Hija</th> }
+                      @if (columnaVisible('nro_resolucion_primigenia')) { <th>N° Primigenia Matriz</th> }
+                      @if (columnaVisible('ruc_empresa')) { <th>RUC Empresa</th> }
+                      @if (columnaVisible('tipo_acto')) { <th>Acto Modificatorio</th> }
+                      @if (columnaVisible('fecha_resolucion')) { <th>F. Emisión</th> }
+                      @if (columnaVisible('expediente_numero')) { <th>N° Expediente</th> }
+                      @if (columnaVisible('flota_ingresante')) { <th>Flota Ingresante</th> }
+                      @if (columnaVisible('flota_saliente')) { <th>Flota Saliente</th> }
+                      @if (columnaVisible('link_documento')) { <th>Drive</th> }
+                      @if (columnaVisible('acciones')) { <th>Acciones</th> }
                     </tr>
                   </thead>
                   <tbody>
                     @for (item of paginatedResoluciones(); track item.id) {
                       <tr>
-                        <td class="bold-text color-teal">{{ item.nro_resolucion }}</td>
-                        <td>
-                          <span class="primigenia-pill">{{ item.nro_resolucion_primigenia }}</span>
-                        </td>
-                        <td>
-                          <span class="ruc-badge">{{ item.ruc_empresa }}</span>
-                        </td>
-                        <td>
-                          <span [class]="'acto-badge acto-' + item.tipo_acto?.toLowerCase()">
-                            {{ getTipoActoDisplay(item.tipo_acto) }}
-                          </span>
-                        </td>
-                        <td>{{ item.fecha_resolucion | date:'dd/MM/yyyy' }}</td>
-                        <td>{{ item.expediente_numero || '-' }}</td>
-                        <td>
-                          @if (item.vehiculos_ingresantes && item.vehiculos_ingresantes.length > 0) {
-                            <span class="badge-veh veh-in" [matTooltip]="item.vehiculos_ingresantes.join(', ')">
-                              +{{ item.vehiculos_ingresantes.length }} Placa(s)
+                        @if (columnaVisible('nro_resolucion')) {
+                          <td class="bold-text color-teal">{{ item.nro_resolucion }}</td>
+                        }
+                        @if (columnaVisible('nro_resolucion_primigenia')) {
+                          <td>
+                            <span class="primigenia-pill">{{ item.nro_resolucion_primigenia }}</span>
+                          </td>
+                        }
+                        @if (columnaVisible('ruc_empresa')) {
+                          <td>
+                            <span class="ruc-badge">{{ item.ruc_empresa }}</span>
+                          </td>
+                        }
+                        @if (columnaVisible('tipo_acto')) {
+                          <td>
+                            <span [class]="'acto-badge acto-' + item.tipo_acto?.toLowerCase()">
+                              {{ getTipoActoDisplay(item.tipo_acto) }}
                             </span>
-                          } @else {
-                            <span class="sin-datos">-</span>
-                          }
-                        </td>
-                        <td>
-                          @if (item.vehiculos_salientes && item.vehiculos_salientes.length > 0) {
-                            <span class="badge-veh veh-out" [matTooltip]="item.vehiculos_salientes.join(', ')">
-                              -{{ item.vehiculos_salientes.length }} Placa(s)
-                            </span>
-                          } @else {
-                            <span class="sin-datos">-</span>
-                          }
-                        </td>
-                        <td class="text-center">
-                          @if (item.link_documento) {
-                            <a [href]="item.link_documento" target="_blank" class="drive-link" matTooltip="Abrir en Google Drive">
-                              <mat-icon>open_in_new</mat-icon>
-                            </a>
-                          } @else {
-                            <span class="sin-datos">-</span>
-                          }
-                        </td>
-                        <td>
-                          <div class="action-buttons">
-                            <button mat-icon-button color="warn" (click)="eliminarResolucion(item.id)" matTooltip="Eliminar">
-                              <mat-icon>delete</mat-icon>
-                            </button>
-                          </div>
-                        </td>
+                          </td>
+                        }
+                        @if (columnaVisible('fecha_resolucion')) {
+                          <td>{{ item.fecha_resolucion | date:'dd/MM/yyyy' }}</td>
+                        }
+                        @if (columnaVisible('expediente_numero')) {
+                          <td>{{ item.expediente_numero || '-' }}</td>
+                        }
+                        @if (columnaVisible('flota_ingresante')) {
+                          <td>
+                            @if (item.vehiculos_ingresantes && item.vehiculos_ingresantes.length > 0) {
+                              <span class="badge-veh veh-in" [matTooltip]="item.vehiculos_ingresantes.join(', ')">
+                                +{{ item.vehiculos_ingresantes.length }} Placa(s)
+                              </span>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('flota_saliente')) {
+                          <td>
+                            @if (item.vehiculos_salientes && item.vehiculos_salientes.length > 0) {
+                              <span class="badge-veh veh-out" [matTooltip]="item.vehiculos_salientes.join(', ')">
+                                -{{ item.vehiculos_salientes.length }} Placa(s)
+                              </span>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('link_documento')) {
+                          <td class="text-center">
+                            @if (item.link_documento) {
+                              <a [href]="item.link_documento" target="_blank" class="drive-link" matTooltip="Abrir en Google Drive">
+                                <mat-icon>open_in_new</mat-icon>
+                              </a>
+                            } @else {
+                              <span class="sin-datos">-</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('acciones')) {
+                          <td>
+                            <div class="action-buttons">
+                              <button mat-icon-button color="warn" (click)="eliminarResolucion(item.id)" matTooltip="Eliminar">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            </div>
+                          </td>
+                        }
                       </tr>
                     }
                   </tbody>
@@ -428,6 +479,26 @@ import {
           height: 54px;
         }
       }
+    }
+
+    .columns-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      font-weight: 600;
+      color: #334155;
+      font-size: 0.95rem;
+
+      button {
+        font-size: 0.8rem;
+        padding: 0 0.5rem;
+      }
+    }
+
+    .col-item {
+      height: 40px;
+      line-height: 40px;
     }
 
     .form-card {
@@ -597,6 +668,10 @@ export class ResolucionesHijasComponent implements OnInit {
   searchControl = this.fb.control('');
   tipoActoControl = this.fb.control('');
 
+  // Signals derivados para reactividad en computed()
+  searchFilter = toSignal(this.searchControl.valueChanges, { initialValue: '' });
+  tipoActoFilter = toSignal(this.tipoActoControl.valueChanges, { initialValue: '' });
+
   // Form Group para Creación
   hijaForm: FormGroup = this.fb.group({
     nro_resolucion: ['', Validators.required],
@@ -613,14 +688,18 @@ export class ResolucionesHijasComponent implements OnInit {
 
   // Computed Signal de Datos Filtrados
   resolucionesFiltradas = computed(() => {
-    const search = this.searchControl.value?.toLowerCase() || '';
-    const tipo = this.tipoActoControl.value || '';
+    const search = (this.searchFilter() || '').toLowerCase().trim();
+    const tipo = this.tipoActoFilter() || '';
 
     return this.resoluciones().filter(r => {
+      const nro = (r.nro_resolucion || '').toLowerCase();
+      const nroPrim = (r.nro_resolucion_primigenia || '').toLowerCase();
+      const ruc = (r.ruc_empresa || '').toLowerCase();
+
       const matchSearch = !search ||
-        r.nro_resolucion.toLowerCase().includes(search) ||
-        r.nro_resolucion_primigenia.toLowerCase().includes(search) ||
-        r.ruc_empresa.toLowerCase().includes(search);
+        nro.includes(search) ||
+        nroPrim.includes(search) ||
+        ruc.includes(search);
 
       const matchTipo = !tipo || r.tipo_acto === tipo;
       return matchSearch && matchTipo;
@@ -633,8 +712,88 @@ export class ResolucionesHijasComponent implements OnInit {
     return this.resolucionesFiltradas().slice(start, start + this.pageSize());
   });
 
+  // Configuración de Columnas Disponibles
+  columnasDisponibles = [
+    { key: 'nro_resolucion', label: 'N° Res. Hija', required: true },
+    { key: 'nro_resolucion_primigenia', label: 'N° Primigenia Matriz', required: false },
+    { key: 'ruc_empresa', label: 'RUC Empresa', required: false },
+    { key: 'tipo_acto', label: 'Acto Modificatorio', required: false },
+    { key: 'fecha_resolucion', label: 'F. Emisión', required: false },
+    { key: 'expediente_numero', label: 'N° Expediente', required: false },
+    { key: 'flota_ingresante', label: 'Flota Ingresante', required: false },
+    { key: 'flota_saliente', label: 'Flota Saliente', required: false },
+    { key: 'link_documento', label: 'Drive', required: false },
+    { key: 'acciones', label: 'Acciones', required: true }
+  ];
+
+  columnasVisiblesState = signal<string[]>([
+    'nro_resolucion',
+    'nro_resolucion_primigenia',
+    'ruc_empresa',
+    'tipo_acto',
+    'fecha_resolucion',
+    'expediente_numero',
+    'flota_ingresante',
+    'flota_saliente',
+    'link_documento',
+    'acciones'
+  ]);
+
+  columnaVisible(key: string): boolean {
+    return this.columnasVisiblesState().includes(key);
+  }
+
+  toggleColumna(key: string): void {
+    const col = this.columnasDisponibles.find(c => c.key === key);
+    if (!col || col.required) return;
+
+    const actuales = this.columnasVisiblesState();
+    let nuevas: string[];
+    if (actuales.includes(key)) {
+      nuevas = actuales.filter(k => k !== key);
+    } else {
+      nuevas = this.columnasDisponibles
+        .map(c => c.key)
+        .filter(k => actuales.includes(k) || k === key);
+    }
+    this.columnasVisiblesState.set(nuevas);
+    this.guardarPreferenciasColumnas();
+  }
+
+  restablecerColumnas(): void {
+    const todas = this.columnasDisponibles.map(c => c.key);
+    this.columnasVisiblesState.set(todas);
+    this.guardarPreferenciasColumnas();
+  }
+
+  private guardarPreferenciasColumnas(): void {
+    try {
+      localStorage.setItem('resoluciones-hijas-cols', JSON.stringify(this.columnasVisiblesState()));
+    } catch (e) {}
+  }
+
+  private cargarPreferenciasColumnas(): void {
+    try {
+      const saved = localStorage.getItem('resoluciones-hijas-cols');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const requeridas = this.columnasDisponibles.filter(c => c.required).map(c => c.key);
+          const validas = parsed.filter((k: string) => this.columnasDisponibles.some(c => c.key === k));
+          const unificadas = [...new Set([...requeridas, ...validas])];
+          this.columnasVisiblesState.set(unificadas);
+        }
+      }
+    } catch (e) {}
+  }
+
   ngOnInit(): void {
+    this.cargarPreferenciasColumnas();
     this.cargarResoluciones();
+
+    // Reiniciar paginación al cambiar filtros
+    this.searchControl.valueChanges.subscribe(() => this.currentPage.set(0));
+    this.tipoActoControl.valueChanges.subscribe(() => this.currentPage.set(0));
 
     // Escuchar queryParams para pre-llenar si viene desde "Registrar Resolución Hija"
     this.route.queryParams.subscribe(params => {
@@ -666,6 +825,7 @@ export class ResolucionesHijasComponent implements OnInit {
   limpiarFiltros(): void {
     this.searchControl.setValue('');
     this.tipoActoControl.setValue('');
+    this.currentPage.set(0);
   }
 
   onPageChange(event: PageEvent): void {

@@ -42,17 +42,28 @@ class ResolucionPrimigeniaService:
         if "id" not in data_dict or not data_dict["id"]:
             data_dict["id"] = await self._generate_uuid()
 
-        # 3. Calcular fecha_fin_vigencia si no fue provista
+        # 3. Normalizar y calcular fechas
+        f_res = data_dict.get("fecha_resolucion")
+        f_ini = data_dict.get("fecha_inicio_vigencia")
+
+        if not f_ini and f_res:
+            f_ini = f_res
+            data_dict["fecha_inicio_vigencia"] = f_ini
+        elif not f_res and f_ini:
+            f_res = f_ini
+            data_dict["fecha_resolucion"] = f_res
+
         if not data_dict.get("fecha_fin_vigencia"):
-            f_inicio = data_dict["fecha_inicio_vigencia"]
+            base_date = f_ini or f_res or datetime.utcnow()
             anios = data_dict.get("anios_vigencia", 10)
-            data_dict["fecha_fin_vigencia"] = f_inicio + relativedelta(years=anios)
+            data_dict["fecha_fin_vigencia"] = base_date + relativedelta(years=anios)
 
         # 4. Calcular eficacia anticipada
-        f_res = data_dict["fecha_resolucion"]
-        f_ini = data_dict["fecha_inicio_vigencia"]
         if data_dict.get("tiene_eficacia_anticipada") is None:
-            data_dict["tiene_eficacia_anticipada"] = f_ini < f_res
+            if f_ini and f_res:
+                data_dict["tiene_eficacia_anticipada"] = f_ini < f_res
+            else:
+                data_dict["tiene_eficacia_anticipada"] = False
 
         # 5. Inicializar arreglos vacíos si no se proporcionaron
         data_dict["fe_erratas"] = data_dict.get("fe_erratas") or []

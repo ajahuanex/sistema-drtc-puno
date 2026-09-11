@@ -50,7 +50,7 @@ async def create_resolucion_primigenia(
 @router.get("/", response_model=List[ResolucionPrimigeniaResponse])
 async def get_resoluciones_primigenias(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(10000, ge=1, le=100000),
     ruc_empresa: Optional[str] = Query(None, description="Filtrar por RUC de empresa"),
     nro_resolucion: Optional[str] = Query(None, description="Filtrar por número de resolución"),
     estado: Optional[EstadoResolucionPrimigenia] = Query(None, description="Filtrar por estado"),

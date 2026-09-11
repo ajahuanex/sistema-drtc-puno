@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, computed, effect } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -472,16 +473,20 @@ export class ResolucionesComponent implements OnInit {
   searchControl = new FormBuilder().control('');
   estadoControl = new FormBuilder().control('');
 
+  // Signals derivados para reactividad en computed()
+  searchFilter = toSignal(this.searchControl.valueChanges, { initialValue: '' });
+  estadoFilter = toSignal(this.estadoControl.valueChanges, { initialValue: '' });
+
   // Computed
   resolucionesFiltradas = computed(() => {
-    const search = this.searchControl.value?.toLowerCase() || '';
-    const estado = this.estadoControl.value || '';
+    const search = (this.searchFilter() || '').toLowerCase().trim();
+    const estado = this.estadoFilter() || '';
 
     return this.resoluciones()
       .filter(r => {
-        const matchSearch = !search ||
-          r.ruc.toLowerCase().includes(search) ||
-          r.nroResolucion.toLowerCase().includes(search);
+        const ruc = (r.ruc || '').toLowerCase();
+        const nro = (r.nroResolucion || '').toLowerCase();
+        const matchSearch = !search || ruc.includes(search) || nro.includes(search);
 
         const matchEstado = !estado || r.estado === estado;
 
@@ -525,6 +530,10 @@ export class ResolucionesComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarResoluciones();
+
+    // Reiniciar paginación al cambiar filtros
+    this.searchControl.valueChanges.subscribe(() => this.currentPage.set(0));
+    this.estadoControl.valueChanges.subscribe(() => this.currentPage.set(0));
   }
 
   cargarResoluciones(): void {
@@ -545,6 +554,7 @@ export class ResolucionesComponent implements OnInit {
   limpiarFiltros(): void {
     this.searchControl.setValue('');
     this.estadoControl.setValue('');
+    this.currentPage.set(0);
   }
 
   onPageChange(event: PageEvent): void {

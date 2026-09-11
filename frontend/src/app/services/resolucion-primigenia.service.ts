@@ -20,7 +20,7 @@ export class ResolucionPrimigeniaService {
   constructor(private http: HttpClient) {}
 
   getResolucionesPrimigenias(filtros?: ResolucionPrimigeniaFiltros): Observable<ResolucionPrimigenia[]> {
-    let params = new HttpParams();
+    let params = new HttpParams().set('limit', '10000');
     if (filtros) {
       if (filtros.ruc_empresa) params = params.set('ruc_empresa', filtros.ruc_empresa);
       if (filtros.nro_resolucion) params = params.set('nro_resolucion', filtros.nro_resolucion);
