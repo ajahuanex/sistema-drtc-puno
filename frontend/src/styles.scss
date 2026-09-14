@@ -179,24 +179,24 @@
 }
 
 /* Dark Theme */
-[data-theme="dark"] {
-  --background-primary: #121212;
-  --background-secondary: #1e1e1e;
-  --background-tertiary: #2d2d2d;
-  --background-card: #1e1e1e;
-  --background-sidebar: #1e1e1e;
-  --background-topbar: #1e1e1e;
+[data-theme="dark"], body.dark-theme, .dark-theme {
+  --background-primary: #0f172a;
+  --background-secondary: #1e293b;
+  --background-tertiary: #334155;
+  --background-card: #1e293b;
+  --background-sidebar: #0f172a;
+  --background-topbar: #0f172a;
 
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0b0;
-  --text-muted: #808080;
-  --text-inverse: #121212;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-inverse: #0f172a;
 
-  --border-primary: #404040;
-  --border-secondary: #2d2d2d;
+  --border-primary: #334155;
+  --border-secondary: #1e293b;
 
-  --shadow-color: rgba(0, 0, 0, 0.3);
-  --shadow-color-hover: rgba(0, 0, 0, 0.4);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-color-hover: rgba(0, 0, 0, 0.6);
 }
 
 /* Global Styles */
@@ -280,7 +280,7 @@ body {
   color: var(--text-secondary) !important;
 }
 
-.mat-mdc-menu-panel {
+.mat-mdc-menu-panel, .mat-mdc-select-panel {
   background-color: var(--background-card) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--border-primary) !important;
@@ -292,6 +292,18 @@ body {
 
 .mat-mdc-menu-item:hover {
   background-color: var(--background-secondary) !important;
+}
+
+.mat-mdc-option {
+  color: var(--text-primary) !important;
+
+  &:hover, &.mdc-list-item--selected, &.mat-mdc-option-active {
+    background-color: var(--background-secondary) !important;
+  }
+
+  .mdc-list-item__primary-text {
+    color: var(--text-primary) !important;
+  }
 }
 
 .mat-mdc-dialog-container {
@@ -1867,3 +1879,176 @@ ilos para el modal de cambio de estado individual */
   width: 100% !important;
   height: 100% !important;
 }
+
+/* ============================================================================
+   GLOBAL DARK MODE & THEME NORMALIZATION OVERRIDES
+   ============================================================================ */
+body.dark-theme, [data-theme="dark"], .dark-theme {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+
+  /* Form Controls & Inputs */
+  .mat-mdc-form-field-flex,
+  .mat-mdc-text-field-wrapper {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+
+  input.mat-mdc-input-element,
+  textarea.mat-mdc-input-element,
+  .mat-mdc-select-value-text {
+    color: #f8fafc !important;
+  }
+
+  .mat-mdc-form-field-label,
+  .mat-mdc-floating-label,
+  .mat-mdc-select-placeholder {
+    color: #94a3b8 !important;
+  }
+
+  /* Cards, Accordions & Glass Panels */
+  .mat-mdc-card,
+  .mat-expansion-panel,
+  .glass-panel,
+  .glass-filters,
+  .empresa-card-item,
+  .prim-ruta-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .mat-expansion-panel-header {
+    background: #1e293b !important;
+    color: #f8fafc !important;
+
+    &:hover {
+      background: #334155 !important;
+    }
+  }
+
+  .mat-panel-title,
+  .mat-panel-description,
+  .mat-expansion-panel-header-title,
+  .mat-expansion-panel-header-description {
+    color: #f8fafc !important;
+  }
+
+  /* Company Details Grid & Info Blocks */
+  .empresa-info-grid,
+  .info-block,
+  .accordion-content-body {
+    background: rgba(15, 23, 42, 0.75) !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+
+  /* Text elements inside panels */
+  h1, h2, h3, h4, h5, h6 {
+    color: #f8fafc !important;
+  }
+
+  p, span, div, label, td, th {
+    color: inherit;
+  }
+
+  .subtitle, .razon-social-hint, .text-muted, .hint-text {
+    color: #cbd5e1 !important;
+  }
+
+  /* Tables & Headers */
+  .mat-mdc-table, table {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+  }
+
+  .mat-mdc-header-row, th {
+    background-color: #0f172a !important;
+    color: #94a3b8 !important;
+    border-bottom-color: #334155 !important;
+  }
+
+  .mat-mdc-row, td {
+    border-bottom-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+
+  .mat-mdc-row:hover {
+    background-color: #334155 !important;
+  }
+
+  /* Vista Tabs & Filter Action Buttons */
+  .vista-tab {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+
+    &.active {
+      background: linear-gradient(135deg, #4f46e5, #3730a3) !important;
+      color: #ffffff !important;
+    }
+
+    &:hover:not(.active) {
+      background: #334155 !important;
+      color: #ffffff !important;
+    }
+  }
+
+  .filter-action-btn,
+  button[mat-stroked-button] {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+
+    &:hover {
+      background-color: #334155 !important;
+      color: #ffffff !important;
+    }
+  }
+
+  /* Dropdowns & Overlays */
+  .dropdown-resultados-global,
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel,
+  .mat-mdc-dialog-container {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+  }
+
+  .dropdown-resultados-global .resultado-item {
+    border-bottom-color: #334155 !important;
+
+    &:hover {
+      background-color: #334155 !important;
+    }
+
+    .nombre {
+      color: #f8fafc !important;
+    }
+    .ubicacion {
+      color: #cbd5e1 !important;
+    }
+  }
+
+  .mat-mdc-option {
+    color: #f8fafc !important;
+
+    &:hover, &.mdc-list-item--selected, &.mat-mdc-option-active {
+      background-color: #334155 !important;
+    }
+  }
+
+  /* Badges & Chips */
+  .ruta-chip {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #93c5fd !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+
+    &:hover {
+      background-color: rgba(59, 130, 246, 0.35) !important;
+    }
+  }
+}

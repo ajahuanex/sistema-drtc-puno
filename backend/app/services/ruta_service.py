@@ -353,8 +353,9 @@ class RutaService:
             origen_embebido = await self.validar_localidad_existe(ruta_data.origen.id, "origen")
             destino_embebido = await self.validar_localidad_existe(ruta_data.destino.id, "destino")
             
-            # Validar que origen y destino sean diferentes
-            if ruta_data.origen.id == ruta_data.destino.id:
+            # Validar que origen y destino sean diferentes (solo para rutas ACTIVAS)
+            es_cancelada_o_inactiva = (ruta_data.estado in [EstadoRuta.CANCELADA, EstadoRuta.INACTIVA])
+            if not es_cancelada_o_inactiva and ruta_data.origen.id == ruta_data.destino.id:
                 raise HTTPException(
                     status_code=400,
                     detail="El origen y destino no pueden ser la misma localidad"

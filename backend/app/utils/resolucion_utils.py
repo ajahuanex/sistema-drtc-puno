@@ -229,6 +229,42 @@ def generar_resumen_vigencia(
         'porcentaje_transcurrido': min(100, max(0, ((fecha_actual - fecha_inicio).days / ((fecha_fin - fecha_inicio).days)) * 100))
     }
 
+def normalizar_numero_resolucion(val: Optional[str]) -> str:
+    """
+    Normaliza un número de resolución al formato estándar 'R-XXXX-YYYY'
+    Ejemplos:
+    - '0123-2026' -> 'R-0123-2026'
+    - '123-2026' -> 'R-0123-2026'
+    - 'r-123-2026' -> 'R-0123-2026'
+    - 'R. 0123-2026' -> 'R-0123-2026'
+    - 'RES-0123-2026' -> 'R-0123-2026'
+    """
+    if not val:
+        return ""
+    
+    import re
+    s = str(val).strip().upper()
+    if not s or s == 'NAN':
+        return ""
+    
+    # 1. Quitar prefijos comunes como RESOLUCION, RESOLUCIÓN, RES., RES-, R., R
+    s = re.sub(r'^(RESOLUCIÓN|RESOLUCION|RES\.|RES-|R\.|R\s+)', 'R-', s)
+    s = re.sub(r'^(N°|Nº|N-)\s*', '', s)
+    s = s.strip()
+
+    # 2. Buscar patrón de correlativo numérico y año 4 dígitos
+    match = re.search(r'^(?:R[-.\s]*)?0*(\d{1,6})[-/. ](\d{4})(?:[-/.]?.*)?$', s)
+    if match:
+        correlativo, anio = match.groups()
+        corr_fmt = f"{int(correlativo):04d}"
+        return f"R-{corr_fmt}-{anio}"
+    
+    # 3. Si no encaja en correlativo-año, asegurar prefijo R- si empieza por número
+    if s[0].isdigit():
+        return f"R-{s}"
+    
+    return s
+
 # Constantes útiles
 ANIOS_VIGENCIA_ESTANDAR = 4
 ANIOS_VIGENCIA_ESPECIAL = 10

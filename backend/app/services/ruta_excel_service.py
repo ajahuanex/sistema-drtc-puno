@@ -171,65 +171,8 @@ class RutaExcelService:
         return buffer
     
     async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
-        """Procesar carga masiva de rutas desde Excel"""
-        print("[LOG] DEBUG PROCESAMIENTO: Iniciando procesamiento de carga masiva")
-        try:
-            # Primero validar el archivo
-            validacion = await self.validar_archivo_excel(archivo_excel)
-            
-            if 'error' in validacion:
-                return validacion
-            
-            if validacion['validos'] == 0:
-                return {
-                    'error': 'No hay rutas válidas para procesar',
-                    'validacion': validacion
-                }
-            
-            # Procesar rutas válidas
-            resultados = {
-                'total_procesadas': 0,
-                'exitosas': 0,
-                'fallidas': 0,
-                'rutas_creadas': [],
-                'errores_procesamiento': [],
-                'validacion': validacion
-            }
-            
-            for ruta_data in validacion['rutas_validas']:
-                print(f"[LOG] DEBUG PROCESAMIENTO: Procesando ruta con RUC {ruta_data.get('ruc')} y código {ruta_data.get('codigoRuta')}")
-                try:
-                    # Crear la ruta usando el servicio
-                    ruta_creada = await self._crear_ruta_desde_datos(ruta_data)
-                    
-                    resultados['exitosas'] += 1
-                    resultados['rutas_creadas'].append({
-                        'codigo': ruta_creada.codigoRuta,
-                        'nombre': ruta_creada.nombre,
-                        'id': ruta_creada.id
-                    })
-                    
-                except Exception as e:
-                    resultados['fallidas'] += 1
-                    resultados['errores_procesamiento'].append({
-                        'fila': ruta_data.get('fila', 'N/A'),  # [LOG] NUEVO: Incluir número de fila
-                        'codigo_ruta': ruta_data.get('codigoRuta', 'N/A'),
-                        'error': str(e)
-                    })
-                
-                resultados['total_procesadas'] += 1
-            
-            return resultados
-            
-        except Exception as e:
-            return {
-                'error': f"Error al procesar carga masiva: {str(e)}",
-                'total_procesadas': 0,
-                'exitosas': 0,
-                'fallidas': 0,
-                'rutas_creadas': [],
-                'errores_procesamiento': []
-            }
+        """Procesar carga masiva de rutas desde Excel (modo upsert por defecto)"""
+        return await self.procesar_carga_masiva_con_modo(archivo_excel, modo="upsert")
     
     async def _crear_ruta_desde_datos(self, ruta_data: Dict[str, Any]) -> Any:
         """Crear una ruta desde los datos procesados del Excel"""
@@ -416,107 +359,7 @@ class RutaExcelService:
             
             # [LOG] PARSEAR Y VINCULAR ITINERARIO DESDE EL TEXTO DEL EXCEL
             itinerario_texto = ruta_data.get('itinerario', '')
-            itinerario_vinculado = []
-            
-            if itinerario_texto and itinerario_texto != 'SIN ITINERARIO':
-                print(f"[LOG] DEBUG FILA {fila_num}: Parseando itinerario: '{itinerario_texto}'")
-                
-                # Separar por guiones, comas, barras
-                paradas_nombres = re.split(r'\s*[-–/,]\s*', itinerario_texto.strip())
-                paradas_nombres = [p.strip().upper() for p in paradas_nombres if p.strip() and len(p.strip()) >= 2]
-                
-                print(f"  Paradas detectadas: {paradas_nombres}")
-                
-                for orden, nombre_parada in enumerate(paradas_nombres, start=1):
-                    # Buscar todas las coincidencias exactas
-                    candidatos = await self.localidades_collection.find({
-                        "nombre": {"$regex": f"^{re.escape(nombre_parada)}$", "$options": "i"},
-                        "estaActiva": True
-                    }).to_list(length=None)
-                    
-                    localidad_parada = None
-                    if candidatos:
-                        # [LOG] PRIORIDAD CORRECTA: centro_poblado > distrito > provincia
-                        # Centros poblados tienen coordenadas exactas, provincias/distritos son centroides
-                        PRIORIDAD_TIPO = {
-                            "centro_poblado": 0, "CENTRO_POBLADO": 0,
-                            "ciudad": 0, "CIUDAD": 0,
-                            "distrito": 1, "DISTRITO": 1,
-                            "provincia": 2, "PROVINCIA": 2,
-                            "otros": 3, "OTROS": 3,
-                        }
-                        # Filtrar los que tienen coordenadas válidas
-                        con_coords = [
-                            c for c in candidatos
-                            if c.get("coordenadas") and
-                               c["coordenadas"].get("latitud") and
-                               c["coordenadas"].get("longitud")
-                        ]
-                        if con_coords:
-                            # Ordenar: menor número = mayor prioridad
-                            con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
-                            localidad_parada = con_coords[0]
-                        else:
-                            # Si ninguno tiene coords, usar cualquiera priorizando por tipo
-                            candidatos.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
-                            localidad_parada = candidatos[0]
-                    
-                    # Si no hay exacta, buscar parcial con misma lógica de prioridad
-                    if not localidad_parada:
-                        parciales = await self.localidades_collection.find({
-                            "nombre": {"$regex": re.escape(nombre_parada), "$options": "i"},
-                            "estaActiva": True
-                        }).to_list(length=None)
-                        if parciales:
-                            PRIORIDAD_TIPO = {
-                                "centro_poblado": 0, "CENTRO_POBLADO": 0,
-                                "ciudad": 0, "CIUDAD": 0,
-                                "distrito": 1, "DISTRITO": 1,
-                                "provincia": 2, "PROVINCIA": 2,
-                                "otros": 3, "OTROS": 3,
-                            }
-                            con_coords = [
-                                c for c in parciales
-                                if c.get("coordenadas") and
-                                   c["coordenadas"].get("latitud") and
-                                   c["coordenadas"].get("longitud")
-                            ]
-                            if con_coords:
-                                con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
-                                localidad_parada = con_coords[0]
-                            else:
-                                parciales.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
-                                localidad_parada = parciales[0]
-                    
-                    parada_kwargs = {
-                        "id": str(localidad_parada["_id"]) if localidad_parada else "",
-                        "nombre": localidad_parada["nombre"] if localidad_parada else nombre_parada,
-                        "orden": orden
-                    }
-                    
-                    # Agregar coordenadas si la localidad las tiene
-                    if localidad_parada and localidad_parada.get("coordenadas"):
-                        coords_raw = localidad_parada["coordenadas"]
-                        lat = coords_raw.get("latitud")
-                        lng = coords_raw.get("longitud")
-                        if lat is not None and lng is not None:
-                            parada_kwargs["coordenadas"] = {
-                                "latitud": float(lat),
-                                "longitud": float(lng)
-                            }
-                            print(f"    [LOG] Parada {orden}: {nombre_parada} -> coords [{lat}, {lng}]")
-                        else:
-                            print(f"    [LOG] Parada {orden}: {nombre_parada} -> localidad sin coords")
-                    else:
-                        print(f"    [LOG] Parada {orden}: {nombre_parada} -> no encontrada en BD (se guardará solo el nombre)")
-                    
-                    # Agregar campos opcionales si existen
-                    for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
-                        if localidad_parada and localidad_parada.get(campo):
-                            parada_kwargs[campo] = localidad_parada[campo]
-                    
-                    itinerario_vinculado.append(LocalidadItinerario(**parada_kwargs))                
-                print(f"  Total paradas procesadas: {len(itinerario_vinculado)}")
+            itinerario_vinculado = await self._parsear_itinerario_vinculado(itinerario_texto, fila_num)
             
             # Crear modelo de ruta
             ruta_create = RutaCreate(
@@ -575,6 +418,87 @@ class RutaExcelService:
             print(f"[LOG] Traceback completo:")
             traceback.print_exc()
             raise e
+
+    async def _parsear_itinerario_vinculado(self, itinerario_texto: str, fila_num: Any = None) -> List[LocalidadItinerario]:
+        """Parsear itinerario en texto y vincularlo con localidades de la BD"""
+        itinerario_vinculado = []
+        if itinerario_texto and itinerario_texto != 'SIN ITINERARIO':
+            if fila_num:
+                print(f"[LOG] DEBUG FILA {fila_num}: Parseando itinerario: '{itinerario_texto}'")
+            
+            paradas_nombres = re.split(r'\s*[-–/,]\s*', str(itinerario_texto).strip())
+            paradas_nombres = [p.strip().upper() for p in paradas_nombres if p.strip() and len(p.strip()) >= 2]
+            
+            PRIORIDAD_TIPO = {
+                "centro_poblado": 0, "CENTRO_POBLADO": 0,
+                "ciudad": 0, "CIUDAD": 0,
+                "distrito": 1, "DISTRITO": 1,
+                "provincia": 2, "PROVINCIA": 2,
+                "otros": 3, "OTROS": 3,
+            }
+            
+            for orden, nombre_parada in enumerate(paradas_nombres, start=1):
+                candidatos = await self.localidades_collection.find({
+                    "nombre": {"$regex": f"^{re.escape(nombre_parada)}$", "$options": "i"},
+                    "estaActiva": True
+                }).to_list(length=None)
+                
+                localidad_parada = None
+                if candidatos:
+                    con_coords = [
+                        c for c in candidatos
+                        if c.get("coordenadas") and
+                           c["coordenadas"].get("latitud") and
+                           c["coordenadas"].get("longitud")
+                    ]
+                    if con_coords:
+                        con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                        localidad_parada = con_coords[0]
+                    else:
+                        candidatos.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                        localidad_parada = candidatos[0]
+                
+                if not localidad_parada:
+                    parciales = await self.localidades_collection.find({
+                        "nombre": {"$regex": re.escape(nombre_parada), "$options": "i"},
+                        "estaActiva": True
+                    }).to_list(length=None)
+                    if parciales:
+                        con_coords = [
+                            c for c in parciales
+                            if c.get("coordenadas") and
+                               c["coordenadas"].get("latitud") and
+                               c["coordenadas"].get("longitud")
+                        ]
+                        if con_coords:
+                            con_coords.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                            localidad_parada = con_coords[0]
+                        else:
+                            parciales.sort(key=lambda x: PRIORIDAD_TIPO.get(x.get("tipo", ""), 99))
+                            localidad_parada = parciales[0]
+                
+                parada_kwargs = {
+                    "id": str(localidad_parada["_id"]) if localidad_parada else "",
+                    "nombre": localidad_parada["nombre"] if localidad_parada else nombre_parada,
+                    "orden": orden
+                }
+                
+                if localidad_parada and localidad_parada.get("coordenadas"):
+                    coords_raw = localidad_parada["coordenadas"]
+                    lat = coords_raw.get("latitud")
+                    lng = coords_raw.get("longitud")
+                    if lat is not None and lng is not None:
+                        parada_kwargs["coordenadas"] = {
+                            "latitud": float(lat),
+                            "longitud": float(lng)
+                        }
+                
+                for campo in ["tipo", "ubigeo", "departamento", "provincia", "distrito"]:
+                    if localidad_parada and localidad_parada.get(campo):
+                        parada_kwargs[campo] = localidad_parada[campo]
+                
+                itinerario_vinculado.append(LocalidadItinerario(**parada_kwargs))
+        return itinerario_vinculado
     
     def _detectar_tipo_localidad(self, nombre_localidad: str) -> str:
         """
@@ -1052,15 +976,6 @@ class RutaExcelService:
         if es_ruta_cancelada:
             # Para rutas canceladas, solo validar campos básicos y marcar como cancelada
             advertencias.append("Ruta detectada como CANCELADA (contiene guiones o estado INACTIVA/CANCELADA)")
-            
-            origen = self._get_val(row, ['RUTA_ORIGEN', 'Origen', 'ORIGEN', 'LOCALIDAD_ORIGEN'])
-            destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
-            
-            if (origen and destino 
-                and origen.strip() not in ['-', '', 'nan', 'null'] 
-                and destino.strip() not in ['-', '', 'nan', 'null']
-                and origen.strip().upper() == destino.strip().upper()):
-                errores.append(f"El origen y destino no pueden ser la misma localidad (ambos son '{origen}')")
         else:
             # Verificar si el estado indica que es una ruta inactiva/cancelada
             estado_temp = self._get_val(row, KEYS_ESTADO, 'ACTIVA').upper()
@@ -1076,11 +991,6 @@ class RutaExcelService:
                 destino = self._get_val(row, ['RUTA_DESTINO', 'Destino', 'DESTINO', 'LOCALIDAD_DESTINO'])
                 if not destino:
                     advertencias.append("Destino no especificado para ruta inactiva")
-                elif (origen and destino 
-                      and origen.strip() not in ['-', '', 'nan', 'null'] 
-                      and destino.strip() not in ['-', '', 'nan', 'null']
-                      and origen.strip().upper() == destino.strip().upper()):
-                    errores.append(f"El origen y destino no pueden ser la misma localidad (ambos son '{origen}')")
                 
                 frecuencia = self._get_val(row, ['RUTA_FRECUENCIA', 'Frecuencia', 'FRECUENCIA'])
                 if not frecuencia:
@@ -1623,11 +1533,16 @@ class RutaExcelService:
             descripcion=ruta_data['frecuencia']
         )
         
+        # PARSEAR ITINERARIO CON PARADAS VINCULADAS
+        itinerario_texto = ruta_data.get('itinerario', '')
+        itinerario_vinculado = await self._parsear_itinerario_vinculado(itinerario_texto)
+
         # Crear objeto de actualización
         ruta_update = RutaUpdate(
             nombre=f"{ruta_data['origen']} - {ruta_data['destino']}",
             origen=origen_embebido,
             destino=destino_embebido,
+            itinerario=itinerario_vinculado,
             frecuencia=frecuencia,
             tipoRuta=TipoRuta(ruta_data.get('tipoRuta', 'INTERREGIONAL')) if ruta_data.get('tipoRuta') else None,
             tipoServicio=TipoServicio(ruta_data.get('tipoServicio', 'PASAJEROS')) if ruta_data.get('tipoServicio') else None,
@@ -1635,6 +1550,8 @@ class RutaExcelService:
             distancia=ruta_data.get('distancia'),
             tiempoEstimado=ruta_data.get('tiempoEstimado'),
             tarifaBase=ruta_data.get('tarifaBase'),
+            capacidadMaxima=ruta_data.get('capacidadMaxima'),
+            cantidadVehiculos=ruta_data.get('cantidadVehiculos'),
             observaciones=ruta_data.get('observaciones'),
             descripcion=ruta_data.get('itinerario', 'SIN ITINERARIO')
         )
@@ -1760,8 +1677,10 @@ class RutaExcelService:
                 'fallidas': 0,
                 'creadas': 0,
                 'actualizadas': 0,
+                'eliminadas': 0,
                 'rutas_creadas': [],
                 'rutas_actualizadas': [],
+                'rutas_eliminadas': [],
                 'errores_procesamiento': [],
                 'validacion': validacion
             }
@@ -1827,6 +1746,66 @@ class RutaExcelService:
 
                 
                 resultados['total_procesadas'] += 1
+
+            # PURGA DE RUTAS OBSOLETAS:
+            # Si en la base de datos existe una ruta activa para un RUC + Resolución importado,
+            # pero el archivo de origen NO incluye ese Código de Ruta, se elimina la ruta de la BD
+            # ya que el archivo origen es la fuente de verdad.
+            eliminadas_count = 0
+            rutas_eliminadas_list = []
+
+            claves_validas_importadas = set()
+            resoluciones_afectadas = set()
+
+            for ruta_data in validacion['rutas_validas']:
+                ruc = ruta_data.get('ruc')
+                res = ruta_data.get('resolucionNormalizada')
+                cod = ruta_data.get('codigoRuta')
+                if ruc and res and cod:
+                    cod_norm = self._normalizar_codigo_ruta(cod)
+                    claves_validas_importadas.add((ruc, res, cod_norm))
+                    resoluciones_afectadas.add((ruc, res))
+
+            for ruc, res_norm in resoluciones_afectadas:
+                res_sin_r = res_norm.replace('R-', '')
+                existing_routes = await self.rutas_collection.find({
+                    "empresa.ruc": ruc,
+                    "estaActivo": True,
+                    "$or": [
+                        {"resolucion.nroResolucion": res_norm},
+                        {"resolucion.nroResolucion": res_sin_r}
+                    ]
+                }).to_list(length=None)
+
+                for db_route in existing_routes:
+                    db_cod = self._normalizar_codigo_ruta(db_route.get("codigoRuta", ""))
+                    if (ruc, res_norm, db_cod) not in claves_validas_importadas:
+                        db_id = db_route["_id"]
+                        await self.rutas_collection.delete_one({"_id": db_id})
+                        
+                        # Desvincular de la resolución si corresponde
+                        if db_route.get("resolucion", {}).get("id"):
+                            res_id = db_route["resolucion"]["id"]
+                            await self.resoluciones_collection.update_one(
+                                {"$or": [
+                                    {"id": res_id},
+                                    {"_id": ObjectId(res_id) if ObjectId.is_valid(res_id) else None}
+                                ]},
+                                {"$pull": {"rutasAutorizadasIds": str(db_id)}}
+                            )
+                        
+                        eliminadas_count += 1
+                        rutas_eliminadas_list.append({
+                            'codigo': db_route.get('codigoRuta'),
+                            'nombre': db_route.get('nombre'),
+                            'id': str(db_id),
+                            'ruc': ruc,
+                            'resolucion': res_norm
+                        })
+                        print(f"[LOG] PURGE: Ruta obsoleta eliminada por no figurar en el archivo origen - RUC: {ruc}, Res: {res_norm}, Código: {db_route.get('codigoRuta')}")
+
+            resultados['eliminadas'] = eliminadas_count
+            resultados['rutas_eliminadas'] = rutas_eliminadas_list
             
             return resultados
             
@@ -1839,7 +1818,9 @@ class RutaExcelService:
                 'fallidas': 0,
                 'creadas': 0,
                 'actualizadas': 0,
+                'eliminadas': 0,
                 'rutas_creadas': [],
                 'rutas_actualizadas': [],
+                'rutas_eliminadas': [],
                 'errores_procesamiento': []
             }

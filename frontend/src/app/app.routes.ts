@@ -15,6 +15,7 @@ export const routes: Routes = [
       // EMPRESAS
       { path: 'empresas', loadComponent: () => import('./components/empresas/empresas.component').then(m => m.EmpresasComponent) },
       { path: 'empresas/nueva', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
+      { path: 'empresas/carga-masiva', loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent) },
       { path: 'empresas/carga-masiva-google-sheets', loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent) },
       { path: 'empresas/:id', loadComponent: () => import('./components/empresas/empresa-detail.component').then(m => m.EmpresaDetailComponent) },
       { path: 'empresas/:id/editar', loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent) },
@@ -40,8 +41,14 @@ export const routes: Routes = [
       // VEHÍCULOS
       { path: 'vehiculos', loadComponent: () => import('./components/vehiculos/vehiculos.component').then(m => m.VehiculosComponent) },
       { path: 'vehiculos/carga-masiva', loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent) },
-      { path: 'vehiculos-solo', loadComponent: () => import('./components/vehiculos-solo/vehiculos-solo.component').then(m => m.VehiculosSoloComponent) },
-      { path: 'vehiculos-solo/carga-masiva', loadComponent: () => import('./components/vehiculos-solo/carga-masiva-vehiculos-solo.component').then(m => m.CargaMasivaVehiculosSoloComponent) },
+      { path: 'vehiculos-data', loadComponent: () => import('./components/vehiculos-data/vehiculos-data.component').then(m => m.VehiculosDataComponent) },
+      { path: 'vehiculos-data/carga-masiva', loadComponent: () => import('./components/vehiculos-data/carga-masiva-vehiculos-data.component').then(m => m.CargaMasivaVehiculosDataComponent) },
+      { path: 'vehiculos-data/carga-masiva-google-sheets', loadComponent: () => import('./components/vehiculos-data/carga-masiva-vehiculos-data.component').then(m => m.CargaMasivaVehiculosDataComponent) },
+      { path: 'vehiculos-solo', redirectTo: 'vehiculos-data', pathMatch: 'full' },
+      { path: 'vehiculos-solo/carga-masiva', redirectTo: 'vehiculos-data/carga-masiva', pathMatch: 'full' },
+      { path: 'vehiculos-empresa', loadComponent: () => import('./components/vehiculos-empresa/vehiculos-empresa.component').then(m => m.VehiculosEmpresaComponent) },
+      { path: 'vehiculos-empresa/carga-masiva', loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent) },
+      { path: 'vehiculos-empresa/carga-masiva-google-sheets', loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent) },
       { path: 'historial-vehiculos', loadComponent: () => import('./components/historial-vehiculos/historial-vehiculos.component').then(m => m.HistorialVehiculosComponent) },
       
       // DESHABILITADO - Dashboard

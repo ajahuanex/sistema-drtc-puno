@@ -196,3 +196,19 @@ class ResolucionHijaService:
             {"$set": {"esta_activo": False, "fecha_actualizacion": datetime.utcnow()}}
         )
         return result.modified_count > 0
+
+    async def bulk_delete_resoluciones_hijas(self, ids: List[str]) -> int:
+        if not ids:
+            return 0
+        or_conds = []
+        for item_id in ids:
+            if ObjectId.is_valid(item_id):
+                or_conds.append({"_id": ObjectId(item_id)})
+            or_conds.append({"id": item_id})
+
+        result = await self.collection.update_many(
+            {"$or": or_conds},
+            {"$set": {"esta_activo": False, "fecha_actualizacion": datetime.utcnow()}}
+        )
+        return result.modified_count
+

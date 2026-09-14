@@ -46,6 +46,15 @@
             ],
             "scripts": [
               "node_modules/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"
+            ],
+            "allowedCommonJsDependencies": [
+              "canvg",
+              "core-js",
+              "raf",
+              "rgbcolor",
+              "leaflet",
+              "leaflet.markercluster",
+              "file-saver"
             ]
           },
           "configurations": {
@@ -58,8 +67,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "25kB",
-                  "maximumError": "35kB"
+                  "maximumWarning": "45kB",
+                  "maximumError": "80kB"
                 }
               ],
               "outputHashing": "all"

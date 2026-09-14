@@ -73,6 +73,19 @@ export interface Empresa {
   telefonoContacto?: string;
   sitioWeb?: string;
   observaciones?: string;
+  // Datos SUNAT persistidos
+  datosSunat?: SunatData;
+  ultimaValidacionSunat?: Date;
+}
+
+export interface SunatData {
+  ddp_nombre?: string;
+  ddp_estado?: string;
+  desc_estado?: string;
+  esActivo?: boolean;
+  esHabido?: boolean;
+  fechaConsulta?: string;
+  [key: string]: any;
 }
 
 // ========================================

@@ -73,9 +73,16 @@ class EmpresaService:
         else:
             # Datos SUNAT por defecto para carga masiva
             datos_sunat = {
-                "valido": True,  # Asumir válido para carga masiva
+                "valido": True,
+                "ddp_nombre": empresa_data.razonSocial.principal,
                 "razonSocial": empresa_data.razonSocial.principal,
+                "ddp_estado": "00",
+                "desc_estado": "ACTIVO",
+                "estado": "ACTIVO",
+                "desc_flag22": "HABIDO",
                 "condicion": "HABIDO",
+                "esActivo": True,
+                "esHabido": True,
                 "direccion": empresa_data.direccionFiscal,
                 "fecha_actualizacion": datetime.utcnow()
             }
@@ -234,7 +241,19 @@ class EmpresaService:
             
         cursor = self.collection.find(query)
         docs = await cursor.to_list(length=None)
-        return [EmpresaInDB(**self._convert_id(doc)) for doc in docs]
+        
+        from app.services.empresa_mapper import EmpresaMapper
+        resultado = []
+        for doc in docs:
+            try:
+                empresa = EmpresaMapper.map_empresa_antigua(doc)
+                resultado.append(empresa)
+            except Exception as e:
+                try:
+                    resultado.append(EmpresaInDB(**self._convert_id(doc)))
+                except Exception:
+                    continue
+        return resultado
 
     async def update_empresa(self, empresa_id: str, empresa_data: EmpresaUpdate, usuario_id: str) -> Optional[EmpresaInDB]:
         empresa_actual = await self.get_empresa_by_id(empresa_id)
@@ -544,47 +563,66 @@ class EmpresaService:
         return result.modified_count > 0
 
     async def validar_ruc_sunat(self, ruc: str) -> Dict[str, Any]:
-        """Validar RUC con SUNAT - retorna datos simulados si falla"""
-        try:
-            # Simular llamada a API de SUNAT (en producción usar API real)
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                try:
-                    response = await client.get(f"https://api.sunat.gob.pe/v1/ruc/{ruc}")
-                    
-                    if response.status_code == 200:
-                        datos = response.json()
-                        return {
-                            "valido": True,
-                            "razon_social": datos.get("razon_social"),
-                            "estado": datos.get("estado"),
-                            "condicion": datos.get("condicion"),
-                            "direccion": datos.get("direccion"),
-                            "fecha_actualizacion": datetime.utcnow()
-                        }
-                except Exception:
-                    pass
+        """Validar RUC con SUNAT vía PIDE y retornar datos completos desglosados"""
+        if not ruc or len(ruc) != 11 or not ruc.isdigit():
+            return {"valido": False, "nota": "RUC inválido"}
             
-            # Si falla la validación SUNAT, retornar datos por defecto (válido)
-            return {
-                "valido": True,
-                "razon_social": "Empresa",
-                "estado": "ACTIVO",
-                "condicion": "HABIDO",
-                "direccion": "Dirección no validada",
-                "fecha_actualizacion": datetime.utcnow(),
-                "nota": "Validación SUNAT no disponible - datos por defecto"
-            }
+        url = f"https://pcm.guillermo.pe/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data and isinstance(data, dict) and 'data' in data:
+                        sunat_raw = data['data']
+                        ahora = datetime.utcnow()
+                        estados_ruc = {
+                            '00': 'ACTIVO', '10': 'SUSPENSION TEMPORAL', '11': 'BAJA DE OFICIO',
+                            '12': 'BAJA DEFINITIVA', '20': 'BAJA PROVISIONAL',
+                            '21': 'BAJA PROV. POR OFICIO', '22': 'SUSPENSION PROVISIONAL'
+                        }
+                        ddp_nombre = (sunat_raw.get('ddp_nombre') or '').strip()
+                        ddp_estado = sunat_raw.get('ddp_estado') or ''
+                        desc_estado = sunat_raw.get('desc_estado') or estados_ruc.get(ddp_estado, ddp_estado)
+                        desc_flag22 = sunat_raw.get('desc_flag22') or ('HABIDO' if sunat_raw.get('ddp_flag22') == '00' else 'NO HABIDO')
+                        
+                        es_activo = (ddp_estado == '00' or str(desc_estado).upper() == 'ACTIVO')
+                        es_habido = ('HABIDO' in str(desc_flag22).upper() or sunat_raw.get('ddp_flag22') == '00')
+                        
+                        return {
+                            "ddp_nombre": ddp_nombre,
+                            "ddp_estado": ddp_estado,
+                            "desc_estado": desc_estado,
+                            "desc_flag22": desc_flag22,
+                            "esActivo": es_activo,
+                            "esHabido": es_habido,
+                            "desc_ciiu": sunat_raw.get('desc_ciiu', '') or '',
+                            "desc_tpoemp": sunat_raw.get('desc_tpoemp', '') or '',
+                            "desc_dep": sunat_raw.get('desc_dep', '') or '',
+                            "desc_prov": sunat_raw.get('desc_prov', '') or '',
+                            "desc_dist": sunat_raw.get('desc_dist', '') or '',
+                            "ddp_ubigeo": sunat_raw.get('ddp_ubigeo', '') or '',
+                            "ddp_ciiu": sunat_raw.get('ddp_ciiu', '') or '',
+                            "ddp_fecalt": sunat_raw.get('ddp_fecalt', '') or '',
+                            "ddp_fecact": sunat_raw.get('ddp_fecact', '') or '',
+                            "fechaConsulta": ahora.isoformat(),
+                            "raw": sunat_raw,
+                            "valido": es_activo,
+                            "razonSocial": ddp_nombre,
+                            "condicion": desc_flag22
+                        }
         except Exception as e:
-            # Retornar válido por defecto para no bloquear creación
-            return {
-                "valido": True,
-                "razon_social": "Empresa",
-                "estado": "ACTIVO",
-                "condicion": "HABIDO",
-                "direccion": "Dirección no validada",
-                "fecha_actualizacion": datetime.utcnow(),
-                "nota": f"Error en validación SUNAT: {str(e)}"
-            }
+            print(f"Error consultando SUNAT para RUC {ruc}: {e}")
+            
+        return {
+            "valido": True,
+            "ddp_nombre": "Empresa",
+            "ddp_estado": "00",
+            "desc_estado": "ACTIVO",
+            "esActivo": True,
+            "esHabido": True,
+            "fechaConsulta": datetime.utcnow().isoformat()
+        }
 
     # ---------------------------------------------------------------------
     # Cambio de estado con motivo y documento

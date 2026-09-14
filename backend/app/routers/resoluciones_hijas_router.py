@@ -49,7 +49,7 @@ async def create_resolucion_hija(
 @router.get("/", response_model=List[ResolucionHijaResponse])
 async def get_resoluciones_hijas(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(10000, ge=1, le=50000),
     nro_resolucion: Optional[str] = Query(None, description="Filtrar por número de resolución hija"),
     nro_resolucion_primigenia: Optional[str] = Query(None, description="Filtrar por número de resolución primigenia asociada"),
     ruc_empresa: Optional[str] = Query(None, description="Filtrar por RUC de empresa"),
@@ -100,6 +100,22 @@ async def get_resolucion_hija_by_numero(
         raise HTTPException(status_code=404, detail=f"No se encontró resolución hija con número {nro_resolucion}")
     return ResolucionHijaResponse.model_validate(hija)
 
+from pydantic import BaseModel
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
+
+@router.post("/eliminar-masivo")
+async def eliminar_masivo_resoluciones_hijas(
+    payload: BulkDeleteRequest,
+    service: ResolucionHijaService = Depends(get_service)
+):
+    """Desactivar de forma masiva un conjunto de resoluciones hijas por sus IDs"""
+    if not payload.ids:
+        raise HTTPException(status_code=400, detail="Debe proporcionar al menos un ID para eliminar")
+    eliminados = await service.bulk_delete_resoluciones_hijas(payload.ids)
+    return {"eliminados": eliminados, "mensaje": f"{eliminados} resoluciones hijas eliminadas correctamente."}
+
 @router.get("/{hija_id}", response_model=ResolucionHijaResponse)
 async def get_resolucion_hija_by_id(
     hija_id: str,
@@ -137,6 +153,11 @@ async def delete_resolucion_hija(
 # ENDPOINTS DE CARGA MASIVA
 # ========================================
 
+class GoogleSheetRequest(BaseModel):
+    url: str
+    modo: Optional[str] = "upsert"
+
+
 @router.get("/carga-masiva/plantilla")
 async def descargar_plantilla_resoluciones_hijas(
     excel_service: ResolucionHijaExcelService = Depends(get_excel_service)
@@ -155,6 +176,7 @@ async def descargar_plantilla_resoluciones_hijas(
 @router.post("/carga-masiva/procesar")
 async def procesar_carga_masiva_resoluciones_hijas(
     archivo: UploadFile = File(..., description="Archivo Excel (.xlsx o .xls) con resoluciones hijas"),
+    modo: str = Query("upsert", description="Modo de procesamiento: 'upsert' o 'crear'"),
     excel_service: ResolucionHijaExcelService = Depends(get_excel_service)
 ):
     """Procesar carga masiva de resoluciones hijas desde archivo Excel"""
@@ -164,11 +186,48 @@ async def procesar_carga_masiva_resoluciones_hijas(
     try:
         contenido = await archivo.read()
         buffer = BytesIO(contenido)
-        resultado = await excel_service.procesar_carga_masiva(buffer)
+        resultado = await excel_service.procesar_carga_masiva(buffer, modo=modo)
+        msg_extra = f" ({resultado.get('sin_ruc_valido_omitidas', 0)} filas omitidas por RUC no válido)" if resultado.get('sin_ruc_valido_omitidas', 0) > 0 else ""
         return {
             "archivo": archivo.filename,
             "resultado": resultado,
-            "mensaje": f"Carga masiva completada: {resultado['creadas']} resoluciones hijas creadas."
+            "mensaje": f"Carga masiva completada: {resultado.get('creados', 0)} resoluciones hijas creadas, {resultado.get('actualizados', 0)} actualizadas.{msg_extra}"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al procesar archivo: {str(e)}")
+
+@router.post("/carga-masiva/procesar-url")
+async def procesar_carga_masiva_url_resoluciones_hijas(
+    payload: GoogleSheetRequest,
+    excel_service: ResolucionHijaExcelService = Depends(get_excel_service)
+):
+    """Procesar carga masiva de resoluciones hijas desde URL de Google Sheets"""
+    if not payload.url.strip():
+        raise HTTPException(status_code=400, detail="La URL de Google Sheets no puede estar vacía")
+
+    try:
+        resultado = await excel_service.procesar_carga_masiva_desde_url(payload.url, modo=payload.modo or "upsert")
+        msg_extra = f" ({resultado.get('sin_ruc_valido_omitidas', 0)} filas omitidas por RUC no válido)" if resultado.get('sin_ruc_valido_omitidas', 0) > 0 else ""
+        return {
+            "url": payload.url,
+            "resultado": resultado,
+            "mensaje": f"Carga masiva completada desde Google Sheets: {resultado.get('creados', 0)} creadas, {resultado.get('actualizados', 0)} actualizadas.{msg_extra}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar enlace: {str(e)}")
+
+@router.post("/carga-masiva/preview")
+async def preview_carga_masiva_resoluciones_hijas(
+    archivo: UploadFile = File(..., description="Archivo Excel (.xlsx o .xls)"),
+    n_filas: int = Query(15, ge=1, le=100),
+    excel_service: ResolucionHijaExcelService = Depends(get_excel_service)
+):
+    """Generar vista previa de las primeras N filas del archivo"""
+    try:
+        contenido = await archivo.read()
+        buffer = BytesIO(contenido)
+        preview = await excel_service.procesar_preview(buffer, n_filas=n_filas)
+        return {"filas": preview, "total_preview": len(preview)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generando vista previa: {str(e)}")
+

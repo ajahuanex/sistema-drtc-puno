@@ -175,13 +175,13 @@ export class VehiculoFormComponent implements OnInit {
   verDetallesVehiculoSolo(): void {
     const vehiculoSoloId = this.vehiculoSoloData()?.id;
     if (vehiculoSoloId) {
-      window.open(`/vehiculos-solo/${vehiculoSoloId}`, '_blank');
+      window.open(`/vehiculos-data`, '_blank');
     }
   }
 
   crearVehiculoSolo(): void {
     const placa = this.vehiculoForm.get('placa')?.value;
-    this.router.navigate(['/vehiculos-solo/nuevo'], { 
+    this.router.navigate(['/vehiculos-data'], { 
       queryParams: { placa } 
     });
   }

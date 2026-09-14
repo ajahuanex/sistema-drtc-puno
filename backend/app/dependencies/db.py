@@ -140,6 +140,19 @@ async def lifespan(app):
     # Startup
     try:
         await connect_to_mongo()
+        # Crear índices para optimizar búsquedas frecuentes
+        if db.client and db.is_connected:
+            try:
+                database = db.client[settings.DATABASE_NAME]
+                col = database["vehiculos_data"]
+                await col.create_index("placa_actual", background=True)
+                await col.create_index("marca", background=True)
+                await col.create_index("categoria", background=True)
+                await col.create_index("vin", background=True)
+                await col.create_index("numero_motor", background=True)
+                logger.info("✅ Índices de vehiculos_data creados/verificados")
+            except Exception as idx_err:
+                logger.warning(f"⚠️ Error creando índices vehiculos_data: {idx_err}")
     except Exception as e:
         logger.warning(f"⚠️ No se pudo conectar a MongoDB al inicio: {e}")
         logger.info("🔄 La aplicación continuará ejecutándose. MongoDB se reconectará automáticamente cuando esté disponible.")

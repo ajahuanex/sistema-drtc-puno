@@ -7,7 +7,7 @@ from bson import ObjectId
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.models.vehiculo_solo import (
+from app.schemas.vehiculo_solo import (
     VehiculoSolo, CategoriaVehiculo, TipoCarroceria, 
     TipoCombustible, EstadoFisicoVehiculo
 )
@@ -19,7 +19,7 @@ class VehiculoDataService:
     
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
-        self.collection = db["vehiculos_solo"]
+        self.collection = db["vehiculos_data"]
     
     async def create_vehiculo_data(self, vehiculo_data: dict) -> dict:
         """Crear registro de datos técnicos"""
@@ -120,21 +120,16 @@ class VehiculoDataService:
     async def list_vehiculos_data(
         self,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 1000,
         marca: Optional[str] = None,
-        categoria: Optional[str] = None
+        categoria: Optional[str] = None,
+        q: Optional[str] = None
     ) -> List[dict]:
-        """Listar datos técnicos con filtros"""
+        """Listar datos técnicos con filtros y búsqueda de texto libre"""
         
-        query = {}
+        query = self._build_query(q, marca, categoria)
         
-        if marca:
-            query["marca"] = {"$regex": marca, "$options": "i"}
-        
-        if categoria:
-            query["categoria"] = categoria
-        
-        cursor = self.collection.find(query).skip(skip).limit(limit)
+        cursor = self.collection.find(query).skip(skip).limit(limit).sort("placa_actual", 1)
         vehiculos_data = []
         
         async for vehiculo_data in cursor:
@@ -143,6 +138,30 @@ class VehiculoDataService:
         
         return vehiculos_data
     
-    async def count_vehiculos_data(self) -> int:
-        """Contar total de registros"""
-        return await self.collection.count_documents({})
+    def _build_query(self, q: Optional[str] = None, marca: Optional[str] = None, categoria: Optional[str] = None) -> dict:
+        """Construir query de MongoDB a partir de los filtros"""
+        query: dict = {}
+        
+        if q and q.strip():
+            texto = q.strip()
+            query["$or"] = [
+                {"placa_actual": {"$regex": texto, "$options": "i"}},
+                {"marca": {"$regex": texto, "$options": "i"}},
+                {"modelo": {"$regex": texto, "$options": "i"}},
+                {"numero_motor": {"$regex": texto, "$options": "i"}},
+                {"vin": {"$regex": texto, "$options": "i"}},
+                {"pcmMetadata.pcm_propietario": {"$regex": texto, "$options": "i"}},
+            ]
+        
+        if marca:
+            query["marca"] = {"$regex": marca, "$options": "i"}
+        
+        if categoria:
+            query["categoria"] = categoria
+        
+        return query
+    
+    async def count_vehiculos_data(self, q: Optional[str] = None, marca: Optional[str] = None, categoria: Optional[str] = None) -> int:
+        """Contar total de registros con los mismos filtros"""
+        query = self._build_query(q, marca, categoria)
+        return await self.collection.count_documents(query)

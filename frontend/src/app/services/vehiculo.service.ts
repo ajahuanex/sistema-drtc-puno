@@ -1722,14 +1722,14 @@ export class VehiculoService {
    * Buscar vehículo en VehiculoSolo por placa
    */
   buscarVehiculoSoloPorPlaca(placa: string): Observable<any> {
-    return this.http.get<any>(`${environment.apiUrl}/vehiculos-solo/placa/${placa}`, {
+    return this.http.get<any>(`${environment.apiUrl}/vehiculos-data/placa/${placa}`, {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => {
         if (error.status === 404) {
           return of(null);
         }
-        console.error('Error buscando vehículo solo por placa:', error);
+        console.error('Error buscando vehículo en vehiculos-data por placa:', error);
         return of(null);
       })
     );

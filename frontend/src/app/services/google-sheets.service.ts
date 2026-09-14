@@ -17,12 +17,23 @@ export class GoogleSheetsService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Extraer GID de hoja/tab de una URL de Google Sheets
+   */
+  extraerGidDeUrl(url: string): string | null {
+    if (!url) return null;
+    const match = url.match(/[?&#]gid=([0-9]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
    * Obtener datos reales de Google Sheets sin API key usando fetch() nativo
    * (Evita la inyección de encabezados Authorization y problemas de interceptores)
    */
-  obtenerDatosReales(spreadsheetId: string, sheetName: string = ''): Observable<SheetInfo> {
-    const gid = sheetName ? `&gid=0` : '';
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv${gid}`;
+  obtenerDatosReales(spreadsheetIdOrUrl: string, sheetName: string = ''): Observable<SheetInfo> {
+    const cleanId = this.extraerIdDeUrl(spreadsheetIdOrUrl) || spreadsheetIdOrUrl;
+    const extractedGid = this.extraerGidDeUrl(spreadsheetIdOrUrl);
+    const gid = extractedGid ? extractedGid : (sheetName ? sheetName : '0');
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${cleanId}/export?format=csv&gid=${gid}`;
 
     // Usar fetch() nativo del navegador para evitar que el interceptor de Angular inserte Bearer token
     return from(

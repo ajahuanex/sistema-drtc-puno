@@ -18,7 +18,7 @@ export class ResolucionHijaService {
   constructor(private http: HttpClient) {}
 
   getResolucionesHijas(filtros?: ResolucionHijaFiltros): Observable<ResolucionHija[]> {
-    let params = new HttpParams();
+    let params = new HttpParams().set('limit', '10000');
     if (filtros) {
       if (filtros.nro_resolucion) params = params.set('nro_resolucion', filtros.nro_resolucion);
       if (filtros.nro_resolucion_primigenia) params = params.set('nro_resolucion_primigenia', filtros.nro_resolucion_primigenia);
@@ -50,6 +50,10 @@ export class ResolucionHijaService {
 
   deleteResolucionHija(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  bulkDeleteResolucionesHijas(ids: string[]): Observable<{ eliminados: number; mensaje: string }> {
+    return this.http.post<{ eliminados: number; mensaje: string }>(`${this.apiUrl}/eliminar-masivo`, { ids });
   }
 
   descargarPlantillaExcel(): Observable<Blob> {

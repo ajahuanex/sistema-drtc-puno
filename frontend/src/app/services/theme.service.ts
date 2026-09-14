@@ -118,9 +118,13 @@ export class ThemeService {
     if (theme.isDark) {
       root.classList.add('dark-theme');
       document.body.classList.add('dark-theme');
+      root.setAttribute('data-theme', 'dark');
+      document.body.setAttribute('data-theme', 'dark');
     } else {
       root.classList.remove('dark-theme');
       document.body.classList.remove('dark-theme');
+      root.removeAttribute('data-theme');
+      document.body.removeAttribute('data-theme');
     }
   }
 

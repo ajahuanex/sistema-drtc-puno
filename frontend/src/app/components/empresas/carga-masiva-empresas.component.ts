@@ -1,19 +1,47 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatRadioModule } from '@angular/material/radio';
-import { GoogleSheetsService } from '../../services/google-sheets.service';
+
+import * as XLSX from 'xlsx';
 import { EmpresaService } from '../../services/empresa.service';
+import { GoogleSheetsService } from '../../services/google-sheets.service';
+
+export interface RegistroEmpresaPreview {
+  fila: number;
+  ruc: string;
+  razonSocial: string;
+  domicilioLegal: string;
+  telefono: string;
+  correoElectronico: string;
+  representanteLegal: string;
+  dniRepresentanteLegal: string;
+  partidaRegistral: string;
+  estado: string;
+  tipoServicio: string;
+  esValido: boolean;
+  errores: string[];
+}
+
+export interface ColumnaMapeoEmpresa {
+  archivoCol: string;
+  destCampo: string;
+  tipo: string;
+}
 
 @Component({
   selector: 'app-carga-masiva-empresas',
@@ -21,687 +49,984 @@ import { EmpresaService } from '../../services/empresa.service';
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
-    MatStepperModule,
+    MatTableModule,
+    MatTabsModule,
+    MatChipsModule,
+    MatTooltipModule,
+    MatRadioModule,
+    MatSlideToggleModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSnackBarModule,
-    MatRadioModule
+    MatSnackBarModule
   ],
+  styleUrl: './carga-masiva-empresas.component.scss',
   template: `
-    <div class="container">
-      <mat-card class="header">
-        <h1><mat-icon>cloud_upload</mat-icon> Carga desde Google Sheets</h1>
-      </mat-card>
-
-      <mat-stepper #stepper [linear]="false">
-        <!-- PASO 1 -->
-        <mat-step label="Conectar" [completed]="paso1Completo">
-          <div class="step-content">
-            <h2>Paso 1: Conectar a Google Sheets</h2>
-            
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>URL de Google Sheets</mat-label>
-              <input matInput [(ngModel)]="urlSheet" placeholder="https://docs.google.com/spreadsheets/d/...">
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Nombre de la hoja (ej: Empresas, Sheet1)</mat-label>
-              <input matInput [(ngModel)]="hojaSeleccionada" placeholder="Nombre de la pestaña">
-              <mat-hint>Si dejas vacío, usará la primera hoja</mat-hint>
-            </mat-form-field>
-
-            <button mat-raised-button color="primary" (click)="conectar()" [disabled]="cargando">
-              <mat-icon>check</mat-icon> Conectar
-            </button>
-
-            @if (cargando) {
-              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            }
-
-            @if (error) {
-              <div class="error">{{ error }}</div>
-            }
-
-            @if (paso1Completo) {
-              <div class="success">
-                ✅ {{ columnasDetectadas.length }} columnas detectadas
-                <br>{{ totalFilas }} filas de datos
-              </div>
-            }
+    <div class="carga-masiva-wrapper">
+      <!-- HEADER CON CORDÓN DE NAVEGACIÓN Y ACCIÓN RÁPIDA -->
+      <header class="header-banner">
+        <div class="header-title-group">
+          <button mat-icon-button routerLink="/empresas" class="back-btn" matTooltip="Volver a Empresas">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <div class="title-text">
+            <div class="badge-tag">Empresas Transportistas</div>
+            <h1>Carga Masiva de Empresas</h1>
+            <p>Importa empresas transportistas mapeando automáticamente las columnas <strong>B a K (RUC, Razón Social, Domicilio Legal, Teléfono, Correo, Representante, DNI, Partida, Estado y Tipo Servicio)</strong></p>
           </div>
-        </mat-step>
+        </div>
 
-        <!-- PASO 2 -->
-        <mat-step label="Mapear" [completed]="paso2Completo">
-          <div class="step-content">
-            <h2>Paso 2: Mapear Columnas</h2>
-            <p>Selecciona qué columna corresponde a cada campo</p>
+        <div class="header-actions">
+          <button mat-raised-button color="primary" class="action-btn download-btn" (click)="descargarPlantilla()" [disabled]="cargando()">
+            <mat-icon>download</mat-icon>
+            Descargar Plantilla Excel
+          </button>
+        </div>
+      </header>
 
-            @if (columnasDetectadas.length > 0) {
-              <div class="mapeo-grid">
-                <div class="mapeo-item">
-                  <label>RUC *</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.ruc">
-                      <mat-option value="">-- Seleccionar --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
+      <div class="main-content-grid">
+        <!-- SECCIÓN 1: SUBIR ARCHIVO Y CONFIGURACIÓN (HERO PANEL) -->
+        <mat-card class="upload-panel-card glass-panel">
+          <mat-card-header>
+            <mat-card-title class="card-title-flex">
+              <mat-icon class="panel-icon">cloud_upload</mat-icon>
+              <span>Origen de Datos</span>
+            </mat-card-title>
+            <mat-card-subtitle>
+              Selecciona si subirás un archivo local (.xlsx, .xls, .csv) o la URL de una hoja de Google Sheets
+            </mat-card-subtitle>
+          </mat-card-header>
 
-                <div class="mapeo-item">
-                  <label>Razón Social *</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.razonSocial">
-                      <mat-option value="">-- Seleccionar --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
+          <mat-card-content class="card-body">
 
-                <div class="mapeo-item">
-                  <label>Dirección *</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.direccion">
-                      <mat-option value="">-- Seleccionar --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Estado</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.estado">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Email</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.email">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Teléfono</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.telefono">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Representante Legal</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.representante">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Nombres Representante</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.nombres">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Apellidos Representante</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.apellidos">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>DNI</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.dni">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-
-                <div class="mapeo-item">
-                  <label>Partida Registral</label>
-                  <mat-form-field appearance="outline">
-                    <mat-select [(ngModel)]="mapeo.partida">
-                      <mat-option value="">-- No mapear --</mat-option>
-                      @for (col of columnasDetectadas; track col) {
-                        <mat-option [value]="col">{{ col }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                </div>
-              </div>
-
-              <button mat-raised-button color="primary" (click)="confirmarMapeo()" [disabled]="!validarMapeo()">
-                <mat-icon>check</mat-icon> {{ validarMapeo() ? 'Confirmar' : 'Completa los campos' }}
+            <!-- Selector de Origen de Datos (Tab Switcher) -->
+            <div class="source-selector">
+              <button type="button"
+                      class="source-tab"
+                      [class.active]="origenCarga() === 'archivo'"
+                      (click)="origenCarga.set('archivo')">
+                <mat-icon>insert_drive_file</mat-icon>
+                Archivo Local (.xlsx, .xls, .csv)
               </button>
-            }
-          </div>
-        </mat-step>
+              <button type="button"
+                      class="source-tab"
+                      [class.active]="origenCarga() === 'google-sheets'"
+                      (click)="origenCarga.set('google-sheets')">
+                <mat-icon class="text-green">grid_on</mat-icon>
+                Google Sheets (URL Pública)
+              </button>
+            </div>
 
-        <!-- PASO 3 -->
-        <mat-step label="Previsualizar" [completed]="datosPreview.length > 0">
-          <div class="step-content">
-            <h2>Paso 3: Previsualizar</h2>
+            @if (origenCarga() === 'archivo') {
+              <!-- Zona Drag and Drop -->
+              <div class="dropzone"
+                   [class.drag-active]="isDragOver()"
+                   [class.has-file]="archivoSeleccionado()"
+                   (dragover)="onDragOver($event)"
+                   (dragleave)="onDragLeave($event)"
+                   (drop)="onDrop($event)"
+                   (click)="fileInput.click()">
 
-            @if (datosPreview.length > 0) {
-              <p>Mostrando {{ datosPreview.length }} de {{ totalFilas }} filas</p>
-              <div class="table-scroll">
-                <table class="preview-table">
-                  <thead>
-                    <tr>
-                      <th>RUC</th>
-                      <th>Razón Social</th>
-                      <th>Dirección</th>
-                      @if (mapeo.estado) { <th>Estado</th> }
-                      @if (mapeo.email) { <th>Email</th> }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of datosPreview; track $index) {
-                      <tr>
-                        <td>{{ row.ruc }}</td>
-                        <td>{{ row.razonSocial }}</td>
-                        <td>{{ row.direccion }}</td>
-                        @if (mapeo.estado) { <td>{{ row.estado }}</td> }
-                        @if (mapeo.email) { <td>{{ row.email }}</td> }
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          </div>
-        </mat-step>
+                <input #fileInput
+                       type="file"
+                       accept=".xlsx,.xls,.csv,text/csv"
+                       (change)="onFileSelected($event)"
+                       style="display: none;">
 
-        <!-- PASO 4 -->
-        <mat-step label="Procesar" [completed]="resultado !== null">
-          <div class="step-content">
-            <h2>Paso 4: Procesar</h2>
-
-            <mat-radio-group [(ngModel)]="soloValidar">
-              <mat-radio-button [value]="true">Solo validar</mat-radio-button>
-              <mat-radio-button [value]="false">Validar y crear</mat-radio-button>
-            </mat-radio-group>
-
-            <button mat-raised-button color="accent" (click)="procesar()" [disabled]="cargando">
-              <mat-icon>play_arrow</mat-icon> {{ soloValidar ? 'Validar' : 'Procesar' }}
-            </button>
-
-            @if (cargando) {
-              <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            }
-          </div>
-        </mat-step>
-
-        <!-- PASO 5 -->
-        <mat-step label="Resultados" [completed]="resultado !== null">
-          <div class="step-content">
-            <h2>Paso 5: Resultados</h2>
-
-            @if (resultado) {
-              <div class="stats">
-                <div class="stat">
-                  <div class="number">{{ resultado.total_filas }}</div>
-                  <div class="label">Total</div>
-                </div>
-                <div class="stat success">
-                  <div class="number">{{ resultado.exitosas }}</div>
-                  <div class="label">Exitosas</div>
-                </div>
-                @if (resultado.fallidas > 0) {
-                  <div class="stat error">
-                    <div class="number">{{ resultado.fallidas }}</div>
-                    <div class="label">Fallidas</div>
+                @if (archivoSeleccionado(); as file) {
+                  <div class="dropzone-file-selected">
+                    <div class="file-icon-wrapper">
+                      <mat-icon>{{ file.name.endsWith('.csv') ? 'description' : 'insert_drive_file' }}</mat-icon>
+                    </div>
+                    <div class="file-details">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                    </div>
+                    <button mat-icon-button color="warn" (click)="$event.stopPropagation(); limpiarArchivo()" matTooltip="Remover archivo">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </div>
+                } @else {
+                  <div class="dropzone-prompt">
+                    <div class="cloud-icon-circle">
+                      <mat-icon>upload_file</mat-icon>
+                    </div>
+                    <h3>Arrastra tu archivo aquí</h3>
+                    <p>Soporta hojas de cálculo Excel (.xlsx, .xls) o archivos CSV (.csv)</p>
+                    <span class="file-limit-hint">Recomendado: Estructura DB_EMPRESAS (Columnas B a K)</span>
                   </div>
                 }
               </div>
+            } @else {
+              <!-- Input de Google Sheets -->
+              <div class="google-sheets-box">
+                <div class="sheets-header-info">
+                  <mat-icon class="sheets-icon">table_chart</mat-icon>
+                  <div>
+                    <h4>Importar desde Google Sheets</h4>
+                    <p>Asegúrate de que tu hoja de Google Sheets esté configurada como <strong>"Cualquier persona con el enlace puede ver"</strong>.</p>
+                  </div>
+                </div>
 
-              @if (resultado.empresas_creadas?.length > 0) {
-                <h3>✅ Empresas Creadas ({{ resultado.empresas_creadas.length }})</h3>
-                <div class="table-scroll">
-                  <table class="results-table">
-                    <thead>
-                      <tr>
-                        <th>RUC</th>
-                        <th>Razón Social</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (emp of resultado.empresas_creadas.slice(0, 10); track emp.ruc) {
+                <div class="sheets-input-row">
+                  <mat-form-field appearance="outline" class="url-input-field">
+                    <mat-label>Enlace público de Google Sheets</mat-label>
+                    <input matInput
+                           [ngModel]="googleSheetsUrl()"
+                           (ngModelChange)="googleSheetsUrl.set($event)"
+                           placeholder="https://docs.google.com/spreadsheets/d/...">
+                    <mat-icon matPrefix>link</mat-icon>
+                    @if (googleSheetsUrl()) {
+                      <button matSuffix mat-icon-button (click)="googleSheetsUrl.set('')">
+                        <mat-icon>clear</mat-icon>
+                      </button>
+                    }
+                  </mat-form-field>
+
+                  <button mat-raised-button
+                          color="primary"
+                          class="btn-fetch-sheets"
+                          [disabled]="!googleSheetsUrl() || cargandoGoogleSheets()"
+                          (click)="cargarDesdeGoogleSheets()">
+                    <mat-icon [class.spin-icon]="cargandoGoogleSheets()">
+                      {{ cargandoGoogleSheets() ? 'sync' : 'cloud_download' }}
+                    </mat-icon>
+                    <span>{{ cargandoGoogleSheets() ? 'Cargando...' : 'Obtener Datos' }}</span>
+                  </button>
+                </div>
+
+                @if (archivoSeleccionado(); as file) {
+                  <div class="dropzone-file-selected sheets-success-file">
+                    <div class="file-icon-wrapper">
+                      <mat-icon>check_circle</mat-icon>
+                    </div>
+                    <div class="file-details">
+                      <span class="file-name">Google Sheet Convertido</span>
+                      <span class="file-size">{{ formatFileSize(file.size) }} | Listo para procesar</span>
+                    </div>
+                    <button mat-icon-button color="warn" (click)="limpiarArchivo()" matTooltip="Remover datos">
+                      <mat-icon>cancel</mat-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- VISTA PREVIA DE DATOS Y MAPEO DE COLUMNAS AL OBTENER DATOS (ANTES DE PROCESAR) -->
+            @if (archivoSeleccionado() && previewRows().length > 0 && !mostrarResultados()) {
+              <div class="data-preview-container animate-fade-in">
+                <!-- Target Destination Banner -->
+                <div class="destination-target-banner">
+                  <div class="dest-info">
+                    <mat-icon class="dest-icon">storage</mat-icon>
+                    <div>
+                      <h4 class="dest-title">Destino de Carga Confirmado</h4>
+                      <p class="dest-desc">Base de Datos: <strong>DRTC Puno (MongoDB)</strong> &rarr; Colección: <code>empresas</code></p>
+                    </div>
+                  </div>
+                  <div class="dest-stats">
+                    <span class="stat-pill total-pill"><mat-icon>format_list_numbered</mat-icon> {{ previewRows().length }} Registros</span>
+                    <span class="stat-pill valid-pill"><mat-icon>check_circle</mat-icon> {{ totalValidosPreview() }} Válidos</span>
+                    @if (totalInvalidosPreview() > 0) {
+                      <span class="stat-pill invalid-pill"><mat-icon>warning</mat-icon> {{ totalInvalidosPreview() }} Con Observación</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Mapeo de Columnas (Archivo vs DB Target) -->
+                <div class="mapping-section">
+                  <h4 class="section-subtitle">
+                    <mat-icon>alt_route</mat-icon>
+                    Mapeo de Columnas de Empresas (Columnas B a K &rarr; DRTC Puno)
+                  </h4>
+                  <div class="mapping-grid">
+                    @for (col of columnasMapeadas(); track col.destCampo) {
+                      <div class="mapping-chip">
+                        <span class="source-col">{{ col.archivoCol }}</span>
+                        <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                        <span class="dest-col"><code>{{ col.destCampo }}</code></span>
+                        <span class="type-tag">{{ col.tipo }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Pre-visualización de Registros Extraídos -->
+                <div class="extracted-data-preview">
+                  <h4 class="section-subtitle">
+                    <mat-icon>visibility</mat-icon>
+                    Vista Previa de Registros a Importar (Primeras {{ Math.min(10, previewRows().length) }} filas)
+                  </h4>
+                  <div class="tab-table-wrapper">
+                    <table class="modern-table preview-table">
+                      <thead>
                         <tr>
-                          <td>{{ emp.ruc }}</td>
-                          <td>{{ emp.razonSocial }}</td>
+                          <th (click)="toggleSort('fila')" class="sortable-th">
+                            <span>Fila</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('fila') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('esValido')" class="sortable-th">
+                            <span>Estado Data</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('esValido') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('ruc')" class="sortable-th">
+                            <span>RUC (Col B)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('ruc') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('razonSocial')" class="sortable-th">
+                            <span>Razón Social (Col C)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('razonSocial') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('domicilioLegal')" class="sortable-th">
+                            <span>Domicilio Legal (Col D)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('domicilioLegal') }}</mat-icon>
+                          </th>
+                          <th>Teléfono / Correo (Col E-F)</th>
+                          <th (click)="toggleSort('representanteLegal')" class="sortable-th">
+                            <span>Representante Legal / DNI (Col G-H)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('representanteLegal') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
+                            <span>Partida Registral (Col I)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('partidaRegistral') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('estado')" class="sortable-th">
+                            <span>Estado (Col J)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('estado') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('tipoServicio')" class="sortable-th">
+                            <span>Tipo Servicio (Col K)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('tipoServicio') }}</mat-icon>
+                          </th>
+                          <th>Observaciones</th>
                         </tr>
-                      }
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        @for (r of previewRowsOrdenadas().slice(0, 15); track r.fila) {
+                          <tr [class.invalid-row]="!r.esValido">
+                            <td><strong>#{{ r.fila }}</strong></td>
+                            <td>
+                              @if (r.esValido) {
+                                <span class="status-chip success"><mat-icon>check</mat-icon> VÁLIDO</span>
+                              } @else {
+                                <span class="status-chip danger"><mat-icon>error</mat-icon> ERROR</span>
+                              }
+                            </td>
+                            <td><span class="code-badge">{{ r.ruc }}</span></td>
+                            <td><strong>{{ r.razonSocial }}</strong></td>
+                            <td>{{ r.domicilioLegal || '-' }}</td>
+                            <td>
+                              <div style="display:flex; flex-direction:column; gap:2px; font-size:12px;">
+                                <span>📞 {{ r.telefono || '-' }}</span>
+                                <span style="color:#64748b;">✉️ {{ r.correoElectronico || '-' }}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div style="display:flex; flex-direction:column; gap:2px;">
+                                <span>{{ r.representanteLegal || '-' }}</span>
+                                @if (r.dniRepresentanteLegal) {
+                                  <span class="code-badge info-code" style="font-size:11px; width:fit-content;">DNI: {{ r.dniRepresentanteLegal }}</span>
+                                }
+                              </div>
+                            </td>
+                            <td>{{ r.partidaRegistral || '-' }}</td>
+                            <td><span class="code-badge info-code">{{ r.estado || 'AUTORIZADA' }}</span></td>
+                            <td><span class="status-chip success">{{ r.tipoServicio || 'PERSONAS' }}</span></td>
+                            <td>
+                              @if (!r.esValido && r.errores.length) {
+                                <span class="err-text"><mat-icon>error_outline</mat-icon> {{ r.errores.join(', ') }}</span>
+                              } @else {
+                                <span class="obs-cell">OK</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            }
+
+            <!-- Panel de Opciones de Procesamiento Compacto -->
+            <div class="options-container">
+              <div class="option-group">
+                <label class="option-label">
+                  <mat-icon>tune</mat-icon>
+                  Modo de Operación
+                </label>
+                <div class="pill-toggle-group">
+                  <button type="button"
+                          class="pill-btn"
+                          [class.active]="soloValidar()"
+                          (click)="soloValidar.set(true)">
+                    <mat-icon>fact_check</mat-icon>
+                    Solo Validar
+                  </button>
+                  <button type="button"
+                          class="pill-btn"
+                          [class.active]="!soloValidar()"
+                          (click)="soloValidar.set(false)">
+                    <mat-icon>play_circle</mat-icon>
+                    Validar y Cargar
+                  </button>
+                </div>
+              </div>
+
+              @if (!soloValidar()) {
+                <div class="option-group">
+                  <label class="option-label">
+                    <mat-icon>published_with_changes</mat-icon>
+                    Estrategia de Carga
+                  </label>
+                  <div class="pill-toggle-group">
+                    <button type="button"
+                            class="pill-btn"
+                            [class.active]="modoProcesamiento() === 'upsert'"
+                            (click)="modoProcesamiento.set('upsert')"
+                            matTooltip="Crea o actualiza si la empresa ya existe por número de RUC">
+                      <mat-icon>sync_alt</mat-icon>
+                      Crear o Actualizar por RUC
+                    </button>
+                    <button type="button"
+                            class="pill-btn"
+                            [class.active]="modoProcesamiento() === 'crear'"
+                            (click)="modoProcesamiento.set('crear')"
+                            matTooltip="Solo inserta empresas nuevas">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      Solo Crear
+                    </button>
+                  </div>
                 </div>
               }
+            </div>
 
-              @if (resultado.empresas_actualizadas?.length > 0) {
-                <h3>🔄 Empresas Actualizadas ({{ resultado.empresas_actualizadas.length }})</h3>
-                <div class="table-scroll">
-                  <table class="results-table">
-                    <thead>
-                      <tr>
-                        <th>RUC</th>
-                        <th>Razón Social</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (emp of resultado.empresas_actualizadas.slice(0, 10); track emp.ruc) {
-                        <tr>
-                          <td>{{ emp.ruc }}</td>
-                          <td>{{ emp.razonSocial }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              }
+            <!-- Banner Informativo Ligero -->
+            <div class="info-pill-bar">
+              <mat-icon>info</mat-icon>
+              <span><strong>Mapeo de Columnas B a K:</strong> RUC (B), Razón Social (C), Domicilio Legal (D), Teléfono (E), Correo (F), Representante (G), DNI Rep. (H), Partida (I), Estado (J), Tipo Servicio (K).</span>
+            </div>
 
-              @if (resultado.errores?.length > 0) {
-                <h3>❌ Errores</h3>
-                <div class="errors">
-                  @for (err of resultado.errores.slice(0, 10); track $index) {
-                    <div class="error-item">
-                      <strong>Fila {{ err.fila }}:</strong> {{ err.error }}
+            <!-- Botón Principal de Acción -->
+            <div class="main-action-area">
+              <button mat-raised-button
+                      color="accent"
+                      class="btn-process-hero"
+                      [disabled]="!archivoSeleccionado() || cargando()"
+                      (click)="procesarArchivo()">
+                <mat-icon [class.spin-icon]="cargando()">
+                  {{ cargando() ? 'sync' : (soloValidar() ? 'task_alt' : 'rocket_launch') }}
+                </mat-icon>
+                <span>
+                  {{ cargando() ? 'Procesando Datos...' : (soloValidar() ? 'Validar Estructura' : 'Iniciar Carga Masiva') }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Barra de Progreso cuando se ejecuta el proceso -->
+            @if (cargando()) {
+              <div class="loading-progress-box">
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                <p class="progress-subtext">{{ soloValidar() ? 'Validando registros y estructura...' : 'Insertando y registrando empresas en la base de datos...' }}</p>
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        <!-- SECCIÓN 2: DASHBOARD DE RESULTADOS COMPLETO CON ERRORES -->
+        @if (mostrarResultados() && resData()) {
+          <div class="results-section animate-fade-in">
+            <mat-card class="results-card glass-panel">
+              <mat-card-header>
+                <mat-card-title class="card-title-flex">
+                  <mat-icon [class.text-success]="totalErrores() === 0" [class.text-warn]="totalErrores() > 0">
+                    {{ totalErrores() === 0 ? 'check_circle' : 'assessment' }}
+                  </mat-icon>
+                  <span>Resumen de {{ soloValidar() ? 'Validación' : 'Procesamiento' }}</span>
+                </mat-card-title>
+
+                <mat-card-subtitle>
+                  {{ soloValidar() ? 'Se completó la verificación del archivo sin modificar la base de datos' : 'Se procesaron los registros en la base de datos MongoDB' }}
+                </mat-card-subtitle>
+              </mat-card-header>
+
+              <mat-card-content class="card-body">
+                <!-- KPI Tiles Grid -->
+                <div class="kpi-grid">
+                  <div class="kpi-card total">
+                    <mat-icon>business</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalFilas() }}</span>
+                      <span class="kpi-label">Total Filas</span>
+                    </div>
+                  </div>
+
+                  <div class="kpi-card success">
+                    <mat-icon>check_circle_outline</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalExitosas() }}</span>
+                      <span class="kpi-label">{{ soloValidar() ? 'Válidas' : 'Exitosas' }}</span>
+                    </div>
+                  </div>
+
+                  @if (totalErrores() > 0) {
+                    <div class="kpi-card danger">
+                      <mat-icon>error_outline</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalErrores() }}</span>
+                        <span class="kpi-label">No Subidas / Con Error</span>
+                      </div>
                     </div>
                   }
                 </div>
-              }
 
-              <button mat-raised-button color="primary" (click)="reiniciar()">
-                <mat-icon>refresh</mat-icon> Nuevo Proceso
-              </button>
-            }
+                <!-- SECCIÓN DETALLADA DE ERRORES Y FILAS NO SUBIDAS -->
+                @if (listaErrores().length > 0) {
+                  <div class="errors-section-box" style="margin-top: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 12px;">
+                      <h4 style="margin:0; color: #dc2626; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                        <mat-icon style="color:#dc2626;">warning</mat-icon>
+                        Detalle de Filas NO Subidas o Con Errores ({{ listaErrores().length }})
+                      </h4>
+                      <button mat-stroked-button color="warn" (click)="exportarReporteErrores()" style="border-radius:8px;">
+                        <mat-icon>file_download</mat-icon> Exportar Reporte de Errores (Excel)
+                      </button>
+                    </div>
+
+                    <div class="tab-table-wrapper">
+                      <table class="modern-table">
+                        <thead>
+                          <tr>
+                            <th>Fila</th>
+                            <th>RUC</th>
+                            <th>Razón Social / Objeto</th>
+                            <th>Motivo por el cual NO se subió</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (err of listaErrores(); track $index) {
+                            <tr class="invalid-row">
+                              <td><strong>#{{ err.fila || ('-' ) }}</strong></td>
+                              <td><span class="code-badge">{{ err.ruc || 'Sin RUC' }}</span></td>
+                              <td><strong>{{ err.razonSocial || err.objeto || '-' }}</strong></td>
+                              <td>
+                                <span class="status-chip danger" style="white-space:normal; text-align:left;">
+                                  <mat-icon>error</mat-icon> {{ err.error || err.motivo || 'Error indeterminado' }}
+                                </span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                <!-- TABLA DE EMPRESAS CREADAS -->
+                @if (listaCreadas().length > 0) {
+                  <div style="margin-top: 20px;">
+                    <h4 style="margin-bottom:12px; color: #16a34a; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                      <mat-icon style="color:#16a34a;">add_circle</mat-icon>
+                      Empresas Creadas Exitosamente ({{ listaCreadas().length }})
+                    </h4>
+                    <div class="tab-table-wrapper">
+                      <table class="modern-table">
+                        <thead>
+                          <tr>
+                            <th>RUC</th>
+                            <th>Razón Social</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (emp of listaCreadas().slice(0, 15); track emp.ruc) {
+                            <tr>
+                              <td><span class="code-badge">{{ emp.ruc }}</span></td>
+                              <td><strong>{{ emp.razonSocial }}</strong></td>
+                              <td><span class="status-chip success">{{ emp.estado || 'AUTORIZADA' }}</span></td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                <!-- TABLA DE EMPRESAS ACTUALIZADAS -->
+                @if (listaActualizadas().length > 0) {
+                  <div style="margin-top: 20px;">
+                    <h4 style="margin-bottom:12px; color: #0284c7; font-weight: 700; display:flex; align-items:center; gap:8px;">
+                      <mat-icon style="color:#0284c7;">published_with_changes</mat-icon>
+                      Empresas Actualizadas por RUC ({{ listaActualizadas().length }})
+                    </h4>
+                    <div class="tab-table-wrapper">
+                      <table class="modern-table">
+                        <thead>
+                          <tr>
+                            <th>RUC</th>
+                            <th>Razón Social</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (emp of listaActualizadas().slice(0, 15); track emp.ruc) {
+                            <tr>
+                              <td><span class="code-badge info-code">{{ emp.ruc }}</span></td>
+                              <td><strong>{{ emp.razonSocial }}</strong></td>
+                              <td><span class="status-chip success">{{ emp.estado }}</span></td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                }
+
+                <div class="main-action-area" style="margin-top: 28px;">
+                  <button mat-raised-button color="primary" (click)="reiniciar()" style="height:48px; border-radius:12px; font-weight:700;">
+                    <mat-icon>refresh</mat-icon> Realizar Nueva Carga Masiva
+                  </button>
+                </div>
+              </mat-card-content>
+            </mat-card>
           </div>
-        </mat-step>
-      </mat-stepper>
+        }
+      </div>
     </div>
-  `,
-  styles: [`
-    .container {
-      padding: 20px;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      margin-bottom: 30px;
-
-      h1 {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 0;
-        font-size: 24px;
-      }
-    }
-
-    .step-content {
-      padding: 20px;
-
-      h2 {
-        margin-top: 0;
-        color: #333;
-      }
-
-      p {
-        color: #666;
-      }
-    }
-
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
-    }
-
-    button {
-      margin-top: 16px;
-      margin-right: 8px;
-    }
-
-    .error {
-      padding: 12px;
-      background: #ffebee;
-      border-left: 4px solid #f44336;
-      color: #c62828;
-      margin-top: 16px;
-      border-radius: 4px;
-    }
-
-    .success {
-      padding: 12px;
-      background: #e8f5e9;
-      border-left: 4px solid #4caf50;
-      color: #2e7d32;
-      margin-top: 16px;
-      border-radius: 4px;
-    }
-
-    .mapeo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-      margin: 20px 0;
-
-      .mapeo-item {
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 500;
-          color: #333;
-        }
-
-        mat-form-field {
-          width: 100%;
-        }
-      }
-    }
-
-    mat-radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin: 20px 0;
-    }
-
-    .table-scroll {
-      overflow-x: auto;
-      margin: 20px 0;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-
-      th {
-        background: #f5f5f5;
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 2px solid #ddd;
-      }
-
-      td {
-        padding: 12px;
-        border-bottom: 1px solid #eee;
-      }
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 16px;
-      margin: 20px 0;
-
-      .stat {
-        padding: 20px;
-        background: #f5f5f5;
-        border-radius: 8px;
-        text-align: center;
-        border-left: 4px solid #999;
-
-        .number {
-          font-size: 32px;
-          font-weight: 600;
-          color: #333;
-        }
-
-        .label {
-          font-size: 12px;
-          color: #999;
-          margin-top: 8px;
-        }
-
-        &.success {
-          border-left-color: #4caf50;
-          .number { color: #4caf50; }
-        }
-
-        &.error {
-          border-left-color: #f44336;
-          .number { color: #f44336; }
-        }
-      }
-    }
-
-    .errors {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin: 16px 0;
-
-      .error-item {
-        padding: 8px;
-        background: #ffebee;
-        border-radius: 4px;
-        font-size: 14px;
-
-        strong {
-          color: #f44336;
-        }
-      }
-    }
-
-    h3 {
-      margin-top: 24px;
-      color: #333;
-    }
-  `]
+  `
 })
-export class CargaMasivaEmpresasComponent {
-  urlSheet = '';
-  hojaSeleccionada = '';
-  columnasDetectadas: string[] = [];
-  totalFilas = 0;
-  datosPreview: any[] = [];
-  cargando = false;
-  error = '';
-  paso1Completo = false;
-  paso2Completo = false;
-  soloValidar = true;
-  resultado: any = null;
-  datosCompletos: string[][] = [];
+export class CargaMasivaEmpresasComponent implements OnInit {
+  Math = Math;
 
-  mapeo = {
-    ruc: '',
-    razonSocial: '',
-    direccion: '',
-    estado: '',
-    email: '',
-    telefono: '',
-    representante: '',
-    nombres: '',
-    apellidos: '',
-    dni: '',
-    partida: ''
-  };
+  // Signals de Estado
+  origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
+  archivoSeleccionado = signal<File | null>(null);
+  isDragOver = signal<boolean>(false);
+  googleSheetsUrl = signal<string>('');
+  cargandoGoogleSheets = signal<boolean>(false);
+  cargando = signal<boolean>(false);
+
+  // Opciones de Configuración
+  soloValidar = signal<boolean>(false);
+  modoProcesamiento = signal<'upsert' | 'crear'>('upsert');
+
+  // Mapeo & Previsualización
+  columnasMapeadas = signal<ColumnaMapeoEmpresa[]>([]);
+  previewRows = signal<RegistroEmpresaPreview[]>([]);
+  parsedRawRows = signal<any[]>([]);
+
+  // Ordenamiento por columna en previsualización
+  sortField = signal<string>('fila');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string): void {
+    if (this.sortField() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  getSortIcon(column: string): string {
+    if (this.sortField() !== column) {
+      return 'unfold_more';
+    }
+    return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  // Computed signals para previsualización
+  totalValidosPreview = computed(() => this.previewRows().filter(r => r.esValido).length);
+  totalInvalidosPreview = computed(() => this.previewRows().filter(r => !r.esValido).length);
+
+  previewRowsOrdenadas = computed(() => {
+    const rows = this.previewRows();
+    const field = this.sortField();
+    const isAsc = this.sortDirection() === 'asc';
+
+    return [...rows].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (field) {
+        case 'fila':
+          valA = a.fila || 0;
+          valB = b.fila || 0;
+          return isAsc ? valA - valB : valB - valA;
+        case 'esValido':
+          valA = a.esValido ? 1 : 0;
+          valB = b.esValido ? 1 : 0;
+          return isAsc ? valA - valB : valB - valA;
+        case 'ruc':
+          valA = a.ruc || '';
+          valB = b.ruc || '';
+          break;
+        case 'razonSocial':
+          valA = a.razonSocial || '';
+          valB = b.razonSocial || '';
+          break;
+        case 'domicilioLegal':
+          valA = a.domicilioLegal || '';
+          valB = b.domicilioLegal || '';
+          break;
+        case 'representanteLegal':
+          valA = a.representanteLegal || '';
+          valB = b.representanteLegal || '';
+          break;
+        case 'partidaRegistral':
+          valA = a.partidaRegistral || '';
+          valB = b.partidaRegistral || '';
+          break;
+        case 'estado':
+          valA = a.estado || '';
+          valB = b.estado || '';
+          break;
+        case 'tipoServicio':
+          valA = a.tipoServicio || '';
+          valB = b.tipoServicio || '';
+          break;
+      }
+
+      const res = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
+      return isAsc ? res : -res;
+    });
+  });
+
+  // Resultados del Backend
+  mostrarResultados = signal<boolean>(false);
+  resultado = signal<any>(null);
+
+  // Extraer el objeto interno res.resultado si existe
+  resData = computed(() => {
+    const r = this.resultado();
+    if (!r) return null;
+    return r.resultado ? r.resultado : r;
+  });
+
+  totalFilas = computed(() => this.resData()?.total_filas || this.previewRows().length || 0);
+  totalExitosas = computed(() => this.resData()?.exitosas || this.resData()?.validos || 0);
+  
+  // Unificar errores del Backend con errores de validación cliente (filas no válidas)
+  listaErrores = computed(() => {
+    const backendErr = this.resData()?.errores || [];
+    if (backendErr.length > 0) return backendErr;
+
+    // Si backend no retornó lista explícita, compilar errores de validación local
+    return this.previewRows()
+      .filter(r => !r.esValido)
+      .map(r => ({
+        fila: r.fila,
+        ruc: r.ruc || 'N/A',
+        razonSocial: r.razonSocial || 'Desconocida',
+        error: r.errores.join(', ') || 'Inconsistencia en RUC o Razón Social'
+      }));
+  });
+
+  totalErrores = computed(() => {
+    const backendFallidas = this.resData()?.fallidas || 0;
+    const errLen = this.listaErrores().length;
+    return Math.max(backendFallidas, errLen);
+  });
+
+  listaCreadas = computed(() => this.resData()?.empresas_creadas || []);
+  listaActualizadas = computed(() => this.resData()?.empresas_actualizadas || []);
 
   constructor(
-    private googleSheets: GoogleSheetsService,
     private empresaService: EmpresaService,
+    private googleSheets: GoogleSheetsService,
     private snackBar: MatSnackBar,
     private router: Router
   ) {}
 
-  conectar(): void {
-    if (!this.urlSheet.trim()) {
-      this.error = 'Ingresa una URL';
+  ngOnInit(): void {}
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      const file = event.dataTransfer.files[0];
+      this.validarYProcesarArchivoLocal(file);
+    }
+  }
+
+  onFileSelected(event: any): void {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      this.validarYProcesarArchivoLocal(files[0]);
+    }
+  }
+
+  validarYProcesarArchivoLocal(file: File): void {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext || '')) {
+      this.snackBar.open('❌ Formato no soportado. Selecciona un archivo Excel (.xlsx, .xls) o CSV (.csv)', 'OK', { duration: 4000 });
       return;
     }
 
-    this.cargando = true;
-    this.error = '';
+    this.archivoSeleccionado.set(file);
+    this.cargando.set(true);
 
-    const id = this.googleSheets.extraerIdDeUrl(this.urlSheet) || this.urlSheet;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const bstr: string = e.target.result;
+        const wb: XLSX.WorkBook = XLSX.read(bstr, { type: 'binary', cellDates: true });
+        const wsname: string = wb.SheetNames[0];
+        const ws: XLSX.WorkSheet = wb.Sheets[wsname];
+        const rawData: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-    // Obtener los datos de la hoja especificada
-    this.googleSheets.obtenerDatosReales(id, this.hojaSeleccionada).subscribe({
+        if (!rawData || rawData.length < 2) {
+          this.snackBar.open('❌ El archivo no contiene filas de datos suficientes', 'OK', { duration: 4000 });
+          this.cargando.set(false);
+          return;
+        }
+
+        const headers = (rawData[0] || []).map(h => String(h || '').trim());
+        const dataRows = rawData.slice(1);
+
+        this.procesarFilasYGenerarPreview(headers, dataRows);
+        this.cargando.set(false);
+      } catch (err: any) {
+        console.error('Error procesando archivo Excel:', err);
+        this.snackBar.open('❌ Error al leer el archivo Excel: ' + err.message, 'OK', { duration: 5000 });
+        this.cargando.set(false);
+      }
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  cargarDesdeGoogleSheets(): void {
+    const url = this.googleSheetsUrl().trim();
+    if (!url) {
+      this.snackBar.open('Ingresa una URL válida de Google Sheets', 'OK', { duration: 3000 });
+      return;
+    }
+
+    this.cargandoGoogleSheets.set(true);
+    const id = this.googleSheets.extraerIdDeUrl(url) || url;
+
+    this.googleSheets.obtenerDatosReales(id).subscribe({
       next: (info) => {
-        this.columnasDetectadas = info.encabezados;
-        this.datosCompletos = info.datos;
-        this.totalFilas = info.totalFilas;
-        this.paso1Completo = true;
-        this.cargando = false;
-        this.snackBar.open(`✅ ${info.totalColumnas} columnas, ${info.totalFilas} filas`, 'OK', { duration: 3000 });
+        const dummyFile = new File([''], 'GoogleSheets_DB_EMPRESAS.csv', { type: 'text/csv' });
+        this.archivoSeleccionado.set(dummyFile);
+        this.procesarFilasYGenerarPreview(info.encabezados, info.datos);
+        this.cargandoGoogleSheets.set(false);
+        this.snackBar.open(`✅ Obtenidos ${info.totalFilas} registros desde Google Sheets`, 'OK', { duration: 3000 });
       },
       error: (err) => {
-        this.error = err.message;
-        this.cargando = false;
+        this.cargandoGoogleSheets.set(false);
+        this.snackBar.open('❌ Error al obtener Google Sheets: ' + err.message, 'OK', { duration: 5000 });
       }
     });
   }
 
-  validarMapeo(): boolean {
-    const valido = this.mapeo.ruc !== '' && this.mapeo.razonSocial !== '' && this.mapeo.direccion !== '';
-    console.log('Validación mapeo:', { mapeo: this.mapeo, valido });
-    return valido;
+  procesarFilasYGenerarPreview(headers: string[], dataRows: any[][]): void {
+    // Normalizar encabezados (quitar acentos, guiones bajos y convertir a minúsculas)
+    const headersClean = headers.map(h => 
+      String(h || '').toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/_/g, " ")
+        .trim()
+    );
+
+    const findIndex = (keywords: string[], fallbackIdx: number = -1): number => {
+      const idx = headersClean.findIndex(h => {
+        if ((h.startsWith('id ') || h === 'id' || h.startsWith('id_') || h.includes('id_empresa')) && !keywords.includes('id')) {
+          return false;
+        }
+        return keywords.some(k => h.includes(k));
+      });
+      return idx >= 0 ? idx : (fallbackIdx >= 0 && fallbackIdx < headers.length ? fallbackIdx : -1);
+    };
+
+    // Mapeo preciso de Columnas B a K (Ignorando ID_EMPRESA en Col A)
+    const idxRuc = findIndex(['ruc'], 1); // Col B (índice 1)
+    const idxRazon = findIndex(['razon_social', 'razon social', 'razonsocial', 'razon', 'razón', 'denominacion'], 2); // Col C (índice 2)
+    const idxDomicilio = findIndex(['domicilio legal', 'domicilio', 'direccion', 'fiscal'], 3); // Col D (índice 3)
+    const idxTelefono = findIndex(['telefono', 'celular'], 4); // Col E (índice 4)
+    const idxCorreo = findIndex(['correo electronico', 'correo', 'email'], 5); // Col F (índice 5)
+    const idxRep = findIndex(['representante legal', 'representante'], 6); // Col G (índice 6)
+    const idxDniRep = findIndex(['dni representante legal', 'dni representante', 'dni'], 7); // Col H (índice 7)
+    const idxPartida = findIndex(['partida registral', 'partida'], 8); // Col I (índice 8)
+    const idxEstado = findIndex(['estado', 'situacion'], 9); // Col J (índice 9)
+    const idxTipoServicio = findIndex(['tipo servicio', 'servicio', 'modalidad'], 10); // Col K (índice 10)
+
+    // Crear matriz visual de mapeo para las 10 columnas clave
+    const mapeo: ColumnaMapeoEmpresa[] = [
+      { archivoCol: idxRuc >= 0 ? headers[idxRuc] : 'Col B (RUC)', destCampo: 'ruc', tipo: 'RUC (Requerido)' },
+      { archivoCol: idxRazon >= 0 ? headers[idxRazon] : 'Col C (RAZON_SOCIAL)', destCampo: 'razonSocial', tipo: 'Texto (Requerido)' },
+      { archivoCol: idxDomicilio >= 0 ? headers[idxDomicilio] : 'Col D (DOMICILIO_LEGAL)', destCampo: 'direccionFiscal', tipo: 'Dirección' },
+      { archivoCol: idxTelefono >= 0 ? headers[idxTelefono] : 'Col E (TELEFONO)', destCampo: 'telefonoContacto', tipo: 'Teléfono' },
+      { archivoCol: idxCorreo >= 0 ? headers[idxCorreo] : 'Col F (CORREO_ELECTRONICO)', destCampo: 'emailContacto', tipo: 'Email' },
+      { archivoCol: idxRep >= 0 ? headers[idxRep] : 'Col G (REPRESENTANTE_LEGAL)', destCampo: 'representanteLegal', tipo: 'Nombre' },
+      { archivoCol: idxDniRep >= 0 ? headers[idxDniRep] : 'Col H (DNI_REPRESENTANTE)', destCampo: 'dniRepresentante', tipo: 'DNI (8 dgt)' },
+      { archivoCol: idxPartida >= 0 ? headers[idxPartida] : 'Col I (PARTIDA_REGISTRAL)', destCampo: 'partida', tipo: 'Partida' },
+      { archivoCol: idxEstado >= 0 ? headers[idxEstado] : 'Col J (ESTADO)', destCampo: 'estado', tipo: 'Estado Legal' },
+      { archivoCol: idxTipoServicio >= 0 ? headers[idxTipoServicio] : 'Col K (TIPO_SERVICIO)', destCampo: 'tiposServicio', tipo: 'Servicio' }
+    ];
+    this.columnasMapeadas.set(mapeo);
+
+    const previews: RegistroEmpresaPreview[] = [];
+    const rawParsed: any[] = [];
+
+    dataRows.forEach((row, index) => {
+      const rucVal = String(idxRuc >= 0 ? row[idxRuc] || '' : '').trim();
+      const razonVal = String(idxRazon >= 0 ? row[idxRazon] || '' : '').trim();
+      const domVal = String(idxDomicilio >= 0 ? row[idxDomicilio] || '' : '').trim();
+      const telVal = String(idxTelefono >= 0 ? row[idxTelefono] || '' : '').trim();
+      const correoVal = String(idxCorreo >= 0 ? row[idxCorreo] || '' : '').trim();
+      const repVal = String(idxRep >= 0 ? row[idxRep] || '' : '').trim();
+      const dniRepVal = String(idxDniRep >= 0 ? row[idxDniRep] || '' : '').trim();
+      const partidaVal = String(idxPartida >= 0 ? row[idxPartida] || '' : '').trim();
+      const estVal = String(idxEstado >= 0 ? row[idxEstado] || 'AUTORIZADA' : 'AUTORIZADA').trim();
+      const servicioVal = String(idxTipoServicio >= 0 ? row[idxTipoServicio] || 'PERSONAS' : 'PERSONAS').trim();
+
+      if (!rucVal && !razonVal) return;
+
+      const errores: string[] = [];
+      if (!rucVal) errores.push('RUC es requerido');
+      if (rucVal && rucVal.length !== 11) errores.push(`RUC inválido (${rucVal.length} dígitos, requiere 11)`);
+      if (!razonVal) errores.push('Razón Social es requerida');
+
+      previews.push({
+        fila: index + 2,
+        ruc: rucVal,
+        razonSocial: razonVal,
+        domicilioLegal: domVal,
+        telefono: telVal,
+        correoElectronico: correoVal,
+        representanteLegal: repVal,
+        dniRepresentanteLegal: dniRepVal,
+        partidaRegistral: partidaVal,
+        estado: estVal || 'AUTORIZADA',
+        tipoServicio: servicioVal || 'PERSONAS',
+        esValido: errores.length === 0,
+        errores
+      });
+
+      // Parsear objeto con compatibilidad de nombres de atributos backend
+      rawParsed.push({
+        ruc: rucVal,
+        razonSocial: razonVal,
+        direccionFiscal: domVal,
+        telefonoContacto: telVal,
+        emailContacto: correoVal,
+        representanteLegal: repVal,
+        dniRepresentante: dniRepVal,
+        partida: partidaVal,
+        estado: estVal || 'AUTORIZADA',
+        tiposServicio: servicioVal ? [servicioVal.toUpperCase()] : ['PERSONAS']
+      });
+    });
+
+    this.previewRows.set(previews);
+    this.parsedRawRows.set(rawParsed);
   }
 
-  confirmarMapeo(): void {
-    console.log('Confirmar mapeo - Validación:', this.validarMapeo());
-    
-    if (!this.validarMapeo()) {
-      this.snackBar.open('Completa los campos requeridos: RUC, Razón Social y Dirección', 'OK', { duration: 3000 });
+  procesarArchivo(): void {
+    const rawData = this.parsedRawRows();
+    if (!rawData || rawData.length === 0) {
+      this.snackBar.open('No hay datos para procesar. Selecciona un archivo o enlace.', 'OK', { duration: 3000 });
       return;
     }
 
-    this.paso2Completo = true;
-    this.cargarPreview();
-  }
+    this.cargando.set(true);
 
-  cargarPreview(): void {
-    const idx = {
-      ruc: this.columnasDetectadas.indexOf(this.mapeo.ruc),
-      razonSocial: this.columnasDetectadas.indexOf(this.mapeo.razonSocial),
-      direccion: this.columnasDetectadas.indexOf(this.mapeo.direccion),
-      estado: this.mapeo.estado ? this.columnasDetectadas.indexOf(this.mapeo.estado) : -1,
-      email: this.mapeo.email ? this.columnasDetectadas.indexOf(this.mapeo.email) : -1,
-      telefono: this.mapeo.telefono ? this.columnasDetectadas.indexOf(this.mapeo.telefono) : -1,
-      representante: this.mapeo.representante ? this.columnasDetectadas.indexOf(this.mapeo.representante) : -1,
-      nombres: this.mapeo.nombres ? this.columnasDetectadas.indexOf(this.mapeo.nombres) : -1,
-      apellidos: this.mapeo.apellidos ? this.columnasDetectadas.indexOf(this.mapeo.apellidos) : -1,
-      dni: this.mapeo.dni ? this.columnasDetectadas.indexOf(this.mapeo.dni) : -1,
-      partida: this.mapeo.partida ? this.columnasDetectadas.indexOf(this.mapeo.partida) : -1
-    };
-
-    this.datosPreview = this.datosCompletos.slice(0, 10).map(fila => ({
-      ruc: fila[idx.ruc] || '',
-      razonSocial: fila[idx.razonSocial] || '',
-      direccion: fila[idx.direccion] || '',
-      estado: idx.estado >= 0 ? fila[idx.estado] : '',
-      email: idx.email >= 0 ? fila[idx.email] : '',
-      telefono: idx.telefono >= 0 ? fila[idx.telefono] : '',
-      representante: idx.representante >= 0 ? fila[idx.representante] : '',
-      dni: idx.dni >= 0 ? fila[idx.dni] : '',
-      partida: idx.partida >= 0 ? fila[idx.partida] : ''
-    }));
-  }
-
-  procesar(): void {
-    this.cargando = true;
-
-    const idx = {
-      ruc: this.columnasDetectadas.indexOf(this.mapeo.ruc),
-      razonSocial: this.columnasDetectadas.indexOf(this.mapeo.razonSocial),
-      direccion: this.columnasDetectadas.indexOf(this.mapeo.direccion),
-      estado: this.mapeo.estado ? this.columnasDetectadas.indexOf(this.mapeo.estado) : -1,
-      email: this.mapeo.email ? this.columnasDetectadas.indexOf(this.mapeo.email) : -1,
-      telefono: this.mapeo.telefono ? this.columnasDetectadas.indexOf(this.mapeo.telefono) : -1,
-      representante: this.mapeo.representante ? this.columnasDetectadas.indexOf(this.mapeo.representante) : -1,
-      nombres: this.mapeo.nombres ? this.columnasDetectadas.indexOf(this.mapeo.nombres) : -1,
-      apellidos: this.mapeo.apellidos ? this.columnasDetectadas.indexOf(this.mapeo.apellidos) : -1,
-      dni: this.mapeo.dni ? this.columnasDetectadas.indexOf(this.mapeo.dni) : -1,
-      partida: this.mapeo.partida ? this.columnasDetectadas.indexOf(this.mapeo.partida) : -1
-    };
-
-    const empresas = this.datosCompletos.map(fila => ({
-      ruc: fila[idx.ruc] || '',
-      razonSocial: fila[idx.razonSocial] || '',
-      direccionFiscal: fila[idx.direccion] || '',
-      estado: idx.estado >= 0 ? fila[idx.estado] : 'EN_TRAMITE',
-      emailContacto: idx.email >= 0 ? fila[idx.email] : '',
-      telefonoContacto: idx.telefono >= 0 ? fila[idx.telefono] : '',
-      representanteLegal: idx.representante >= 0 ? fila[idx.representante] : '',
-      nombresRepresentante: idx.nombres >= 0 ? fila[idx.nombres] : '',
-      apellidosRepresentante: idx.apellidos >= 0 ? fila[idx.apellidos] : '',
-      dniRepresentante: idx.dni >= 0 ? fila[idx.dni] : '',
-      partida: idx.partida >= 0 ? fila[idx.partida] : ''
-    }));
-
-    this.empresaService.procesarCargaMasivaGoogleSheets(empresas, this.soloValidar).subscribe({
+    this.empresaService.procesarCargaMasivaGoogleSheets(rawData, this.soloValidar()).subscribe({
       next: (res) => {
-        this.resultado = res.resultado;
-        this.cargando = false;
-        this.snackBar.open('✅ Procesamiento completado', 'OK', { duration: 3000 });
+        // Extraer objeto resultado
+        const data = res.resultado ? res.resultado : res;
+        this.resultado.set(data);
+        this.mostrarResultados.set(true);
+        this.cargando.set(false);
+        this.snackBar.open('✅ Carga masiva procesada exitosamente', 'OK', { duration: 4000 });
       },
       error: (err) => {
-        this.cargando = false;
-        this.snackBar.open('❌ Error: ' + err.message, 'OK', { duration: 5000 });
+        this.cargando.set(false);
+        this.snackBar.open('❌ Error al procesar empresas: ' + err.message, 'OK', { duration: 5000 });
       }
     });
+  }
+
+  exportarReporteErrores(): void {
+    const errores = this.listaErrores();
+    if (!errores || errores.length === 0) {
+      this.snackBar.open('No hay errores registrados para exportar', 'OK', { duration: 3000 });
+      return;
+    }
+
+    const dataExport = errores.map((e: any) => ({
+      'N° Fila Original': e.fila || 'N/A',
+      'RUC Empresa': e.ruc || 'N/A',
+      'Razón Social': e.razonSocial || 'N/A',
+      'Motivo por el que NO se subió': e.error || e.motivo || 'Error en validación'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Errores_Carga_Empresas');
+    XLSX.writeFile(wb, `Reporte_Errores_Empresas_${new Date().toISOString().split('T')[0]}.xlsx`);
+    this.snackBar.open('✅ Reporte de errores exportado a Excel', 'OK', { duration: 3000 });
+  }
+
+  descargarPlantilla(): void {
+    this.cargando.set(true);
+    this.empresaService.descargarPlantilla().subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'plantilla_empresas.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.cargando.set(false);
+        this.snackBar.open('✅ Plantilla descargada', 'OK', { duration: 3000 });
+      },
+      error: () => {
+        this.cargando.set(false);
+        this.snackBar.open('❌ Error al descargar plantilla', 'OK', { duration: 4000 });
+      }
+    });
+  }
+
+  limpiarArchivo(): void {
+    this.archivoSeleccionado.set(null);
+    this.previewRows.set([]);
+    this.parsedRawRows.set([]);
+    this.columnasMapeadas.set([]);
+    this.googleSheetsUrl.set('');
+    this.mostrarResultados.set(false);
+    this.resultado.set(null);
   }
 
   reiniciar(): void {
-    this.urlSheet = '';
-    this.columnasDetectadas = [];
-    this.datosPreview = [];
-    this.paso1Completo = false;
-    this.paso2Completo = false;
-    this.resultado = null;
-    this.mapeo = { ruc: '', razonSocial: '', direccion: '', estado: '', email: '', telefono: '', representante: '', nombres: '', apellidos: '', dni: '', partida: '' };
-    
-    // Navegar de vuelta a empresas
-    this.router.navigate(['/empresas']);
+    this.limpiarArchivo();
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

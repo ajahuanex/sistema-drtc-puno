@@ -141,16 +141,18 @@ class ResolucionPrimigeniaExcelService:
                     errores.append(f"Fila {fila}: RUC inválido '{ruc_raw}'. Debe tener 11 dígitos numéricos.")
                     continue
 
-                numero = get_col_val(
+                numero_raw = get_col_val(
                     row, 
                     'RESOLUCION_NUMERO', 'NRO_RESOLUCION', 'NUMERO_RESOLUCION', 
                     'RESOLUCION', 'RESOLUCION_NUM', 'RESOLUCION_PRIMIGENIA', 
                     'NRO_RES', 'NRO RESOLUCION', 'N° RESOLUCION', 'Nº RESOLUCION', 
                     'RESOLUCION PRIMIGENIA', 'RES_PRIMIGENIA', 'RES. PRIMIGENIA'
                 )
-                if not numero:
+                if not numero_raw:
                     errores.append(f"Fila {fila}: Número de resolución no proporcionado.")
                     continue
+                from app.utils.resolucion_utils import normalizar_numero_resolucion
+                numero = normalizar_numero_resolucion(numero_raw)
 
                 # Parsear fechas
                 fecha_res_raw = get_col_val(row, 'FECHA_RESOLUCION', 'FECHA_EMISION', 'FECHA RESOLUCION', 'FECHA EMISION')

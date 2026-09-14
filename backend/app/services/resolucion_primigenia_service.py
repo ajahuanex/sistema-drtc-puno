@@ -29,6 +29,9 @@ class ResolucionPrimigeniaService:
         return str(uuid.uuid4())
 
     async def create_resolucion_primigenia(self, resolucion_data: ResolucionPrimigeniaCreate) -> ResolucionPrimigenia:
+        from app.utils.resolucion_utils import normalizar_numero_resolucion
+        resolucion_data.nro_resolucion = normalizar_numero_resolucion(resolucion_data.nro_resolucion)
+
         # 1. Verificar número duplicado
         existente = await self.get_resolucion_by_numero(resolucion_data.nro_resolucion)
         if existente:
@@ -36,6 +39,7 @@ class ResolucionPrimigeniaService:
 
         # 2. Convertir Pydantic a dict
         data_dict = resolucion_data.model_dump(by_alias=False)
+        data_dict["nro_resolucion"] = resolucion_data.nro_resolucion
         data_dict["fecha_registro"] = datetime.utcnow()
         data_dict["esta_activo"] = True
         
@@ -93,8 +97,14 @@ class ResolucionPrimigeniaService:
         return None
 
     async def get_resolucion_by_numero(self, nro_resolucion: str) -> Optional[ResolucionPrimigenia]:
+        from app.utils.resolucion_utils import normalizar_numero_resolucion
+        nro_norm = normalizar_numero_resolucion(nro_resolucion)
+        
         doc = await self.collection.find_one({
-            "nro_resolucion": nro_resolucion.strip(),
+            "$or": [
+                {"nro_resolucion": nro_norm},
+                {"nro_resolucion": nro_resolucion.strip()}
+            ],
             "esta_activo": True
         })
         if doc:
@@ -159,6 +169,10 @@ class ResolucionPrimigeniaService:
         update_dict = update_data.model_dump(exclude_unset=True)
         if not update_dict:
             return actual
+
+        if "nro_resolucion" in update_dict and update_dict["nro_resolucion"]:
+            from app.utils.resolucion_utils import normalizar_numero_resolucion
+            update_dict["nro_resolucion"] = normalizar_numero_resolucion(update_dict["nro_resolucion"])
 
         update_dict["fecha_actualizacion"] = datetime.utcnow()
         

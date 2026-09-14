@@ -16,8 +16,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDividerModule } from '@angular/material/divider';
 import { RutaService } from '../../services/ruta.service';
 import { GoogleSheetsService } from '../../services/google-sheets.service';
+import { EmpresaService } from '../../services/empresa.service';
 
 export interface ResultadoCargaMasiva {
   total_filas?: number;
@@ -51,6 +55,16 @@ export interface ResultadoCargaMasiva {
     cambios?: string[];
   }>;
 
+  eliminadas?: number;
+  rutas_eliminadas?: Array<{
+    codigo?: string;
+    codigo_ruta?: string;
+    nombre: string;
+    id: string;
+    ruc?: string;
+    resolucion?: string;
+  }>;
+
   errores?: Array<{
     fila?: number;
     codigo_ruta?: string;
@@ -82,6 +96,8 @@ export interface ResultadoCargaMasiva {
     rutas_validas?: Array<any>;
     rutas_creadas?: Array<any>;
     rutas_actualizadas?: Array<any>;
+    eliminadas?: number;
+    rutas_eliminadas?: Array<any>;
     errores_procesamiento?: Array<any>;
     errores_creacion?: Array<any>;
   };
@@ -119,7 +135,10 @@ export interface ResultadoCargaMasiva {
     MatSlideToggleModule,
     MatSelectModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatMenuModule,
+    MatCheckboxModule,
+    MatDividerModule
   ],
   template: `
     <div class="carga-masiva-wrapper">
@@ -261,13 +280,8 @@ export interface ResultadoCargaMasiva {
                           class="btn-fetch-sheets"
                           [disabled]="!googleSheetsUrl() || cargandoGoogleSheets()"
                           (click)="cargarDesdeGoogleSheets()">
-                    @if (cargandoGoogleSheets()) {
-                      <mat-icon class="spin-icon">sync</mat-icon>
-                      Cargando...
-                    } @else {
-                      <mat-icon>cloud_download</mat-icon>
-                      Obtener Datos
-                    }
+                    <mat-icon [class.spin-icon]="cargandoGoogleSheets()">{{ cargandoGoogleSheets() ? 'sync' : 'cloud_download' }}</mat-icon>
+                    <span>{{ cargandoGoogleSheets() ? 'Cargando...' : 'Obtener Datos' }}</span>
                   </button>
                 </div>
 
@@ -371,13 +385,8 @@ export interface ResultadoCargaMasiva {
                       class="btn-process-hero"
                       [disabled]="!archivoSeleccionado() || cargando()"
                       (click)="procesarArchivo()">
-                @if (cargando()) {
-                  <mat-icon class="spin-icon">sync</mat-icon>
-                  Procesando Datos...
-                } @else {
-                  <mat-icon>{{ soloValidar() ? 'task_alt' : 'rocket_launch' }}</mat-icon>
-                  {{ soloValidar() ? 'Validar Estructura' : 'Iniciar Carga Masiva' }}
-                }
+                <mat-icon [class.spin-icon]="cargando()">{{ cargando() ? 'sync' : (soloValidar() ? 'task_alt' : 'rocket_launch') }}</mat-icon>
+                <span>{{ cargando() ? 'Procesando Datos...' : (soloValidar() ? 'Validar Estructura' : 'Iniciar Carga Masiva') }}</span>
               </button>
             </div>
 
@@ -443,6 +452,16 @@ export interface ResultadoCargaMasiva {
                         <span class="kpi-label">Actualizadas</span>
                       </div>
                     </div>
+
+                    @if (rutasEliminadas().length > 0) {
+                      <div class="kpi-card danger">
+                        <mat-icon>delete_forever</mat-icon>
+                        <div class="kpi-data">
+                          <span class="kpi-num">{{ rutasEliminadas().length }}</span>
+                          <span class="kpi-label">Eliminadas (Obsoletas)</span>
+                        </div>
+                      </div>
+                    }
                   } @else {
                     <div class="kpi-card success">
                       <mat-icon>check_circle</mat-icon>
@@ -477,12 +496,37 @@ export interface ResultadoCargaMasiva {
                 <!-- ✅ NUEVA SECCIÓN: VISTA PREVIA DE CORRESPONDENCIA DE COLUMNAS (PRIMEROS 5 REGISTROS) -->
                 @if (rutasValidasMuestra().length > 0) {
                   <div class="preview-section-card">
-                    <div class="preview-header">
-                      <mat-icon class="preview-icon">preview</mat-icon>
-                      <div>
-                        <h4>Vista Previa de Correspondencia de Columnas (Primeros 5 registros)</h4>
-                        <p>Verifica que los datos del Excel/CSV/Google Sheets hayan correspondido correctamente a cada campo antes de procesar</p>
+                    <div class="preview-header-flex">
+                      <div class="preview-header-info">
+                        <mat-icon class="preview-icon">preview</mat-icon>
+                        <div>
+                          <h4>Vista Previa de Correspondencia de Columnas (Primeros 5 registros)</h4>
+                          <p>Verifica que los datos del Excel/CSV/Google Sheets hayan correspondido correctamente a cada campo antes de procesar</p>
+                        </div>
                       </div>
+
+                      <button mat-stroked-button [matMenuTriggerFor]="colsMenu" class="btn-config-cols">
+                        <mat-icon>view_column</mat-icon>
+                        <span>Configurar Columnas</span>
+                      </button>
+
+                      <mat-menu #colsMenu="matMenu" class="cols-menu">
+                        <div class="menu-header" (click)="$event.stopPropagation()">
+                          <span>Columnas Visibles</span>
+                          <button mat-button color="primary" (click)="resetearColumnas()">Restablecer</button>
+                        </div>
+                        <mat-divider></mat-divider>
+                        @for (col of columnasDisponibles; track col.key) {
+                          <div class="menu-item-checkbox" (click)="$event.stopPropagation()">
+                            <mat-checkbox
+                              [checked]="esColumnaVisible(col.key)"
+                              [disabled]="col.required"
+                              (change)="toggleColumna(col.key)">
+                              {{ col.label }}
+                            </mat-checkbox>
+                          </div>
+                        }
+                      </mat-menu>
                     </div>
 
                     <div class="tab-table-wrapper">
@@ -493,8 +537,18 @@ export interface ResultadoCargaMasiva {
                         </ng-container>
 
                         <ng-container matColumnDef="ruc">
-                          <th mat-header-cell *matHeaderCellDef>RUC Empresa</th>
-                          <td mat-cell *matCellDef="let r"><span class="code-badge">{{ r.ruc }}</span></td>
+                          <th mat-header-cell *matHeaderCellDef>Empresa / RUC</th>
+                          <td mat-cell *matCellDef="let r">
+                            <div class="ruc-container">
+                              @if (getNombreEmpresa(r.ruc, r.razonSocial)) {
+                                <span class="empresa-hint-text" [matTooltip]="getNombreEmpresa(r.ruc, r.razonSocial)">
+                                  <mat-icon class="empresa-mini-icon">store</mat-icon>
+                                  {{ getNombreEmpresa(r.ruc, r.razonSocial) }}
+                                </span>
+                              }
+                              <span class="code-badge">{{ r.ruc }}</span>
+                            </div>
+                          </td>
                         </ng-container>
 
                         <ng-container matColumnDef="resolucion">
@@ -521,7 +575,7 @@ export interface ResultadoCargaMasiva {
                         <ng-container matColumnDef="itinerario">
                           <th mat-header-cell *matHeaderCellDef>Itinerario</th>
                           <td mat-cell *matCellDef="let r">
-                            <span class="itinerario-text-preview">{{ r.itinerario || 'SIN ITINERARIO' }}</span>
+                            <span class="itinerario-text-preview" [matTooltip]="r.itinerario || ''">{{ r.itinerario || 'SIN ITINERARIO' }}</span>
                           </td>
                         </ng-container>
 
@@ -551,8 +605,17 @@ export interface ResultadoCargaMasiva {
                           </td>
                         </ng-container>
 
-                        <tr mat-header-row *matHeaderRowDef="['fila', 'ruc', 'resolucion', 'codigo', 'recorrido', 'itinerario', 'frecuencia', 'tipo', 'estado']"></tr>
-                        <tr mat-row *matRowDef="let row; columns: ['fila', 'ruc', 'resolucion', 'codigo', 'recorrido', 'itinerario', 'frecuencia', 'tipo', 'estado'];"></tr>
+                        <ng-container matColumnDef="observaciones">
+                          <th mat-header-cell *matHeaderCellDef>Observaciones</th>
+                          <td mat-cell *matCellDef="let r">
+                            <span class="obs-cell" [matTooltip]="r.observaciones || ''">
+                              {{ r.observaciones || 'Sin observaciones' }}
+                            </span>
+                          </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="columnasVisiblesPreview()"></tr>
+                        <tr mat-row *matRowDef="let row; columns: columnasVisiblesPreview();"></tr>
 
                       </table>
                     </div>
@@ -579,11 +642,19 @@ export interface ResultadoCargaMasiva {
                           </ng-container>
 
                           <ng-container matColumnDef="ruc_res">
-                            <th mat-header-cell *matHeaderCellDef>RUC / Resolución</th>
+                            <th mat-header-cell *matHeaderCellDef>Empresa / RUC / Resolución</th>
                             <td mat-cell *matCellDef="let ruta">
-                              <div class="tags-flex">
-                                <span class="code-badge">{{ ruta.ruc || 'N/A' }}</span>
-                                <span class="code-badge info-code">{{ ruta.resolucion || 'N/A' }}</span>
+                              <div class="ruc-container">
+                                @if (getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal)) {
+                                  <span class="empresa-hint-text" [matTooltip]="getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal)">
+                                    <mat-icon class="empresa-mini-icon">store</mat-icon>
+                                    {{ getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal) }}
+                                  </span>
+                                }
+                                <div class="tags-flex">
+                                  <span class="code-badge">{{ ruta.ruc || ruta.empresa?.ruc || 'N/A' }}</span>
+                                  <span class="code-badge info-code">{{ ruta.resolucion || ruta.resolucionNormalizada || ruta.resolucion?.nroResolucion || 'N/A' }}</span>
+                                </div>
                               </div>
                             </td>
                           </ng-container>
@@ -631,11 +702,19 @@ export interface ResultadoCargaMasiva {
                           </ng-container>
 
                           <ng-container matColumnDef="ruc_res">
-                            <th mat-header-cell *matHeaderCellDef>RUC / Resolución</th>
+                            <th mat-header-cell *matHeaderCellDef>Empresa / RUC / Resolución</th>
                             <td mat-cell *matCellDef="let ruta">
-                              <div class="tags-flex">
-                                <span class="code-badge">{{ ruta.ruc || 'N/A' }}</span>
-                                <span class="code-badge info-code">{{ ruta.resolucion || 'N/A' }}</span>
+                              <div class="ruc-container">
+                                @if (getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal)) {
+                                  <span class="empresa-hint-text" [matTooltip]="getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal)">
+                                    <mat-icon class="empresa-mini-icon">store</mat-icon>
+                                    {{ getNombreEmpresa(ruta.ruc || ruta.empresa?.ruc, ruta.razonSocial || ruta.empresa?.razonSocial?.principal) }}
+                                  </span>
+                                }
+                                <div class="tags-flex">
+                                  <span class="code-badge">{{ ruta.ruc || ruta.empresa?.ruc || 'N/A' }}</span>
+                                  <span class="code-badge info-code">{{ ruta.resolucion || ruta.resolucionNormalizada || ruta.resolucion?.nroResolucion || 'N/A' }}</span>
+                                </div>
                               </div>
                             </td>
                           </ng-container>
@@ -667,6 +746,64 @@ export interface ResultadoCargaMasiva {
                     </mat-tab>
                   }
 
+                  <!-- Tab: Rutas Eliminadas (Obsoletas no presentes en archivo origen) -->
+                  @if (rutasEliminadas().length > 0) {
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon warn-icon" style="color: #ef4444;">delete_sweep</mat-icon>
+                        <span>Eliminadas ({{ rutasEliminadas().length }})</span>
+                      </ng-template>
+
+                      <div class="tab-table-wrapper">
+                        <div class="info-pill-bar" style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; margin-bottom: 12px;">
+                          <mat-icon style="color: #ef4444;">info</mat-icon>
+                          <span><strong>Purga por Fuente de Verdad:</strong> Estas rutas existían en el sistema para las resoluciones importadas, pero fueron eliminadas porque ya no figuran en el archivo origen de rutas.</span>
+                        </div>
+                        <table mat-table [dataSource]="rutasEliminadas()" class="modern-table danger-table">
+                          <ng-container matColumnDef="codigo">
+                            <th mat-header-cell *matHeaderCellDef>Código</th>
+                            <td mat-cell *matCellDef="let ruta"><strong>{{ ruta.codigo || ruta.codigo_ruta || 'N/A' }}</strong></td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="ruc_res">
+                            <th mat-header-cell *matHeaderCellDef>RUC / Res.</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <div class="ruc-container">
+                                @if (getNombreEmpresa(ruta.ruc)) {
+                                  <span class="empresa-hint-text">
+                                    <mat-icon class="empresa-mini-icon">store</mat-icon>
+                                    {{ getNombreEmpresa(ruta.ruc) }}
+                                  </span>
+                                }
+                                <div class="tags-flex">
+                                  <span class="code-badge">{{ ruta.ruc || 'N/A' }}</span>
+                                  <span class="code-badge info-code">{{ ruta.resolucion || 'N/A' }}</span>
+                                </div>
+                              </div>
+                            </td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="nombre">
+                            <th mat-header-cell *matHeaderCellDef>Ruta Eliminada</th>
+                            <td mat-cell *matCellDef="let ruta"><strong>{{ ruta.nombre }}</strong></td>
+                          </ng-container>
+
+                          <ng-container matColumnDef="accion">
+                            <th mat-header-cell *matHeaderCellDef>Estado</th>
+                            <td mat-cell *matCellDef="let ruta">
+                              <span class="type-tag" style="background: #fee2e2; color: #991b1b; font-weight: 800;">
+                                Purga automática (No existe en origen)
+                              </span>
+                            </td>
+                          </ng-container>
+
+                          <tr mat-header-row *matHeaderRowDef="['codigo', 'ruc_res', 'nombre', 'accion']"></tr>
+                          <tr mat-row *matRowDef="let row; columns: ['codigo', 'ruc_res', 'nombre', 'accion'];"></tr>
+                        </table>
+                      </div>
+                    </mat-tab>
+                  }
+
 
                   <!-- Tab: Errores -->
                   @if (errores().length > 0) {
@@ -688,11 +825,19 @@ export interface ResultadoCargaMasiva {
                           </ng-container>
 
                           <ng-container matColumnDef="ruc_res">
-                            <th mat-header-cell *matHeaderCellDef>RUC / Res.</th>
+                            <th mat-header-cell *matHeaderCellDef>Empresa / RUC / Res.</th>
                             <td mat-cell *matCellDef="let err">
-                              <div class="tags-flex">
-                                <span class="code-badge">{{ err.ruc || 'N/A' }}</span>
-                                <span class="code-badge info-code">{{ err.resolucion || err.resolucionNormalizada || 'N/A' }}</span>
+                              <div class="ruc-container">
+                                @if (getNombreEmpresa(err.ruc, err.razonSocial)) {
+                                  <span class="empresa-hint-text" [matTooltip]="getNombreEmpresa(err.ruc, err.razonSocial)">
+                                    <mat-icon class="empresa-mini-icon">store</mat-icon>
+                                    {{ getNombreEmpresa(err.ruc, err.razonSocial) }}
+                                  </span>
+                                }
+                                <div class="tags-flex">
+                                  <span class="code-badge">{{ err.ruc || 'N/A' }}</span>
+                                  <span class="code-badge info-code">{{ err.resolucion || err.resolucionNormalizada || 'N/A' }}</span>
+                                </div>
                               </div>
                             </td>
                           </ng-container>
@@ -797,7 +942,7 @@ export class CargaMasivaRutasComponent implements OnInit {
 
   // Signals de estado
   origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
-  googleSheetsUrl = signal<string>('');
+  googleSheetsUrl = signal<string>(localStorage.getItem('drtc_ultimo_google_sheets_url') || '');
   cargandoGoogleSheets = signal<boolean>(false);
 
   archivoSeleccionado = signal<File | null>(null);
@@ -884,6 +1029,12 @@ export class CargaMasivaRutasComponent implements OnInit {
     return res.resultado?.rutas_actualizadas || res.rutas_actualizadas || [];
   });
 
+  rutasEliminadas = computed(() => {
+    const res: any = this.resultado();
+    if (!res || this.soloValidar()) return [];
+    return res.resultado?.rutas_eliminadas || res.rutas_eliminadas || [];
+  });
+
   errores = computed(() => {
     const res: any = this.resultado();
     if (!res) return [];
@@ -899,14 +1050,91 @@ export class CargaMasivaRutasComponent implements OnInit {
     return res.validacion?.advertencias || res.advertencias || [];
   });
 
+  // Mapa RUC -> Nombre Empresa (Razón Social)
+  empresasMap = signal<Map<string, string>>(new Map());
+
+  // Configuración de Columnas Visibles
+  columnasDisponibles = [
+    { key: 'fila', label: 'Fila (#)', required: true },
+    { key: 'ruc', label: 'Empresa / RUC', required: true },
+    { key: 'resolucion', label: 'Resolución', required: false },
+    { key: 'codigo', label: 'Código', required: false },
+    { key: 'recorrido', label: 'Origen → Destino', required: false },
+    { key: 'itinerario', label: 'Itinerario', required: false },
+    { key: 'frecuencia', label: 'Frecuencia', required: false },
+    { key: 'tipo', label: 'Tipo / Servicio', required: false },
+    { key: 'estado', label: 'Estado', required: false },
+    { key: 'observaciones', label: 'Observaciones', required: false }
+  ];
+
+  columnasVisiblesState = signal<string[]>([
+    'fila', 'ruc', 'resolucion', 'codigo', 'recorrido', 'itinerario', 'frecuencia', 'tipo', 'estado', 'observaciones'
+  ]);
+
+  columnasVisiblesPreview = computed(() => {
+    return this.columnasDisponibles
+      .filter(col => this.columnasVisiblesState().includes(col.key))
+      .map(col => col.key);
+  });
+
   constructor(
     private rutaService: RutaService,
     private googleSheetsService: GoogleSheetsService,
+    private empresaService: EmpresaService,
     private snackBar: MatSnackBar,
     private router: Router
   ) { }
 
-  ngOnInit() { }
+  ngOnInit() {
+    this.cargarEmpresasMap();
+  }
+
+  private cargarEmpresasMap(): void {
+    this.empresaService.getEmpresas(0, 1000).subscribe({
+      next: (empresas) => {
+        const map = new Map<string, string>();
+        empresas.forEach(e => {
+          if (e.ruc) {
+            const nombre = typeof e.razonSocial === 'string' ? e.razonSocial : (e.razonSocial?.principal || (e as any).nombre || '');
+            map.set(e.ruc.trim(), nombre);
+          }
+        });
+        this.empresasMap.set(map);
+      },
+      error: (err) => {
+        console.warn('No se pudo cargar la lista de empresas para autocompletar razón social:', err);
+      }
+    });
+  }
+
+  esColumnaVisible(key: string): boolean {
+    return this.columnasVisiblesState().includes(key);
+  }
+
+  toggleColumna(key: string): void {
+    const col = this.columnasDisponibles.find(c => c.key === key);
+    if (!col || col.required) return;
+    const actuales = this.columnasVisiblesState();
+    if (actuales.includes(key)) {
+      this.columnasVisiblesState.set(actuales.filter(k => k !== key));
+    } else {
+      this.columnasVisiblesState.set([...actuales, key]);
+    }
+  }
+
+  resetearColumnas(): void {
+    this.columnasVisiblesState.set(this.columnasDisponibles.map(c => c.key));
+  }
+
+  getNombreEmpresa(ruc?: string | null, fallbackNombre?: string): string {
+    if (!ruc) return fallbackNombre || '';
+    const cleanRuc = ruc.trim();
+    const map = this.empresasMap();
+    if (map.has(cleanRuc)) {
+      return map.get(cleanRuc)!;
+    }
+    return fallbackNombre || '';
+  }
 
   async descargarPlantilla() {
     try {
@@ -942,6 +1170,7 @@ export class CargaMasivaRutasComponent implements OnInit {
     }
 
     const id = this.googleSheetsService.extraerIdDeUrl(url) || url;
+    localStorage.setItem('drtc_ultimo_google_sheets_url', url);
     this.cargandoGoogleSheets.set(true);
 
     this.googleSheetsService.obtenerDatosReales(id).subscribe({

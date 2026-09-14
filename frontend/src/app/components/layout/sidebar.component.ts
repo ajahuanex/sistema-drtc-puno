@@ -70,14 +70,27 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
-        <a mat-list-item routerLink="/vehiculos-solo" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" matTooltipPosition="right">
+        <a mat-list-item routerLink="/vehiculos-empresa" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Flota por Empresa' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'directions_bus'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Flota por Empresa</span> }
+          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosEmpresa')" (click)="toggleGroup('vehiculosEmpresa', $event)">chevron_right</mat-icon> }
+        </a>
+
+        @if (isExpanded() && expandedGroups().has('vehiculosEmpresa')) {
+          <a mat-list-item routerLink="/vehiculos-empresa/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva Flota' : ''" matTooltipPosition="right">
+            <mat-icon matListItemIcon class="nav-icon sub-icon">upload</mat-icon>
+            @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva Flota</span> }
+          </a>
+        }
+
+        <a mat-list-item routerLink="/vehiculos-data" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'build'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Datos Técnicos Vehiculares</span> }
           @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosSolo')" (click)="toggleGroup('vehiculosSolo', $event)">chevron_right</mat-icon> }
         </a>
 
         @if (isExpanded() && expandedGroups().has('vehiculosSolo')) {
-          <a mat-list-item routerLink="/vehiculos-solo/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva Datos Técnicos' : ''" matTooltipPosition="right">
+          <a mat-list-item routerLink="/vehiculos-data/carga-masiva" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Carga Masiva Datos Técnicos' : ''" matTooltipPosition="right">
             <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
             @if (isExpanded()) { <span matListItemTitle class="nav-text">Carga Masiva Datos Técnicos</span> }
           </a>
@@ -278,7 +291,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 })
 export class SidebarComponent {
   isExpanded = input<boolean>(true);
-  expandedGroups = signal<Set<string>>(new Set(['rutas', 'resolucionesPrimigenias']));
+  expandedGroups = signal<Set<string>>(new Set(['rutas', 'resolucionesPrimigenias', 'vehiculosEmpresa']));
   
   toggleGroup(groupName: string, event: Event) {
     event.preventDefault();

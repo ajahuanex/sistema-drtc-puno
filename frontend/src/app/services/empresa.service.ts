@@ -113,12 +113,21 @@ export class EmpresaService {
     if (filtros.page) params = params.set('page', filtros.page.toString());
     if (filtros.limit) params = params.set('limit', filtros.limit.toString());
 
-    return this.http.get<Empresa[]>(`${this.apiUrl}/filtrar`, {
+    return this.http.get<Empresa[]>(`${this.apiUrl}/filtros`, {
       headers: this.getHeaders(),
       params
     }).pipe(
       map(empresas => empresas.map(e => this.transformEmpresaData(e))),
       catchError(error => this.handleError('filtrarEmpresas', error))
+    );
+  }
+
+  getEmpresaByRuc(ruc: string): Observable<Empresa> {
+    return this.http.get<Empresa>(`${this.apiUrl}/ruc/${ruc}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => this.handleError('getEmpresaByRuc', error))
     );
   }
 
@@ -150,6 +159,38 @@ export class EmpresaService {
     }).pipe(
       map(empresa => this.transformEmpresaData(empresa)),
       catchError(error => this.handleError('removerSocio', error))
+    );
+  }
+
+  consultarSunat(ruc: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/consulta-sunat/${ruc}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('consultarSunat', error))
+    );
+  }
+
+  /**
+   * Consulta SUNAT y PERSISTE los datos en la base de datos.
+   * Usa el endpoint PUT /empresas/{id}/actualizar-sunat del backend.
+   */
+  actualizarSunat(empresaId: string): Observable<Empresa> {
+    return this.http.put<Empresa>(`${this.apiUrl}/${empresaId}/actualizar-sunat`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
+      map(empresa => this.transformEmpresaData(empresa)),
+      catchError(error => this.handleError('actualizarSunat', error))
+    );
+  }
+
+  /**
+   * Dispara actualización masiva SUNAT para todas las empresas activas (en background).
+   */
+  actualizarSunatMasivo(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/actualizar-sunat-masivo`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('actualizarSunatMasivo', error))
     );
   }
 
@@ -225,7 +266,9 @@ export class EmpresaService {
       emailContacto: empresa.emailContacto || empresa.email_contacto || '',
       telefonoContacto: empresa.telefonoContacto || empresa.telefono_contacto || '',
       sitioWeb: empresa.sitioWeb || empresa.sitio_web || '',
-      observaciones: empresa.observaciones || ''
+      observaciones: empresa.observaciones || '',
+      datosSunat: empresa.datosSunat || undefined,
+      ultimaValidacionSunat: empresa.ultimaValidacionSunat ? new Date(empresa.ultimaValidacionSunat) : undefined
     };
   }
 

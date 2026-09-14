@@ -100,14 +100,15 @@ async def delete_vehiculo_data(
 @router.get("/")
 async def list_vehiculos_data(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    limit: int = Query(1000, ge=1, le=20000),
     marca: Optional[str] = None,
     categoria: Optional[str] = None,
+    q: Optional[str] = Query(None, description="Búsqueda de texto libre (placa, marca, modelo, VIN)"),
     service: VehiculoDataService = Depends(get_vehiculo_data_service)
 ):
-    """Listar datos técnicos con filtros"""
-    vehiculos_data = await service.list_vehiculos_data(skip, limit, marca, categoria)
-    total = await service.count_vehiculos_data()
+    """Listar datos técnicos con filtros. Límite máximo 20,000 registros por petición."""
+    vehiculos_data = await service.list_vehiculos_data(skip, limit, marca, categoria, q)
+    total = await service.count_vehiculos_data(q, marca, categoria)
     
     return {
         "success": True,
@@ -116,3 +117,75 @@ async def list_vehiculos_data(
         "skip": skip,
         "limit": limit
     }
+
+
+# ========================================
+# ENDPOINTS PARA CARGA MASIVA DE DATOS TÉCNICOS
+# ========================================
+from fastapi import UploadFile, File, Body
+import pandas as pd
+import io
+from app.services.vehiculo_data_excel_service import VehiculoDataExcelService
+
+
+@router.post("/carga-masiva-preview-file")
+async def carga_masiva_preview_file(
+    file: UploadFile = File(...),
+    db = Depends(get_database)
+):
+    """Generar vista previa desde un archivo Excel o CSV subido"""
+    try:
+        content = await file.read()
+        filename = file.filename.lower()
+        
+        if filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(content), dtype=str)
+        elif filename.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(io.BytesIO(content), dtype=str)
+        else:
+            raise HTTPException(status_code=400, detail="Formato de archivo no soportado. Debe ser .xlsx, .xls o .csv")
+            
+        service = VehiculoDataExcelService(db)
+        resultado = service.procesar_dataframe(df)
+        return {"success": True, "data": resultado}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error procesando archivo: {str(e)}")
+
+
+@router.post("/carga-masiva-preview-url")
+async def carga_masiva_preview_url(
+    payload: dict = Body(...),
+    db = Depends(get_database)
+):
+    """Generar vista previa desde una URL pública de Google Sheets"""
+    url = payload.get("url", "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="La URL de Google Sheets es requerida")
+        
+    try:
+        service = VehiculoDataExcelService(db)
+        csv_text = await service.descargar_google_sheet_csv(url)
+        df = pd.read_csv(io.StringIO(csv_text), dtype=str)
+        resultado = service.procesar_dataframe(df)
+        return {"success": True, "data": resultado}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error consultando Google Sheet: {str(e)}")
+
+
+@router.post("/carga-masiva-ejecutar")
+async def carga_masiva_ejecutar(
+    payload: dict = Body(...),
+    db = Depends(get_database)
+):
+    """Ejecutar la inserción/actualización masiva en MongoDB"""
+    filas = payload.get("filas", [])
+    if not filas:
+        raise HTTPException(status_code=400, detail="No se proporcionaron filas para guardar")
+        
+    try:
+        service = VehiculoDataExcelService(db)
+        res = await service.guardar_carga_masiva(filas)
+        return {"success": True, "data": res}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en la ejecución de carga masiva: {str(e)}")
+

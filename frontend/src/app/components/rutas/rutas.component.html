@@ -1,221 +1,110 @@
-<div class="rutas-container">
+<div class="page-container">
+  <!-- Header Banner -->
   <div class="page-header">
-    <div>
-      <h1>Gestión de Rutas</h1>
-      <p>Administra las rutas de transporte del sistema</p>
+    <div class="header-content">
+      <div class="title-with-icon">
+        <mat-icon class="header-icon">auto_awesome</mat-icon>
+        <div>
+          <h1>Gestión de Rutas</h1>
+          <p class="subtitle">Administración y control de rutas del transporte terrestre regional</p>
+        </div>
+      </div>
     </div>
     <div class="header-actions">
-      <!-- Acciones de selección múltiple -->
-      @if (rutasSeleccionadas().size > 0) {
-        <div class="selection-actions">
-          <span class="selection-count">{{ rutasSeleccionadas().size }} seleccionadas</span>
-          <button mat-stroked-button 
-                  color="warn" 
-                  (click)="eliminarSeleccionadas()"
-                  matTooltip="Eliminar rutas seleccionadas">
-            <mat-icon>delete</mat-icon>
-            Eliminar ({{ rutasSeleccionadas().size }})
-          </button>
-          <button mat-stroked-button 
-                  color="primary" 
-                  (click)="exportarSeleccionadas()"
-                  matTooltip="Exportar rutas seleccionadas">
-            <mat-icon>download</mat-icon>
-            Exportar ({{ rutasSeleccionadas().size }})
-          </button>
-          <button mat-button 
-                  (click)="limpiarSeleccion()"
-                  matTooltip="Limpiar selección">
-            <mat-icon>clear</mat-icon>
-            Limpiar
-          </button>
-        </div>
-      }
-      
-      <!-- Configuración de columnas -->
-      <button mat-icon-button 
-              [matMenuTriggerFor]="columnasMenu"
-              matTooltip="Configurar columnas">
-        <mat-icon>view_column</mat-icon>
+      <!-- Menú Exportar Excel -->
+      <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar Excel a varios formatos">
+        <mat-icon class="btn-icon">file_download</mat-icon>
+        <span class="btn-text">Exportar Excel</span>
+        <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
       </button>
-      
-      <mat-menu #columnasMenu="matMenu" class="columnas-menu">
-        <div class="menu-header" (click)="$event.stopPropagation()">
-          <h4>Configurar Columnas</h4>
-        </div>
-        @for (columna of columnasDisponibles; track columna.key) {
-          @if (!columna.fixed) {
-            <mat-checkbox 
-              class="columna-checkbox"
-              [checked]="columna.visible"
-              (change)="toggleColumna(columna.key, $event.checked)"
-              (click)="$event.stopPropagation()">
-              {{ columna.label }}
-            </mat-checkbox>
-          }
-        }
-        <mat-divider></mat-divider>
-        <button mat-menu-item (click)="resetearColumnas()">
-          <mat-icon>refresh</mat-icon>
-          Resetear por defecto
+      <mat-menu #exportExcelMenu="matMenu">
+        <button mat-menu-item (click)="exportarSeleccionadas()" [disabled]="rutasSeleccionadas().size === 0">
+          <mat-icon color="primary">check_box</mat-icon>
+          <span>Exportar Seleccionadas ({{ rutasSeleccionadas().size }})</span>
         </button>
-      </mat-menu>
-      
-      <!-- Exportación general -->
-      <button mat-icon-button 
-              [matMenuTriggerFor]="exportMenu"
-              matTooltip="Exportar datos">
-        <mat-icon>download</mat-icon>
-      </button>
-      
-      <mat-menu #exportMenu="matMenu">
-        @if (rutasSeleccionadas().size > 0) {
-          <div class="menu-header" style="padding: 8px 16px; border-bottom: 1px solid #e0e0e0; margin-bottom: 8px;">
-            <strong>{{ rutasSeleccionadas().size }} rutas seleccionadas</strong>
-          </div>
-          <button mat-menu-item (click)="exportarSeleccionadas()">
-            <mat-icon>table_chart</mat-icon>
-            Exportar seleccionadas a Excel
-          </button>
-          <mat-divider></mat-divider>
-          <div class="menu-header" style="padding: 8px 16px; color: #666; font-size: 12px;">
-            Exportar todas las rutas filtradas
-          </div>
-        }
         <button mat-menu-item (click)="exportarTodas('excel')">
-          <mat-icon>table_chart</mat-icon>
-          @if (rutasSeleccionadas().size > 0) {
-            Exportar todas a Excel
-          } @else {
-            Exportar a Excel
-          }
+          <mat-icon style="color: #10b981;">table_chart</mat-icon>
+          <span>Exportar a Excel</span>
         </button>
         <button mat-menu-item (click)="exportarTodas('csv')">
           <mat-icon>description</mat-icon>
-          @if (rutasSeleccionadas().size > 0) {
-            Exportar todas a CSV
-          } @else {
-            Exportar a CSV
-          }
+          <span>Exportar a CSV</span>
         </button>
       </mat-menu>
-      
-      <button mat-raised-button 
-              color="primary" 
-              (click)="nuevaRuta()">
-        <mat-icon>add</mat-icon>
-        Nueva Ruta
+
+      <!-- Botón Carga Masiva -->
+      <button mat-button class="header-action-btn" routerLink="/rutas/carga-masiva" [disabled]="isLoading()" matTooltip="Cargar múltiples rutas desde Excel">
+        <mat-icon class="btn-icon">file_upload</mat-icon>
+        <span class="btn-text">Carga Masiva</span>
       </button>
-      <button mat-stroked-button 
-              color="accent" 
-              routerLink="/rutas/estadisticas"
-              matTooltip="Ver estadísticas de rutas">
-        <mat-icon>analytics</mat-icon>
-        Estadísticas
-      </button>
-      <button mat-stroked-button 
-              color="accent" 
-              routerLink="/rutas/carga-masiva"
-              matTooltip="Importar múltiples rutas desde Excel">
-        <mat-icon>upload</mat-icon>
-        Carga Masiva
-      </button>
-      <button mat-stroked-button 
-              color="accent" 
-              (click)="recargarRutas()"
-              [disabled]="isLoading()">
-        <mat-icon>refresh</mat-icon>
-        Recargar
-      </button>
-      <button mat-stroked-button 
-              color="warn" 
-              (click)="verificarCoordenadasRutas()"
-              [disabled]="isLoading()"
-              matTooltip="Verificar que todas las rutas tengan coordenadas desde el módulo de localidades">
-        <mat-icon>location_on</mat-icon>
-        Verificar Coordenadas
-      </button>
-      <button mat-stroked-button 
-              color="primary" 
-              (click)="sincronizarLocalidades()"
-              [disabled]="isLoading()"
-              matTooltip="Sincronizar información de localidades en rutas (incluye búsqueda por alias)">
-        <mat-icon>sync</mat-icon>
-        Sincronizar Localidades
+
+      <!-- Botón Nueva Ruta -->
+      <button mat-button class="header-action-btn btn-primary-custom" (click)="nuevaRuta()" [disabled]="isLoading()" matTooltip="Registrar nueva ruta">
+        <mat-icon class="btn-icon">add_circle</mat-icon>
+        <span class="btn-text">Nueva Ruta</span>
       </button>
     </div>
   </div>
 
-  <!-- Buscador Simple -->
-  <mat-card class="search-card">
-    <mat-card-content>
-      <div class="search-container">
-        <!-- Buscador Principal -->
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Buscar rutas...</mat-label>
-          <input matInput 
-                 [ngModel]="terminoBusqueda()"
-                 (ngModelChange)="terminoBusqueda.set($event)"
-                 (input)="onBusquedaChange($event)"
-                 placeholder="Código, empresa, origen-destino, etc."
-                 (keydown.enter)="buscarRutas()">
-          <button matSuffix 
-                  mat-icon-button 
-                  (click)="buscarRutas()"
-                  [disabled]="!terminoBusqueda()"
-                  matTooltip="Buscar">
-            <mat-icon>search</mat-icon>
-          </button>
-        </mat-form-field>
-
-        <!-- Botón Filtros Avanzados -->
-        <button mat-stroked-button 
-                (click)="abrirFiltrosAvanzados()"
-                class="filtros-btn"
-                [class.active]="tieneFiltrosAvanzados()">
-          <mat-icon>tune</mat-icon>
-          Filtros Avanzados
-          @if (tieneFiltrosAvanzados()) {
-            <span class="filtros-badge">{{ getFiltrosActivosChips().length }}</span>
-          }
-        </button>
-
-        <!-- Limpiar búsqueda y filtros -->
-        @if (terminoBusqueda() || tieneFiltrosAvanzados()) {
-          <button mat-icon-button 
-                  (click)="limpiarTodo()"
-                  matTooltip="Limpiar búsqueda y filtros">
-            <mat-icon>clear</mat-icon>
-          </button>
-        }
-      </div>
-
-      <!-- Chips de filtros activos -->
-      @if (terminoBusqueda() || tieneFiltrosAvanzados()) {
-        <div class="filtros-activos">
-          <span class="filtros-label">Filtros activos:</span>
-          <mat-chip-set>
+  <div class="content-section">
+    <!-- Tarjeta de Filtros Modernizada Glassmorphic -->
+    <div class="glass-filters">
+      <div class="filters-bar">
+        <!-- Búsqueda rápida -->
+        <div class="search-and-toggle">
+          <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+            <mat-icon matPrefix class="search-icon">search</mat-icon>
+            <input matInput 
+                   [ngModel]="terminoBusqueda()"
+                   (ngModelChange)="terminoBusqueda.set($event)"
+                   (input)="onBusquedaChange($event)"
+                   placeholder="Buscar por Código, RUC, Empresa, Origen-Destino..."
+                   (keydown.enter)="buscarRutas()">
             @if (terminoBusqueda()) {
-              <mat-chip (removed)="limpiarBusqueda()">
-                Búsqueda: "{{ terminoBusqueda() }}"
-                <button matChipRemove>
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              </mat-chip>
+              <button mat-icon-button matSuffix (click)="limpiarBusqueda()" class="clear-input-btn" matTooltip="Limpiar búsqueda">
+                <mat-icon>close</mat-icon>
+              </button>
             }
-            @for (filtro of getFiltrosActivosChips(); track filtro.key) {
-              <mat-chip (removed)="removerFiltro(filtro.key)">
-                {{ filtro.label }}: {{ filtro.value }}
-                <button matChipRemove>
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              </mat-chip>
-            }
-          </mat-chip-set>
+          </mat-form-field>
         </div>
-      }
-    </mat-card-content>
-  </mat-card>
+
+        <div class="collapsible-filters">
+          <!-- Botón Limpiar filtros si hay búsqueda -->
+          @if (terminoBusqueda() || tieneFiltrosAvanzados()) {
+            <button mat-button type="button" (click)="limpiarTodo()" class="filter-action-btn btn-reset" matTooltip="Limpiar búsqueda y filtros">
+              <mat-icon>filter_alt_off</mat-icon>
+              <span>Limpiar</span>
+            </button>
+          }
+
+          <!-- Botón Configurar Columnas -->
+          <button mat-button type="button" [matMenuTriggerFor]="columnsMenu" class="filter-action-btn" matTooltip="Configurar columnas visibles">
+            <mat-icon>tune</mat-icon>
+            <span>Columnas</span>
+          </button>
+
+          <mat-menu #columnsMenu="matMenu">
+            <div class="columns-menu-header" (click)="$event.stopPropagation()">
+              <span>Columnas Visibles</span>
+              <button mat-button color="primary" (click)="resetearColumnas()">Restablecer</button>
+            </div>
+            <mat-divider></mat-divider>
+            @for (col of columnasDisponibles; track col.key) {
+              @if (!col.fixed) {
+                <div mat-menu-item (click)="$event.stopPropagation(); toggleColumna(col.key, !col.visible)" class="col-item">
+                  <mat-checkbox
+                    [checked]="col.visible"
+                    (change)="toggleColumna(col.key, $event.checked)"
+                    (click)="$event.stopPropagation()">
+                    {{ col.label }}
+                  </mat-checkbox>
+                </div>
+              }
+            }
+          </mat-menu>
+        </div>
+      </div>
+    </div>
 
   <!-- Información de resultados -->
   @if (filtroActivo().tipo !== 'todas') {
@@ -273,7 +162,30 @@
             </td>
           </ng-container>
           
-          <!-- Empresa -->
+          <!-- Resolución (Primera Columna) -->
+          <ng-container matColumnDef="resolucion">
+            <th mat-header-cell *matHeaderCellDef>N° Resolución</th>
+            <td mat-cell *matCellDef="let ruta">
+              <span class="resolucion-text-bold">{{ ruta.resolucion?.nroResolucion || 'Sin resolución' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Empresa / RUC -->
+          <ng-container matColumnDef="ruc">
+            <th mat-header-cell *matHeaderCellDef>RUC Empresa</th>
+            <td mat-cell *matCellDef="let ruta">
+              <div class="ruc-container">
+                @if (getEmpresaNombreCompleto(ruta)) {
+                  <span class="empresa-hint-text" [matTooltip]="getEmpresaNombreCompleto(ruta)">
+                    {{ getEmpresaNombreSimplificado(ruta) }}
+                  </span>
+                }
+                <span class="ruc-badge">{{ ruta.empresa?.ruc || 'Sin RUC' }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Empresa (Opcional) -->
           <ng-container matColumnDef="empresa">
             <th mat-header-cell *matHeaderCellDef>Empresa</th>
             <td mat-cell *matCellDef="let ruta">
@@ -283,26 +195,10 @@
               </div>
             </td>
           </ng-container>
-          
-          <!-- RUC -->
-          <ng-container matColumnDef="ruc">
-            <th mat-header-cell *matHeaderCellDef>RUC</th>
-            <td mat-cell *matCellDef="let ruta">
-              <span class="ruc-text">{{ ruta.empresa?.ruc || 'Sin RUC' }}</span>
-            </td>
-          </ng-container>
-
-          <!-- Resolución -->
-          <ng-container matColumnDef="resolucion">
-            <th mat-header-cell *matHeaderCellDef>Resolución</th>
-            <td mat-cell *matCellDef="let ruta">
-              <span class="resolucion-text">{{ ruta.resolucion?.nroResolucion || 'Sin resolución' }}</span>
-            </td>
-          </ng-container>
 
           <!-- Código de Ruta -->
           <ng-container matColumnDef="codigoRuta">
-            <th mat-header-cell *matHeaderCellDef>Código Ruta</th>
+            <th mat-header-cell *matHeaderCellDef>Cód. Ruta</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="codigo-ruta">{{ ruta.codigoRuta }}</span>
             </td>
@@ -332,7 +228,7 @@
 
           <!-- Frecuencias -->
           <ng-container matColumnDef="frecuencias">
-            <th mat-header-cell *matHeaderCellDef>Frecuencias</th>
+            <th mat-header-cell *matHeaderCellDef>Frecuencia</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="frecuencias-text">{{ ruta.frecuencia?.descripcion || 'Sin frecuencias' }}</span>
             </td>
@@ -361,6 +257,18 @@
               <span class="estado-badge" [class.activo]="ruta.estado === 'ACTIVA'">
                 {{ ruta.estado }}
               </span>
+            </td>
+          </ng-container>
+
+          <!-- Observaciones -->
+          <ng-container matColumnDef="observaciones">
+            <th mat-header-cell *matHeaderCellDef class="text-center th-obs">Obs.</th>
+            <td mat-cell *matCellDef="let ruta" class="text-center td-obs">
+              @if (ruta.observaciones && ruta.observaciones.trim()) {
+                <mat-icon class="obs-icon" [matTooltip]="ruta.observaciones">info</mat-icon>
+              } @else {
+                <span class="sin-datos">-</span>
+              }
             </td>
           </ng-container>
 

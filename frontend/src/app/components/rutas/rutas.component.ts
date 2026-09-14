@@ -113,17 +113,18 @@ export class RutasComponent implements OnInit, OnDestroy {
   // Configuración de columnas
   columnasDisponibles = [
     { key: 'select', label: 'Seleccionar', visible: true, fixed: true },
-    { key: 'empresa', label: 'Empresa', visible: false }, // No visible por defecto
-    { key: 'ruc', label: 'RUC', visible: true },
-    { key: 'resolucion', label: 'Resolución', visible: true },
-    { key: 'codigoRuta', label: 'Código Ruta', visible: true },
+    { key: 'resolucion', label: 'N° Resolución', visible: true },
+    { key: 'ruc', label: 'RUC Empresa', visible: true },
+    { key: 'empresa', label: 'Empresa', visible: false },
+    { key: 'codigoRuta', label: 'Cód. Ruta', visible: true },
     { key: 'origen', label: 'Origen', visible: true },
     { key: 'destino', label: 'Destino', visible: true },
     { key: 'itinerario', label: 'Itinerario', visible: true },
-    { key: 'frecuencias', label: 'Frecuencias', visible: true },
+    { key: 'frecuencias', label: 'Frecuencia', visible: true },
     { key: 'tipoRuta', label: 'Tipo Ruta', visible: false },
     { key: 'tipoServicio', label: 'Tipo Servicio', visible: false },
     { key: 'estado', label: 'Estado', visible: true },
+    { key: 'observaciones', label: 'Obs.', visible: true },
     { key: 'acciones', label: 'Acciones', visible: true, fixed: true }
   ];
 
@@ -257,6 +258,50 @@ export class RutasComponent implements OnInit, OnDestroy {
 
   getEmpresaNombre(ruta: Ruta): string {
     return this.rutaUtilsService.getEmpresaNombre(ruta);
+  }
+
+  getEmpresaNombreCompleto(ruta: Ruta): string {
+    const completo = this.getEmpresaNombre(ruta);
+    if (!completo || completo === 'Sin empresa' || completo === 'Sin información') return '';
+    return completo;
+  }
+
+  getEmpresaNombreSimplificado(ruta: Ruta): string {
+    const completo = this.getEmpresaNombreCompleto(ruta);
+    return this.simplificarNombreEmpresa(completo);
+  }
+
+  simplificarNombreEmpresa(nombre: string): string {
+    if (!nombre) return '';
+    let res = nombre.trim();
+
+    res = res.replace(/\bEMPRESA\s+DE\s+TRANSPORTES\s+Y\s+SERVICIOS\s+MULTIPLES\b/gi, 'E.T.S.M.');
+    res = res.replace(/\bEMPRESA\s+DE\s+TRANSPORTES\s+MULTIPLES\b/gi, 'E.T.M.');
+    res = res.replace(/\bEMPRESA\s+DE\s+TRANSPORTES\b/gi, 'E.T.');
+    res = res.replace(/\bEMPRESA\s+DE\s+TRANSPORTE\b/gi, 'E.T.');
+    res = res.replace(/\bCOOPERATIVA\s+DE\s+TRANSPORTES\b/gi, 'COOP. T.');
+    res = res.replace(/\bCOOPERATIVA\s+DE\s+TRANSPORTE\b/gi, 'COOP. T.');
+    res = res.replace(/\bSERVICIOS\s+MULTIPLES\b/gi, 'SERV. MULT.');
+    res = res.replace(/\bSERVICIOS\s+TURISTICOS\b/gi, 'SERV. TUR.');
+    res = res.replace(/\bSOCIEDAD\s+ANONIMA\s+CERRADA\b/gi, 'S.A.C.');
+    res = res.replace(/\bSOCIEDAD\s+DE\s+RESPONSABILIDAD\s+LIMITADA\b/gi, 'S.R.L.');
+    res = res.replace(/\bSOCIEDAD\s+ANONIMA\b/gi, 'S.A.');
+    res = res.replace(/\bEMPRESA\s+INDIVIDUAL\s+DE\s+RESPONSABILIDAD\s+LIMITADA\b/gi, 'E.I.R.L.');
+
+    res = res.replace(/\bEMPRESA\b/gi, 'E.');
+    res = res.replace(/\bTRANSPORTES\b/gi, 'T.');
+    res = res.replace(/\bTRANSPORTE\b/gi, 'T.');
+    res = res.replace(/\bCOOPERATIVA\b/gi, 'COOP.');
+    res = res.replace(/\bINTERREGIONAL\b/gi, 'INTERREG.');
+    res = res.replace(/\bINTERNACIONAL\b/gi, 'INT.');
+    res = res.replace(/\bMULTISERVICIOS\b/gi, 'MULTISERV.');
+    res = res.replace(/\bSERVICIOS\b/gi, 'SERV.');
+    res = res.replace(/\bTURISTICO\b/gi, 'TUR.');
+    res = res.replace(/\bTURISTICA\b/gi, 'TUR.');
+    res = res.replace(/\bTURISMO\b/gi, 'TUR.');
+    res = res.replace(/\bASOCIACION\b/gi, 'ASOC.');
+
+    return res.replace(/\s+/g, ' ').trim();
   }
 
   getItinerarioFormateado(ruta: Ruta): string {

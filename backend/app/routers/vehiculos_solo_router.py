@@ -137,7 +137,7 @@ async def obtener_estadisticas(
     if db is None:
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
-    collection = db["vehiculos_solo"]
+    collection = db["vehiculos_data"]
     
     # Total
     total = await collection.count_documents({"activo": True})
@@ -204,7 +204,7 @@ async def buscar_por_placa(
     placa_normalizada = placa.strip().upper()
     
     # Búsqueda exacta usando índice único (muy rápida)
-    vehiculo = await db["vehiculos_solo"].find_one({
+    vehiculo = await db["vehiculos_data"].find_one({
         "placa_actual": placa_normalizada,
         "activo": True
     })
@@ -226,7 +226,7 @@ async def autocompletar_placas(
     if db is None:
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
-    collection = db["vehiculos_solo"]
+    collection = db["vehiculos_data"]
     
     # Normalizar búsqueda
     q_normalizado = q.strip().upper()
@@ -279,7 +279,7 @@ async def obtener_vehiculos_solo(
     if db is None:
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
-    collection = db["vehiculos_solo"]
+    collection = db["vehiculos_data"]
     
     # Construir filtro
     filtro = {"activo": True}
@@ -323,7 +323,7 @@ async def crear_vehiculo_solo(
     if db is None:
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
-    collection = db["vehiculos_solo"]
+    collection = db["vehiculos_data"]
     
     # Convertir a dict usando by_alias=False para mantener los nombres snake_case
     vehiculo_dict = vehiculo_data.model_dump(by_alias=False, exclude_unset=True)
@@ -391,7 +391,7 @@ async def obtener_vehiculo_por_id(
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
     try:
-        vehiculo = await db["vehiculos_solo"].find_one({"_id": ObjectId(vehiculo_id)})
+        vehiculo = await db["vehiculos_data"].find_one({"_id": ObjectId(vehiculo_id)})
         
         if not vehiculo:
             raise HTTPException(status_code=404, detail="Vehículo no encontrado")
@@ -413,7 +413,7 @@ async def actualizar_vehiculo_solo(
     if db is None:
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
-    collection = db["vehiculos_solo"]
+    collection = db["vehiculos_data"]
     
     try:
         # Verificar que existe
@@ -455,7 +455,7 @@ async def eliminar_vehiculo_solo(
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
     
     try:
-        result = await db["vehiculos_solo"].update_one(
+        result = await db["vehiculos_data"].update_one(
             {"_id": ObjectId(vehiculo_id)},
             {"$set": {"activo": False, "fecha_actualizacion": datetime.now()}}
         )

@@ -97,6 +97,9 @@ class Empresa(BaseModel):
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
     observaciones: Optional[str] = None
+    # Datos SUNAT actualizables
+    datosSunat: Optional[Dict[str, Any]] = None
+    ultimaValidacionSunat: Optional[datetime] = None
 
 
 # ========================================
@@ -127,6 +130,9 @@ class EmpresaUpdate(BaseModel):
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
     observaciones: Optional[str] = None
+    # Campos SUNAT
+    datosSunat: Optional[Dict[str, Any]] = None
+    ultimaValidacionSunat: Optional[datetime] = None
 
 
 class SocioCreate(BaseModel):

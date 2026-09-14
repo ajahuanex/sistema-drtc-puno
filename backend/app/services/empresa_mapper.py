@@ -33,15 +33,20 @@ class EmpresaMapper:
         return estado_map.get(estado_antiguo.upper(), EstadoEmpresa.AUTORIZADA)
     
     @staticmethod
-    def map_razon_social(razon_social_data: Any) -> RazonSocial:
+    def map_razon_social(razon_social_data: Any, datos_sunat: Optional[Dict[str, Any]] = None) -> RazonSocial:
         """Mapea razonSocial antigua al nuevo modelo"""
+        sunat_nombre = None
+        if isinstance(datos_sunat, dict):
+            sunat_nombre = datos_sunat.get("ddp_nombre") or datos_sunat.get("razonSocial")
+
         if isinstance(razon_social_data, dict):
             return RazonSocial(
                 principal=razon_social_data.get("principal", ""),
-                sunat=razon_social_data.get("sunat") or razon_social_data.get("comercial"),
+                sunat=razon_social_data.get("sunat") or sunat_nombre or razon_social_data.get("comercial"),
                 minimo=razon_social_data.get("minimo")
             )
-        return RazonSocial(principal=str(razon_social_data))
+        principal_val = str(razon_social_data) if razon_social_data is not None else ""
+        return RazonSocial(principal=principal_val, sunat=sunat_nombre)
     
     @staticmethod
     def map_representante_legal(rep_data: Any) -> RepresentanteLegal:
@@ -131,11 +136,23 @@ class EmpresaMapper:
         empresa_id = doc.get("id")
         if not empresa_id and "_id" in doc:
             empresa_id = str(doc["_id"])
+            
+        # Campos opcionales con normalización de datosSunat
+        datos_sunat_raw = doc.get("datosSunat")
+        datos_sunat_norm = (lambda ds: {
+            "ddp_nombre": ds.get("ddp_nombre") or ds.get("razonSocial") or "",
+            "ddp_estado": ds.get("ddp_estado") or ("00" if ds.get("valido") or ds.get("estado") == "ACTIVO" else "10"),
+            "desc_estado": ds.get("desc_estado") or ds.get("estado") or ("ACTIVO" if ds.get("valido") else "INACTIVO"),
+            "desc_flag22": ds.get("desc_flag22") or ds.get("condicion") or "HABIDO",
+            "esActivo": ds.get("esActivo") if "esActivo" in ds else (ds.get("valido") == True or ds.get("estado") == "ACTIVO"),
+            "esHabido": ds.get("esHabido") if "esHabido" in ds else (ds.get("condicion") == "HABIDO"),
+            **ds
+        } if isinstance(ds, dict) else None)(datos_sunat_raw)
         
         empresa_dict = {
             "id": empresa_id,
             "ruc": doc.get("ruc", ""),
-            "razonSocial": EmpresaMapper.map_razon_social(doc.get("razonSocial", {})),
+            "razonSocial": EmpresaMapper.map_razon_social(doc.get("razonSocial", {}), datos_sunat_norm),
             "direccionFiscal": doc.get("direccionFiscal", ""),
             "estado": EmpresaMapper.map_estado(doc.get("estado", "ACTIVO")),
             "tiposServicio": EmpresaMapper.map_tipos_servicio(
@@ -161,9 +178,7 @@ class EmpresaMapper:
             "vehiculosHabilitadosIds": doc.get("vehiculosHabilitadosIds", []),
             "conductoresHabilitadosIds": doc.get("conductoresHabilitadosIds", []),
             "rutasAutorizadasIds": doc.get("rutasAutorizadasIds", []),
-            
-            # Campos opcionales
-            "datosSunat": doc.get("datosSunat"),
+            "datosSunat": datos_sunat_norm,
             "ultimaValidacionSunat": doc.get("ultimaValidacionSunat"),
             "scoreRiesgo": doc.get("scoreRiesgo"),
             "observaciones": doc.get("observaciones"),

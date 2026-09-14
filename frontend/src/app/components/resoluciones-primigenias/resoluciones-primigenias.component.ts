@@ -70,14 +70,39 @@ import {
           </div>
         </div>
         <div class="header-actions">
-          <button mat-raised-button color="accent" (click)="descargarPlantilla()" [disabled]="isLoading()">
-            <mat-icon>file_download</mat-icon> Plantilla Excel
+          <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar Excel a varios formatos">
+            <mat-icon class="btn-icon">file_download</mat-icon>
+            <span class="btn-text">Exportar Excel</span>
+            <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
           </button>
-          <button mat-raised-button color="accent" (click)="irACargaMasiva()" [disabled]="isLoading()">
-            <mat-icon>file_upload</mat-icon> Carga Masiva
+          <mat-menu #exportExcelMenu="matMenu">
+            <button mat-menu-item (click)="exportarAExcel('seleccionadas')" [disabled]="selectedCount() === 0">
+              <mat-icon color="primary">check_box</mat-icon>
+              <span>Exportar Seleccionadas ({{ selectedCount() }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarAExcel('filtradas')">
+              <mat-icon color="accent">filter_alt</mat-icon>
+              <span>Exportar Vista Filtrada ({{ resolucionesFiltradas().length }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarAExcel('todas')">
+              <mat-icon style="color: #10b981;">table_chart</mat-icon>
+              <span>Exportar Todas ({{ resoluciones().length }})</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="descargarPlantilla()">
+              <mat-icon>description</mat-icon>
+              <span>Descargar Plantilla Vaciado</span>
+            </button>
+          </mat-menu>
+
+          <button mat-button class="header-action-btn" (click)="irACargaMasiva()" [disabled]="isLoading()" matTooltip="Cargar múltiples resoluciones desde Excel">
+            <mat-icon class="btn-icon">file_upload</mat-icon>
+            <span class="btn-text">Carga Masiva</span>
           </button>
-          <button mat-raised-button class="btn-primary-custom" (click)="toggleFormModal()" [disabled]="isLoading()">
-            <mat-icon>add_circle</mat-icon> Nueva Primigenia
+
+          <button mat-button class="header-action-btn btn-primary-custom" (click)="toggleFormModal()" [disabled]="isLoading()" matTooltip="Registrar nueva resolución primigenia">
+            <mat-icon class="btn-icon">add_circle</mat-icon>
+            <span class="btn-text">Nueva Primigenia</span>
           </button>
         </div>
       </div>
@@ -86,18 +111,25 @@ import {
         <!-- Tarjeta de Filtros Modernizada -->
         <div class="glass-filters">
           <div class="filters-bar">
-            <!-- Búsqueda rápida -->
-            <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-              <mat-icon matPrefix class="search-icon">search</mat-icon>
-              <input matInput [formControl]="searchControl" placeholder="Buscar por RUC, Razón Social o N° Resolución...">
-              @if (searchControl.value) {
-                <button mat-icon-button matSuffix (click)="searchControl.setValue('')" class="clear-input-btn" matTooltip="Limpiar búsqueda">
-                  <mat-icon>close</mat-icon>
-                </button>
-              }
-            </mat-form-field>
+            <!-- Búsqueda rápida y botón de filtros móvil -->
+            <div class="search-and-toggle">
+              <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+                <mat-icon matPrefix class="search-icon">search</mat-icon>
+                <input matInput [formControl]="searchControl" placeholder="Buscar por RUC, Razón Social o N° Resolución...">
+                @if (searchControl.value) {
+                  <button mat-icon-button matSuffix (click)="searchControl.setValue('')" class="clear-input-btn" matTooltip="Limpiar búsqueda">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </mat-form-field>
+              
+              <button mat-icon-button class="mobile-filter-toggle" (click)="showMobileFilters.set(!showMobileFilters())" [class.active]="showMobileFilters()">
+                <mat-icon>filter_list</mat-icon>
+              </button>
+            </div>
 
-            <!-- Select Estado Legal -->
+            <div class="collapsible-filters" [class.show]="showMobileFilters()">
+              <!-- Select Estado Legal -->
             <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
               <mat-label>Estado Legal</mat-label>
               <mat-select [formControl]="estadoControl">
@@ -169,8 +201,9 @@ import {
                 }
               }
               </mat-menu>
-            </div>
+            </div> <!-- End of collapsible-filters -->
           </div>
+        </div>
 
         <!-- Formulario Modal: Crear Nueva Primigenia -->
         @if (showFormModal()) {
@@ -466,12 +499,40 @@ import {
             </mat-card-content>
           </mat-card>
         } @else {
+          <!-- Banner de Selección Múltiple -->
+          @if (selectedCount() > 0) {
+            <div class="selection-banner animate-fade-in">
+              <div class="banner-info">
+                <mat-icon class="banner-icon">check_circle</mat-icon>
+                <span><strong>{{ selectedCount() }}</strong> resolucion(es) primigenia(s) seleccionada(s)</span>
+              </div>
+              <div class="banner-actions">
+                <button mat-raised-button color="accent" (click)="exportarAExcel('seleccionadas')">
+                  <mat-icon>file_download</mat-icon> Exportar Seleccionadas a Excel ({{ selectedCount() }})
+                </button>
+                <button mat-button (click)="clearSelection()" class="btn-clear-selection">
+                  <mat-icon>close</mat-icon> Desmarcar todo
+                </button>
+              </div>
+            </div>
+          }
+
           <mat-card class="table-card">
             <mat-card-content>
               <div class="table-container">
                 <table class="custom-table">
                   <thead>
                     <tr>
+                      @if (columnaVisible('select')) {
+                        <th class="checkbox-th text-center">
+                          <mat-checkbox
+                            [checked]="isAllSelected()"
+                            [indeterminate]="isSomeSelected()"
+                            (change)="toggleSelectAll()"
+                            matTooltip="Seleccionar / deseleccionar todas las resoluciones filtradas">
+                          </mat-checkbox>
+                        </th>
+                      }
                       @if (columnaVisible('nro_resolucion')) {
                         <th (click)="toggleSort('nro_resolucion')" class="sortable-th">
                           <span>N° Resolución</span>
@@ -562,7 +623,15 @@ import {
                   </thead>
                   <tbody>
                     @for (item of paginatedResoluciones(); track item.id) {
-                      <tr>
+                      <tr [class.selected-row]="isSelected(item.id)">
+                        @if (columnaVisible('select')) {
+                          <td class="checkbox-td text-center" (click)="$event.stopPropagation()">
+                            <mat-checkbox
+                              [checked]="isSelected(item.id)"
+                              (change)="toggleSelectRow(item.id)">
+                            </mat-checkbox>
+                          </td>
+                        }
                         @if (columnaVisible('nro_resolucion')) {
                           <td class="bold-text color-primary">{{ item.nro_resolucion }}</td>
                         }
@@ -631,7 +700,7 @@ import {
                                 VENCIDA
                               </span>
                             } @else {
-                              <span [class]="'status-pill status-' + item.estado?.toLowerCase()">
+                              <span [class]="'status-pill status-' + (item.estado ? item.estado.toLowerCase() : '')">
                                 {{ item.estado }}
                               </span>
                             }
@@ -792,13 +861,57 @@ import {
 
       .header-actions {
         display: flex;
+        align-items: center;
         gap: 0.75rem;
-      }
-    }
 
-    .btn-primary-custom {
-      background-color: #6366f1 !important;
-      color: white !important;
+        .header-action-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          height: 42px;
+          padding: 0 1.1rem;
+          border-radius: 10px;
+          font-size: 0.88rem;
+          font-weight: 600;
+          background-color: rgba(255, 255, 255, 0.15);
+          color: #ffffff !important;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          backdrop-filter: blur(8px);
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+          .btn-icon {
+            font-size: 1.25rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #ffffff;
+          }
+
+          .dropdown-arrow {
+            font-size: 1.1rem;
+            width: 1.1rem;
+            height: 1.1rem;
+            margin-left: -0.2rem;
+            color: #ffffff;
+          }
+
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.28);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-1px);
+          }
+
+          &.btn-primary-custom {
+            background-color: #6366f1 !important;
+            border-color: #818cf8 !important;
+
+            &:hover {
+              background-color: #4f46e5 !important;
+            }
+          }
+        }
+      }
     }
 
     .glass-filters {
@@ -1355,6 +1468,61 @@ import {
     .sin-datos { color: #cbd5e1; }
     .text-center { text-align: center; }
 
+    .selection-banner {
+      background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+      border: 1px solid #a5b4fc;
+      color: #312e81;
+      padding: 0.75rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+
+      .banner-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+
+        .banner-icon {
+          color: #4338ca;
+        }
+      }
+
+      .banner-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .btn-clear-selection {
+        color: #4338ca;
+        font-weight: 600;
+
+        &:hover {
+          background-color: rgba(67, 56, 202, 0.08);
+        }
+      }
+    }
+
+    .checkbox-th, .checkbox-td {
+      width: 48px;
+      min-width: 48px;
+      padding: 0 0.5rem !important;
+      text-align: center;
+    }
+
+    .selected-row {
+      background-color: #eef2ff !important;
+
+      td {
+        background-color: #eef2ff !important;
+      }
+    }
+
     .animate-fade-in {
       animation: fadeIn 0.3s ease-in-out;
     }
@@ -1362,6 +1530,355 @@ import {
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    /* Mobile Filter Toggle */
+    .mobile-filter-toggle {
+      display: none;
+    }
+    
+    .collapsible-filters {
+      display: contents; /* Behaves like normal in desktop */
+    }
+
+    /* Responsive Mobile */
+    @media (max-width: 768px) {
+      .mobile-filter-toggle {
+        display: inline-flex;
+        background-color: #f1f5f9;
+        color: #475569;
+        margin-left: auto;
+      }
+      
+      .mobile-filter-toggle.active {
+        background-color: #e0e7ff;
+        color: #4338ca;
+      }
+      
+      .search-and-toggle {
+        display: flex;
+        width: 100%;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      
+      .collapsible-filters {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 0.5rem;
+        animation: slideDown 0.3s ease-out;
+      }
+      
+      .collapsible-filters.show {
+        display: flex;
+      }
+      
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+      }
+      
+      .header-actions {
+        width: 100%;
+        justify-content: space-between; /* Space out the 3 icon buttons uniformly */
+      }
+      
+      .mobile-icon-btn {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 12px !important;
+      }
+      
+      .mobile-icon-btn .mat-icon {
+        margin: 0 !important;
+      }
+      
+      .mobile-icon-btn .desktop-text {
+        display: none; /* Hide text on mobile, keep icons */
+      }
+      
+      .glass-filters .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .filter-select, .search-field {
+        width: 100% !important;
+        flex: none !important;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr !important;
+      }
+      
+      .detail-grid {
+        grid-template-columns: 1fr !important;
+      }
+      
+      .selection-banner {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+    
+    /* Dark Mode Support */
+    :host-context([data-theme="dark"]), :host-context(.dark-theme), :host-context(.dark-mode) {
+      .header-actions .header-action-btn {
+        background-color: rgba(30, 41, 59, 0.7) !important;
+        color: #f8fafc !important;
+        border-color: #475569 !important;
+
+        .btn-icon, .dropdown-arrow {
+          color: #f8fafc !important;
+        }
+
+        &:hover {
+          background-color: #334155 !important;
+        }
+
+        &.btn-primary-custom {
+          background-color: #6366f1 !important;
+          border-color: #818cf8 !important;
+
+          &:hover {
+            background-color: #4f46e5 !important;
+          }
+        }
+      }
+
+      .mobile-filter-toggle {
+        background-color: #334155 !important;
+        color: #cbd5e1 !important;
+      }
+      .mobile-filter-toggle.active {
+        background-color: #1e1b4b !important;
+        color: #818cf8 !important;
+      }
+
+      .page-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;
+        border: 1px solid #334155 !important;
+      }
+      
+      .glass-filters {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+
+      .filter-chip-btn {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+
+        &:hover {
+          background: #334155 !important;
+        }
+
+        &.active-vencer {
+          background: rgba(225, 29, 72, 0.25) !important;
+          border-color: #e11d48 !important;
+          color: #fda4af !important;
+        }
+      }
+
+      .filter-action-btn {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+
+        .mat-icon {
+          color: #94a3b8 !important;
+        }
+
+        &:hover {
+          background: #334155 !important;
+        }
+
+        &.btn-reset {
+          background: rgba(239, 68, 68, 0.2) !important;
+          border-color: #ef4444 !important;
+          color: #fca5a5 !important;
+
+          .mat-icon {
+            color: #ef4444 !important;
+          }
+        }
+      }
+      
+      .table-card {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+      }
+      
+      .custom-table {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+
+        th {
+          background-color: #0f172a !important;
+          color: #f1f5f9 !important;
+          border-bottom-color: #334155 !important;
+
+          &.sortable-th:hover {
+            background-color: #1e293b !important;
+            color: #818cf8 !important;
+          }
+        }
+
+        td {
+          background-color: #1e293b !important;
+          border-bottom-color: #334155 !important;
+          color: #cbd5e1 !important;
+        }
+
+        tr:hover td {
+          background-color: #334155 !important;
+          color: #ffffff !important;
+        }
+
+        th:first-child, th:last-child {
+          background-color: #0f172a !important;
+          box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        td:first-child, td:last-child {
+          background-color: #1e293b !important;
+          box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        tr:hover td:first-child, tr:hover td:last-child {
+          background-color: #334155 !important;
+        }
+
+        tr.selected-row td {
+          background-color: #312e81 !important;
+          color: #e0e7ff !important;
+        }
+      }
+
+      .bold-text.color-primary {
+        color: #a5b4fc !important;
+      }
+
+      .ruc-badge {
+        background-color: #312e81 !important;
+        color: #c7d2fe !important;
+        border: 1px solid #4338ca !important;
+      }
+
+      .empresa-hint-text {
+        color: #cbd5e1 !important;
+      }
+
+      .siglas-badge {
+        background-color: #334155 !important;
+        color: #e2e8f0 !important;
+        border-color: #475569 !important;
+      }
+
+      .status-pill {
+        &.status-vigente { background-color: rgba(22, 101, 52, 0.35) !important; color: #4ade80 !important; border: 1px solid #166534 !important; }
+        &.status-suspendida { background-color: rgba(180, 83, 9, 0.35) !important; color: #fcd34d !important; border: 1px solid #b45309 !important; }
+        &.status-cancelada, &.status-anulada { background-color: rgba(185, 28, 28, 0.35) !important; color: #fca5a5 !important; border: 1px solid #991b1b !important; }
+        &.status-vencida { background-color: rgba(153, 27, 27, 0.35) !important; color: #fca5a5 !important; border: 1px solid #dc2626 !important; }
+      }
+      
+      ::ng-deep {
+        .search-field .mat-mdc-text-field-wrapper, .filter-select .mat-mdc-text-field-wrapper {
+          background-color: #0f172a !important;
+        }
+
+        .mat-mdc-select-value-text, input.mat-mdc-input-element {
+          color: #f1f5f9 !important;
+        }
+
+        .mat-mdc-floating-label {
+          color: #94a3b8 !important;
+        }
+        
+        .mat-mdc-select-arrow {
+          color: #94a3b8 !important;
+        }
+
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: #334155 !important;
+        }
+
+        .mat-mdc-paginator {
+          background-color: #1e293b !important;
+          color: #cbd5e1 !important;
+
+          .mat-mdc-paginator-range-label,
+          .mat-mdc-paginator-page-size-label,
+          .mat-mdc-select-value-text,
+          .mat-mdc-paginator-navigation-previous,
+          .mat-mdc-paginator-navigation-next {
+            color: #cbd5e1 !important;
+          }
+        }
+      }
+      
+      .selection-banner {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
+        border-color: #4338ca !important;
+        color: #e0e7ff !important;
+      }
+      
+      .btn-clear-selection {
+        color: #a5b4fc !important;
+      }
+      
+      .form-card, .detail-card {
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        border-color: #334155 !important;
+
+        .detail-item strong {
+          color: #a5b4fc !important;
+        }
+
+        .primigenia-form ::ng-deep {
+          .mat-mdc-text-field-wrapper {
+            background-color: #0f172a !important;
+          }
+
+          .mat-mdc-select-value-text, input.mat-mdc-input-element, textarea.mat-mdc-input-element {
+            color: #f8fafc !important;
+          }
+
+          .mat-mdc-floating-label {
+            color: #94a3b8 !important;
+          }
+
+          .mdc-notched-outline__leading,
+          .mdc-notched-outline__notch,
+          .mdc-notched-outline__trailing {
+            border-color: #334155 !important;
+          }
+        }
+      }
+      
+      .sub-section {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+      }
+      
+      .fecha-vigente-cell {
+        color: #f8fafc !important;
+      }
+      
+      .obs-text {
+        color: #cbd5e1 !important;
+      }
     }
   `]
 })
@@ -1379,6 +1896,223 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
   pageSize = signal(10);
   currentPage = signal(0);
   filtroPorVencer30 = signal<boolean>(false);
+  showMobileFilters = signal<boolean>(false);
+
+  // Signals para Selección Múltiple
+  selectedIds = signal<Set<string>>(new Set());
+
+  selectedCount = computed(() => this.selectedIds().size);
+
+  isAllSelected = computed(() => {
+    const filtradas = this.resolucionesFiltradas();
+    if (filtradas.length === 0) return false;
+    const set = this.selectedIds();
+    return filtradas.every(r => set.has(r.id));
+  });
+
+  isSomeSelected = computed(() => {
+    const filtradas = this.resolucionesFiltradas();
+    if (filtradas.length === 0) return false;
+    const set = this.selectedIds();
+    const count = filtradas.filter(r => set.has(r.id)).length;
+    return count > 0 && count < filtradas.length;
+  });
+
+  selectedResoluciones = computed(() => {
+    const set = this.selectedIds();
+    return this.resoluciones().filter(r => set.has(r.id));
+  });
+
+  toggleSelectAll(): void {
+    const filtradas = this.resolucionesFiltradas();
+    const currentSet = new Set(this.selectedIds());
+    if (this.isAllSelected()) {
+      filtradas.forEach(r => currentSet.delete(r.id));
+    } else {
+      filtradas.forEach(r => currentSet.add(r.id));
+    }
+    this.selectedIds.set(currentSet);
+  }
+
+  toggleSelectRow(id: string): void {
+    const currentSet = new Set(this.selectedIds());
+    if (currentSet.has(id)) {
+      currentSet.delete(id);
+    } else {
+      currentSet.add(id);
+    }
+    this.selectedIds.set(currentSet);
+  }
+
+  isSelected(id: string): boolean {
+    return this.selectedIds().has(id);
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  async exportarAExcel(modo: 'seleccionadas' | 'filtradas' | 'todas' = 'seleccionadas'): Promise<void> {
+    let dataToExport: ResolucionPrimigenia[] = [];
+    let filename = 'resoluciones_primigenias.xlsx';
+
+    if (modo === 'seleccionadas') {
+      dataToExport = this.selectedResoluciones();
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones seleccionadas para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_primigenias_seleccionadas_${Date.now()}.xlsx`;
+    } else if (modo === 'filtradas') {
+      dataToExport = this.resolucionesFiltradas();
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones filtradas para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_primigenias_filtradas_${Date.now()}.xlsx`;
+    } else {
+      dataToExport = this.resoluciones();
+      if (dataToExport.length === 0) {
+        this.snackBar.open('No hay resoluciones para exportar', 'Cerrar', { duration: 3000 });
+        return;
+      }
+      filename = `resoluciones_primigenias_todas_${Date.now()}.xlsx`;
+    }
+
+    try {
+      const XLSX = await import('xlsx');
+
+      // Mapeo completo de columnas disponibles para Excel
+      const columnasExcelMap: { [key: string]: { header: string, width: number, getValue: (r: ResolucionPrimigenia) => any } } = {
+        'nro_resolucion': {
+          header: 'N° Resolución',
+          width: 18,
+          getValue: (r) => r.nro_resolucion || ''
+        },
+        'siglas': {
+          header: 'Siglas Organismo',
+          width: 16,
+          getValue: (r) => r.siglas || ''
+        },
+        'ruc_empresa': {
+          header: 'RUC Empresa',
+          width: 15,
+          getValue: (r) => r.ruc_empresa || ''
+        },
+        'empresa_nombre': {
+          header: 'Razón Social Empresa',
+          width: 45,
+          getValue: (r) => this.getNombreEmpresaCompleto(r.ruc_empresa) || this.getNombreEmpresa(r.ruc_empresa) || ''
+        },
+        'tipo_autorizacion': {
+          header: 'Modalidad / Servicio',
+          width: 22,
+          getValue: (r) => r.tipo_autorizacion || ''
+        },
+        'fecha_resolucion': {
+          header: 'Fecha Emisión',
+          width: 14,
+          getValue: (r) => r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : ''
+        },
+        'fecha_inicio_vigencia': {
+          header: 'Fecha Inicio Vigencia',
+          width: 14,
+          getValue: (r) => r.fecha_inicio_vigencia ? new Date(r.fecha_inicio_vigencia).toLocaleDateString('es-PE') : ''
+        },
+        'anios_vigencia': {
+          header: 'Años Vigencia',
+          width: 12,
+          getValue: (r) => r.anios_vigencia || 10
+        },
+        'fecha_fin_vigencia': {
+          header: 'Fecha Fin Vigencia',
+          width: 14,
+          getValue: (r) => r.fecha_fin_vigencia ? new Date(r.fecha_fin_vigencia).toLocaleDateString('es-PE') : ''
+        },
+        'estado': {
+          header: 'Estado Legal',
+          width: 14,
+          getValue: (r) => this.getEstadoEfectivo(r)
+        },
+        'tiene_eficacia_anticipada': {
+          header: 'Eficacia Anticipada',
+          width: 14,
+          getValue: (r) => r.tiene_eficacia_anticipada ? 'SÍ' : 'NO'
+        },
+        'fe_erratas': {
+          header: 'Fe de Erratas',
+          width: 30,
+          getValue: (r) => (r.fe_erratas || []).map(fe => `${fe.numero_resolucion} (${fe.detalle_correccion})`).join('; ') || '-'
+        },
+        'historial_modificaciones': {
+          header: 'Modificaciones Hijas',
+          width: 30,
+          getValue: (r) => (r.historial_modificaciones || []).map(m => `${m.nro_resolucion_hija} [${m.tipo_modificacion}]`).join('; ') || '-'
+        },
+        'observaciones': {
+          header: 'Observaciones',
+          width: 30,
+          getValue: (r) => r.observaciones || ''
+        },
+        'link_documento': {
+          header: 'Link Drive PDF',
+          width: 35,
+          getValue: (r) => r.link_documento || ''
+        }
+      };
+
+      // Determinar qué columnas están actualmente visibles configuradas por el usuario
+      const keysVisibles: string[] = [];
+
+      this.columnasDisponibles.forEach(col => {
+        if (col.key !== 'select' && col.key !== 'acciones' && this.columnaVisible(col.key)) {
+          if (col.key === 'ruc_empresa') {
+            keysVisibles.push('ruc_empresa');
+            keysVisibles.push('empresa_nombre');
+          } else if (columnasExcelMap[col.key]) {
+            keysVisibles.push(col.key);
+          }
+        }
+      });
+
+      // Si por alguna razón ninguna columna está marcada, usar todas como respaldo
+      const keysFinales = keysVisibles.length > 0 ? keysVisibles : Object.keys(columnasExcelMap);
+
+      const rows = dataToExport.map(r => {
+        const rowObj: { [header: string]: any } = {};
+        keysFinales.forEach(k => {
+          const colDef = columnasExcelMap[k];
+          if (colDef) {
+            rowObj[colDef.header] = colDef.getValue(r);
+          }
+        });
+        return rowObj;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+
+      const colWidths = keysFinales.map(k => ({ wch: columnasExcelMap[k]?.width || 15 }));
+      ws['!cols'] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Resoluciones_Primigenias');
+
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      this.snackBar.open(`✅ Excel exportado con ${keysFinales.length} columnas visibles (${rows.length} registros)`, 'Cerrar', { duration: 4000 });
+    } catch (err) {
+      console.error('Error al exportar a Excel:', err);
+      this.snackBar.open('Error al generar el archivo Excel', 'Cerrar', { duration: 4000 });
+    }
+  }
 
   // Modales
   showFormModal = signal(false);
@@ -1630,6 +2364,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
 
   // Configuración de Columnas Disponibles
   columnasDisponibles = [
+    { key: 'select', label: 'Seleccionar (☑)', required: true },
     { key: 'nro_resolucion', label: 'N° Resolución', required: true },
     { key: 'siglas', label: 'Siglas Organismo', required: false },
     { key: 'ruc_empresa', label: 'RUC Empresa', required: false },
@@ -1649,6 +2384,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
 
   // 'siglas' NO está incluida por defecto aquí para que quede desactivada inicialmente
   columnasVisiblesState = signal<string[]>([
+    'select',
     'nro_resolucion',
     'ruc_empresa',
     'tipo_autorizacion',
@@ -1666,7 +2402,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
   ]);
 
   columnaVisible(key: string): boolean {
-    if (key === 'nro_resolucion' || key === 'acciones') return true;
+    if (key === 'select' || key === 'nro_resolucion' || key === 'acciones') return true;
     return this.columnasVisiblesState().includes(key);
   }
 
@@ -1762,6 +2498,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     this.estadoControl.setValue('');
     this.tipoAutorizacionControl.setValue('');
     this.filtroPorVencer30.set(false);
+    this.clearSelection();
     this.currentPage.set(0);
   }
 
@@ -1821,7 +2558,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     const val = this.editForm.value;
 
     const dto: ResolucionPrimigeniaUpdate = {
-      nro_resolucion: val.nro_resolucion,
+      nro_resolucion: this.normalizarNroResolucion(val.nro_resolucion),
       siglas: val.siglas || undefined,
       estado: val.estado,
       fecha_resolucion: val.fecha_resolucion,
@@ -1902,6 +2639,30 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     });
   }
 
+  normalizarNroResolucion(val?: string | null): string {
+    if (!val) return '';
+    let s = val.toString().trim().toUpperCase();
+    if (!s || s === 'NAN') return '';
+
+    s = s.replace(/^(RESOLUCIÓN|RESOLUCION|RES\.|RES-|R\.|R\s+)/i, 'R-');
+    s = s.replace(/^(N°|Nº|N-)\s*/i, '');
+    s = s.trim();
+
+    const match = s.match(/^(?:R[-.\s]*)?0*(\d{1,6})[-/. ](\d{4})(?:[-/.]?.*)?$/);
+    if (match) {
+      const correlativo = parseInt(match[1], 10);
+      const anio = match[2];
+      const corrFmt = correlativo.toString().padStart(4, '0');
+      return `R-${corrFmt}-${anio}`;
+    }
+
+    if (/^\d/.test(s)) {
+      return `R-${s}`;
+    }
+
+    return s;
+  }
+
   guardarResolucion(): void {
     if (this.primigeniaForm.invalid) return;
 
@@ -1912,7 +2673,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
 
     const dto: ResolucionPrimigeniaCreate = {
       ruc_empresa: formVal.ruc_empresa,
-      nro_resolucion: formVal.nro_resolucion,
+      nro_resolucion: this.normalizarNroResolucion(formVal.nro_resolucion),
       siglas: formVal.siglas || undefined,
       fecha_resolucion: formVal.fecha_resolucion,
       fecha_inicio_vigencia: formVal.fecha_inicio_vigencia,

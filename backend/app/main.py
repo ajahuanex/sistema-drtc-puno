@@ -11,7 +11,7 @@ from app.routers.data_manager_router import router as data_manager_router
 from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
 from app.routers.historial_vehicular_router import router as historial_vehicular_router
-from app.routers.vehiculos_solo_router import router as vehiculos_solo_router
+from app.routers.vehiculo_data_router import router as vehiculo_data_router
 from app.routers.nivel_territorial_router import router as nivel_territorial_router
 from app.routers.infraestructura import router as infraestructura_router
 from app.routers.localidades_alias_router import router as localidades_alias_router
@@ -22,6 +22,7 @@ from app.api.endpoints.localidades_geojson import router as localidades_geojson_
 from app.routers.geometrias import router as geometrias_router
 from app.routers.resoluciones_primigenias_router import router as resoluciones_primigenias_router
 from app.routers.resoluciones_hijas_router import router as resoluciones_hijas_router
+from app.routers.flota_empresa_router import router as flota_empresa_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -97,7 +98,7 @@ app.include_router(configuraciones_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(infraestructura_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
-app.include_router(vehiculos_solo_router, prefix=settings.API_V1_STR)
+app.include_router(vehiculo_data_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
 app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
 app.include_router(conductores_router, prefix=settings.API_V1_STR)
@@ -121,6 +122,7 @@ app.include_router(geometrias_router, prefix=settings.API_V1_STR)
 app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)
 app.include_router(additional_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)
+app.include_router(flota_empresa_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud
 @app.get("/health")

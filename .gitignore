@@ -76,4 +76,11 @@ build/
 
 # Backup files
 *.bak
-*.backup 
+*.backup
+
+# Caches and scratch
+.vector_cache/
+.kiro/
+scratch/
+*.ps1
+ia.py

@@ -218,6 +218,126 @@ export interface RegistroResolucionPreview {
               </div>
             }
 
+            <!-- VISTA PREVIA DE DATOS Y MAPEO DE COLUMNAS AL OBTENER DATOS (ANTES DE PROCESAR) -->
+            @if (archivoSeleccionado() && previewRows().length > 0 && !mostrarResultados()) {
+              <div class="data-preview-container animate-fade-in">
+                <!-- Target Destination Banner -->
+                <div class="destination-target-banner">
+                  <div class="dest-info">
+                    <mat-icon class="dest-icon">storage</mat-icon>
+                    <div>
+                      <h4 class="dest-title">Destino de Carga Confirmado</h4>
+                      <p class="dest-desc">Base de Datos: <strong>DRTC Puno (MongoDB)</strong> &rarr; Colección: <code>resoluciones_primigenias</code></p>
+                    </div>
+                  </div>
+                  <div class="dest-stats">
+                    <span class="stat-pill total-pill"><mat-icon>format_list_numbered</mat-icon> {{ previewRows().length }} Registros</span>
+                    <span class="stat-pill valid-pill"><mat-icon>check_circle</mat-icon> {{ totalValidosPreview() }} Válidos</span>
+                    @if (totalInvalidosPreview() > 0) {
+                      <span class="stat-pill invalid-pill"><mat-icon>warning</mat-icon> {{ totalInvalidosPreview() }} Con Observación</span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Mapeo de Columnas (Archivo vs DB Target) -->
+                <div class="mapping-section">
+                  <h4 class="section-subtitle">
+                    <mat-icon>alt_route</mat-icon>
+                    Correspondencia y Mapeo de Columnas Detectadas (Excel / Google Sheets &rarr; DRTC Puno)
+                  </h4>
+                  <div class="mapping-grid">
+                    @for (col of columnasMapeadas(); track col.destCampo) {
+                      <div class="mapping-chip">
+                        <span class="source-col">{{ col.archivoCol }}</span>
+                        <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                        <span class="dest-col"><code>{{ col.destCampo }}</code></span>
+                        <span class="type-tag">{{ col.tipo }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Pre-visualización de Registros Extraídos -->
+                <div class="extracted-data-preview">
+                  <h4 class="section-subtitle">
+                    <mat-icon>visibility</mat-icon>
+                    Vista Previa de Registros a Importar (Primeras {{ Math.min(10, previewRows().length) }} filas)
+                  </h4>
+                  <div class="tab-table-wrapper">
+                    <table class="modern-table preview-table">
+                      <thead>
+                        <tr>
+                          <th (click)="toggleSort('fila')" class="sortable-th">
+                            <span>Fila</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('fila') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('esValido')" class="sortable-th">
+                            <span>Estado Data</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('esValido') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('ruc')" class="sortable-th">
+                            <span>RUC Empresa (<code>ruc_empresa</code>)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('ruc') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('nroResolucion')" class="sortable-th">
+                            <span>N° Resolución (<code>nro_resolucion</code>)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('nroResolucion') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('tipoAutorizacion')" class="sortable-th">
+                            <span>Modalidad (<code>tipo_autorizacion</code>)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('tipoAutorizacion') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('fechaResolucion')" class="sortable-th">
+                            <span>Fechas (Emisión / Vigencia)</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('fechaResolucion') }}</mat-icon>
+                          </th>
+                          <th (click)="toggleSort('aniosVigencia')" class="sortable-th">
+                            <span>Vigencia</span>
+                            <mat-icon class="sort-icon">{{ getSortIcon('aniosVigencia') }}</mat-icon>
+                          </th>
+                          <th>Expedientes</th>
+                          <th>Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (r of previewRowsOrdenadas().slice(0, 15); track r.fila) {
+                          <tr [class.invalid-row]="!r.esValido">
+                            <td><strong>#{{ r.fila }}</strong></td>
+                            <td>
+                              @if (r.esValido) {
+                                <span class="status-chip success"><mat-icon>check</mat-icon> VÁLIDO</span>
+                              } @else {
+                                <span class="status-chip danger"><mat-icon>error</mat-icon> ERROR</span>
+                              }
+                            </td>
+                            <td><span class="code-badge">{{ r.ruc }}</span></td>
+                            <td><span class="code-badge info-code">{{ r.nroResolucion }}</span></td>
+                            <td><span class="type-tag">{{ r.tipoAutorizacion }}</span></td>
+                            <td>
+                              <div class="date-range-flex">
+                                <span>{{ r.fechaResolucion }}</span>
+                                <span class="text-muted">|</span>
+                                <span>{{ r.fechaInicioVigencia }} &rarr; {{ r.fechaFinVigencia }}</span>
+                              </div>
+                            </td>
+                            <td>{{ r.aniosVigencia }} Años</td>
+                            <td><span>{{ r.expedientes || '-' }}</span></td>
+                            <td>
+                              @if (!r.esValido && r.errores?.length) {
+                                <span class="err-text"><mat-icon>error_outline</mat-icon> {{ r.errores?.join(', ') }}</span>
+                              } @else {
+                                <span class="obs-cell">{{ r.observaciones || 'OK' }}</span>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            }
+
             <!-- Panel de Opciones de Procesamiento Compacto -->
             <div class="options-container">
               <div class="option-group">
@@ -554,7 +674,7 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
 
   // Signals de estado
   origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
-  googleSheetsUrl = signal<string>('');
+  googleSheetsUrl = signal<string>(localStorage.getItem('drtc_ultimo_google_sheets_url') || '');
   cargandoGoogleSheets = signal<boolean>(false);
 
   archivoSeleccionado = signal<File | null>(null);
@@ -566,6 +686,94 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
   isDragOver = signal<boolean>(false);
   resultado = signal<any>(null);
   previewRows = signal<RegistroResolucionPreview[]>([]);
+
+  Math = Math;
+
+  columnasMapeadas = computed(() => [
+    { archivoCol: 'RUC_EMPRESA_ASOCIADA / RUC', destCampo: 'ruc_empresa', tipo: 'RUC (11 dígitos)', requerido: true },
+    { archivoCol: 'RESOLUCION_NUMERO / NRO_RESOLUCION', destCampo: 'nro_resolucion', tipo: 'Texto', requerido: true },
+    { archivoCol: 'FECHA_EMISION / FECHA_RESOLUCION', destCampo: 'fecha_resolucion', tipo: 'Fecha (ISO)', requerido: false },
+    { archivoCol: 'FECHA_INICIO_VIGENCIA', destCampo: 'fecha_inicio_vigencia', tipo: 'Fecha (ISO)', requerido: false },
+    { archivoCol: 'ANIOS_VIGENCIA / VIGENCIA', destCampo: 'anios_vigencia', tipo: 'Número (4 o 10)', requerido: false },
+    { archivoCol: 'TIPO AUTORIZACION / MODALIDAD', destCampo: 'tipo_autorizacion', tipo: 'Tipo Autorización', requerido: false },
+    { archivoCol: 'ESTADO', destCampo: 'estado', tipo: 'Estado Legal', requerido: false },
+    { archivoCol: 'EXPEDIENTES / EXPEDIENTE', destCampo: 'expedientes_codigos', tipo: 'Lista Expedientes', requerido: false },
+    { archivoCol: 'DRIVE / LINK', destCampo: 'link_documento', tipo: 'URL PDF Drive', requerido: false },
+    { archivoCol: 'SIGLAS', destCampo: 'siglas', tipo: 'Siglas GRP/GRI/DRTC', requerido: false }
+  ]);
+
+  // Ordenamiento por columna en previsualización
+  sortField = signal<string>('fila');
+  sortDirection = signal<'asc' | 'desc'>('asc');
+
+  toggleSort(column: string): void {
+    if (this.sortField() === column) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(column);
+      this.sortDirection.set('asc');
+    }
+  }
+
+  getSortIcon(column: string): string {
+    if (this.sortField() !== column) {
+      return 'unfold_more';
+    }
+    return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  totalValidosPreview = computed(() => {
+    return this.previewRows().filter(r => r.esValido !== false).length;
+  });
+
+  totalInvalidosPreview = computed(() => {
+    return this.previewRows().filter(r => r.esValido === false).length;
+  });
+
+  previewRowsOrdenadas = computed(() => {
+    const rows = this.previewRows();
+    const field = this.sortField();
+    const isAsc = this.sortDirection() === 'asc';
+
+    return [...rows].sort((a, b) => {
+      let valA: any = '';
+      let valB: any = '';
+
+      switch (field) {
+        case 'fila':
+          valA = a.fila || 0;
+          valB = b.fila || 0;
+          return isAsc ? valA - valB : valB - valA;
+        case 'esValido':
+          valA = a.esValido !== false ? 1 : 0;
+          valB = b.esValido !== false ? 1 : 0;
+          return isAsc ? valA - valB : valB - valA;
+        case 'ruc':
+          valA = a.ruc || '';
+          valB = b.ruc || '';
+          break;
+        case 'nroResolucion':
+          valA = a.nroResolucion || '';
+          valB = b.nroResolucion || '';
+          break;
+        case 'tipoAutorizacion':
+          valA = a.tipoAutorizacion || '';
+          valB = b.tipoAutorizacion || '';
+          break;
+        case 'fechaResolucion':
+          valA = a.fechaResolucion || '';
+          valB = b.fechaResolucion || '';
+          break;
+        case 'aniosVigencia':
+          valA = a.aniosVigencia || 0;
+          valB = b.aniosVigencia || 0;
+          return isAsc ? valA - valB : valB - valA;
+      }
+
+      const res = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
+      return isAsc ? res : -res;
+    });
+  });
 
   // Computed signals
   totalFilas = computed(() => {
@@ -718,6 +926,7 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
     }
 
     const id = this.googleSheetsService.extraerIdDeUrl(url) || url;
+    localStorage.setItem('drtc_ultimo_google_sheets_url', url);
     this.cargandoGoogleSheets.set(true);
 
     this.googleSheetsService.obtenerDatosReales(id).subscribe({

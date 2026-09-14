@@ -913,30 +913,59 @@
   padding: 20px;
   margin-bottom: 24px;
 
-  .preview-header {
+  .preview-header-flex {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
     margin-bottom: 16px;
 
-    .preview-icon {
-      color: #6366f1;
-      font-size: 28px;
-      width: 28px;
-      height: 28px;
+    .preview-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .preview-icon {
+        color: #6366f1;
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      p {
+        margin: 2px 0 0 0;
+        font-size: 13px;
+        color: #64748b;
+      }
     }
 
-    h4 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-    }
+    .btn-config-cols {
+      border-radius: 10px;
+      font-weight: 600;
+      color: #4f46e5;
+      border-color: #c7d2fe;
+      background: #ffffff;
+      height: 40px;
 
-    p {
-      margin: 2px 0 0 0;
-      font-size: 13px;
-      color: #64748b;
+      mat-icon {
+        margin-right: 6px;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background: #f5f3ff;
+        border-color: #818cf8;
+      }
     }
   }
 
@@ -996,6 +1025,65 @@
   }
 }
 
+.cols-menu {
+  .menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .menu-item-checkbox {
+    padding: 6px 16px;
+
+    mat-checkbox {
+      font-size: 13px;
+    }
+  }
+}
+
+.ruc-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  .empresa-hint-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4f46e5;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 2px 8px;
+    border-radius: 6px;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .empresa-mini-icon {
+      font-size: 13px;
+      width: 13px;
+      height: 13px;
+      color: #6366f1;
+    }
+  }
+}
+
+.obs-cell {
+  font-size: 12px;
+  color: #64748b;
+  max-width: 220px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .spin-icon {
   animation: spin 1s linear infinite;
@@ -1013,6 +1101,67 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// MODOS OSCURO OVERRIDES
+// ----------------------------------------------------------------------------
+:host-context(.dark-mode), body.dark-mode {
+  .preview-section-card {
+    background: #1e293b;
+    border-color: #334155;
+
+    .preview-header-flex {
+      .preview-header-info {
+        h4 { color: #f8fafc; }
+        p { color: #94a3b8; }
+      }
+
+      .btn-config-cols {
+        background: #0f172a;
+        color: #818cf8;
+        border-color: #3730a3;
+
+        &:hover {
+          background: #1e1b4b;
+        }
+      }
+    }
+
+    .preview-table {
+      background: #0f172a;
+
+      th {
+        background: #1e293b;
+        color: #94a3b8;
+        border-bottom-color: #334155;
+      }
+
+      td {
+        color: #e2e8f0;
+        border-bottom-color: #1e293b;
+      }
+
+      tr:hover td {
+        background: #1e293b;
+      }
+    }
+  }
+
+  .ruc-container {
+    .empresa-hint-text {
+      color: #a5b4fc;
+      background: rgba(99, 102, 241, 0.2);
+
+      .empresa-mini-icon {
+        color: #818cf8;
+      }
+    }
+  }
+
+  .obs-cell {
+    color: #94a3b8;
   }
 }
 

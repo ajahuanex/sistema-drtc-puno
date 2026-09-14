@@ -1,9 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
+import httpx
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 from app.dependencies.auth import get_current_active_user
 from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
@@ -1250,3 +1255,246 @@ async def empresas_count(
             "traceback": traceback.format_exc(),
             "status": "error"
         }
+
+def _build_datos_sunat_payload(sunat_raw: dict, ahora: datetime) -> dict:
+    estados_ruc = {
+        '00': 'ACTIVO', '10': 'SUSPENSION TEMPORAL', '11': 'BAJA DE OFICIO',
+        '12': 'BAJA DEFINITIVA', '20': 'BAJA PROVISIONAL',
+        '21': 'BAJA PROV. POR OFICIO', '22': 'SUSPENSION PROVISIONAL'
+    }
+    ddp_nombre = (sunat_raw.get('ddp_nombre') or '').strip()
+    ddp_estado = sunat_raw.get('ddp_estado') or ''
+    desc_estado = sunat_raw.get('desc_estado') or estados_ruc.get(ddp_estado, ddp_estado)
+    desc_flag22 = sunat_raw.get('desc_flag22') or ('HABIDO' if sunat_raw.get('ddp_flag22') == '00' else 'NO HABIDO')
+    
+    es_activo = (ddp_estado == '00' or str(desc_estado).upper() == 'ACTIVO')
+    es_habido = ('HABIDO' in str(desc_flag22).upper() or sunat_raw.get('ddp_flag22') == '00')
+
+    tip_via = sunat_raw.get('desc_tipvia', '') or ''
+    nom_via = sunat_raw.get('ddp_nomvia', '') or ''
+    num1 = sunat_raw.get('ddp_numer1', '') or ''
+    tip_zon = sunat_raw.get('desc_tipzon', '') or ''
+    nom_zon = sunat_raw.get('ddp_nomzon', '') or ''
+    dist = sunat_raw.get('desc_dist', '') or ''
+    prov = sunat_raw.get('desc_prov', '') or ''
+    dep = sunat_raw.get('desc_dep', '') or ''
+
+    partes_dir = [p for p in [f"{tip_via} {nom_via}".strip(), num1, f"{tip_zon} {nom_zon}".strip(), f"{dist} - {prov} - {dep}".strip()] if p and p != '-']
+    direccion_completa = ", ".join(partes_dir)
+
+    return {
+        "ddp_nombre": ddp_nombre,
+        "ddp_estado": ddp_estado,
+        "desc_estado": desc_estado,
+        "desc_flag22": desc_flag22,
+        "esActivo": es_activo,
+        "esHabido": es_habido,
+        "desc_ciiu": sunat_raw.get('desc_ciiu', '') or '',
+        "desc_tpoemp": sunat_raw.get('desc_tpoemp', '') or '',
+        "desc_dep": dep,
+        "desc_prov": prov,
+        "desc_dist": dist,
+        "direccionFiscalSunat": direccion_completa,
+        "ddp_ubigeo": sunat_raw.get('ddp_ubigeo', '') or '',
+        "ddp_ciiu": sunat_raw.get('ddp_ciiu', '') or '',
+        "ddp_fecalt": sunat_raw.get('ddp_fecalt', '') or '',
+        "ddp_fecact": sunat_raw.get('ddp_fecact', '') or '',
+        "fechaConsulta": ahora.isoformat(),
+        "raw": sunat_raw,
+        "valido": es_activo,
+        "razonSocial": ddp_nombre,
+        "condicion": desc_flag22
+    }
+
+
+@router.get("/consulta-sunat/{ruc}")
+async def consultar_sunat_proxy(
+    ruc: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """
+    Proxy para consultar la API de SUNAT y persistir automáticamente los datos en MongoDB
+    si la empresa ya existe registrada.
+    """
+    if not ruc or len(ruc) != 11 or not ruc.isdigit():
+        raise HTTPException(status_code=400, detail="RUC inválido")
+        
+    url = f"https://pcm.guillermo.pe/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
+    
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url)
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail=f"Error en la API externa: {response.text}")
+                
+            res_json = response.json()
+            if res_json and isinstance(res_json, dict) and 'data' in res_json:
+                sunat_raw = res_json['data']
+                ahora = datetime.utcnow()
+                datos_sunat = _build_datos_sunat_payload(sunat_raw, ahora)
+                
+                # Persistir automáticamente en BD si la empresa existe
+                empresa_db = await empresa_service.get_empresa_by_ruc(ruc)
+                if empresa_db:
+                    empresa_dict = empresa_db if isinstance(empresa_db, dict) else empresa_db.model_dump()
+                    empresa_id = empresa_dict.get('id')
+                    razon_actual = empresa_dict.get('razonSocial', {})
+                    if isinstance(razon_actual, dict):
+                        razon_actualizada = {**razon_actual, 'sunat': datos_sunat['ddp_nombre']}
+                    else:
+                        razon_actualizada = {'principal': str(razon_actual), 'sunat': datos_sunat['ddp_nombre']}
+                    
+                    update_data = EmpresaUpdate(
+                        datosSunat=datos_sunat,
+                        ultimaValidacionSunat=ahora,
+                        razonSocial=razon_actualizada  # type: ignore
+                    )
+                    await empresa_service.update_empresa(empresa_id, update_data, "SISTEMA")
+                    logger.info(f"✅ SUNAT persistido en MongoDB para RUC {ruc} vía consulta proxy")
+                    
+            return res_json
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"Error de conexión con la API externa: {str(e)}")
+
+
+async def _fetch_sunat_data(ruc: str) -> Optional[dict]:
+    """Consulta la API de SUNAT y retorna los datos crudos, o None si falla."""
+    if not ruc or len(ruc) != 11 or not ruc.isdigit():
+        return None
+    url = f"https://pcm.guillermo.pe/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception as e:
+        logger.warning(f"Error consultando SUNAT para RUC {ruc}: {e}")
+    return None
+
+
+@router.put("/{empresa_id}/actualizar-sunat", response_model=EmpresaResponse)
+async def actualizar_sunat_empresa(
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+) -> EmpresaResponse:
+    """
+    Consulta la API de SUNAT para la empresa indicada y guarda los datos
+    (nombre, estado, condición, dirección, ciiu, fecha de consulta) en la base de datos MongoDB.
+    """
+    empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    ruc = empresa.get('ruc') if isinstance(empresa, dict) else empresa.ruc
+    
+    data = await _fetch_sunat_data(ruc)
+    if not data or 'data' not in data:
+        raise HTTPException(status_code=502, detail="No se obtuvo respuesta válida de la API SUNAT")
+    
+    sunat_raw = data['data']
+    ahora = datetime.utcnow()
+    datos_sunat = _build_datos_sunat_payload(sunat_raw, ahora)
+    
+    empresa_actual = empresa if isinstance(empresa, dict) else {
+        'razonSocial': empresa.razonSocial.model_dump() if hasattr(empresa.razonSocial, 'model_dump') else empresa.razonSocial
+    }
+    razon_actual = empresa_actual.get('razonSocial', {})
+    if isinstance(razon_actual, dict):
+        razon_actualizada = {**razon_actual, 'sunat': datos_sunat['ddp_nombre']}
+    else:
+        razon_actualizada = {'principal': str(razon_actual), 'sunat': datos_sunat['ddp_nombre']}
+    
+    update_data = EmpresaUpdate(
+        datosSunat=datos_sunat,
+        ultimaValidacionSunat=ahora,
+        razonSocial=razon_actualizada  # type: ignore
+    )
+    
+    updated = await empresa_service.update_empresa(empresa_id, update_data, "SISTEMA")
+    if not updated:
+        raise HTTPException(status_code=500, detail="Error al guardar datos SUNAT en MongoDB")
+    
+    logger.info(f"✅ SUNAT actualizado y persistido para RUC {ruc}: {datos_sunat['desc_estado']}")
+    return create_empresa_response(updated)
+
+
+@router.post("/actualizar-sunat-masivo")
+async def actualizar_sunat_masivo(
+    background_tasks: BackgroundTasks,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """
+    Dispara la actualización masiva de datos SUNAT para TODAS las empresas activas.
+    La tarea se ejecuta en background para no bloquear la respuesta HTTP.
+    """
+    background_tasks.add_task(_tarea_actualizacion_masiva_sunat, empresa_service)
+    return {
+        "mensaje": "Actualización masiva SUNAT iniciada en background",
+        "status": "procesando"
+    }
+
+
+async def _tarea_actualizacion_masiva_sunat(empresa_service: EmpresaService):
+    """Tarea en background: actualiza datos SUNAT de todas las empresas activas."""
+    logger.info("⌛ Iniciando actualización masiva SUNAT...")
+    db_instance = await get_empresa_service.__wrapped__(empresa_service) if hasattr(get_empresa_service, '__wrapped__') else None
+    
+    # Obtener todas las empresas activas
+    try:
+        empresas = await empresa_service.get_all_empresas_activas()
+    except Exception:
+        # Fallback: obtener todas
+        empresas = await empresa_service.get_empresas(skip=0, limit=99999)
+    
+    actualizadas = 0
+    errores = 0
+    
+    for empresa in empresas:
+        try:
+            empresa_id = empresa.get('id') if isinstance(empresa, dict) else empresa.id
+            ruc = empresa.get('ruc') if isinstance(empresa, dict) else empresa.ruc
+            
+            data = await _fetch_sunat_data(ruc)
+            if not data or 'data' not in data:
+                errores += 1
+                continue
+            
+            sunat_raw = data['data']
+            ahora = datetime.utcnow()
+            estados_ruc = {
+                '00': 'ACTIVO', '10': 'SUSPENSION TEMPORAL', '11': 'BAJA DE OFICIO',
+                '12': 'BAJA DEFINITIVA', '20': 'BAJA PROVISIONAL',
+                '21': 'BAJA PROV. POR OFICIO', '22': 'SUSPENSION PROVISIONAL'
+            }
+            datos_sunat = {
+                "ddp_nombre": sunat_raw.get('ddp_nombre', ''),
+                "ddp_estado": sunat_raw.get('ddp_estado', ''),
+                "desc_estado": estados_ruc.get(sunat_raw.get('ddp_estado', ''), ''),
+                "esActivo": sunat_raw.get('ddp_estado') == '00',
+                "esHabido": sunat_raw.get('ddp_ubigeo') is not None and sunat_raw.get('ddp_ubigeo') != '',
+                "ddp_ciiu": sunat_raw.get('ddp_ciiu', ''),
+                "ddp_fecact": sunat_raw.get('ddp_fecact', ''),
+                "fechaConsulta": ahora.isoformat()
+            }
+            
+            razon_actual = empresa.get('razonSocial', {}) if isinstance(empresa, dict) else \
+                (empresa.razonSocial.model_dump() if hasattr(empresa.razonSocial, 'model_dump') else {})
+            razon_actualizada = {**razon_actual, 'sunat': datos_sunat['ddp_nombre']}
+            
+            update_data = EmpresaUpdate(
+                datosSunat=datos_sunat,
+                ultimaValidacionSunat=ahora,
+                razonSocial=razon_actualizada  # type: ignore
+            )
+            await empresa_service.update_empresa(empresa_id, update_data, "SCHEDULER")
+            actualizadas += 1
+            
+            # Respetar rate limits de la API
+            await asyncio.sleep(0.5)
+            
+        except Exception as e:
+            logger.warning(f"Error actualizando SUNAT para empresa: {e}")
+            errores += 1
+    
+    logger.info(f"✅ Actualización masiva SUNAT completa: {actualizadas} ok, {errores} errores")
