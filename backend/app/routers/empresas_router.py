@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from bson import ObjectId
 from datetime import datetime
 from io import BytesIO
@@ -8,13 +8,16 @@ import httpx
 import asyncio
 import logging
 
+import logging
+import unicodedata
+
 logger = logging.getLogger(__name__)
 from app.dependencies.auth import get_current_active_user
 from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
 from app.repositories.empresa_repository import EmpresaRepository
-from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas, EmpresaCambioEstado, CambioEstadoEmpresa, EmpresaCambioRepresentante, CambioRepresentanteLegal
+from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas, EmpresaCambioEstado, CambioEstadoEmpresa, EmpresaCambioRepresentante, CambioRepresentanteLegal, EstadoEmpresa
 from app.utils.exceptions import (
     EmpresaNotFoundException, 
     EmpresaAlreadyExistsException,
@@ -694,6 +697,162 @@ async def get_rutas_empresa(
     
     return rutas
 
+@router.get("/{empresa_id}/expediente-operativo")
+async def get_expediente_operativo_empresa(
+    empresa_id: str,
+    empresa_service: EmpresaService = Depends(get_empresa_service)
+):
+    """
+    Obtiene el expediente operativo integral y estadísticas de la empresa:
+    - KPIs (Total Primigenias, Rutas, Flota Habilitada, Modificatorias)
+    - Desglose por Resolución Primigenia con sus rutas, vehículos habilitados y resoluciones modificatorias (hijas)
+    """
+    from datetime import datetime
+    db = await get_database()
+    
+    empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa:
+        empresa = await empresa_service.get_empresa_by_ruc(empresa_id)
+    if not empresa:
+        raise EmpresaNotFoundException(empresa_id)
+        
+    emp_id_str = str(empresa.get("id") or empresa.get("_id")) if isinstance(empresa, dict) else str(getattr(empresa, "id", getattr(empresa, "_id", "")))
+    ruc = empresa.get("ruc") if isinstance(empresa, dict) else getattr(empresa, "ruc", "")
+    tipos_srv = empresa.get("tiposServicio", []) if isinstance(empresa, dict) else getattr(empresa, "tiposServicio", [])
+    servicio_defecto = tipos_srv[0] if tipos_srv else "PASAJEROS"
+    
+    # 1. Consultar colecciones
+    primigenias_docs = await db["resoluciones_primigenias"].find({"ruc_empresa": ruc, "esta_activo": True}).to_list(1000)
+    hijas_docs = await db["resoluciones_hijas"].find({"ruc_empresa": ruc, "esta_activo": True}).to_list(2000)
+    flota_docs = await db["flota_empresa"].find({"ruc": ruc, "esta_activo": True}).to_list(2000)
+    rutas_docs = await db["rutas"].find({
+        "$or": [
+            {"empresa.ruc": ruc},
+            {"empresa.id": emp_id_str},
+            {"empresaId": emp_id_str}
+        ]
+    }).to_list(2000)
+    
+    # 2. Mapear resoluciones primigenias registradas
+    primigenias_map = {}
+    for p in primigenias_docs:
+        nro = str(p.get("nro_resolucion", "")).strip().upper()
+        p_dict = {
+            "id": str(p.get("_id")),
+            "nro_resolucion": p.get("nro_resolucion"),
+            "siglas": p.get("siglas"),
+            "estado": p.get("estado", "VIGENTE"),
+            "tipo_autorizacion": p.get("tipo_autorizacion", "PASAJEROS"),
+            "anios_vigencia": p.get("anios_vigencia", 10),
+            "fecha_resolucion": p.get("fecha_resolucion").isoformat() if isinstance(p.get("fecha_resolucion"), datetime) else p.get("fecha_resolucion"),
+            "fecha_inicio_vigencia": p.get("fecha_inicio_vigencia").isoformat() if isinstance(p.get("fecha_inicio_vigencia"), datetime) else p.get("fecha_inicio_vigencia"),
+            "fecha_fin_vigencia": p.get("fecha_fin_vigencia").isoformat() if isinstance(p.get("fecha_fin_vigencia"), datetime) else p.get("fecha_fin_vigencia"),
+            "link_documento": p.get("link_documento"),
+            "observaciones": p.get("observaciones"),
+            "es_detectada": False,
+            "rutas": [],
+            "flota": [],
+            "modificatorias": []
+        }
+        primigenias_map[nro] = p_dict
+
+    # 3. Asociar rutas o detectar resoluciones desde rutas
+    for r in rutas_docs:
+        res_info = r.get("resolucion") or {}
+        nro_res = str(res_info.get("nroResolucion", "")).strip().upper()
+        if not nro_res:
+            nro_res = "SIN_RESOLUCION"
+            
+        if nro_res not in primigenias_map:
+            primigenias_map[nro_res] = {
+                "id": str(res_info.get("id")) if res_info.get("id") else None,
+                "nro_resolucion": res_info.get("nroResolucion") or "Resolución Pendiente",
+                "siglas": None,
+                "estado": res_info.get("estado", "VIGENTE"),
+                "tipo_autorizacion": servicio_defecto,
+                "anios_vigencia": 10,
+                "fecha_resolucion": None,
+                "fecha_inicio_vigencia": None,
+                "fecha_fin_vigencia": None,
+                "link_documento": None,
+                "observaciones": "Resolución identificada a partir de las rutas autorizadas de la empresa",
+                "es_detectada": True,
+                "rutas": [],
+                "flota": [],
+                "modificatorias": []
+            }
+            
+        r_item = {
+            "id": str(r.get("_id")),
+            "codigoRuta": r.get("codigoRuta"),
+            "nombreRuta": r.get("nombreRuta"),
+            "origen": r.get("origen", {}).get("nombre") if isinstance(r.get("origen"), dict) else r.get("origen"),
+            "destino": r.get("destino", {}).get("nombre") if isinstance(r.get("destino"), dict) else r.get("destino"),
+            "itinerario": [p.get("nombre") for p in r.get("itinerario", []) if isinstance(p, dict) and p.get("nombre")],
+            "estado": r.get("estado", "ACTIVA"),
+            "tipoServicio": r.get("tipoServicio", "PASAJEROS")
+        }
+        primigenias_map[nro_res]["rutas"].append(r_item)
+
+    # 4. Asociar flota vehicular
+    flota_activa_total = 0
+    for f in flota_docs:
+        placa = str(f.get("placa", "")).strip().upper()
+        if not placa or placa == "-":
+            continue
+        estado_veh = str(f.get("estado", "ACTIVO")).upper()
+        if estado_veh in ["ACTIVO", "HABILITADO", "VIGENTE"]:
+            flota_activa_total += 1
+            
+        nro_prim = str(f.get("nro_resolucion_primigenia", "")).strip().upper()
+        f_item = {
+            "id": str(f.get("_id")),
+            "placa": placa,
+            "estado": estado_veh,
+            "categoria": f.get("categoria"),
+            "marca": f.get("marca"),
+            "modelo": f.get("modelo"),
+            "anio_fabricacion": f.get("anio_fabricacion"),
+            "nro_tuc": f.get("nro_tuc")
+        }
+        if nro_prim in primigenias_map:
+            primigenias_map[nro_prim]["flota"].append(f_item)
+        elif len(primigenias_map) > 0:
+            list(primigenias_map.values())[0]["flota"].append(f_item)
+
+    # 5. Asociar modificatorias (resoluciones hijas)
+    total_modificatorias = len(hijas_docs)
+    for h in hijas_docs:
+        nro_prim = str(h.get("nro_resolucion_primigenia", "")).strip().upper()
+        h_item = {
+            "id": str(h.get("_id")),
+            "nro_resolucion": h.get("nro_resolucion"),
+            "tipo_acto": h.get("tipo_acto", "OTROS"),
+            "tipo_tramite_origen": h.get("tipo_tramite_origen"),
+            "fecha_resolucion": h.get("fecha_resolucion").isoformat() if isinstance(h.get("fecha_resolucion"), datetime) else h.get("fecha_resolucion"),
+            "vehiculos_ingresantes": h.get("vehiculos_ingresantes", []),
+            "vehiculos_salientes": h.get("vehiculos_salientes", []),
+            "rutas_modificadas_ids": h.get("rutas_modificadas_ids", []),
+            "link_documento": h.get("link_documento"),
+            "observaciones": h.get("observaciones")
+        }
+        if nro_prim in primigenias_map:
+            primigenias_map[nro_prim]["modificatorias"].append(h_item)
+        elif len(primigenias_map) > 0:
+            list(primigenias_map.values())[0]["modificatorias"].append(h_item)
+
+    lista_primigenias = list(primigenias_map.values())
+    
+    return {
+        "kpis": {
+            "total_primigenias": len(lista_primigenias),
+            "total_rutas": len(rutas_docs),
+            "total_vehiculos_habilitados": flota_activa_total,
+            "total_modificatorias": total_modificatorias
+        },
+        "primigenias": lista_primigenias
+    }
+
 # Endpoints para exportación
 @router.get("/exportar/{formato}")
 async def exportar_empresas(
@@ -865,6 +1024,33 @@ async def procesar_carga_masiva_empresas(
         )
 
 
+def normalizar_estado_empresa(val: Any) -> str:
+    """
+    Normaliza variantes de estado legal de empresa a los valores de EstadoEmpresa:
+    AUTORIZADA, CANCELADA, SUSPENDIDA, EN_TRAMITE
+    """
+    if not val:
+        return EstadoEmpresa.AUTORIZADA.value
+    
+    val_str = str(val).strip()
+    norm = unicodedata.normalize('NFKD', val_str).encode('ASCII', 'ignore').decode('ASCII').upper().strip()
+    
+    # Cancelada / Baja / Denegada / Revocada / No Autorizada
+    if any(k in norm for k in ['CANCEL', 'BAJA', 'REVOC', 'DENEG', 'ANULAD', 'NO AUTORIZ']):
+        return EstadoEmpresa.CANCELADA.value
+    # Suspendida
+    if 'SUSPEND' in norm:
+        return EstadoEmpresa.SUSPENDIDA.value
+    # En trámite / Proceso
+    if any(k in norm for k in ['TRAMIT', 'PROCESO', 'PENDIENT', 'EVALUA']):
+        return EstadoEmpresa.EN_TRAMITE.value
+    # Autorizada / Vigente / Habilitada / Activa
+    if any(k in norm for k in ['AUTORIZ', 'VIGENT', 'HABILIT', 'ACTIV']):
+        return EstadoEmpresa.AUTORIZADA.value
+    
+    return EstadoEmpresa.AUTORIZADA.value
+
+
 @router.post("/carga-masiva/google-sheets")
 async def procesar_carga_masiva_google_sheets(
     datos: List[dict] = Body(...),
@@ -872,7 +1058,7 @@ async def procesar_carga_masiva_google_sheets(
     empresa_service: EmpresaService = Depends(get_empresa_service)
 ):
     """
-    Procesar carga masiva de empresas desde Google Sheets
+    Procesar carga masiva de empresas desde Google Sheets / JSON
     
     Espera una lista de empresas a procesar
     Si la empresa existe por RUC, la actualiza. Si no existe, la crea.
@@ -891,7 +1077,14 @@ async def procesar_carga_masiva_google_sheets(
             'empresas_creadas': [],
             'empresas_actualizadas': [],
             'errores': [],
-            'advertencias': []
+            'advertencias': [],
+            'conteo_estados': {
+                'AUTORIZADA': 0,
+                'CANCELADA': 0,
+                'SUSPENDIDA': 0,
+                'EN_TRAMITE': 0,
+                'OTROS': 0
+            }
         }
         
         # TODO: Get usuario_id from authenticated user
@@ -923,6 +1116,20 @@ async def procesar_carga_masiva_google_sheets(
                     continue
                 
                 resultado['validos'] += 1
+                
+                # Normalizar y registrar estado legal
+                estado_raw = (
+                    empresa_data.get('estado') or 
+                    empresa_data.get('estadoLegal') or 
+                    empresa_data.get('situacion') or 
+                    'AUTORIZADA'
+                )
+                estado_normalizado = normalizar_estado_empresa(estado_raw)
+                
+                if estado_normalizado in resultado['conteo_estados']:
+                    resultado['conteo_estados'][estado_normalizado] += 1
+                else:
+                    resultado['conteo_estados']['OTROS'] += 1
                 
                 if solo_validar:
                     continue
@@ -984,7 +1191,7 @@ async def procesar_carga_masiva_google_sheets(
                 razon_social_sunat = str(empresa_data.get('razonSocialSunat', '')).strip() or None
                 razon_social_minimo = str(empresa_data.get('razonSocialMinimo', '')).strip() or None
                 
-                # Crear empresa
+                # Crear empresa con estado normalizado
                 empresa_create = EmpresaCreate(
                     ruc=ruc,
                     razonSocial={
@@ -993,7 +1200,7 @@ async def procesar_carga_masiva_google_sheets(
                         'minimo': razon_social_minimo
                     },
                     direccionFiscal=direccion,
-                    estado=empresa_data.get('estado', 'EN_TRAMITE'),
+                    estado=estado_normalizado,
                     tiposServicio=empresa_data.get('tiposServicio', ['PERSONAS']),
                     emailContacto=empresa_data.get('emailContacto'),
                     telefonoContacto=empresa_data.get('telefonoContacto'),
@@ -1014,7 +1221,7 @@ async def procesar_carga_masiva_google_sheets(
                         empresa_update = EmpresaUpdate(
                             razonSocial=empresa_create.razonSocial,
                             direccionFiscal=empresa_create.direccionFiscal,
-                            estado=empresa_create.estado,
+                            estado=estado_normalizado,
                             tiposServicio=empresa_create.tiposServicio,
                             emailContacto=empresa_create.emailContacto,
                             telefonoContacto=empresa_create.telefonoContacto,
@@ -1068,7 +1275,7 @@ async def procesar_carga_masiva_google_sheets(
         return {
             'solo_validacion': solo_validar,
             'resultado': resultado,
-            'mensaje': f"Procesamiento completado: {resultado['exitosas']} exitosas, {resultado['fallidas']} fallidas"
+            'mensaje': f"Procesamiento completado: {resultado['exitosas']} exitosas, {resultado['fallidas']} fallidas. ({resultado['conteo_estados']['AUTORIZADA']} autorizadas, {resultado['conteo_estados']['CANCELADA']} canceladas)"
         }
         
     except Exception as e:

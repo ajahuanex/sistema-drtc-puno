@@ -17,11 +17,28 @@ from app.models.empresa import (
 from app.services.empresa_service import EmpresaService
 from app.services.configuracion_service import ConfiguracionService
 from app.dependencies.db import get_database
+import unicodedata
 
 class EmpresaExcelService:
     def __init__(self):
         self.empresa_service = None
         self.configuracion_service = None
+
+    def _normalizar_estado(self, valor: Any) -> str:
+        """Normalizar variantes de estado legal de empresa a los valores de EstadoEmpresa"""
+        if not valor or pd.isna(valor):
+            return EstadoEmpresa.AUTORIZADA.value
+        val_str = str(valor).strip()
+        norm = unicodedata.normalize('NFKD', val_str).encode('ASCII', 'ignore').decode('ASCII').upper().strip()
+        if any(k in norm for k in ['CANCEL', 'BAJA', 'REVOC', 'DENEG', 'ANULAD', 'NO AUTORIZ']):
+            return EstadoEmpresa.CANCELADA.value
+        if 'SUSPEND' in norm:
+            return EstadoEmpresa.SUSPENDIDA.value
+        if any(k in norm for k in ['TRAMIT', 'PROCESO', 'PENDIENT', 'EVALUA']):
+            return EstadoEmpresa.EN_TRAMITE.value
+        if any(k in norm for k in ['AUTORIZ', 'VIGENT', 'HABILIT', 'ACTIV']):
+            return EstadoEmpresa.AUTORIZADA.value
+        return EstadoEmpresa.AUTORIZADA.value
     
     def _limpiar_valor_enum(self, valor: str) -> str:
         """Limpiar valores de enums removiendo prefijos y formateando"""
@@ -525,7 +542,14 @@ class EmpresaExcelService:
                 'con_advertencias': 0,
                 'errores': [],
                 'advertencias': [],
-                'empresas_validas': []
+                'empresas_validas': [],
+                'conteo_estados': {
+                    'AUTORIZADA': 0,
+                    'CANCELADA': 0,
+                    'SUSPENDIDA': 0,
+                    'EN_TRAMITE': 0,
+                    'OTROS': 0
+                }
             }
             
             for index, row in df.iterrows():
@@ -559,6 +583,12 @@ class EmpresaExcelService:
                     try:
                         empresa_data = self._convertir_fila_a_empresa_update(row)
                         resultados['empresas_validas'].append(empresa_data)
+                        
+                        est = empresa_data.get('estado', EstadoEmpresa.AUTORIZADA.value)
+                        if est in resultados['conteo_estados']:
+                            resultados['conteo_estados'][est] += 1
+                        else:
+                            resultados['conteo_estados']['OTROS'] += 1
                     except Exception as e:
                         resultados['validos'] -= 1
                         resultados['invalidos'] += 1
@@ -580,7 +610,14 @@ class EmpresaExcelService:
                 'con_advertencias': 0,
                 'errores': [],
                 'advertencias': [],
-                'empresas_validas': []
+                'empresas_validas': [],
+                'conteo_estados': {
+                    'AUTORIZADA': 0,
+                    'CANCELADA': 0,
+                    'SUSPENDIDA': 0,
+                    'EN_TRAMITE': 0,
+                    'OTROS': 0
+                }
             }
     
     async def _validar_fila_empresa(self, row: pd.Series, fila_num: int) -> Tuple[List[str], List[str]]:
@@ -614,8 +651,15 @@ class EmpresaExcelService:
             if await self._existe_empresa_con_ruc(ruc):
                 advertencias.append(f"Empresa con RUC {ruc} ya existe - se actualizará con los nuevos datos")
         
-        # Validar razón social principal (OBLIGATORIO)
-        razon_social = str(row.get('Razón Social Principal', '')).strip() if pd.notna(row.get('Razón Social Principal')) else ''
+        # Validar razón social principal (OBLIGATORIO) - soportar múltiples nombres de columnas
+        razon_social = (
+            str(row.get('Razón Social Principal', '')).strip() if pd.notna(row.get('Razón Social Principal')) and str(row.get('Razón Social Principal')).strip() != '' else
+            str(row.get('Razón Social', '')).strip() if pd.notna(row.get('Razón Social')) and str(row.get('Razón Social')).strip() != '' else
+            str(row.get('Razon Social', '')).strip() if pd.notna(row.get('Razon Social')) and str(row.get('Razon Social')).strip() != '' else
+            str(row.get('RAZON_SOCIAL', '')).strip() if pd.notna(row.get('RAZON_SOCIAL')) and str(row.get('RAZON_SOCIAL')).strip() != '' else
+            str(row.get('EMPRESA', '')).strip() if pd.notna(row.get('EMPRESA')) and str(row.get('EMPRESA')).strip() != '' else
+            ''
+        )
         if not razon_social:
             errores.append("Razón Social Principal es requerida")
         elif len(razon_social) < 3:
@@ -626,12 +670,18 @@ class EmpresaExcelService:
         if direccion and len(direccion) < 10:
             errores.append("Dirección Fiscal debe tener al menos 10 caracteres")
         
-        # Validar estado (OPCIONAL)
-        estado_raw = row.get('Estado', '')
-        if pd.isna(estado_raw) or str(estado_raw).strip() == '':
-            estado = 'AUTORIZADA'  # Estado por defecto
-        else:
-            estado = str(estado_raw).strip().upper()
+        # Validar estado (OPCIONAL) - soportar múltiples nombres de columnas
+        estado_raw = (
+            row.get('Estado Legal') or 
+            row.get('ESTADO_LEGAL') or 
+            row.get('Estado') or 
+            row.get('ESTADO') or 
+            row.get('Situación') or 
+            row.get('Situacion') or 
+            row.get('SITUACION') or 
+            ''
+        )
+        estado = self._normalizar_estado(estado_raw)
         
         if estado and estado not in [e.value for e in EstadoEmpresa]:
             errores.append(f"Estado inválido: {estado}. Valores válidos: {', '.join([e.value for e in EstadoEmpresa])}")
@@ -912,7 +962,13 @@ class EmpresaExcelService:
         ruc = limpiar_valor(row.get('RUC', ''))
         
         # Razón social (solo si se proporciona)
-        razon_social_principal = limpiar_valor(row.get('Razón Social Principal', ''))
+        razon_social_principal = (
+            limpiar_valor(row.get('Razón Social Principal', '')) or
+            limpiar_valor(row.get('Razón Social', '')) or
+            limpiar_valor(row.get('Razon Social', '')) or
+            limpiar_valor(row.get('RAZON_SOCIAL', '')) or
+            limpiar_valor(row.get('EMPRESA', ''))
+        )
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
         razon_social_minimo = limpiar_valor(row.get('Razón Social Mínimo', ''))
         
@@ -985,6 +1041,19 @@ class EmpresaExcelService:
         tipo_servicio = limpiar_valor(row.get('Tipo de Servicio', ''))
         if tipo_servicio:
             update_data['tipoServicio'] = tipo_servicio.upper()
+        
+        # Estado Legal (normalizado)
+        estado_raw = (
+            row.get('Estado Legal') or 
+            row.get('ESTADO_LEGAL') or 
+            row.get('Estado') or 
+            row.get('ESTADO') or 
+            row.get('Situación') or 
+            row.get('Situacion') or 
+            row.get('SITUACION') or 
+            ''
+        )
+        update_data['estado'] = self._normalizar_estado(estado_raw)
         
         return update_data
         
@@ -1295,6 +1364,12 @@ class EmpresaExcelService:
             from app.models.empresa import TipoServicio
             empresa_data['tipoServicio'] = TipoServicio.PERSONAS
         
+        # Agregar estado de la empresa si está presente
+        if 'estado' in empresa_dict and empresa_dict['estado']:
+            empresa_data['estado'] = self._normalizar_estado(empresa_dict['estado'])
+        else:
+            empresa_data['estado'] = EstadoEmpresa.AUTORIZADA.value
+
         # Agregar otros campos opcionales si están presentes
         optional_fields = ['emailContacto', 'telefonoContacto', 'sitioWeb', 'observaciones']
         for field in optional_fields:
@@ -1313,7 +1388,10 @@ class EmpresaExcelService:
         # Solo actualizar campos que vienen con datos en el diccionario
         for key, value in empresa_dict.items():
             if key != 'ruc' and value is not None:  # No actualizar RUC
-                update_data[key] = value
+                if key == 'estado':
+                    update_data[key] = self._normalizar_estado(value)
+                else:
+                    update_data[key] = value
         
         # Si no hay datos para actualizar, devolver la empresa existente
         if not update_data:

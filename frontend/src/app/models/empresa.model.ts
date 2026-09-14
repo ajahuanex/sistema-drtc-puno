@@ -164,3 +164,72 @@ export interface EmpresaResumen {
   fechaRegistro: Date;
   socios: Socio[];
 }
+
+// ========================================
+// EXPEDIENTE OPERATIVO Y ESTADÍSTICAS
+// ========================================
+
+export interface RutaPrimigeniaItem {
+  id: string;
+  codigoRuta?: string;
+  nombreRuta?: string;
+  origen?: string;
+  destino?: string;
+  itinerario?: string[];
+  estado?: string;
+  tipoServicio?: string;
+}
+
+export interface VehiculoPrimigeniaItem {
+  id: string;
+  placa: string;
+  estado: string;
+  categoria?: string;
+  marca?: string;
+  modelo?: string;
+  anio_fabricacion?: number;
+  nro_tuc?: string;
+}
+
+export interface ModificatoriaHijaItem {
+  id: string;
+  nro_resolucion: string;
+  tipo_acto: string;
+  tipo_tramite_origen?: string;
+  fecha_resolucion?: string;
+  vehiculos_ingresantes?: string[];
+  vehiculos_salientes?: string[];
+  rutas_modificadas_ids?: string[];
+  link_documento?: string;
+  observaciones?: string;
+}
+
+export interface PrimigeniaDetalleItem {
+  id?: string;
+  nro_resolucion: string;
+  siglas?: string;
+  estado: string;
+  tipo_autorizacion: string;
+  anios_vigencia?: number;
+  fecha_resolucion?: string;
+  fecha_inicio_vigencia?: string;
+  fecha_fin_vigencia?: string;
+  link_documento?: string;
+  observaciones?: string;
+  es_detectada: boolean;
+  rutas: RutaPrimigeniaItem[];
+  flota: VehiculoPrimigeniaItem[];
+  modificatorias: ModificatoriaHijaItem[];
+}
+
+export interface KpisExpedienteEmpresa {
+  total_primigenias: number;
+  total_rutas: number;
+  total_vehiculos_habilitados: number;
+  total_modificatorias: number;
+}
+
+export interface ExpedienteOperativoEmpresa {
+  kpis: KpisExpedienteEmpresa;
+  primigenias: PrimigeniaDetalleItem[];
+}

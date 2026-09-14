@@ -32,6 +32,7 @@ export interface RegistroEmpresaPreview {
   dniRepresentanteLegal: string;
   partidaRegistral: string;
   estado: string;
+  estadoOriginal?: string;
   tipoServicio: string;
   esValido: boolean;
   errores: string[];
@@ -232,6 +233,13 @@ export interface ColumnaMapeoEmpresa {
                   <div class="dest-stats">
                     <span class="stat-pill total-pill"><mat-icon>format_list_numbered</mat-icon> {{ previewRows().length }} Registros</span>
                     <span class="stat-pill valid-pill"><mat-icon>check_circle</mat-icon> {{ totalValidosPreview() }} Válidos</span>
+                    <span class="stat-pill pill-autorizada"><mat-icon>verified</mat-icon> {{ totalAutorizadasPreview() }} Autorizadas</span>
+                    @if (totalCanceladasPreview() > 0) {
+                      <span class="stat-pill pill-cancelada"><mat-icon>block</mat-icon> {{ totalCanceladasPreview() }} Canceladas</span>
+                    }
+                    @if (totalOtrosEstadosPreview() > 0) {
+                      <span class="stat-pill pill-otros"><mat-icon>alt_route</mat-icon> {{ totalOtrosEstadosPreview() }} Otros Estados</span>
+                    }
                     @if (totalInvalidosPreview() > 0) {
                       <span class="stat-pill invalid-pill"><mat-icon>warning</mat-icon> {{ totalInvalidosPreview() }} Con Observación</span>
                     }
@@ -256,69 +264,115 @@ export interface ColumnaMapeoEmpresa {
                   </div>
                 </div>
 
-                <!-- Pre-visualización de Registros Extraídos -->
+                <!-- Pre-visualización de Registros Extraídos con Filtros Rápidos -->
                 <div class="extracted-data-preview">
-                  <h4 class="section-subtitle">
-                    <mat-icon>visibility</mat-icon>
-                    Vista Previa de Registros a Importar (Primeras {{ Math.min(10, previewRows().length) }} filas)
-                  </h4>
+                  <div class="preview-header-flex">
+                    <h4 class="section-subtitle">
+                      <mat-icon>visibility</mat-icon>
+                      Vista Previa de Registros (Mostrando {{ Math.min(15, previewRowsFiltradasYOrdenadas().length) }} de {{ previewRowsFiltradasYOrdenadas().length }})
+                    </h4>
+
+                    <!-- Barra Interactiva de Filtros Rápidos por Estado -->
+                    <div class="preview-filter-bar">
+                      <span class="filter-bar-label"><mat-icon>filter_alt</mat-icon> Filtrar:</span>
+                      <div class="filter-pills-group">
+                        <button type="button" class="preview-pill" [class.active]="filtroEstadoPreview() === 'TODOS'" (click)="filtroEstadoPreview.set('TODOS')">
+                          <span>Todos</span>
+                          <span class="pill-count">{{ previewRows().length }}</span>
+                        </button>
+                        <button type="button" class="preview-pill pill-autorizada" [class.active]="filtroEstadoPreview() === 'AUTORIZADA'" (click)="filtroEstadoPreview.set('AUTORIZADA')">
+                          <mat-icon>verified</mat-icon>
+                          <span>Autorizadas</span>
+                          <span class="pill-count">{{ totalAutorizadasPreview() }}</span>
+                        </button>
+                        <button type="button" class="preview-pill pill-cancelada" [class.active]="filtroEstadoPreview() === 'CANCELADA'" (click)="filtroEstadoPreview.set('CANCELADA')">
+                          <mat-icon>block</mat-icon>
+                          <span>Canceladas</span>
+                          <span class="pill-count">{{ totalCanceladasPreview() }}</span>
+                        </button>
+                        @if (totalOtrosEstadosPreview() > 0) {
+                          <button type="button" class="preview-pill pill-otros" [class.active]="filtroEstadoPreview() === 'OTROS'" (click)="filtroEstadoPreview.set('OTROS')">
+                            <mat-icon>tune</mat-icon>
+                            <span>Otros</span>
+                            <span class="pill-count">{{ totalOtrosEstadosPreview() }}</span>
+                          </button>
+                        }
+                        @if (totalInvalidosPreview() > 0) {
+                          <button type="button" class="preview-pill pill-error" [class.active]="filtroEstadoPreview() === 'ERROR'" (click)="filtroEstadoPreview.set('ERROR')">
+                            <mat-icon>warning</mat-icon>
+                            <span>Errores</span>
+                            <span class="pill-count">{{ totalInvalidosPreview() }}</span>
+                          </button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="tab-table-wrapper">
                     <table class="modern-table preview-table">
                       <thead>
                         <tr>
-                          <th (click)="toggleSort('fila')" class="sortable-th">
+                          <th (click)="toggleSort('fila')" class="sortable-th col-fila">
                             <span>Fila</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('fila') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('esValido')" class="sortable-th">
-                            <span>Estado Data</span>
+                          <th (click)="toggleSort('esValido')" class="sortable-th col-estado-data">
+                            <span>Data</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('esValido') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('ruc')" class="sortable-th">
-                            <span>RUC (Col B)</span>
+                          <th (click)="toggleSort('ruc')" class="sortable-th col-ruc-meta">
+                            <span>RUC</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('ruc') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('razonSocial')" class="sortable-th">
-                            <span>Razón Social (Col C)</span>
+                          <th (click)="toggleSort('razonSocial')" class="sortable-th col-razon">
+                            <span>Razón Social Empresa</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('razonSocial') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('domicilioLegal')" class="sortable-th">
-                            <span>Domicilio Legal (Col D)</span>
+                          <th (click)="toggleSort('domicilioLegal')" class="sortable-th col-domicilio">
+                            <span>Domicilio Legal</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('domicilioLegal') }}</mat-icon>
                           </th>
-                          <th>Teléfono / Correo (Col E-F)</th>
-                          <th (click)="toggleSort('representanteLegal')" class="sortable-th">
-                            <span>Representante Legal / DNI (Col G-H)</span>
+                          <th class="col-contacto">Teléfono / Correo</th>
+                          <th (click)="toggleSort('representanteLegal')" class="sortable-th col-rep">
+                            <span>Representante / DNI</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('representanteLegal') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
-                            <span>Partida Registral (Col I)</span>
+                          <th (click)="toggleSort('partidaRegistral')" class="sortable-th col-partida">
+                            <span>Partida</span>
                             <mat-icon class="sort-icon">{{ getSortIcon('partidaRegistral') }}</mat-icon>
                           </th>
-                          <th (click)="toggleSort('estado')" class="sortable-th">
-                            <span>Estado (Col J)</span>
-                            <mat-icon class="sort-icon">{{ getSortIcon('estado') }}</mat-icon>
-                          </th>
-                          <th (click)="toggleSort('tipoServicio')" class="sortable-th">
-                            <span>Tipo Servicio (Col K)</span>
-                            <mat-icon class="sort-icon">{{ getSortIcon('tipoServicio') }}</mat-icon>
-                          </th>
-                          <th>Observaciones</th>
+                          <th class="col-obs">Observaciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (r of previewRowsOrdenadas().slice(0, 15); track r.fila) {
+                        @for (r of previewRowsFiltradasYOrdenadas().slice(0, 15); track r.fila) {
                           <tr [class.invalid-row]="!r.esValido">
                             <td><strong>#{{ r.fila }}</strong></td>
                             <td>
                               @if (r.esValido) {
-                                <span class="status-chip success"><mat-icon>check</mat-icon> VÁLIDO</span>
+                                <span class="status-chip success"><mat-icon>check</mat-icon> OK</span>
                               } @else {
                                 <span class="status-chip danger"><mat-icon>error</mat-icon> ERROR</span>
                               }
                             </td>
-                            <td><span class="code-badge">{{ r.ruc }}</span></td>
-                            <td><strong>{{ r.razonSocial }}</strong></td>
+                            <!-- Celda RUC + Estado Legal + Tipo Servicio compactados para liberar espacio -->
+                            <td class="ruc-cell">
+                              <div class="ruc-cell-stacked">
+                                <span class="code-badge">{{ r.ruc }}</span>
+                                <div class="ruc-meta-row">
+                                  <span [class]="'status-chip-mini chip-' + r.estado.toLowerCase()"
+                                        [matTooltip]="r.estadoOriginal && r.estadoOriginal !== r.estado ? 'Estado original: ' + r.estadoOriginal : 'Estado legal: ' + r.estado">
+                                    {{ r.estado }}
+                                  </span>
+                                  <span class="service-chip-mini" [matTooltip]="'Tipo de Servicio: ' + (r.tipoServicio || 'PASAJEROS')">
+                                    {{ getServicioAbreviado(r.tipoServicio || 'PASAJEROS') }}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td class="razon-social-cell">
+                              <span class="razon-social-text bold-text">{{ r.razonSocial }}</span>
+                            </td>
                             <td>{{ r.domicilioLegal || '-' }}</td>
                             <td>
                               <div style="display:flex; flex-direction:column; gap:2px; font-size:12px;">
@@ -335,8 +389,6 @@ export interface ColumnaMapeoEmpresa {
                               </div>
                             </td>
                             <td>{{ r.partidaRegistral || '-' }}</td>
-                            <td><span class="code-badge info-code">{{ r.estado || 'AUTORIZADA' }}</span></td>
-                            <td><span class="status-chip success">{{ r.tipoServicio || 'PERSONAS' }}</span></td>
                             <td>
                               @if (!r.esValido && r.errores.length) {
                                 <span class="err-text"><mat-icon>error_outline</mat-icon> {{ r.errores.join(', ') }}</span>
@@ -456,30 +508,48 @@ export interface ColumnaMapeoEmpresa {
               </mat-card-header>
 
               <mat-card-content class="card-body">
-                <!-- KPI Tiles Grid -->
+                <!-- KPI Tiles Grid Desglosado por Estados Legales -->
                 <div class="kpi-grid">
                   <div class="kpi-card total">
                     <mat-icon>business</mat-icon>
                     <div class="kpi-data">
                       <span class="kpi-num">{{ totalFilas() }}</span>
-                      <span class="kpi-label">Total Filas</span>
+                      <span class="kpi-label">Total Registros</span>
                     </div>
                   </div>
 
                   <div class="kpi-card success">
-                    <mat-icon>check_circle_outline</mat-icon>
+                    <mat-icon>verified</mat-icon>
                     <div class="kpi-data">
-                      <span class="kpi-num">{{ totalExitosas() }}</span>
-                      <span class="kpi-label">{{ soloValidar() ? 'Válidas' : 'Exitosas' }}</span>
+                      <span class="kpi-num">{{ totalAutorizadasResultado() }}</span>
+                      <span class="kpi-label">Autorizadas</span>
                     </div>
                   </div>
+
+                  <div class="kpi-card danger-card">
+                    <mat-icon>block</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalCanceladasResultado() }}</span>
+                      <span class="kpi-label">Canceladas</span>
+                    </div>
+                  </div>
+
+                  @if (totalOtrosEstadosResultado() > 0) {
+                    <div class="kpi-card warning-card">
+                      <mat-icon>pending_actions</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalOtrosEstadosResultado() }}</span>
+                        <span class="kpi-label">Otros Estados</span>
+                      </div>
+                    </div>
+                  }
 
                   @if (totalErrores() > 0) {
                     <div class="kpi-card danger">
                       <mat-icon>error_outline</mat-icon>
                       <div class="kpi-data">
                         <span class="kpi-num">{{ totalErrores() }}</span>
-                        <span class="kpi-label">No Subidas / Con Error</span>
+                        <span class="kpi-label">No Subidas / Error</span>
                       </div>
                     </div>
                   }
@@ -540,7 +610,7 @@ export interface ColumnaMapeoEmpresa {
                           <tr>
                             <th>RUC</th>
                             <th>Razón Social</th>
-                            <th>Estado</th>
+                            <th>Estado Legal</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -548,7 +618,12 @@ export interface ColumnaMapeoEmpresa {
                             <tr>
                               <td><span class="code-badge">{{ emp.ruc }}</span></td>
                               <td><strong>{{ emp.razonSocial }}</strong></td>
-                              <td><span class="status-chip success">{{ emp.estado || 'AUTORIZADA' }}</span></td>
+                              <td>
+                                <span [class]="'status-chip ' + (emp.estado === 'CANCELADA' ? 'chip-cancelada danger' : (emp.estado === 'AUTORIZADA' ? 'chip-autorizada success' : 'chip-otros info'))">
+                                  <mat-icon class="chip-mini-icon">{{ emp.estado === 'CANCELADA' ? 'block' : (emp.estado === 'AUTORIZADA' ? 'verified' : 'info') }}</mat-icon>
+                                  {{ emp.estado || 'AUTORIZADA' }}
+                                </span>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -570,7 +645,7 @@ export interface ColumnaMapeoEmpresa {
                           <tr>
                             <th>RUC</th>
                             <th>Razón Social</th>
-                            <th>Estado</th>
+                            <th>Estado Legal</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -578,7 +653,12 @@ export interface ColumnaMapeoEmpresa {
                             <tr>
                               <td><span class="code-badge info-code">{{ emp.ruc }}</span></td>
                               <td><strong>{{ emp.razonSocial }}</strong></td>
-                              <td><span class="status-chip success">{{ emp.estado }}</span></td>
+                              <td>
+                                <span [class]="'status-chip ' + (emp.estado === 'CANCELADA' ? 'chip-cancelada danger' : (emp.estado === 'AUTORIZADA' ? 'chip-autorizada success' : 'chip-otros info'))">
+                                  <mat-icon class="chip-mini-icon">{{ emp.estado === 'CANCELADA' ? 'block' : (emp.estado === 'AUTORIZADA' ? 'verified' : 'info') }}</mat-icon>
+                                  {{ emp.estado }}
+                                </span>
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -640,12 +720,32 @@ export class CargaMasivaEmpresasComponent implements OnInit {
     return this.sortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
 
+  // Filtro activo en vista previa
+  filtroEstadoPreview = signal<'TODOS' | 'AUTORIZADA' | 'CANCELADA' | 'OTROS' | 'ERROR'>('TODOS');
+
   // Computed signals para previsualización
   totalValidosPreview = computed(() => this.previewRows().filter(r => r.esValido).length);
   totalInvalidosPreview = computed(() => this.previewRows().filter(r => !r.esValido).length);
+  totalAutorizadasPreview = computed(() => this.previewRows().filter(r => r.esValido && r.estado === 'AUTORIZADA').length);
+  totalCanceladasPreview = computed(() => this.previewRows().filter(r => r.esValido && r.estado === 'CANCELADA').length);
+  totalSuspendidasPreview = computed(() => this.previewRows().filter(r => r.esValido && r.estado === 'SUSPENDIDA').length);
+  totalEnTramitePreview = computed(() => this.previewRows().filter(r => r.esValido && r.estado === 'EN_TRAMITE').length);
+  totalOtrosEstadosPreview = computed(() => this.previewRows().filter(r => r.esValido && !['AUTORIZADA', 'CANCELADA'].includes(r.estado)).length);
 
-  previewRowsOrdenadas = computed(() => {
-    const rows = this.previewRows();
+  previewRowsFiltradasYOrdenadas = computed(() => {
+    let rows = this.previewRows();
+    const filtro = this.filtroEstadoPreview();
+
+    if (filtro === 'AUTORIZADA') {
+      rows = rows.filter(r => r.esValido && r.estado === 'AUTORIZADA');
+    } else if (filtro === 'CANCELADA') {
+      rows = rows.filter(r => r.esValido && r.estado === 'CANCELADA');
+    } else if (filtro === 'OTROS') {
+      rows = rows.filter(r => r.esValido && !['AUTORIZADA', 'CANCELADA'].includes(r.estado));
+    } else if (filtro === 'ERROR') {
+      rows = rows.filter(r => !r.esValido);
+    }
+
     const field = this.sortField();
     const isAsc = this.sortDirection() === 'asc';
 
@@ -735,6 +835,64 @@ export class CargaMasivaEmpresasComponent implements OnInit {
 
   listaCreadas = computed(() => this.resData()?.empresas_creadas || []);
   listaActualizadas = computed(() => this.resData()?.empresas_actualizadas || []);
+
+  conteoEstadosResultado = computed(() => {
+    const r = this.resData();
+    if (r?.conteo_estados) {
+      return r.conteo_estados;
+    }
+    return {
+      AUTORIZADA: this.totalAutorizadasPreview(),
+      CANCELADA: this.totalCanceladasPreview(),
+      SUSPENDIDA: this.totalSuspendidasPreview(),
+      EN_TRAMITE: this.totalEnTramitePreview(),
+      OTROS: this.totalOtrosEstadosPreview()
+    };
+  });
+
+  totalAutorizadasResultado = computed(() => this.conteoEstadosResultado()?.AUTORIZADA || 0);
+  totalCanceladasResultado = computed(() => this.conteoEstadosResultado()?.CANCELADA || 0);
+  totalOtrosEstadosResultado = computed(() => {
+    const c = this.conteoEstadosResultado();
+    return (c?.SUSPENDIDA || 0) + (c?.EN_TRAMITE || 0) + (c?.OTROS || 0);
+  });
+
+  normalizarEstadoEmpresa(val: string): string {
+    if (!val) return 'AUTORIZADA';
+    const norm = String(val).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    if (norm.includes('CANCEL') || norm.includes('BAJA') || norm.includes('REVOC') || norm.includes('DENEG') || norm.includes('ANULAD') || norm.includes('NO AUTORIZ')) {
+      return 'CANCELADA';
+    }
+    if (norm.includes('SUSPEND')) {
+      return 'SUSPENDIDA';
+    }
+    if (norm.includes('TRAMIT') || norm.includes('PROCESO') || norm.includes('PENDIENT') || norm.includes('EVALUA')) {
+      return 'EN_TRAMITE';
+    }
+    if (norm.includes('AUTORIZ') || norm.includes('VIGENT') || norm.includes('HABILIT') || norm.includes('ACTIV')) {
+      return 'AUTORIZADA';
+    }
+    return 'AUTORIZADA';
+  }
+
+  getServicioAbreviado(servicio: string): string {
+    if (!servicio) return '';
+    const s = String(servicio).toUpperCase().trim();
+    const mapa: { [key: string]: string } = {
+      'PASAJEROS': 'PASAJ.',
+      'PERSONAS': 'PASAJ.',
+      'TURISMO': 'TUR.',
+      'TRABAJADORES': 'TRAB.',
+      'MERCANCIAS': 'MERC.',
+      'MERCANCÍAS': 'MERC.',
+      'CARGA': 'CARGA',
+      'INFRAESTRUCTURA': 'INFRA.',
+      'MIXTO': 'MIXTO',
+      'OTROS': 'OTROS'
+    };
+    if (mapa[s]) return mapa[s];
+    return s.length > 6 ? s.substring(0, 5) + '.' : s;
+  }
 
   constructor(
     private empresaService: EmpresaService,
@@ -867,7 +1025,22 @@ export class CargaMasivaEmpresasComponent implements OnInit {
     const idxRep = findIndex(['representante legal', 'representante'], 6); // Col G (índice 6)
     const idxDniRep = findIndex(['dni representante legal', 'dni representante', 'dni'], 7); // Col H (índice 7)
     const idxPartida = findIndex(['partida registral', 'partida'], 8); // Col I (índice 8)
-    const idxEstado = findIndex(['estado', 'situacion'], 9); // Col J (índice 9)
+    
+    // Detección inteligente de columna de Estado Legal (excluyendo SUNAT)
+    let idxEstado = headersClean.findIndex(h => 
+      !h.includes('sunat') && !h.includes('tribut') && !h.includes('contribuyente') &&
+      (h.includes('estado legal') || h.includes('estado_legal') || h.includes('situacion legal') || h.includes('estado empresa'))
+    );
+    if (idxEstado < 0) {
+      idxEstado = headersClean.findIndex(h => 
+        !h.includes('sunat') && !h.includes('tribut') && !h.includes('contribuyente') &&
+        (h.includes('situacion') || h === 'estado' || h.startsWith('estado ') || h.endsWith(' estado'))
+      );
+    }
+    if (idxEstado < 0 && headers.length > 9) {
+      idxEstado = 9; // Fallback Col J
+    }
+
     const idxTipoServicio = findIndex(['tipo servicio', 'servicio', 'modalidad'], 10); // Col K (índice 10)
 
     // Crear matriz visual de mapeo para las 10 columnas clave
@@ -880,7 +1053,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       { archivoCol: idxRep >= 0 ? headers[idxRep] : 'Col G (REPRESENTANTE_LEGAL)', destCampo: 'representanteLegal', tipo: 'Nombre' },
       { archivoCol: idxDniRep >= 0 ? headers[idxDniRep] : 'Col H (DNI_REPRESENTANTE)', destCampo: 'dniRepresentante', tipo: 'DNI (8 dgt)' },
       { archivoCol: idxPartida >= 0 ? headers[idxPartida] : 'Col I (PARTIDA_REGISTRAL)', destCampo: 'partida', tipo: 'Partida' },
-      { archivoCol: idxEstado >= 0 ? headers[idxEstado] : 'Col J (ESTADO)', destCampo: 'estado', tipo: 'Estado Legal' },
+      { archivoCol: idxEstado >= 0 ? headers[idxEstado] : 'Col J (ESTADO_LEGAL)', destCampo: 'estado', tipo: 'Estado Legal' },
       { archivoCol: idxTipoServicio >= 0 ? headers[idxTipoServicio] : 'Col K (TIPO_SERVICIO)', destCampo: 'tiposServicio', tipo: 'Servicio' }
     ];
     this.columnasMapeadas.set(mapeo);
@@ -897,7 +1070,9 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       const repVal = String(idxRep >= 0 ? row[idxRep] || '' : '').trim();
       const dniRepVal = String(idxDniRep >= 0 ? row[idxDniRep] || '' : '').trim();
       const partidaVal = String(idxPartida >= 0 ? row[idxPartida] || '' : '').trim();
-      const estVal = String(idxEstado >= 0 ? row[idxEstado] || 'AUTORIZADA' : 'AUTORIZADA').trim();
+      
+      const estadoRaw = String(idxEstado >= 0 ? row[idxEstado] || '' : '').trim();
+      const estadoNorm = this.normalizarEstadoEmpresa(estadoRaw || 'AUTORIZADA');
       const servicioVal = String(idxTipoServicio >= 0 ? row[idxTipoServicio] || 'PERSONAS' : 'PERSONAS').trim();
 
       if (!rucVal && !razonVal) return;
@@ -917,7 +1092,8 @@ export class CargaMasivaEmpresasComponent implements OnInit {
         representanteLegal: repVal,
         dniRepresentanteLegal: dniRepVal,
         partidaRegistral: partidaVal,
-        estado: estVal || 'AUTORIZADA',
+        estado: estadoNorm,
+        estadoOriginal: estadoRaw,
         tipoServicio: servicioVal || 'PERSONAS',
         esValido: errores.length === 0,
         errores
@@ -933,7 +1109,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
         representanteLegal: repVal,
         dniRepresentante: dniRepVal,
         partida: partidaVal,
-        estado: estVal || 'AUTORIZADA',
+        estado: estadoNorm,
         tiposServicio: servicioVal ? [servicioVal.toUpperCase()] : ['PERSONAS']
       });
     });

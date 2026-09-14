@@ -118,8 +118,8 @@
     flex-wrap: wrap;
 
     .search-and-toggle {
-      flex: 1 1 260px;
-      min-width: 200px;
+      flex: 1 1 220px;
+      min-width: 180px;
       display: flex;
       align-items: center;
     }
@@ -148,10 +148,121 @@
       }
     }
 
+    .ruta-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex: 2 1 auto;
+      flex-wrap: wrap;
+
+      .route-select-field {
+        width: 175px;
+        min-width: 135px;
+
+        .field-prefix-icon {
+          font-size: 1.15rem;
+          width: 1.15rem;
+          height: 1.15rem;
+          margin-right: 0.35rem;
+
+          &.icon-origen {
+            color: #0284c7;
+          }
+
+          &.icon-destino {
+            color: #059669;
+          }
+        }
+
+        .clear-select-btn {
+          width: 22px;
+          height: 22px;
+          line-height: 22px;
+          .mat-icon {
+            font-size: 0.95rem;
+            width: 0.95rem;
+            height: 0.95rem;
+            color: #94a3b8;
+          }
+        }
+      }
+
+      .swap-route-btn {
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #475569;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid #e2e8f0;
+
+        .mat-icon {
+          font-size: 1.2rem;
+          width: 1.2rem;
+          height: 1.2rem;
+          color: #64748b;
+        }
+
+        &:hover:not([disabled]) {
+          background: #e2e8f0;
+          color: #0f172a;
+          transform: rotate(180deg);
+        }
+
+        &[disabled] {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+      }
+
+      .bidi-toggle-btn {
+        height: 40px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0 0.65rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+
+        .bidi-icon {
+          font-size: 1.05rem;
+          width: 1.05rem;
+          height: 1.05rem;
+          color: #94a3b8;
+        }
+
+        &.active {
+          background: #e0e7ff;
+          border-color: #c7d2fe;
+          color: #4338ca;
+          font-weight: 600;
+
+          .bidi-icon {
+            color: #4f46e5;
+          }
+        }
+
+        &:hover {
+          background: #e2e8f0;
+          &.active {
+            background: #dbeafe;
+          }
+        }
+      }
+    }
+
     .collapsible-filters {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      margin-left: auto;
     }
 
     .filter-action-btn {
@@ -197,8 +308,95 @@
     }
   }
 
+  .active-route-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.6rem;
+    margin-top: 0.4rem;
+    border-top: 1px dashed #e2e8f0;
+    flex-wrap: wrap;
+
+    .chip-legend {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .route-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+
+      .badge-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+      }
+
+      &.badge-origen {
+        background: #f0f9ff;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+        .badge-icon { color: #0284c7; }
+      }
+
+      &.badge-destino {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        .badge-icon { color: #059669; }
+      }
+
+      .badge-remove {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin-left: 0.25rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        color: inherit;
+        opacity: 0.65;
+
+        .mat-icon {
+          font-size: 0.9rem;
+          width: 0.9rem;
+          height: 0.9rem;
+        }
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+    }
+
+    .direction-indicator {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #6366f1;
+    }
+
+    .chip-clear-all {
+      height: 28px;
+      line-height: 28px;
+      padding: 0 0.5rem;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      &:hover {
+        color: #ef4444;
+      }
+    }
+  }
+
   ::ng-deep {
-    .search-field {
+    .search-field,
+    .route-select-field {
       .mat-mdc-text-field-wrapper {
         height: 40px !important;
         padding: 0 0.65rem !important;
@@ -222,7 +420,8 @@
         font-size: 0.82rem !important;
       }
 
-      input.mat-mdc-input-element {
+      input.mat-mdc-input-element,
+      .mat-mdc-select-value {
         font-size: 0.82rem !important;
         color: #1e293b !important;
       }
@@ -442,6 +641,31 @@
       font-weight: 600;
       color: #333;
       background-color: #f5f5f5;
+      font-size: 12px;
+
+      &.mat-sort-header {
+        cursor: pointer;
+        user-select: none;
+        transition: color 0.15s ease;
+
+        &:hover {
+          color: #4f46e5;
+        }
+
+        &.mat-sort-header-sorted {
+          color: #4338ca;
+        }
+      }
+
+      ::ng-deep .mat-sort-header-container {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      ::ng-deep .mat-sort-header-arrow {
+        color: #6366f1 !important;
+      }
     }
 
     .mat-cell {

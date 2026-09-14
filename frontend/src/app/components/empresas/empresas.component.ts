@@ -255,13 +255,13 @@ const ESTADOS_RUC: Record<string, string> = {
                         </th>
                       }
                       @if (columnaVisible('ruc')) {
-                        <th (click)="toggleSort('ruc')" class="sortable-th">
-                          <span>RUC Empresa</span>
+                        <th (click)="toggleSort('ruc')" class="sortable-th ruc-th">
+                          <span>RUC</span>
                           <mat-icon class="sort-icon">{{ getSortIcon('ruc') }}</mat-icon>
                         </th>
                       }
                       @if (columnaVisible('razonSocial')) {
-                        <th (click)="toggleSort('razonSocial')" class="sortable-th">
+                        <th (click)="toggleSort('razonSocial')" class="sortable-th razon-th">
                           <span>Razón Social</span>
                           <mat-icon class="sort-icon">{{ getSortIcon('razonSocial') }}</mat-icon>
                         </th>
@@ -314,12 +314,30 @@ const ESTADOS_RUC: Record<string, string> = {
                           </td>
                         }
                         @if (columnaVisible('ruc')) {
-                          <td>
-                            <span class="ruc-badge">{{ empresa.ruc }}</span>
+                          <td class="ruc-cell">
+                            <div class="ruc-cell-stacked">
+                              <span class="ruc-badge">{{ empresa.ruc }}</span>
+                              <div class="ruc-meta-row">
+                                <span [class]="'status-pill status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')"
+                                      [matTooltip]="'Estado legal: ' + (empresa.estado || 'AUTORIZADA')">
+                                  {{ (empresa.estado || 'AUTORIZADA').toUpperCase() }}
+                                </span>
+                                @for (srv of (empresa.tiposServicio || []).slice(0, 1); track srv) {
+                                  <span class="service-tag-mini" [matTooltip]="'Tipo de Servicio: ' + srv">
+                                    {{ getServicioAbreviado(srv) }}
+                                  </span>
+                                }
+                                @if ((empresa.tiposServicio || []).length > 1) {
+                                  <span class="service-tag-mini badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
+                                    +{{ (empresa.tiposServicio || []).length - 1 }}
+                                  </span>
+                                }
+                              </div>
+                            </div>
                           </td>
                         }
                         @if (columnaVisible('razonSocial')) {
-                          <td>
+                          <td class="razon-social-td">
                             <div class="empresa-name-container">
                               <span class="bold-text color-primary">{{ empresa.razonSocial.principal }}</span>
                             </div>
@@ -838,18 +856,89 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
-    .ruc-badge {
-      background-color: #e0e7ff;
-      color: #3730a3;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
-      font-family: monospace;
-      font-weight: 600;
+    .ruc-th, .ruc-cell {
+      width: 135px;
+      min-width: 125px;
+      max-width: 145px;
+      white-space: nowrap;
+    }
+
+    .razon-th, .razon-social-td {
+      min-width: 280px;
+    }
+
+    .ruc-cell-stacked {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      width: fit-content;
+      max-width: 130px;
+
+      .ruc-badge {
+        background-color: #e0e7ff;
+        color: #3730a3;
+        padding: 0.20rem 0.45rem;
+        border-radius: 5px;
+        font-family: monospace;
+        font-weight: 800;
+        font-size: 0.92rem;
+        letter-spacing: 0.5px;
+        width: fit-content;
+        line-height: 1.25;
+        display: inline-block;
+      }
+
+      .ruc-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        flex-wrap: nowrap;
+        width: 100%;
+
+        .status-pill {
+          padding: 1.5px 3.5px;
+          font-size: 0.58rem;
+          line-height: 1.1;
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          border-radius: 3px;
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
+
+        .service-tag-mini {
+          font-size: 0.56rem;
+          line-height: 1.1;
+          font-weight: 700;
+          background-color: #f1f5f9;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          padding: 1.5px 3.5px;
+          border-radius: 3px;
+          white-space: nowrap;
+          text-transform: uppercase;
+
+          &.badge-more {
+            background-color: #e2e8f0;
+            color: #334155;
+            padding: 1.5px 3px;
+          }
+        }
+      }
     }
 
     .bold-text { font-weight: 600; }
     .color-primary { color: #4338ca; }
 
+    .empresa-name-container {
+      min-width: 280px;
+      .bold-text {
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.35;
+        display: block;
+      }
+    }
 
     .status-pill {
       padding: 0.25rem 0.75rem;
@@ -858,10 +947,10 @@ const ESTADOS_RUC: Record<string, string> = {
       font-weight: 700;
       text-transform: uppercase;
 
-      &.status-autorizada { background-color: #dcfce7; color: #15803d; }
-      &.status-en_tramite { background-color: #fef3c7; color: #b45309; }
-      &.status-suspendida { background-color: #fee2e2; color: #b91c1c; }
-      &.status-cancelada { background-color: #f1f5f9; color: #64748b; }
+      &.status-autorizada { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+      &.status-en_tramite { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+      &.status-suspendida { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+      &.status-cancelada { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 800; }
     }
 
     .services-chips-flex {
@@ -1358,8 +1447,6 @@ export class EmpresasComponent implements OnInit {
     'seleccionar',
     'ruc',
     'razonSocial',
-    'estado',
-    'servicios',
     'representante',
     'contacto',
     'acciones'
@@ -1390,8 +1477,8 @@ export class EmpresasComponent implements OnInit {
     { id: 'seleccionar', label: 'Seleccionar', visible: true },
     { id: 'ruc', label: 'RUC', visible: true },
     { id: 'razonSocial', label: 'Razón Social', visible: true },
-    { id: 'estado', label: 'Estado Legal', visible: true },
-    { id: 'servicios', label: 'Tipos de Servicio', visible: true },
+    { id: 'estado', label: 'Estado Legal (Columna separada)', visible: false },
+    { id: 'servicios', label: 'Tipos de Servicio (Columna separada)', visible: false },
     { id: 'representante', label: 'Representante / Socios', visible: true },
     { id: 'contacto', label: 'Contacto', visible: true },
     { id: 'estadoSunat', label: 'Estado SUNAT', visible: false },
@@ -1538,8 +1625,8 @@ export class EmpresasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Restaurar columnas visibles desde localStorage
-    const savedColumns = localStorage.getItem('drtc_empresas_columnas');
+    // Restaurar columnas visibles desde localStorage (v2 con RUC/Estado/Servicio compactado)
+    const savedColumns = localStorage.getItem('drtc_empresas_columnas_v2');
     if (savedColumns) {
       try {
         const cols: string[] = JSON.parse(savedColumns);
@@ -1885,6 +1972,25 @@ export class EmpresasComponent implements OnInit {
     return estados[estado] || estado || 'Autorizada';
   }
 
+  getServicioAbreviado(servicio: string): string {
+    if (!servicio) return '';
+    const s = servicio.toUpperCase().trim();
+    const mapa: { [key: string]: string } = {
+      'PASAJEROS': 'PASAJ.',
+      'PERSONAS': 'PASAJ.',
+      'TURISMO': 'TUR.',
+      'TRABAJADORES': 'TRAB.',
+      'MERCANCIAS': 'MERC.',
+      'MERCANCÍAS': 'MERC.',
+      'CARGA': 'CARGA',
+      'INFRAESTRUCTURA': 'INFRA.',
+      'MIXTO': 'MIXTO',
+      'OTROS': 'OTROS'
+    };
+    if (mapa[s]) return mapa[s];
+    return s.length > 6 ? s.substring(0, 5) + '.' : s;
+  }
+
   exportarExcelSeleccionadas(): void {
     const set = this.empresasSeleccionadas();
     const seleccionadas = this.empresas().filter(e => set.has(e.id));
@@ -1950,7 +2056,7 @@ export class EmpresasComponent implements OnInit {
         this.columnasVisibles.set(columnasActualizadas);
         this.columnasDisponibles = result;
         // Persistir en localStorage
-        localStorage.setItem('drtc_empresas_columnas', JSON.stringify(columnasActualizadas));
+        localStorage.setItem('drtc_empresas_columnas_v2', JSON.stringify(columnasActualizadas));
       }
     });
   }

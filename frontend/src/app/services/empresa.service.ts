@@ -10,7 +10,8 @@ import {
   EstadoEmpresa,
   Socio,
   SocioCreate,
-  SocioUpdate
+  SocioUpdate,
+  ExpedienteOperativoEmpresa
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -199,6 +200,14 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => this.handleError('getSocios', error))
+    );
+  }
+
+  getExpedienteOperativo(empresaId: string): Observable<ExpedienteOperativoEmpresa> {
+    return this.http.get<ExpedienteOperativoEmpresa>(`${this.apiUrl}/${empresaId}/expediente-operativo`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('getExpedienteOperativo', error))
     );
   }
 

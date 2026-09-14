@@ -17,6 +17,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatSortModule, Sort } from '@angular/material/sort';
+import { MatSelectModule } from '@angular/material/select';
 import { RutaService } from '../../services/ruta.service';
 import { RutaUtilsService } from '../../services/ruta-utils.service';
 import { EmpresaService } from '../../services/empresa.service';
@@ -56,6 +58,8 @@ interface FiltrosAvanzados {
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
+    MatSortModule,
     MatDividerModule,
     MatChipsModule,
     MatCheckboxModule,
@@ -100,6 +104,14 @@ export class RutasComponent implements OnInit, OnDestroy {
   // Búsqueda simple
   terminoBusqueda = signal('');
 
+  // Filtros de ruta: Origen - Destino
+  origenFiltro = signal<string>('');
+  destinoFiltro = signal<string>('');
+  esBidireccional = signal<boolean>(true);
+
+  // Ordenamiento de columnas
+  sortState = signal<Sort>({ active: '', direction: '' });
+
   // Filtros avanzados
   filtrosAvanzados = signal<FiltrosAvanzados>({});
 
@@ -135,25 +147,60 @@ export class RutasComponent implements OnInit, OnDestroy {
     this.columnasVisibles().map(col => col.key)
   );
 
+  // Lista única de orígenes disponibles ordenados alfabéticamente
+  origenesDisponibles = computed(() => {
+    const nombres = new Set<string>();
+    this.rutas().forEach(r => {
+      const nom = r.origen?.nombre?.trim();
+      if (nom) nombres.add(nom);
+    });
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  });
+
+  // Lista única de destinos disponibles ordenados alfabéticamente
+  destinosDisponibles = computed(() => {
+    const nombres = new Set<string>();
+    this.rutas().forEach(r => {
+      const nom = r.destino?.nombre?.trim();
+      if (nom) nombres.add(nom);
+    });
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  });
+
+  tieneFiltroRuta = computed(() => {
+    return !!(this.origenFiltro() || this.destinoFiltro());
+  });
+
   filtroActivo = computed(() => {
     const busqueda = this.terminoBusqueda();
-    const filtros = this.filtrosAvanzados();
-    const tieneFiltrosAvanzados = !!(filtros.origenId || filtros.destinoId);
+    const origen = this.origenFiltro();
+    const destino = this.destinoFiltro();
+    const tieneRuta = !!(origen || destino);
+    const bidi = this.esBidireccional();
 
-    if (busqueda && tieneFiltrosAvanzados) {
+    let descRuta = '';
+    if (origen && destino) {
+      descRuta = bidi ? `${origen} ⇄ ${destino}` : `${origen} → ${destino}`;
+    } else if (origen) {
+      descRuta = `Origen: ${origen}`;
+    } else if (destino) {
+      descRuta = `Destino: ${destino}`;
+    }
+
+    if (busqueda && tieneRuta) {
       return {
         tipo: 'busqueda-filtros',
-        descripcion: `Búsqueda: "${busqueda}" + Filtros avanzados`
+        descripcion: `"${busqueda}" | Ruta: ${descRuta}`
+      };
+    } else if (tieneRuta) {
+      return {
+        tipo: 'filtros',
+        descripcion: `Ruta: ${descRuta}`
       };
     } else if (busqueda) {
       return {
         tipo: 'busqueda',
         descripcion: `Búsqueda: "${busqueda}"`
-      };
-    } else if (tieneFiltrosAvanzados) {
-      return {
-        tipo: 'filtros',
-        descripcion: this.getDescripcionFiltrosAvanzados(filtros)
       };
     } else {
       return {
@@ -164,26 +211,59 @@ export class RutasComponent implements OnInit, OnDestroy {
   });
 
   tieneFiltrosAvanzados = computed(() => {
-    const filtros = this.filtrosAvanzados();
-    return !!(filtros.origenId || filtros.destinoId);
+    return this.tieneFiltroRuta() || !!(this.filtrosAvanzados().origenId || this.filtrosAvanzados().destinoId);
   });
 
   rutasFiltradas = computed(() => {
     let rutas = this.rutas();
     const busqueda = this.terminoBusqueda();
+    const origen = this.origenFiltro();
+    const destino = this.destinoFiltro();
+    const bidi = this.esBidireccional();
     const filtros = this.filtrosAvanzados();
 
-    // Aplicar filtros avanzados primero (más específicos)
+    // 1. Aplicar filtro específico de Origen y Destino
+    if (origen || destino) {
+      const origNorm = origen.trim().toUpperCase();
+      const destNorm = destino.trim().toUpperCase();
+
+      rutas = rutas.filter(ruta => {
+        const rOrig = (ruta.origen?.nombre || '').trim().toUpperCase();
+        const rDest = (ruta.destino?.nombre || '').trim().toUpperCase();
+
+        if (origNorm && destNorm) {
+          if (bidi) {
+            return (rOrig === origNorm && rDest === destNorm) || (rOrig === destNorm && rDest === origNorm);
+          } else {
+            return rOrig === origNorm && rDest === destNorm;
+          }
+        } else if (origNorm) {
+          if (bidi) {
+            return rOrig === origNorm || rDest === origNorm;
+          } else {
+            return rOrig === origNorm;
+          }
+        } else if (destNorm) {
+          if (bidi) {
+            return rDest === destNorm || rOrig === destNorm;
+          } else {
+            return rDest === destNorm;
+          }
+        }
+        return true;
+      });
+    }
+
+    // 2. Aplicar filtros avanzados legacy si existen
     if (filtros.origenId || filtros.destinoId) {
       rutas = this.aplicarFiltrosBidireccionales(rutas, filtros);
     }
 
-    // Aplicar búsqueda de texto después
+    // 3. Aplicar búsqueda de texto
     if (busqueda && busqueda.trim().length > 0) {
-      // Limpiar el término de búsqueda: remover comillas y espacios extra
       const terminoLower = busqueda.replace(/['"]/g, '').trim().toLowerCase();
       rutas = rutas.filter(ruta =>
-        ruta.codigoRuta.toLowerCase().includes(terminoLower) ||
+        (ruta.codigoRuta && ruta.codigoRuta.toLowerCase().includes(terminoLower)) ||
         (ruta.nombre && ruta.nombre.toLowerCase().includes(terminoLower)) ||
         (ruta.descripcion && ruta.descripcion.toLowerCase().includes(terminoLower)) ||
         (ruta.empresa?.ruc && ruta.empresa.ruc.toLowerCase().includes(terminoLower)) ||
@@ -199,9 +279,78 @@ export class RutasComponent implements OnInit, OnDestroy {
     return rutas;
   });
 
+  rutasOrdenadas = computed(() => {
+    const rutas = [...this.rutasFiltradas()];
+    const sort = this.sortState();
+
+    if (!sort.active || !sort.direction) {
+      return rutas;
+    }
+
+    const isAsc = sort.direction === 'asc';
+
+    return rutas.sort((a, b) => {
+      let valA = '';
+      let valB = '';
+
+      switch (sort.active) {
+        case 'resolucion':
+          valA = a.resolucion?.nroResolucion || '';
+          valB = b.resolucion?.nroResolucion || '';
+          break;
+        case 'ruc':
+          valA = a.empresa?.ruc || '';
+          valB = b.empresa?.ruc || '';
+          break;
+        case 'empresa':
+          valA = this.getEmpresaNombre(a);
+          valB = this.getEmpresaNombre(b);
+          break;
+        case 'codigoRuta':
+          valA = a.codigoRuta || '';
+          valB = b.codigoRuta || '';
+          return isAsc
+            ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
+            : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
+        case 'origen':
+          valA = a.origen?.nombre || '';
+          valB = b.origen?.nombre || '';
+          break;
+        case 'destino':
+          valA = a.destino?.nombre || '';
+          valB = b.destino?.nombre || '';
+          break;
+        case 'itinerario':
+          valA = this.getItinerarioFormateado(a);
+          valB = this.getItinerarioFormateado(b);
+          break;
+        case 'frecuencias':
+          valA = a.frecuencia?.descripcion || '';
+          valB = b.frecuencia?.descripcion || '';
+          break;
+        case 'tipoRuta':
+          valA = a.tipoRuta || '';
+          valB = b.tipoRuta || '';
+          break;
+        case 'tipoServicio':
+          valA = a.tipoServicio || '';
+          valB = b.tipoServicio || '';
+          break;
+        case 'estado':
+          valA = a.estado || '';
+          valB = b.estado || '';
+          break;
+        default:
+          return 0;
+      }
+
+      const cmp = valA.localeCompare(valB, undefined, { sensitivity: 'base' });
+      return isAsc ? cmp : -cmp;
+    });
+  });
 
   rutasPaginadas = computed(() => {
-    const rutas = this.rutasFiltradas();
+    const rutas = this.rutasOrdenadas();
     const pageSize = this.pageSize();
     const pageIndex = this.pageIndex();
     const startIndex = pageIndex * pageSize;
@@ -350,8 +499,42 @@ export class RutasComponent implements OnInit, OnDestroy {
     this.snackBar.open('Filtros avanzados limpiados', 'Cerrar', { duration: 2000 });
   }
 
+  onSortChange(sort: Sort): void {
+    this.sortState.set(sort);
+    this.pageIndex.set(0);
+  }
+
+  onFiltroRutaChange(): void {
+    this.pageIndex.set(0);
+  }
+
+  intercambiarOrigenDestino(): void {
+    const orig = this.origenFiltro();
+    const dest = this.destinoFiltro();
+    this.origenFiltro.set(dest);
+    this.destinoFiltro.set(orig);
+    this.pageIndex.set(0);
+  }
+
+  limpiarFiltroOrigen(): void {
+    this.origenFiltro.set('');
+    this.pageIndex.set(0);
+  }
+
+  limpiarFiltroDestino(): void {
+    this.destinoFiltro.set('');
+    this.pageIndex.set(0);
+  }
+
+  toggleBidireccional(): void {
+    this.esBidireccional.set(!this.esBidireccional());
+    this.pageIndex.set(0);
+  }
+
   limpiarTodo(): void {
     this.terminoBusqueda.set('');
+    this.origenFiltro.set('');
+    this.destinoFiltro.set('');
     this.filtrosAvanzados.set({});
     this.pageIndex.set(0);
   }

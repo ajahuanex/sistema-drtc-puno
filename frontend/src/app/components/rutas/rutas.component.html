@@ -58,7 +58,7 @@
                    [ngModel]="terminoBusqueda()"
                    (ngModelChange)="terminoBusqueda.set($event)"
                    (input)="onBusquedaChange($event)"
-                   placeholder="Buscar por Código, RUC, Empresa, Origen-Destino..."
+                   placeholder="Buscar por Código, RUC, Empresa, Resolución..."
                    (keydown.enter)="buscarRutas()">
             @if (terminoBusqueda()) {
               <button mat-icon-button matSuffix (click)="limpiarBusqueda()" class="clear-input-btn" matTooltip="Limpiar búsqueda">
@@ -68,10 +68,60 @@
           </mat-form-field>
         </div>
 
+        <!-- Filtros por Ruta: Origen y Destino -->
+        <div class="ruta-filter-group">
+          <!-- Selector Origen -->
+          <mat-form-field appearance="outline" class="route-select-field" subscriptSizing="dynamic">
+            <mat-icon matPrefix class="field-prefix-icon icon-origen">place</mat-icon>
+            <mat-select [ngModel]="origenFiltro()" (ngModelChange)="origenFiltro.set($event); onFiltroRutaChange()" placeholder="Origen (Todos)">
+              <mat-option value="">Todos los orígenes</mat-option>
+              @for (orig of origenesDisponibles(); track orig) {
+                <mat-option [value]="orig">{{ orig }}</mat-option>
+              }
+            </mat-select>
+            @if (origenFiltro()) {
+              <button mat-icon-button matSuffix (click)="$event.stopPropagation(); limpiarFiltroOrigen()" class="clear-select-btn" matTooltip="Quitar origen">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+
+          <!-- Botón Intercambiar Origen ⇄ Destino -->
+          <button mat-icon-button type="button" class="swap-route-btn" (click)="intercambiarOrigenDestino()" 
+                  [disabled]="!origenFiltro() && !destinoFiltro()"
+                  matTooltip="Intercambiar Origen y Destino">
+            <mat-icon>swap_horiz</mat-icon>
+          </button>
+
+          <!-- Selector Destino -->
+          <mat-form-field appearance="outline" class="route-select-field" subscriptSizing="dynamic">
+            <mat-icon matPrefix class="field-prefix-icon icon-destino">flag</mat-icon>
+            <mat-select [ngModel]="destinoFiltro()" (ngModelChange)="destinoFiltro.set($event); onFiltroRutaChange()" placeholder="Destino (Todos)">
+              <mat-option value="">Todos los destinos</mat-option>
+              @for (dest of destinosDisponibles(); track dest) {
+                <mat-option [value]="dest">{{ dest }}</mat-option>
+              }
+            </mat-select>
+            @if (destinoFiltro()) {
+              <button mat-icon-button matSuffix (click)="$event.stopPropagation(); limpiarFiltroDestino()" class="clear-select-btn" matTooltip="Quitar destino">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </mat-form-field>
+
+          <!-- Botón Modo Bidireccional (A ⇄ B) -->
+          <button mat-button type="button" class="bidi-toggle-btn" [class.active]="esBidireccional()" 
+                  (click)="toggleBidireccional()" 
+                  [matTooltip]="esBidireccional() ? 'Modo Bidireccional activo (A ⇄ B): busca rutas en ambos sentidos' : 'Modo Unidireccional (A → B): busca únicamente en el sentido exacto'">
+            <mat-icon class="bidi-icon">{{ esBidireccional() ? 'sync_alt' : 'arrow_forward' }}</mat-icon>
+            <span class="bidi-text">{{ esBidireccional() ? '⇄ Bidireccional' : '→ Solo ida' }}</span>
+          </button>
+        </div>
+
         <div class="collapsible-filters">
-          <!-- Botón Limpiar filtros si hay búsqueda -->
-          @if (terminoBusqueda() || tieneFiltrosAvanzados()) {
-            <button mat-button type="button" (click)="limpiarTodo()" class="filter-action-btn btn-reset" matTooltip="Limpiar búsqueda y filtros">
+          <!-- Botón Limpiar filtros si hay búsqueda o filtros de ruta -->
+          @if (terminoBusqueda() || tieneFiltroRuta() || tieneFiltrosAvanzados()) {
+            <button mat-button type="button" (click)="limpiarTodo()" class="filter-action-btn btn-reset" matTooltip="Limpiar búsqueda y filtros de ruta">
               <mat-icon>filter_alt_off</mat-icon>
               <span>Limpiar</span>
             </button>
@@ -104,6 +154,39 @@
           </mat-menu>
         </div>
       </div>
+
+      <!-- Barra de Chips de Filtro de Ruta Activo -->
+      @if (tieneFiltroRuta()) {
+        <div class="active-route-chips">
+          <span class="chip-legend">Filtro activo:</span>
+          @if (origenFiltro()) {
+            <span class="route-badge badge-origen">
+              <mat-icon class="badge-icon">place</mat-icon>
+              Origen: <strong>{{ origenFiltro() }}</strong>
+              <button type="button" class="badge-remove" (click)="limpiarFiltroOrigen()" matTooltip="Quitar origen">
+                <mat-icon>close</mat-icon>
+              </button>
+            </span>
+          }
+          @if (origenFiltro() && destinoFiltro()) {
+            <span class="direction-indicator" [matTooltip]="esBidireccional() ? 'Sentido bidireccional' : 'Sentido único'">
+              {{ esBidireccional() ? '⇄' : '→' }}
+            </span>
+          }
+          @if (destinoFiltro()) {
+            <span class="route-badge badge-destino">
+              <mat-icon class="badge-icon">flag</mat-icon>
+              Destino: <strong>{{ destinoFiltro() }}</strong>
+              <button type="button" class="badge-remove" (click)="limpiarFiltroDestino()" matTooltip="Quitar destino">
+                <mat-icon>close</mat-icon>
+              </button>
+            </span>
+          }
+          <button mat-button class="chip-clear-all" (click)="origenFiltro.set(''); destinoFiltro.set(''); onFiltroRutaChange()">
+            Limpiar ruta
+          </button>
+        </div>
+      }
     </div>
 
   <!-- Información de resultados -->
@@ -143,7 +226,7 @@
       </div>
 
       <div class="table-container">
-        <table mat-table [dataSource]="rutasPaginadas()" class="rutas-table">
+        <table mat-table [dataSource]="rutasPaginadas()" matSort (matSortChange)="onSortChange($event)" class="rutas-table">
           
           <!-- Columna de selección -->
           <ng-container matColumnDef="select">
@@ -164,7 +247,7 @@
           
           <!-- Resolución (Primera Columna) -->
           <ng-container matColumnDef="resolucion">
-            <th mat-header-cell *matHeaderCellDef>N° Resolución</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="resolucion">N° Resolución</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="resolucion-text-bold">{{ ruta.resolucion?.nroResolucion || 'Sin resolución' }}</span>
             </td>
@@ -172,7 +255,7 @@
 
           <!-- Empresa / RUC -->
           <ng-container matColumnDef="ruc">
-            <th mat-header-cell *matHeaderCellDef>RUC Empresa</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="ruc">RUC Empresa</th>
             <td mat-cell *matCellDef="let ruta">
               <div class="ruc-container">
                 @if (getEmpresaNombreCompleto(ruta)) {
@@ -187,7 +270,7 @@
 
           <!-- Empresa (Opcional) -->
           <ng-container matColumnDef="empresa">
-            <th mat-header-cell *matHeaderCellDef>Empresa</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="empresa">Empresa</th>
             <td mat-cell *matCellDef="let ruta">
               <div class="empresa-info">
                 <span class="empresa-nombre">{{ getEmpresaNombre(ruta) }}</span>
@@ -198,7 +281,7 @@
 
           <!-- Código de Ruta -->
           <ng-container matColumnDef="codigoRuta">
-            <th mat-header-cell *matHeaderCellDef>Cód. Ruta</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="codigoRuta">Cód. Ruta</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="codigo-ruta">{{ ruta.codigoRuta }}</span>
             </td>
@@ -206,19 +289,19 @@
 
           <!-- Origen -->
           <ng-container matColumnDef="origen">
-            <th mat-header-cell *matHeaderCellDef>Origen</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="origen">Origen</th>
             <td mat-cell *matCellDef="let ruta">{{ ruta.origen?.nombre || 'Sin origen' }}</td>
           </ng-container>
 
           <!-- Destino -->
           <ng-container matColumnDef="destino">
-            <th mat-header-cell *matHeaderCellDef>Destino</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="destino">Destino</th>
             <td mat-cell *matCellDef="let ruta">{{ ruta.destino?.nombre || 'Sin destino' }}</td>
           </ng-container>
 
           <!-- Itinerario -->
           <ng-container matColumnDef="itinerario">
-            <th mat-header-cell *matHeaderCellDef>Itinerario</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="itinerario">Itinerario</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="itinerario-text" [matTooltip]="getItinerarioFormateado(ruta)">
                 {{ getItinerarioFormateado(ruta) }}
@@ -228,7 +311,7 @@
 
           <!-- Frecuencias -->
           <ng-container matColumnDef="frecuencias">
-            <th mat-header-cell *matHeaderCellDef>Frecuencia</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="frecuencias">Frecuencia</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="frecuencias-text">{{ ruta.frecuencia?.descripcion || 'Sin frecuencias' }}</span>
             </td>
@@ -236,7 +319,7 @@
 
           <!-- Tipo Ruta -->
           <ng-container matColumnDef="tipoRuta">
-            <th mat-header-cell *matHeaderCellDef>Tipo Ruta</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="tipoRuta">Tipo Ruta</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="tipo-ruta-text">{{ ruta.tipoRuta || 'Sin tipo' }}</span>
             </td>
@@ -244,7 +327,7 @@
 
           <!-- Tipo Servicio -->
           <ng-container matColumnDef="tipoServicio">
-            <th mat-header-cell *matHeaderCellDef>Tipo Servicio</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="tipoServicio">Tipo Servicio</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="tipo-servicio-text">{{ ruta.tipoServicio || 'Sin tipo servicio' }}</span>
             </td>
@@ -252,7 +335,7 @@
 
           <!-- Estado -->
           <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="estado">Estado</th>
             <td mat-cell *matCellDef="let ruta">
               <span class="estado-badge" [class.activo]="ruta.estado === 'ACTIVA'">
                 {{ ruta.estado }}
