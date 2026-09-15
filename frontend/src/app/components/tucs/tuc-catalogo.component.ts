@@ -1,0 +1,869 @@
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+import { TucService } from '../../services/tuc.service';
+import { Tuc, TipoEmisionTuc, EstadoTuc, TucEstadisticas } from '../../models/tuc.model';
+import { TucEmitirDialogComponent } from './tuc-emitir-dialog.component';
+import { TucKardexModalComponent } from './tuc-kardex-modal.component';
+import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.component';
+
+@Component({
+  selector: 'app-tuc-catalogo',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+    MatPaginatorModule,
+    MatSnackBarModule,
+    MatMenuModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatTooltipModule
+  ],
+  template: `
+    <div class="page-container">
+      
+      <!-- Encabezado Principal -->
+      <div class="page-header">
+        <div class="header-content">
+          <div class="title-with-icon">
+            <mat-icon class="header-icon">card_membership</mat-icon>
+            <div>
+              <h1 class="page-title">Tarjetas Únicas de Circulación (TUC)</h1>
+              <p class="subtitle">Control de Títulos Habilitantes (Físicas & Electrónicas E-TUC) - DRTC Puno</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de Acción Global -->
+        <div class="header-actions">
+          <button mat-flat-button class="btn-action btn-sync" [disabled]="sincronizando()" (click)="sincronizarFlota()">
+            <mat-icon [class.spinner-icon]="sincronizando()">sync_alt</mat-icon>
+            <span>Importar de Flota</span>
+          </button>
+
+          <button mat-flat-button class="btn-action btn-kardex" (click)="abrirKardex()">
+            <mat-icon>inventory_2</mat-icon>
+            <span>Kárdex Stock</span>
+          </button>
+
+          <button mat-flat-button class="btn-action btn-excel" (click)="abrirCargaMasiva()">
+            <mat-icon>file_upload</mat-icon>
+            <span>Carga Masiva Excel</span>
+          </button>
+
+          <button mat-raised-button color="primary" class="btn-action btn-emitir" (click)="abrirEmitirDialog()">
+            <mat-icon>add_card</mat-icon>
+            <span>Emitir Nueva TUC</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas KPI / Métricas Superior -->
+      <div class="kpi-grid">
+        <div class="kpi-card border-kpi-total">
+          <div class="kpi-header">
+            <span>Total TUCs</span>
+            <mat-icon class="kpi-icon text-slate">badge</mat-icon>
+          </div>
+          <div class="kpi-value text-slate">{{ estadisticas()?.totalTucs || 0 }}</div>
+        </div>
+
+        <div class="kpi-card border-kpi-emerald">
+          <div class="kpi-header">
+            <span>TUCs Vigentes</span>
+            <mat-icon class="kpi-icon text-emerald">check_circle</mat-icon>
+          </div>
+          <div class="kpi-value text-emerald">{{ estadisticas()?.vigentes || 0 }}</div>
+        </div>
+
+        <div class="kpi-card border-kpi-blue">
+          <div class="kpi-header">
+            <span>E-TUC Digitales</span>
+            <mat-icon class="kpi-icon text-blue">bolt</mat-icon>
+          </div>
+          <div class="kpi-value text-blue">{{ estadisticas()?.electronicas || 0 }}</div>
+        </div>
+
+        <div class="kpi-card border-kpi-amber">
+          <div class="kpi-header">
+            <span>TUCs Físicas</span>
+            <mat-icon class="kpi-icon text-amber">content_copy</mat-icon>
+          </div>
+          <div class="kpi-value text-amber">{{ estadisticas()?.fisicas || 0 }}</div>
+        </div>
+
+        <div class="kpi-card border-kpi-rose">
+          <div class="kpi-header">
+            <span>Anuladas / Bajas</span>
+            <mat-icon class="kpi-icon text-rose">block</mat-icon>
+          </div>
+          <div class="kpi-value text-rose">{{ (estadisticas()?.anuladas || 0) + (estadisticas()?.reemplazadas || 0) }}</div>
+        </div>
+
+        <div class="kpi-card border-kpi-purple">
+          <div class="kpi-header">
+            <span>Stock Kárdex</span>
+            <mat-icon class="kpi-icon text-purple">inventory</mat-icon>
+          </div>
+          <div class="kpi-value text-purple">{{ estadisticas()?.stockFisicoDisponible || 0 }}</div>
+        </div>
+      </div>
+
+      <!-- Barra de Búsqueda y Filtros Avanzados -->
+      <div class="glass-filters">
+        <div class="filters-grid">
+          
+          <!-- Búsqueda General -->
+          <div class="search-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input type="text" [(ngModel)]="filtroTexto" (keyup.enter)="buscar()" 
+                   placeholder="Buscar por N° TUC, Placa, RUC o Resolución..." 
+                   class="search-input">
+          </div>
+
+          <!-- Filtro Tipo Emisión -->
+          <div class="filter-box">
+            <select [(ngModel)]="filtroTipo" (change)="buscar()" class="filter-select">
+              <option value="">-- Todos los Tipos --</option>
+              <option value="ELECTRONICA">⚡ ELECTRÓNICA (E-TUC)</option>
+              <option value="FISICA">📜 FÍSICA (Cartulina Kárdex)</option>
+            </select>
+          </div>
+
+          <!-- Filtro Estado -->
+          <div class="filter-box">
+            <select [(ngModel)]="filtroEstado" (change)="buscar()" class="filter-select">
+              <option value="">-- Todos los Estados --</option>
+              <option value="VIGENTE">VIGENTE</option>
+              <option value="ANULADA">ANULADA</option>
+              <option value="REEMPLAZADA">REEMPLAZADA</option>
+              <option value="ANULADA_POR_DUPLICADO">ANULADA POR DUPLICADO</option>
+            </select>
+          </div>
+
+          <!-- Botones Búsqueda -->
+          <div class="filter-buttons">
+            <button mat-flat-button color="primary" (click)="buscar()" class="btn-filter">
+              Filtrar
+            </button>
+            <button mat-button (click)="limpiarFiltros()" class="btn-clear">
+              Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla Moderna -->
+      <mat-card class="table-card">
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>N° TUC</th>
+                <th>Tipo</th>
+                <th>Placa / Vehículo</th>
+                <th>Empresa / RUC</th>
+                <th>Resolución</th>
+                <th>Vigencia</th>
+                <th class="text-center">Estado</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @if (cargando()) {
+                <tr>
+                  <td colspan="8" class="loading-cell">
+                    <mat-icon class="spinner-icon">sync</mat-icon>
+                    <span>Cargando registros de TUCs...</span>
+                  </td>
+                </tr>
+              } @else if (tucs().length === 0) {
+                <tr>
+                  <td colspan="8" class="empty-cell">
+                    <mat-icon class="empty-icon">badge</mat-icon>
+                    <p class="empty-title">No se encontraron Tarjetas Únicas de Circulación.</p>
+                    <p class="empty-desc">Pruebe ajustando los filtros o registre una nueva emisión.</p>
+                  </td>
+                </tr>
+              } @else {
+                @for (tuc of tucs(); track tuc.id || tuc.nroTuc) {
+                  <tr>
+                    
+                    <!-- N° TUC -->
+                    <td>
+                      <span class="tuc-badge font-mono">
+                        {{ tuc.nroTuc }}
+                      </span>
+                    </td>
+
+                    <!-- Tipo Emisión -->
+                    <td>
+                      @if (tuc.tipoEmision === 'ELECTRONICA') {
+                        <span class="tipo-badge tipo-electronica">
+                          ⚡ E-TUC
+                        </span>
+                      } @else {
+                        <span class="tipo-badge tipo-fisica">
+                          📜 FÍSICA
+                        </span>
+                      }
+                    </td>
+
+                    <!-- Placa / Vehículo -->
+                    <td>
+                      <div class="placa-title font-mono">{{ tuc.placa }}</div>
+                      <div class="vehiculo-sub">
+                        {{ tuc.datosVehiculo?.['marca'] || '' }} {{ tuc.datosVehiculo?.['categoria'] || '' }}
+                      </div>
+                    </td>
+
+                    <!-- Empresa / RUC -->
+                    <td class="max-w-xs truncate">
+                      <div class="empresa-title" [title]="tuc.razonSocial">{{ tuc.razonSocial }}</div>
+                      <div class="ruc-sub font-mono">RUC: {{ tuc.ruc }}</div>
+                    </td>
+
+                    <!-- Resolución -->
+                    <td>
+                      <div class="res-title">{{ tuc.nroResolucion }}</div>
+                      <div class="motivo-sub">{{ tuc.motivoEmision.replace('_', ' ') }}</div>
+                    </td>
+
+                    <!-- Vigencia Desde - Hasta -->
+                    <td class="whitespace-nowrap">
+                      <div class="fecha-main">{{ tuc.fechaEmision }}</div>
+                      <div class="fecha-sub">Al {{ tuc.fechaVencimiento || 'INDEFINIDO' }}</div>
+                    </td>
+
+                    <!-- Estado -->
+                    <td class="text-center">
+                      <span class="status-pill"
+                            [ngClass]="{
+                              'status-vigente': tuc.estado === 'VIGENTE',
+                              'status-anulada': tuc.estado === 'ANULADA' || tuc.estado === 'ANULADA_POR_DUPLICADO',
+                              'status-reemplazada': tuc.estado === 'REEMPLAZADA'
+                            }">
+                        {{ tuc.estado.replace('_', ' ') }}
+                      </span>
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="text-right">
+                      <div class="actions-flex">
+                        
+                        <!-- Abrir Verificación QR Pública -->
+                        <a [href]="'/verificar-tuc/' + (tuc.hashSeguridad || tuc.nroTuc)" target="_blank"
+                           class="btn-icon-qr" matTooltip="Verificar QR de Inspección">
+                          <mat-icon>qr_code_2</mat-icon>
+                        </a>
+
+                        <!-- Menú Más Opciones -->
+                        <button mat-icon-button [matMenuTriggerFor]="menu" class="btn-more">
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+
+                        <mat-menu #menu="matMenu">
+                          <button mat-menu-item (click)="anularTuc(tuc)" class="text-warn">
+                            <mat-icon color="warn">block</mat-icon>
+                            <span>Anular TUC</span>
+                          </button>
+                        </mat-menu>
+
+                      </div>
+                    </td>
+
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginador Angular Material -->
+        <mat-paginator [length]="totalRecords()"
+                       [pageSize]="pageSize()"
+                       [pageSizeOptions]="[10, 25, 50, 100]"
+                       (page)="onPageChange($event)">
+        </mat-paginator>
+
+      </mat-card>
+
+    </div>
+  `,
+  styles: [`
+    .page-container {
+      padding: 24px;
+      min-height: 100vh;
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #1e293b;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+    }
+
+    .title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.15);
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 4px 0 0 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      border-radius: 10px;
+      padding: 8px 16px;
+    }
+
+    .btn-sync {
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .btn-sync:hover { background: #334155; }
+
+    .btn-kardex {
+      background: #1e293b;
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .btn-kardex:hover { background: #334155; }
+
+    .btn-excel {
+      background: #1e293b;
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .btn-excel:hover { background: #334155; }
+
+    .btn-emitir {
+      background: #2563eb;
+      color: white;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid #334155;
+      backdrop-filter: blur(10px);
+    }
+
+    .border-kpi-total { border-color: #475569; }
+    .border-kpi-emerald { border-color: rgba(16, 185, 129, 0.4); }
+    .border-kpi-blue { border-color: rgba(59, 130, 246, 0.4); }
+    .border-kpi-amber { border-color: rgba(245, 158, 11, 0.4); }
+    .border-kpi-rose { border-color: rgba(244, 63, 94, 0.4); }
+    .border-kpi-purple { border-color: rgba(168, 85, 247, 0.4); }
+
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .text-slate { color: #f8fafc; }
+    .text-emerald { color: #34d399; }
+    .text-blue { color: #60a5fa; }
+    .text-amber { color: #fbbf24; }
+    .text-rose { color: #f87171; }
+    .text-purple { color: #c084fc; }
+
+    /* Glass Filters */
+    .glass-filters {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      color: #64748b;
+      font-size: 20px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 12px 10px 40px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: #3b82f6;
+    }
+
+    .filter-select {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #f8fafc;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .filter-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-filter {
+      padding: 8px 16px;
+      border-radius: 10px;
+    }
+
+    .btn-clear {
+      color: #94a3b8;
+    }
+
+    /* Table Styles */
+    .table-card {
+      background: #1e293b !important;
+      border: 1px solid #334155 !important;
+      border-radius: 16px !important;
+      overflow: hidden;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .custom-table th {
+      background: #0f172a;
+      color: #94a3b8;
+      padding: 14px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-bottom: 1px solid #334155;
+    }
+
+    .custom-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1e293b;
+      color: #f1f5f9;
+    }
+
+    .custom-table tr:hover td {
+      background: rgba(51, 65, 85, 0.4);
+    }
+
+    .tuc-badge {
+      font-weight: 800;
+      font-size: 13px;
+      background: #0f172a;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      color: white;
+    }
+
+    .tipo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tipo-electronica {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .tipo-fisica {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .placa-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: white;
+    }
+    .vehiculo-sub { font-size: 11px; color: #94a3b8; }
+
+    .empresa-title { font-weight: 700; color: #f8fafc; }
+    .ruc-sub { font-size: 11px; color: #60a5fa; }
+
+    .res-title { font-weight: 700; color: #34d399; }
+    .motivo-sub { font-size: 10px; color: #64748b; text-transform: uppercase; }
+
+    .fecha-main { font-weight: 500; color: #f1f5f9; }
+    .fecha-sub { font-size: 11px; color: #94a3b8; }
+
+    .status-pill {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-vigente {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .status-anulada {
+      background: rgba(244, 63, 94, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(244, 63, 94, 0.4);
+    }
+
+    .status-reemplazada {
+      background: rgba(100, 116, 139, 0.3);
+      color: #cbd5e1;
+      border: 1px solid #64748b;
+    }
+
+    .actions-flex {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .btn-icon-qr {
+      color: #60a5fa;
+      padding: 6px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .btn-icon-qr:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-more {
+      color: #94a3b8;
+    }
+
+    .loading-cell, .empty-cell {
+      text-align: center;
+      padding: 40px 16px;
+      color: #94a3b8;
+    }
+
+    .spinner-icon {
+      animation: spin 1s linear infinite;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      margin-bottom: 8px;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+
+    .empty-title {
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0;
+    }
+
+    .empty-desc {
+      font-size: 12px;
+      color: #64748b;
+      margin: 4px 0 0 0;
+    }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-warn { color: #f43f5e; }
+  `]
+})
+export class TucCatalogoComponent implements OnInit {
+  private tucService = inject(TucService);
+  private dialog = inject(MatDialog);
+  private snackBar = inject(MatSnackBar);
+
+  tucs = signal<Tuc[]>([]);
+  totalRecords = signal<number>(0);
+  estadisticas = signal<TucEstadisticas | null>(null);
+  cargando = signal<boolean>(true);
+  sincronizando = signal<boolean>(false);
+
+  filtroTexto = '';
+  filtroTipo: TipoEmisionTuc | '' = '';
+  filtroEstado: EstadoTuc | '' = '';
+
+  pageIndex = signal<number>(0);
+  pageSize = signal<number>(25);
+
+  ngOnInit(): void {
+    this.cargarDatos();
+    this.cargarEstadisticas();
+  }
+
+  cargarEstadisticas(): void {
+    this.tucService.getEstadisticas().subscribe({
+      next: (res) => this.estadisticas.set(res)
+    });
+  }
+
+  cargarDatos(): void {
+    this.cargando.set(true);
+
+    const filtros: any = {
+      skip: this.pageIndex() * this.pageSize(),
+      limit: this.pageSize()
+    };
+
+    if (this.filtroTexto.trim()) {
+      const txt = this.filtroTexto.trim();
+      if (/^\d{11}$/.test(txt)) filtros.ruc = txt;
+      else if (/^[A-Z0-9]{1,3}-[A-Z0-9]{3,4}$/i.test(txt)) filtros.placa = txt;
+      else if (/^(TE|TF)-/i.test(txt)) filtros.nroTuc = txt;
+      else filtros.nroResolucion = txt;
+    }
+
+    if (this.filtroTipo) filtros.tipoEmision = this.filtroTipo;
+    if (this.filtroEstado) filtros.estado = this.filtroEstado;
+
+    this.tucService.getTucs(filtros).subscribe({
+      next: (res) => {
+        this.tucs.set(res.items);
+        this.totalRecords.set(res.total);
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.cargando.set(false);
+        this.snackBar.open(`Error al cargar TUCs: ${err?.error?.detail || err.message}`, 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+
+  buscar(): void {
+    this.pageIndex.set(0);
+    this.cargarDatos();
+  }
+
+  limpiarFiltros(): void {
+    this.filtroTexto = '';
+    this.filtroTipo = '';
+    this.filtroEstado = '';
+    this.pageIndex.set(0);
+    this.cargarDatos();
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageIndex.set(event.pageIndex);
+    this.pageSize.set(event.pageSize);
+    this.cargarDatos();
+  }
+
+  abrirEmitirDialog(): void {
+    const dialogRef = this.dialog.open(TucEmitirDialogComponent, {
+      width: '640px',
+      panelClass: 'dark-modal'
+    });
+
+    dialogRef.afterClosed().subscribe((emitido) => {
+      if (emitido) {
+        this.cargarDatos();
+        this.cargarEstadisticas();
+      }
+    });
+  }
+
+  abrirKardex(): void {
+    this.dialog.open(TucKardexModalComponent, {
+      width: '600px',
+      panelClass: 'dark-modal'
+    });
+  }
+
+  abrirCargaMasiva(): void {
+    const dialogRef = this.dialog.open(TucImportarExcelDialogComponent, {
+      width: '600px',
+      panelClass: 'dark-modal'
+    });
+
+    dialogRef.afterClosed().subscribe((importado) => {
+      if (importado) {
+        this.cargarDatos();
+        this.cargarEstadisticas();
+      }
+    });
+  }
+
+  anularTuc(tuc: Tuc): void {
+    const motivo = prompt(`Ingrese el motivo administrativo para anular la TUC ${tuc.nroTuc}:`);
+    if (!motivo || !motivo.trim()) return;
+
+    if (tuc.id || tuc._id) {
+      const targetId = tuc.id || tuc._id!;
+      this.tucService.anularTuc(targetId, motivo).subscribe({
+        next: () => {
+          this.snackBar.open(`TUC ${tuc.nroTuc} fue anulada correctamente.`, 'OK', { duration: 3000 });
+          this.cargarDatos();
+          this.cargarEstadisticas();
+        }
+      });
+    }
+  }
+
+  sincronizarFlota(): void {
+    if (!confirm('¿Desea importar y sincronizar las TUCs existentes desde el módulo de Flota por Empresa?')) {
+      return;
+    }
+
+    this.sincronizando.set(true);
+    this.tucService.sincronizarDesdeFlotaEmpresa().subscribe({
+      next: (res) => {
+        this.sincronizando.set(false);
+        this.snackBar.open(
+          `Sincronización completada: ${res.importados} TUCs nuevas importadas, ${res.actualizados} actualizadas. Total Flota: ${res.totalFlota}`,
+          'Excelente',
+          { duration: 5000 }
+        );
+        this.cargarDatos();
+        this.cargarEstadisticas();
+      },
+      error: (err) => {
+        this.sincronizando.set(false);
+        this.snackBar.open(`Error al sincronizar con flota: ${err?.error?.detail || err.message}`, 'Cerrar', { duration: 4000 });
+      }
+    });
+  }
+}

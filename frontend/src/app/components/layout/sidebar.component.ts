@@ -106,14 +106,11 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Solicitudes de Baja</span> }
         </a>
 
-        <a mat-list-item routerLink="/conductores" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Conductores' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'person'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Conductores</span> }
-        </a>
 
-        <a mat-list-item routerLink="/tucs" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'TUCs' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'receipt'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">TUCs</span> }
+
+        <a mat-list-item routerLink="/tucs" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Tarjetas TUC' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'card_membership'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Tarjetas TUC</span> }
         </a>
 
         @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
@@ -124,10 +121,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </div>
         }
 
-        <a mat-list-item routerLink="/fiscalizaciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Fiscalizaciones' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'security'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Fiscalizaciones</span> }
-        </a>
+
 
         <a mat-list-item routerLink="/rutas" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Rutas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
@@ -198,23 +192,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Expedientes</span> }
         </a>
 
-        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
-        @if (isExpanded()) {
-          <div class="nav-section">
-            <h3 class="section-title">Gestión de Oficinas</h3>
-          </div>
-        }
-
-        <a mat-list-item routerLink="/oficinas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Oficinas' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Oficinas</span> }
-        </a>
-
-        <a mat-list-item routerLink="/oficinas/flujo" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Flujo de Expedientes' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'timeline'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Flujo de Expedientes</span> }
-        </a>
 
         @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 

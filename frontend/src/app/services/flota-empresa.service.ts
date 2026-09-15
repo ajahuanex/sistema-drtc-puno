@@ -15,9 +15,39 @@ export interface VehiculoEmpresa {
   ruc: string;
   razon_social?: string;
   nro_resolucion_primigenia: string;
+  fecha_emision_resolucion?: string;
+  num_expediente?: string;
+  expediente?: string;
+  fecha_expediente?: string;
   nro_resolucion_hija?: string;
   tipo_resolucion_hija?: string;
+
+  // 23 Especificaciones Técnicas del Vehículo:
   placa: string;
+  marca?: string;
+  modelo?: string;
+  anio_fabricacion?: number;
+  color?: string;
+  categoria?: string;
+  carroceria?: string;
+  clase?: string;
+  combustible?: string;
+  numero_motor?: string;
+  numero_serie?: string;
+  vin?: string;
+  pasajeros?: number;
+  asientos?: number;
+  cilindros?: number;
+  ejes?: number;
+  ruedas?: number;
+  peso_bruto?: number;
+  peso_neto?: number;
+  carga_util?: number;
+  largo?: number;
+  ancho?: number;
+  alto?: number;
+  observaciones?: string;
+
   es_cronologico: boolean;
   rutas: string[];
   numero_tuc?: string;
@@ -29,9 +59,6 @@ export interface VehiculoEmpresa {
   notificado?: string;
   estado_primigenia?: string;
   fecha_vigencia_hasta?: string;
-  num_expediente?: string;
-  expediente?: string;
-  fecha_expediente?: string;
   link_tuc?: string;
   link_notificacion?: string;
   detalles?: string;
@@ -78,11 +105,40 @@ export interface VehiculoEmpresaCreate {
   ruc: string;
   razon_social?: string;
   nro_resolucion_primigenia: string;
+  fecha_emision_resolucion?: string;
+  num_expediente?: string;
+  fecha_expediente?: string;
   nro_resolucion_hija?: string;
   tipo_resolucion_hija?: string;
+
+  // 23 Datos Técnicos del Vehículo:
   placa: string;
-  es_cronologico: boolean;
-  rutas: string[];
+  marca?: string;
+  modelo?: string;
+  anio_fabricacion?: number;
+  color?: string;
+  categoria?: string;
+  carroceria?: string;
+  clase?: string;
+  combustible?: string;
+  numero_motor?: string;
+  numero_serie?: string;
+  vin?: string;
+  pasajeros?: number;
+  asientos?: number;
+  cilindros?: number;
+  ejes?: number;
+  ruedas?: number;
+  peso_bruto?: number;
+  peso_neto?: number;
+  carga_util?: number;
+  largo?: number;
+  ancho?: number;
+  alto?: number;
+  observaciones?: string;
+
+  es_cronologico?: boolean;
+  rutas?: string[];
   numero_tuc?: string;
   estado?: string;
   observaciones_historial?: EntradaObservacion[];
@@ -91,8 +147,6 @@ export interface VehiculoEmpresaCreate {
   id_origen?: string;
   notificado?: string;
   estado_primigenia?: string;
-  num_expediente?: string;
-  fecha_expediente?: string;
   link_tuc?: string;
   link_notificacion?: string;
   detalles?: string;
@@ -119,20 +173,54 @@ export interface PreviewResult {
   preview: any[];
 }
 
-@Injectable({ providedIn: 'root' })
-export class FlotaEmpresaService {
-  private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/flota-empresa`;
+export interface ItemTramiteVehiculo {
+  placa: string;
+  placa_saliente?: string;
+  rutas: string[];
+  tipo_operacion?: string;
+  datos_tecnicos?: Record<string, any>;
+  observacion_custom?: string;
+  numero_tuc?: string;
+}
 
-  getFlota(params: {
+export interface TramiteMasivoRequest {
+  ruc: string;
+  razon_social?: string;
+  nro_resolucion_primigenia: string;
+  tipo_tramite: string;
+  num_expediente?: string;
+  fecha_expediente?: string;
+  nro_resolucion_hija?: string;
+  fecha_emision_resolucion?: string;
+  es_renovacion?: boolean;
+  nueva_resolucion_primigenia?: string;
+  nueva_fecha_emision?: string;
+  nueva_fecha_inicio_vigencia?: string;
+  nueva_fecha_fin_vigencia?: string;
+  nuevas_rutas?: string[];
+  vehiculos: ItemTramiteVehiculo[];
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FlotaEmpresaService {
+  private baseUrl = `${environment.apiUrl}/flota-empresa`;
+  private http = inject(HttpClient);
+
+  procesarTramiteMasivo(payload: TramiteMasivoRequest): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/tramite-masivo`, payload);
+  }
+
+  getFlotaPaginada(params: {
     skip?: number;
     limit?: number;
     ruc?: string;
     estado?: string;
     placa?: string;
+    nro_resolucion_primigenia?: string;
     q?: string;
     solo_activos?: boolean;
-    nro_resolucion_primigenia?: string;
   } = {}): Observable<FlotaEmpresaResponse> {
     let p = new HttpParams();
     if (params.skip !== undefined) p = p.set('skip', params.skip.toString());
@@ -140,9 +228,10 @@ export class FlotaEmpresaService {
     if (params.ruc) p = p.set('ruc', params.ruc);
     if (params.estado) p = p.set('estado', params.estado);
     if (params.placa) p = p.set('placa', params.placa);
-    if (params.q) p = p.set('q', params.q);
-    if (params.solo_activos !== undefined) p = p.set('solo_activos', params.solo_activos.toString());
     if (params.nro_resolucion_primigenia) p = p.set('nro_resolucion_primigenia', params.nro_resolucion_primigenia);
+    if (params.q) p = p.set('q', params.q);
+    if (params.solo_activos) p = p.set('solo_activos', 'true');
+
     return this.http.get<FlotaEmpresaResponse>(this.baseUrl, { params: p });
   }
 

@@ -12,7 +12,8 @@ from app.models.flota_empresa import (
     VehiculoEmpresaCreate,
     VehiculoEmpresaUpdate,
     VehiculoEmpresaResponse,
-    AgregarObservacionRequest
+    AgregarObservacionRequest,
+    TramiteMasivoRequest
 )
 from app.services.flota_empresa_service import FlotaEmpresaService
 from app.services.flota_empresa_excel_service import FlotaEmpresaExcelService
@@ -28,6 +29,24 @@ async def get_service():
 async def get_excel_service():
     db = await get_database()
     return FlotaEmpresaExcelService(db)
+
+
+@router.post("/tramite-masivo", summary="Procesar trámite masivo (Sustitución, Renovación, Canje, Duplicado, Incremento)")
+async def procesar_tramite_masivo(
+    req: TramiteMasivoRequest,
+    service: FlotaEmpresaService = Depends(get_service)
+):
+    """
+    Endpoint atómico para ejecutar trámites por resolución primigenia.
+    Aplica baja automática en sustitución, inhabilitación de flota previa en renovación,
+    autocompletado de datos técnicos y trazabilidad en observaciones.
+    """
+    try:
+        res = await service.procesar_tramite_masivo(req)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error procesando trámite masivo: {str(e)}")
+
 
 
 # ======================================================================

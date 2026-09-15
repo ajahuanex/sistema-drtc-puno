@@ -269,7 +269,19 @@ class FlotaEmpresaExcelService:
         
         razon_oficial = None
         if emp_doc:
-            razon_oficial = emp_doc.get("razon_social") or emp_doc.get("nombre_comercial")
+            rs = emp_doc.get("razonSocial")
+            if isinstance(rs, dict):
+                razon_oficial = rs.get("principal") or rs.get("sunat") or rs.get("minimo")
+            elif isinstance(rs, str) and rs.strip():
+                razon_oficial = rs.strip()
+                
+            if not razon_oficial:
+                datos_sunat = emp_doc.get("datosSunat")
+                if isinstance(datos_sunat, dict):
+                    razon_oficial = datos_sunat.get("ddp_nombre") or datos_sunat.get("razonSocial")
+                    
+            if not razon_oficial:
+                razon_oficial = emp_doc.get("razon_social") or emp_doc.get("nombre_comercial")
         
         cache[ruc] = razon_oficial
         return razon_oficial or razon_excel

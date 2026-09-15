@@ -51,9 +51,13 @@ export const routes: Routes = [
       { path: 'vehiculos-empresa/carga-masiva-google-sheets', loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent) },
       { path: 'historial-vehiculos', loadComponent: () => import('./components/historial-vehiculos/historial-vehiculos.component').then(m => m.HistorialVehiculosComponent) },
       
-      // DESHABILITADO - Dashboard
-      // { path: 'dashboard', component: DashboardComponent },
+      // TUCS (Tarjetas Únicas de Circulación)
+      { path: 'tucs', loadComponent: () => import('./components/tucs/tuc-catalogo.component').then(m => m.TucCatalogoComponent) },
     ]
   },
+  
+  // PORTAL PÚBLICO VERIFICACIÓN QR (Sin requerir inicio de sesión)
+  { path: 'verificar-tuc/:hash', loadComponent: () => import('./components/tucs/verificar-tuc-publico.component').then(m => m.VerificarTucPublicoComponent) },
+
   { path: '**', redirectTo: '/login' }
 ];

@@ -30,9 +30,9 @@ import { Subject, takeUntil } from 'rxjs';
 
 import { ReportesService, TipoReporte, FormatoReporte, EstadoReporte, ReporteConfig, ReporteFiltros, ReporteResultado } from '../../services/reportes.service';
 import { EmpresaService } from '../../services/empresa.service';
-import { OficinaService } from '../../services/oficina.service';
+
 import { Empresa } from '../../models/empresa.model';
-import { Oficina } from '../../models/oficina.model';
+
 
 interface ReporteRapido {
   id: string;
@@ -165,15 +165,6 @@ interface ReporteRapido {
                 </mat-select>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Oficina</mat-label>
-                <mat-select formControlName="oficinaId">
-                  <mat-option value="">Todas las oficinas</mat-option>
-                  @for (oficina of oficinas(); track oficina.id) {
-                    <mat-option [value]="oficina.id">{{ oficina.nombre | uppercase }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
 
               <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Estado</mat-label>
@@ -654,7 +645,7 @@ interface ReporteRapido {
 export class ReportesComponent implements OnInit, OnDestroy {
   private reportesService = inject(ReportesService);
   private empresaService = inject(EmpresaService);
-  private oficinaService = inject(OficinaService);
+
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -668,7 +659,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   reportesGenerados = signal<ReporteResultado[]>([]);
   reportesProgramados = signal<any[]>([]);
   empresas = signal<Empresa[]>([]);
-  oficinas = signal<Oficina[]>([]);
+
 
   // Computed properties
   tiposReporte = computed(() => this.reportesService.obtenerTiposReporte());
@@ -743,7 +734,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
       formato: ['', Validators.required],
       nombre: ['', Validators.required],
       empresaId: [''],
-      oficinaId: [''],
+
       estado: [''],
       fechaDesde: [null],
       fechaHasta: [null],
@@ -764,7 +755,6 @@ export class ReportesComponent implements OnInit, OnDestroy {
     this.cargarReportesGenerados();
     this.cargarReportesProgramados();
     this.cargarEmpresas();
-    this.cargarOficinas();
   }
 
   private cargarReportesGenerados(): void {
@@ -802,12 +792,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
     });
   }
 
-  private cargarOficinas(): void {
-    this.oficinaService.getOficinas().subscribe({
-      next: (oficinas) => this.oficinas.set(oficinas),
-      error: (error) => console.error('Error cargando oficinas:', error)
-    });
-  }
+
 
   generarReporteRapido(reporte: ReporteRapido): void {
     const filtros: ReporteFiltros = {};
@@ -837,7 +822,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
         formato: this.reporteForm.value.formato,
         filtros: {
           empresaId: this.reporteForm.value.empresaId,
-          oficinaId: this.reporteForm.value.oficinaId,
+
           estado: this.reporteForm.value.estado,
           fechaDesde: this.reporteForm.value.fechaDesde,
           fechaHasta: this.reporteForm.value.fechaHasta

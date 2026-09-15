@@ -292,8 +292,26 @@ class EmpresaService:
         if result.modified_count:
             empresa_actualizada = await self.get_empresa_by_id(empresa_id)
             await self.crear_notificacion_empresa(empresa_actualizada, "EMPRESA_ACTUALIZADA")
+
+            # Sincronizar automáticamente en la colección flota_empresa
+            try:
+                ruc_target = empresa_actualizada.ruc
+                rs_nueva = None
+                if empresa_actualizada.razonSocial:
+                    rs_nueva = empresa_actualizada.razonSocial.principal or empresa_actualizada.razonSocial.sunat
+                if not rs_nueva and empresa_actualizada.datosSunat:
+                    rs_nueva = empresa_actualizada.datosSunat.get("ddp_nombre") or empresa_actualizada.datosSunat.get("razonSocial")
+                
+                if ruc_target and rs_nueva:
+                    await self.db["flota_empresa"].update_many(
+                        {"ruc": ruc_target},
+                        {"$set": {"razon_social": rs_nueva, "fecha_actualizacion": datetime.utcnow()}}
+                    )
+            except Exception as sync_err:
+                print(f"Error sincronizando razon_social en flota_empresa para RUC {empresa_actual.ruc}: {sync_err}")
+
             return empresa_actualizada
-            
+
         return None
 
     async def crear_auditoria_cambio(self, empresa_actual: EmpresaInDB, cambios: Dict[str, Any], usuario_id: str) -> AuditoriaEmpresa:

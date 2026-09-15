@@ -21,20 +21,20 @@ import { Subject, takeUntil, interval } from 'rxjs';
 
 import { EmpresaService } from '../../services/empresa.service';
 import { VehiculoService } from '../../services/vehiculo.service';
-import { ConductorService } from '../../services/conductor.service';
+
 import { RutaService } from '../../services/ruta.service';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { ResolucionService } from '../../services/resolucion.service';
 import { ExpedienteService } from '../../services/expediente.service';
-import { OficinaService } from '../../services/oficina.service';
+
 import { NotificationService } from '../../services/notification.service';
 import { Empresa } from '../../models/empresa.model';
 import { Vehiculo } from '../../models/vehiculo.model';
-import { Conductor } from '../../models/conductor.model';
+
 import { Ruta } from '../../models/ruta.model';
 import { Resolucion } from '../../models/resolucion.model';
 import { Expediente } from '../../models/expediente.model';
-import { Oficina } from '../../models/oficina.model';
+
 
 interface DashboardMetric {
   titulo: string;
@@ -237,36 +237,7 @@ interface ActividadReciente {
           </mat-card-content>
         </mat-card>
 
-        <!-- Resumen de Oficinas -->
-        <mat-card class="dashboard-card">
-          <mat-card-header>
-            <mat-card-title>Resumen de Oficinas</mat-card-title>
-            <mat-card-subtitle>Estado operativo por oficina</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
-            @if (loadingOficinas()) {
-              <div class="loading-container">
-                <mat-spinner diameter="40"></mat-spinner>
-              </div>
-            } @else {
-              <div class="oficinas-resumen">
-                @for (oficina of resumenOficinas(); track oficina.id) {
-                  <div class="oficina-item">
-                    <div class="oficina-info">
-                      <div class="oficina-nombre">{{ oficina.nombre | uppercase }}</div>
-                      <div class="oficina-ubicacion">{{ oficina.ubicacion | uppercase }}</div>
-                    </div>
-                    <div class="oficina-estado">
-                      <mat-chip [color]="oficina.estaActiva ? 'primary' : 'warn'" selected>
-                        {{ oficina.estaActiva ? 'ACTIVA' : 'INACTIVA' }}
-                      </mat-chip>
-                    </div>
-                  </div>
-                }
-              </div>
-            }
-          </mat-card-content>
-        </mat-card>
+
       </div>
 
       <!-- Tabla de Expedientes Pendientes -->
@@ -717,11 +688,11 @@ interface ActividadReciente {
 export class DashboardComponent implements OnInit, OnDestroy {
   private empresaService = inject(EmpresaService);
   private vehiculoService = inject(VehiculoService);
-  private conductorService = inject(ConductorService);
+
   private rutaService = inject(RutaService);
   private resolucionService = inject(ResolucionService);
   private expedienteService = inject(ExpedienteService);
-  private oficinaService = inject(OficinaService);
+
   private notificationService = inject(NotificationService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
@@ -732,17 +703,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
   loadingExpedientes = signal(false);
   loadingActividad = signal(false);
   loadingNotificaciones = signal(false);
-  loadingOficinas = signal(false);
+
   loadingExpedientesPendientes = signal(false);
 
   // Data signals
   empresas = signal<Empresa[]>([]);
   vehiculos = signal<Vehiculo[]>([]);
-  conductores = signal<Conductor[]>([]);
+
   rutas = signal<Ruta[]>([]);
   resoluciones = signal<Resolucion[]>([]);
   expedientes = signal<Expediente[]>([]);
-  oficinas = signal<Oficina[]>([]);
+
   notificaciones = signal<any[]>([]);
 
   // Computed properties
@@ -765,15 +736,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
       url: '/vehiculos'
     },
-    {
-      titulo: 'Conductores',
-      valor: this.conductores().length,
-      cambio: this.calcularCambio(this.conductores()),
-      cambioPorcentual: this.calcularCambioPorcentual(this.conductores()),
-      icono: 'person',
-      color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-      url: '/conductores'
-    },
+
     {
       titulo: 'Rutas Activas',
       valor: this.rutas().length,
@@ -830,9 +793,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.notificaciones().filter(n => n.prioridad === 'ALTA' || n.prioridad === 'CRITICA').slice(0, 5);
   });
 
-  resumenOficinas = computed(() => {
-    return this.oficinas().slice(0, 5);
-  });
+
 
   expedientesPendientes = computed(() => {
     return this.expedientes().filter(e => e.estado === 'EN_PROCESO').slice(0, 10);
@@ -856,11 +817,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private cargarDatos(): void {
     this.cargarEmpresas();
     this.cargarVehiculos();
-    this.cargarConductores();
+
     this.cargarRutas();
     this.cargarResoluciones();
     this.cargarExpedientes();
-    this.cargarOficinas();
+
     this.cargarNotificaciones();
   }
 
@@ -897,25 +858,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private cargarConductores(): void {
-    // console.log removed for production
-    // NOTA: El módulo de conductores será un sistema separado en el futuro
-    // Por ahora, establecemos un array vacío para evitar errores
-    console.log('ℹ️ Módulo de conductores: Sistema separado (futuro)');
-    this.conductores.set([]);
-    
-    // TODO: Implementar integración con sistema externo de conductores
-    // this.conductorService.getConductores().subscribe({
-    //   next: (conductores) => {
-    //     // console.log removed for production
-    //     this.conductores.set(conductores);
-    //   },
-    //   error: (error) => {
-    //     console.error('❌ Error cargando conductores::', error);
-    //     this.snackBar.open('Error cargando conductores', 'Cerrar', { duration: 3000 });
-    //   }
-    // });
-  }
+
 
   private cargarRutas(): void {
     // console.log removed for production
@@ -966,19 +909,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private cargarOficinas(): void {
-    this.loadingOficinas.set(true);
-    this.oficinaService.getOficinas().subscribe({
-      next: (oficinas) => {
-        this.oficinas.set(oficinas);
-        this.loadingOficinas.set(false);
-      },
-      error: (error) => {
-        console.error('Error cargando oficinas::', error);
-        this.loadingOficinas.set(false);
-      }
-    });
-  }
+
 
   private cargarNotificaciones(): void {
     this.loadingNotificaciones.set(true);

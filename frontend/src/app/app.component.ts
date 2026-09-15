@@ -273,7 +273,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   // Signals locales
   private readonly _hydrationProgress = signal(0);
   private readonly _initTime = signal(0);
-  private readonly _showPerformanceIndicator = signal(true);
+  private readonly _showPerformanceIndicator = signal(false);
 
   // Computed properties
   readonly hydrationProgress = this._hydrationProgress.asReadonly();

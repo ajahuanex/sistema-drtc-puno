@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
+# Configuración de Uvicorn - Módulo TUC Canónico
 import logging
 import time
 from app.config.settings import settings

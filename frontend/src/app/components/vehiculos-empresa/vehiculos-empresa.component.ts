@@ -33,6 +33,8 @@ import { RutaService } from '../../services/ruta.service';
 import { Ruta } from '../../models/ruta.model';
 import { DetalleVehiculoDialogComponent } from './detalle-vehiculo-dialog.component';
 import { EditarVehiculoDialogComponent } from './editar-vehiculo-dialog.component';
+import { FormVehiculoDialogComponent } from './form-vehiculo-dialog.component';
+import { FormTramitePrimigeniaDialogComponent } from './form-tramite-primigenia-dialog.component';
 
 export interface ColumnasState {
   primigenia: boolean;
@@ -56,7 +58,7 @@ export interface ColumnasState {
     MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
     MatMenuModule, MatDividerModule, MatChipsModule,
     MatPaginatorModule, MatTabsModule, MatBadgeModule, MatDialogModule,
-    MatExpansionModule, MatCheckboxModule
+    MatExpansionModule, MatCheckboxModule, FormTramitePrimigeniaDialogComponent
   ],
   styleUrls: ['./vehiculos-empresa.component.scss'],
   template: `
@@ -73,7 +75,7 @@ export interface ColumnasState {
           </div>
         </div>
         <div class="header-actions">
-          <button mat-button class="header-action-btn" (click)="irACargaMasiva()" matTooltip="Importar desde Excel / Google Sheets">
+          <button mat-raised-button class="header-action-btn" (click)="irACargaMasiva()" matTooltip="Importar desde Excel / Google Sheets">
             <mat-icon class="btn-icon">upload_file</mat-icon>
             <span class="btn-text">Carga Masiva</span>
           </button>
@@ -173,109 +175,128 @@ export interface ColumnasState {
             </div>
           } @else {
             <!-- BARRA DE NAVEGACIÓN Y DETALLE DE LA EMPRESA SELECCIONADA -->
-            <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
-              <button mat-stroked-button (click)="limpiarEmpresaSeleccionada()" style="background:#fff;">
-                <mat-icon>arrow_back</mat-icon> Volver a la Lista de Empresas
+            <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <button mat-stroked-button (click)="limpiarEmpresaSeleccionada()" style="background:#fff;border-color:#cbd5e1;font-weight:600;color:#334155;">
+                <mat-icon style="color:#2563eb;">arrow_back</mat-icon> Volver a la Lista de Empresas
               </button>
-              <span style="font-size:14px;font-weight:700;color:#334155;">
-                Mostrando flota de: <strong>{{ razonSocialEmpresa() }}</strong> (RUC: {{ empresaSearchControl.value }})
-              </span>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:13.5px;font-weight:700;color:#334155;background:#f8fafc;padding:6px 14px;border-radius:10px;border:1px solid #e2e8f0;">
+                  Empresa activa: <strong style="color:#1e1b4b;">{{ razonSocialEmpresa() }}</strong> <span style="color:#2563eb;font-family:monospace;margin-left:4px;">(RUC: {{ empresaSearchControl.value }})</span>
+                </span>
+                <button mat-raised-button color="primary" (click)="abrirCrearVehiculo()" style="font-weight:700;border-radius:10px;padding:4px 14px;height:38px;">
+                  <mat-icon>add_circle</mat-icon> Registrar Vehículo
+                </button>
+              </div>
             </div>
 
-            <!-- Estadísticas de la empresa -->
-            @if (estadisticas()) {
-              <div class="empresa-stats-bar animate-fade-in" style="margin-bottom:16px;">
-                <div class="empresa-name-badge">
-                  <mat-icon>store</mat-icon>
+            <!-- CUADRITO 1: INFORMACIÓN DE LA EMPRESA -->
+            <div class="empresa-info-card glass-panel" style="margin-bottom:16px;border-radius:14px;padding:18px 22px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+                    <mat-icon style="color:#2563eb;font-size:20px;width:20px;height:20px;">business</mat-icon>
+                  </div>
                   <div>
-                    <strong>{{ estadisticas()!.ruc }}</strong>
-                    <span class="razon-social-hint">{{ razonSocialEmpresa() }}</span>
+                    <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Ficha Informativa de la Empresa</h3>
+                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Datos principales del registro de transporte</p>
                   </div>
                 </div>
-                <div class="stats-pills">
-                  <span class="stat-pill total-pill">
-                    <mat-icon>format_list_numbered</mat-icon> {{ estadisticas()!.total_vehiculos_activos }} Vehículos
-                  </span>
-                  <span class="stat-pill hab-pill" matTooltip="Habilitados">
-                    <mat-icon>check_circle</mat-icon> {{ estadisticas()!.habilitados }}
-                  </span>
-                  <span class="stat-pill inhab-pill" matTooltip="Inhabilitados">
-                    <mat-icon>block</mat-icon> {{ estadisticas()!.inhabilitados }}
+                <div style="display:flex;align-items:center;gap:8px;">
+                  @if (estadisticas()) {
+                    <span class="stat-pill hab-pill" style="font-size:11px;padding:3px 10px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700;">
+                      <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;">check_circle</mat-icon> {{ estadisticas()!.habilitados }} Hab.
+                    </span>
+                  }
+                  <span class="ruc-badge" style="font-size:12px;padding:4px 10px;background:#1e1b4b;color:#fff;">
+                    RUC: {{ empresaSearchControl.value }}
                   </span>
                 </div>
               </div>
-            }
 
-            <!-- ACCORDEÓN DETALLES DE LA EMPRESA Y RUTAS POR AUTORIZACIÓN PRIMIGENIA -->
-            <mat-accordion class="empresa-accordion-container" style="margin-bottom:16px;display:block;">
-              <mat-expansion-panel class="glass-panel empresa-accordion" style="border-radius:12px;overflow:hidden;" [expanded]="true">
-                <mat-expansion-panel-header style="height: auto; padding: 14px 20px;">
-                  <mat-panel-title style="display:flex;align-items:center;gap:10px;font-weight:800;color:#1e293b;font-size:15px;">
-                    <mat-icon style="color:#3b82f6;">domain</mat-icon>
-                    <span>Detalles de la Empresa y Rutas por Autorización Primigenia</span>
-                  </mat-panel-title>
-                  <mat-panel-description style="font-size:12px;color:#64748b;display:flex;align-items:center;gap:8px;">
-                    <span>{{ rutasPorPrimigenia().length }} autorización(es) primigenia(s)</span>
-                  </mat-panel-description>
-                </mat-expansion-panel-header>
-
-                <div class="accordion-content-body" style="padding:16px 8px;">
-                  <!-- DATOS OFICIALES DE LA EMPRESA (RUC, REPRESENTANTE LEGAL, TELÉFONO, EMAIL, DIRECCIÓN) -->
-                  <div class="empresa-info-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:20px;background:rgba(241,245,249,0.75);padding:14px;border-radius:10px;border:1px solid #e2e8f0;">
-                    <div class="info-block">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Razón Social</div>
-                      <div style="font-size:14px;font-weight:800;color:#1e293b;">{{ getRazonSocialEmpresa(empresaDetalle()) }}</div>
-                    </div>
-                    <div class="info-block">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">RUC</div>
-                      <div style="font-size:13px;font-weight:700;color:#2563eb;font-family:monospace;">{{ empresaSearchControl.value }}</div>
-                    </div>
-                    <div class="info-block">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Representante Legal</div>
-                      <div style="font-size:13px;font-weight:700;color:#0f172a;">
-                        {{ getRepresentanteLegalNombre(empresaDetalle()) }}
-                        @if (getRepresentanteLegalDni(empresaDetalle())) {
-                          <span style="font-size:11px;color:#64748b;font-weight:500;"> (DNI: {{ getRepresentanteLegalDni(empresaDetalle()) }})</span>
-                        }
-                      </div>
-                    </div>
-                    <div class="info-block">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Teléfono / Contacto</div>
-                      <div style="font-size:13px;font-weight:600;color:#334155;">{{ getTelefonoEmpresa(empresaDetalle()) }}</div>
-                    </div>
-                    <div class="info-block">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Correo Electrónico</div>
-                      <div style="font-size:13px;font-weight:600;color:#334155;">{{ getEmailEmpresa(empresaDetalle()) }}</div>
-                    </div>
-                    <div class="info-block" style="grid-column: 1 / -1;">
-                      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Dirección Fiscal</div>
-                      <div style="font-size:13px;font-weight:500;color:#334155;">{{ getDireccionEmpresa(empresaDetalle()) }}</div>
-                    </div>
+              <!-- DATOS OFICIALES DE LA EMPRESA -->
+              <div class="empresa-info-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;background:rgba(248,250,252,0.9);padding:14px 16px;border-radius:10px;border:1px solid #e2e8f0;">
+                <div class="info-block">
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Representante Legal</div>
+                  <div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px;">
+                    {{ getRepresentanteLegalNombre(empresaDetalle()) }}
+                    @if (getRepresentanteLegalDni(empresaDetalle())) {
+                      <span style="font-size:11px;color:#475569;font-weight:600;"> (DNI: {{ getRepresentanteLegalDni(empresaDetalle()) }})</span>
+                    }
                   </div>
+                </div>
+                <div class="info-block">
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Teléfono / Contacto</div>
+                  <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getTelefonoEmpresa(empresaDetalle()) }}</div>
+                </div>
+                <div class="info-block">
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Correo Electrónico</div>
+                  <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getEmailEmpresa(empresaDetalle()) }}</div>
+                </div>
+                <div class="info-block" style="grid-column: 1 / -1;">
+                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Dirección Fiscal</div>
+                  <div style="font-size:13px;font-weight:500;color:#334155;margin-top:2px;display:flex;align-items:center;gap:4px;">
+                    <mat-icon style="font-size:14px;width:14px;height:14px;color:#e11d48;">place</mat-icon>
+                    {{ getDireccionEmpresa(empresaDetalle()) }}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                  <mat-divider style="margin-bottom:16px;"></mat-divider>
+            <!-- CUADRITO 2: RESOLUCIONES PRIMIGENIAS Y RUTAS (CORTINA DESPLEGABLE) -->
+            <div class="rutas-primigenias-card glass-panel" style="margin-bottom:16px;border-radius:14px;padding:14px 20px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);">
+              <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" (click)="toggleRutasPrimigenias()">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;">
+                    <mat-icon style="color:#10b981;font-size:20px;width:20px;height:20px;">route</mat-icon>
+                  </div>
+                  <div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Resoluciones Autoritativas Primigenias y Rutas</h3>
+                      <span class="stat-pill total-pill" style="font-size:11px;padding:2px 10px;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;">
+                        {{ rutasPorPrimigenia().length }} Autorización(es)
+                      </span>
+                    </div>
+                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">
+                      {{ rutasPrimigeniasAbiertas() ? 'Haz clic para contraer esta sección' : 'Haz clic para desplegar vigencias, rutas y desglose por resolución primigenia' }}
+                    </p>
+                  </div>
+                </div>
+                <button mat-icon-button type="button" style="color:#475569;" [matTooltip]="rutasPrimigeniasAbiertas() ? 'Ocultar autorizaciones' : 'Ver autorizaciones y rutas'">
+                  <mat-icon style="transition:transform 0.3s;" [style.transform]="rutasPrimigeniasAbiertas() ? 'rotate(180deg)' : 'rotate(0deg)'">
+                    expand_more
+                  </mat-icon>
+                </button>
+              </div>
 
-                  <h4 style="margin:0 0 12px;font-size:13px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
-                    <mat-icon style="font-size:16px;width:16px;height:16px;color:#10b981;">verified</mat-icon>
-                    Resoluciones Autoritativas Primigenias y Rutas Habilitadas
-                  </h4>
-
-                  <div class="prim-rutas-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:12px;">
-                    @for (item of rutasPorPrimigenia(); track item.primigenia) {
-                      <div class="prim-ruta-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                          <span class="code-badge prim-badge" [class.prim-inactiva]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA' || item.estado === 'VENCIDA'">
-                            {{ item.primigenia }}
-                          </span>
+              @if (rutasPrimigeniasAbiertas()) {
+                <div class="prim-rutas-grid animate-fade-in" style="margin-top:14px;display:flex;flex-direction:column;gap:14px;">
+                  @for (item of rutasPorPrimigenia(); track item.primigenia) {
+                    <div class="prim-ruta-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                        <span class="code-badge prim-badge" [class.prim-inactiva]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA' || item.estado === 'VENCIDA'" [matTooltip]="'Estado: ' + (item.estado || 'VIGENTE')">
+                          {{ item.primigenia }}
+                        </span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                          <button mat-flat-button color="primary" style="font-size:11.5px;height:30px;line-height:30px;padding:0 10px;border-radius:8px;font-weight:700;" (click)="abrirCrearVehiculo(item.primigenia)" [matTooltip]="'Registrar vehículo asignado a la resolución ' + item.primigenia">
+                            <mat-icon style="font-size:15px;width:15px;height:15px;margin-right:4px;">add_circle</mat-icon>
+                            Registrar Vehículo
+                          </button>
+                          <button mat-flat-button style="font-size:11.5px;height:30px;line-height:30px;padding:0 10px;border-radius:8px;font-weight:700;background:#0284c7;color:#fff;" (click)="abrirTramitePrimigenia(item)" [matTooltip]="'Procesar Trámite (Sustitución, Renovación, Duplicado, Canje) para ' + item.primigenia">
+                            <mat-icon style="font-size:15px;width:15px;height:15px;margin-right:4px;">assignment</mat-icon>
+                            Trámite por Res. Primigenia
+                          </button>
                           <span class="status-pill"
                                 [class.status-habilitado]="item.estado === 'VIGENTE' || item.estado === 'ACTIVA'"
                                 [class.status-cancelado]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA' || item.estado === 'VENCIDA'">
                             {{ item.estado || 'VIGENTE' }}
                           </span>
                         </div>
+                      </div>
 
-                        <!-- FECHAS Y VIGENCIA OFICIAL DE LA RESOLUCIÓN PRIMIGENIA -->
-                        <div style="font-size:11px;color:#475569;margin-bottom:8px;display:flex;flex-direction:column;gap:3px;background:rgba(241,245,249,0.8);padding:8px 10px;border-radius:6px;">
+                      <!-- CONTENIDO SECUNDARIO: FECHAS Y RUTAS AL LADO -->
+                      <div style="display:flex;flex-wrap:wrap;gap:16px;">
+                        <!-- FECHAS Y VIGENCIA -->
+                        <div style="flex:1;min-width:240px;font-size:11px;color:#475569;display:flex;flex-direction:column;gap:4px;background:rgba(241,245,249,0.85);padding:9px 12px;border-radius:8px;">
                           @if (item.fechaEmision) {
                             <div>F. Emisión: <strong>{{ item.fechaEmision | date:'dd/MM/yyyy' }}</strong></div>
                           }
@@ -290,32 +311,45 @@ export interface ColumnasState {
                               }
                             </div>
                           }
-                          @if (item.count > 0) {
-                            <div style="color:#2563eb;font-weight:600;">Flota Habilitada: {{ item.count }} vehículo(s)</div>
-                          }
+                          
+                          <!-- DESGLOSE DE FLOTA -->
+                          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;padding-top:4px;border-top:1px solid #e2e8f0;">
+                            <span style="font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 8px;border-radius:12px;font-size:11px;border:1px solid #bbf7d0;display:inline-flex;align-items:center;gap:3px;">
+                              <mat-icon style="font-size:13px;width:13px;height:13px;">check_circle</mat-icon>
+                              Flota Habilitada: {{ item.countHabilitados }}
+                            </span>
+                            @if (item.countInhabilitados > 0) {
+                              <span style="font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:12px;font-size:11px;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:3px;">
+                                <mat-icon style="font-size:13px;width:13px;height:13px;">block</mat-icon>
+                                Inhabilitados: {{ item.countInhabilitados }}
+                              </span>
+                            }
+                          </div>
                         </div>
 
                         <!-- RUTAS DESGLOSADAS -->
-                        <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">
-                          Rutas autorizadas en el módulo de rutas ({{ item.rutasArray.length }}):
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:4px;">
-                          @for (r of item.rutasArray; track r) {
-                            <span class="ruta-chip" style="font-size:11px;padding:4px 8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;" [matTooltip]="getRutaInfoTooltip(r)">
-                              <mat-icon style="font-size:14px;width:14px;height:14px;">alt_route</mat-icon>
-                              {{ getRutaNombreCompleto(r) }}
-                            </span>
-                          }
-                          @if (!item.rutasArray.length) {
-                            <span style="font-size:11px;color:#cbd5e1;font-style:italic;">Sin rutas registradas</span>
-                          }
+                        <div style="flex:2;min-width:300px;">
+                          <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">
+                            Rutas autorizadas en el módulo de rutas ({{ item.rutasArray.length }}):
+                          </div>
+                          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                            @for (r of item.rutasArray; track r) {
+                              <span class="ruta-chip" style="font-size:11px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border-radius:6px;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;" [matTooltip]="getRutaInfoTooltip(r)">
+                                <mat-icon style="font-size:14px;width:14px;height:14px;">alt_route</mat-icon>
+                                {{ getRutaNombreCompleto(r) }}
+                              </span>
+                            }
+                            @if (!item.rutasArray.length) {
+                              <span style="font-size:11px;color:#94a3b8;font-style:italic;">Sin rutas registradas</span>
+                            }
+                          </div>
                         </div>
                       </div>
-                    }
-                  </div>
+                    </div>
+                  }
                 </div>
-              </mat-expansion-panel>
-            </mat-accordion>
+              }
+            </div>
 
             <!-- FILTROS Y SELECTOR DE PRIMIGENIAS POR TABS -->
             @if (primigeniasDisponibles().length > 1) {
@@ -418,12 +452,12 @@ export interface ColumnasState {
                     </button>
                     <button mat-menu-item (click)="$event.stopPropagation()">
                       <mat-checkbox [checked]="columnasVisibles().links" (change)="toggleColumna('links')">
-                        Links / Archivos
+                        Links
                       </mat-checkbox>
                     </button>
                     <button mat-menu-item (click)="$event.stopPropagation()">
                       <mat-checkbox [checked]="columnasVisibles().observaciones" (change)="toggleColumna('observaciones')">
-                        Observaciones / Detalles
+                        Obs.
                       </mat-checkbox>
                     </button>
                   </mat-menu>
@@ -509,8 +543,8 @@ export interface ColumnasState {
                           }
                           @if (columnasVisibles().expediente) { <th>Expediente</th> }
                           @if (columnasVisibles().fecha) { <th>Fecha</th> }
-                          @if (columnasVisibles().links) { <th>Links / Archivos</th> }
-                          @if (columnasVisibles().observaciones) { <th>Observaciones / Detalles</th> }
+                          @if (columnasVisibles().links) { <th style="width:75px;" class="text-center">Links</th> }
+                          @if (columnasVisibles().observaciones) { <th>Obs.</th> }
                           <th class="sticky-col-right text-center th-actions-icon-col">
                             <mat-icon class="th-actions-icon">settings</mat-icon>
                           </th>
@@ -526,17 +560,18 @@ export interface ColumnasState {
                             <!-- Resolución Primigenia -->
                             @if (columnasVisibles().primigenia) {
                               <td class="sticky-col-left">
-                                <span class="code-badge prim-badge" [class.prim-inactiva]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA'">
-                                  {{ item.nro_resolucion_primigenia }}
-                                </span>
-                                <div class="prim-estado" [class.activa]="item.estado_primigenia === 'ACTIVA'" [class.cancelada]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA'">
-                                  {{ item.estado_primigenia || 'VIGENTE' }}
+                                <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
+                                  <span class="code-badge prim-badge"
+                                        [class.prim-inactiva]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA' || item.estado_primigenia === 'VENCIDA'"
+                                        [matTooltip]="'Estado: ' + (item.estado_primigenia || 'VIGENTE')">
+                                    {{ item.nro_resolucion_primigenia }}
+                                  </span>
+                                  @if (item.fecha_vigencia_hasta) {
+                                    <div style="font-size:10px;color:#64748b;margin-top:1px;">
+                                      Vence: {{ item.fecha_vigencia_hasta | date:'dd/MM/yyyy' }}
+                                    </div>
+                                  }
                                 </div>
-                                @if (item.fecha_vigencia_hasta) {
-                                  <div style="font-size:10px;color:#64748b;margin-top:2px;">
-                                    Vence: {{ item.fecha_vigencia_hasta | date:'dd/MM/yyyy' }}
-                                  </div>
-                                }
                               </td>
                             }
                             <!-- Placa + Res. Hija -->
@@ -607,18 +642,18 @@ export interface ColumnasState {
                                 {{ (item.fecha_resolucion_hija || item.fecha_expediente) ? ((item.fecha_resolucion_hija || item.fecha_expediente) | date:'dd/MM/yyyy') : '-' }}
                               </td>
                             }
-                            <!-- Links / Archivos -->
+                            <!-- Links -->
                             @if (columnasVisibles().links) {
-                              <td>
-                                <div style="display:flex;gap:4px;align-items:center;">
+                              <td style="width:75px;" class="text-center">
+                                <div style="display:inline-flex;gap:2px;align-items:center;justify-content:center;">
                                   @if (item.link_tuc) {
-                                    <a [href]="item.link_tuc" target="_blank" mat-icon-button color="primary" matTooltip="Ver TUC en Drive">
-                                      <mat-icon style="font-size:18px;">description</mat-icon>
+                                    <a [href]="item.link_tuc" target="_blank" mat-icon-button color="primary" matTooltip="Ver TUC en Drive" style="width:28px;height:28px;line-height:28px;display:inline-flex;align-items:center;justify-content:center;">
+                                      <mat-icon style="font-size:16px;width:16px;height:16px;">description</mat-icon>
                                     </a>
                                   }
                                   @if (item.link_notificacion) {
-                                    <a [href]="item.link_notificacion" target="_blank" mat-icon-button color="accent" matTooltip="Ver Notificación en Drive">
-                                      <mat-icon style="font-size:18px;">mark_email_read</mat-icon>
+                                    <a [href]="item.link_notificacion" target="_blank" mat-icon-button color="accent" matTooltip="Ver Notificación en Drive" style="width:28px;height:28px;line-height:28px;display:inline-flex;align-items:center;justify-content:center;">
+                                      <mat-icon style="font-size:16px;width:16px;height:16px;">mark_email_read</mat-icon>
                                     </a>
                                   }
                                   @if (!item.link_tuc && !item.link_notificacion) {
@@ -627,26 +662,17 @@ export interface ColumnasState {
                                 </div>
                               </td>
                             }
-                            <!-- Observaciones / Detalles -->
+                            <!-- Obs. -->
                             @if (columnasVisibles().observaciones) {
                               <td>
-                                <div style="display:flex;flex-direction:column;gap:2px;">
-                                  @if (item.observaciones_historial && item.observaciones_historial.length) {
-                                    <span class="obs-text"
-                                          [matTooltip]="item.observaciones_historial[item.observaciones_historial.length-1].texto">
-                                      {{ item.observaciones_historial[item.observaciones_historial.length-1].texto | slice:0:28 }}
-                                      {{ item.observaciones_historial.length > 1 ? '(+' + (item.observaciones_historial.length - 1) + ')' : '' }}
-                                    </span>
-                                  }
-                                  @if (item.detalles) {
-                                    <span style="font-size:11px;color:#475569;font-style:italic;" [matTooltip]="item.detalles">
-                                      {{ item.detalles | slice:0:25 }}
-                                    </span>
-                                  }
-                                  @if ((!item.observaciones_historial || !item.observaciones_historial.length) && !item.detalles) {
-                                    <span class="sin-datos">-</span>
-                                  }
-                                </div>
+                                @if (getObserTextoCompleto(item)) {
+                                  <div class="obs-icon-badge" [matTooltip]="getObserTextoCompleto(item)" matTooltipPosition="above">
+                                    <mat-icon style="font-size:15px;width:15px;height:15px;color:#0284c7;">comment</mat-icon>
+                                    <span style="font-size:11px;font-weight:700;color:#0369a1;">Obs.</span>
+                                  </div>
+                                } @else {
+                                  <span class="sin-datos">-</span>
+                                }
                               </td>
                             }
                             <!-- Acciones -->
@@ -672,6 +698,10 @@ export interface ColumnasState {
                       <button mat-menu-item (click)="abrirEditar(item)">
                         <mat-icon style="color:#d97706;">edit</mat-icon>
                         <span>Editar Registro</span>
+                      </button>
+                      <button mat-menu-item (click)="inhabilitarVehiculo(item)">
+                        <mat-icon style="color:#dc2626;">block</mat-icon>
+                        <span>Inhabilitar / Dar de Baja</span>
                       </button>
                       <button mat-menu-item (click)="verCronologiaPrimigenia(item.nro_resolucion_primigenia)">
                         <mat-icon style="color:#0d9488;">timeline</mat-icon>
@@ -918,6 +948,13 @@ export class VehiculosEmpresaComponent implements OnInit {
   resolucionesPrimigeniasMatriz = signal<ResolucionPrimigenia[]>([]);
   rutasOficialesMap = signal<Map<string, Ruta>>(new Map());
 
+  // Control de cortina desplegable (Accordion) para resoluciones primigenias y rutas
+  rutasPrimigeniasAbiertas = signal<boolean>(false);
+
+  toggleRutasPrimigenias() {
+    this.rutasPrimigeniasAbiertas.update(v => !v);
+  }
+
   pageIndex = signal(0);
   pageSize = signal(25);
   sortField = signal('nro_resolucion_primigenia');
@@ -941,7 +978,7 @@ export class VehiculosEmpresaComponent implements OnInit {
     observaciones: true
   });
 
-  // Agrupación computada de rutas por resolución primigenia para el acordeón
+  // Agrupación computada de rutas por resolución primigenia para la ficha informativa
   rutasPorPrimigenia = computed(() => {
     const map = new Map<string, {
       primigenia: string;
@@ -951,7 +988,9 @@ export class VehiculosEmpresaComponent implements OnInit {
       aniosVigencia?: number;
       estado: string;
       rutas: Set<string>;
-      count: number;
+      countHabilitados: number;
+      countInhabilitados: number;
+      countTotal: number;
     }>();
 
     const primFiltro = this.primigeniaFiltro();
@@ -971,7 +1010,9 @@ export class VehiculosEmpresaComponent implements OnInit {
         aniosVigencia: res.anios_vigencia,
         estado: res.estado || 'VIGENTE',
         rutas: new Set<string>(),
-        count: 0
+        countHabilitados: 0,
+        countInhabilitados: 0,
+        countTotal: 0
       });
     }
 
@@ -987,11 +1028,20 @@ export class VehiculosEmpresaComponent implements OnInit {
           vigenciaHasta: v.fecha_vigencia_hasta,
           estado: v.estado_primigenia || 'VIGENTE',
           rutas: new Set<string>(),
-          count: 0
+          countHabilitados: 0,
+          countInhabilitados: 0,
+          countTotal: 0
         });
       }
       const item = map.get(key)!;
-      item.count++;
+      item.countTotal++;
+      const est = (v.estado || 'HABILITADO').toUpperCase();
+      if (est === 'HABILITADO') {
+        item.countHabilitados++;
+      } else {
+        item.countInhabilitados++;
+      }
+
       if (v.rutas) {
         for (const r of v.rutas) {
           if (r && r.trim()) item.rutas.add(r.trim());
@@ -1004,6 +1054,20 @@ export class VehiculosEmpresaComponent implements OnInit {
       rutasArray: Array.from(v.rutas).sort()
     }));
   });
+
+  getObserTextoCompleto(item: VehiculoEmpresa): string {
+    if (!item) return '';
+    const partes: string[] = [];
+    if (item.observaciones_historial && item.observaciones_historial.length > 0) {
+      for (const obs of item.observaciones_historial) {
+        if (obs.texto && obs.texto.trim()) partes.push(obs.texto.trim());
+      }
+    }
+    if (item.detalles && item.detalles.trim()) {
+      partes.push(`Detalles: ${item.detalles.trim()}`);
+    }
+    return partes.join(' | ');
+  }
 
   extractRazonSocial(emp: any): string {
     if (!emp) return '';
@@ -1197,21 +1261,21 @@ export class VehiculosEmpresaComponent implements OnInit {
   }
 
   totalVehiculosEmpresaSinFiltro = computed(() => {
-    return this.flotaEmpresa().filter(i => !i.es_cronologico).length;
+    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA').length;
   });
 
   primigeniasDisponibles = computed(() => {
-    const list = this.flotaEmpresa().filter(i => !i.es_cronologico);
+    const list = this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA');
     const prims = Array.from(new Set(list.map(i => i.nro_resolucion_primigenia).filter(Boolean)));
     return prims.sort();
   });
 
   getCantidadPorPrimigenia(prim: string): number {
-    return this.flotaEmpresa().filter(i => !i.es_cronologico && (i.nro_resolucion_primigenia || '').toUpperCase() === prim.toUpperCase()).length;
+    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA' && (i.nro_resolucion_primigenia || '').toUpperCase() === prim.toUpperCase()).length;
   }
 
   flotaEmpresaFiltrada = computed(() => {
-    let list = [...this.flotaEmpresa()].filter(i => !i.es_cronologico);
+    let list = [...this.flotaEmpresa()].filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA');
     const q = (this.searchValue() || '').toLowerCase();
     const est = (this.estadoValue() || '').toUpperCase();
     const tipo = (this.tipoHijaValue() || '').toUpperCase();
@@ -1399,8 +1463,8 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.isLoadingCrono.set(true);
     this.flotaCronologica.set([]);
     this.pageIndexCrono.set(0);
-    this.service.getFlota({ skip: 0, limit: 50000 }).subscribe({
-      next: (resp) => {
+    this.service.getFlotaPaginada({ skip: 0, limit: 50000 }).subscribe({
+      next: (resp: any) => {
         this.flotaCronologica.set(resp.data);
         this.isLoadingCrono.set(false);
       },
@@ -1429,11 +1493,70 @@ export class VehiculosEmpresaComponent implements OnInit {
     });
   }
 
+  abrirCrearVehiculo(nroPrimigenia?: string): void {
+    const ruc = this.empresaSearchControl.value?.trim() || '';
+    const razonSocial = this.razonSocialEmpresa();
+    
+    const dialogRef = this.dialog.open(FormVehiculoDialogComponent, {
+      data: {
+        modo: 'crear',
+        ruc: ruc,
+        razon_social: razonSocial,
+        nro_resolucion_primigenia: nroPrimigenia || ''
+      },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'dark-dialog-panel'
+    });
+
+    dialogRef.afterClosed().subscribe((created: boolean) => {
+      if (created && ruc) {
+        this.buscarFlotaEmpresa();
+      }
+    });
+  }
+
+  abrirTramitePrimigenia(item?: any): void {
+    const ruc = this.empresaSearchControl.value?.trim() || '';
+    const razonSocial = this.razonSocialEmpresa();
+
+    const dialogRef = this.dialog.open(FormTramitePrimigeniaDialogComponent, {
+      data: {
+        ruc: ruc,
+        razon_social: razonSocial,
+        nro_resolucion_primigenia: item?.primigenia || '',
+        fecha_emision: item?.fechaEmision || '',
+        fecha_inicio_vigencia: item?.fechaInicioVigencia || '',
+        vigencia_hasta: item?.vigenciaHasta || '',
+        rutas: item?.rutasArray || []
+      },
+      width: '980px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
+      panelClass: 'dark-dialog-panel'
+    });
+
+    dialogRef.afterClosed().subscribe((processed: boolean) => {
+      if (processed && ruc) {
+        this.buscarFlotaEmpresa();
+      }
+    });
+  }
+
   abrirEditar(item: VehiculoEmpresa): void {
-    const dialogRef = this.dialog.open(EditarVehiculoDialogComponent, {
-      data: item,
-      width: '650px',
-      maxHeight: '90vh'
+    const dialogRef = this.dialog.open(FormVehiculoDialogComponent, {
+      data: {
+        modo: 'editar',
+        ruc: item.ruc,
+        razon_social: item.razon_social,
+        nro_resolucion_primigenia: item.nro_resolucion_primigenia,
+        vehiculo: item
+      },
+      width: '900px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'dark-dialog-panel'
     });
 
     dialogRef.afterClosed().subscribe((updated: boolean) => {
@@ -1441,6 +1564,30 @@ export class VehiculosEmpresaComponent implements OnInit {
         const ruc = this.empresaSearchControl.value?.trim();
         if (ruc) this.buscarFlotaEmpresa();
       }
+    });
+  }
+
+  inhabilitarVehiculo(item: VehiculoEmpresa): void {
+    const motivo = prompt(`Ingrese el motivo para inhabilitar / dar de baja al vehículo ${item.placa}:`);
+    if (!motivo || !motivo.trim()) return;
+
+    this.service.update(item.id, {
+      estado: 'INHABILITADO',
+      observaciones_historial: [
+        ...(item.observaciones_historial || []),
+        {
+          fecha: new Date().toISOString(),
+          texto: `Inhabilitado: ${motivo.trim()}`,
+          usuario: 'Operador DRTC'
+        }
+      ]
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(`Vehículo ${item.placa} fue inhabilitado correctamente.`, 'OK', { duration: 3000 });
+        const ruc = this.empresaSearchControl.value?.trim();
+        if (ruc) this.buscarFlotaEmpresa();
+      },
+      error: () => this.snackBar.open('Error al inhabilitar el vehículo.', 'Cerrar', { duration: 3000 })
     });
   }
 
