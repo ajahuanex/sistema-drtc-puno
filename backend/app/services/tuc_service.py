@@ -81,18 +81,54 @@ class TucService:
         db = await _get_db()
         query: Dict[str, Any] = {}
         
+        # Búsqueda global 'q'
+        if filtros.q and filtros.q.strip():
+            raw_q = filtros.q.strip()
+            clean_q = re.escape(raw_q)
+            clean_placa_q = re.escape(raw_q.replace("-", "").strip())
+            
+            query["$or"] = [
+                {"nroTuc": {"$regex": clean_q, "$options": "i"}},
+                {"placa": {"$regex": clean_q, "$options": "i"}},
+                {"placa": {"$regex": clean_placa_q, "$options": "i"}},
+                {"ruc": {"$regex": clean_q, "$options": "i"}},
+                {"razonSocial": {"$regex": clean_q, "$options": "i"}},
+                {"datosEmpresa.razonSocial": {"$regex": clean_q, "$options": "i"}},
+                {"nroResolucion": {"$regex": clean_q, "$options": "i"}},
+                {"datosResolucion.nroResolucion": {"$regex": clean_q, "$options": "i"}},
+                {"datosVehiculo.placa": {"$regex": clean_q, "$options": "i"}},
+                {"datosVehiculo.marca": {"$regex": clean_q, "$options": "i"}},
+                {"datosVehiculo.modelo": {"$regex": clean_q, "$options": "i"}}
+            ]
+        
         if filtros.nroTuc:
             query["nroTuc"] = {"$regex": re.escape(filtros.nroTuc.strip()), "$options": "i"}
         if filtros.placa:
-            query["placa"] = {"$regex": re.escape(filtros.placa.strip()), "$options": "i"}
+            raw_p = filtros.placa.strip()
+            clean_p = raw_p.replace("-", "").strip()
+            query["$or"] = [
+                {"placa": {"$regex": re.escape(raw_p), "$options": "i"}},
+                {"placa": {"$regex": re.escape(clean_p), "$options": "i"}},
+                {"datosVehiculo.placa": {"$regex": re.escape(raw_p), "$options": "i"}}
+            ]
         if filtros.ruc:
             query["ruc"] = {"$regex": re.escape(filtros.ruc.strip()), "$options": "i"}
+        if filtros.razonSocial:
+            query["$or"] = [
+                {"razonSocial": {"$regex": re.escape(filtros.razonSocial.strip()), "$options": "i"}},
+                {"datosEmpresa.razonSocial": {"$regex": re.escape(filtros.razonSocial.strip()), "$options": "i"}}
+            ]
         if filtros.nroResolucion:
-            query["nroResolucion"] = {"$regex": re.escape(filtros.nroResolucion.strip()), "$options": "i"}
+            query["$or"] = [
+                {"nroResolucion": {"$regex": re.escape(filtros.nroResolucion.strip()), "$options": "i"}},
+                {"datosResolucion.nroResolucion": {"$regex": re.escape(filtros.nroResolucion.strip()), "$options": "i"}}
+            ]
         if filtros.tipoEmision:
-            query["tipoEmision"] = filtros.tipoEmision
+            t_val = filtros.tipoEmision.value if hasattr(filtros.tipoEmision, "value") else str(filtros.tipoEmision)
+            query["tipoEmision"] = {"$regex": f"^{re.escape(t_val)}$", "$options": "i"}
         if filtros.estado:
-            query["estado"] = filtros.estado
+            e_val = filtros.estado.value if hasattr(filtros.estado, "value") else str(filtros.estado)
+            query["estado"] = {"$regex": f"^{re.escape(e_val)}$", "$options": "i"}
         if filtros.fechaEmisionDesde:
             query["fechaEmision"] = {"$gte": filtros.fechaEmisionDesde}
         if filtros.fechaEmisionHasta:
@@ -260,8 +296,8 @@ class TucService:
     @staticmethod
     async def sincronizar_desde_flota_empresa(usuario: str = "ADMIN") -> Dict[str, Any]:
         """
-        Sincroniza / importa automáticamente todas las TUCs registradas en la colección 'flota_empresa'
-        asociando vehículo, empresa, resolución y rutas.
+        Sincroniza e importa masivamente todas las TUCs registradas en la colección 'flota_empresa'
+        asociando vehículo, empresa, resolución y rutas de forma ultrarrápida (Batch Processing).
         """
         db = await _get_db()
         cursor = db.flota_empresa.find({
@@ -273,12 +309,56 @@ class TucService:
         })
         
         registros_flota = await cursor.to_list(length=50000)
-        
         total_flota = len(registros_flota)
+        if not total_flota:
+            return {
+                "totalFlota": 0,
+                "importados": 0,
+                "actualizados": 0,
+                "omitidos": 0,
+                "errores": []
+            }
+
+        # Precargar mapa de empresas para resolver razón social y datos rápidamente
+        rucs_list = list({str(r.get("ruc") or "").strip() for r in registros_flota if r.get("ruc")})
+        emp_map = {}
+        if rucs_list:
+            emp_cursor = db.empresas.find({"ruc": {"$in": rucs_list}})
+            async for emp in emp_cursor:
+                r_key = emp.get("ruc")
+                if r_key:
+                    rs = emp.get("razonSocial")
+                    if isinstance(rs, dict):
+                        rs = rs.get("principal") or rs.get("sunat") or rs.get("minimo")
+                    emp_map[r_key] = {
+                        "razonSocial": rs or emp.get("razon_social") or r_key,
+                        "direccion": emp.get("direccion") or ""
+                    }
+
+        # Precargar mapa de resoluciones hijas para validar tipo exacto de trámite
+        hijas_map = {}
+        async for h_doc in db.resoluciones_hijas.find({}, {"nro_resolucion": 1, "tipo_acto": 1, "tipo_tramite_origen": 1}):
+            nro_h = str(h_doc.get("nro_resolucion") or "").strip().upper()
+            if nro_h:
+                hijas_map[nro_h] = h_doc
+                clean_h = re.sub(r"[^A-Z0-9]", "", nro_h)
+                if clean_h:
+                    hijas_map[clean_h] = h_doc
+
+        from pymongo import UpdateOne
+        operaciones = []
         importados = 0
         actualizados = 0
         omitidos = 0
         errores = []
+        now_iso = datetime.now().isoformat()
+
+        # Obtener TUCs ya existentes en lote
+        tucs_existentes_cursor = db.tucs.find({}, {"nroTuc": 1, "placa": 1})
+        tucs_set = set()
+        async for doc_t in tucs_existentes_cursor:
+            if doc_t.get("nroTuc"):
+                tucs_set.add(str(doc_t["nroTuc"]).strip().upper())
 
         for reg in registros_flota:
             try:
@@ -286,120 +366,153 @@ class TucService:
                 ruc = str(reg.get("ruc") or "").strip()
                 
                 raw_tuc = str(reg.get("numero_tuc") or reg.get("tuc") or "").strip().upper()
-                if not raw_tuc or raw_tuc in ("NAN", "NONE", "-", ""):
+                if not raw_tuc or raw_tuc in ("NAN", "NONE", "-", "", "S/N", "SIN TUC"):
                     omitidos += 1
                     continue
                 
-                nro_resolucion = str(reg.get("nro_resolucion_hija") or reg.get("nro_resolucion_primigenia") or "").strip().upper()
-                if not nro_resolucion or nro_resolucion in ("NAN", "NONE", ""):
-                    nro_resolucion = "RDR-FLOTA-EMPRESA"
+                nro_hija_raw = str(reg.get("nro_resolucion_hija") or "").strip().upper()
+                nro_prim_raw = str(reg.get("nro_resolucion_primigenia") or "").strip().upper()
+                nro_resolucion = nro_hija_raw or nro_prim_raw or "RDR-FLOTA-EMPRESA"
                 
-                tipo_emision = TipoEmisionTuc.ELECTRONICA if raw_tuc.startswith("TE-") or "E-" in raw_tuc else TipoEmisionTuc.FISICA
+                tipo_emision = TipoEmisionTuc.ELECTRONICA.value if raw_tuc.startswith("TE-") or "E-" in raw_tuc else TipoEmisionTuc.FISICA.value
+                estado_tuc = EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value
                 
-                f_emision_raw = reg.get("fecha_cronologica") or reg.get("fecha_resolucion_hija")
+                f_emision_raw = reg.get("fecha_emision_resolucion") or reg.get("fecha_cronologica") or reg.get("fecha_expediente")
                 f_emision = str(f_emision_raw)[:10] if f_emision_raw and str(f_emision_raw) != "NaT" else date.today().isoformat()
                 f_venc = str(reg.get("fecha_vigencia_hasta"))[:10] if reg.get("fecha_vigencia_hasta") else None
 
-                tuc_existente = await db.tucs.find_one({
-                    "$or": [
-                        {"nroTuc": raw_tuc},
-                        {"placa": placa, "ruc": ruc, "nroResolucion": nro_resolucion}
-                    ]
-                })
+                # Validar tipo de resolución hija contra el módulo 'resoluciones_hijas'
+                tipo_hija_val = reg.get("tipo_resolucion_hija")
+                hija_info = None
+                if nro_hija_raw:
+                    hija_info = hijas_map.get(nro_hija_raw) or hijas_map.get(re.sub(r"[^A-Z0-9]", "", nro_hija_raw))
+                if not hija_info and nro_prim_raw:
+                    hija_info = hijas_map.get(nro_prim_raw) or hijas_map.get(re.sub(r"[^A-Z0-9]", "", nro_prim_raw))
 
-                veh_doc = await db.vehiculos.find_one({"placa": {"$regex": f"^{re.escape(placa)}$", "$options": "i"}})
+                if hija_info:
+                    t_acto = str(hija_info.get("tipo_acto") or hija_info.get("tipo_tramite_origen") or "").upper()
+                    if "SUSTITUCION" in t_acto:
+                        tipo_hija_val = "S"
+                    elif "INCREMENTO" in t_acto:
+                        tipo_hija_val = "I"
+                    elif "ERRATA" in t_acto or "FE" in t_acto:
+                        tipo_hija_val = "FE"
+                    elif "MODIFICACION" in t_acto:
+                        tipo_hija_val = "M"
+                    elif "RENOVACION" in t_acto:
+                        tipo_hija_val = "R"
+                    elif "DUPLICADO" in t_acto:
+                        tipo_hija_val = "D"
+                    elif "CANJE" in t_acto or "CANCELACION" in t_acto:
+                        tipo_hija_val = "C"
+
+                if not tipo_hija_val and nro_hija_raw:
+                    s_match = re.search(r"[-_ ]\s*(FE|[ISRMDCO])$", nro_hija_raw)
+                    if s_match:
+                        tipo_hija_val = s_match.group(1).upper()
+
+                map_motivo = {
+                    "S": MotivoEmision.SUSTITUCION_VEHICULO.value,
+                    "I": MotivoEmision.INCREMENTO_FLOTA.value,
+                    "FE": "FE_DE_ERRATAS",
+                    "M": "MODIFICACION",
+                    "R": MotivoEmision.RENOVACION_AUTORIZACION.value,
+                    "D": MotivoEmision.DUPLICADO_TUC.value,
+                    "C": MotivoEmision.CANJE_TUC.value,
+                    "O": "OTROS"
+                }
+                motivo_val = map_motivo.get(tipo_hija_val, MotivoEmision.INCREMENTO_FLOTA.value)
+
                 datos_vehiculo = {
                     "placa": placa,
-                    "categoria": veh_doc.get("categoria") if veh_doc else reg.get("categoria", "M3"),
-                    "marca": veh_doc.get("marca") if veh_doc else reg.get("marca", ""),
-                    "modelo": veh_doc.get("modelo") if veh_doc else reg.get("modelo", ""),
-                    "anioFabricacion": veh_doc.get("anioFabricacion") if veh_doc else reg.get("anio_fabricacion"),
-                    "numeroMotor": veh_doc.get("numeroMotor") if veh_doc else "",
-                    "numeroSerie": veh_doc.get("numeroSerie") if veh_doc else "",
-                    "chasis": veh_doc.get("chasis") if veh_doc else ""
+                    "categoria": reg.get("categoria", "M2"),
+                    "marca": reg.get("marca", ""),
+                    "modelo": reg.get("modelo", ""),
+                    "anioFabricacion": reg.get("anio_fabricacion"),
+                    "color": reg.get("color", ""),
+                    "carroceria": reg.get("carroceria", ""),
+                    "clase": reg.get("clase", ""),
+                    "combustible": reg.get("combustible", "DIESEL"),
+                    "numeroMotor": reg.get("numero_motor", ""),
+                    "numeroSerie": reg.get("numero_serie", ""),
+                    "chasis": reg.get("vin", "")
                 }
 
-                emp_doc = await db.empresas.find_one({"ruc": ruc})
-                razon_social = reg.get("razon_social") or (emp_doc.get("razonSocial") if emp_doc else ruc)
+                emp_info = emp_map.get(ruc, {})
+                razon_social = reg.get("razon_social") or emp_info.get("razonSocial") or ruc
                 datos_empresa = {
                     "ruc": ruc,
                     "razonSocial": razon_social,
-                    "direccion": emp_doc.get("direccion") if emp_doc else ""
+                    "direccion": emp_info.get("direccion", "")
                 }
 
-                res_prim = await db.resoluciones_primigenias.find_one({"nroResolucion": {"$regex": f"^{re.escape(nro_resolucion)}$", "$options": "i"}})
                 datos_resolucion = {
                     "nroResolucion": nro_resolucion,
-                    "fechaEmision": res_prim.get("fechaEmision") if res_prim else f_emision
+                    "fechaEmision": f_emision
                 }
 
                 rutas_codigos = reg.get("rutas", [])
-                rutas_habilitadas = []
-                if rutas_codigos:
-                    rutas_cursor = db.rutas.find({"codigo": {"$in": rutas_codigos}})
-                    rutas_docs = await rutas_cursor.to_list(length=50)
-                    rutas_habilitadas = [
-                        {
-                            "codigo": r.get("codigo"),
-                            "origen": r.get("origen"),
-                            "destino": r.get("destino"),
-                            "itinerario": r.get("itinerario"),
-                            "frecuencia": r.get("frecuencia")
-                        } for r in rutas_docs
-                    ]
+                rutas_habilitadas = [{"codigo": str(rc).strip()} for rc in rutas_codigos if str(rc).strip()]
 
                 hash_seg = generar_hash_tuc(raw_tuc, placa, ruc, f_emision)
                 qr_url = f"/verificar-tuc/{hash_seg}"
 
-                if tuc_existente:
-                    await db.tucs.update_one(
-                        {"_id": tuc_existente["_id"]},
-                        {"$set": {
-                            "nroTuc": raw_tuc,
-                            "datosVehiculo": datos_vehiculo,
-                            "datosEmpresa": datos_empresa,
-                            "datosResolucion": datos_resolucion,
-                            "rutasHabilitadas": rutas_habilitadas,
-                            "fechaActualizacion": datetime.now().isoformat()
-                        }}
-                    )
+                tuc_doc = {
+                    "nroTuc": raw_tuc,
+                    "tipoEmision": tipo_emision,
+                    "estado": estado_tuc,
+                    "motivoEmision": motivo_val,
+                    "tipo_resolucion_hija": tipo_hija_val,
+                    "placa": placa,
+                    "ruc": ruc,
+                    "razonSocial": razon_social,
+                    "nroResolucion": nro_resolucion,
+                    "fechaEmision": f_emision,
+                    "fechaVencimiento": f_venc,
+                    "hashSeguridad": hash_seg,
+                    "qrVerificationUrl": qr_url,
+                    "datosVehiculo": datos_vehiculo,
+                    "datosEmpresa": datos_empresa,
+                    "datosResolucion": datos_resolucion,
+                    "rutasHabilitadas": rutas_habilitadas,
+                    "observaciones": reg.get("observaciones") or reg.get("detalles") or "Sincronizado desde Flota por Empresa",
+                    "fechaActualizacion": now_iso
+                }
+
+                if raw_tuc in tucs_set:
                     actualizados += 1
                 else:
-                    nuevo_tuc = {
-                        "nroTuc": raw_tuc,
-                        "tipoEmision": tipo_emision.value,
-                        "estado": EstadoTuc.VIGENTE.value if reg.get("estado") == "HABILITADO" else EstadoTuc.ANULADA.value,
-                        "motivoEmision": MotivoEmision.HISTORICO_MIGRADO.value,
-                        "placa": placa,
-                        "vehiculoId": str(veh_doc["_id"]) if veh_doc else None,
-                        "ruc": ruc,
-                        "razonSocial": razon_social,
-                        "empresaId": str(emp_doc["_id"]) if emp_doc else None,
-                        "nroResolucion": nro_resolucion,
-                        "resolucionId": str(res_prim["_id"]) if res_prim else None,
-                        "fechaEmision": f_emision,
-                        "fechaVencimiento": f_venc,
-                        "hashSeguridad": hash_seg,
-                        "qrVerificationUrl": qr_url,
-                        "datosVehiculo": datos_vehiculo,
-                        "datosEmpresa": datos_empresa,
-                        "datosResolucion": datos_resolucion,
-                        "rutasHabilitadas": rutas_habilitadas,
-                        "observaciones": "Importado automáticamente desde el módulo Flota por Empresa.",
-                        "historialCambios": [{
-                            "fecha": datetime.now().isoformat(),
-                            "accion": "MIGRACION_FLOTA_EMPRESA",
-                            "usuario": usuario,
-                            "detalle": "TUC importada desde registro histórico de Flota por Empresa"
-                        }],
-                        "fechaRegistro": datetime.now().isoformat(),
-                        "fechaActualizacion": datetime.now().isoformat()
-                    }
-                    await db.tucs.insert_one(nuevo_tuc)
                     importados += 1
+                    tucs_set.add(raw_tuc)
+
+                operaciones.append(
+                    UpdateOne(
+                        {"nroTuc": raw_tuc},
+                        {
+                            "$set": tuc_doc,
+                            "$setOnInsert": {
+                                "fechaRegistro": now_iso,
+                                "historialCambios": [{
+                                    "fecha": now_iso,
+                                    "accion": "MIGRACION_FLOTA_EMPRESA",
+                                    "usuario": usuario,
+                                    "detalle": f"TUC importada desde registro histórico de Flota Empresa ({placa})"
+                                }]
+                            }
+                        },
+                        upsert=True
+                    )
+                )
+
+                if len(operaciones) >= 1000:
+                    await db.tucs.bulk_write(operaciones, ordered=False)
+                    operaciones = []
 
             except Exception as ex:
-                errores.append(f"Error procesando registro {reg.get('placa')}: {str(ex)}")
+                errores.append(f"Error procesando {reg.get('placa')}: {str(ex)}")
+
+        if operaciones:
+            await db.tucs.bulk_write(operaciones, ordered=False)
 
         return {
             "totalFlota": total_flota,

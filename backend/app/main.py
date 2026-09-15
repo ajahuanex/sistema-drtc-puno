@@ -24,6 +24,7 @@ from app.routers.geometrias import router as geometrias_router
 from app.routers.resoluciones_primigenias_router import router as resoluciones_primigenias_router
 from app.routers.resoluciones_hijas_router import router as resoluciones_hijas_router
 from app.routers.flota_empresa_router import router as flota_empresa_router
+from app.routers.database_router import router as database_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -124,6 +125,7 @@ app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)
 app.include_router(additional_router, prefix=settings.API_V1_STR)
 app.include_router(data_manager_router, prefix=settings.API_V1_STR)
 app.include_router(flota_empresa_router, prefix=settings.API_V1_STR)
+app.include_router(database_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud
 @app.get("/health")
@@ -143,7 +145,10 @@ async def health_check():
         "version": settings.VERSION,
         "timestamp": time.time(),
         "database": {
-            "mongodb": mongo_health
+            "mongodb": mongo_health,
+            "target": settings.MONGODB_TARGET,
+            "is_remote": settings.is_remote_db,
+            "masked_url": settings.masked_mongodb_url
         },
         "database_name": settings.DATABASE_NAME,
         "message": "Sistema funcionando" if overall_status == "healthy" else "Sistema funcionando con limitaciones (MongoDB desconectado)"

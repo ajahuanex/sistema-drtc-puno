@@ -1,34 +1,51 @@
 """
-Esquemas Pydantic para Infraestructura
+Esquemas Pydantic para Infraestructura Complementaria (CamelCase & SnakeCase compatibles)
 """
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
+from pydantic.alias_generators import to_camel
 from app.models.infraestructura import (
     TipoInfraestructura,
     EstadoInfraestructura,
     RazonSocialInfraestructura,
     RepresentanteLegalInfraestructura,
     EspecificacionesInfraestructura,
-    DatosSunatInfraestructura
+    DatosSunatInfraestructura,
+    DocumentoInfraestructura,
+    AuditoriaInfraestructura,
+    HistorialEstadoInfraestructura
 )
 
 
-class InfraestructuraBase(BaseModel):
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True
+    )
+
+
+class InfraestructuraBase(CamelModel):
     """Esquema base de infraestructura"""
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de 11 dígitos")
     razon_social: RazonSocialInfraestructura
     tipo_infraestructura: TipoInfraestructura
-    direccion_fiscal: str = Field(..., min_length=10)
+    direccion_fiscal: str = Field(..., min_length=5)
     representante_legal: RepresentanteLegalInfraestructura
     email_contacto: Optional[str] = None
     telefono_contacto: Optional[str] = None
     sitio_web: Optional[str] = None
-    especificaciones: EspecificacionesInfraestructura
+    especificaciones: Optional[EspecificacionesInfraestructura] = None
     observaciones: Optional[str] = None
+    resoluciones_primigenias_ids: List[str] = []
+    licencias_operacion: List[str] = []
+    certificaciones_calidad: List[str] = []
 
-    @validator('ruc')
-    def validar_ruc(cls, v):
+    @field_validator('ruc')
+    @classmethod
+    def validar_ruc(cls, v: str) -> str:
+        v = str(v).strip()
         if not v.isdigit():
             raise ValueError('El RUC debe contener solo dígitos')
         if len(v) != 11:
@@ -41,9 +58,10 @@ class InfraestructuraCreate(InfraestructuraBase):
     pass
 
 
-class InfraestructuraUpdate(BaseModel):
+class InfraestructuraUpdate(CamelModel):
     """Esquema para actualizar infraestructura"""
     razon_social: Optional[RazonSocialInfraestructura] = None
+    tipo_infraestructura: Optional[TipoInfraestructura] = None
     direccion_fiscal: Optional[str] = None
     representante_legal: Optional[RepresentanteLegalInfraestructura] = None
     email_contacto: Optional[str] = None
@@ -53,10 +71,10 @@ class InfraestructuraUpdate(BaseModel):
     observaciones: Optional[str] = None
 
 
-class CambiarEstadoInfraestructura(BaseModel):
+class CambiarEstadoInfraestructura(CamelModel):
     """Esquema para cambiar estado de infraestructura"""
     estado_nuevo: EstadoInfraestructura
-    motivo: str = Field(..., min_length=10)
+    motivo: str = Field(..., min_length=5)
     tipo_documento_sustentatorio: Optional[str] = None
     numero_documento_sustentatorio: Optional[str] = None
     es_documento_fisico: bool = False
@@ -66,36 +84,51 @@ class CambiarEstadoInfraestructura(BaseModel):
     observaciones: Optional[str] = None
 
 
-class InfraestructuraResponse(BaseModel):
-    """Esquema de respuesta de infraestructura"""
-    id: str = Field(..., alias="_id")
+class InfraestructuraResponse(CamelModel):
+    """Esquema de respuesta de infraestructura serializado en CamelCase"""
+    id: str = ""
     ruc: str
     razon_social: RazonSocialInfraestructura
     tipo_infraestructura: TipoInfraestructura
     direccion_fiscal: str
-    estado: EstadoInfraestructura
-    esta_activo: bool
-    fecha_registro: datetime
-    fecha_actualizacion: datetime
-    representante_legal: RepresentanteLegalInfraestructura
-    email_contacto: Optional[str]
-    telefono_contacto: Optional[str]
-    sitio_web: Optional[str]
-    datos_sunat: DatosSunatInfraestructura
-    ultima_validacion_sunat: datetime
-    score_riesgo: int
-    observaciones: Optional[str]
-    especificaciones: EspecificacionesInfraestructura
-    resoluciones_primigenias_ids: List[str]
-    licencias_operacion: List[str]
-    certificaciones_calidad: List[str]
+    estado: EstadoInfraestructura = EstadoInfraestructura.EN_TRAMITE
+    esta_activo: bool = True
+    fecha_registro: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
+    representante_legal: Optional[RepresentanteLegalInfraestructura] = None
+    email_contacto: Optional[str] = None
+    telefono_contacto: Optional[str] = None
+    sitio_web: Optional[str] = None
+    documentos: List[DocumentoInfraestructura] = []
+    auditoria: List[AuditoriaInfraestructura] = []
+    historial_estados: List[HistorialEstadoInfraestructura] = []
+    datos_sunat: Optional[DatosSunatInfraestructura] = None
+    ultima_validacion_sunat: Optional[datetime] = None
+    score_riesgo: int = 0
+    observaciones: Optional[str] = None
+    especificaciones: Optional[EspecificacionesInfraestructura] = None
+    capacidad_maxima: Optional[int] = None
+    resoluciones_primigenias_ids: List[str] = []
+    licencias_operacion: List[str] = []
+    certificaciones_calidad: List[str] = []
 
-    class Config:
-        populate_by_name = True
-        from_attributes = True
+    @model_validator(mode='before')
+    @classmethod
+    def extract_fields(cls, data):
+        if isinstance(data, dict):
+            # Asegurar id
+            if "_id" in data and not data.get("id"):
+                data["id"] = str(data["_id"])
+            elif "id" in data:
+                data["id"] = str(data["id"])
+            # Asegurar capacidad_maxima accesible a nivel raíz
+            esp = data.get("especificaciones") or {}
+            if isinstance(esp, dict) and not data.get("capacidad_maxima") and not data.get("capacidadMaxima"):
+                data["capacidad_maxima"] = esp.get("capacidad_maxima") or esp.get("capacidadMaxima")
+        return data
 
 
-class InfraestructuraListResponse(BaseModel):
+class InfraestructuraListResponse(CamelModel):
     """Respuesta de lista de infraestructuras"""
     infraestructuras: List[InfraestructuraResponse]
     total: int
@@ -104,23 +137,23 @@ class InfraestructuraListResponse(BaseModel):
     total_paginas: int
 
 
-class InfraestructuraEstadisticas(BaseModel):
+class InfraestructuraEstadisticas(CamelModel):
     """Estadísticas de infraestructuras"""
-    total_infraestructuras: int
-    autorizadas: int
-    en_tramite: int
-    suspendidas: int
-    canceladas: int
-    terminales_terrestre: int
-    estaciones_ruta: int
-    otros: int
-    capacidad_total_instalada: int
-    promedio_capacidad_por_infraestructura: float
-    infraestructuras_con_documentos_vencidos: int
-    infraestructuras_con_score_alto_riesgo: int
+    total_infraestructuras: int = 0
+    autorizadas: int = 0
+    en_tramite: int = 0
+    suspendidas: int = 0
+    canceladas: int = 0
+    terminales_terrestre: int = 0
+    estaciones_ruta: int = 0
+    otros: int = 0
+    capacidad_total_instalada: int = 0
+    promedio_capacidad_por_infraestructura: float = 0.0
+    infraestructuras_con_documentos_vencidos: int = 0
+    infraestructuras_con_score_alto_riesgo: int = 0
 
 
-class FiltrosInfraestructura(BaseModel):
+class FiltrosInfraestructura(CamelModel):
     """Filtros para búsqueda de infraestructuras"""
     tipo_infraestructura: Optional[List[TipoInfraestructura]] = None
     estado: Optional[List[EstadoInfraestructura]] = None

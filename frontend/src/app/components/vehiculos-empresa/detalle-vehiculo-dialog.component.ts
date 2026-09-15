@@ -126,7 +126,7 @@ export interface RutaDetalleDisplay {
               <span class="card-title">Resolución Primigenia</span>
             </div>
             <div class="card-main-val font-mono text-green">
-              {{ data.nro_resolucion_primigenia || '-' }}
+              {{ formatResolucionCode(data.nro_resolucion_primigenia) || '-' }}
             </div>
             <div class="card-flex-sub">
               <span>Estado:</span>
@@ -136,16 +136,16 @@ export interface RutaDetalleDisplay {
             </div>
 
             <!-- FECHAS DE VIGENCIA CON 'VIGENCIA DESDE' Y 'VIGENCIA HASTA' -->
-            <div class="vigencia-box">
-              <mat-icon class="vigencia-icon">event_available</mat-icon>
+            <div class="vigencia-box" [class.vigencia-vencida]="esVencida()">
+              <mat-icon class="vigencia-icon">{{ esVencida() ? 'event_busy' : 'event_available' }}</mat-icon>
               <div class="vigencia-text">
                 @if (fechaInicioVigencia() && fechaFinVigencia()) {
                   <div>Vigencia Desde: <strong>{{ fechaInicioVigencia() | date:'dd/MM/yyyy' }}</strong></div>
-                  <div>Vigencia Hasta: <strong class="text-emerald">{{ fechaFinVigencia() | date:'dd/MM/yyyy' }}</strong></div>
+                  <div>Vigencia Hasta: <strong [class.text-emerald]="!esVencida()" [class.text-amber]="esVencida()">{{ fechaFinVigencia() | date:'dd/MM/yyyy' }}</strong></div>
                 } @else if (fechaFinVigencia() || data.fecha_vigencia_hasta) {
-                  <div>Vigencia Hasta: <strong class="text-emerald">{{ (fechaFinVigencia() || data.fecha_vigencia_hasta) | date:'dd/MM/yyyy' }}</strong></div>
+                  <div>Vigencia Hasta: <strong [class.text-emerald]="!esVencida()" [class.text-amber]="esVencida()">{{ (fechaFinVigencia() || data.fecha_vigencia_hasta) | date:'dd/MM/yyyy' }}</strong></div>
                 } @else {
-                  <div>Vigencia: <strong class="text-emerald">VIGENTE EN CATÁLOGO</strong></div>
+                  <div>Vigencia: <strong [class.text-emerald]="!esVencida()" [class.text-amber]="esVencida()">{{ esVencida() ? 'VENCIDA EN HISTORIAL' : 'VIGENTE EN CATÁLOGO' }}</strong></div>
                 }
               </div>
             </div>
@@ -159,7 +159,7 @@ export interface RutaDetalleDisplay {
                 <span class="card-title">Resolución</span>
               </div>
               <div class="card-main-val font-mono text-amber">
-                {{ data.nro_resolucion_hija }}
+                {{ formatResolucionCode(data.nro_resolucion_hija) }}
               </div>
               @if (data.tipo_resolucion_hija) {
                 <div class="card-sub-val">
@@ -655,6 +655,20 @@ export interface RutaDetalleDisplay {
       font-size: 11.5px;
       color: #065f46;
 
+      &.vigencia-vencida {
+        background: #fffbeb;
+        border-color: #fde68a;
+        color: #92400e;
+
+        .vigencia-icon {
+          color: #d97706;
+        }
+
+        strong {
+          color: #b45309 !important;
+        }
+      }
+
       .vigencia-icon {
         font-size: 18px;
         width: 18px;
@@ -1117,11 +1131,71 @@ export class DetalleVehiculoDialogComponent implements OnInit {
     return clean !== '' && clean !== '-' && !clean.includes('sin exp') && clean !== 'none' && clean !== 'null';
   }
 
+  esVencida(): boolean {
+    if (this.data.estado_primigenia === 'VENCIDA' || this.data.estado_primigenia === 'CANCELADA') return true;
+    if (this.data.estado === 'INHABILITADO' && (this.data.detalles?.includes('RENOVADO') || this.data.observaciones?.includes('RENOVADO'))) return true;
+    const fFin = this.fechaFinVigencia() || this.data.fecha_vigencia_hasta;
+    if (fFin) {
+      const d = new Date(fFin);
+      if (!isNaN(d.getTime())) {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        return d < hoy;
+      }
+    }
+    return false;
+  }
+
   getTipoHijaNombre(tipo?: string): string {
     const map: Record<string, string> = {
-      I: 'Incremento', S: 'Sustitución', M: 'Modificación', O: 'Otros', C: 'Cancelación'
+      I: 'Incremento',
+      S: 'Sustitución',
+      M: 'Modificación',
+      FE: 'Fe de Erratas',
+      R: 'Renovación',
+      D: 'Duplicado',
+      C: 'Cancelación / Canje',
+      O: 'Otros'
     };
-    return tipo ? (map[tipo] || tipo) : '';
+    return tipo ? (map[tipo.toUpperCase()] || tipo) : '';
+  }
+
+  formatResolucionCode(raw?: string): string {
+    if (!raw) return '';
+    let str = raw.trim().toUpperCase();
+    if (!str || str === 'S/N' || str === 'SIN_PRIMIGENIA' || str === '-') return str;
+
+    const suffixMatch = str.match(/\s*[-_ ]\s*(FE|[ISRMDCO])$/i);
+    if (suffixMatch) {
+      str = str.substring(0, suffixMatch.index).trim();
+    }
+
+    str = str.replace(/^R\s*[-_ ]?\s*/i, '');
+
+    const match = str.match(/^(\d{1,6})[-_/](\d{4})$/);
+    if (match) {
+      const num = match[1].padStart(4, '0');
+      const year = match[2];
+      return `R-${num}-${year}`;
+    }
+
+    const numOnlyMatch = str.match(/^(\d{1,6})$/);
+    if (numOnlyMatch) {
+      const num = numOnlyMatch[1].padStart(4, '0');
+      const currentYear = new Date().getFullYear();
+      return `R-${num}-${currentYear}`;
+    }
+
+    if (raw.trim().toUpperCase().startsWith('R-')) {
+      return raw.trim().toUpperCase();
+    }
+
+    const genericMatch = str.match(/^([A-Z0-9]+)[-_/](\d{4})$/);
+    if (genericMatch) {
+      return `R-${genericMatch[1]}-${genericMatch[2]}`;
+    }
+
+    return `R-${str}`;
   }
 
   private cargarVigenciaResolucion(): void {
@@ -1203,7 +1277,27 @@ export class DetalleVehiculoDialogComponent implements OnInit {
 
   private cargarRutasDetalladas(): void {
     this.isLoadingRutas.set(true);
+    const ruc = this.data.ruc;
 
+    if (ruc) {
+      const url = `${environment.apiUrl}/flota-empresa/empresa/${ruc}/rutas`;
+      this.http.get<{ ruc: string; total: number; data: any[] }>(url).subscribe({
+        next: (resp) => {
+          if (resp && resp.data && resp.data.length > 0) {
+            this.procesarRutas(resp.data);
+            this.isLoadingRutas.set(false);
+          } else {
+            this.fallbackCargarRutas();
+          }
+        },
+        error: () => this.fallbackCargarRutas()
+      });
+    } else {
+      this.fallbackCargarRutas();
+    }
+  }
+
+  private fallbackCargarRutas(): void {
     this.rutaService.getRutas().subscribe({
       next: (rutasApi) => {
         this.procesarRutas(rutasApi);
@@ -1220,16 +1314,22 @@ export class DetalleVehiculoDialogComponent implements OnInit {
   private procesarRutas(rutasApi: Ruta[]): void {
     const ruc = this.data.ruc;
     const resPrim = (this.data.nro_resolucion_primigenia || '').trim();
-    const codigosVehiculo = this.data.rutas || [];
+    const resPrimNorm = resPrim.startsWith('R-') ? resPrim.substring(2) : resPrim;
 
     const rutasEmpresa = (rutasApi || []).filter(r => {
       const rucMatch = r.empresa?.ruc === ruc || (r as any).ruc === ruc;
+      const resNro = (r.resolucion?.nroResolucion || (r as any).resolucion_numero || (r as any).nro_resolucion || '').trim();
+      const resNroNorm = resNro.startsWith('R-') ? resNro.substring(2) : resNro;
       const resMatch = resPrim && (
-        (r.resolucion?.nroResolucion || (r as any).resolucion_numero || '').includes(resPrim) ||
-        resPrim.includes(r.resolucion?.nroResolucion || '___')
+        resNro.includes(resPrim) || resPrim.includes(resNro) ||
+        (resPrimNorm && resNroNorm && (resNroNorm.includes(resPrimNorm) || resPrimNorm.includes(resNroNorm)))
       );
       return rucMatch || resMatch;
     });
+
+    const codigosVehiculo = (this.data.rutas && this.data.rutas.length > 0)
+      ? this.data.rutas
+      : rutasEmpresa.map(r => r.codigoRuta || r.id || '');
 
     const activas: RutaDetalleDisplay[] = [];
     const canceladas: RutaDetalleDisplay[] = [];

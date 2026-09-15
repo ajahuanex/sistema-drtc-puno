@@ -797,11 +797,10 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
 
       const previews: RegistroFlotaPreview[] = dataRows.map((row, idx) => {
         const ruc = getVal(row, 'A', ['RUC']).replace(/\D/g, '');
-        let primigenia = getVal(row, 'B', ['RDR_PRIMIGENIA', 'RDR PRIMIGENIA', 'NRO_RESOLUCION_PRIMIGENIA']);
-        if (primigenia && primigenia.toUpperCase() !== 'NAN' && primigenia !== '-' && !primigenia.toUpperCase().startsWith('R-')) {
-          primigenia = `R-${primigenia}`;
-        }
-        const hija = getVal(row, 'C', ['RDR', 'NRO_RESOLUCION_HIJA']);
+        const primigeniaRaw = getVal(row, 'B', ['RDR_PRIMIGENIA', 'RDR PRIMIGENIA', 'NRO_RESOLUCION_PRIMIGENIA']);
+        const primigenia = this.normalizarResolucionCode(primigeniaRaw);
+        const hijaRaw = getVal(row, 'C', ['RDR', 'NRO_RESOLUCION_HIJA']);
+        const hija = this.normalizarResolucionCode(hijaRaw);
         const placa = getVal(row, 'E', ['PLACA']);
         const ruta = getVal(row, 'F', ['RUTA']);
         const tuc = getVal(row, 'G', ['TUC']);
@@ -865,6 +864,27 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
       console.warn('No se pudo generar vista previa:', e);
       this.previewRows.set([]);
     }
+  }
+
+  normalizarResolucionCode(rawVal?: string, defaultYear: number | string = new Date().getFullYear()): string {
+    if (!rawVal) return '';
+    let str = rawVal.trim().toUpperCase();
+    if (!str || str === 'NAN' || str === '-' || str === 'NONE') return '';
+    str = str.replace(/\s*[-_ ]\s*(FE|[ISRMDCO])$/i, '').trim();
+    const clean = str.replace(/^R[-_ ]*/i, '').trim();
+    const parts = clean.split(/[-/]/);
+    if (parts.length >= 2) {
+      const numDigits = parts[0].replace(/\D/g, '');
+      const numPart = numDigits ? numDigits.padStart(4, '0') : parts[0];
+      const yearPart = parts[1].replace(/\D/g, '') || String(defaultYear);
+      return `R-${numPart}-${yearPart}`;
+    } else {
+      const numDigits = clean.replace(/\D/g, '');
+      if (numDigits) {
+        return `R-${numDigits.padStart(4, '0')}-${defaultYear}`;
+      }
+    }
+    return str.startsWith('R-') ? str : `R-${str}`;
   }
 
   normalizarRutasPreview(val: string): string {

@@ -4,8 +4,17 @@ Representa terminales terrestres, estaciones de ruta y otros servicios complemen
 """
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from pydantic.alias_generators import to_camel
 from enum import Enum
+
+
+class CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True
+    )
 
 
 class TipoInfraestructura(str, Enum):
@@ -23,14 +32,14 @@ class EstadoInfraestructura(str, Enum):
     CANCELADA = "CANCELADA"
 
 
-class RazonSocialInfraestructura(BaseModel):
+class RazonSocialInfraestructura(CamelModel):
     """Razón social de la infraestructura"""
     principal: str
     sunat: Optional[str] = None
     minimo: Optional[str] = None
 
 
-class RepresentanteLegalInfraestructura(BaseModel):
+class RepresentanteLegalInfraestructura(CamelModel):
     """Representante legal de la infraestructura"""
     dni: str
     nombres: str
@@ -40,7 +49,7 @@ class RepresentanteLegalInfraestructura(BaseModel):
     direccion: Optional[str] = None
 
 
-class DocumentoInfraestructura(BaseModel):
+class DocumentoInfraestructura(CamelModel):
     """Documento asociado a la infraestructura"""
     id: str
     tipo: str
@@ -53,7 +62,7 @@ class DocumentoInfraestructura(BaseModel):
     observaciones: Optional[str] = None
 
 
-class AuditoriaInfraestructura(BaseModel):
+class AuditoriaInfraestructura(CamelModel):
     """Registro de auditoría"""
     fecha_cambio: datetime
     usuario_id: str
@@ -63,7 +72,7 @@ class AuditoriaInfraestructura(BaseModel):
     observaciones: Optional[str] = None
 
 
-class HistorialEstadoInfraestructura(BaseModel):
+class HistorialEstadoInfraestructura(CamelModel):
     """Historial de cambios de estado"""
     fecha_cambio: datetime
     usuario_id: str
@@ -79,7 +88,7 @@ class HistorialEstadoInfraestructura(BaseModel):
     observaciones: Optional[str] = None
 
 
-class DatosSunatInfraestructura(BaseModel):
+class DatosSunatInfraestructura(CamelModel):
     """Datos de validación SUNAT"""
     valido: bool
     razon_social: Optional[str] = None
@@ -90,27 +99,27 @@ class DatosSunatInfraestructura(BaseModel):
     error: Optional[str] = None
 
 
-class HorarioOperacion(BaseModel):
+class HorarioOperacion(CamelModel):
     """Horario de operación"""
     apertura: str
     cierre: str
     dias_operacion: List[str]
 
 
-class CoordenadasGPS(BaseModel):
+class CoordenadasGPS(CamelModel):
     """Coordenadas GPS"""
     latitud: float
     longitud: float
 
 
-class ZonaOperativa(BaseModel):
+class ZonaOperativa(CamelModel):
     """Zona operativa de la infraestructura"""
     nombre: str
     capacidad: int
     tipo: str
 
 
-class EspecificacionesInfraestructura(BaseModel):
+class EspecificacionesInfraestructura(CamelModel):
     """Especificaciones técnicas de la infraestructura"""
     capacidad_maxima: Optional[int] = None
     area_total: Optional[float] = None
@@ -122,7 +131,7 @@ class EspecificacionesInfraestructura(BaseModel):
     zonas_operativas: Optional[List[ZonaOperativa]] = None
 
 
-class Infraestructura(BaseModel):
+class Infraestructura(CamelModel):
     """Modelo principal de Infraestructura Complementaria"""
     id: Optional[str] = Field(None, alias="_id")
     ruc: str

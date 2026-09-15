@@ -28,12 +28,14 @@ export class TucService {
 
   // Listar TUCs con filtros
   getTucs(filtros?: {
+    q?: string;
     nroTuc?: string;
     placa?: string;
     ruc?: string;
+    razonSocial?: string;
     nroResolucion?: string;
-    tipoEmision?: TipoEmisionTuc;
-    estado?: EstadoTuc;
+    tipoEmision?: TipoEmisionTuc | '';
+    estado?: EstadoTuc | '';
     skip?: number;
     limit?: number;
   }): Observable<{ total: number; skip: number; limit: number; items: Tuc[] }> {
@@ -41,10 +43,12 @@ export class TucService {
     let params = new HttpParams();
     
     if (filtros) {
-      if (filtros.nroTuc) params = params.set('nroTuc', filtros.nroTuc);
-      if (filtros.placa) params = params.set('placa', filtros.placa);
-      if (filtros.ruc) params = params.set('ruc', filtros.ruc);
-      if (filtros.nroResolucion) params = params.set('nroResolucion', filtros.nroResolucion);
+      if (filtros.q) params = params.set('q', filtros.q.trim());
+      if (filtros.nroTuc) params = params.set('nroTuc', filtros.nroTuc.trim());
+      if (filtros.placa) params = params.set('placa', filtros.placa.trim());
+      if (filtros.ruc) params = params.set('ruc', filtros.ruc.trim());
+      if (filtros.razonSocial) params = params.set('razonSocial', filtros.razonSocial.trim());
+      if (filtros.nroResolucion) params = params.set('nroResolucion', filtros.nroResolucion.trim());
       if (filtros.tipoEmision) params = params.set('tipoEmision', filtros.tipoEmision);
       if (filtros.estado) params = params.set('estado', filtros.estado);
       if (filtros.skip !== undefined) params = params.set('skip', filtros.skip);

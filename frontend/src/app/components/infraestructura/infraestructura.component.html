@@ -46,13 +46,13 @@
 
     <!-- Tabs por Tipo de Infraestructura -->
     <div class="tabs-section">
-      <mat-tab-group class="tipo-infraestructura-tabs">
+      <mat-tab-group class="tipo-infraestructura-tabs" [selectedIndex]="selectedTab()" (selectedIndexChange)="onTabChange($event)">
         <mat-tab>
           <ng-template mat-tab-label>
             <div class="tab-label">
               <mat-icon>business</mat-icon>
               <span>Todas</span>
-              <mat-chip class="tab-count">{{ infraestructuras().length }}</mat-chip>
+              <mat-chip class="tab-count">{{ totalInfraestructuras() }}</mat-chip>
             </div>
           </ng-template>
         </mat-tab>
@@ -62,7 +62,7 @@
             <div class="tab-label">
               <mat-icon>location_city</mat-icon>
               <span>Terminales</span>
-              <mat-chip class="tab-count">0</mat-chip>
+              <mat-chip class="tab-count">{{ terminalesTerrestre() }}</mat-chip>
             </div>
           </ng-template>
         </mat-tab>
@@ -72,7 +72,7 @@
             <div class="tab-label">
               <mat-icon>train</mat-icon>
               <span>Estaciones</span>
-              <mat-chip class="tab-count">0</mat-chip>
+              <mat-chip class="tab-count">{{ estacionesRuta() }}</mat-chip>
             </div>
           </ng-template>
         </mat-tab>
@@ -82,7 +82,7 @@
             <div class="tab-label">
               <mat-icon>more_horiz</mat-icon>
               <span>Otros</span>
-              <mat-chip class="tab-count">0</mat-chip>
+              <mat-chip class="tab-count">{{ otros() }}</mat-chip>
             </div>
           </ng-template>
         </mat-tab>
@@ -218,7 +218,7 @@
                 <th mat-header-cell *matHeaderCellDef>CAPACIDAD</th>
                 <td mat-cell *matCellDef="let infraestructura" class="capacidad-cell">
                   <span class="capacidad-info">
-                    {{ infraestructura.capacidadMaxima || 'N/A' }}
+                    {{ infraestructura.especificaciones?.capacidadMaxima || infraestructura.capacidadMaxima || 'N/A' }}
                   </span>
                 </td>
               </ng-container>

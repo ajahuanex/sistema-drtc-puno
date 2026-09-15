@@ -22,9 +22,11 @@ async def obtener_estadisticas_tuc():
 
 @router.get("/", summary="Catálogo general de TUCs con filtros y paginación")
 async def listar_tucs(
+    q: Optional[str] = Query(None, description="Búsqueda global por N° TUC, Placa, RUC, Razón Social o Resolución"),
     nroTuc: Optional[str] = None,
     placa: Optional[str] = None,
     ruc: Optional[str] = None,
+    razonSocial: Optional[str] = None,
     nroResolucion: Optional[str] = None,
     tipoEmision: Optional[TipoEmisionTuc] = None,
     estado: Optional[EstadoTuc] = None,
@@ -32,9 +34,11 @@ async def listar_tucs(
     limit: int = Query(50, ge=1, le=200)
 ):
     filtros = TucFiltros(
+        q=q,
         nroTuc=nroTuc,
         placa=placa,
         ruc=ruc,
+        razonSocial=razonSocial,
         nroResolucion=nroResolucion,
         tipoEmision=tipoEmision,
         estado=estado

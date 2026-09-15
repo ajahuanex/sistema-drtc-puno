@@ -735,13 +735,28 @@ async def get_expediente_operativo_empresa(
     
     # 2. Mapear resoluciones primigenias registradas
     primigenias_map = {}
+    now_dt = datetime.utcnow()
     for p in primigenias_docs:
         nro = str(p.get("nro_resolucion", "")).strip().upper()
+        
+        # Determinar estado efectivo
+        estado_calc = p.get("estado", "VIGENTE")
+        obs_upper = str(p.get("observaciones", "") or "").upper()
+        f_fin_raw = p.get("fecha_fin_vigencia")
+        
+        if estado_calc not in ["CANCELADA", "SUSPENDIDA", "ANULADA"]:
+            if "CANCELAD" in obs_upper:
+                estado_calc = "CANCELADA"
+            elif "RENOVAD" in obs_upper:
+                estado_calc = "VENCIDA"
+            elif f_fin_raw and isinstance(f_fin_raw, datetime) and f_fin_raw < now_dt:
+                estado_calc = "VENCIDA"
+
         p_dict = {
             "id": str(p.get("_id")),
             "nro_resolucion": p.get("nro_resolucion"),
             "siglas": p.get("siglas"),
-            "estado": p.get("estado", "VIGENTE"),
+            "estado": estado_calc,
             "tipo_autorizacion": p.get("tipo_autorizacion", "PASAJEROS"),
             "anios_vigencia": p.get("anios_vigencia", 10),
             "fecha_resolucion": p.get("fecha_resolucion").isoformat() if isinstance(p.get("fecha_resolucion"), datetime) else p.get("fecha_resolucion"),

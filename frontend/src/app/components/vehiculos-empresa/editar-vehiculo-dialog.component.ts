@@ -63,12 +63,12 @@ import { FlotaEmpresaService, VehiculoEmpresa } from '../../services/flota-empre
 
           <mat-form-field appearance="outline">
             <mat-label>Resolución Primigenia</mat-label>
-            <input matInput formControlName="nro_resolucion_primigenia" placeholder="R-0000-0000">
+            <input matInput formControlName="nro_resolucion_primigenia" (blur)="onPrimigeniaBlur()" placeholder="Ej: 0123 -> R-0123-2026">
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Resolución Hija</mat-label>
-            <input matInput formControlName="nro_resolucion_hija" placeholder="R-0000-0000-I">
+            <input matInput formControlName="nro_resolucion_hija" (blur)="onHijaBlur()" placeholder="Ej: 0123 -> R-0123-2026">
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -77,15 +77,18 @@ import { FlotaEmpresaService, VehiculoEmpresa } from '../../services/flota-empre
               <mat-option value="">Ninguno</mat-option>
               <mat-option value="I">I - Incremento</mat-option>
               <mat-option value="S">S - Sustitución</mat-option>
+              <mat-option value="R">R - Renovación</mat-option>
               <mat-option value="M">M - Modificación</mat-option>
+              <mat-option value="FE">FE - Fe de Erratas</mat-option>
+              <mat-option value="D">D - Duplicado</mat-option>
+              <mat-option value="C">C - Cancelación / Canje</mat-option>
               <mat-option value="O">O - Otros</mat-option>
-              <mat-option value="C">C - Cancelación</mat-option>
             </mat-select>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Expediente</mat-label>
-            <input matInput formControlName="expediente" placeholder="E-0123-2026">
+            <input matInput formControlName="expediente" (blur)="onExpedienteBlur()" placeholder="Ej: 0123 -> E-0123-2026">
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -154,6 +157,79 @@ export class EditarVehiculoDialogComponent implements OnInit {
       detalles: [this.data.detalles || ''],
       nueva_observacion: ['']
     });
+  }
+
+  formatResolucion(rawVal: string, defaultYear: number | string = new Date().getFullYear()): string {
+    if (!rawVal) return '';
+    let str = rawVal.trim().toUpperCase();
+    if (!str) return '';
+
+    // Extraer sufijo si se ingresó tipo '0123-2026 -FE', '0123-2026 -I', etc.
+    const suffixMatch = str.match(/\s*[-_ ]\s*(FE|[ISRMDCO])$/i);
+    if (suffixMatch) {
+      if (!this.form.get('tipo_resolucion_hija')?.value) {
+        this.form.patchValue({ tipo_resolucion_hija: suffixMatch[1].toUpperCase() });
+      }
+      str = str.substring(0, suffixMatch.index).trim();
+    }
+
+    const clean = str.replace(/^R[-_ ]*/i, '').trim();
+    const parts = clean.split(/[-/]/);
+    if (parts.length >= 2) {
+      const numDigits = parts[0].replace(/\D/g, '');
+      const numPart = numDigits ? numDigits.padStart(4, '0') : parts[0];
+      const yearPart = parts[1].replace(/\D/g, '') || String(defaultYear);
+      return `R-${numPart}-${yearPart}`;
+    } else {
+      const numDigits = clean.replace(/\D/g, '');
+      if (numDigits) {
+        const numPart = numDigits.padStart(4, '0');
+        return `R-${numPart}-${defaultYear}`;
+      }
+    }
+    return str.startsWith('R-') ? str : `R-${str}`;
+  }
+
+  formatExpediente(rawVal: string, defaultYear: number | string = new Date().getFullYear()): string {
+    if (!rawVal) return '';
+    const str = rawVal.trim().toUpperCase();
+    if (!str) return '';
+    const clean = str.replace(/^E[-_ ]*/i, '').trim();
+    const parts = clean.split(/[-/]/);
+    if (parts.length >= 2) {
+      const numDigits = parts[0].replace(/\D/g, '');
+      const numPart = numDigits ? numDigits.padStart(4, '0') : parts[0];
+      const yearPart = parts[1].replace(/\D/g, '') || String(defaultYear);
+      return `E-${numPart}-${yearPart}`;
+    } else {
+      const numDigits = clean.replace(/\D/g, '');
+      if (numDigits) {
+        const numPart = numDigits.padStart(4, '0');
+        return `E-${numPart}-${defaultYear}`;
+      }
+    }
+    return str.startsWith('E-') ? str : `E-${str}`;
+  }
+
+  onPrimigeniaBlur(): void {
+    const curVal = this.form.get('nro_resolucion_primigenia')?.value;
+    if (curVal) {
+      this.form.patchValue({ nro_resolucion_primigenia: this.formatResolucion(curVal) });
+    }
+  }
+
+  onHijaBlur(): void {
+    const curVal = this.form.get('nro_resolucion_hija')?.value;
+    if (curVal) {
+      this.form.patchValue({ nro_resolucion_hija: this.formatResolucion(curVal) });
+    }
+  }
+
+  onExpedienteBlur(): void {
+    const curVal = this.form.get('expediente')?.value;
+    if (curVal) {
+      this.form.patchValue({ expediente: this.formatExpediente(curVal) });
+    }
   }
 
   cerrar(updated = false): void {

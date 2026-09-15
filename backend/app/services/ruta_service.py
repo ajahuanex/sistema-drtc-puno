@@ -657,9 +657,16 @@ class RutaService:
     async def get_rutas_por_empresa(self, empresa_id: str) -> List[Ruta]:
         """Obtener rutas de una empresa específica"""
         try:
+            clean_emp = str(empresa_id).strip()
             rutas = await self.rutas_collection.find({
-                "resolucion.empresa.id": empresa_id,
-                "estaActivo": True
+                "$or": [
+                    {"empresa.ruc": clean_emp},
+                    {"empresa.id": clean_emp},
+                    {"resolucion.empresa.ruc": clean_emp},
+                    {"resolucion.empresa.id": clean_emp},
+                    {"ruc": clean_emp}
+                ],
+                "estaActivo": {"$ne": False}
             }).to_list(length=None)
             
             # Convertir a formato esperado
@@ -733,9 +740,19 @@ class RutaService:
     async def get_rutas_por_resolucion(self, resolucion_id: str) -> List[Ruta]:
         """Obtener rutas de una resolución específica"""
         try:
+            clean_res = str(resolucion_id).strip()
+            import re
+            res_pat = re.escape(clean_res)
+            sin_pref = clean_res[2:] if clean_res.upper().startswith("R-") else clean_res
+            sin_pref_pat = re.escape(sin_pref)
             rutas = await self.rutas_collection.find({
-                "resolucion.id": resolucion_id,
-                "estaActivo": True
+                "$or": [
+                    {"resolucion.nroResolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"resolucion.numero": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"nro_resolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"resolucion.id": clean_res}
+                ],
+                "estaActivo": {"$ne": False}
             }).to_list(length=None)
             
             # Convertir a formato esperado
@@ -813,11 +830,34 @@ class RutaService:
     ) -> List[Ruta]:
         """Obtener rutas filtradas por empresa y resolución"""
         try:
+            clean_emp = str(empresa_id).strip()
+            clean_res = str(resolucion_id).strip()
+            import re
+            res_pat = re.escape(clean_res)
+            sin_pref = clean_res[2:] if clean_res.upper().startswith("R-") else clean_res
+            sin_pref_pat = re.escape(sin_pref)
             # Buscar rutas que tengan la empresa y resolución en sus objetos embebidos
             rutas = await self.rutas_collection.find({
-                "resolucion.empresa.id": empresa_id,
-                "resolucion.id": resolucion_id,
-                "estaActivo": True
+                "$and": [
+                    {
+                        "$or": [
+                            {"empresa.ruc": clean_emp},
+                            {"empresa.id": clean_emp},
+                            {"resolucion.empresa.ruc": clean_emp},
+                            {"resolucion.empresa.id": clean_emp},
+                            {"ruc": clean_emp}
+                        ]
+                    },
+                    {
+                        "$or": [
+                            {"resolucion.nroResolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                            {"resolucion.numero": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                            {"nro_resolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                            {"resolucion.id": clean_res}
+                        ]
+                    }
+                ],
+                "estaActivo": {"$ne": False}
             }).to_list(length=None)
             
             # Convertir a formato esperado por el modelo

@@ -58,7 +58,7 @@ export interface ColumnasState {
     MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule,
     MatMenuModule, MatDividerModule, MatChipsModule,
     MatPaginatorModule, MatTabsModule, MatBadgeModule, MatDialogModule,
-    MatExpansionModule, MatCheckboxModule, FormTramitePrimigeniaDialogComponent
+    MatExpansionModule, MatCheckboxModule
   ],
   styleUrls: ['./vehiculos-empresa.component.scss'],
   template: `
@@ -160,7 +160,7 @@ export interface ColumnasState {
                           <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
                             <span style="font-size:10px;color:#64748b;font-weight:600;">Autorizaciones:</span>
                             @for (p of emp.primigenias.slice(0, 2); track p) {
-                              <span class="code-badge prim-badge" style="font-size:10px;padding:2px 6px;">{{ p }}</span>
+                              <span class="code-badge prim-badge" style="font-size:10px;padding:2px 6px;">{{ formatResolucionCode(p) }}</span>
                             }
                             @if (emp.primigenias.length > 2) {
                               <span style="font-size:10px;color:#94a3b8;">+{{ emp.primigenias.length - 2 }}</span>
@@ -274,7 +274,7 @@ export interface ColumnasState {
                     <div class="prim-ruta-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;">
                       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
                         <span class="code-badge prim-badge" [class.prim-inactiva]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA' || item.estado === 'VENCIDA'" [matTooltip]="'Estado: ' + (item.estado || 'VIGENTE')">
-                          {{ item.primigenia }}
+                          {{ formatResolucionCode(item.primigenia) }}
                         </span>
                         <div style="display:flex;align-items:center;gap:8px;">
                           <button mat-flat-button color="primary" style="font-size:11.5px;height:30px;line-height:30px;padding:0 10px;border-radius:8px;font-weight:700;" (click)="abrirCrearVehiculo(item.primigenia)" [matTooltip]="'Registrar vehículo asignado a la resolución ' + item.primigenia">
@@ -287,7 +287,8 @@ export interface ColumnasState {
                           </button>
                           <span class="status-pill"
                                 [class.status-habilitado]="item.estado === 'VIGENTE' || item.estado === 'ACTIVA'"
-                                [class.status-cancelado]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA' || item.estado === 'VENCIDA'">
+                                [class.status-vencido]="item.estado === 'VENCIDA'"
+                                [class.status-cancelado]="item.estado === 'CANCELADA' || item.estado === 'INACTIVA'">
                             {{ item.estado || 'VIGENTE' }}
                           </span>
                         </div>
@@ -334,9 +335,9 @@ export interface ColumnasState {
                           </div>
                           <div style="display:flex;flex-wrap:wrap;gap:4px;">
                             @for (r of item.rutasArray; track r) {
-                              <span class="ruta-chip" style="font-size:11px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border-radius:6px;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;" [matTooltip]="getRutaInfoTooltip(r)">
+                              <span class="ruta-chip" style="font-size:11px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border-radius:6px;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;" [matTooltip]="getRutaInfoTooltip(r, item.primigenia)">
                                 <mat-icon style="font-size:14px;width:14px;height:14px;">alt_route</mat-icon>
-                                {{ getRutaNombreCompleto(r) }}
+                                {{ getRutaNombreCompleto(r, item.primigenia) }}
                               </span>
                             }
                             @if (!item.rutasArray.length) {
@@ -360,7 +361,7 @@ export interface ColumnasState {
                 </button>
                 @for (prim of primigeniasDisponibles(); track prim) {
                   <button mat-stroked-button [class.active-prim-btn]="primigeniaFiltro() === prim" (click)="primigeniaFiltro.set(prim)">
-                    <mat-icon>verified</mat-icon> {{ prim }}
+                    <mat-icon>verified</mat-icon> {{ formatResolucionCode(prim) }}
                     <span class="prim-count-pill">({{ getCantidadPorPrimigenia(prim) }})</span>
                   </button>
                 }
@@ -564,7 +565,7 @@ export interface ColumnasState {
                                   <span class="code-badge prim-badge"
                                         [class.prim-inactiva]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA' || item.estado_primigenia === 'VENCIDA'"
                                         [matTooltip]="'Estado: ' + (item.estado_primigenia || 'VIGENTE')">
-                                    {{ item.nro_resolucion_primigenia }}
+                                    {{ formatResolucionCode(item.nro_resolucion_primigenia) }}
                                   </span>
                                   @if (item.fecha_vigencia_hasta) {
                                     <div style="font-size:10px;color:#64748b;margin-top:1px;">
@@ -580,10 +581,15 @@ export interface ColumnasState {
                                 <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
                                   <span class="ruc-badge placa-badge" style="white-space:nowrap;">{{ item.placa }}</span>
                                   @if (item.nro_resolucion_hija) {
-                                    <div style="display:flex;align-items:center;gap:4px;white-space:nowrap;">
-                                      <span class="code-badge hija-badge" style="white-space:nowrap;" [matTooltip]="getTipoHijaLabel(item.tipo_resolucion_hija)">
-                                        {{ item.nro_resolucion_hija }}
+                                    <div style="display:flex;align-items:center;gap:4px;white-space:nowrap;margin-top:2px;">
+                                      <span class="code-badge hija-badge" style="white-space:nowrap;">
+                                        {{ formatResolucionCode(item.nro_resolucion_hija) }}
                                       </span>
+                                      @if (getTipoHijaLabel(item.tipo_resolucion_hija || item.nro_resolucion_hija)) {
+                                        <span class="tipo-hija-badge tipo-{{ getTipoHijaCode(item.tipo_resolucion_hija || item.nro_resolucion_hija) }}" style="white-space:nowrap;">
+                                          {{ getTipoHijaLabel(item.tipo_resolucion_hija || item.nro_resolucion_hija) }}
+                                        </span>
+                                      }
                                     </div>
                                   }
                                 </div>
@@ -823,20 +829,18 @@ export interface ColumnasState {
                                 }
                               </div>
                             </td>
-                            <td><span class="code-badge prim-badge">{{ item.nro_resolucion_primigenia }}</span></td>
-                            <td>
+                            <td><span class="code-badge prim-badge">{{ formatResolucionCode(item.nro_resolucion_primigenia) }}</span></td>
+                            <td style="white-space:nowrap;">
+                              <span class="ruc-badge placa-badge">{{ item.placa }}</span>
                               @if (item.nro_resolucion_hija) {
-                                <div class="hija-cell">
-                                  <span class="tipo-hija-badge tipo-{{ item.tipo_resolucion_hija?.toLowerCase() }}">
-                                    {{ item.tipo_resolucion_hija }}
-                                  </span>
-                                  <span style="font-size:11px;">{{ item.nro_resolucion_hija }}</span>
+                                <div style="display:flex;align-items:center;gap:4px;margin-top:2px;white-space:nowrap;">
+                                  <span class="code-badge hija-badge">{{ formatResolucionCode(item.nro_resolucion_hija) }}</span>
+                                  @if (getTipoHijaLabel(item.tipo_resolucion_hija || item.nro_resolucion_hija)) {
+                                    <span class="tipo-hija-badge tipo-{{ getTipoHijaCode(item.tipo_resolucion_hija || item.nro_resolucion_hija) }}">
+                                      {{ getTipoHijaLabel(item.tipo_resolucion_hija || item.nro_resolucion_hija) }}
+                                    </span>
+                                  }
                                 </div>
-                              } @else { <span class="sin-datos">-</span> }
-                            </td>
-                            <td>
-                              @if (item.placa === '-' || item.es_cronologico) {
-                                <span class="crono-placa" matTooltip="Registro solo cronológico">—</span>
                               } @else {
                                 <span class="ruc-badge placa-badge">{{ item.placa }}</span>
                               }
@@ -947,6 +951,7 @@ export class VehiculosEmpresaComponent implements OnInit {
   empresaDetalle = signal<Empresa | null>(null);
   resolucionesPrimigeniasMatriz = signal<ResolucionPrimigenia[]>([]);
   rutasOficialesMap = signal<Map<string, Ruta>>(new Map());
+  rutasOficialesEmpresa = signal<Ruta[]>([]);
 
   // Control de cortina desplegable (Accordion) para resoluciones primigenias y rutas
   rutasPrimigeniasAbiertas = signal<boolean>(false);
@@ -988,6 +993,7 @@ export class VehiculosEmpresaComponent implements OnInit {
       aniosVigencia?: number;
       estado: string;
       rutas: Set<string>;
+      rutasCompletas: Ruta[];
       countHabilitados: number;
       countInhabilitados: number;
       countTotal: number;
@@ -995,6 +1001,31 @@ export class VehiculosEmpresaComponent implements OnInit {
 
     const primFiltro = this.primigeniaFiltro();
     const matriz = this.resolucionesPrimigeniasMatriz();
+    const rutasOficiales = this.rutasOficialesEmpresa();
+
+    // Helper para normalizar resolución quitando prefijo R- y espacios
+    const normRes = (val: string): string => {
+      const s = (val || '').trim().toUpperCase();
+      return s.startsWith('R-') ? s.substring(2) : s;
+    };
+
+    // Helper para determinar estado efectivo de la primigenia validando fin de vigencia y observaciones
+    const calcEstado = (estado?: string, fFin?: string | Date, obs?: string): string => {
+      const est = (estado || 'VIGENTE').toUpperCase();
+      if (est === 'CANCELADA' || est === 'SUSPENDIDA' || est === 'ANULADA') return est;
+      const obsUpper = (obs || '').toUpperCase();
+      if (obsUpper.includes('CANCELAD')) return 'CANCELADA';
+      if (obsUpper.includes('RENOVAD')) return 'VENCIDA';
+      if (fFin) {
+        const d = new Date(fFin);
+        if (!isNaN(d.getTime())) {
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
+          if (d < hoy) return 'VENCIDA';
+        }
+      }
+      return est;
+    };
 
     // 1. Cargar datos oficiales del módulo de Resoluciones Primigenias
     for (const res of matriz) {
@@ -1008,32 +1039,82 @@ export class VehiculosEmpresaComponent implements OnInit {
         fechaInicioVigencia: res.fecha_inicio_vigencia,
         vigenciaHasta: res.fecha_fin_vigencia,
         aniosVigencia: res.anios_vigencia,
-        estado: res.estado || 'VIGENTE',
+        estado: calcEstado(res.estado, res.fecha_fin_vigencia, res.observaciones),
         rutas: new Set<string>(),
+        rutasCompletas: [],
         countHabilitados: 0,
         countInhabilitados: 0,
         countTotal: 0
       });
     }
 
-    // 2. Acumular flota por empresa y rutas
+    // 2. Asociar RUTAS OFICIALES de la base de datos de rutas que corresponden a cada primigenia
+    for (const r of rutasOficiales) {
+      const rResRaw = (r.resolucion?.nroResolucion || (r as any).nro_resolucion || '').trim().toUpperCase();
+      const rResNorm = normRes(rResRaw);
+
+      let targetKey = '';
+      for (const key of map.keys()) {
+        if (key === rResRaw || normRes(key) === rResNorm || key.includes(rResNorm) || rResNorm.includes(key)) {
+          targetKey = key;
+          break;
+        }
+      }
+
+      if (!targetKey && rResRaw) {
+        if (!primFiltro || rResRaw === primFiltro.toUpperCase()) {
+          targetKey = rResRaw;
+          map.set(targetKey, {
+            primigenia: r.resolucion?.nroResolucion || rResRaw,
+            estado: calcEstado(r.resolucion?.estado),
+            rutas: new Set<string>(),
+            rutasCompletas: [],
+            countHabilitados: 0,
+            countInhabilitados: 0,
+            countTotal: 0
+          });
+        }
+      }
+
+      if (targetKey && map.has(targetKey)) {
+        const item = map.get(targetKey)!;
+        const cod = (r.codigoRuta || '').trim();
+        if (cod) {
+          item.rutas.add(cod);
+        }
+        item.rutasCompletas.push(r);
+      }
+    }
+
+    // 3. Acumular flota por empresa y rutas de los vehículos
     for (const v of this.flotaEmpresa()) {
       if (v.es_cronologico) continue;
-      const key = (v.nro_resolucion_primigenia || 'SIN_PRIMIGENIA').trim().toUpperCase();
-      if (primFiltro && key !== primFiltro.toUpperCase()) continue;
+      const vResRaw = (v.nro_resolucion_primigenia || 'SIN_PRIMIGENIA').trim().toUpperCase();
+      const vResNorm = normRes(vResRaw);
+      if (primFiltro && vResRaw !== primFiltro.toUpperCase()) continue;
 
-      if (!map.has(key)) {
-        map.set(key, {
+      let targetKey = '';
+      for (const key of map.keys()) {
+        if (key === vResRaw || normRes(key) === vResNorm) {
+          targetKey = key;
+          break;
+        }
+      }
+
+      if (!targetKey) {
+        targetKey = vResRaw;
+        map.set(targetKey, {
           primigenia: v.nro_resolucion_primigenia || 'S/N',
           vigenciaHasta: v.fecha_vigencia_hasta,
-          estado: v.estado_primigenia || 'VIGENTE',
+          estado: calcEstado(v.estado_primigenia, v.fecha_vigencia_hasta, v.detalles),
           rutas: new Set<string>(),
+          rutasCompletas: [],
           countHabilitados: 0,
           countInhabilitados: 0,
           countTotal: 0
         });
       }
-      const item = map.get(key)!;
+      const item = map.get(targetKey)!;
       item.countTotal++;
       const est = (v.estado || 'HABILITADO').toUpperCase();
       if (est === 'HABILITADO') {
@@ -1143,26 +1224,47 @@ export class VehiculosEmpresaComponent implements OnInit {
     return emp.direccionFiscal || (emp as any).direccion_fiscal || emp.datosSunat?.['direccion'] || 'No registrada';
   }
 
-  getRutaNombreCompleto(codigoRuta: string): string {
-    const key = (codigoRuta || '').trim().toUpperCase();
+  getRutaNombreCompleto(codigoRuta: string, primigenia?: string): string {
+    const cod = (codigoRuta || '').trim().toUpperCase();
     const map = this.rutasOficialesMap();
-    if (map.has(key)) {
-      const r = map.get(key)!;
-      const origenNom = r.origen?.nombre || 'Origen';
-      const destinoNom = r.destino?.nombre || 'Destino';
-      return `Ruta ${r.codigoRuta}: ${r.nombre || `${origenNom} - ${destinoNom}`}`;
+    if (primigenia) {
+      const primKey = `${primigenia.trim().toUpperCase()}_${cod}`;
+      if (map.has(primKey)) {
+        const r = map.get(primKey)!;
+        const origenNom = r.origen?.nombre || '';
+        const destinoNom = r.destino?.nombre || '';
+        const nom = r.nombre || (origenNom && destinoNom ? `${origenNom} - ${destinoNom}` : '');
+        return nom ? `Ruta ${r.codigoRuta}: ${nom}` : `Ruta ${r.codigoRuta}`;
+      }
+    }
+    if (map.has(cod)) {
+      const r = map.get(cod)!;
+      const origenNom = r.origen?.nombre || '';
+      const destinoNom = r.destino?.nombre || '';
+      const nom = r.nombre || (origenNom && destinoNom ? `${origenNom} - ${destinoNom}` : '');
+      return nom ? `Ruta ${r.codigoRuta}: ${nom}` : `Ruta ${r.codigoRuta}`;
     }
     return `Ruta ${codigoRuta}`;
   }
 
-  getRutaInfoTooltip(codigoRuta: string): string {
-    const key = (codigoRuta || '').trim().toUpperCase();
+  getRutaInfoTooltip(codigoRuta: string, primigenia?: string): string {
+    const cod = (codigoRuta || '').trim().toUpperCase();
     const map = this.rutasOficialesMap();
-    if (map.has(key)) {
-      const r = map.get(key)!;
+    let r: Ruta | undefined;
+    if (primigenia) {
+      const primKey = `${primigenia.trim().toUpperCase()}_${cod}`;
+      if (map.has(primKey)) r = map.get(primKey);
+    }
+    if (!r && map.has(cod)) {
+      r = map.get(cod);
+    }
+    if (r) {
       const origenNom = r.origen?.nombre || 'Origen';
       const destinoNom = r.destino?.nombre || 'Destino';
-      return `Ruta ${r.codigoRuta}: ${r.nombre || `${origenNom} - ${destinoNom}`} (${r.tipoServicio || 'PASAJEROS'})`;
+      const nom = r.nombre || `${origenNom} - ${destinoNom}`;
+      const f = (r as any).frecuencia?.descripcion || (r as any).frecuencia?.tipo || 'DIARIO';
+      const serv = r.tipoServicio || 'PASAJEROS';
+      return `Ruta ${r.codigoRuta}: ${nom} | Servicio: ${serv} | Frecuencia: ${f}`;
     }
     return `Código de Ruta: ${codigoRuta}`;
   }
@@ -1266,12 +1368,13 @@ export class VehiculosEmpresaComponent implements OnInit {
 
   primigeniasDisponibles = computed(() => {
     const list = this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA');
-    const prims = Array.from(new Set(list.map(i => i.nro_resolucion_primigenia).filter(Boolean)));
+    const prims = Array.from(new Set(list.map(i => this.formatResolucionCode(i.nro_resolucion_primigenia)).filter(Boolean)));
     return prims.sort();
   });
 
   getCantidadPorPrimigenia(prim: string): number {
-    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA' && (i.nro_resolucion_primigenia || '').toUpperCase() === prim.toUpperCase()).length;
+    const target = this.formatResolucionCode(prim).toUpperCase();
+    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA' && this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === target).length;
   }
 
   flotaEmpresaFiltrada = computed(() => {
@@ -1282,7 +1385,8 @@ export class VehiculosEmpresaComponent implements OnInit {
     const primSelected = this.primigeniaFiltro();
 
     if (primSelected) {
-      list = list.filter(i => (i.nro_resolucion_primigenia || '').toUpperCase() === primSelected.toUpperCase());
+      const primTarget = this.formatResolucionCode(primSelected).toUpperCase();
+      list = list.filter(i => this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === primTarget);
     }
 
     if (q) list = list.filter(i =>
@@ -1447,6 +1551,31 @@ export class VehiculosEmpresaComponent implements OnInit {
         this.snackBar.open('Error al buscar la flota de la empresa.', 'Cerrar', { duration: 4000 });
       }
     });
+
+    // 4. Obtener Rutas oficiales de la Empresa y sus Resoluciones Primigenias
+    this.service.getRutasEmpresa(ruc).subscribe({
+      next: (resp) => {
+        if (resp && resp.data) {
+          this.rutasOficialesEmpresa.set(resp.data);
+          // Actualizar mapa para tooltips y etiquetas completas
+          const map = new Map<string, Ruta>(this.rutasOficialesMap());
+          for (const r of resp.data) {
+            const resNro = (r.resolucion?.nroResolucion || (r as any).nro_resolucion || '').trim().toUpperCase();
+            const cod = (r.codigoRuta || '').trim().toUpperCase();
+            if (cod) {
+              map.set(cod, r);
+              if (resNro) {
+                map.set(`${resNro}_${cod}`, r);
+                const sinPref = resNro.startsWith('R-') ? resNro.substring(2) : resNro;
+                map.set(`${sinPref}_${cod}`, r);
+              }
+            }
+          }
+          this.rutasOficialesMap.set(map);
+        }
+      },
+      error: (err) => console.warn('No se pudieron cargar rutas oficiales de la empresa:', err)
+    });
   }
 
   limpiarEmpresaSeleccionada(): void {
@@ -1454,6 +1583,7 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.flotaEmpresa.set([]);
     this.empresaDetalle.set(null);
     this.resolucionesPrimigeniasMatriz.set([]);
+    this.rutasOficialesEmpresa.set([]);
     this.estadisticas.set(null);
     this.razonSocialEmpresa.set('');
     this.pageIndex.set(0);
@@ -1633,11 +1763,86 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.pageSizeCrono.set(e.pageSize);
   }
 
-  getTipoHijaLabel(tipo?: string): string {
+  formatResolucionCode(raw?: string): string {
+    if (!raw) return '';
+    let str = raw.trim().toUpperCase();
+    if (!str || str === 'S/N' || str === 'SIN_PRIMIGENIA' || str === '-') return str;
+
+    // 1. Quitar sufijo tipo "-S", "-I", "-FE", " - M", etc.
+    const suffixMatch = str.match(/\s*[-_ ]\s*(FE|[ISRMDCO])$/i);
+    if (suffixMatch) {
+      str = str.substring(0, suffixMatch.index).trim();
+    }
+
+    // 2. Si ya empieza con 'R-', removerlo temporalmente para estandarizar 4 dígitos en el número y 4 en el año
+    str = str.replace(/^R\s*[-_ ]?\s*/i, '');
+
+    // 3. Evaluar patrón número y año (ej: "123-2026", "0123-2026", "123/2026")
+    const match = str.match(/^(\d{1,6})[-_/](\d{4})$/);
+    if (match) {
+      const num = match[1].padStart(4, '0');
+      const year = match[2];
+      return `R-${num}-${year}`;
+    }
+
+    // 4. Si es solo un número de 1 a 6 dígitos
+    const numOnlyMatch = str.match(/^(\d{1,6})$/);
+    if (numOnlyMatch) {
+      const num = numOnlyMatch[1].padStart(4, '0');
+      const currentYear = new Date().getFullYear();
+      return `R-${num}-${currentYear}`;
+    }
+
+    // 5. Si ya viene con formato 'R-XXXX-YYYY' u otro que contenga R-
+    if (raw.trim().toUpperCase().startsWith('R-')) {
+      return raw.trim().toUpperCase();
+    }
+
+    // Si tiene guión y 4 dígitos de año al final (ej: "0141-2024")
+    const genericMatch = str.match(/^([A-Z0-9]+)[-_/](\d{4})$/);
+    if (genericMatch) {
+      return `R-${genericMatch[1]}-${genericMatch[2]}`;
+    }
+
+    return `R-${str}`;
+  }
+
+  cleanResolucionCode(raw?: string): string {
+    return this.formatResolucionCode(raw);
+  }
+
+  getTipoHijaCode(tipoOrStr?: string): string {
+    if (!tipoOrStr) return 'o';
+    const clean = tipoOrStr.trim().toUpperCase();
+    if (['I', 'INCREMENTO'].includes(clean)) return 'i';
+    if (['S', 'SUSTITUCION', 'SUSTITUCIÓN'].includes(clean)) return 's';
+    if (['M', 'MODIFICACION', 'MODIFICACIÓN'].includes(clean)) return 'm';
+    if (['FE', 'FE_DE_ERRATAS', 'FE DE ERRATAS', 'FE DE ERRATA', 'FE-ERRATAS'].includes(clean)) return 'fe';
+    if (['R', 'RENOVACION', 'RENOVACIÓN'].includes(clean)) return 'r';
+    if (['D', 'DUPLICADO'].includes(clean)) return 'd';
+    if (['C', 'CANCELACION', 'CANCELACIÓN', 'CANJE'].includes(clean)) return 'c';
+    if (['O', 'OTROS', 'OTRO'].includes(clean)) return 'o';
+    const match = clean.match(/[-_ ]\s*(FE|[ISRMDCO])$/);
+    if (match) return match[1].toLowerCase();
+    return 'o';
+  }
+
+  getTipoHijaLabel(tipoOrStr?: string): string {
+    if (!tipoOrStr) return '';
+    const clean = tipoOrStr.trim().toUpperCase();
     const map: Record<string, string> = {
-      I: 'Incremento', S: 'Sustitución', M: 'Modificación', O: 'Otros', C: 'Cancelación'
+      I: 'INCREMENTO',
+      S: 'SUSTITUCIÓN',
+      M: 'MODIFICACIÓN',
+      FE: 'FE DE ERRATAS',
+      R: 'RENOVACIÓN',
+      D: 'DUPLICADO',
+      C: 'CANCELACIÓN',
+      O: 'OTROS'
     };
-    return tipo ? (map[tipo] || tipo) : '';
+    if (map[clean]) return map[clean];
+    const code = this.getTipoHijaCode(clean).toUpperCase();
+    return map[code] || clean;
   }
 
   irACargaMasiva(): void {

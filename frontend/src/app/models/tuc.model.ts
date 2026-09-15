@@ -33,6 +33,7 @@ export interface Tuc {
   empresaId?: string;
   nroResolucion: string;
   resolucionId?: string;
+  tipo_resolucion_hija?: string;
   
   fechaEmision: string;
   fechaVencimiento?: string;
@@ -57,6 +58,7 @@ export interface Tuc {
   }>;
   fechaRegistro?: string;
   fechaActualizacion?: string;
+  [key: string]: any;
 }
 
 export interface TucCreateRequest {

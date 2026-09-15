@@ -29,8 +29,8 @@ export class RutaService {
     });
   }
 
-  getRutas(): Observable<Ruta[]> {
-    const url = `${this.apiUrl}/rutas/`;
+  getRutas(limit: number = 1000): Observable<Ruta[]> {
+    const url = `${this.apiUrl}/rutas/?limit=${limit}`;
     
     return this.http.get<any[]>(url, { headers: this.getHeaders() })
       .pipe(

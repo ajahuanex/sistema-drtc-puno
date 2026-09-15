@@ -8,12 +8,18 @@ echo.
 REM Ir a la carpeta del backend
 cd backend
 
-REM Configurar variables de entorno
-set MONGODB_URL=mongodb://admin:admin123@localhost:27017/
-set DATABASE_NAME=drtc_db
+if "%~1"=="remote" (
+    echo [MODO FORZADO: REMOTO]
+    set USE_REMOTE_DB=true
+    set MONGODB_TARGET=remote
+) else if "%~1"=="local" (
+    echo [MODO FORZADO: LOCAL]
+    set USE_REMOTE_DB=false
+    set MONGODB_TARGET=local
+)
 
-REM Iniciar el backend
-echo ✓ Iniciando servidor en http://localhost:8000
+REM Iniciar el backend (leerá la configuración activa de .env)
+echo ✓ Iniciando servidor en http://localhost:8000 (respetando switch en .env)
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 pause

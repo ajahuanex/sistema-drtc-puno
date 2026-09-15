@@ -93,6 +93,91 @@
         margin: 0;
       }
     }
+
+    .db-switch-container {
+      display: flex;
+      align-items: center;
+
+      .db-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 18px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s ease-in-out;
+        background: rgba(0, 0, 0, 0.05);
+        color: inherit;
+        outline: none;
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        &.db-chip-local {
+          background: rgba(16, 185, 129, 0.12);
+          border-color: rgba(16, 185, 129, 0.3);
+          color: #065f46;
+
+          .db-icon {
+            color: #059669;
+          }
+        }
+
+        &.db-chip-remote {
+          background: rgba(99, 102, 241, 0.14);
+          border-color: rgba(99, 102, 241, 0.35);
+          color: #3730a3;
+
+          .db-icon {
+            color: #4f46e5;
+          }
+        }
+
+        .db-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #ef4444;
+          display: inline-block;
+
+          &.online {
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+          }
+        }
+
+        .db-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+        }
+
+        .db-name {
+          letter-spacing: 0.2px;
+        }
+
+        .db-ping {
+          font-size: 10px;
+          opacity: 0.75;
+          background: rgba(0, 0, 0, 0.06);
+          padding: 1px 5px;
+          border-radius: 8px;
+        }
+
+        .db-chevron {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          margin-left: -2px;
+          opacity: 0.6;
+        }
+      }
+    }
   }
 
   // Sección derecha
@@ -369,4 +454,133 @@
       }
     }
   }
-} 
+}
+
+// Estilos para el menú desplegable de base de datos
+::ng-deep .db-menu-dropdown {
+  min-width: 290px !important;
+  border-radius: 12px !important;
+  padding: 6px 0 !important;
+
+  .db-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+
+    .db-menu-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 13px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        color: #6366f1;
+      }
+    }
+
+    .db-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      letter-spacing: 0.5px;
+
+      &.badge-local {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      &.badge-remote {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+    }
+  }
+
+  .db-menu-details {
+    padding: 6px 16px 10px;
+    font-size: 12px;
+
+    .db-detail-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+
+      .label {
+        color: #64748b;
+      }
+
+      .val {
+        font-weight: 600;
+
+        &.text-green {
+          color: #059669;
+        }
+
+        &.text-red {
+          color: #dc2626;
+        }
+      }
+    }
+  }
+
+  button.mat-mdc-menu-item {
+    font-size: 12px;
+    height: 40px;
+
+    mat-icon {
+      margin-right: 10px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+:host-context(.dark-theme) {
+  .topbar-center .db-switch-container .db-chip {
+    &.db-chip-local {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.4);
+
+      .db-icon {
+        color: #6ee7b7;
+      }
+    }
+
+    &.db-chip-remote {
+      background: rgba(99, 102, 241, 0.25);
+      color: #c7d2fe;
+      border-color: rgba(99, 102, 241, 0.45);
+
+      .db-icon {
+        color: #a5b4fc;
+      }
+    }
+  }
+
+  ::ng-deep .db-menu-dropdown {
+    .db-menu-header .db-badge {
+      &.badge-local {
+        background: rgba(16, 185, 129, 0.25);
+        color: #6ee7b7;
+      }
+
+      &.badge-remote {
+        background: rgba(99, 102, 241, 0.3);
+        color: #c7d2fe;
+      }
+    }
+
+    .db-menu-details .db-detail-row .label {
+      color: #94a3b8;
+    }
+  }
+}
+ 

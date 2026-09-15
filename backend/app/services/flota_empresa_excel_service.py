@@ -44,7 +44,7 @@ COLUMNAS_MAP = {
 }
 
 ESTADOS_VALIDOS = {"HABILITADO", "INHABILITADO", "OBSERVADO", "CANCELADO", "SUSPENDIDO"}
-TIPOS_HIJA_VALIDOS = {"I", "S", "M", "O", "C", "R"}
+TIPOS_HIJA_VALIDOS = {"I", "S", "M", "O", "C", "R", "FE"}
 PLACA_REGEX = re.compile(r"^[A-Z0-9]{1,3}-[A-Z0-9]{3,4}$", re.IGNORECASE)
 
 
@@ -84,20 +84,49 @@ def _normalizar_expediente(val) -> Optional[str]:
     return f"E-{s}"
 
 
-def _normalizar_primigenia(val) -> Optional[str]:
+def _normalizar_codigo_resolucion(val) -> Optional[str]:
     """
-    Normalizar número de resolución primigenia para que siempre comience con 'R-':
+    Normalizar número de resolución a formato oficial estricto 'R-0123-2026' (4 dígitos numéricos y 4 dígitos de año):
     - '0123-2026' → 'R-0123-2026'
-    - 'R-0123-2026' → 'R-0123-2026'
-    - '0128-2024' → 'R-0128-2024'
+    - 'R-123-2026' → 'R-0123-2026'
+    - '0375-2023-S' → 'R-0375-2023'
+    - '0623-2022-S' → 'R-0623-2022'
+    - 'R-0128-2024' → 'R-0128-2024'
     """
     s = _clean_str(val)
     if not s:
         return None
-    s = s.upper().replace(" ", "")
-    if s.startswith("R-"):
-        return s
-    return f"R-{s}"
+    s = s.upper().strip()
+    
+    # Extraer sufijo de tipo si viene pegado al final (ej: -S, -I, -FE, etc.)
+    s = re.sub(r"\s*[-_ ]\s*(FE|[ISRMDCO])$", "", s, flags=re.IGNORECASE).strip()
+    
+    # Quitar prefijo R-
+    clean = re.sub(r"^R[-_ ]*", "", s, flags=re.IGNORECASE).strip()
+    
+    parts = re.split(r"[-/]", clean)
+    if len(parts) >= 2:
+        num_digits = re.sub(r"\D", "", parts[0])
+        num_part = num_digits.zfill(4) if num_digits else parts[0]
+        year_digits = re.sub(r"\D", "", parts[1])
+        year_part = year_digits if year_digits else str(datetime.utcnow().year)
+        return f"R-{num_part}-{year_part}"
+    else:
+        num_digits = re.sub(r"\D", "", clean)
+        if num_digits:
+            return f"R-{num_digits.zfill(4)}-{datetime.utcnow().year}"
+            
+    return s if s.startswith("R-") else f"R-{s}"
+
+
+def _normalizar_primigenia(val) -> Optional[str]:
+    """Normalizar número de resolución primigenia a formato 'R-0123-2026'."""
+    return _normalizar_codigo_resolucion(val)
+
+
+def _normalizar_hija(val) -> Optional[str]:
+    """Normalizar número de resolución hija a formato 'R-0123-2026'."""
+    return _normalizar_codigo_resolucion(val)
 
 
 def _normalizar_tuc(val, placa: Optional[str] = None) -> Optional[str]:
@@ -205,14 +234,14 @@ def _normalizar_estado(val) -> Optional[str]:
 
 
 def _extraer_tipo_hija(nro_hija: Optional[str]) -> Optional[str]:
-    """Extraer tipo de resolución hija del número. 0133-2024-S → 'S'."""
+    """Extraer tipo de resolución hija del número. 0133-2024-S → 'S', 0133-2024-FE → 'FE'."""
     if not nro_hija:
         return None
-    m = re.search(r"-([ISMOCR])(?:\s|$)", nro_hija.upper())
+    m = re.search(r"-(FE|[ISMOCR])(?:\s|$)", nro_hija.upper())
     if m:
         return m.group(1)
     partes = nro_hija.upper().split("-")
-    if partes and len(partes[-1]) == 1 and partes[-1] in TIPOS_HIJA_VALIDOS:
+    if partes and partes[-1] in TIPOS_HIJA_VALIDOS:
         return partes[-1]
     return None
 
@@ -495,8 +524,9 @@ class FlotaEmpresaExcelService:
             errores.append("Sin resolución primigenia (columna B)")
 
         # ---- Campos opcionales ----
-        nro_hija = _clean_str(get_col("C", ["RDR", "nro_resolucion_hija"]))
-        tipo_hija = _extraer_tipo_hija(nro_hija)
+        nro_hija_raw = _clean_str(get_col("C", ["RDR", "nro_resolucion_hija"]))
+        tipo_hija = _extraer_tipo_hija(nro_hija_raw)
+        nro_hija = _normalizar_hija(nro_hija_raw) if nro_hija_raw else None
 
         placa, es_cronologico = _normalizar_placa(get_col("E", ["PLACA", "placa"]))
         rutas = _normalizar_rutas(get_col("F", ["RUTA", "ruta"]))

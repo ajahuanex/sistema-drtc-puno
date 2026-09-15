@@ -53,6 +53,10 @@ export const routes: Routes = [
       
       // TUCS (Tarjetas Únicas de Circulación)
       { path: 'tucs', loadComponent: () => import('./components/tucs/tuc-catalogo.component').then(m => m.TucCatalogoComponent) },
+
+      // INFRAESTRUCTURA COMPLEMENTARIA (Terminales Terrestres, Estaciones de Ruta)
+      { path: 'infraestructura', loadComponent: () => import('./components/infraestructura/infraestructura.component').then(m => m.InfraestructuraComponent) },
+      { path: 'infraestructura/:id', loadComponent: () => import('./components/infraestructura/infraestructura-detail.component').then(m => m.InfraestructuraDetailComponent) },
     ]
   },
   

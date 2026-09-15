@@ -46,13 +46,30 @@ async def get_vehiculo_data(
 @router.get("/buscar/placa/{placa}")
 async def buscar_por_placa(
     placa: str,
+    consultar_pcm: bool = Query(True, description="Si consultar API externa PCM si no está en BD"),
     service: VehiculoDataService = Depends(get_vehiculo_data_service)
 ):
-    """Buscar datos técnicos por placa"""
-    vehiculo_data = await service.get_vehiculo_data_by_placa(placa)
+    """Buscar datos técnicos por placa (DB local + API PCM externa)"""
+    vehiculo_data = await service.get_vehiculo_data_by_placa(placa, consultar_pcm=consultar_pcm)
     if not vehiculo_data:
-        return {"success": True, "data": None, "message": "No se encontraron datos para esta placa"}
-    return {"success": True, "data": vehiculo_data}
+        return {"success": False, "origen": "MANUAL", "data": None, "message": "No se encontraron datos para esta placa"}
+    return {
+        "success": True,
+        "origen": vehiculo_data.get("origen", "DB_LOCAL"),
+        "data": vehiculo_data
+    }
+
+
+@router.get("/consultar-pcm/{placa}")
+async def consultar_pcm(
+    placa: str,
+    service: VehiculoDataService = Depends(get_vehiculo_data_service)
+):
+    """Consulta directa a la API PCM SUNARP de guillermo.pe"""
+    vehiculo_data = await service.consultar_placa_pcm(placa)
+    if not vehiculo_data:
+        raise HTTPException(status_code=404, detail="No se encontraron datos en el servicio PCM SUNARP")
+    return {"success": True, "origen": "PCM_API", "data": vehiculo_data}
 
 
 @router.get("/buscar/vin/{vin}")

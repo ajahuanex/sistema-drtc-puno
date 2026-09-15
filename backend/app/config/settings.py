@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 from typing import List
 import os
+import re
 from functools import lru_cache
 
 class Settings(BaseSettings):
@@ -11,9 +13,43 @@ class Settings(BaseSettings):
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
-    # Base de datos MongoDB
-    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://admin:admin123@localhost:27017/")
+    # Base de datos MongoDB - Switch Local / Remoto
+    USE_REMOTE_DB: bool = os.getenv("USE_REMOTE_DB", "false").lower() in ("true", "1", "yes", "remote")
+    MONGODB_TARGET: str = os.getenv("MONGODB_TARGET", "local")  # "local" | "remote"
+    MONGODB_URL_LOCAL: str = os.getenv("MONGODB_URL_LOCAL", "mongodb://admin:admin123@localhost:27017/")
+    MONGODB_URL_REMOTE: str = os.getenv("MONGODB_URL_REMOTE", "mongodb://admin_user:ClaveSuperSegura2026!ok@161.132.52.69:27017/?authSource=admin")
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "")
     DATABASE_NAME: str = os.getenv("DATABASE_NAME", "drtc_db")
+    
+    @model_validator(mode='after')
+    def resolve_mongodb_config(self):
+        """Resuelve dinámicamente la URL activa de MongoDB según el switch"""
+        is_remote = (
+            bool(self.USE_REMOTE_DB)
+            or str(self.MONGODB_TARGET).strip().lower() == "remote"
+            or str(self.MONGODB_URL).strip().lower() == "remote"
+        )
+        if is_remote:
+            self.USE_REMOTE_DB = True
+            self.MONGODB_TARGET = "remote"
+            self.MONGODB_URL = self.MONGODB_URL_REMOTE
+        else:
+            if not self.MONGODB_URL or str(self.MONGODB_URL).strip().lower() == "local":
+                self.MONGODB_URL = self.MONGODB_URL_LOCAL
+            self.USE_REMOTE_DB = False
+            self.MONGODB_TARGET = "local"
+        return self
+
+    @property
+    def is_remote_db(self) -> bool:
+        return self.USE_REMOTE_DB or self.MONGODB_TARGET.lower() == "remote"
+
+    @property
+    def masked_mongodb_url(self) -> str:
+        """Devuelve la URL de MongoDB con contraseñas enmascaradas para logs y API pública"""
+        if not self.MONGODB_URL:
+            return ""
+        return re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', self.MONGODB_URL)
     
     # Seguridad - IMPORTANTE: Cambiar en producción
     SECRET_KEY: str = os.getenv("SECRET_KEY", "tu_clave_secreta_muy_larga_y_segura_aqui_sirret_2024")

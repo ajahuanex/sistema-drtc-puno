@@ -135,9 +135,14 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
           <!-- Búsqueda General -->
           <div class="search-box">
             <mat-icon class="search-icon">search</mat-icon>
-            <input type="text" [(ngModel)]="filtroTexto" (keyup.enter)="buscar()" 
-                   placeholder="Buscar por N° TUC, Placa, RUC o Resolución..." 
+            <input type="text" [(ngModel)]="filtroTexto" (keyup.enter)="buscar()" (input)="onSearchInput()"
+                   placeholder="Buscar por N° TUC, Placa, RUC, Razón Social o Resolución..." 
                    class="search-input">
+            @if (filtroTexto) {
+              <button mat-icon-button type="button" class="btn-clear-search" (click)="limpiarTexto()" title="Borrar búsqueda">
+                <mat-icon style="font-size:18px; width:18px; height:18px;">close</mat-icon>
+              </button>
+            }
           </div>
 
           <!-- Filtro Tipo Emisión -->
@@ -163,9 +168,9 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
           <!-- Botones Búsqueda -->
           <div class="filter-buttons">
             <button mat-flat-button color="primary" (click)="buscar()" class="btn-filter">
-              Filtrar
+              <mat-icon style="font-size:18px; width:18px; height:18px; margin-right:4px;">search</mat-icon> Buscar
             </button>
-            <button mat-button (click)="limpiarFiltros()" class="btn-clear">
+            <button mat-stroked-button (click)="limpiarFiltros()" class="btn-clear">
               Limpiar
             </button>
           </div>
@@ -245,8 +250,14 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
 
                     <!-- Resolución -->
                     <td>
-                      <div class="res-title">{{ tuc.nroResolucion }}</div>
-                      <div class="motivo-sub">{{ tuc.motivoEmision.replace('_', ' ') }}</div>
+                      <div class="res-title font-mono">{{ cleanResolucion(tuc.nroResolucion) }}</div>
+                      @if (getTucBadge(tuc)) {
+                        <div class="motivo-sub" style="margin-top: 3px;">
+                          <span class="tipo-hija-pill tipo-{{ getTucBadgeCode(tuc) }}">
+                            {{ getTucBadge(tuc) }}
+                          </span>
+                        </div>
+                      }
                     </td>
 
                     <!-- Vigencia Desde - Hasta -->
@@ -505,6 +516,17 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       border-color: #3b82f6;
     }
 
+    .btn-clear-search {
+      position: absolute;
+      right: 6px;
+      color: #94a3b8;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .filter-select {
       width: 100%;
       padding: 10px 12px;
@@ -613,6 +635,26 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
 
     .res-title { font-weight: 700; color: #34d399; }
     .motivo-sub { font-size: 10px; color: #64748b; text-transform: uppercase; }
+
+    .tipo-hija-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 9.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      
+      &.tipo-i { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+      &.tipo-s { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
+      &.tipo-m { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
+      &.tipo-fe { background: rgba(250, 204, 21, 0.2); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.4); }
+      &.tipo-r { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
+      &.tipo-d { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); }
+      &.tipo-c { background: rgba(244, 63, 94, 0.2); color: #fca5a5; border: 1px solid rgba(244, 63, 94, 0.4); }
+      &.tipo-o { background: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.4); }
+    }
 
     .fecha-main { font-weight: 500; color: #f1f5f9; }
     .fecha-sub { font-size: 11px; color: #94a3b8; }
@@ -741,6 +783,8 @@ export class TucCatalogoComponent implements OnInit {
     });
   }
 
+  private searchTimeout: any;
+
   cargarDatos(): void {
     this.cargando.set(true);
 
@@ -749,12 +793,8 @@ export class TucCatalogoComponent implements OnInit {
       limit: this.pageSize()
     };
 
-    if (this.filtroTexto.trim()) {
-      const txt = this.filtroTexto.trim();
-      if (/^\d{11}$/.test(txt)) filtros.ruc = txt;
-      else if (/^[A-Z0-9]{1,3}-[A-Z0-9]{3,4}$/i.test(txt)) filtros.placa = txt;
-      else if (/^(TE|TF)-/i.test(txt)) filtros.nroTuc = txt;
-      else filtros.nroResolucion = txt;
+    if (this.filtroTexto && this.filtroTexto.trim()) {
+      filtros.q = this.filtroTexto.trim();
     }
 
     if (this.filtroTipo) filtros.tipoEmision = this.filtroTipo;
@@ -771,6 +811,20 @@ export class TucCatalogoComponent implements OnInit {
         this.snackBar.open(`Error al cargar TUCs: ${err?.error?.detail || err.message}`, 'Cerrar', { duration: 4000 });
       }
     });
+  }
+
+  onSearchInput(): void {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.buscar();
+    }, 350);
+  }
+
+  limpiarTexto(): void {
+    this.filtroTexto = '';
+    this.buscar();
   }
 
   buscar(): void {
@@ -841,6 +895,87 @@ export class TucCatalogoComponent implements OnInit {
         }
       });
     }
+  }
+
+  cleanResolucion(raw?: string): string {
+    if (!raw) return '-';
+    let str = raw.trim().toUpperCase();
+    const suffixMatch = str.match(/\s*[-_ ]\s*(FE|[ISRMDCO])$/i);
+    if (suffixMatch) {
+      str = str.substring(0, suffixMatch.index).trim();
+    }
+    return str;
+  }
+
+  getTipoHijaCode(tipoOrStr?: string): string {
+    if (!tipoOrStr) return 'o';
+    const clean = tipoOrStr.trim().toUpperCase();
+    if (['I', 'INCREMENTO', 'INCREMENTO_FLOTA'].includes(clean)) return 'i';
+    if (['S', 'SUSTITUCION', 'SUSTITUCIÓN', 'SUSTITUCION_VEHICULO'].includes(clean)) return 's';
+    if (['M', 'MODIFICACION', 'MODIFICACIÓN'].includes(clean)) return 'm';
+    if (['FE', 'FE_DE_ERRATAS', 'FE DE ERRATAS', 'FE DE ERRATA', 'FE-ERRATAS'].includes(clean)) return 'fe';
+    if (['R', 'RENOVACION', 'RENOVACIÓN', 'RENOVACION_AUTORIZACION'].includes(clean)) return 'r';
+    if (['D', 'DUPLICADO', 'DUPLICADO_TUC'].includes(clean)) return 'd';
+    if (['C', 'CANCELACION', 'CANCELACIÓN', 'CANJE', 'CANJE_TUC'].includes(clean)) return 'c';
+    if (['O', 'OTROS', 'OTRO', 'PRIMIGENIA'].includes(clean)) return 'o';
+    const match = clean.match(/[-_ ]\s*(FE|[ISRMDCO])$/);
+    if (match) return match[1].toLowerCase();
+    return 'o';
+  }
+
+  getTucBadgeCode(tuc: Tuc): string {
+    const tipoHija = (tuc as any)?.tipo_resolucion_hija;
+    if (tipoHija) return this.getTipoHijaCode(tipoHija);
+
+    const motivo = (tuc?.motivoEmision || '').trim().toUpperCase();
+    if (motivo && motivo !== 'HISTORICO_MIGRADO') {
+      return this.getTipoHijaCode(motivo);
+    }
+
+    if (tuc?.nroResolucion) {
+      return this.getTipoHijaCode(tuc.nroResolucion);
+    }
+    return 'i';
+  }
+
+  getTucBadge(tuc: Tuc): string {
+    const tipoHija = (tuc as any)?.tipo_resolucion_hija;
+    if (tipoHija) return this.getMotivoBadge(tipoHija);
+
+    const motivo = (tuc?.motivoEmision || '').trim().toUpperCase();
+    if (motivo && motivo !== 'HISTORICO_MIGRADO') {
+      return this.getMotivoBadge(motivo);
+    }
+
+    if (tuc?.nroResolucion) {
+      return this.getMotivoBadge(tuc.nroResolucion);
+    }
+    return 'INCREMENTO';
+  }
+
+  getMotivoBadge(motivoOrTipo?: string): string {
+    if (!motivoOrTipo) return '';
+    const clean = motivoOrTipo.trim().toUpperCase();
+    const map: Record<string, string> = {
+      INCREMENTO_FLOTA: 'INCREMENTO',
+      SUSTITUCION_VEHICULO: 'SUSTITUCIÓN',
+      RENOVACION_AUTORIZACION: 'RENOVACIÓN',
+      DUPLICADO_TUC: 'DUPLICADO',
+      CANJE_TUC: 'CANJE',
+      PRIMIGENIA: 'PRIMIGENIA',
+      FE_DE_ERRATAS: 'FE DE ERRATAS',
+      FE: 'FE DE ERRATAS',
+      I: 'INCREMENTO',
+      S: 'SUSTITUCIÓN',
+      M: 'MODIFICACIÓN',
+      R: 'RENOVACIÓN',
+      D: 'DUPLICADO',
+      C: 'CANCELACIÓN',
+      O: 'OTROS'
+    };
+    if (map[clean]) return map[clean];
+    const code = this.getTipoHijaCode(clean).toUpperCase();
+    return map[code] || clean.replace(/_/g, ' ');
   }
 
   sincronizarFlota(): void {

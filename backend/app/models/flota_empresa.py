@@ -2,7 +2,7 @@
 Modelos Pydantic para el módulo Flota Empresa.
 Colección MongoDB: flota_empresa
 """
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -37,9 +37,9 @@ class VehiculoEmpresaCreate(BaseModel):
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa (11 dígitos)")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Número de resolución primigenia (ej: R-0128-2024)")
-    fecha_emision_resolucion: Optional[datetime] = None
+    fecha_emision_resolucion: Optional[Any] = None
     num_expediente: Optional[str] = None
-    fecha_expediente: Optional[datetime] = None
+    fecha_expediente: Optional[Any] = None
     nro_resolucion_hija: Optional[str] = None
     tipo_resolucion_hija: Optional[str] = None  # I/S/M/O/C
     
@@ -93,9 +93,9 @@ class VehiculoEmpresaCreate(BaseModel):
 class VehiculoEmpresaUpdate(BaseModel):
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: Optional[str] = None
-    fecha_emision_resolucion: Optional[datetime] = None
+    fecha_emision_resolucion: Optional[Any] = None
     num_expediente: Optional[str] = None
-    fecha_expediente: Optional[datetime] = None
+    fecha_expediente: Optional[Any] = None
     nro_resolucion_hija: Optional[str] = None
     tipo_resolucion_hija: Optional[str] = None
     
@@ -128,8 +128,8 @@ class VehiculoEmpresaUpdate(BaseModel):
     rutas: Optional[List[str]] = None
     numero_tuc: Optional[str] = None
     estado: Optional[str] = None
-    fecha_cronologica: Optional[datetime] = None
-    fecha_resolucion_hija: Optional[datetime] = None
+    fecha_cronologica: Optional[Any] = None
+    fecha_resolucion_hija: Optional[Any] = None
     notificado: Optional[str] = None
     estado_primigenia: Optional[str] = None
     esta_activo: Optional[bool] = None
@@ -148,9 +148,9 @@ class VehiculoEmpresaResponse(BaseModel):
     ruc: str
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str
-    fecha_emision_resolucion: Optional[datetime] = None
+    fecha_emision_resolucion: Optional[Any] = None
     num_expediente: Optional[str] = None
-    fecha_expediente: Optional[datetime] = None
+    fecha_expediente: Optional[Any] = None
     nro_resolucion_hija: Optional[str] = None
     tipo_resolucion_hija: Optional[str] = None
     
@@ -185,16 +185,16 @@ class VehiculoEmpresaResponse(BaseModel):
     numero_tuc: Optional[str] = None
     estado: Optional[str] = None
     observaciones_historial: List[EntradaObservacion] = []
-    fecha_cronologica: Optional[datetime] = None
-    fecha_resolucion_hija: Optional[datetime] = None
+    fecha_cronologica: Optional[Any] = None
+    fecha_resolucion_hija: Optional[Any] = None
     id_origen: Optional[str] = None
     notificado: Optional[str] = None
     estado_primigenia: Optional[str] = None
     link_tuc: Optional[str] = None
     link_notificacion: Optional[str] = None
     detalles: Optional[str] = None
-    fecha_registro: Optional[datetime] = None
-    fecha_actualizacion: Optional[datetime] = None
+    fecha_registro: Optional[Any] = None
+    fecha_actualizacion: Optional[Any] = None
     esta_activo: bool = True
 
     class Config:
@@ -232,9 +232,10 @@ class TramiteMasivoRequest(BaseModel):
     nro_resolucion_primigenia: str = Field(..., description="Resolución primigenia actual o de referencia")
     tipo_tramite: str = Field(..., description="INCREMENTO, SUSTITUCION, RENOVACION, DUPLICADO, CANJE, MODIFICACION, CANCELACION")
     num_expediente: Optional[str] = None
-    fecha_expediente: Optional[datetime] = None
+    fecha_expediente: Optional[Any] = None
     nro_resolucion_hija: Optional[str] = None
-    fecha_emision_resolucion: Optional[datetime] = None
+    tipo_resolucion_hija: Optional[str] = None
+    fecha_emision_resolucion: Optional[Any] = None
     
     # Específico para RENOVACION:
     es_renovacion: bool = False

@@ -353,7 +353,22 @@ class InfraestructuraService:
         )
 
     def _convertir_objectid(self, documento: Dict[str, Any]) -> Dict[str, Any]:
-        """Convertir ObjectId a string"""
-        if documento and "_id" in documento:
-            documento["_id"] = str(documento["_id"])
+        """Convertir ObjectId a string y normalizar id y capacidad"""
+        if not documento:
+            return {}
+        if "_id" in documento:
+            doc_id = str(documento["_id"])
+            documento["id"] = doc_id
+            documento["_id"] = doc_id
+        elif "id" in documento:
+            documento["id"] = str(documento["id"])
+            documento["_id"] = str(documento["id"])
+
+        # Normalizar capacidadMaxima en raíz si existe en especificaciones
+        esp = documento.get("especificaciones") or {}
+        if isinstance(esp, dict):
+            cap = esp.get("capacidad_maxima") or esp.get("capacidadMaxima")
+            if cap is not None and "capacidad_maxima" not in documento:
+                documento["capacidad_maxima"] = cap
+                documento["capacidadMaxima"] = cap
         return documento

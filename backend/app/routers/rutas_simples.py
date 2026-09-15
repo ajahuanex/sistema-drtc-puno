@@ -42,10 +42,11 @@ async def obtener_rutas_simples(
     empresaId: Optional[str] = Query(None, description="ID de empresa"),
     empresaRuc: Optional[str] = Query(None, description="RUC de empresa"),
     resolucionId: Optional[str] = Query(None, description="ID de resolución"),
+    resolucionNro: Optional[str] = Query(None, description="Número de resolución autoritativa (ej: R-0921-2023)"),
     
     # Paginación
     page: int = Query(1, ge=1, description="Página"),
-    limit: int = Query(50, ge=1, le=1000, description="Límite por página"),
+    limit: int = Query(1000, ge=1, le=5000, description="Límite por página"),
     
     # Dependencias
     db=Depends(get_database),
@@ -59,6 +60,7 @@ async def obtener_rutas_simples(
         
         # Construir filtros MongoDB simples
         filtros_mongo = {}
+        and_conditions = []
         
         if codigoRuta:
             filtros_mongo["codigoRuta"] = {"$regex": codigoRuta, "$options": "i"}
@@ -73,11 +75,46 @@ async def obtener_rutas_simples(
         if destinoNombre:
             filtros_mongo["destino.nombre"] = {"$regex": destinoNombre, "$options": "i"}
         if empresaId:
-            filtros_mongo["resolucion.empresa.id"] = empresaId
+            and_conditions.append({
+                "$or": [
+                    {"empresa.id": empresaId},
+                    {"resolucion.empresa.id": empresaId}
+                ]
+            })
         if empresaRuc:
-            filtros_mongo["resolucion.empresa.ruc"] = {"$regex": empresaRuc, "$options": "i"}
+            clean_ruc = empresaRuc.strip()
+            and_conditions.append({
+                "$or": [
+                    {"empresa.ruc": {"$regex": clean_ruc, "$options": "i"}},
+                    {"resolucion.empresa.ruc": {"$regex": clean_ruc, "$options": "i"}},
+                    {"ruc": {"$regex": clean_ruc, "$options": "i"}}
+                ]
+            })
         if resolucionId:
-            filtros_mongo["resolucion.id"] = resolucionId
+            and_conditions.append({
+                "$or": [
+                    {"resolucion.id": resolucionId},
+                    {"resolucion.nroResolucion": {"$regex": resolucionId, "$options": "i"}},
+                    {"nro_resolucion": {"$regex": resolucionId, "$options": "i"}}
+                ]
+            })
+        if resolucionNro:
+            import re
+            clean_res = resolucionNro.strip()
+            res_pat = re.escape(clean_res)
+            sin_pref = clean_res[2:] if clean_res.upper().startswith("R-") else clean_res
+            sin_pref_pat = re.escape(sin_pref)
+            and_conditions.append({
+                "$or": [
+                    {"resolucion.nroResolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"resolucion.numero": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"nro_resolucion": {"$regex": f"({res_pat}|{sin_pref_pat})", "$options": "i"}},
+                    {"resolucion.id": clean_res}
+                ]
+            })
+            
+        if and_conditions:
+            filtros_mongo["$and"] = and_conditions
         
         # Obtener colección
         rutas_collection = db.rutas

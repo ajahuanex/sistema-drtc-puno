@@ -94,6 +94,67 @@ async def get_flota_by_empresa(
     return {"ruc": ruc, "total": len(docs), "data": docs}
 
 
+@router.get("/empresa/{ruc}/rutas", summary="Obtener todas las rutas oficiales de la empresa y sus resoluciones")
+async def get_rutas_by_empresa_flota(
+    ruc: str,
+    db = Depends(get_database)
+):
+    """
+    Obtiene todas las rutas oficiales registradas en la colección 'rutas'
+    asociadas al RUC de la empresa o a sus resoluciones primigenias.
+    """
+    clean_ruc = ruc.strip()
+    import re
+    # 1. Obtener resoluciones primigenias de la empresa para asegurar match completo
+    primigenias = await db["resoluciones_primigenias"].find(
+        {"ruc_empresa": clean_ruc, "esta_activo": {"$ne": False}}
+    ).to_list(length=200)
+    
+    nros_resolucion = [p.get("nro_resolucion") for p in primigenias if p.get("nro_resolucion")]
+    
+    # 2. Construir condiciones OR para buscar en colección 'rutas'
+    or_conds = [
+        {"empresa.ruc": clean_ruc},
+        {"resolucion.empresa.ruc": clean_ruc},
+        {"ruc": clean_ruc}
+    ]
+    for nro in nros_resolucion:
+        clean_nro = str(nro).strip()
+        if not clean_nro:
+            continue
+        pat = re.escape(clean_nro)
+        sin_pref = clean_nro[2:] if clean_nro.upper().startswith("R-") else clean_nro
+        sin_pat = re.escape(sin_pref)
+        or_conds.append({"resolucion.nroResolucion": {"$regex": f"({pat}|{sin_pat})", "$options": "i"}})
+        or_conds.append({"resolucion.numero": {"$regex": f"({pat}|{sin_pat})", "$options": "i"}})
+        or_conds.append({"nro_resolucion": {"$regex": f"({pat}|{sin_pat})", "$options": "i"}})
+        
+    rutas_cursor = db["rutas"].find(
+        {"$or": or_conds, "estaActivo": {"$ne": False}}
+    ).sort("codigoRuta", 1)
+    
+    rutas_raw = await rutas_cursor.to_list(length=500)
+    
+    # 3. Formatear IDs y deduplicar
+    rutas_resultado = []
+    vistos = set()
+    for r in rutas_raw:
+        r_id = str(r.pop("_id", ""))
+        r["id"] = r_id
+        res_nro = (r.get("resolucion") or {}).get("nroResolucion") or r.get("nro_resolucion") or ""
+        cod = str(r.get("codigoRuta", "")).strip()
+        key = f"{res_nro}_{cod}_{r_id}"
+        if key not in vistos:
+            vistos.add(key)
+            rutas_resultado.append(r)
+            
+    return {
+        "ruc": clean_ruc,
+        "total": len(rutas_resultado),
+        "data": rutas_resultado
+    }
+
+
 @router.get("/estadisticas/{ruc}", summary="Estadísticas de flota por empresa")
 async def get_estadisticas(
     ruc: str,

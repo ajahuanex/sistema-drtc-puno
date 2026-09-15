@@ -1020,8 +1020,10 @@ const ESTADOS_RUC: Record<string, string> = {
             border-radius: 12px;
             text-transform: uppercase;
             &.state-vigente { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+            &.state-vencida { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
             &.state-cancelada { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-            &.state-suspendida { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+            &.state-suspendida { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+            &.state-inactiva, &.state-renovada { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
           }
           .auth-type-pill {
             display: inline-flex;

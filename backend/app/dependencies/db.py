@@ -72,11 +72,12 @@ async def _reconnect_loop():
 async def connect_to_mongo():
     """Conecta a MongoDB con manejo de errores mejorado"""
     try:
-        # Usar la URL correcta directamente
         mongodb_url = settings.MONGODB_URL
         database_name = settings.DATABASE_NAME
+        masked_url = settings.masked_mongodb_url
+        tipo_bd = "REMOTA (161.132.52.69)" if settings.is_remote_db else "LOCAL"
         
-        logger.info(f"Conectando a MongoDB: {mongodb_url}")
+        logger.info(f"Conectando a MongoDB [{tipo_bd}]: {masked_url}")
         logger.info(f"Base de datos: {database_name}")
         
         # Cliente asíncrono con configuración de timeout más corta
@@ -104,7 +105,7 @@ async def connect_to_mongo():
         db.sync_client.admin.command('ping')
         
         db.is_connected = True
-        logger.info("✅ Conectado a MongoDB exitosamente")
+        logger.info(f"✅ Conectado a MongoDB [{tipo_bd}] exitosamente")
         logger.info(f"✅ Base de datos activa: {database_name}")
         
     except Exception as e:
@@ -175,7 +176,10 @@ async def health_check_mongo() -> dict:
         await asyncio.wait_for(db.client.admin.command('ping'), timeout=2.0)
         return {
             "status": "connected",
-            "message": "MongoDB conectado correctamente"
+            "message": "MongoDB conectado correctamente",
+            "target": settings.MONGODB_TARGET,
+            "is_remote": settings.is_remote_db,
+            "masked_url": settings.masked_mongodb_url
         }
     except Exception as e:
         db.is_connected = False
@@ -184,5 +188,164 @@ async def health_check_mongo() -> dict:
         asyncio.create_task(attempt_reconnect())
         return {
             "status": "error",
-            "message": f"Error en MongoDB: {str(e)}"
+            "message": f"Error en MongoDB: {str(e)}",
+            "target": settings.MONGODB_TARGET,
+            "is_remote": settings.is_remote_db
         }
+
+async def get_mongo_status_detail() -> dict:
+    """Retorna información detallada y métricas de la conexión actual a MongoDB"""
+    import time
+    start = time.time()
+    ping_ok = False
+    ping_ms = None
+    collections = []
+    error_msg = None
+    
+    if db.client and db.is_connected:
+        try:
+            await asyncio.wait_for(db.client.admin.command('ping'), timeout=3.0)
+            ping_ms = round((time.time() - start) * 1000, 2)
+            ping_ok = True
+            database = db.client[settings.DATABASE_NAME]
+            collections = await database.list_collection_names()
+        except Exception as e:
+            ping_ok = False
+            error_msg = str(e)
+            logger.warning(f"Ping falló en get_mongo_status_detail: {e}")
+    else:
+        error_msg = "MongoDB no está conectado actualmente"
+
+    return {
+        "connected": ping_ok and db.is_connected,
+        "target": settings.MONGODB_TARGET,
+        "is_remote": settings.is_remote_db,
+        "database_name": settings.DATABASE_NAME,
+        "masked_url": settings.masked_mongodb_url,
+        "host": "161.132.52.69:27017" if settings.is_remote_db else "localhost:27017",
+        "ping_ms": ping_ms,
+        "collections_count": len(collections),
+        "collections": sorted(collections),
+        "error": error_msg
+    }
+
+def update_env_file(target: str) -> bool:
+    """Actualiza las variables de entorno en el archivo .env"""
+    import re
+    from pathlib import Path
+    
+    # Buscar el archivo .env en varias ubicaciones posibles
+    candidates = [
+        Path(".env"),
+        Path("backend/.env"),
+        Path(__file__).parent.parent.parent / ".env"
+    ]
+    env_file = next((p for p in candidates if p.is_file()), None)
+    if not env_file:
+        return False
+
+    try:
+        content = env_file.read_text(encoding="utf-8")
+        is_remote = (target.lower() == "remote")
+
+        # Actualizar USE_REMOTE_DB
+        if re.search(r"^USE_REMOTE_DB\s*=.*$", content, re.MULTILINE):
+            content = re.sub(
+                r"^USE_REMOTE_DB\s*=.*$",
+                f"USE_REMOTE_DB={'true' if is_remote else 'false'}",
+                content,
+                flags=re.MULTILINE
+            )
+        else:
+            content += f"\nUSE_REMOTE_DB={'true' if is_remote else 'false'}"
+
+        # Actualizar MONGODB_TARGET
+        if re.search(r"^MONGODB_TARGET\s*=.*$", content, re.MULTILINE):
+            content = re.sub(
+                r"^MONGODB_TARGET\s*=.*$",
+                f"MONGODB_TARGET={target}",
+                content,
+                flags=re.MULTILINE
+            )
+        else:
+            content += f"\nMONGODB_TARGET={target}"
+
+        env_file.write_text(content, encoding="utf-8")
+        return True
+    except Exception as e:
+        logger.error(f"Error actualizando archivo .env: {e}")
+        return False
+
+async def switch_mongo_target(target: str, persist_env: bool = True) -> dict:
+    """
+    Alterna la conexión en caliente entre 'remote' y 'local'.
+    Opcionalmente persiste el cambio en el archivo .env.
+    """
+    target = target.strip().lower()
+    if target not in ("local", "remote"):
+        raise ValueError("El target debe ser 'local' o 'remote'")
+
+    # Configurar settings según el destino
+    if target == "remote":
+        settings.USE_REMOTE_DB = True
+        settings.MONGODB_TARGET = "remote"
+        settings.MONGODB_URL = settings.MONGODB_URL_REMOTE
+    else:
+        settings.USE_REMOTE_DB = False
+        settings.MONGODB_TARGET = "local"
+        settings.MONGODB_URL = settings.MONGODB_URL_LOCAL
+
+    logger.info(f"🔄 Cambiando conexión de MongoDB a: {target.upper()}")
+    
+    # Cerrar conexión actual
+    await close_mongo_connection()
+    
+    # Conectar al nuevo target
+    await connect_to_mongo()
+
+    # Si se solicitó, persistir en .env
+    env_persisted = False
+    if persist_env:
+        env_persisted = update_env_file(target)
+
+    status = await get_mongo_status_detail()
+    status["persisted_in_env"] = env_persisted
+    return status
+
+async def test_mongo_target(target: str) -> dict:
+    """Prueba conectividad a un target sin cambiar la conexión activa"""
+    import time
+    target = target.strip().lower()
+    url = settings.MONGODB_URL_REMOTE if target == "remote" else settings.MONGODB_URL_LOCAL
+    
+    test_client = AsyncIOMotorClient(
+        url,
+        serverSelectionTimeoutMS=4000,
+        connectTimeoutMS=4000,
+        socketTimeoutMS=4000
+    )
+    start = time.time()
+    try:
+        await asyncio.wait_for(test_client.admin.command('ping'), timeout=4.0)
+        latency = round((time.time() - start) * 1000, 2)
+        database = test_client[settings.DATABASE_NAME]
+        collections = await database.list_collection_names()
+        test_client.close()
+        return {
+            "target": target,
+            "success": True,
+            "ping_ms": latency,
+            "collections_count": len(collections),
+            "collections": sorted(collections),
+            "message": f"Conexión exitosa a {target.upper()} ({latency} ms)"
+        }
+    except Exception as e:
+        test_client.close()
+        return {
+            "target": target,
+            "success": False,
+            "ping_ms": None,
+            "error": str(e),
+            "message": f"Error conectando a {target.upper()}: {str(e)}"
+        }
+

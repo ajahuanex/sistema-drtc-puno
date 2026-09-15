@@ -84,6 +84,29 @@ class ResolucionPrimigeniaService:
         
         return ResolucionPrimigenia(**doc_creado)
 
+    def _calcular_estado_efectivo(self, doc: Dict[str, Any]) -> str:
+        """Determina el estado legal efectivo validando fecha de fin de vigencia y observaciones."""
+        estado_actual = doc.get("estado", EstadoResolucionPrimigenia.VIGENTE.value)
+        if estado_actual in [EstadoResolucionPrimigenia.CANCELADA.value, EstadoResolucionPrimigenia.SUSPENDIDA.value, EstadoResolucionPrimigenia.ANULADA.value]:
+            return estado_actual
+        obs = str(doc.get("observaciones", "") or "").upper()
+        if "CANCELAD" in obs:
+            return EstadoResolucionPrimigenia.CANCELADA.value
+        if "RENOVAD" in obs:
+            return EstadoResolucionPrimigenia.VENCIDA.value
+        f_fin = doc.get("fecha_fin_vigencia")
+        if f_fin:
+            if isinstance(f_fin, str):
+                try:
+                    f_fin = datetime.fromisoformat(f_fin.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+            if isinstance(f_fin, datetime):
+                now = datetime.utcnow() if f_fin.tzinfo is None else datetime.now(f_fin.tzinfo)
+                if f_fin < now:
+                    return EstadoResolucionPrimigenia.VENCIDA.value
+        return estado_actual
+
     async def get_resolucion_by_id(self, resolucion_id: str) -> Optional[ResolucionPrimigenia]:
         or_conditions = [{"id": resolucion_id}]
         if ObjectId.is_valid(resolucion_id):
@@ -93,6 +116,7 @@ class ResolucionPrimigeniaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            doc["estado"] = self._calcular_estado_efectivo(doc)
             return ResolucionPrimigenia(**doc)
         return None
 
@@ -110,6 +134,7 @@ class ResolucionPrimigeniaService:
         if doc:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            doc["estado"] = self._calcular_estado_efectivo(doc)
             return ResolucionPrimigenia(**doc)
         return None
 
@@ -123,6 +148,7 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            doc["estado"] = self._calcular_estado_efectivo(doc)
         
         return [ResolucionPrimigenia(**doc) for doc in docs]
 
@@ -154,6 +180,7 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            doc["estado"] = self._calcular_estado_efectivo(doc)
                 
         return [ResolucionPrimigenia(**doc) for doc in docs]
 

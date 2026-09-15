@@ -188,6 +188,7 @@ export interface TramiteMasivoRequest {
   razon_social?: string;
   nro_resolucion_primigenia: string;
   tipo_tramite: string;
+  tipo_resolucion_hija?: string;
   num_expediente?: string;
   fecha_expediente?: string;
   nro_resolucion_hija?: string;
@@ -246,6 +247,10 @@ export class FlotaEmpresaService {
 
   getEstadisticas(ruc: string): Observable<EstadisticasFlota> {
     return this.http.get<EstadisticasFlota>(`${this.baseUrl}/estadisticas/${ruc}`);
+  }
+
+  getRutasEmpresa(ruc: string): Observable<{ ruc: string; total: number; data: any[] }> {
+    return this.http.get<{ ruc: string; total: number; data: any[] }>(`${this.baseUrl}/empresa/${ruc}/rutas`);
   }
 
   getCronologiaPrimigenia(nroPrimigenia: string): Observable<{ nro_resolucion_primigenia: string; total: number; data: VehiculoEmpresa[] }> {

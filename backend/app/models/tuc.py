@@ -90,9 +90,11 @@ class TucKardexStock(BaseModel):
     observaciones: Optional[str] = None
 
 class TucFiltros(BaseModel):
+    q: Optional[str] = None
     nroTuc: Optional[str] = None
     placa: Optional[str] = None
     ruc: Optional[str] = None
+    razonSocial: Optional[str] = None
     nroResolucion: Optional[str] = None
     tipoEmision: Optional[TipoEmisionTuc] = None
     estado: Optional[EstadoTuc] = None

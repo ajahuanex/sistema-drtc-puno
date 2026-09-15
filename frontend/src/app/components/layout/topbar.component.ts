@@ -15,6 +15,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
+import { DatabaseStatusService } from '../../services/database-status.service';
 import { Usuario } from '../../models/usuario.model';
 import { ChangeDetectionStrategy } from '@angular/core';
 
@@ -82,6 +83,76 @@ import { ChangeDetectionStrategy } from '@angular/core';
           >
             <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
           </mat-slide-toggle>
+        </div>
+
+        <!-- Switch Base de Datos MongoDB (Local vs Remoto) -->
+        <div class="db-switch-container">
+          <button
+            type="button"
+            class="db-chip"
+            [class.db-chip-remote]="dbService.isRemote()"
+            [class.db-chip-local]="!dbService.isRemote()"
+            [matMenuTriggerFor]="dbMenu"
+            matTooltip="Base de datos MongoDB activa. Clic para alternar"
+          >
+            <span class="db-status-dot" [class.online]="dbService.isConnected()"></span>
+            <mat-icon class="db-icon">{{ dbService.isRemote() ? 'cloud' : 'dns' }}</mat-icon>
+            <span class="db-name">{{ dbService.isRemote() ? 'BD Remota' : 'BD Local' }}</span>
+            @if (dbService.pingMs() !== null) {
+              <span class="db-ping">{{ dbService.pingMs() }}ms</span>
+            }
+            <mat-icon class="db-chevron">arrow_drop_down</mat-icon>
+          </button>
+
+          <mat-menu #dbMenu="matMenu" class="db-menu-dropdown">
+            <div class="db-menu-header" (click)="$event.stopPropagation()">
+              <div class="db-menu-title">
+                <mat-icon>storage</mat-icon>
+                <span>Conexión MongoDB</span>
+              </div>
+              <span class="db-badge" [class.badge-remote]="dbService.isRemote()" [class.badge-local]="!dbService.isRemote()">
+                {{ dbService.isRemote() ? 'REMOTA' : 'LOCAL' }}
+              </span>
+            </div>
+
+            <div class="db-menu-details" (click)="$event.stopPropagation()">
+              <div class="db-detail-row">
+                <span class="label">Host:</span>
+                <span class="val">{{ dbService.host() }}</span>
+              </div>
+              <div class="db-detail-row">
+                <span class="label">Estado:</span>
+                <span class="val" [class.text-green]="dbService.isConnected()" [class.text-red]="!dbService.isConnected()">
+                  {{ dbService.isConnected() ? 'Conectado ✅' : 'Desconectado ❌' }}
+                </span>
+              </div>
+              @if (dbService.pingMs() !== null) {
+                <div class="db-detail-row">
+                  <span class="label">Latencia:</span>
+                  <span class="val">{{ dbService.pingMs() }} ms</span>
+                </div>
+              }
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <button mat-menu-item (click)="switchDatabase('remote')" [disabled]="dbService.isRemote() || dbService.isSwitching()">
+              <mat-icon color="primary">cloud</mat-icon>
+              <span>Conectar a Servidor Remoto (161.132.52.69)</span>
+            </button>
+
+            <button mat-menu-item (click)="switchDatabase('local')" [disabled]="!dbService.isRemote() || dbService.isSwitching()">
+              <mat-icon>computer</mat-icon>
+              <span>Conectar a MongoDB Local (localhost)</span>
+            </button>
+
+            <mat-divider></mat-divider>
+
+            <button mat-menu-item (click)="refreshDbStatus()">
+              <mat-icon>refresh</mat-icon>
+              <span>Actualizar estado / Medir ping</span>
+            </button>
+          </mat-menu>
         </div>
       </div>
 
@@ -159,6 +230,7 @@ export class TopbarComponent implements OnInit {
 
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
+  public dbService = inject(DatabaseStatusService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
@@ -255,6 +327,20 @@ export class TopbarComponent implements OnInit {
    */
   cambiarContrasena(): void {
     this.router.navigate(['/cambiar-contrasena']);
+  }
+
+  /**
+   * Cambia el destino de la base de datos MongoDB
+   */
+  switchDatabase(target: 'local' | 'remote'): void {
+    this.dbService.switchTarget(target).subscribe();
+  }
+
+  /**
+   * Refresca el estado y mide la latencia de MongoDB
+   */
+  refreshDbStatus(): void {
+    this.dbService.refreshStatus().subscribe();
   }
 
   /**
