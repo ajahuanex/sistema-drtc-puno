@@ -152,6 +152,10 @@ const ESTADOS_RUC: Record<string, string> = {
                           <span class="d-label">3. Razón Social Mínima / Corta</span>
                           <span class="d-value fw-600">{{ emp.razonSocial.minimo || '—' }}</span>
                         </div>
+                        <div class="detail-item">
+                          <span class="d-label">4. Partida Registral (SUNARP)</span>
+                          <span class="d-value fw-600" style="font-family:monospace;color:#2563eb;">{{ emp.partidaRegistral || 'Sin registrar' }}</span>
+                        </div>
                         <div class="detail-item full-width">
                           <span class="d-label">Observaciones y Registro</span>
                           <span class="d-value">{{ emp.observaciones || 'Sin observaciones registradas' }}</span>

@@ -40,6 +40,7 @@ class ResolucionPrimigenia(BaseModel):
     
     # Fechas y vigencia
     fecha_resolucion: Optional[datetime] = Field(None, description="Fecha oficial de emisión del acto originario (opcional)")
+    fecha_emision: Optional[datetime] = Field(None, description="Fecha de emisión alternativa")
     fecha_inicio_vigencia: Optional[datetime] = Field(None, description="Fecha de inicio de efectos legales")
     anios_vigencia: int = Field(default=10, description="Período de vigencia otorgado en años (4 o 10)")
     fecha_fin_vigencia: Optional[datetime] = Field(None, description="Fecha exacta de vencimiento")
@@ -47,7 +48,7 @@ class ResolucionPrimigenia(BaseModel):
     # Clasificación y estado
     estado: EstadoResolucionPrimigenia = EstadoResolucionPrimigenia.VIGENTE
     tiene_eficacia_anticipada: bool = Field(default=False, description="Indica si aplica eficacia anticipada (retroactividad)")
-    tipo_autorizacion: str = Field(..., description="Modalidad de servicio autorizada (TURISMO, PERSONAS, CARGA, etc.)")
+    tipo_autorizacion: Optional[str] = Field(default="PASAJEROS", description="Modalidad de servicio autorizada (TURISMO, PERSONAS, CARGA, etc.)")
     
     # Documentos y expedientes
     link_documento: Optional[str] = Field(None, description="Enlace al archivo o expediente digital en Google Drive")

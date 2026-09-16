@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Depends, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.models.tuc import (
@@ -13,6 +14,8 @@ from app.models.tuc import (
     TucVerificacionPublica
 )
 from app.services.tuc_service import TucService
+from app.services.tuc_document_service import TucDocumentService
+from app.services.google_docs_service import GoogleDocsTucService
 
 router = APIRouter(prefix="/tucs", tags=["tucs"])
 
@@ -99,6 +102,24 @@ async def anular_tuc(id: str, motivo: str = Query(...)):
         raise HTTPException(status_code=404, detail="No se encontró la TUC o no pudo ser modificada.")
     return {"mensaje": "TUC anulada exitosamente."}
 
+class CambiarAnularTucRequest(BaseModel):
+    vehiculo_id: str
+    placa: str
+    tuc_actual: Optional[str] = None
+    nuevo_tuc: str
+    motivo: str
+    usuario: Optional[str] = "OPERADOR"
+
+@router.post("/cambiar-anular-tuc", summary="Editar y corregir TUC anulando la anterior con motivo")
+async def cambiar_anular_tuc(payload: CambiarAnularTucRequest):
+    try:
+        resultado = await TucService.cambiar_anular_tuc(payload.model_dump(), usuario=payload.usuario or "OPERADOR")
+        return resultado
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al cambiar/anular TUC: {str(e)}")
+
 @router.post("/carga-masiva-excel", summary="Importar TUCs históricas desde archivo Excel")
 async def carga_masiva_excel(file: UploadFile = File(...)):
     if not file.filename.endswith((".xlsx", ".xls")):
@@ -135,3 +156,47 @@ async def registrar_lote_kardex(payload: TucKardexStock):
     doc["_id"] = str(res.inserted_id)
     doc["id"] = str(res.inserted_id)
     return doc
+
+# =========================================================================
+# Endpoints de Generación de TUC desde Plantilla Oficial (DOCX / Google Docs)
+# =========================================================================
+
+@router.get("/generar-documento/{placa_o_id}", summary="Descargar documento Word (.docx) generado desde plantilla oficial")
+async def generar_documento_tuc(placa_o_id: str):
+    try:
+        doc_info = await TucDocumentService.generar_docx_tuc(placa_o_id)
+        return StreamingResponse(
+            doc_info["buffer"],
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{doc_info["filename"]}"'
+            }
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar documento Word: {str(e)}")
+
+@router.get("/datos-impresion/{placa_o_id}", summary="Obtener datos consolidados y estructurados para vista previa de impresión")
+async def obtener_datos_impresion(placa_o_id: str):
+    try:
+        datos = await TucDocumentService.get_datos_impresion(placa_o_id)
+        return datos
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener datos de impresión: {str(e)}")
+
+@router.get("/google-docs-status", summary="Verificar si las credenciales de Google Docs están configuradas")
+async def status_google_docs():
+    return GoogleDocsTucService.get_status()
+
+@router.post("/generar-google-doc/{placa_o_id}", summary="Crear una copia en Google Docs en la nube y editarla")
+async def generar_google_doc(placa_o_id: str):
+    try:
+        resultado = await GoogleDocsTucService.generar_copia_google_doc(placa_o_id)
+        return resultado
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al procesar copia en Google Docs: {str(e)}")

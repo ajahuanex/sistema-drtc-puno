@@ -544,6 +544,50 @@
   letter-spacing: 0.05em;
 }
 
+.btn-tuc-edit {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #e0e7ff;
+  background: #f5f3ff;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4338ca;
+    transform: scale(1.08);
+  }
+}
+
+.btn-tuc-doc {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  cursor: pointer;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #1d4ed8;
+    transform: scale(1.08);
+  }
+}
+
 .obs-icon-badge {
   display: inline-flex;
   align-items: center;
@@ -772,6 +816,69 @@
 tr.row-cancelada {
   background-color: #fef2f2 !important;
   &:hover { background-color: #fee2e2 !important; }
+}
+
+tr.row-vencida-bloqueada {
+  background-color: rgba(254, 242, 242, 0.45) !important;
+  opacity: 0.92;
+  &:hover { background-color: rgba(254, 226, 226, 0.6) !important; }
+}
+
+.badge-bloqueado {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  mat-icon {
+    font-size: 11px;
+    width: 11px;
+    height: 11px;
+    color: #ef4444;
+  }
+}
+
+.prim-tab-vencida {
+  border-color: #fca5a5 !important;
+  background: #fff5f5 !important;
+  color: #991b1b !important;
+  &:hover {
+    background: #fee2e2 !important;
+  }
+  &.active-prim-btn {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #b91c1c !important;
+    mat-icon { color: #ffffff !important; }
+    .vencida-mini-tag {
+      background: #ffffff !important;
+      color: #dc2626 !important;
+    }
+  }
+}
+
+.prim-count-vencida {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.vencida-mini-tag {
+  font-size: 9px;
+  font-weight: 800;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 3px;
+  letter-spacing: 0.04em;
+  border: 1px solid #fca5a5;
 }
 
 .prim-inactiva {

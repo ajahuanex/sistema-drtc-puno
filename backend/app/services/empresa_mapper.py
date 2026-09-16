@@ -182,6 +182,7 @@ class EmpresaMapper:
             "ultimaValidacionSunat": doc.get("ultimaValidacionSunat"),
             "scoreRiesgo": doc.get("scoreRiesgo"),
             "observaciones": doc.get("observaciones"),
+            "partidaRegistral": doc.get("partidaRegistral") or doc.get("partida") or doc.get("partida_registral"),
         }
         
         return EmpresaInDB(**empresa_dict)

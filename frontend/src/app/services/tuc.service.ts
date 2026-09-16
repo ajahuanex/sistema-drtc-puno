@@ -109,6 +109,60 @@ export class TucService {
     });
   }
 
+  // Editar y cambiar TUC anulando el actual con registro de motivo
+  cambiarAnularTuc(payload: {
+    vehiculo_id: string;
+    placa: string;
+    tuc_actual?: string;
+    nuevo_tuc: string;
+    motivo: string;
+    usuario?: string;
+  }): Observable<{ mensaje: string; nuevo_tuc: string; tuc_anterior: string; placa: string }> {
+    return this.http.post<{ mensaje: string; nuevo_tuc: string; tuc_anterior: string; placa: string }>(
+      `${this.apiUrl}/cambiar-anular-tuc`,
+      payload
+    );
+  }
+
+  // Descargar archivo Word (.docx) generado desde plantilla oficial
+  descargarDocxTuc(placaOId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/generar-documento/${encodeURIComponent(placaOId)}`, {
+      responseType: 'blob'
+    });
+  }
+
+  // Obtener datos estructurados de impresión para la tarjeta TUC
+  getDatosImpresion(placaOId: string): Observable<{
+    placa: string;
+    numero_tuc: string;
+    datos: any;
+    placeholders: Record<string, string>;
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/datos-impresion/${encodeURIComponent(placaOId)}`);
+  }
+
+  // Verificar estado de credenciales de Google Docs
+  getGoogleDocsStatus(): Observable<{
+    disponible: boolean;
+    mensaje: string;
+    credentials_file?: string;
+    plantilla_id?: string;
+  }> {
+    return this.http.get<any>(`${this.apiUrl}/google-docs-status`);
+  }
+
+  // Generar copia en la nube en Google Docs
+  generarGoogleDoc(placaOId: string): Observable<{
+    exito: boolean;
+    disponible: boolean;
+    mensaje: string;
+    url?: string;
+    nuevo_doc_id?: string;
+    placa?: string;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/generar-google-doc/${encodeURIComponent(placaOId)}`, {});
+  }
+
   // Portal Público QR (Sin Autenticación)
   verificarTucPublico(hashOCodigo: string): Observable<TucVerificacionPublica> {
     return this.http.get<TucVerificacionPublica>(`${this.apiUrl}/verificar/${encodeURIComponent(hashOCodigo)}`);

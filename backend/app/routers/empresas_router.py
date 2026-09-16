@@ -1206,6 +1206,15 @@ async def procesar_carga_masiva_google_sheets(
                 razon_social_sunat = str(empresa_data.get('razonSocialSunat', '')).strip() or None
                 razon_social_minimo = str(empresa_data.get('razonSocialMinimo', '')).strip() or None
                 
+                # Obtener Partida Registral
+                partida_raw = (
+                    str(empresa_data.get('partidaRegistral', '')).strip() or
+                    str(empresa_data.get('partida', '')).strip() or
+                    str(empresa_data.get('partida_registral', '')).strip() or
+                    str(empresa_data.get('Partida Registral', '')).strip() or
+                    None
+                )
+                
                 # Crear empresa con estado normalizado
                 empresa_create = EmpresaCreate(
                     ruc=ruc,
@@ -1215,6 +1224,7 @@ async def procesar_carga_masiva_google_sheets(
                         'minimo': razon_social_minimo
                     },
                     direccionFiscal=direccion,
+                    partidaRegistral=partida_raw,
                     estado=estado_normalizado,
                     tiposServicio=empresa_data.get('tiposServicio', ['PERSONAS']),
                     emailContacto=empresa_data.get('emailContacto'),
@@ -1236,6 +1246,7 @@ async def procesar_carga_masiva_google_sheets(
                         empresa_update = EmpresaUpdate(
                             razonSocial=empresa_create.razonSocial,
                             direccionFiscal=empresa_create.direccionFiscal,
+                            partidaRegistral=partida_raw,
                             estado=estado_normalizado,
                             tiposServicio=empresa_create.tiposServicio,
                             emailContacto=empresa_create.emailContacto,

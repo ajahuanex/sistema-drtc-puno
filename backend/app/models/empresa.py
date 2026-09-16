@@ -97,6 +97,7 @@ class Empresa(BaseModel):
     telefonoContacto: Optional[str] = None
     sitioWeb: Optional[str] = None
     observaciones: Optional[str] = None
+    partidaRegistral: Optional[str] = None
     # Datos SUNAT actualizables
     datosSunat: Optional[Dict[str, Any]] = None
     ultimaValidacionSunat: Optional[datetime] = None
@@ -110,6 +111,7 @@ class EmpresaCreate(BaseModel):
     ruc: str
     razonSocial: RazonSocial
     direccionFiscal: Optional[str] = None
+    partidaRegistral: Optional[str] = None
     socios: List[Socio] = Field(default_factory=list)
     tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PASAJEROS])
     emailContacto: Optional[str] = None
@@ -123,6 +125,7 @@ class EmpresaUpdate(BaseModel):
     ruc: Optional[str] = None
     razonSocial: Optional[RazonSocial] = None
     direccionFiscal: Optional[str] = None
+    partidaRegistral: Optional[str] = None
     socios: Optional[List[Socio]] = None
     estado: Optional[EstadoEmpresa] = None
     tiposServicio: Optional[List[TipoServicio]] = None

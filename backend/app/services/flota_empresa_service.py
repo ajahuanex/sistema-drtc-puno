@@ -299,7 +299,7 @@ class FlotaEmpresaService:
 
     async def get_estadisticas_by_ruc(self, ruc: str) -> Dict[str, Any]:
         """Estadísticas de flota por empresa."""
-        filtro = {"ruc": ruc, "esta_activo": {"$ne": False}, "es_cronologico": {"$ne": True}, "estado_primigenia": {"$ne": "VENCIDA"}}
+        filtro = {"ruc": ruc, "esta_activo": {"$ne": False}, "es_cronologico": {"$ne": True}}
         pipeline = [
             {"$match": filtro},
             {"$group": {"_id": "$estado", "count": {"$sum": 1}}}
@@ -784,9 +784,11 @@ class FlotaEmpresaService:
                     "ruc_empresa": ruc,
                     "razon_social": razon_social,
                     "nro_resolucion": nueva_res,
+                    "fecha_resolucion": req.nueva_fecha_emision or now,
                     "fecha_emision": req.nueva_fecha_emision or now,
                     "fecha_inicio_vigencia": req.nueva_fecha_inicio_vigencia,
                     "fecha_fin_vigencia": req.nueva_fecha_fin_vigencia,
+                    "tipo_autorizacion": "RENOVACION",
                     "estado": "VIGENTE",
                     "esta_activo": True,
                     "fecha_registro": now,

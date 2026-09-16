@@ -73,6 +73,7 @@ export interface Empresa {
   telefonoContacto?: string;
   sitioWeb?: string;
   observaciones?: string;
+  partidaRegistral?: string;
   // Datos SUNAT persistidos
   datosSunat?: SunatData;
   ultimaValidacionSunat?: Date;
@@ -96,6 +97,7 @@ export interface EmpresaCreate {
   ruc: string;
   razonSocial: RazonSocial;
   direccionFiscal: string;
+  partidaRegistral?: string;
   socios: Socio[];
   tiposServicio: TipoServicio[];
   estado?: EstadoEmpresa;
@@ -109,6 +111,7 @@ export interface EmpresaUpdate {
   ruc?: string;
   razonSocial?: RazonSocial;
   direccionFiscal?: string;
+  partidaRegistral?: string;
   socios?: Socio[];
   estado?: EstadoEmpresa;
   tiposServicio?: TipoServicio[];

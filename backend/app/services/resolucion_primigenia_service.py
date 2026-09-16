@@ -148,6 +148,10 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
+                doc["fecha_resolucion"] = doc["fecha_emision"]
+            if not doc.get("tipo_autorizacion"):
+                doc["tipo_autorizacion"] = "RENOVACION" if "RENOV" in str(doc.get("observaciones", "")).upper() else "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
         
         return [ResolucionPrimigenia(**doc) for doc in docs]
@@ -180,6 +184,10 @@ class ResolucionPrimigeniaService:
         for doc in docs:
             if "_id" in doc and "id" not in doc:
                 doc["id"] = str(doc.pop("_id"))
+            if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
+                doc["fecha_resolucion"] = doc["fecha_emision"]
+            if not doc.get("tipo_autorizacion"):
+                doc["tipo_autorizacion"] = "RENOVACION" if "RENOV" in str(doc.get("observaciones", "")).upper() else "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
                 
         return [ResolucionPrimigenia(**doc) for doc in docs]

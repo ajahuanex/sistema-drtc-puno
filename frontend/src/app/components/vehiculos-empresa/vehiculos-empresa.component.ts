@@ -35,6 +35,8 @@ import { DetalleVehiculoDialogComponent } from './detalle-vehiculo-dialog.compon
 import { EditarVehiculoDialogComponent } from './editar-vehiculo-dialog.component';
 import { FormVehiculoDialogComponent } from './form-vehiculo-dialog.component';
 import { FormTramitePrimigeniaDialogComponent } from './form-tramite-primigenia-dialog.component';
+import { CambiarTucDialogComponent } from './cambiar-tuc-dialog.component';
+import { GenerarTucDialogComponent } from './generar-tuc-dialog.component';
 
 export interface ColumnasState {
   primigenia: boolean;
@@ -284,20 +286,33 @@ export interface ColumnasState {
                       <div style="display:flex;flex-wrap:wrap;gap:16px;">
                         <!-- FECHAS Y VIGENCIA -->
                         <div style="flex:1;min-width:240px;font-size:11px;color:#475569;display:flex;flex-direction:column;gap:4px;background:rgba(241,245,249,0.85);padding:9px 12px;border-radius:8px;">
-                          @if (item.fechaEmision) {
-                            <div>F. Emisión: <strong>{{ item.fechaEmision | date:'dd/MM/yyyy' }}</strong></div>
-                          }
-                          @if (item.fechaInicioVigencia) {
-                            <div>Inicio Vigencia: <strong>{{ item.fechaInicioVigencia | date:'dd/MM/yyyy' }}</strong></div>
-                          }
-                          @if (item.vigenciaHasta) {
-                            <div>
-                              Fin Vigencia: <strong>{{ item.vigenciaHasta | date:'dd/MM/yyyy' }}</strong>
+                          <div>
+                            F. Emisión: 
+                            @if (item.fechaEmision) {
+                              <strong>{{ item.fechaEmision | date:'dd/MM/yyyy' }}</strong>
+                            } @else {
+                              <span style="color:#94a3b8;font-style:italic;">No registrada</span>
+                            }
+                          </div>
+                          <div>
+                            Inicio Vigencia: 
+                            @if (item.fechaInicioVigencia) {
+                              <strong>{{ item.fechaInicioVigencia | date:'dd/MM/yyyy' }}</strong>
+                            } @else {
+                              <span style="color:#94a3b8;font-style:italic;">No registrada</span>
+                            }
+                          </div>
+                          <div>
+                            Fin Vigencia: 
+                            @if (item.vigenciaHasta) {
+                              <strong>{{ item.vigenciaHasta | date:'dd/MM/yyyy' }}</strong>
                               @if (item.aniosVigencia) {
                                 <span> ({{ item.aniosVigencia }} Años)</span>
                               }
-                            </div>
-                          }
+                            } @else {
+                              <span style="color:#94a3b8;font-style:italic;">No registrada</span>
+                            }
+                          </div>
                           
                           <!-- DESGLOSE DE FLOTA -->
                           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;padding-top:4px;border-top:1px solid #e2e8f0;">
@@ -369,14 +384,33 @@ export interface ColumnasState {
               <div class="primigenias-tabs-bar" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <span style="font-size:12px;font-weight:700;color:#475569;">Filtrar por Primigenia:</span>
                 <button mat-stroked-button [class.active-prim-btn]="primigeniaFiltro() === ''" (click)="primigeniaFiltro.set('')">
-                  <mat-icon>view_module</mat-icon> Todas ({{ totalVehiculosEmpresaSinFiltro() }})
+                  <mat-icon>view_module</mat-icon> Todas ({{ totalVehiculosHabilitadosSinFiltro() }})
                 </button>
                 @for (prim of primigeniasDisponibles(); track prim) {
-                  <button mat-stroked-button [class.active-prim-btn]="primigeniaFiltro() === prim" (click)="primigeniaFiltro.set(prim)">
-                    <mat-icon>verified</mat-icon> {{ formatResolucionCode(prim) }}
-                    <span class="prim-count-pill">({{ getCantidadPorPrimigenia(prim) }})</span>
+                  <button mat-stroked-button
+                          [class.active-prim-btn]="primigeniaFiltro() === prim"
+                          [class.prim-tab-vencida]="isPrimigeniaTabVencida(prim)"
+                          (click)="primigeniaFiltro.set(prim)">
+                    <mat-icon [style.color]="isPrimigeniaTabVencida(prim) ? '#dc2626' : ''">{{ isPrimigeniaTabVencida(prim) ? 'lock_clock' : 'verified' }}</mat-icon>
+                    <span>{{ formatResolucionCode(prim) }}</span>
+                    <span class="prim-count-pill" [class.prim-count-vencida]="isPrimigeniaTabVencida(prim)">({{ getCantidadPorPrimigenia(prim) }})</span>
+                    @if (isPrimigeniaTabVencida(prim)) {
+                      <span class="vencida-mini-tag">VENCIDA</span>
+                    }
                   </button>
                 }
+              </div>
+            }
+
+            <!-- BANNER INFORMATIVO CUANDO SE CONSULTA UNA RESOLUCIÓN VENCIDA -->
+            @if (primigeniaFiltro() && isPrimigeniaTabVencida(primigeniaFiltro())) {
+              <div class="banner-resolucion-vencida animate-fade-in" style="margin-bottom:14px;background:#fff1f2;border:1px solid #fecdd3;border-left:5px solid #e11d48;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(225,29,72,0.08);">
+                <div style="width:34px;height:34px;border-radius:8px;background:#ffe4e6;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <mat-icon style="color:#e11d48;font-size:20px;width:20px;height:20px;">lock</mat-icon>
+                </div>
+                <div style="font-size:13px;color:#9f1239;line-height:1.4;">
+                  <strong>Resolución Primigenia Vencida (Modo Consulta):</strong> La lista de vehículos habilitados bajo esta resolución se encuentra disponible para su revisión histórica y trazabilidad, pero <strong>bloqueada para cualquier modificación, inhabilitación o eliminación directa</strong>.
+                </div>
               </div>
             }
 
@@ -558,7 +592,8 @@ export interface ColumnasState {
                       </thead>
                       <tbody>
                         @for (item of paginatedFlota(); track item.id) {
-                          <tr [class.row-cancelada]="item.estado === 'CANCELADO' || item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA'">
+                          <tr [class.row-cancelada]="item.estado === 'CANCELADO' || item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA'"
+                              [class.row-vencida-bloqueada]="esResolucionVencida(item)">
                             <!-- CHECKBOX FILA -->
                             <td class="text-center">
                               <mat-checkbox (change)="toggleSelectRow(item.id)" [checked]="isSelectedRow(item.id)"></mat-checkbox>
@@ -568,8 +603,8 @@ export interface ColumnasState {
                               <td class="sticky-col-left">
                                 <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
                                   <span class="code-badge prim-badge"
-                                        [class.prim-inactiva]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA' || item.estado_primigenia === 'VENCIDA'"
-                                        [matTooltip]="'Estado: ' + (item.estado_primigenia || 'VIGENTE')">
+                                        [class.prim-inactiva]="item.estado_primigenia === 'CANCELADA' || item.estado_primigenia === 'INACTIVA' || item.estado_primigenia === 'VENCIDA' || esResolucionVencida(item)"
+                                        [matTooltip]="'Estado: ' + (esResolucionVencida(item) ? 'VENCIDA (BLOQUEADO)' : (item.estado_primigenia || 'VIGENTE'))">
                                     {{ formatResolucionCode(item.nro_resolucion_primigenia) }}
                                   </span>
                                   @if (item.fecha_vigencia_hasta) {
@@ -584,7 +619,14 @@ export interface ColumnasState {
                             @if (columnasVisibles().placaHija) {
                               <td style="white-space:nowrap;">
                                 <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
-                                  <span class="ruc-badge placa-badge" style="white-space:nowrap;">{{ item.placa }}</span>
+                                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
+                                    <span class="ruc-badge placa-badge" style="white-space:nowrap;">{{ item.placa }}</span>
+                                    @if (esResolucionVencida(item)) {
+                                      <span class="badge-bloqueado" matTooltip="Resolución primigenia vencida: Registro bloqueado para cambios">
+                                        <mat-icon style="font-size:11px;width:11px;height:11px;">lock</mat-icon> Bloqueado
+                                      </span>
+                                    }
+                                  </div>
                                   @if (item.nro_resolucion_hija) {
                                     <div style="display:flex;align-items:center;gap:4px;white-space:nowrap;margin-top:2px;">
                                       <span class="code-badge hija-badge" style="white-space:nowrap;">
@@ -622,11 +664,25 @@ export interface ColumnasState {
                             <!-- TUC -->
                             @if (columnasVisibles().tuc) {
                               <td style="white-space:nowrap;">
-                                @if (item.numero_tuc) {
-                                  <span class="tuc-badge" style="white-space:nowrap;" matTooltip="Número TUC oficial">{{ item.numero_tuc }}</span>
-                                } @else {
-                                  <span class="sin-datos">-</span>
-                                }
+                                <div style="display:inline-flex;align-items:center;gap:6px;">
+                                  @if (item.numero_tuc) {
+                                    <span class="tuc-badge" style="white-space:nowrap;" matTooltip="Número TUC oficial">{{ item.numero_tuc }}</span>
+                                  } @else {
+                                    <span class="sin-datos">-</span>
+                                  }
+                                  <button type="button" class="btn-tuc-doc"
+                                          (click)="abrirGenerarTuc(item); $event.stopPropagation();"
+                                          matTooltip="Generar / Imprimir TUC (Plantilla Oficial)">
+                                    <mat-icon style="font-size:15px;width:15px;height:15px;">print</mat-icon>
+                                  </button>
+                                  @if (!esResolucionVencida(item)) {
+                                    <button type="button" class="btn-tuc-edit"
+                                            (click)="abrirCambiarTuc(item); $event.stopPropagation();"
+                                            matTooltip="Rectificar / Cambiar TUC (Anular actual)">
+                                      <mat-icon style="font-size:15px;width:15px;height:15px;">edit</mat-icon>
+                                    </button>
+                                  }
+                                </div>
                               </td>
                             }
                             <!-- Estado -->
@@ -706,22 +762,42 @@ export interface ColumnasState {
                         <mat-icon color="primary">visibility</mat-icon>
                         <span>Ver Detalle Completo</span>
                       </button>
-                      <button mat-menu-item (click)="abrirEditar(item)">
-                        <mat-icon style="color:#d97706;">edit</mat-icon>
-                        <span>Editar Registro</span>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
+                              (click)="abrirEditar(item)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#d97706'">{{ esResolucionVencida(item) ? 'lock' : 'edit' }}</mat-icon>
+                        <span>Editar Registro {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
                       </button>
-                      <button mat-menu-item (click)="inhabilitarVehiculo(item)">
-                        <mat-icon style="color:#dc2626;">block</mat-icon>
-                        <span>Inhabilitar / Dar de Baja</span>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
+                              (click)="abrirCambiarTuc(item)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#6366f1'">{{ esResolucionVencida(item) ? 'lock' : 'published_with_changes' }}</mat-icon>
+                        <span>Rectificar / Cambiar TUC {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
+                      </button>
+                      <button mat-menu-item (click)="abrirGenerarTuc(item)">
+                        <mat-icon style="color:#2563eb;">description</mat-icon>
+                        <span>Generar / Imprimir TUC (Plantilla)</span>
+                      </button>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
+                              (click)="inhabilitarVehiculo(item)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [style.color]="esResolucionVencida(item) ? '#94a3b8' : '#dc2626'">{{ esResolucionVencida(item) ? 'lock' : 'block' }}</mat-icon>
+                        <span>Inhabilitar / Dar de Baja {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
                       </button>
                       <button mat-menu-item (click)="verCronologiaPrimigenia(item.nro_resolucion_primigenia)">
                         <mat-icon style="color:#0d9488;">timeline</mat-icon>
                         <span>Ver Cronología Primigenia</span>
                       </button>
                       <mat-divider></mat-divider>
-                      <button mat-menu-item (click)="eliminarRegistro(item.id)">
-                        <mat-icon color="warn">delete</mat-icon>
-                        <span>Eliminar Registro</span>
+                      <button mat-menu-item
+                              [disabled]="esResolucionVencida(item)"
+                              (click)="eliminarRegistro(item.id)"
+                              [matTooltip]="esResolucionVencida(item) ? 'Bloqueado: La resolución primigenia está vencida' : ''">
+                        <mat-icon [color]="esResolucionVencida(item) ? '' : 'warn'">{{ esResolucionVencida(item) ? 'lock' : 'delete' }}</mat-icon>
+                        <span>Eliminar Registro {{ esResolucionVencida(item) ? '(Bloqueado)' : '' }}</span>
                       </button>
                     </ng-template>
                   </mat-menu>
@@ -1040,9 +1116,9 @@ export class VehiculosEmpresaComponent implements OnInit {
 
       map.set(key, {
         primigenia: res.nro_resolucion,
-        fechaEmision: res.fecha_resolucion,
-        fechaInicioVigencia: res.fecha_inicio_vigencia,
-        vigenciaHasta: res.fecha_fin_vigencia,
+        fechaEmision: res.fecha_resolucion || (res as any).fecha_emision,
+        fechaInicioVigencia: res.fecha_inicio_vigencia || res.fecha_resolucion || (res as any).fecha_emision,
+        vigenciaHasta: res.fecha_fin_vigencia || (res as any).fecha_vencimiento,
         aniosVigencia: res.anios_vigencia,
         estado: calcEstado(res.estado, res.fecha_fin_vigencia, res.observaciones),
         rutas: new Set<string>(),
@@ -1071,6 +1147,9 @@ export class VehiculosEmpresaComponent implements OnInit {
           targetKey = rResRaw;
           map.set(targetKey, {
             primigenia: r.resolucion?.nroResolucion || rResRaw,
+            fechaEmision: (r.resolucion as any)?.fechaResolucion || (r.resolucion as any)?.fechaEmision,
+            fechaInicioVigencia: (r.resolucion as any)?.fechaInicioVigencia,
+            vigenciaHasta: (r.resolucion as any)?.fechaFinVigencia || (r.resolucion as any)?.fechaVencimiento,
             estado: calcEstado(r.resolucion?.estado),
             rutas: new Set<string>(),
             rutasCompletas: [],
@@ -1110,7 +1189,9 @@ export class VehiculosEmpresaComponent implements OnInit {
         targetKey = vResRaw;
         map.set(targetKey, {
           primigenia: v.nro_resolucion_primigenia || 'S/N',
-          vigenciaHasta: v.fecha_vigencia_hasta,
+          fechaEmision: (v as any).fecha_resolucion || (v as any).fecha_emision,
+          fechaInicioVigencia: (v as any).fecha_inicio_vigencia || (v as any).fecha_resolucion || (v as any).fecha_emision,
+          vigenciaHasta: v.fecha_vigencia_hasta || (v as any).fecha_fin_vigencia,
           estado: calcEstado(v.estado_primigenia, v.fecha_vigencia_hasta, v.detalles),
           rutas: new Set<string>(),
           rutasCompletas: [],
@@ -1120,6 +1201,17 @@ export class VehiculosEmpresaComponent implements OnInit {
         });
       }
       const item = map.get(targetKey)!;
+      // Retroalimentar fechas si faltaban
+      if (!item.vigenciaHasta && (v.fecha_vigencia_hasta || (v as any).fecha_fin_vigencia)) {
+        item.vigenciaHasta = v.fecha_vigencia_hasta || (v as any).fecha_fin_vigencia;
+      }
+      if (!item.fechaEmision && ((v as any).fecha_resolucion || (v as any).fecha_emision)) {
+        item.fechaEmision = (v as any).fecha_resolucion || (v as any).fecha_emision;
+      }
+      if (!item.fechaInicioVigencia && ((v as any).fecha_inicio_vigencia || (v as any).fecha_resolucion || (v as any).fecha_emision)) {
+        item.fechaInicioVigencia = (v as any).fecha_inicio_vigencia || (v as any).fecha_resolucion || (v as any).fecha_emision;
+      }
+
       item.countTotal++;
       const est = (v.estado || 'HABILITADO').toUpperCase();
       if (est === 'HABILITADO') {
@@ -1385,23 +1477,102 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.snackBar.open(`Exportados ${list.length} registro(s) a CSV/Excel.`, 'OK', { duration: 3000 });
   }
 
+  esResolucionVencida(item: VehiculoEmpresa): boolean {
+    if (!item) return false;
+    // 1. Si el estado_primigenia ya viene como VENCIDA, CANCELADA o INACTIVA
+    const estPrim = (item.estado_primigenia || '').toUpperCase();
+    if (estPrim === 'VENCIDA' || estPrim === 'CANCELADA' || estPrim === 'INACTIVA') return true;
+
+    // 2. Si el detalle u observaciones indican renovación o cancelación
+    const det = (item.detalles || '').toUpperCase();
+    const obs = (item.observaciones || '').toUpperCase();
+    if (det.includes('RENOVAD') || obs.includes('RENOVAD') || det.includes('CANCELAD') || obs.includes('CANCELAD')) return true;
+
+    // 3. Revisar en la matriz de resoluciones primigenias oficiales
+    const nro = (item.nro_resolucion_primigenia || '').trim().toUpperCase();
+    if (nro) {
+      const targetNorm = this.formatResolucionCode(nro).toUpperCase();
+      const matriz = this.resolucionesPrimigeniasMatriz();
+      const resFound = matriz.find(r => {
+        const rn = (r.nro_resolucion || '').trim().toUpperCase();
+        return rn === nro || this.formatResolucionCode(rn).toUpperCase() === targetNorm;
+      });
+      if (resFound) {
+        const estRes = (resFound.estado || '').toUpperCase();
+        if (estRes === 'VENCIDA' || estRes === 'CANCELADA' || estRes === 'INACTIVA') return true;
+        if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVAD') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
+        if (resFound.fecha_fin_vigencia) {
+          const d = new Date(resFound.fecha_fin_vigencia);
+          if (!isNaN(d.getTime())) {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            if (d < hoy) return true;
+          }
+        }
+      }
+    }
+
+    // 4. Si el propio vehículo tiene fecha_vigencia_hasta y ya venció
+    if (item.fecha_vigencia_hasta) {
+      const d = new Date(item.fecha_vigencia_hasta);
+      if (!isNaN(d.getTime())) {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        if (d < hoy) return true;
+      }
+    }
+
+    return false;
+  }
+
+  isPrimigeniaTabVencida(prim: string): boolean {
+    if (!prim) return false;
+    const target = this.formatResolucionCode(prim).toUpperCase();
+    const matriz = this.resolucionesPrimigeniasMatriz();
+    const resFound = matriz.find(r => this.formatResolucionCode(r.nro_resolucion).toUpperCase() === target);
+    if (resFound) {
+      const est = (resFound.estado || '').toUpperCase();
+      if (est === 'VENCIDA' || est === 'CANCELADA' || est === 'INACTIVA') return true;
+      if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVAD') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
+      if (resFound.fecha_fin_vigencia) {
+        const d = new Date(resFound.fecha_fin_vigencia);
+        if (!isNaN(d.getTime())) {
+          const hoy = new Date();
+          hoy.setHours(0, 0, 0, 0);
+          if (d < hoy) return true;
+        }
+      }
+    }
+    const vehs = this.flotaEmpresa().filter(i => !i.es_cronologico && this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === target);
+    if (vehs.length > 0 && vehs.every(v => this.esResolucionVencida(v))) {
+      return true;
+    }
+    return false;
+  }
+
   totalVehiculosEmpresaSinFiltro = computed(() => {
-    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA').length;
+    return this.flotaEmpresa().filter(i => !i.es_cronologico).length;
+  });
+
+  totalVehiculosHabilitadosSinFiltro = computed(() => {
+    return this.flotaEmpresa().filter(i => !i.es_cronologico && (i.estado || '').toUpperCase() === 'HABILITADO').length;
   });
 
   primigeniasDisponibles = computed(() => {
-    const list = this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA');
-    const prims = Array.from(new Set(list.map(i => this.formatResolucionCode(i.nro_resolucion_primigenia)).filter(Boolean)));
+    const list = this.flotaEmpresa().filter(i => !i.es_cronologico);
+    const primsFromFlota = list.map(i => this.formatResolucionCode(i.nro_resolucion_primigenia)).filter(Boolean);
+    const primsFromMatriz = this.resolucionesPrimigeniasMatriz().map(r => this.formatResolucionCode(r.nro_resolucion)).filter(Boolean);
+    const prims = Array.from(new Set([...primsFromFlota, ...primsFromMatriz]));
     return prims.sort();
   });
 
   getCantidadPorPrimigenia(prim: string): number {
     const target = this.formatResolucionCode(prim).toUpperCase();
-    return this.flotaEmpresa().filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA' && this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === target).length;
+    return this.flotaEmpresa().filter(i => !i.es_cronologico && this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === target).length;
   }
 
   flotaEmpresaFiltrada = computed(() => {
-    let list = [...this.flotaEmpresa()].filter(i => !i.es_cronologico && i.estado_primigenia !== 'VENCIDA');
+    let list = [...this.flotaEmpresa()].filter(i => !i.es_cronologico);
     const q = (this.searchValue() || '').toLowerCase();
     const est = (this.estadoValue() || '').toUpperCase();
     const tipo = (this.tipoHijaValue() || '').toUpperCase();
@@ -1710,6 +1881,11 @@ export class VehiculosEmpresaComponent implements OnInit {
   }
 
   abrirEditar(item: VehiculoEmpresa): void {
+    if (this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para modificaciones.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
     const dialogRef = this.dialog.open(FormVehiculoDialogComponent, {
       data: {
         modo: 'editar',
@@ -1732,7 +1908,46 @@ export class VehiculosEmpresaComponent implements OnInit {
     });
   }
 
+  abrirCambiarTuc(item: VehiculoEmpresa): void {
+    if (this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para cambios de TUC.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(CambiarTucDialogComponent, {
+      data: {
+        vehiculo: item
+      },
+      width: '580px',
+      maxWidth: '95vw',
+      panelClass: 'cambiar-tuc-dialog-panel'
+    });
+
+    dialogRef.afterClosed().subscribe((updated: boolean) => {
+      if (updated) {
+        const ruc = this.empresaSearchControl.value?.trim();
+        if (ruc) this.buscarFlotaEmpresa();
+      }
+    });
+  }
+
+  abrirGenerarTuc(item: VehiculoEmpresa): void {
+    this.dialog.open(GenerarTucDialogComponent, {
+      data: {
+        vehiculo: item
+      },
+      width: '1000px',
+      maxWidth: '96vw',
+      panelClass: 'glass-dialog-panel'
+    });
+  }
+
   inhabilitarVehiculo(item: VehiculoEmpresa): void {
+    if (this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para cambios.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
     const motivo = prompt(`Ingrese el motivo para inhabilitar / dar de baja al vehículo ${item.placa}:`);
     if (!motivo || !motivo.trim()) return;
 
@@ -1757,6 +1972,12 @@ export class VehiculosEmpresaComponent implements OnInit {
   }
 
   eliminarRegistro(id: string): void {
+    const item = this.flotaEmpresa().find(i => i.id === id);
+    if (item && this.esResolucionVencida(item)) {
+      this.snackBar.open('Este vehículo pertenece a una resolución vencida y se encuentra bloqueado para eliminación.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+
     if (!confirm('¿Eliminar este registro de flota?')) return;
     this.service.delete(id).subscribe({
       next: () => {

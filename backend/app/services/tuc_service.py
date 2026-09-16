@@ -591,6 +591,131 @@ class TucService:
         return res.modified_count > 0
 
     @staticmethod
+    async def cambiar_anular_tuc(data: Dict[str, Any], usuario: str = "ADMIN") -> Dict[str, Any]:
+        db = await _get_db()
+        from bson import ObjectId
+        
+        vehiculo_id = data.get("vehiculo_id")
+        placa = (data.get("placa") or "").strip().upper()
+        tuc_actual = (data.get("tuc_actual") or "").strip().upper()
+        nuevo_tuc = (data.get("nuevo_tuc") or "").strip().upper()
+        motivo = (data.get("motivo") or "").strip()
+        
+        if not nuevo_tuc:
+            raise ValueError("El nuevo número de TUC es obligatorio.")
+        if not motivo:
+            raise ValueError("Debe ingresar el motivo de la anulación o cambio de TUC.")
+            
+        now_dt = datetime.now()
+        now_iso = now_dt.isoformat()
+        
+        # 1. Localizar vehículo en flota_empresa
+        query_veh = {}
+        if vehiculo_id and ObjectId.is_valid(vehiculo_id):
+            query_veh["_id"] = ObjectId(vehiculo_id)
+        elif vehiculo_id:
+            query_veh["id"] = vehiculo_id
+        else:
+            query_veh["placa"] = placa
+            
+        veh = await db.flota_empresa.find_one(query_veh)
+        if not veh:
+            raise ValueError(f"No se encontró el vehículo con placa {placa}")
+            
+        ruc = veh.get("ruc")
+        razon_social = veh.get("razon_social")
+        nro_resolucion = veh.get("nro_resolucion_primigenia")
+        tuc_prev = tuc_actual or veh.get("numero_tuc") or ""
+        
+        # 2. Anular el TUC actual en la colección 'tucs'
+        if tuc_prev:
+            await db.tucs.update_many(
+                {"nroTuc": {"$regex": f"^{re.escape(tuc_prev)}$", "$options": "i"}},
+                {
+                    "$set": {
+                        "estado": EstadoTuc.ANULADA.value,
+                        "motivoAnulacion": motivo,
+                        "fechaAnulacion": now_iso,
+                        "fechaActualizacion": now_iso
+                    },
+                    "$push": {
+                        "historialCambios": {
+                            "fecha": now_iso,
+                            "accion": "ANULADA_POR_RECTIFICACION",
+                            "usuario": usuario,
+                            "detalle": f"TUC anulada por corrección/cambio de impresión. Motivo: {motivo}. Reemplazada por N° {nuevo_tuc}"
+                        }
+                    }
+                }
+            )
+            
+        # 3. Registrar / Actualizar el nuevo TUC en la colección 'tucs'
+        tipo_emision = TipoEmisionTuc.ELECTRONICA.value if nuevo_tuc.startswith("TE-") or "E-" in nuevo_tuc else TipoEmisionTuc.FISICA.value
+        hash_seg = generar_hash_tuc(nuevo_tuc, placa, ruc or "", date.today().isoformat())
+        qr_url = f"/verificar-tuc/{hash_seg}"
+        
+        nuevo_tuc_doc = {
+            "nroTuc": nuevo_tuc,
+            "tipoEmision": tipo_emision,
+            "estado": EstadoTuc.VIGENTE.value,
+            "motivoEmision": "CORRECCION_ERROR_IMPRESION",
+            "placa": placa,
+            "vehiculoId": str(veh["_id"]),
+            "ruc": ruc,
+            "razonSocial": razon_social,
+            "nroResolucion": nro_resolucion,
+            "fechaEmision": date.today().isoformat(),
+            "fechaVencimiento": veh.get("fecha_vigencia_hasta"),
+            "hashSeguridad": hash_seg,
+            "qrVerificationUrl": qr_url,
+            "observaciones": f"Emitido por corrección de TUC previo {tuc_prev}. Motivo: {motivo}",
+            "historialCambios": [
+                {
+                    "fecha": now_iso,
+                    "accion": "EMISION_POR_CORRECCION",
+                    "usuario": usuario,
+                    "detalle": f"Nuevo TUC emitido tras anular {tuc_prev}. Motivo: {motivo}"
+                }
+            ],
+            "fechaRegistro": now_iso,
+            "fechaActualizacion": now_iso
+        }
+        
+        await db.tucs.update_one(
+            {"nroTuc": nuevo_tuc},
+            {"$set": nuevo_tuc_doc},
+            upsert=True
+        )
+        
+        # 4. Actualizar flota_empresa con el nuevo TUC y registrar observación
+        nueva_obs = {
+            "fecha": now_dt,
+            "texto": f"Cambio de TUC: Anulado TUC previo '{tuc_prev}' por motivo '{motivo}'. Nuevo TUC asignado: '{nuevo_tuc}'.",
+            "fuente": "correccion_tuc"
+        }
+        
+        await db.flota_empresa.update_one(
+            {"_id": veh["_id"]},
+            {
+                "$set": {
+                    "numero_tuc": nuevo_tuc,
+                    "tuc": nuevo_tuc,
+                    "fecha_actualizacion": now_dt
+                },
+                "$push": {
+                    "observaciones_historial": nueva_obs
+                }
+            }
+        )
+        
+        return {
+            "mensaje": f"TUC actualizada exitosamente. TUC previa {tuc_prev} anulada y nuevo TUC {nuevo_tuc} asignado.",
+            "nuevo_tuc": nuevo_tuc,
+            "tuc_anterior": tuc_prev,
+            "placa": placa
+        }
+
+    @staticmethod
     async def obtener_verificacion_publica(hash_o_codigo: str) -> TucVerificacionPublica:
         db = await _get_db()
         hash_limpio = hash_o_codigo.strip()

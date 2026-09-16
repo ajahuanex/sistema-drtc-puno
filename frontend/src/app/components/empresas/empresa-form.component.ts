@@ -100,6 +100,14 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, TipoSocio, Socio } from '../../m
                       </mat-select>
                     </mat-form-field>
 
+                    <!-- PARTIDA REGISTRAL -->
+                    <mat-form-field appearance="outline" class="col-span-2">
+                      <mat-label>Partida Registral (SUNARP)</mat-label>
+                      <mat-icon matPrefix>description</mat-icon>
+                      <input matInput formControlName="partidaRegistral" placeholder="Ej. 11003509">
+                      <mat-hint>Número de partida registral o electrónica de la empresa</mat-hint>
+                    </mat-form-field>
+
                     <!-- RAZÓN SOCIAL PRINCIPAL -->
                     <mat-form-field appearance="outline" class="col-span-2">
                       <mat-label>Razón Social Principal</mat-label>
@@ -463,6 +471,7 @@ export class EmpresaFormComponent implements OnInit {
       razonSocial: ['', Validators.required],
       razonSocialMinimo: [''],
       direccionFiscal: ['', Validators.required],
+      partidaRegistral: [''],
       tiposServicio: [[]],
       estado: ['AUTORIZADA'],
       observaciones: [''],
@@ -517,6 +526,7 @@ export class EmpresaFormComponent implements OnInit {
           razonSocial: empresa.razonSocial.principal,
           razonSocialMinimo: empresa.razonSocial.minimo || '',
           direccionFiscal: empresa.direccionFiscal,
+          partidaRegistral: empresa.partidaRegistral || '',
           estado: empresa.estado,
           observaciones: empresa.observaciones || '',
           emailContacto: empresa.emailContacto || '',
@@ -563,6 +573,7 @@ export class EmpresaFormComponent implements OnInit {
         minimo: v.razonSocialMinimo?.trim() || undefined
       },
       direccionFiscal: v.direccionFiscal.trim(),
+      partidaRegistral: v.partidaRegistral?.trim() || undefined,
       tiposServicio: v.tiposServicio || [],
       estado: v.estado,
       socios: (v.socios as any[]).map(s => ({
