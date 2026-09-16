@@ -1,11 +1,11 @@
-import { Component, Inject, OnInit, signal } from '@angular/core';
+import { Component, Inject, OnInit, signal, ViewChild, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormControl, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormControl, ReactiveFormsModule, FormsModule, Validators, FormArray } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatFormFieldModule, MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -13,6 +13,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 import { FlotaEmpresaService, TramiteMasivoRequest } from '../../services/flota-empresa.service';
 import { environment } from '../../../environments/environment';
 
@@ -37,6 +39,7 @@ export interface VehiculoProcesadoUI {
   tipo_operacion: string;
   origen_datos: 'DB_LOCAL' | 'PCM_API' | 'MANUAL';
   numero_tuc?: string;
+  isEditing?: boolean;
   datos_tecnicos: {
     placa: string;
     marca?: string;
@@ -82,7 +85,13 @@ export interface VehiculoProcesadoUI {
     MatProgressSpinnerModule,
     MatTabsModule,
     MatChipsModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatDialogModule
+  ],
+  providers: [
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { subscriptSizing: 'dynamic' } }
   ],
   template: `
     <div class="tramite-dialog-container">
@@ -167,33 +176,20 @@ export interface VehiculoProcesadoUI {
               <!-- FORMULARIO ETAPA 1 -->
               <form [formGroup]="formEtapa1" class="form-grid-etapa1">
                 
-                <mat-form-field appearance="outline" floatLabel="always">
+                <mat-form-field appearance="outline" floatLabel="always" class="style-full">
                   <mat-label>Tipo de Trámite *</mat-label>
-                  <mat-select formControlName="tipo_tramite" required (selectionChange)="onTipoTramiteChange()">
-                    <mat-option value="INCREMENTO">➕ Incremento de Flota (Alta)</mat-option>
-                    <mat-option value="SUSTITUCION">🔄 Sustitución de Vehículo (Alta / Baja)</mat-option>
-                    <mat-option value="RENOVACION">📜 Renovación de Resolución (Nueva Primigenia)</mat-option>
-                    <mat-option value="FE_DE_ERRATAS">📝 Fe de Erratas</mat-option>
-                    <mat-option value="DUPLICADO">📄 Duplicado de TUC / Expediente</mat-option>
-                    <mat-option value="CANJE">🏷️ Canje de TUC</mat-option>
-                    <mat-option value="MODIFICACION">✏️ Modificación de Características</mat-option>
-                    <mat-option value="CANCELACION">❌ Cancelación / Baja de Flota</mat-option>
+                  <mat-select formControlName="tipo_tramite" required (selectionChange)="onTipoTramiteChange()" panelClass="light-select-panel">
+                    <mat-option value="INCREMENTO">Incremento de Flota</mat-option>
+                    <mat-option value="SUSTITUCION">Sustitución de Vehículo</mat-option>
+                    <mat-option value="RENOVACION">Renovación de Resolución</mat-option>
+                    <mat-option value="FE_DE_ERRATAS">Fe de Erratas</mat-option>
+                    <mat-option value="DUPLICADO">Duplicado de TUC / Expediente</mat-option>
+                    <mat-option value="CANJE">Canje de TUC</mat-option>
+                    <mat-option value="MODIFICACION">Modificación de Características</mat-option>
+                    <mat-option value="CANCELACION">Cancelación / Baja de Flota</mat-option>
                   </mat-select>
                 </mat-form-field>
 
-                <mat-form-field appearance="outline" floatLabel="always">
-                  <mat-label>Tipo Resolución Hija</mat-label>
-                  <mat-select formControlName="tipo_resolucion_hija" (selectionChange)="onTipoResolucionHijaChange($event.value)">
-                    <mat-option value="I">I - Incremento de Flota</mat-option>
-                    <mat-option value="S">S - Sustitución de Vehículo</mat-option>
-                    <mat-option value="R">R - Renovación</mat-option>
-                    <mat-option value="M">M - Modificación</mat-option>
-                    <mat-option value="FE">FE - Fe de Erratas</mat-option>
-                    <mat-option value="D">D - Duplicado</mat-option>
-                    <mat-option value="C">C - Cancelación / Canje</mat-option>
-                    <mat-option value="O">O - Otros Trámites</mat-option>
-                  </mat-select>
-                </mat-form-field>
 
                 <!-- BLOQUE MULTI-EXPEDIENTE -->
                 <div class="expedientes-container style-full">
@@ -202,8 +198,8 @@ export interface VehiculoProcesadoUI {
                       <mat-icon class="icon-accent">folder_open</mat-icon>
                       <span>Expedientes del Trámite (Formato: E-XXXX-YYYY)</span>
                     </div>
-                    <button mat-stroked-button type="button" class="btn-add-exp" (click)="agregarExpediente()">
-                      <mat-icon>add</mat-icon> Agregar otro Expediente
+                    <button mat-flat-button color="accent" type="button" class="btn-add-exp" style="border-radius: 8px; font-weight: 600;" (click)="agregarExpediente()">
+                      <mat-icon>add</mat-icon> Agregar Expediente
                     </button>
                   </div>
 
@@ -217,10 +213,11 @@ export interface VehiculoProcesadoUI {
                           <mat-icon matSuffix color="primary">folder</mat-icon>
                         </mat-form-field>
 
-                        <mat-form-field appearance="outline" floatLabel="always" class="exp-date">
+                        <mat-form-field appearance="outline" floatLabel="always" class="exp-date compact-field">
                           <mat-label>Fecha de Expediente {{ expedientes.length > 1 ? '#' + ($index + 1) : '' }}</mat-label>
-                          <input matInput type="date" [(ngModel)]="exp.fecha" [ngModelOptions]="{standalone: true}">
-                          <mat-icon matSuffix color="primary">calendar_today</mat-icon>
+                          <input matInput [matDatepicker]="pickerExp" [(ngModel)]="exp.fecha" [ngModelOptions]="{standalone: true}">
+                          <mat-datepicker-toggle matIconSuffix [for]="pickerExp"></mat-datepicker-toggle>
+                          <mat-datepicker #pickerExp></mat-datepicker>
                         </mat-form-field>
 
                         @if (expedientes.length > 1) {
@@ -233,16 +230,20 @@ export interface VehiculoProcesadoUI {
                   </div>
                 </div>
 
-                <mat-form-field appearance="outline" floatLabel="always">
-                  <mat-label>Número de Res. Hija / Documento</mat-label>
-                  <input matInput formControlName="nro_resolucion_hija" (blur)="onResolucionHijaBlur()" placeholder="Ej: 0123 -> R-0123-2026">
-                  <mat-hint style="font-size:10px; color:#38bdf8;">Formato: R-0123-2026</mat-hint>
-                </mat-form-field>
+                @if (!esRenovacion()) {
+                  <mat-form-field appearance="outline" floatLabel="always">
+                    <mat-label>Número de Res. Hija / Documento</mat-label>
+                    <input matInput formControlName="nro_resolucion_hija" (blur)="onResolucionHijaBlur()" placeholder="Ej: 0123 -> R-0123-2026">
+                    <mat-hint style="font-size:10px; color:#0284c7;">Formato: R-0123-2026</mat-hint>
+                  </mat-form-field>
 
-                <mat-form-field appearance="outline" floatLabel="always">
-                  <mat-label>Fecha Emisión Resolución</mat-label>
-                  <input matInput type="date" formControlName="fecha_emision_resolucion">
-                </mat-form-field>
+                  <mat-form-field appearance="outline" floatLabel="always" class="compact-field">
+                    <mat-label>Fecha Emisión Resolución</mat-label>
+                    <input matInput [matDatepicker]="pickerEmision" formControlName="fecha_emision_resolucion">
+                    <mat-datepicker-toggle matIconSuffix [for]="pickerEmision"></mat-datepicker-toggle>
+                    <mat-datepicker #pickerEmision></mat-datepicker>
+                  </mat-form-field>
+                }
 
                 <!-- SECCIÓN ESPECIAL: RENOVACIÓN DE RESOLUCIÓN -->
                 @if (esRenovacion()) {
@@ -258,30 +259,83 @@ export interface VehiculoProcesadoUI {
                         <input matInput formControlName="nueva_resolucion_primigenia" (blur)="onNuevaResolucionBlur()" placeholder="Ej: 0123 -> R-0123-2026" required>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" floatLabel="always">
+                      <mat-form-field appearance="outline" floatLabel="always" class="compact-field">
                         <mat-label>Fecha Emisión Nueva Res.</mat-label>
-                        <input matInput type="date" formControlName="nueva_fecha_emision">
+                        <input matInput [matDatepicker]="pickerNuevaEmision" formControlName="nueva_fecha_emision">
+                        <mat-datepicker-toggle matIconSuffix [for]="pickerNuevaEmision"></mat-datepicker-toggle>
+                        <mat-datepicker #pickerNuevaEmision></mat-datepicker>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" floatLabel="always">
-                        <mat-label>Inicio Vigencia (Vigencia Desde)</mat-label>
-                        <input matInput type="date" formControlName="nueva_fecha_inicio_vigencia">
+                      <mat-form-field appearance="outline" floatLabel="always" class="compact-field">
+                        <mat-label>Inicio Vigencia</mat-label>
+                        <input matInput [matDatepicker]="pickerInicio" formControlName="nueva_fecha_inicio_vigencia">
+                        <mat-datepicker-toggle matIconSuffix [for]="pickerInicio"></mat-datepicker-toggle>
+                        <mat-datepicker #pickerInicio></mat-datepicker>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" floatLabel="always">
-                        <mat-label>Fin Vigencia (Vigencia Hasta)</mat-label>
-                        <input matInput type="date" formControlName="nueva_fecha_fin_vigencia">
+                      <mat-form-field appearance="outline" floatLabel="always" class="compact-field">
+                        <mat-label>Fin Vigencia</mat-label>
+                        <input matInput [matDatepicker]="pickerFin" formControlName="nueva_fecha_fin_vigencia">
+                        <mat-datepicker-toggle matIconSuffix [for]="pickerFin"></mat-datepicker-toggle>
+                        <mat-datepicker #pickerFin></mat-datepicker>
                       </mat-form-field>
 
-                      <mat-form-field appearance="outline" floatLabel="always" class="style-full">
-                        <mat-label>Nuevas Rutas Autorizadas (separadas por coma)</mat-label>
-                        <input matInput formControlName="nuevas_rutas_str" placeholder="Ej: 01, 02, 03-A">
-                      </mat-form-field>
+                      <!-- ARRAY DE NUEVAS RUTAS -->
+                      <div class="rutas-array-container style-full">
+                        <div class="rutas-array-header">
+                          <mat-icon>route</mat-icon>
+                          <span>Detalle de Nuevas Rutas Autorizadas</span>
+                          <button mat-flat-button color="accent" type="button" class="btn-add-ruta" style="border-radius: 8px; font-weight: 600;" (click)="abrirModalRuta()">
+                            <mat-icon>add</mat-icon> Agregar Ruta
+                          </button>
+                        </div>
+
+                        @if (nuevas_rutas_array.length === 0) {
+                          <div class="no-rutas-msg" style="padding: 40px 24px; text-align: center; color: var(--text-muted); background: var(--background-card); border: 1px solid var(--border-primary); border-radius: 12px; box-shadow: var(--shadow-sm); margin-top: 16px;">
+                            <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: var(--background-secondary); border-radius: 50%; margin-bottom: 16px;">
+                              <mat-icon style="font-size: 32px; width: 32px; height: 32px; color: var(--text-muted);">alt_route</mat-icon>
+                            </div>
+                            <h3 style="margin: 0 0 8px 0; color: var(--text-primary); font-size: 16px; font-weight: 600;">Sin rutas registradas</h3>
+                            <p style="margin: 0; font-size: 14px;">Haz clic en "Agregar Ruta" para comenzar a añadir los itinerarios de esta resolución.</p>
+                          </div>
+                        } @else {
+                          <div class="table-responsive" style="border: 1px solid var(--border-primary); border-radius: 10px; overflow: hidden;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                              <thead>
+                                <tr style="background-color: var(--background-secondary); border-bottom: 1px solid var(--border-primary);">
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px;">Código</th>
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px;">Origen</th>
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px;">Destino</th>
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px;">Itinerario</th>
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px;">Frecuencia</th>
+                                  <th style="padding: 12px; color: var(--text-primary); font-weight: 600; font-size: 13px; text-align: center;">Acción</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (ruta of nuevas_rutas_array.controls; track $index) {
+                                  <tr style="border-bottom: 1px solid var(--border-primary);">
+                                    <td style="padding: 12px; font-weight: bold; color: var(--primary-500);">{{ ruta.get('codigo')?.value }}</td>
+                                    <td style="padding: 12px; color: var(--text-primary);">{{ ruta.get('origen')?.value }}</td>
+                                    <td style="padding: 12px; color: var(--text-primary);">{{ ruta.get('destino')?.value }}</td>
+                                    <td style="padding: 12px; color: var(--text-muted); font-size: 13px;">{{ ruta.get('itinerario')?.value || '-' }}</td>
+                                    <td style="padding: 12px; color: var(--text-primary);">{{ ruta.get('frecuencia')?.value || '-' }}</td>
+                                    <td style="padding: 12px; text-align: center;">
+                                      <button mat-icon-button type="button" color="warn" (click)="eliminarNuevaRuta($index)" style="transform: scale(0.8);">
+                                        <mat-icon>delete</mat-icon>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      </div>
                     </div>
 
                     <div class="alert-renovacion">
                       <mat-icon>info</mat-icon>
-                      <span>Al guardar la Renovación, toda la flota de la resolución anterior <strong>{{ data.nro_resolucion_primigenia }}</strong> pasará a estado <strong>INHABILITADO</strong> y sus observaciones se actualizarán con <strong>"| RENOVADO(N° NUEVA RES)"</strong>.</span>
+                      <span>Al guardar la Renovación, la resolución anterior (<strong>{{ data.nro_resolucion_primigenia }}</strong>), sus rutas y toda su flota pasarán a estado <strong>INHABILITADO / INACTIVO</strong>. Asegúrate de registrar las Nuevas Rutas Autorizadas para esta nueva resolución.</span>
                     </div>
                   </div>
                 }
@@ -371,11 +425,53 @@ export interface VehiculoProcesadoUI {
                         </mat-panel-description>
                       </mat-expansion-panel-header>
 
-                      <!-- EDICIÓN INDIVIDUAL DE LOS 23 CAMPOS TÉCNICOS EN SECCIONES ORGANIZADAS -->
-                      <div class="tech-specs-container">
-                        
-                        <!-- SECCIÓN 1: IDENTIFICACIÓN Y CARACTERIZACIÓN -->
-                        <div class="tech-section">
+                      <!-- CONTENIDO DEL VEHÍCULO (RESUMEN O EDICIÓN) -->
+                      <div class="tech-specs-container" style="position: relative;">
+                        @if (!v.isEditing) {
+                          <div class="summary-view" style="padding: 16px;">
+                            <button mat-icon-button (click)="v.isEditing = true" style="position: absolute; right: 16px; top: 16px; background-color: var(--background-secondary); border-radius: 50%;" title="Editar Vehículo">
+                              <mat-icon class="text-emerald">edit</mat-icon>
+                            </button>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                              <div>
+                                <h4 style="margin: 0 0 8px 0; color: var(--text-muted); font-size: 12px; text-transform: uppercase;">1. Identificación</h4>
+                                <div style="color: var(--text-primary); font-size: 14px; line-height: 1.6;">
+                                  <strong>Placa:</strong> {{ v.placa }} <br>
+                                  <strong>Marca:</strong> {{ v.datos_tecnicos.marca || '-' }} <br>
+                                  <strong>Modelo:</strong> {{ v.datos_tecnicos.modelo || '-' }} <br>
+                                  <strong>Año Fab.:</strong> {{ v.datos_tecnicos.anio_fabricacion || '-' }} <br>
+                                  <strong>Color:</strong> {{ v.datos_tecnicos.color || '-' }}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 style="margin: 0 0 8px 0; color: var(--text-muted); font-size: 12px; text-transform: uppercase;">2. Motor y Serie</h4>
+                                <div style="color: var(--text-primary); font-size: 14px; line-height: 1.6;">
+                                  <strong>Motor:</strong> {{ v.datos_tecnicos.numero_motor || '-' }} <br>
+                                  <strong>Serie:</strong> {{ v.datos_tecnicos.numero_serie || '-' }} <br>
+                                  <strong>VIN:</strong> {{ v.datos_tecnicos.vin || '-' }} <br>
+                                  <strong>Combustible:</strong> {{ v.datos_tecnicos.combustible || '-' }}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 style="margin: 0 0 8px 0; color: var(--text-muted); font-size: 12px; text-transform: uppercase;">3. Capacidades</h4>
+                                <div style="color: var(--text-primary); font-size: 14px; line-height: 1.6;">
+                                  <strong>Cat/Clase:</strong> {{ v.datos_tecnicos.categoria || '-' }} / {{ v.datos_tecnicos.clase || '-' }} <br>
+                                  <strong>Asientos:</strong> {{ v.datos_tecnicos.asientos || '-' }} <br>
+                                  <strong>Pasajeros:</strong> {{ v.datos_tecnicos.pasajeros || '-' }} <br>
+                                  <strong>Peso Bruto/Neto:</strong> {{ v.datos_tecnicos.peso_bruto || '-' }} / {{ v.datos_tecnicos.peso_neto || '-' }}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        } @else {
+                          <div style="text-align: right; padding: 12px 16px 0 0;">
+                            <button mat-flat-button color="primary" (click)="v.isEditing = false">
+                              <mat-icon>check</mat-icon> Confirmar Edición
+                            </button>
+                          </div>
+                          
+                          <!-- SECCIÓN 1: IDENTIFICACIÓN Y CARACTERIZACIÓN -->
+                          <div class="tech-section">
                           <div class="tech-section-title text-cyan">
                             <mat-icon>directions_car</mat-icon>
                             <span>1. Identificación, TUC y Caracterización Vehicular</span>
@@ -561,7 +657,7 @@ export interface VehiculoProcesadoUI {
                             <input matInput [(ngModel)]="v.datos_tecnicos.observaciones" placeholder="Datos de titularidad, SUNARP u observaciones de trámite...">
                           </mat-form-field>
                         </div>
-
+                        }
                       </div>
                     </mat-expansion-panel>
                   }
@@ -588,20 +684,60 @@ export interface VehiculoProcesadoUI {
 
       </div>
     </div>
+
+    <!-- Modal para Agregar Ruta -->
+    <ng-template #addRutaModal>
+      <div class="ruta-modal-container" style="background: var(--background-card); color: var(--text-primary);">
+        <h2 mat-dialog-title style="margin: 0; padding: 16px 24px; background: var(--background-secondary); border-bottom: 1px solid var(--border-primary); font-size: 18px; font-weight: 700; color: var(--text-primary);">
+          Agregar Nueva Ruta
+        </h2>
+        <mat-dialog-content [formGroup]="rutaForm" style="padding: 24px;">
+          <div style="display: grid; grid-template-columns: 80px 1fr 1fr; gap: 16px;">
+            <mat-form-field appearance="outline" floatLabel="always" class="code-field">
+              <mat-label>Código</mat-label>
+              <input matInput formControlName="codigo" readonly>
+            </mat-form-field>
+            <mat-form-field appearance="outline" floatLabel="always">
+              <mat-label>Origen *</mat-label>
+              <input matInput formControlName="origen" placeholder="Ej: PUNO">
+            </mat-form-field>
+            <mat-form-field appearance="outline" floatLabel="always">
+              <mat-label>Destino *</mat-label>
+              <input matInput formControlName="destino" placeholder="Ej: JULIACA">
+            </mat-form-field>
+            <mat-form-field appearance="outline" floatLabel="always" style="grid-column: 1 / -1;">
+              <mat-label>Frecuencia</mat-label>
+              <input matInput formControlName="frecuencia" placeholder="Ej: 04 DIARIAS">
+            </mat-form-field>
+            <mat-form-field appearance="outline" floatLabel="always" style="grid-column: 1 / -1;">
+              <mat-label>Itinerario (Separar por guiones)</mat-label>
+              <textarea matInput formControlName="itinerario" rows="2" placeholder="Ej: PUNO - CARACOTO - JULIACA"></textarea>
+            </mat-form-field>
+          </div>
+        </mat-dialog-content>
+        <mat-dialog-actions align="end" style="padding: 12px 24px; border-top: 1px solid var(--border-primary); margin-bottom: 0; background: var(--background-card);">
+          <button mat-button mat-dialog-close>Cancelar</button>
+          <button mat-flat-button color="primary" (click)="guardarRutaModal()" [disabled]="rutaForm.invalid" style="border-radius: 8px;">
+            <mat-icon>save</mat-icon> Guardar Ruta
+          </button>
+        </mat-dialog-actions>
+      </div>
+    </ng-template>
   `,
   styles: [`
     .tramite-dialog-container {
-      background-color: #0b1329;
-      color: #f8fafc;
+      background-color: var(--background-card);
+      color: var(--text-primary);
       border-radius: 16px;
       overflow: hidden;
       font-family: system-ui, -apple-system, sans-serif;
+      box-shadow: var(--shadow-xl);
     }
 
     .dialog-header {
-      background: linear-gradient(135deg, #1e293b, #0f172a);
+      background: var(--background-secondary);
       padding: 16px 24px;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid var(--border-primary);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -617,38 +753,39 @@ export interface VehiculoProcesadoUI {
       width: 42px;
       height: 42px;
       border-radius: 12px;
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: var(--primary-50);
+      border: 1px solid var(--primary-100);
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .header-icon {
-      font-size: 26px;
-      width: 26px;
-      height: 26px;
-      color: #38bdf8;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: var(--primary-600);
     }
 
     .dialog-header h2 {
       margin: 0;
       font-size: 18px;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--text-primary);
       letter-spacing: -0.02em;
     }
 
     .dialog-subtitle {
       margin: 3px 0 0 0;
       font-size: 12.5px;
-      color: #94a3b8;
+      color: var(--text-secondary);
     }
 
     .dialog-body {
       padding: 16px 24px 24px 24px;
       max-height: 80vh;
       overflow-y: auto;
+      background: var(--background-primary);
     }
 
     .tab-padding {
@@ -657,12 +794,12 @@ export interface VehiculoProcesadoUI {
 
     /* CARD PRIMIGENIA */
     .primigenia-info-card {
-      background: rgba(30, 41, 59, 0.7);
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: var(--background-card);
+      border: 1px solid var(--border-primary);
       border-radius: 14px;
       padding: 18px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: var(--shadow-sm);
     }
 
     .card-header-flex {
@@ -671,7 +808,7 @@ export interface VehiculoProcesadoUI {
       align-items: center;
       margin-bottom: 14px;
       padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid var(--border-primary);
     }
 
     .badge-title {
@@ -680,11 +817,11 @@ export interface VehiculoProcesadoUI {
       gap: 8px;
       font-weight: 700;
       font-size: 14px;
-      color: #e2e8f0;
+      color: #334155;
     }
 
     .icon-blue {
-      color: #38bdf8;
+      color: #0ea5e9;
       font-size: 20px;
       width: 20px;
       height: 20px;
@@ -694,21 +831,21 @@ export interface VehiculoProcesadoUI {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
+      background: #ecfdf5;
+      color: #059669;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
-      border: 1px solid rgba(52, 211, 153, 0.3);
+      border: 1px solid #a7f3d0;
     }
 
     .dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #34d399;
-      box-shadow: 0 0 8px #34d399;
+      background: #10b981;
+      box-shadow: 0 0 6px #34d399;
     }
 
     .card-body-grid {
@@ -725,14 +862,15 @@ export interface VehiculoProcesadoUI {
 
     .info-item .label {
       font-size: 11px;
-      color: #94a3b8;
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
     .info-item .val {
       font-size: 13.5px;
-      color: #f1f5f9;
+      color: #1e293b;
+      font-weight: 600;
     }
 
     .style-full {
@@ -747,9 +885,9 @@ export interface VehiculoProcesadoUI {
     }
 
     .chip-ruta {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #7dd3fc;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      color: #0284c7;
       padding: 3px 10px;
       border-radius: 6px;
       font-size: 11.5px;
@@ -765,13 +903,14 @@ export interface VehiculoProcesadoUI {
     }
 
     .expedientes-container {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid #334155;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #e2e8f0;
       border-radius: 10px;
       padding: 12px 14px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
     .expedientes-header {
@@ -788,21 +927,21 @@ export interface VehiculoProcesadoUI {
       gap: 6px;
       font-size: 12.5px;
       font-weight: 700;
-      color: #38bdf8;
+      color: #0284c7;
     }
 
     .icon-accent {
       font-size: 18px;
       width: 18px;
       height: 18px;
-      color: #38bdf8;
+      color: #0284c7;
     }
 
     .btn-add-exp {
       height: 32px;
       font-size: 11.5px;
-      color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.4);
+      color: #0284c7;
+      border-color: #bae6fd;
       font-weight: 600;
       line-height: 30px;
       padding: 0 10px;
@@ -843,8 +982,8 @@ export interface VehiculoProcesadoUI {
 
     /* RENOVACIÓN BOX */
     .renovacion-box {
-      background: rgba(245, 158, 11, 0.07);
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(254, 243, 199, 0.4);
+      border: 1px solid rgba(245, 158, 11, 0.4);
       border-radius: 12px;
       padding: 16px;
       margin-top: 8px;
@@ -855,7 +994,7 @@ export interface VehiculoProcesadoUI {
       align-items: center;
       gap: 8px;
       font-weight: 700;
-      color: #fbbf24;
+      color: #d97706;
       margin-bottom: 12px;
       font-size: 14px;
     }
@@ -870,9 +1009,9 @@ export interface VehiculoProcesadoUI {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      color: #fca5a5;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 12px;
@@ -894,8 +1033,8 @@ export interface VehiculoProcesadoUI {
 
     /* INSTRUCTION BOX */
     .instruction-box {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px dashed rgba(148, 163, 184, 0.3);
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px dashed #cbd5e1;
       border-radius: 12px;
       padding: 14px 18px;
       margin-bottom: 16px;
@@ -907,7 +1046,7 @@ export interface VehiculoProcesadoUI {
       gap: 8px;
       font-size: 13.5px;
       font-weight: 700;
-      color: #cbd5e1;
+      color: #334155;
       margin-bottom: 6px;
     }
 
@@ -917,11 +1056,11 @@ export interface VehiculoProcesadoUI {
     }
 
     .inst-format code {
-      background: #1e293b;
+      background: #f1f5f9;
       padding: 2px 8px;
       border-radius: 6px;
-      color: #38bdf8;
-      border: 1px solid #334155;
+      color: #0284c7;
+      border: 1px solid #e2e8f0;
     }
 
     .process-actions {
@@ -945,13 +1084,13 @@ export interface VehiculoProcesadoUI {
       gap: 8px;
       font-size: 14px;
       font-weight: 700;
-      color: #f1f5f9;
+      color: #1e293b;
       margin-bottom: 14px;
     }
 
     .btn-gen-all-tuc {
-      border-color: rgba(56, 189, 248, 0.5);
-      color: #38bdf8;
+      border-color: #bae6fd;
+      color: #0284c7;
       font-weight: 700;
     }
 
@@ -964,16 +1103,17 @@ export interface VehiculoProcesadoUI {
     }
 
     .vehiculo-panel {
-      background: #1e293b !important;
-      border: 1px solid #334155;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0;
       border-radius: 12px !important;
       overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important;
     }
 
     .placa-badge {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #f8fafc;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
       padding: 4px 10px;
       border-radius: 6px;
       font-weight: 800;
@@ -982,9 +1122,9 @@ export interface VehiculoProcesadoUI {
     }
 
     .sustituye-tag {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #fbbf24;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #d97706;
       padding: 2px 8px;
       border-radius: 6px;
       font-size: 11px;
@@ -996,8 +1136,8 @@ export interface VehiculoProcesadoUI {
       padding: 2px 8px;
       border-radius: 6px;
       font-weight: 700;
-      background: rgba(148, 163, 184, 0.15);
-      color: #94a3b8;
+      background: #f1f5f9;
+      color: #64748b;
       border: 1px solid rgba(148, 163, 184, 0.3);
     }
 
@@ -1110,7 +1250,7 @@ export interface VehiculoProcesadoUI {
       justify-content: flex-end;
       gap: 12px;
       padding-top: 16px;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid #e2e8f0;
       margin-top: 20px;
     }
 
@@ -1124,13 +1264,108 @@ export interface VehiculoProcesadoUI {
     }
 
     /* UTILITY COLORS */
-    .text-cyan { color: #38bdf8; }
-    .text-emerald { color: #34d399; }
-    .text-amber { color: #fbbf24; }
-    .text-purple { color: #c084fc; }
+    .text-cyan { color: #0284c7; }
+    .text-emerald { color: #059669; }
+    .text-amber { color: #d97706; }
+    .text-purple { color: #9333ea; }
     .text-muted { color: #64748b; }
     .font-mono { font-family: monospace, monospace; }
     .font-bold { font-weight: 800; }
+
+    /* OVERRIDE AUTOFILL BACKGROUNDS */
+    ::ng-deep .tramite-dialog-container input:-webkit-autofill,
+    ::ng-deep .tramite-dialog-container input:-webkit-autofill:hover, 
+    ::ng-deep .tramite-dialog-container input:-webkit-autofill:focus, 
+    ::ng-deep .tramite-dialog-container input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+        -webkit-text-fill-color: #1e293b !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+    ::ng-deep .tramite-dialog-container .mat-mdc-tab .mdc-tab__text-label {
+      color: #475569 !important;
+      font-weight: 600;
+    }
+    ::ng-deep .tramite-dialog-container .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+      color: #0ea5e9 !important;
+      font-weight: 800;
+    }
+
+    /* FIX DROP-DOWN MENU (SELECT PANEL) DARK THEME */
+    ::ng-deep .light-select-panel {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+      padding: 4px;
+    }
+    ::ng-deep .light-select-panel .mat-mdc-option,
+    ::ng-deep .light-select-panel .mat-mdc-option .mdc-list-item__primary-text {
+      color: #1e293b !important;
+      font-size: 13.5px !important;
+    }
+    ::ng-deep .light-select-panel .mat-mdc-option {
+      border-radius: 8px !important;
+      margin: 2px 4px !important;
+      min-height: 40px !important;
+    }
+    ::ng-deep .light-select-panel .mat-mdc-option:hover,
+    ::ng-deep .light-select-panel .mat-mdc-option:focus,
+    ::ng-deep .light-select-panel .mat-mdc-option.mdc-list-item--active,
+    ::ng-deep .light-select-panel .mat-mdc-option:hover .mdc-list-item__primary-text,
+    ::ng-deep .light-select-panel .mat-mdc-option:focus .mdc-list-item__primary-text,
+    ::ng-deep .light-select-panel .mat-mdc-option.mdc-list-item--active .mdc-list-item__primary-text {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    ::ng-deep .light-select-panel .mat-mdc-option.mdc-list-item--selected,
+    ::ng-deep .light-select-panel .mat-mdc-option.mdc-list-item--selected .mdc-list-item__primary-text {
+      background-color: #e0f2fe !important;
+      color: #0284c7 !important;
+      font-weight: 700 !important;
+    }
+    ::ng-deep .light-select-panel .mat-mdc-option .mat-pseudo-checkbox {
+      display: none !important;
+    }
+
+    .ruta-item-row {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px 4px 16px;
+    }
+    .ruta-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+    .ruta-number {
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-del-ruta {
+      transform: scale(0.8);
+      margin: -8px -8px -8px 0;
+    }
+    .ruta-fields-grid {
+      display: grid;
+      grid-template-columns: 80px 1fr 1fr 1fr;
+      gap: 0px 12px;
+    }
+    .ruta-fields-grid .itinerario-field {
+      grid-column: 1 / -1;
+    }
+    
+    .code-field input {
+      text-align: center;
+      font-weight: bold;
+      color: #0ea5e9;
+    }
   `]
 })
 export class FormTramitePrimigeniaDialogComponent implements OnInit {
@@ -1138,6 +1373,10 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
   formEtapa1!: FormGroup;
   lineasInputControl = new FormControl('', { nonNullable: true });
   expedientes: ExpedienteItem[] = [{ numero: '', fecha: '' }];
+  
+  @ViewChild('addRutaModal') addRutaModal!: TemplateRef<any>;
+  rutaForm!: FormGroup;
+
   
   processing = signal(false);
   saving = signal(false);
@@ -1151,7 +1390,8 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
     private fb: FormBuilder,
     private flotaService: FlotaEmpresaService,
     private http: HttpClient,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private matDialog: MatDialog
   ) {}
 
   // --------------------------------------------------------------------------
@@ -1241,12 +1481,49 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
       nro_resolucion_hija: [''],
       fecha_emision_resolucion: [''],
       
-      // Renovación
       nueva_resolucion_primigenia: [''],
       nueva_fecha_emision: [''],
       nueva_fecha_inicio_vigencia: [''],
       nueva_fecha_fin_vigencia: [''],
-      nuevas_rutas_str: [(this.data.rutas || []).join(', ')]
+      nuevas_rutas_array: this.fb.array([])
+    });
+
+    this.rutaForm = this.fb.group({
+      codigo: ['', Validators.required],
+      origen: ['', Validators.required],
+      destino: ['', Validators.required],
+      itinerario: [''],
+      frecuencia: ['']
+    });
+
+    this.onTipoTramiteChange();
+  }
+
+  get nuevas_rutas_array(): FormArray {
+    return this.formEtapa1.get('nuevas_rutas_array') as FormArray;
+  }
+
+  rutaDialogRef: any;
+
+  abrirModalRuta(): void {
+    const nextCode = (this.nuevas_rutas_array.length + 1).toString().padStart(2, '0');
+    this.rutaForm.reset({ codigo: nextCode });
+    this.rutaDialogRef = this.matDialog.open(this.addRutaModal, { width: '500px', panelClass: 'custom-dialog-container' });
+  }
+
+  guardarRutaModal(): void {
+    if (this.rutaForm.invalid) return;
+    this.nuevas_rutas_array.push(this.fb.group(this.rutaForm.value));
+    if (this.rutaDialogRef) {
+      this.rutaDialogRef.close();
+    }
+  }
+
+  eliminarNuevaRuta(index: number): void {
+    this.nuevas_rutas_array.removeAt(index);
+    // Recalcular códigos para mantener consistencia
+    this.nuevas_rutas_array.controls.forEach((ctrl, idx) => {
+      ctrl.get('codigo')?.setValue((idx + 1).toString().padStart(2, '0'));
     });
   }
 
@@ -1334,6 +1611,15 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
       this.formEtapa1.patchValue({ tipo_resolucion_hija: mapTipo[tipo] });
       this.onTipoResolucionHijaChange(mapTipo[tipo]);
     }
+    
+    // Validaciones dinámicas
+    const ctrlRenovacion = this.formEtapa1.get('nueva_resolucion_primigenia');
+    if (tipo === 'RENOVACION') {
+      ctrlRenovacion?.setValidators([Validators.required]);
+    } else {
+      ctrlRenovacion?.clearValidators();
+    }
+    ctrlRenovacion?.updateValueAndValidity();
   }
 
   onCategoriaChange(v: VehiculoProcesadoUI, newCat: string): void {
@@ -1554,9 +1840,17 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
     this.saving.set(true);
     const valEtapa1 = this.formEtapa1.getRawValue();
 
-    const nuevasRutasArr = valEtapa1.nuevas_rutas_str
-      ? valEtapa1.nuevas_rutas_str.split(',').map((s: string) => s.trim().toUpperCase()).filter(Boolean)
+    const nuevas_rutas_detalle = valEtapa1.nuevas_rutas_array && valEtapa1.nuevas_rutas_array.length > 0
+      ? valEtapa1.nuevas_rutas_array.map((r: any) => ({
+          codigo: r.codigo?.trim().toUpperCase() || '',
+          origen: r.origen?.trim().toUpperCase() || '',
+          destino: r.destino?.trim().toUpperCase() || '',
+          itinerario: r.itinerario?.trim().toUpperCase() || '',
+          frecuencia: r.frecuencia?.trim().toUpperCase() || ''
+        }))
       : [];
+
+    const nuevasRutasArr = nuevas_rutas_detalle.map((r: any) => r.codigo);
 
     const numExpedientesStr = this.expedientes
       .map(e => (e.numero || '').trim())
@@ -1564,7 +1858,10 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
       .join(', ');
 
     const fechasExpedientesStr = this.expedientes
-      .map(e => (e.fecha || '').trim())
+      .map(e => {
+        if (!e.fecha) return '';
+        return ((e.fecha as any) instanceof Date) ? (e.fecha as any).toISOString().split('T')[0] : String(e.fecha).trim();
+      })
       .filter(Boolean)
       .join(', ');
 
@@ -1585,6 +1882,7 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
       nueva_fecha_inicio_vigencia: valEtapa1.nueva_fecha_inicio_vigencia ? new Date(valEtapa1.nueva_fecha_inicio_vigencia).toISOString() : undefined,
       nueva_fecha_fin_vigencia: valEtapa1.nueva_fecha_fin_vigencia ? new Date(valEtapa1.nueva_fecha_fin_vigencia).toISOString() : undefined,
       nuevas_rutas: nuevasRutasArr,
+      nuevas_rutas_detalle: nuevas_rutas_detalle,
 
       vehiculos: items.map(v => ({
         placa: v.placa,

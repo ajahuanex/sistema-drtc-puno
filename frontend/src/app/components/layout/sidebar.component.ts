@@ -34,23 +34,10 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </div>
         }
         
-        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Dashboard' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard</span> }
-        </a>
-
-        <a mat-list-item routerLink="/empresas" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Empresas' : ''" matTooltipPosition="right">
+        <a mat-list-item routerLink="/empresas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Empresas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Empresas</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('empresas')" (click)="toggleGroup('empresas', $event)">chevron_right</mat-icon> }
         </a>
-
-        @if (isExpanded() && expandedGroups().has('empresas')) {
-          <a mat-list-item routerLink="/empresas/dashboard" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Dashboard Empresas' : ''" matTooltipPosition="right">
-            <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
-            @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard Empresas</span> }
-          </a>
-        }
 
         <a mat-list-item routerLink="/infraestructura" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Infraestructura' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'location_city'" [size]="24" class="nav-icon"></app-smart-icon>
@@ -196,18 +183,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
 
         @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
-        @if (isExpanded()) {
-          <div class="nav-section">
-            <h3 class="section-title">Reportes</h3>
-          </div>
-        }
 
-        <a mat-list-item routerLink="/reportes" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Reportes' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'assessment'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Reportes</span> }
-        </a>
-
-        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
         @if (isExpanded()) {
           <div class="nav-section">

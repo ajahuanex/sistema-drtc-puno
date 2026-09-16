@@ -321,7 +321,7 @@ export class CargaMasivaResolucionesPadresComponent implements OnInit {
                   panelClass: ['snackbar-success']
                 }
               ).onAction().subscribe(() => {
-                this.router.navigate(['/dashboard/resoluciones']);
+                this.router.navigate(['/resoluciones']);
               });
             } else {
               throw new Error('Respuesta de procesamiento inválida');

@@ -106,8 +106,8 @@ export interface ColumnasState {
             <div class="empresas-catalog-container">
               <div class="catalog-header-bar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
                 <div>
-                  <h3 style="margin:0;font-size:18px;font-weight:700;color:#1e293b;">Catálogo de Empresas de Transporte</h3>
-                  <p style="margin:2px 0 0;font-size:13px;color:#64748b;">Selecciona una empresa para gestionar y consultar su flota habilitada</p>
+                  <h3 style="margin:0;font-size:18px;font-weight:700;color:#1e293b;">Directorio de Empresas</h3>
+                  <p style="margin:2px 0 0;font-size:13px;color:#64748b;">Selecciona una empresa para ver su flota</p>
                 </div>
                 <mat-form-field appearance="outline" style="min-width:280px;" subscriptSizing="dynamic">
                   <mat-icon matPrefix>search</mat-icon>
@@ -176,100 +176,90 @@ export interface ColumnasState {
           } @else {
             <!-- BARRA DE NAVEGACIÓN Y DETALLE DE LA EMPRESA SELECCIONADA -->
             <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-              <button mat-stroked-button (click)="limpiarEmpresaSeleccionada()" style="background:#fff;border-color:#cbd5e1;font-weight:600;color:#334155;">
-                <mat-icon style="color:#2563eb;">arrow_back</mat-icon> Volver a la Lista de Empresas
+              <button mat-stroked-button (click)="limpiarEmpresaSeleccionada()" style="background:#fff;border-color:#cbd5e1;font-weight:600;color:#334155;border-radius:10px;">
+                <mat-icon style="color:#2563eb;">arrow_back</mat-icon> <span class="hide-on-mobile">Volver</span>
               </button>
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="font-size:13.5px;font-weight:700;color:#334155;background:#f8fafc;padding:6px 14px;border-radius:10px;border:1px solid #e2e8f0;">
                   Empresa activa: <strong style="color:#1e1b4b;">{{ razonSocialEmpresa() }}</strong> <span style="color:#2563eb;font-family:monospace;margin-left:4px;">(RUC: {{ empresaSearchControl.value }})</span>
                 </span>
-                <button mat-raised-button color="primary" (click)="abrirCrearVehiculo()" style="font-weight:700;border-radius:10px;padding:4px 14px;height:38px;">
-                  <mat-icon>add_circle</mat-icon> Registrar Vehículo
-                </button>
               </div>
             </div>
 
-            <!-- CUADRITO 1: INFORMACIÓN DE LA EMPRESA -->
-            <div class="empresa-info-card glass-panel" style="margin-bottom:16px;border-radius:14px;padding:18px 22px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
-                    <mat-icon style="color:#2563eb;font-size:20px;width:20px;height:20px;">business</mat-icon>
-                  </div>
-                  <div>
-                    <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Ficha Informativa de la Empresa</h3>
-                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Datos principales del registro de transporte</p>
-                  </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  @if (estadisticas()) {
-                    <span class="stat-pill hab-pill" style="font-size:11px;padding:3px 10px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700;">
-                      <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;">check_circle</mat-icon> {{ estadisticas()!.habilitados }} Hab.
-                    </span>
-                  }
-                  <span class="ruc-badge" style="font-size:12px;padding:4px 10px;background:#1e1b4b;color:#fff;">
-                    RUC: {{ empresaSearchControl.value }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- DATOS OFICIALES DE LA EMPRESA -->
-              <div class="empresa-info-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;background:rgba(248,250,252,0.9);padding:14px 16px;border-radius:10px;border:1px solid #e2e8f0;">
-                <div class="info-block">
-                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Representante Legal</div>
-                  <div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px;">
-                    {{ getRepresentanteLegalNombre(empresaDetalle()) }}
-                    @if (getRepresentanteLegalDni(empresaDetalle())) {
-                      <span style="font-size:11px;color:#475569;font-weight:600;"> (DNI: {{ getRepresentanteLegalDni(empresaDetalle()) }})</span>
-                    }
-                  </div>
-                </div>
-                <div class="info-block">
-                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Teléfono / Contacto</div>
-                  <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getTelefonoEmpresa(empresaDetalle()) }}</div>
-                </div>
-                <div class="info-block">
-                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Correo Electrónico</div>
-                  <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getEmailEmpresa(empresaDetalle()) }}</div>
-                </div>
-                <div class="info-block" style="grid-column: 1 / -1;">
-                  <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Dirección Fiscal</div>
-                  <div style="font-size:13px;font-weight:500;color:#334155;margin-top:2px;display:flex;align-items:center;gap:4px;">
-                    <mat-icon style="font-size:14px;width:14px;height:14px;color:#e11d48;">place</mat-icon>
-                    {{ getDireccionEmpresa(empresaDetalle()) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- CUADRITO 2: RESOLUCIONES PRIMIGENIAS Y RUTAS (CORTINA DESPLEGABLE) -->
-            <div class="rutas-primigenias-card glass-panel" style="margin-bottom:16px;border-radius:14px;padding:14px 20px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);">
-              <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" (click)="toggleRutasPrimigenias()">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;">
-                    <mat-icon style="color:#10b981;font-size:20px;width:20px;height:20px;">route</mat-icon>
-                  </div>
-                  <div>
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                      <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Resoluciones Autoritativas Primigenias y Rutas</h3>
-                      <span class="stat-pill total-pill" style="font-size:11px;padding:2px 10px;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;">
-                        {{ rutasPorPrimigenia().length }} Autorización(es)
+            <!-- CUADRITO 1: INFORMACIÓN DE LA EMPRESA (CORTINA DESPLEGABLE) -->
+            <mat-accordion class="rutas-primigenias-accordion" multi>
+              <mat-expansion-panel style="margin-bottom:16px;border-radius:14px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);" [expanded]="false">
+                <mat-expansion-panel-header style="height:auto;padding:14px 20px;">
+                  <mat-panel-title style="display:flex;align-items:center;justify-content:space-between;width:100%;margin:0;padding-right:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+                        <mat-icon style="color:#2563eb;font-size:20px;width:20px;height:20px;">business</mat-icon>
+                      </div>
+                      <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Datos de la Empresa</h3>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;" (click)="$event.stopPropagation()">
+                      @if (estadisticas()) {
+                        <span class="stat-pill hab-pill hide-on-mobile" style="font-size:11px;padding:3px 10px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700;">
+                          <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle;">check_circle</mat-icon> {{ estadisticas()!.habilitados }} Hab.
+                        </span>
+                      }
+                      <span class="ruc-badge" style="font-size:12px;padding:4px 10px;background:#1e1b4b;color:#fff;">
+                        RUC: {{ empresaSearchControl.value }}
                       </span>
                     </div>
-                    <p style="margin:2px 0 0;font-size:12px;color:#64748b;">
-                      {{ rutasPrimigeniasAbiertas() ? 'Haz clic para contraer esta sección' : 'Haz clic para desplegar vigencias, rutas y desglose por resolución primigenia' }}
-                    </p>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+
+                <!-- DATOS OFICIALES DE LA EMPRESA -->
+                <div class="empresa-info-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:12px;background:rgba(248,250,252,0.9);padding:14px 16px;border-radius:10px;border:1px solid #e2e8f0;margin-top:10px;">
+                  <div class="info-block">
+                    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Representante Legal</div>
+                    <div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px;">
+                      {{ getRepresentanteLegalNombre(empresaDetalle()) }}
+                      @if (getRepresentanteLegalDni(empresaDetalle())) {
+                        <span style="font-size:11px;color:#475569;font-weight:600;"> (DNI: {{ getRepresentanteLegalDni(empresaDetalle()) }})</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="info-block">
+                    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Teléfono / Contacto</div>
+                    <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getTelefonoEmpresa(empresaDetalle()) }}</div>
+                  </div>
+                  <div class="info-block">
+                    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Correo Electrónico</div>
+                    <div style="font-size:13px;font-weight:600;color:#334155;margin-top:2px;">{{ getEmailEmpresa(empresaDetalle()) }}</div>
+                  </div>
+                  <div class="info-block" style="grid-column: 1 / -1;">
+                    <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Dirección Fiscal</div>
+                    <div style="font-size:13px;font-weight:500;color:#334155;margin-top:2px;display:flex;align-items:center;gap:4px;">
+                      <mat-icon style="font-size:14px;width:14px;height:14px;color:#e11d48;">place</mat-icon>
+                      {{ getDireccionEmpresa(empresaDetalle()) }}
+                    </div>
                   </div>
                 </div>
-                <button mat-icon-button type="button" style="color:#475569;" [matTooltip]="rutasPrimigeniasAbiertas() ? 'Ocultar autorizaciones' : 'Ver autorizaciones y rutas'">
-                  <mat-icon style="transition:transform 0.3s;" [style.transform]="rutasPrimigeniasAbiertas() ? 'rotate(180deg)' : 'rotate(0deg)'">
-                    expand_more
-                  </mat-icon>
-                </button>
-              </div>
+              </mat-expansion-panel>
+            </mat-accordion>
 
-              @if (rutasPrimigeniasAbiertas()) {
-                <div class="prim-rutas-grid animate-fade-in" style="margin-top:14px;display:flex;flex-direction:column;gap:14px;">
+            <!-- CUADRITO 2: RESOLUCIONES PRIMIGENIAS Y RUTAS (CORTINA DESPLEGABLE) -->
+            <mat-accordion class="rutas-primigenias-accordion" multi>
+              <mat-expansion-panel style="margin-bottom:16px;border-radius:14px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);" [expanded]="rutasPrimigeniasAbiertas()" (opened)="rutasPrimigeniasAbiertas.set(true)" (closed)="rutasPrimigeniasAbiertas.set(false)">
+                <mat-expansion-panel-header style="height:auto;padding:14px 20px;">
+                  <mat-panel-title style="display:flex;align-items:center;justify-content:space-between;width:100%;margin:0;padding-right:16px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;">
+                        <mat-icon style="color:#10b981;font-size:20px;width:20px;height:20px;">route</mat-icon>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <h3 style="margin:0;font-size:15px;font-weight:800;color:#1e293b;">Autorizaciones y Rutas</h3>
+                        <span class="stat-pill total-pill hide-on-mobile" style="font-size:11px;padding:2px 10px;background:#f8fafc;color:#475569;border:1px solid #cbd5e1;">
+                          {{ rutasPorPrimigenia().length }} Autorización(es)
+                        </span>
+                      </div>
+                    </div>
+                  </mat-panel-title>
+                </mat-expansion-panel-header>
+
+                <div class="prim-rutas-grid" style="display:flex;flex-direction:column;gap:14px;padding-top:10px;">
                   @for (item of rutasPorPrimigenia(); track item.primigenia) {
                     <div class="prim-ruta-card" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;">
                       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
@@ -277,13 +267,9 @@ export interface ColumnasState {
                           {{ formatResolucionCode(item.primigenia) }}
                         </span>
                         <div style="display:flex;align-items:center;gap:8px;">
-                          <button mat-flat-button color="primary" style="font-size:11.5px;height:30px;line-height:30px;padding:0 10px;border-radius:8px;font-weight:700;" (click)="abrirCrearVehiculo(item.primigenia)" [matTooltip]="'Registrar vehículo asignado a la resolución ' + item.primigenia">
-                            <mat-icon style="font-size:15px;width:15px;height:15px;margin-right:4px;">add_circle</mat-icon>
-                            Registrar Vehículo
-                          </button>
-                          <button mat-flat-button style="font-size:11.5px;height:30px;line-height:30px;padding:0 10px;border-radius:8px;font-weight:700;background:#0284c7;color:#fff;" (click)="abrirTramitePrimigenia(item)" [matTooltip]="'Procesar Trámite (Sustitución, Renovación, Duplicado, Canje) para ' + item.primigenia">
-                            <mat-icon style="font-size:15px;width:15px;height:15px;margin-right:4px;">assignment</mat-icon>
-                            Trámite por Res. Primigenia
+                          <button mat-flat-button style="font-size:11px;height:26px;line-height:26px;padding:0 10px;border-radius:6px;font-weight:700;background:#0ea5e9;color:#fff;box-shadow:0 2px 4px rgba(14,165,233,0.2);" (click)="abrirTramitePrimigenia(item)" matTooltip="Procesar Trámite para esta Resolución">
+                            <mat-icon style="font-size:14px;width:14px;height:14px;margin-right:4px;">assignment</mat-icon>
+                            <span>Trámite</span>
                           </button>
                           <span class="status-pill"
                                 [class.status-habilitado]="item.estado === 'VIGENTE' || item.estado === 'ACTIVA'"
@@ -317,7 +303,7 @@ export interface ColumnasState {
                           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;padding-top:4px;border-top:1px solid #e2e8f0;">
                             <span style="font-weight:700;color:#16a34a;background:#f0fdf4;padding:2px 8px;border-radius:12px;font-size:11px;border:1px solid #bbf7d0;display:inline-flex;align-items:center;gap:3px;">
                               <mat-icon style="font-size:13px;width:13px;height:13px;">check_circle</mat-icon>
-                              Flota Habilitada: {{ item.countHabilitados }}
+                              Habilitados: {{ item.countHabilitados }}
                             </span>
                             @if (item.countInhabilitados > 0) {
                               <span style="font-weight:700;color:#dc2626;background:#fef2f2;padding:2px 8px;border-radius:12px;font-size:11px;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:3px;">
@@ -331,26 +317,52 @@ export interface ColumnasState {
                         <!-- RUTAS DESGLOSADAS -->
                         <div style="flex:2;min-width:300px;">
                           <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">
-                            Rutas autorizadas en el módulo de rutas ({{ item.rutasArray.length }}):
+                            Rutas ({{ item.rutasArray.length }}):
                           </div>
-                          <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                            @for (r of item.rutasArray; track r) {
-                              <span class="ruta-chip" style="font-size:11px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border-radius:6px;background:#f0f9ff;color:#0284c7;border:1px solid #bae6fd;" [matTooltip]="getRutaInfoTooltip(r, item.primigenia)">
-                                <mat-icon style="font-size:14px;width:14px;height:14px;">alt_route</mat-icon>
-                                {{ getRutaNombreCompleto(r, item.primigenia) }}
-                              </span>
-                            }
-                            @if (!item.rutasArray.length) {
-                              <span style="font-size:11px;color:#94a3b8;font-style:italic;">Sin rutas registradas</span>
-                            }
-                          </div>
+                          @if (item.rutasArray.length > 0) {
+                            <div style="margin-top:8px;overflow-x:auto;">
+                              <table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);border:1px solid #e2e8f0;">
+                                <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+                                  <tr>
+                                    <th style="padding:6px 10px;color:#64748b;font-weight:700;text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.04em;">Cód.</th>
+                                    <th style="padding:6px 10px;color:#64748b;font-weight:700;text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.04em;">Origen</th>
+                                    <th style="padding:6px 10px;color:#64748b;font-weight:700;text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.04em;">Itinerario</th>
+                                    <th style="padding:6px 10px;color:#64748b;font-weight:700;text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.04em;">Destino</th>
+                                    <th style="padding:6px 10px;color:#64748b;font-weight:700;text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.04em;">Frecuencia</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (r of item.rutasArray; track r) {
+                                    @if (getRutaObject(r, item.primigenia); as rutaObj) {
+                                      <tr style="border-bottom:1px solid #f1f5f9;">
+                                        <td style="padding:6px 10px;color:#0ea5e9;font-weight:800;">{{ rutaObj.codigoRuta || r }}</td>
+                                        <td style="padding:6px 10px;font-weight:700;color:#1e293b;">{{ rutaObj.origen?.nombre || '-' }}</td>
+                                        <td style="padding:6px 10px;color:#64748b;font-size:10px;max-width:200px;white-space:normal;line-height:1.3;" [title]="formatItinerario(rutaObj.itinerario)">{{ formatItinerario(rutaObj.itinerario) }}</td>
+                                        <td style="padding:6px 10px;font-weight:700;color:#1e293b;">{{ rutaObj.destino?.nombre || '-' }}</td>
+                                        <td style="padding:6px 10px;color:#475569;">{{ rutaObj.frecuencia?.descripcion || rutaObj.frecuencia?.tipo || '-' }}</td>
+                                      </tr>
+                                    } @else {
+                                      <tr style="border-bottom:1px solid #f1f5f9;">
+                                        <td style="padding:6px 10px;color:#0ea5e9;font-weight:800;">{{ r }}</td>
+                                        <td colspan="4" style="padding:6px 10px;color:#94a3b8;font-style:italic;">Información detallada no encontrada en la BD de Rutas</td>
+                                      </tr>
+                                    }
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          } @else {
+                            <div style="margin-top:8px;">
+                              <span style="font-size:11px;color:#94a3b8;font-style:italic;">Sin rutas asignadas</span>
+                            </div>
+                          }
                         </div>
                       </div>
                     </div>
                   }
                 </div>
-              }
-            </div>
+              </mat-expansion-panel>
+            </mat-accordion>
 
             <!-- FILTROS Y SELECTOR DE PRIMIGENIAS POR TABS -->
             @if (primigeniasDisponibles().length > 1) {
@@ -368,50 +380,45 @@ export interface ColumnasState {
               </div>
             }
 
-            <div class="glass-filters">
-              <div class="filters-bar">
-                <div class="search-and-toggle">
-                  <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-                    <mat-icon matPrefix class="search-icon">search</mat-icon>
-                    <input matInput [formControl]="searchControl" placeholder="Buscar placa, TUC, resolución...">
-                    @if (searchControl.value) {
-                      <button mat-icon-button matSuffix (click)="searchControl.setValue('')">
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    }
-                  </mat-form-field>
+            <div class="modern-filters-bar glass-panel animate-fade-in" style="margin-bottom:16px;">
+              <div class="modern-search-input-wrapper">
+                <mat-icon class="search-icon">search</mat-icon>
+                <input [formControl]="searchControl" placeholder="Buscar por placa, TUC, resolución o expediente..." class="modern-search-input">
+                @if (searchControl.value) {
+                  <button mat-icon-button (click)="searchControl.setValue('')" class="clear-btn">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                }
+              </div>
+              
+              <div class="modern-filters-options">
+                <div class="modern-select-wrapper">
+                  <select [formControl]="estadoControl" class="modern-select">
+                    <option value="">Estado: Todos</option>
+                    <option value="HABILITADO">Habilitado</option>
+                    <option value="INHABILITADO">Inhabilitado</option>
+                    <option value="OBSERVADO">Observado</option>
+                    <option value="CANCELADO">Cancelado</option>
+                    <option value="SUSPENDIDO">Suspendido</option>
+                  </select>
+                  <mat-icon class="select-icon">expand_more</mat-icon>
+                </div>
+                
+                <div class="modern-select-wrapper">
+                  <select [formControl]="tipoHijaControl" class="modern-select">
+                    <option value="">Trámite: Todos</option>
+                    <option value="I">Incremento</option>
+                    <option value="S">Sustitución</option>
+                    <option value="M">Modificación</option>
+                    <option value="O">Otros</option>
+                    <option value="C">Cancelación</option>
+                  </select>
+                  <mat-icon class="select-icon">expand_more</mat-icon>
                 </div>
 
-                <!-- Filtros de estado rápidos -->
-                <div class="collapsible-filters show">
-                  <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
-                    <mat-label>Estado</mat-label>
-                    <mat-select [formControl]="estadoControl">
-                      <mat-option value="">Todos los estados</mat-option>
-                      <mat-option value="HABILITADO">Habilitado</mat-option>
-                      <mat-option value="INHABILITADO">Inhabilitado</mat-option>
-                      <mat-option value="OBSERVADO">Observado</mat-option>
-                      <mat-option value="CANCELADO">Cancelado</mat-option>
-                      <mat-option value="SUSPENDIDO">Suspendido</mat-option>
-                    </mat-select>
-                  </mat-form-field>
-
-                  <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
-                    <mat-label>Tipo Res. Hija</mat-label>
-                    <mat-select [formControl]="tipoHijaControl">
-                      <mat-option value="">Todos</mat-option>
-                      <mat-option value="I">I - Incremento</mat-option>
-                      <mat-option value="S">S - Sustitución</mat-option>
-                      <mat-option value="M">M - Modificación</mat-option>
-                      <mat-option value="O">O - Otros</mat-option>
-                      <mat-option value="C">C - Cancelación</mat-option>
-                    </mat-select>
-                  </mat-form-field>
-
-                  <!-- BOTÓN CONFIGURACIÓN DE COLUMNAS -->
-                  <button mat-stroked-button [matMenuTriggerFor]="colsMenu" class="filter-action-btn" style="background:#fff;border-color:#cbd5e1;">
-                    <mat-icon style="color:#475569;">view_column</mat-icon> Columnas
-                  </button>
+                <button mat-stroked-button [matMenuTriggerFor]="colsMenu" class="modern-action-btn">
+                  <mat-icon>view_column</mat-icon> <span class="hide-on-mobile">Columnas</span>
+                </button>
 
                   <mat-menu #colsMenu="matMenu" class="cols-menu-panel">
                     <div style="padding:8px 16px;font-weight:800;font-size:11px;color:#64748b;letter-spacing:0.05em;">CONFIGURACIÓN DE COLUMNAS</div>
@@ -464,14 +471,12 @@ export interface ColumnasState {
                   </mat-menu>
 
                   @if (searchControl.value || estadoControl.value || tipoHijaControl.value || primigeniaFiltro()) {
-                    <button mat-button (click)="limpiarFiltros(); primigeniaFiltro.set('')" class="filter-action-btn btn-reset">
+                    <button mat-button (click)="limpiarFiltros(); primigeniaFiltro.set('')" class="modern-action-btn" style="color:#dc2626;border-color:#fca5a5;">
                       <mat-icon>filter_alt_off</mat-icon> Limpiar
                     </button>
                   }
                 </div>
-              </div>
             </div>
-
             <!-- BARRA DE ACCIÓN MULTI-SELECCIÓN -->
             @if (selectedIds().size > 0) {
               <div class="bulk-action-bar animate-fade-in" style="background:linear-gradient(135deg, #1e1b4b, #312e81);color:#fff;padding:12px 20px;border-radius:12px;margin-bottom:12px;display:flex;align-items:center;justify-space:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 4px 14px rgba(30,27,75,0.25);">
@@ -1247,6 +1252,24 @@ export class VehiculosEmpresaComponent implements OnInit {
     return `Ruta ${codigoRuta}`;
   }
 
+  getRutaObject(codigoRuta: string, primigenia?: string): any {
+    const cod = (codigoRuta || '').trim().toUpperCase();
+    const map = this.rutasOficialesMap();
+    if (primigenia) {
+      const primKey = `${primigenia.trim().toUpperCase()}_${cod}`;
+      if (map.has(primKey)) return map.get(primKey);
+    }
+    if (map.has(cod)) {
+      return map.get(cod);
+    }
+    return null;
+  }
+
+  formatItinerario(itinerario: any): string {
+    if (!itinerario || !Array.isArray(itinerario)) return '-';
+    return itinerario.map(i => i.nombre || '').filter(Boolean).join(' - ');
+  }
+
   getRutaInfoTooltip(codigoRuta: string, primigenia?: string): string {
     const cod = (codigoRuta || '').trim().toUpperCase();
     const map = this.rutasOficialesMap();
@@ -1651,6 +1674,18 @@ export class VehiculosEmpresaComponent implements OnInit {
     const ruc = this.empresaSearchControl.value?.trim() || '';
     const razonSocial = this.razonSocialEmpresa();
 
+    if (!item) {
+      const activas = this.rutasPorPrimigenia().filter(r => r.estado === 'VIGENTE' || r.estado === 'ACTIVA');
+      if (activas.length > 0) {
+        item = activas[0];
+      } else if (this.rutasPorPrimigenia().length > 0) {
+        item = this.rutasPorPrimigenia()[0];
+      } else {
+        this.snackBar.open('No hay resoluciones registradas para tramitar', 'Ok', { duration: 3000 });
+        return;
+      }
+    }
+
     const dialogRef = this.dialog.open(FormTramitePrimigeniaDialogComponent, {
       data: {
         ruc: ruc,
@@ -1664,7 +1699,7 @@ export class VehiculosEmpresaComponent implements OnInit {
       width: '980px',
       maxWidth: '96vw',
       maxHeight: '92vh',
-      panelClass: 'dark-dialog-panel'
+      panelClass: 'glass-dialog-panel'
     });
 
     dialogRef.afterClosed().subscribe((processed: boolean) => {

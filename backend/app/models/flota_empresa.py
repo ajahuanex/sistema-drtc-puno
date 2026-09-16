@@ -226,6 +226,14 @@ class ItemTramiteVehiculo(BaseModel):
     numero_tuc: Optional[str] = None
 
 
+class RutaRenovacionDetalle(BaseModel):
+    codigo: str = Field(..., description="Código de la ruta")
+    origen: str = Field(..., description="Localidad de origen")
+    destino: str = Field(..., description="Localidad de destino")
+    itinerario: str = Field(default="", description="Itinerario de la ruta")
+    frecuencia: str = Field(default="", description="Frecuencia del servicio")
+
+
 class TramiteMasivoRequest(BaseModel):
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa")
     razon_social: Optional[str] = None
@@ -244,6 +252,7 @@ class TramiteMasivoRequest(BaseModel):
     nueva_fecha_inicio_vigencia: Optional[datetime] = None
     nueva_fecha_fin_vigencia: Optional[datetime] = None
     nuevas_rutas: List[str] = Field(default_factory=list)
+    nuevas_rutas_detalle: List[RutaRenovacionDetalle] = Field(default_factory=list)
     
     # Lista de vehículos a procesar:
     vehiculos: List[ItemTramiteVehiculo] = Field(default_factory=list)

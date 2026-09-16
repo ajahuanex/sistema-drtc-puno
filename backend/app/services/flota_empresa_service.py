@@ -524,27 +524,6 @@ class FlotaEmpresaService:
         except Exception as err:
             logger.warning(f"Error sincronizando TUC automática: {err}")
 
-def _normalizar_codigo_resolucion(val: Optional[str]) -> Optional[str]:
-    if not val:
-        return None
-    s = str(val).strip().upper()
-    if not s or s in ("NAN", "NONE", "-"):
-        return None
-    s = re.sub(r"\s*[-_ ]\s*(FE|[ISRMDCO])$", "", s, flags=re.IGNORECASE).strip()
-    clean = re.sub(r"^R[-_ ]*", "", s, flags=re.IGNORECASE).strip()
-    parts = re.split(r"[-/]", clean)
-    if len(parts) >= 2:
-        num_digits = re.sub(r"\D", "", parts[0])
-        num_part = num_digits.zfill(4) if num_digits else parts[0]
-        year_digits = re.sub(r"\D", "", parts[1])
-        year_part = year_digits if year_digits else str(datetime.utcnow().year)
-        return f"R-{num_part}-{year_part}"
-    else:
-        num_digits = re.sub(r"\D", "", clean)
-        if num_digits:
-            return f"R-{num_digits.zfill(4)}-{datetime.utcnow().year}"
-    return s if s.startswith("R-") else f"R-{s}"
-
 
     async def create(self, data: VehiculoEmpresaCreate) -> VehiculoEmpresaResponse:
         """Crear un nuevo registro en flota_empresa."""
@@ -772,12 +751,91 @@ def _normalizar_codigo_resolucion(val: Optional[str]) -> Optional[str]:
                         },
                         {
                             "$set": {
-                                "estado": "VENCIDA",
+                                "estado": "SUSPENDIDA",
                                 "observaciones": f"RENOVADA({nueva_res})" if nueva_res else "RENOVADA",
                                 "fecha_actualizacion": now
                             }
                         }
                     )
+                    
+                    # Inhabilitar las rutas anteriores de esta resolución en la colección 'rutas'
+                    await self.db.rutas.update_many(
+                        {
+                            "empresa.ruc": ruc,
+                            "$or": [
+                                {"resolucion.nroResolucion": nro_old},
+                                {"resolucion.nroResolucion": f"R-{sin_p}"},
+                                {"resolucion.nroResolucion": sin_p},
+                                {"nro_resolucion": nro_old}
+                            ]
+                        },
+                        {
+                            "$set": {
+                                "estado": "INACTIVA",
+                                "estaActivo": False,
+                                "observaciones": f"RENOVADA({nueva_res})" if nueva_res else "RENOVADA",
+                                "fechaActualizacion": now
+                            }
+                        }
+                    )
+
+                # Upsert de la NUEVA resolución primigenia
+                nueva_prim = {
+                    "ruc_empresa": ruc,
+                    "razon_social": razon_social,
+                    "nro_resolucion": nueva_res,
+                    "fecha_emision": req.nueva_fecha_emision or now,
+                    "fecha_inicio_vigencia": req.nueva_fecha_inicio_vigencia,
+                    "fecha_fin_vigencia": req.nueva_fecha_fin_vigencia,
+                    "estado": "VIGENTE",
+                    "esta_activo": True,
+                    "fecha_registro": now,
+                    "fecha_actualizacion": now,
+                    "observaciones": f"RENOVACIÓN DE {req.nro_resolucion_primigenia}"
+                }
+                
+                await self.db.resoluciones_primigenias.update_one(
+                    {"ruc_empresa": ruc, "nro_resolucion": nueva_res},
+                    {"$set": nueva_prim},
+                    upsert=True
+                )
+                
+                # Insertar nuevas rutas detalladas en la colección 'rutas'
+                if req.nuevas_rutas_detalle:
+                    from app.models.ruta import TipoFrecuencia
+                    nuevas_rutas_docs = []
+                    for ruta_det in req.nuevas_rutas_detalle:
+                        nueva_ruta_doc = {
+                            "codigoRuta": ruta_det.codigo,
+                            "nombre": f"RUTA {ruta_det.codigo} - {ruta_det.origen} A {ruta_det.destino}",
+                            "origen": {"id": "N/A", "nombre": ruta_det.origen},
+                            "destino": {"id": "N/A", "nombre": ruta_det.destino},
+                            "itinerario": [
+                                {"id": "N/A", "nombre": loc.strip(), "orden": i+1}
+                                for i, loc in enumerate(ruta_det.itinerario.split("-")) if loc.strip()
+                            ] if ruta_det.itinerario else [],
+                            "empresa": {"id": "N/A", "ruc": ruc, "razonSocial": razon_social},
+                            "resolucion": {"id": "N/A", "nroResolucion": nueva_res, "tipoResolucion": "PADRE", "estado": "VIGENTE"},
+                            "frecuencia": {
+                                "tipo": TipoFrecuencia.ESPECIAL, 
+                                "cantidad": 1, 
+                                "dias": [], 
+                                "descripcion": ruta_det.frecuencia or "No especificada"
+                            },
+                            "horarios": [],
+                            "tipoServicio": "PASAJEROS",
+                            "estado": "ACTIVA",
+                            "estaActivo": True,
+                            "fechaRegistro": now,
+                            "observaciones": f"Generada por Renovación de {req.nro_resolucion_primigenia}"
+                        }
+                        nuevas_rutas_docs.append(nueva_ruta_doc)
+                    
+                    if nuevas_rutas_docs:
+                        await self.db.rutas.insert_many(nuevas_rutas_docs)
+                        
+                    if not req.nuevas_rutas:
+                        req.nuevas_rutas = [r.codigo for r in req.nuevas_rutas_detalle]
 
         # -------------------------------------------------------------
         # 2. PROCESAR CADA VEHÍCULO EN EL TRÁMITE
@@ -953,9 +1011,13 @@ def _normalizar_codigo_resolucion(val: Optional[str]) -> Optional[str]:
             existente = await self.collection.find_one({"ruc": ruc, "placa": placa_in, "esta_activo": {"$ne": False}})
             if existente:
                 # Actualizar vehículo existente
+                update_op = {"$set": {k: v for k, v in doc_veh.items() if k != "observaciones_historial"}}
+                if obs_lista:
+                    update_op["$push"] = {"observaciones_historial": {"$each": obs_lista}}
+                    
                 await self.collection.update_one(
                     {"_id": existente["_id"]},
-                    {"$set": doc_veh, "$push": {"observaciones_historial": {"$each": obs_lista}}}
+                    update_op
                 )
                 actualizados += 1
             else:
@@ -976,5 +1038,7 @@ def _normalizar_codigo_resolucion(val: Optional[str]) -> Optional[str]:
             "bajas_sustitucion": bajas_sustitucion,
             "bajas_renovacion": bajas_renovacion
         }
+
+
 
 

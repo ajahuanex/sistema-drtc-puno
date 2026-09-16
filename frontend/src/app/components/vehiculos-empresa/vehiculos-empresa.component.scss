@@ -11,6 +11,25 @@
   font-family: 'Inter', system-ui, sans-serif;
 }
 
+// ---- RESPONSIVE ----
+@media (max-width: 600px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+.rutas-primigenias-accordion {
+  .mat-expansion-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: none !important;
+    box-shadow: none !important;
+    .mat-expansion-panel-header {
+      &:hover { background: rgba(248, 250, 252, 0.8); }
+    }
+  }
+}
+
 // ---- HEADER ----
 .page-header {
   background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #1e293b 100%);
@@ -131,75 +150,144 @@
   }
 }
 
-// ---- GLASS FILTERS ----
-.glass-filters {
-  background: rgba(248, 250, 252, 0.95);
-  backdrop-filter: blur(12px);
-  border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+// ---- MODERN FILTERS BAR ----
+.modern-filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
 
-  .filters-bar {
+  .modern-search-input-wrapper {
+    flex: 1;
+    min-width: 280px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .search-and-toggle {
-    flex: 1;
-    min-width: 250px;
-  }
-
-  .collapsible-filters {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    &.show { display: flex; }
-  }
-
-  .search-field {
-    width: 100%;
-    max-width: none;
-  }
-  .filter-select {
-    min-width: 170px;
-  }
-  .search-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    color: #64748b;
-  }
-
-  .filter-action-btn {
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 13px;
-    height: 42px;
+    background: #f8fafc;
+    border-radius: 12px;
     padding: 0 14px;
+    height: 42px;
+    border: 1px solid transparent;
     transition: all 0.2s;
 
-    &:hover {
-      background: #f1f5f9 !important;
-      border-color: #94a3b8 !important;
+    &:focus-within {
+      background: #fff;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
     }
 
-    &.btn-reset {
-      color: #dc2626 !important;
-      background: #fef2f2 !important;
-      border: 1px solid #fecaca !important;
+    .search-icon {
+      color: #64748b;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+    }
+
+    .modern-search-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 14px;
+      color: #1e293b;
+      height: 100%;
+      &::placeholder {
+        color: #94a3b8;
+      }
+    }
+
+    .clear-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      mat-icon { font-size: 16px; width: 16px; height: 16px; }
+      &:hover { color: #475569; }
+    }
+  }
+
+  .modern-filters-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .modern-select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .modern-select {
+      appearance: none;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0 32px 0 14px;
+      height: 40px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #475569;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s;
 
       &:hover {
-        background: #fee2e2 !important;
+        border-color: #cbd5e1;
+        background: #f1f5f9;
       }
+      &:focus {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        background: #fff;
+      }
+    }
+
+    .select-icon {
+      position: absolute;
+      right: 8px;
+      pointer-events: none;
+      color: #64748b;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .modern-action-btn {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13.5px;
+    height: 40px;
+    padding: 0 14px;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    background: #f8fafc;
+    transition: all 0.2s;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 6px;
+    }
+
+    &:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #1e293b;
     }
   }
 }
+
 
 // ---- EMPRESA SELECTOR CARD ----
 .empresa-selector-card {

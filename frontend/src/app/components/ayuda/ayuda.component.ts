@@ -36,9 +36,9 @@ import { MatIconModule } from '@angular/material/icon';
       </mat-card-content>
       
       <mat-card-actions>
-        <button mat-raised-button color="primary" routerLink="/dashboard">
+        <button mat-raised-button color="primary" routerLink="/empresas">
           <mat-icon>arrow_back</mat-icon>
-          Volver al Dashboard
+          Volver al Inicio
         </button>
       </mat-card-actions>
     </mat-card>

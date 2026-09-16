@@ -199,6 +199,7 @@ export interface TramiteMasivoRequest {
   nueva_fecha_inicio_vigencia?: string;
   nueva_fecha_fin_vigencia?: string;
   nuevas_rutas?: string[];
+  nuevas_rutas_detalle?: any[];
   vehiculos: ItemTramiteVehiculo[];
 }
 
