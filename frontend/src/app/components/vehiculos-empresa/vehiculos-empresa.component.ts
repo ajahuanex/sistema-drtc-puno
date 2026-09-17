@@ -894,6 +894,7 @@ export interface ColumnasState {
                           <th>Placa</th>
                           <th>Rutas</th>
                           <th>TUC</th>
+                          <th style="width:75px;" class="text-center">Links</th>
                           <th>Estado</th>
                           <th>Fecha Cronológica</th>
                           <th>Observaciones</th>
@@ -942,6 +943,23 @@ export interface ColumnasState {
                               @if (item.numero_tuc) {
                                 <span class="tuc-badge">{{ item.numero_tuc }}</span>
                               } @else { <span class="sin-datos">-</span> }
+                            </td>
+                            <td style="width:75px;" class="text-center">
+                              <div style="display:inline-flex;gap:2px;align-items:center;justify-content:center;">
+                                @if (item.link_tuc) {
+                                  <a [href]="item.link_tuc" target="_blank" mat-icon-button color="primary" matTooltip="Ver TUC en Drive" style="width:28px;height:28px;line-height:28px;display:inline-flex;align-items:center;justify-content:center;">
+                                    <mat-icon style="font-size:16px;width:16px;height:16px;">description</mat-icon>
+                                  </a>
+                                }
+                                @if (item.link_notificacion) {
+                                  <a [href]="item.link_notificacion" target="_blank" mat-icon-button color="accent" matTooltip="Ver Notificación en Drive" style="width:28px;height:28px;line-height:28px;display:inline-flex;align-items:center;justify-content:center;">
+                                    <mat-icon style="font-size:16px;width:16px;height:16px;">mark_email_read</mat-icon>
+                                  </a>
+                                }
+                                @if (!item.link_tuc && !item.link_notificacion) {
+                                  <span class="sin-datos">-</span>
+                                }
+                              </div>
                             </td>
                             <td>
                               @if (item.estado) {
@@ -1932,13 +1950,26 @@ export class VehiculosEmpresaComponent implements OnInit {
   }
 
   abrirGenerarTuc(item: VehiculoEmpresa): void {
-    this.dialog.open(GenerarTucDialogComponent, {
+    const dialogRef = this.dialog.open(GenerarTucDialogComponent, {
       data: {
         vehiculo: item
       },
       width: '1000px',
       maxWidth: '96vw',
       panelClass: 'glass-dialog-panel'
+    });
+
+    dialogRef.afterClosed().subscribe((res: any) => {
+      const link = res?.link_tuc || item.link_tuc;
+      if (link) {
+        item.link_tuc = link;
+        this.flotaEmpresa.update(flota =>
+          flota.map(v => (v.id === item.id || (v.placa && v.placa === item.placa)) ? { ...v, link_tuc: link } : v)
+        );
+        this.flotaCronologica.update(flota =>
+          flota.map(v => (v.id === item.id || (v.placa && v.placa === item.placa)) ? { ...v, link_tuc: link } : v)
+        );
+      }
     });
   }
 

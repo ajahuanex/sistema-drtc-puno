@@ -545,6 +545,15 @@ class FlotaEmpresaExcelService:
         link_tuc = _clean_str(get_col("R", ["LINK_TUC", "LINK TUC", "link_tuc"]))
         link_notificacion = _clean_str(get_col("S", ["LINK_NOTIFICACION", "LINK NOTIFICACION", "link_notificacion"]))
         detalles = _clean_str(get_col("T", ["DETALLES", "detalles"]))
+        
+        partida_raw = _clean_str(get_col("U", ["PARTIDA", "partida", "PARTIDA_REGISTRAL", "PARTIDA REGISTRAL", "partida_registral", "Partida Registral", "SUNARP"]))
+        partida = None
+        if partida_raw:
+            p_clean = re.sub(r'[\s\-]+', '', str(partida_raw).strip())
+            if p_clean.isdigit() and len(p_clean) < 8:
+                partida = p_clean.zfill(8)
+            else:
+                partida = p_clean
 
         return {
             "fila": idx + 2,
@@ -569,6 +578,7 @@ class FlotaEmpresaExcelService:
             "link_tuc": link_tuc,
             "link_notificacion": link_notificacion,
             "detalles": detalles,
+            "partida_registral": partida,
             "es_valido": len(errores) == 0,
             "errores": errores,
         }
@@ -701,8 +711,27 @@ class FlotaEmpresaExcelService:
                     "link_tuc": datos.get("link_tuc"),
                     "link_notificacion": datos.get("link_notificacion"),
                     "detalles": datos.get("detalles"),
+                    "partida_registral": datos.get("partida_registral"),
                     "esta_activo": True,
                 }
+
+                # Si la fila trae partida registral y la empresa no la tiene, sincronizarla
+                if datos.get("partida_registral") and datos.get("ruc"):
+                    try:
+                        await self.empresas_coll.update_one(
+                            {
+                                "ruc": datos["ruc"],
+                                "$or": [
+                                    {"partidaRegistral": None},
+                                    {"partidaRegistral": ""},
+                                    {"partidaRegistral": "-"},
+                                    {"partidaRegistral": {"$exists": False}}
+                                ]
+                            },
+                            {"$set": {"partidaRegistral": datos["partida_registral"]}}
+                        )
+                    except Exception as e_emp:
+                        logger.warning(f"No se pudo sincronizar partida registral para RUC {datos.get('ruc')}: {e_emp}")
 
                 if modo == "upsert":
                     filtro_upsert = {

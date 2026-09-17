@@ -712,9 +712,9 @@ class EmpresaExcelService:
             errores.append(f"Formato de email de contacto inválido: {email_contacto}")
         
         # Validar partida registral (opcional)
-        partida_registral = limpiar_valor(row.get('Partida Registral', ''))
+        partida_registral = self._obtener_partida_de_row(row)
         if partida_registral and not self._validar_formato_partida_registral(partida_registral):
-            errores.append(f"Partida Registral debe ser numérica y tener entre 1 y 9 dígitos: {partida_registral}")
+            errores.append(f"Formato de Partida Registral inválido: {partida_registral}")
         
         # Validar razón social SUNAT (opcional)
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
@@ -906,25 +906,66 @@ class EmpresaExcelService:
         
         return telefono_limpio
     
+    def _obtener_partida_de_row(self, row: pd.Series) -> Optional[str]:
+        """Obtiene el valor de la partida registral buscando en diversas variaciones de encabezado"""
+        variantes = [
+            'Partida Registral', 'PARTIDA REGISTRAL', 'Partida', 'PARTIDA',
+            'partida_registral', 'PARTIDA_REGISTRAL', 'partida',
+            'Partida Registral (SUNARP)', 'Partida Electrónica', 'PARTIDA ELECTRONICA',
+            'N° Partida', 'Nro Partida', 'NUM_PARTIDA', 'SUNARP'
+        ]
+        if hasattr(row, 'index'):
+            for col in variantes:
+                if col in row.index and pd.notna(row[col]):
+                    val = str(row[col]).strip()
+                    if val and val.lower() not in ('nan', 'none', '-', '', 'null'):
+                        if val.endswith('.0'):
+                            try:
+                                val = str(int(float(val)))
+                            except Exception:
+                                pass
+                        return val
+        elif isinstance(row, dict):
+            for col in variantes:
+                if col in row and row[col] is not None:
+                    val = str(row[col]).strip()
+                    if val and val.lower() not in ('nan', 'none', '-', '', 'null'):
+                        if val.endswith('.0'):
+                            try:
+                                val = str(int(float(val)))
+                            except Exception:
+                                pass
+                        return val
+        return None
+
     def _validar_formato_partida_registral(self, partida: str) -> bool:
-        """Validar formato de partida registral: debe ser numérico y tener entre 1 y 9 dígitos"""
-        return partida.isdigit() and 1 <= len(partida) <= 9
-    
+        """Validar formato de partida registral (debe contener dígitos/alfanumérico razonable)"""
+        if not partida:
+            return True
+        import re
+        clean = re.sub(r'[\s\-]+', '', str(partida).strip())
+        return 1 <= len(clean) <= 20
+
     def _normalizar_dni(self, dni: str) -> str:
         """Normalizar DNI completando con ceros a la izquierda hasta 8 dígitos"""
         if not dni or not dni.isdigit():
             return dni
         return dni.zfill(8)
-    
+
     def _normalizar_partida_registral(self, partida: str) -> str:
-        """Normalizar partida registral completando con ceros a la izquierda hasta 8 dígitos mínimo"""
-        if not partida or not partida.isdigit():
-            return partida
-        # Si tiene menos de 8 dígitos, completar con ceros hasta 8
-        if len(partida) < 8:
-            return partida.zfill(8)
-        # Si tiene 8 o 9 dígitos, mantener como está
-        return partida
+        """Normalizar partida registral completando con ceros a la izquierda si es puramente numérica y < 8 dígitos"""
+        if not partida:
+            return ""
+        p = str(partida).strip()
+        if p.endswith('.0'):
+            try:
+                p = str(int(float(p)))
+            except Exception:
+                pass
+        # Si es puramente numérica y tiene menos de 8 dígitos, rellenar con ceros
+        if p.isdigit() and len(p) < 8:
+            return p.zfill(8)
+        return p
     
     async def _existe_empresa_con_ruc(self, ruc: str) -> bool:
         """Verificar si existe empresa con el RUC dado en la base de datos REAL"""
@@ -1022,11 +1063,9 @@ class EmpresaExcelService:
             update_data['representanteLegal'] = representante_legal
         
         # Campos adicionales nuevos
-        partida_registral = limpiar_valor(row.get('Partida Registral', ''))
+        partida_registral = self._obtener_partida_de_row(row)
         if partida_registral:
-            # Normalizar partida registral completando con ceros a la izquierda
-            partida_normalizada = self._normalizar_partida_registral(partida_registral)
-            update_data['partidaRegistral'] = partida_normalizada
+            update_data['partidaRegistral'] = self._normalizar_partida_registral(partida_registral)
         
         estado_sunat = limpiar_valor(row.get('Estado SUNAT', ''))
         if estado_sunat:
@@ -1145,79 +1184,11 @@ class EmpresaExcelService:
         if observaciones:
             empresa_data['observaciones'] = observaciones
         
-        # Tipo de servicio (solo si se proporciona)
-        tipo_servicio = limpiar_valor(row.get('Tipo de Servicio', ''))
-        if tipo_servicio:
-            empresa_data['tipoServicio'] = tipo_servicio.upper()
-        
-        return EmpresaCreate(**empresa_data)
-        ruc = limpiar_valor(row.get('RUC', ''))
-        
-        # Razón social (solo si se proporciona)
-        razon_social_principal = limpiar_valor(row.get('Razón Social Principal', ''))
-        razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
-        razon_social_minimo = limpiar_valor(row.get('Razón Social Mínimo', ''))
-        
-        razon_social = None
-        if razon_social_principal:  # Solo crear si hay razón social principal
-            razon_social = RazonSocial(
-                principal=razon_social_principal,
-                sunat=razon_social_sunat,
-                minimo=razon_social_minimo
-            )
-        
-        # Dirección fiscal (solo si se proporciona)
-        direccion_fiscal = limpiar_valor(row.get('Dirección Fiscal', ''))
-        
-        # Representante legal (solo si se proporcionan datos básicos)
-        dni_rep = limpiar_valor(row.get('DNI Representante', ''))
-        nombres_rep = limpiar_valor(row.get('Nombres Representante', ''))
-        apellidos_rep = limpiar_valor(row.get('Apellidos Representante', ''))
-        email_rep = limpiar_valor(row.get('Email Representante', ''))
-        telefono_rep = limpiar_valor(row.get('Teléfono Representante', ''))
-        direccion_rep = limpiar_valor(row.get('Dirección Representante', ''))
-        
-        representante_legal = None
-        if dni_rep and nombres_rep and apellidos_rep:  # Solo crear si hay datos básicos
-            representante_legal = RepresentanteLegal(
-                dni=dni_rep,
-                nombres=nombres_rep,
-                apellidos=apellidos_rep,
-                email=email_rep,
-                telefono=telefono_rep,
-                direccion=direccion_rep
-            )
-        
-        # Contacto empresa (solo si se proporciona)
-        email_contacto = limpiar_valor(row.get('Email Contacto', ''))
-        telefono_contacto = limpiar_valor(row.get('Teléfono Contacto', ''))
-        sitio_web = limpiar_valor(row.get('Sitio Web', ''))
-        
-        # Observaciones (solo si se proporciona)
-        observaciones = limpiar_valor(row.get('Observaciones', ''))
-        
-        # Crear objeto con solo los campos que tienen datos
-        empresa_data = {
-            'ruc': ruc
-        }
-        
-        if razon_social:
-            empresa_data['razonSocial'] = razon_social
-        if direccion_fiscal:
-            empresa_data['direccionFiscal'] = direccion_fiscal
-        if representante_legal:
-            empresa_data['representanteLegal'] = representante_legal
-        if email_contacto:
-            empresa_data['emailContacto'] = email_contacto
-        if telefono_contacto:
-            # Normalizar teléfono: convertir espacios a comas para múltiples números
-            telefono_normalizado = self._normalizar_telefono(telefono_contacto)
-            empresa_data['telefonoContacto'] = telefono_normalizado
-        if sitio_web:
-            empresa_data['sitioWeb'] = sitio_web
-        if observaciones:
-            empresa_data['observaciones'] = observaciones
-        
+        # Partida registral (opcional)
+        partida_registral = self._obtener_partida_de_row(row)
+        if partida_registral:
+            empresa_data['partidaRegistral'] = self._normalizar_partida_registral(partida_registral)
+
         return EmpresaCreate(**empresa_data)
     
     async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
@@ -1311,6 +1282,9 @@ class EmpresaExcelService:
             
         if hasattr(empresa_data, 'observaciones') and empresa_data.observaciones:
             update_data['observaciones'] = empresa_data.observaciones
+
+        if hasattr(empresa_data, 'partidaRegistral') and empresa_data.partidaRegistral:
+            update_data['partidaRegistral'] = self._normalizar_partida_registral(empresa_data.partidaRegistral)
         
         # Si no hay datos para actualizar, devolver la empresa existente
         if not update_data:
@@ -1371,10 +1345,14 @@ class EmpresaExcelService:
             empresa_data['estado'] = EstadoEmpresa.AUTORIZADA.value
 
         # Agregar otros campos opcionales si están presentes
-        optional_fields = ['emailContacto', 'telefonoContacto', 'sitioWeb', 'observaciones']
+        optional_fields = ['emailContacto', 'telefonoContacto', 'sitioWeb', 'observaciones', 'partidaRegistral']
         for field in optional_fields:
             if field in empresa_dict and empresa_dict[field]:
                 empresa_data[field] = empresa_dict[field]
+
+        # Respaldo si viene con clave 'partida'
+        if 'partida' in empresa_dict and empresa_dict['partida'] and 'partidaRegistral' not in empresa_data:
+            empresa_data['partidaRegistral'] = self._normalizar_partida_registral(str(empresa_dict['partida']))
         
         return EmpresaCreate(**empresa_data)
     
@@ -1390,6 +1368,8 @@ class EmpresaExcelService:
             if key != 'ruc' and value is not None:  # No actualizar RUC
                 if key == 'estado':
                     update_data[key] = self._normalizar_estado(value)
+                elif key in ('partida', 'partidaRegistral', 'partida_registral'):
+                    update_data['partidaRegistral'] = self._normalizar_partida_registral(str(value))
                 else:
                     update_data[key] = value
         

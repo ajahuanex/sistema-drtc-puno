@@ -1077,6 +1077,89 @@
   }
 }
 
+// Banner Destacado de Estado / Resumen
+.summary-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  margin-bottom: 22px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.08);
+
+  .banner-main-col {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .banner-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: #16a34a;
+    flex-shrink: 0;
+  }
+
+  .banner-text-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .banner-title {
+      margin: 0;
+      font-size: 16.5px;
+      font-weight: 800;
+      color: #15803d;
+    }
+
+    .banner-desc {
+      margin: 0;
+      font-size: 14px;
+      color: #166534;
+      line-height: 1.45;
+
+      strong {
+        font-weight: 700;
+      }
+
+      .banner-partida-highlight {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-left: 8px;
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+        padding: 3px 10px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: #d97706;
+        }
+      }
+    }
+  }
+
+  &.banner-warning {
+    background: #fffbeb;
+    border-color: #fde68a;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.08);
+
+    .banner-icon { color: #d97706; }
+    .banner-title { color: #92400e; }
+    .banner-desc { color: #b45309; }
+  }
+}
+
 // KPI Dashboard Result Grid
 .kpi-grid {
   display: grid;
@@ -1123,6 +1206,30 @@
     &.danger mat-icon { color: #ef4444; }
     &.warning mat-icon { color: #f59e0b; }
 
+    &.updated {
+      border-color: #bae6fd;
+      background: #f0f9ff;
+      mat-icon { color: #0284c7; }
+      .kpi-num { color: #0369a1; }
+      .kpi-label { color: #0284c7; }
+    }
+
+    &.created {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      mat-icon { color: #16a34a; }
+      .kpi-num { color: #15803d; }
+      .kpi-label { color: #16a34a; }
+    }
+
+    &.partida {
+      border-color: #fde68a;
+      background: #fffbeb;
+      mat-icon { color: #d97706; }
+      .kpi-num { color: #92400e; }
+      .kpi-label { color: #b45309; }
+    }
+
     &.danger-card {
       border-color: #fecaca;
       background: #fff5f5;
@@ -1138,6 +1245,24 @@
       .kpi-num { color: #92400e; }
       .kpi-label { color: #b45309; }
     }
+  }
+}
+
+.partida-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+  font-weight: 700;
+  font-family: monospace;
+
+  .badge-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    color: #d97706;
   }
 }
 

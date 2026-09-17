@@ -187,9 +187,34 @@ async def obtener_datos_impresion(placa_o_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener datos de impresión: {str(e)}")
 
-@router.get("/google-docs-status", summary="Verificar si las credenciales de Google Docs están configuradas")
+class TucPlantillaConfigRequest(BaseModel):
+    plantilla_id: str
+    carpeta_destino_id: Optional[str] = None
+    auto_detectar_margen: Optional[bool] = True
+    col_margen_izq: Optional[float] = 99.2
+    col_codigo: Optional[float] = 28.0
+    col_tramo: Optional[float] = 172.0
+    col_frecuencia: Optional[float] = 45.0
+    col_margen_der: Optional[float] = 105.0
+    fuente_tamanio_codigo: Optional[float] = 6.5
+    fuente_tamanio_tramo: Optional[float] = 6.0
+    fuente_tamanio_frecuencia: Optional[float] = 5.2
+    fuente_tamanio_dias: Optional[float] = 4.5
+
+@router.get("/google-docs-status", summary="Verificar si las credenciales de Google Docs están configuradas y obtener la plantilla activa")
 async def status_google_docs():
-    return GoogleDocsTucService.get_status()
+    return await GoogleDocsTucService.get_status()
+
+@router.get("/configuracion-plantilla", summary="Obtener configuración dinámica de plantilla de Google Docs y dimensiones de columnas")
+async def obtener_configuracion_plantilla():
+    return await GoogleDocsTucService.obtener_configuracion()
+
+@router.put("/configuracion-plantilla", summary="Actualizar configuración dinámica de plantilla de Google Docs y dimensiones de columnas")
+async def guardar_configuracion_plantilla(config: TucPlantillaConfigRequest):
+    try:
+        return await GoogleDocsTucService.guardar_configuracion(config.dict(exclude_unset=True))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al guardar configuración: {str(e)}")
 
 @router.post("/generar-google-doc/{placa_o_id}", summary="Crear una copia en Google Docs en la nube y editarla")
 async def generar_google_doc(placa_o_id: str):

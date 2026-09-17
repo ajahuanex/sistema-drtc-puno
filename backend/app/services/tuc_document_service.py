@@ -58,7 +58,7 @@ class TucDocumentService:
             '<w:tbl ' + nsdecls('w') + '>',
             '  <w:tblPr>',
             '    <w:tblStyle w:val="Table2"/>',
-            '    <w:tblW w:w="9210.0" w:type="dxa"/>',
+            '    <w:tblW w:w="9000.0" w:type="dxa"/>',
             '    <w:jc w:val="left"/>',
             '    <w:tblBorders>',
             '      <w:top w:color="ffffff" w:space="0" w:sz="8" w:val="single"/>',
@@ -70,72 +70,114 @@ class TucDocumentService:
             '    </w:tblBorders>',
             '  </w:tblPr>',
             '  <w:tblGrid>',
-            '    <w:gridCol w:w="1980"/>',
-            '    <w:gridCol w:w="4216"/>',
-            '    <w:gridCol w:w="1410"/>',
-            '    <w:gridCol w:w="1604"/>',
+            '    <w:gridCol w:w="100"/>',
+            '    <w:gridCol w:w="560"/>',
+            '    <w:gridCol w:w="3440"/>',
+            '    <w:gridCol w:w="900"/>',
+            '    <w:gridCol w:w="4000"/>',
             '  </w:tblGrid>',
             '  <w:tr>',
             '    <w:trPr><w:cantSplit w:val="0"/><w:tblHeader w:val="0"/></w:trPr>',
-            '    <w:tc><w:tcPr><w:tcW w:w="1980" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="4216" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="1410" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p></w:tc>',
-            '    <w:tc><w:tcPr><w:tcW w:w="1604" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="100" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="560" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="3440" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="12"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="10"/></w:rPr></w:pPr></w:p></w:tc>',
+            '    <w:tc><w:tcPr><w:tcW w:w="4000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p></w:tc>',
             '  </w:tr>'
         ]
 
         lista = list(rutas_info) if rutas_info else [{"codigo": "", "tramo": "SIN RUTAS ASIGNADAS", "frecuencia": ""}]
 
         for r in lista:
-            cod_str = f"Ruta {r.get('codigo')}: " if r.get('codigo') else ""
+            cod_val = str(r.get('codigo') or '').strip()
             tramo_str = str(r.get('tramo') or f"{r.get('origen', '')} - {r.get('destino', '')}").strip()
             frec_str = str(r.get('frecuencia', '')).strip()
+
+            m_ruta = re.match(r'^(Ruta\s+[^:]+:|RUTA\s+[^:]+:)\s*(.*)$', tramo_str, re.IGNORECASE)
+            if m_ruta:
+                if not cod_val:
+                    cod_val = m_ruta.group(1).replace('Ruta', '').replace('RUTA', '').replace(':', '').strip()
+                tramo_str = m_ruta.group(2).strip()
+
+            cod_str = f"Ruta {cod_val}:" if cod_val else ""
+
+            if frec_str.startswith('(') and frec_str.endswith(')'):
+                frec_str = frec_str[1:-1].strip()
 
             # Sanitizar para XML
             cod_str = cod_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             tramo_str = tramo_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             frec_str = frec_str.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
+            m_day = re.search(r'^(.*?)(\([^\)]+\))$', frec_str)
+            if m_day:
+                frec_base = m_day.group(1).rstrip()
+                frec_day = m_day.group(2)
+                frec_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="10"/></w:rPr>
+                      <w:t xml:space="preserve">{frec_base}</w:t>
+                      <w:br/>
+                    </w:r>
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="9"/></w:rPr>
+                      <w:t xml:space="preserve">{frec_day}</w:t>
+                    </w:r>
+                '''
+            else:
+                frec_runs_xml = f'''
+                    <w:r>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="10"/></w:rPr>
+                      <w:t xml:space="preserve">{frec_str}</w:t>
+                    </w:r>
+                '''
+
             row_xml = f'''
               <w:tr>
                 <w:trPr><w:cantSplit w:val="0"/><w:tblHeader w:val="0"/></w:trPr>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="1980" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
-                  <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p>
+                  <w:tcPr><w:tcW w:w="100" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="4216" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="560" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p>
                     <w:pPr>
                       <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr>
                     </w:pPr>
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="1"/><w:sz w:val="14"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="1"/><w:sz w:val="13"/></w:rPr>
                       <w:t xml:space="preserve">{cod_str}</w:t>
                     </w:r>
+                  </w:p>
+                </w:tc>
+                <w:tc>
+                  <w:tcPr><w:tcW w:w="3440" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:p>
+                    <w:pPr>
+                      <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="12"/></w:rPr>
+                    </w:pPr>
                     <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="14"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="12"/></w:rPr>
                       <w:t xml:space="preserve">{tramo_str}</w:t>
                     </w:r>
                   </w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="1410" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:tcPr><w:tcW w:w="900" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
                   <w:p>
                     <w:pPr>
                       <w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr>
+                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="10"/></w:rPr>
                     </w:pPr>
-                    <w:r>
-                      <w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:b w:val="0"/><w:sz w:val="14"/></w:rPr>
-                      <w:t xml:space="preserve">{frec_str}</w:t>
-                    </w:r>
+                    {frec_runs_xml}
                   </w:p>
                 </w:tc>
                 <w:tc>
-                  <w:tcPr><w:tcW w:w="1604" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
-                  <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="14"/></w:rPr></w:pPr></w:p>
+                  <w:tcPr><w:tcW w:w="4000" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>
+                  <w:p><w:pPr><w:spacing w:after="0" w:before="0" w:line="192" w:lineRule="auto"/><w:rPr><w:rFonts w:ascii="Roboto" w:hAnsi="Roboto"/><w:sz w:val="13"/></w:rPr></w:pPr></w:p>
                 </w:tc>
               </w:tr>
             '''
@@ -238,8 +280,11 @@ class TucDocumentService:
                 elif isinstance(rs, str):
                     razon_social = rs
 
+        if (not partida or partida == "-") and vehiculo:
+            partida = vehiculo.get("partida_registral") or vehiculo.get("partida") or "-"
+
         if (not partida or partida == "-") and v_data:
-            partida = v_data.get("partida_registral") or "-"
+            partida = v_data.get("partida_registral") or v_data.get("partida") or "-"
 
         # 4. Obtener datos de la resolución primigenia
         res_prim = None
@@ -337,11 +382,14 @@ class TucDocumentService:
                     frec = frecuencia.get("descripcion") or frecuencia.get("tipo") or ""
                 elif isinstance(frecuencia, str):
                     frec = frecuencia
+                frec = frec.strip()
+                if frec.startswith("(") and frec.endswith(")"):
+                    frec = frec[1:-1].strip()
 
                 partes_tramo = [p for p in [origen_nom, itin_str, destino_nom] if p]
                 tramo = " - ".join(partes_tramo)
 
-                frec_display = f" ({frec})" if frec else ""
+                frec_display = f" {frec}" if frec else ""
                 rutas_lineas.append(f"Ruta {cod}: {tramo}{frec_display}")
                 rutas_para_frontend.append({
                     "codigo": cod,
@@ -434,7 +482,11 @@ class TucDocumentService:
             "placeholders": placeholders,
             "datos_estructurados": datos_estructurados,
             "placa": placa,
-            "numero_tuc": vehiculo.get("numero_tuc") or vehiculo.get("tuc") or ""
+            "numero_tuc": vehiculo.get("numero_tuc") or vehiculo.get("tuc") or "",
+            "vehiculo_id": str(vehiculo.get("_id")) if vehiculo.get("_id") else None,
+            "vehiculo_raw_id": vehiculo.get("id"),
+            "link_tuc": vehiculo.get("link_tuc"),
+            "ruc": ruc
         }
 
     @staticmethod

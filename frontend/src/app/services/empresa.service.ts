@@ -266,6 +266,7 @@ export class EmpresaService {
         principal: 'Sin razón social'
       },
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
+      partidaRegistral: empresa.partidaRegistral || empresa.partida_registral || empresa.partida || undefined,
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,
       tiposServicio: empresa.tiposServicio || empresa.tipos_servicio || [],
       estaActivo: empresa.estaActivo !== undefined ? empresa.estaActivo : true,

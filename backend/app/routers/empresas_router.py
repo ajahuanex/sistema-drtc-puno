@@ -40,6 +40,7 @@ def create_empresa_response(empresa) -> EmpresaResponse:
             ruc=empresa.get('ruc'),
             razonSocial=empresa.get('razonSocial'),
             direccionFiscal=empresa.get('direccionFiscal'),
+            partidaRegistral=empresa.get('partidaRegistral') or empresa.get('partida') or empresa.get('partida_registral'),
             estado=empresa.get('estado'),
             tiposServicio=empresa.get('tiposServicio'),
             estaActivo=empresa.get('estaActivo'),
@@ -70,6 +71,7 @@ def create_empresa_response(empresa) -> EmpresaResponse:
             ruc=empresa.ruc,
             razonSocial=empresa.razonSocial,
             direccionFiscal=empresa.direccionFiscal,
+            partidaRegistral=getattr(empresa, 'partidaRegistral', None) or getattr(empresa, 'partida', None) or getattr(empresa, 'partida_registral', None),
             estado=empresa.estado,
             tiposServicio=empresa.tiposServicio,
             estaActivo=empresa.estaActivo,
@@ -1107,10 +1109,27 @@ async def procesar_carga_masiva_google_sheets(
         
         for idx, empresa_data in enumerate(datos, 1):
             try:
-                # Validar datos mínimos
-                ruc = str(empresa_data.get('ruc', '')).strip()
-                razon_social = str(empresa_data.get('razonSocial', '')).strip()
-                direccion = str(empresa_data.get('direccionFiscal', '')).strip() or None
+                # Validar datos mínimos (compatible con camelCase y encabezados directos de Google Sheet)
+                ruc = str(
+                    empresa_data.get('ruc', '') or 
+                    empresa_data.get('RUC', '')
+                ).strip()
+                
+                razon_social = str(
+                    empresa_data.get('razonSocial', '') or 
+                    empresa_data.get('RAZON_SOCIAL', '') or 
+                    empresa_data.get('razon_social', '') or
+                    empresa_data.get('Razón Social Principal', '')
+                ).strip()
+                
+                direccion = str(
+                    empresa_data.get('direccionFiscal', '') or 
+                    empresa_data.get('DOMICILIO_LEGAL', '') or 
+                    empresa_data.get('domicilio_legal', '') or 
+                    empresa_data.get('Dirección Fiscal', '') or 
+                    empresa_data.get('DOMICILIO_FISCAL_SUNAT', '') or
+                    empresa_data.get('direccion', '')
+                ).strip() or None
                 
                 if not ruc:
                     resultado['invalidos'] += 1
@@ -1135,6 +1154,7 @@ async def procesar_carga_masiva_google_sheets(
                 # Normalizar y registrar estado legal
                 estado_raw = (
                     empresa_data.get('estado') or 
+                    empresa_data.get('ESTADO') or
                     empresa_data.get('estadoLegal') or 
                     empresa_data.get('situacion') or 
                     'AUTORIZADA'
@@ -1167,8 +1187,10 @@ async def procesar_carga_masiva_google_sheets(
                 )
                 dni = (
                     str(empresa_data.get('dniRepresentante', '')).strip() or
+                    str(empresa_data.get('DNI_REPRESENTANTE_LEGAL', '')).strip() or
                     str(empresa_data.get('DNI Representante', '')).strip() or
                     str(empresa_data.get('dni_representante', '')).strip() or
+                    str(empresa_data.get('DNI', '')).strip() or
                     ''
                 )
                 
@@ -1176,6 +1198,7 @@ async def procesar_carga_masiva_google_sheets(
                 if not nombres_rep and not apellidos_rep:
                     representante = (
                         str(empresa_data.get('representanteLegal', '')).strip() or
+                        str(empresa_data.get('REPRESENTANTE_LEGAL', '')).strip() or
                         str(empresa_data.get('Representante Legal', '')).strip() or
                         str(empresa_data.get('representante_legal', '')).strip() or
                         ''
@@ -1188,9 +1211,7 @@ async def procesar_carga_masiva_google_sheets(
                 
                 # Normalizar DNI a 8 dígitos si existe
                 if dni:
-                    # Remover caracteres no numéricos
                     dni_numerico = ''.join(filter(str.isdigit, dni))
-                    # Rellenar con ceros por delante hasta 8 dígitos
                     dni = dni_numerico.zfill(8)
                 
                 # Crear socio si hay al menos nombres o DNI
@@ -1203,18 +1224,52 @@ async def procesar_carga_masiva_google_sheets(
                     })
                 
                 # Obtener Razón Social SUNAT y Mínimo (opcionales)
-                razon_social_sunat = str(empresa_data.get('razonSocialSunat', '')).strip() or None
+                razon_social_sunat = str(
+                    empresa_data.get('razonSocialSunat', '') or 
+                    empresa_data.get('RAZON_SOCIAL_SUNAT', '')
+                ).strip() or None
                 razon_social_minimo = str(empresa_data.get('razonSocialMinimo', '')).strip() or None
                 
                 # Obtener Partida Registral
                 partida_raw = (
                     str(empresa_data.get('partidaRegistral', '')).strip() or
+                    str(empresa_data.get('PARTIDA_REGISTRAL', '')).strip() or
                     str(empresa_data.get('partida', '')).strip() or
                     str(empresa_data.get('partida_registral', '')).strip() or
                     str(empresa_data.get('Partida Registral', '')).strip() or
+                    str(empresa_data.get('PARTIDA REGISTRAL', '')).strip() or
+                    str(empresa_data.get('PARTIDA', '')).strip() or
                     None
                 )
+                if partida_raw and partida_raw.lower() in ('nan', 'none', '-', '', 'null'):
+                    partida_raw = None
+                elif partida_raw:
+                    p_num = ''.join(filter(str.isdigit, partida_raw))
+                    if p_num and len(p_num) < 8 and partida_raw.isdigit():
+                        partida_raw = p_num.zfill(8)
+
+                # Teléfono, Email y Observaciones
+                telefono = str(
+                    empresa_data.get('telefonoContacto', '') or 
+                    empresa_data.get('TELEFONO', '') or 
+                    empresa_data.get('telefono', '')
+                ).strip() or None
                 
+                email = str(
+                    empresa_data.get('emailContacto', '') or 
+                    empresa_data.get('CORREO_ELECTRONICO', '') or 
+                    empresa_data.get('correo', '') or 
+                    empresa_data.get('email', '')
+                ).strip() or None
+
+                observaciones = str(
+                    empresa_data.get('observaciones', '') or 
+                    empresa_data.get('OBSERVACIONES', '') or 
+                    empresa_data.get('observacion', '')
+                ).strip() or None
+                
+                tipos_serv = empresa_data.get('tiposServicio') or ([empresa_data.get('TIPO_SERVICIO').upper()] if empresa_data.get('TIPO_SERVICIO') else ['PERSONAS'])
+
                 # Crear empresa con estado normalizado
                 empresa_create = EmpresaCreate(
                     ruc=ruc,
@@ -1226,11 +1281,11 @@ async def procesar_carga_masiva_google_sheets(
                     direccionFiscal=direccion,
                     partidaRegistral=partida_raw,
                     estado=estado_normalizado,
-                    tiposServicio=empresa_data.get('tiposServicio', ['PERSONAS']),
-                    emailContacto=empresa_data.get('emailContacto'),
-                    telefonoContacto=empresa_data.get('telefonoContacto'),
+                    tiposServicio=tipos_serv,
+                    emailContacto=email,
+                    telefonoContacto=telefono,
                     sitioWeb=empresa_data.get('sitioWeb'),
-                    observaciones=empresa_data.get('observaciones'),
+                    observaciones=observaciones,
                     socios=socios
                 )
                 
@@ -1242,27 +1297,53 @@ async def procesar_carga_masiva_google_sheets(
                     try:
                         empresa_id = empresa_existente.get('id') if isinstance(empresa_existente, dict) else empresa_existente.id
                         
+                        partida_final = partida_raw
+                        if not partida_final:
+                            partida_final = getattr(empresa_existente, 'partidaRegistral', None) or (empresa_existente.get('partidaRegistral') if isinstance(empresa_existente, dict) else None)
+
+                        # Preservar campos existentes que no vienen en columnas A a J
+                        existing_tipos = getattr(empresa_existente, 'tiposServicio', None) or (empresa_existente.get('tiposServicio') if isinstance(empresa_existente, dict) else None)
+                        existing_web = getattr(empresa_existente, 'sitioWeb', None) or (empresa_existente.get('sitioWeb') if isinstance(empresa_existente, dict) else None)
+                        existing_obs = getattr(empresa_existente, 'observaciones', None) or (empresa_existente.get('observaciones') if isinstance(empresa_existente, dict) else None)
+                        
+                        existing_rs_sunat = None
+                        if hasattr(empresa_existente, 'razonSocial') and hasattr(empresa_existente.razonSocial, 'sunat'):
+                            existing_rs_sunat = empresa_existente.razonSocial.sunat
+                        elif isinstance(empresa_existente, dict) and isinstance(empresa_existente.get('razonSocial'), dict):
+                            existing_rs_sunat = empresa_existente['razonSocial'].get('sunat')
+
+                        rs_update = {
+                            'principal': razon_social,
+                            'sunat': razon_social_sunat or existing_rs_sunat,
+                            'minimo': razon_social_minimo
+                        }
+
                         # Crear objeto de actualización
                         empresa_update = EmpresaUpdate(
-                            razonSocial=empresa_create.razonSocial,
+                            razonSocial=rs_update,
                             direccionFiscal=empresa_create.direccionFiscal,
-                            partidaRegistral=partida_raw,
+                            partidaRegistral=partida_final,
                             estado=estado_normalizado,
-                            tiposServicio=empresa_create.tiposServicio,
+                            tiposServicio=existing_tipos or empresa_create.tiposServicio,
                             emailContacto=empresa_create.emailContacto,
                             telefonoContacto=empresa_create.telefonoContacto,
-                            sitioWeb=empresa_create.sitioWeb,
-                            observaciones=empresa_create.observaciones,
+                            sitioWeb=existing_web,
+                            observaciones=existing_obs or empresa_create.observaciones,
                             socios=empresa_create.socios
                         )
                         
                         empresa = await empresa_service.update_empresa(str(empresa_id), empresa_update, usuario_id)
                         resultado['exitosas'] += 1
+                        partida_registrada = getattr(empresa, 'partidaRegistral', None) or partida_final
+                        if partida_registrada:
+                            resultado['partidas_actualizadas'] = resultado.get('partidas_actualizadas', 0) + 1
+                        
                         resultado['empresas_actualizadas'].append({
                             'ruc': empresa.ruc,
                             'razonSocial': empresa.razonSocial.get('principal', '') if isinstance(empresa.razonSocial, dict) else str(empresa.razonSocial),
                             'id': str(empresa.id),
-                            'estado': empresa.estado
+                            'estado': empresa.estado,
+                            'partidaRegistral': partida_registrada
                         })
                     except Exception as e:
                         resultado['fallidas'] += 1
@@ -1276,11 +1357,16 @@ async def procesar_carga_masiva_google_sheets(
                     try:
                         empresa = await empresa_service.create_empresa_carga_masiva(empresa_create, usuario_id)
                         resultado['exitosas'] += 1
+                        partida_registrada = getattr(empresa, 'partidaRegistral', None) or partida_raw
+                        if partida_registrada:
+                            resultado['partidas_actualizadas'] = resultado.get('partidas_actualizadas', 0) + 1
+
                         resultado['empresas_creadas'].append({
                             'ruc': empresa.ruc,
                             'razonSocial': empresa.razonSocial.get('principal', '') if isinstance(empresa.razonSocial, dict) else str(empresa.razonSocial),
                             'id': str(empresa.id),
-                            'estado': empresa.estado
+                            'estado': empresa.estado,
+                            'partidaRegistral': partida_registrada
                         })
                     except (ValueError, EmpresaAlreadyExistsException) as e:
                         resultado['fallidas'] += 1
@@ -1298,10 +1384,14 @@ async def procesar_carga_masiva_google_sheets(
                     'error': f'Error al procesar: {str(e)}'
                 })
         
+        actualizadas_count = len(resultado['empresas_actualizadas'])
+        creadas_count = len(resultado['empresas_creadas'])
+        partidas_count = resultado.get('partidas_actualizadas', 0)
+
         return {
             'solo_validacion': solo_validar,
             'resultado': resultado,
-            'mensaje': f"Procesamiento completado: {resultado['exitosas']} exitosas, {resultado['fallidas']} fallidas. ({resultado['conteo_estados']['AUTORIZADA']} autorizadas, {resultado['conteo_estados']['CANCELADA']} canceladas)"
+            'mensaje': f"Procesamiento completado: {actualizadas_count} empresas actualizadas, {creadas_count} creadas, {partidas_count} partidas registrales registradas."
         }
         
     except Exception as e:

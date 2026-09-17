@@ -508,13 +508,59 @@ export interface ColumnaMapeoEmpresa {
               </mat-card-header>
 
               <mat-card-content class="card-body">
-                <!-- KPI Tiles Grid Desglosado por Estados Legales -->
+                <!-- Banner Destacado de Actualizaciones / Creaciones -->
+                <div class="summary-status-banner" [class.banner-success]="totalErrores() === 0" [class.banner-warning]="totalErrores() > 0">
+                  <div class="banner-main-col">
+                    <mat-icon class="banner-icon">{{ totalErrores() === 0 ? 'check_circle' : 'info' }}</mat-icon>
+                    <div class="banner-text-content">
+                      <h3 class="banner-title">
+                        {{ soloValidar() ? 'Validación Finalizada' : '¡Carga Masiva Procesada Exitosamente!' }}
+                      </h3>
+                      <p class="banner-desc">
+                        Se actualizaron <strong>{{ totalActualizadas() }}</strong> empresas existentes por RUC y se crearon <strong>{{ totalCreadas() }}</strong> empresas nuevas.
+                        @if (totalPartidasActualizadas() > 0) {
+                          <span class="banner-partida-highlight">
+                            <mat-icon>verified</mat-icon> Se registraron/actualizaron <strong>{{ totalPartidasActualizadas() }}</strong> Partidas Registrales (SUNARP).
+                          </span>
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- KPI Tiles Grid Desglosado con Actualizadas y Partidas -->
                 <div class="kpi-grid">
                   <div class="kpi-card total">
                     <mat-icon>business</mat-icon>
                     <div class="kpi-data">
                       <span class="kpi-num">{{ totalFilas() }}</span>
                       <span class="kpi-label">Total Registros</span>
+                    </div>
+                  </div>
+
+                  <div class="kpi-card updated">
+                    <mat-icon>published_with_changes</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalActualizadas() }}</span>
+                      <span class="kpi-label">Actualizadas</span>
+                    </div>
+                  </div>
+
+                  @if (totalCreadas() > 0) {
+                    <div class="kpi-card created">
+                      <mat-icon>add_business</mat-icon>
+                      <div class="kpi-data">
+                        <span class="kpi-num">{{ totalCreadas() }}</span>
+                        <span class="kpi-label">Nuevas Creadas</span>
+                      </div>
+                    </div>
+                  }
+
+                  <div class="kpi-card partida">
+                    <mat-icon>assignment_turned_in</mat-icon>
+                    <div class="kpi-data">
+                      <span class="kpi-num">{{ totalPartidasActualizadas() }}</span>
+                      <span class="kpi-label">Con Partida Reg.</span>
                     </div>
                   </div>
 
@@ -526,20 +572,12 @@ export interface ColumnaMapeoEmpresa {
                     </div>
                   </div>
 
-                  <div class="kpi-card danger-card">
-                    <mat-icon>block</mat-icon>
-                    <div class="kpi-data">
-                      <span class="kpi-num">{{ totalCanceladasResultado() }}</span>
-                      <span class="kpi-label">Canceladas</span>
-                    </div>
-                  </div>
-
-                  @if (totalOtrosEstadosResultado() > 0) {
-                    <div class="kpi-card warning-card">
-                      <mat-icon>pending_actions</mat-icon>
+                  @if (totalCanceladasResultado() > 0) {
+                    <div class="kpi-card danger-card">
+                      <mat-icon>block</mat-icon>
                       <div class="kpi-data">
-                        <span class="kpi-num">{{ totalOtrosEstadosResultado() }}</span>
-                        <span class="kpi-label">Otros Estados</span>
+                        <span class="kpi-num">{{ totalCanceladasResultado() }}</span>
+                        <span class="kpi-label">Canceladas</span>
                       </div>
                     </div>
                   }
@@ -610,6 +648,7 @@ export interface ColumnaMapeoEmpresa {
                           <tr>
                             <th>RUC</th>
                             <th>Razón Social</th>
+                            <th>Partida Registral</th>
                             <th>Estado Legal</th>
                           </tr>
                         </thead>
@@ -618,6 +657,15 @@ export interface ColumnaMapeoEmpresa {
                             <tr>
                               <td><span class="code-badge">{{ emp.ruc }}</span></td>
                               <td><strong>{{ emp.razonSocial }}</strong></td>
+                              <td>
+                                @if (emp.partidaRegistral) {
+                                  <span class="code-badge partida-badge">
+                                    <mat-icon class="badge-icon">verified</mat-icon> {{ emp.partidaRegistral }}
+                                  </span>
+                                } @else {
+                                  <span class="text-muted">-</span>
+                                }
+                              </td>
                               <td>
                                 <span [class]="'status-chip ' + (emp.estado === 'CANCELADA' ? 'chip-cancelada danger' : (emp.estado === 'AUTORIZADA' ? 'chip-autorizada success' : 'chip-otros info'))">
                                   <mat-icon class="chip-mini-icon">{{ emp.estado === 'CANCELADA' ? 'block' : (emp.estado === 'AUTORIZADA' ? 'verified' : 'info') }}</mat-icon>
@@ -645,6 +693,7 @@ export interface ColumnaMapeoEmpresa {
                           <tr>
                             <th>RUC</th>
                             <th>Razón Social</th>
+                            <th>Partida Registral</th>
                             <th>Estado Legal</th>
                           </tr>
                         </thead>
@@ -653,6 +702,15 @@ export interface ColumnaMapeoEmpresa {
                             <tr>
                               <td><span class="code-badge info-code">{{ emp.ruc }}</span></td>
                               <td><strong>{{ emp.razonSocial }}</strong></td>
+                              <td>
+                                @if (emp.partidaRegistral) {
+                                  <span class="code-badge partida-badge">
+                                    <mat-icon class="badge-icon">verified</mat-icon> {{ emp.partidaRegistral }}
+                                  </span>
+                                } @else {
+                                  <span class="text-muted">-</span>
+                                }
+                              </td>
                               <td>
                                 <span [class]="'status-chip ' + (emp.estado === 'CANCELADA' ? 'chip-cancelada danger' : (emp.estado === 'AUTORIZADA' ? 'chip-autorizada success' : 'chip-otros info'))">
                                   <mat-icon class="chip-mini-icon">{{ emp.estado === 'CANCELADA' ? 'block' : (emp.estado === 'AUTORIZADA' ? 'verified' : 'info') }}</mat-icon>
@@ -687,7 +745,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
   origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
   archivoSeleccionado = signal<File | null>(null);
   isDragOver = signal<boolean>(false);
-  googleSheetsUrl = signal<string>('');
+  googleSheetsUrl = signal<string>('https://docs.google.com/spreadsheets/d/1M_GKLrrIN_lXupWzoWRCeuoQhtN2UYidTZFac0ooM7Y/edit?gid=0#gid=0');
   cargandoGoogleSheets = signal<boolean>(false);
   cargando = signal<boolean>(false);
 
@@ -835,6 +893,18 @@ export class CargaMasivaEmpresasComponent implements OnInit {
 
   listaCreadas = computed(() => this.resData()?.empresas_creadas || []);
   listaActualizadas = computed(() => this.resData()?.empresas_actualizadas || []);
+
+  totalActualizadas = computed(() => this.listaActualizadas().length);
+  totalCreadas = computed(() => this.listaCreadas().length);
+  totalPartidasActualizadas = computed(() => {
+    const res = this.resData();
+    if (res && res.partidas_actualizadas !== undefined) {
+      return res.partidas_actualizadas;
+    }
+    const fromAct = this.listaActualizadas().filter((e: any) => e.partidaRegistral).length;
+    const fromCre = this.listaCreadas().filter((e: any) => e.partidaRegistral).length;
+    return fromAct + fromCre;
+  });
 
   conteoEstadosResultado = computed(() => {
     const r = this.resData();
@@ -1024,7 +1094,7 @@ export class CargaMasivaEmpresasComponent implements OnInit {
     const idxCorreo = findIndex(['correo electronico', 'correo', 'email'], 5); // Col F (índice 5)
     const idxRep = findIndex(['representante legal', 'representante'], 6); // Col G (índice 6)
     const idxDniRep = findIndex(['dni representante legal', 'dni representante', 'dni'], 7); // Col H (índice 7)
-    const idxPartida = findIndex(['partida registral', 'partida'], 8); // Col I (índice 8)
+    const idxPartida = findIndex(['partida registral', 'partida', 'partida_registral', 'partidaregistral', 'nro partida', 'n° partida', 'partida electronica', 'sunarp'], 8); // Col I (índice 8)
     
     // Detección inteligente de columna de Estado Legal (excluyendo SUNAT)
     let idxEstado = headersClean.findIndex(h => 
@@ -1038,12 +1108,10 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       );
     }
     if (idxEstado < 0 && headers.length > 9) {
-      idxEstado = 9; // Fallback Col J
+      idxEstado = 9; // Col J
     }
 
-    const idxTipoServicio = findIndex(['tipo servicio', 'servicio', 'modalidad'], 10); // Col K (índice 10)
-
-    // Crear matriz visual de mapeo para las 10 columnas clave
+    // Mapeo estricto: Solo columnas B a J (Ignorando ID_EMPRESA en Col A y columnas posteriores a J)
     const mapeo: ColumnaMapeoEmpresa[] = [
       { archivoCol: idxRuc >= 0 ? headers[idxRuc] : 'Col B (RUC)', destCampo: 'ruc', tipo: 'RUC (Requerido)' },
       { archivoCol: idxRazon >= 0 ? headers[idxRazon] : 'Col C (RAZON_SOCIAL)', destCampo: 'razonSocial', tipo: 'Texto (Requerido)' },
@@ -1051,10 +1119,9 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       { archivoCol: idxTelefono >= 0 ? headers[idxTelefono] : 'Col E (TELEFONO)', destCampo: 'telefonoContacto', tipo: 'Teléfono' },
       { archivoCol: idxCorreo >= 0 ? headers[idxCorreo] : 'Col F (CORREO_ELECTRONICO)', destCampo: 'emailContacto', tipo: 'Email' },
       { archivoCol: idxRep >= 0 ? headers[idxRep] : 'Col G (REPRESENTANTE_LEGAL)', destCampo: 'representanteLegal', tipo: 'Nombre' },
-      { archivoCol: idxDniRep >= 0 ? headers[idxDniRep] : 'Col H (DNI_REPRESENTANTE)', destCampo: 'dniRepresentante', tipo: 'DNI (8 dgt)' },
-      { archivoCol: idxPartida >= 0 ? headers[idxPartida] : 'Col I (PARTIDA_REGISTRAL)', destCampo: 'partida', tipo: 'Partida' },
-      { archivoCol: idxEstado >= 0 ? headers[idxEstado] : 'Col J (ESTADO_LEGAL)', destCampo: 'estado', tipo: 'Estado Legal' },
-      { archivoCol: idxTipoServicio >= 0 ? headers[idxTipoServicio] : 'Col K (TIPO_SERVICIO)', destCampo: 'tiposServicio', tipo: 'Servicio' }
+      { archivoCol: idxDniRep >= 0 ? headers[idxDniRep] : 'Col H (DNI_REPRESENTANTE_LEGAL)', destCampo: 'dniRepresentante', tipo: 'DNI (8 dgt)' },
+      { archivoCol: idxPartida >= 0 ? headers[idxPartida] : 'Col I (PARTIDA_REGISTRAL)', destCampo: 'partidaRegistral', tipo: 'Partida' },
+      { archivoCol: idxEstado >= 0 ? headers[idxEstado] : 'Col J (ESTADO)', destCampo: 'estado', tipo: 'Estado Legal' }
     ];
     this.columnasMapeadas.set(mapeo);
 
@@ -1073,7 +1140,6 @@ export class CargaMasivaEmpresasComponent implements OnInit {
       
       const estadoRaw = String(idxEstado >= 0 ? row[idxEstado] || '' : '').trim();
       const estadoNorm = this.normalizarEstadoEmpresa(estadoRaw || 'AUTORIZADA');
-      const servicioVal = String(idxTipoServicio >= 0 ? row[idxTipoServicio] || 'PERSONAS' : 'PERSONAS').trim();
 
       if (!rucVal && !razonVal) return;
 
@@ -1094,12 +1160,12 @@ export class CargaMasivaEmpresasComponent implements OnInit {
         partidaRegistral: partidaVal,
         estado: estadoNorm,
         estadoOriginal: estadoRaw,
-        tipoServicio: servicioVal || 'PERSONAS',
+        tipoServicio: '-',
         esValido: errores.length === 0,
         errores
       });
 
-      // Parsear objeto con compatibilidad de nombres de atributos backend
+      // Parsear objeto con columnas consideradas (Col B a Col J)
       rawParsed.push({
         ruc: rucVal,
         razonSocial: razonVal,
@@ -1109,8 +1175,9 @@ export class CargaMasivaEmpresasComponent implements OnInit {
         representanteLegal: repVal,
         dniRepresentante: dniRepVal,
         partida: partidaVal,
-        estado: estadoNorm,
-        tiposServicio: servicioVal ? [servicioVal.toUpperCase()] : ['PERSONAS']
+        partidaRegistral: partidaVal,
+        PARTIDA_REGISTRAL: partidaVal,
+        estado: estadoNorm
       });
     });
 

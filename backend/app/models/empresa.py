@@ -262,6 +262,13 @@ class EmpresaFiltros(BaseModel):
     tipoServicio: Optional[TipoServicio] = None
     fechaRegistroDesde: Optional[datetime] = None
     fechaRegistroHasta: Optional[datetime] = None
+    fechaDesde: Optional[datetime] = None
+    fechaHasta: Optional[datetime] = None
+    scoreRiesgoMin: Optional[float] = None
+    scoreRiesgoMax: Optional[float] = None
+    tieneDocumentosVencidos: Optional[bool] = None
+    tieneVehiculos: Optional[bool] = None
+    tieneConductores: Optional[bool] = None
     estaActivo: Optional[bool] = None
     page: int = 1
     limit: int = 10

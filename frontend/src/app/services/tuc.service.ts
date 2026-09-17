@@ -13,6 +13,29 @@ import {
   EstadoTuc
 } from '../models/tuc.model';
 
+export interface TucPlantillaConfig {
+  plantilla_id: string;
+  carpeta_destino_id?: string;
+  auto_detectar_margen?: boolean;
+  col_margen_izq?: number;
+  col_codigo?: number;
+  col_tramo?: number;
+  col_frecuencia?: number;
+  col_margen_der?: number;
+  fuente_tamanio_codigo?: number;
+  fuente_tamanio_tramo?: number;
+  fuente_tamanio_frecuencia?: number;
+  fuente_tamanio_dias?: number;
+}
+
+export interface GoogleDocsStatus {
+  disponible: boolean;
+  mensaje: string;
+  credentials_file?: string;
+  plantilla_id?: string;
+  configuracion?: TucPlantillaConfig;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -142,13 +165,18 @@ export class TucService {
   }
 
   // Verificar estado de credenciales de Google Docs
-  getGoogleDocsStatus(): Observable<{
-    disponible: boolean;
-    mensaje: string;
-    credentials_file?: string;
-    plantilla_id?: string;
-  }> {
-    return this.http.get<any>(`${this.apiUrl}/google-docs-status`);
+  getGoogleDocsStatus(): Observable<GoogleDocsStatus> {
+    return this.http.get<GoogleDocsStatus>(`${this.apiUrl}/google-docs-status`);
+  }
+
+  // Obtener configuración de plantilla y márgenes
+  getConfiguracionPlantilla(): Observable<TucPlantillaConfig> {
+    return this.http.get<TucPlantillaConfig>(`${this.apiUrl}/configuracion-plantilla`);
+  }
+
+  // Guardar configuración de plantilla y márgenes
+  guardarConfiguracionPlantilla(config: TucPlantillaConfig): Observable<TucPlantillaConfig> {
+    return this.http.put<TucPlantillaConfig>(`${this.apiUrl}/configuracion-plantilla`, config);
   }
 
   // Generar copia en la nube en Google Docs

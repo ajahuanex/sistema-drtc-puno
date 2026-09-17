@@ -28,6 +28,13 @@ httpx>=0.25.0
 # QR y documentos
 qrcode[pil]>=7.4.0
 Pillow>=10.0.0
+python-docx>=1.1.0
+
+# Google APIs (Drive, Docs, Sheets)
+google-api-python-client>=2.100.0
+google-auth>=2.20.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
 
 # Logging y monitoreo
 structlog>=23.2.0

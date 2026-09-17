@@ -1,5 +1,6 @@
 import { Component, Inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,7 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
-import { TucService } from '../../services/tuc.service';
+import { TucService, GoogleDocsStatus, TucPlantillaConfig } from '../../services/tuc.service';
 import { VehiculoEmpresa } from '../../services/flota-empresa.service';
 
 export interface GenerarTucDialogData {
@@ -19,6 +20,7 @@ export interface GenerarTucDialogData {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -230,17 +232,116 @@ export interface GenerarTucDialogData {
                       Para clonar automáticamente en su Google Drive, coloque el archivo <code>credentials.json</code> en <code>backend/config/</code>.
                     }
                   </p>
-                  <button mat-stroked-button class="btn-google-cloud" 
-                          (click)="generarGoogleDocs()" 
-                          [disabled]="!googleStatus()?.disponible || isGeneratingGoogle()">
-                    @if (isGeneratingGoogle()) {
-                      <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
-                      <span>Creando en Google Drive...</span>
-                    } @else {
-                      <mat-icon>open_in_new</mat-icon>
-                      <span>Generar en Google Docs</span>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <button mat-stroked-button class="btn-google-cloud" 
+                            (click)="generarGoogleDocs()" 
+                            [disabled]="!googleStatus()?.disponible || isGeneratingGoogle()">
+                      @if (isGeneratingGoogle()) {
+                        <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+                        <span>Creando en Google Drive...</span>
+                      } @else {
+                        <mat-icon>open_in_new</mat-icon>
+                        <span>{{ data.vehiculo.link_tuc ? 'Regenerar en Google Docs' : 'Generar en Google Docs' }}</span>
+                      }
+                    </button>
+
+                    @if (data.vehiculo.link_tuc) {
+                      <a [href]="data.vehiculo.link_tuc" target="_blank" mat-stroked-button
+                         style="border-color:#1a73e8;color:#1a73e8;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;">
+                        <mat-icon style="font-size:16px;width:16px;height:16px;">description</mat-icon>
+                        <span>Ver TUC Vinculado</span>
+                      </a>
                     }
-                  </button>
+
+                    @if (googleStatus()?.plantilla_id) {
+                      <a [href]="'https://docs.google.com/document/d/' + (configPlantilla().plantilla_id || googleStatus()?.plantilla_id) + '/edit'" target="_blank"
+                         mat-button
+                         style="color:#5f6368;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;"
+                         matTooltip="Abrir plantilla oficial base en Google Docs">
+                        <mat-icon style="font-size:16px;width:16px;height:16px;">launch</mat-icon>
+                        <span>Ver Plantilla Base</span>
+                      </a>
+                    }
+
+                    <button mat-button type="button" (click)="toggleConfigPlantilla()"
+                            style="color:#1e3a8a;font-size:12px;height:36px;display:inline-flex;align-items:center;gap:4px;"
+                            matTooltip="Configurar ID de la plantilla y anchos de columnas">
+                      <mat-icon style="font-size:16px;width:16px;height:16px;">tune</mat-icon>
+                      <span>{{ mostrarConfigPlantilla() ? 'Ocultar Configuración' : 'Configurar Plantilla y Columnas' }}</span>
+                    </button>
+                  </div>
+
+                  <!-- PANEL CONFIGURACIÓN DINÁMICA DE PLANTILLA Y MÁRGENES -->
+                  @if (mostrarConfigPlantilla()) {
+                    <div class="config-plantilla-box">
+                      <div class="cfg-header">
+                        <h5>Ajustes de Plantilla y Dimensiones de Tabla</h5>
+                        <span class="cfg-hint">Guarda la ID de la plantilla y los anchos de columnas en la base de datos sin necesidad de tocar código.</span>
+                      </div>
+
+                      <div class="cfg-field-group">
+                        <label>ID de la Plantilla de Google Docs:</label>
+                        <div class="cfg-id-row">
+                          <input type="text" [ngModel]="configPlantilla().plantilla_id" (ngModelChange)="actualizarCampoConfig('plantilla_id', $event)" class="cfg-input input-id" placeholder="ID del documento..." />
+                          <a [href]="'https://docs.google.com/document/d/' + configPlantilla().plantilla_id + '/edit'" target="_blank" mat-stroked-button style="height:32px;font-size:11px;display:inline-flex;align-items:center;gap:3px;">
+                            <mat-icon style="font-size:14px;width:14px;height:14px;">open_in_new</mat-icon> Abrir
+                          </a>
+                        </div>
+                      </div>
+
+                      <div class="cfg-presets-row">
+                        <span class="cfg-preset-lbl">Presets Rápidos:</span>
+                        <button type="button" class="btn-chip" (click)="aplicarPresetCentrado()">
+                          🎯 Centrado Reverso (99.2 pt)
+                        </button>
+                        <button type="button" class="btn-chip" (click)="aplicarPresetIzquierda()">
+                          📐 Clásica Izquierda (5 pt)
+                        </button>
+                      </div>
+
+                      <div class="cfg-columns-grid">
+                        <div class="cfg-col-item">
+                          <label>Margen Izq (pt):</label>
+                          <input type="number" [ngModel]="configPlantilla().col_margen_izq" (ngModelChange)="actualizarCampoConfig('col_margen_izq', $event)" step="0.5" class="cfg-input num" />
+                        </div>
+                        <div class="cfg-col-item">
+                          <label>Col 1 Código (pt):</label>
+                          <input type="number" [ngModel]="configPlantilla().col_codigo" (ngModelChange)="actualizarCampoConfig('col_codigo', $event)" step="1" class="cfg-input num" />
+                        </div>
+                        <div class="cfg-col-item">
+                          <label>Col 2 Tramo (pt):</label>
+                          <input type="number" [ngModel]="configPlantilla().col_tramo" (ngModelChange)="actualizarCampoConfig('col_tramo', $event)" step="1" class="cfg-input num" />
+                        </div>
+                        <div class="cfg-col-item">
+                          <label>Col 3 Frecuencia (pt):</label>
+                          <input type="number" [ngModel]="configPlantilla().col_frecuencia" (ngModelChange)="actualizarCampoConfig('col_frecuencia', $event)" step="1" class="cfg-input num" />
+                        </div>
+                        <div class="cfg-col-item">
+                          <label>Margen Der (pt):</label>
+                          <input type="number" [ngModel]="configPlantilla().col_margen_der" (ngModelChange)="actualizarCampoConfig('col_margen_der', $event)" step="0.5" class="cfg-input num" />
+                        </div>
+                      </div>
+
+                      <div class="cfg-check-row">
+                        <label class="cfg-checkbox-lbl">
+                          <input type="checkbox" [ngModel]="configPlantilla().auto_detectar_margen" (ngModelChange)="actualizarCampoConfig('auto_detectar_margen', $event)" />
+                          <span>Auto-detectar sangría de la regla horizontal centrada en la plantilla</span>
+                        </label>
+                      </div>
+
+                      <div class="cfg-actions-row">
+                        <button mat-flat-button color="primary" (click)="guardarConfiguracion()" [disabled]="isSavingConfig()" style="height:34px;font-size:12px;">
+                          @if (isSavingConfig()) {
+                            <mat-spinner diameter="14" class="inline-spinner"></mat-spinner>
+                            <span>Guardando en BD...</span>
+                          } @else {
+                            <mat-icon style="font-size:15px;width:15px;height:15px;">save</mat-icon>
+                            <span>Guardar Configuración en BD</span>
+                          }
+                        </button>
+                      </div>
+                    </div>
+                  }
                 </div>
               </div>
 
@@ -602,6 +703,148 @@ export interface GenerarTucDialogData {
             opacity: 0.9;
             background: #fafafa;
           }
+
+          .config-plantilla-box {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            .cfg-header {
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 6px;
+
+              h5 {
+                margin: 0;
+                font-size: 12.5px;
+                font-weight: 700;
+                color: #1e3a8a;
+              }
+              .cfg-hint {
+                font-size: 10.5px;
+                color: #64748b;
+              }
+            }
+
+            .cfg-field-group {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+
+              label {
+                font-size: 11px;
+                font-weight: 600;
+                color: #334155;
+              }
+
+              .cfg-id-row {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+
+                .cfg-input {
+                  flex: 1;
+                  padding: 5px 8px;
+                  font-size: 12px;
+                  font-family: monospace;
+                  border: 1px solid #cbd5e1;
+                  border-radius: 4px;
+                  background: #ffffff;
+                  color: #0f172a;
+
+                  &:focus {
+                    border-color: #2563eb;
+                    outline: none;
+                  }
+                }
+              }
+            }
+
+            .cfg-presets-row {
+              display: flex;
+              gap: 8px;
+              align-items: center;
+              flex-wrap: wrap;
+
+              .cfg-preset-lbl {
+                font-size: 11px;
+                font-weight: 600;
+                color: #475569;
+              }
+
+              .btn-chip {
+                background: #e2e8f0;
+                border: 1px solid #cbd5e1;
+                border-radius: 12px;
+                padding: 3px 9px;
+                font-size: 10.5px;
+                cursor: pointer;
+                color: #1e293b;
+                transition: all 0.2s;
+
+                &:hover {
+                  background: #cbd5e1;
+                  color: #0f172a;
+                }
+              }
+            }
+
+            .cfg-columns-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+              gap: 8px;
+
+              .cfg-col-item {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                label {
+                  font-size: 10px;
+                  font-weight: 600;
+                  color: #475569;
+                }
+
+                .cfg-input.num {
+                  padding: 4px 6px;
+                  font-size: 11.5px;
+                  border: 1px solid #cbd5e1;
+                  border-radius: 4px;
+                  background: #ffffff;
+                  color: #0f172a;
+                }
+              }
+            }
+
+            .cfg-check-row {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+
+              .cfg-checkbox-lbl {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 11px;
+                color: #334155;
+                cursor: pointer;
+              }
+            }
+
+            .cfg-actions-row {
+              display: flex;
+              justify-content: flex-end;
+              gap: 8px;
+              margin-top: 4px;
+            }
+          }
         }
       }
     }
@@ -644,7 +887,24 @@ export class GenerarTucDialogComponent implements OnInit {
   isGeneratingGoogle = signal<boolean>(false);
 
   tucData = signal<any>(null);
-  googleStatus = signal<{ disponible: boolean; mensaje: string } | null>(null);
+  googleStatus = signal<GoogleDocsStatus | null>(null);
+
+  mostrarConfigPlantilla = signal<boolean>(false);
+  isSavingConfig = signal<boolean>(false);
+  configPlantilla = signal<TucPlantillaConfig>({
+    plantilla_id: '1crxKiKG74B4zeTbNNByvoEWr_1IRsQ5qkj1a_tNs8lo',
+    carpeta_destino_id: '1Yy6q47onyA7flX5MmI8EKuK61YtzGGiA',
+    auto_detectar_margen: true,
+    col_margen_izq: 99.2,
+    col_codigo: 28.0,
+    col_tramo: 172.0,
+    col_frecuencia: 45.0,
+    col_margen_der: 105.0,
+    fuente_tamanio_codigo: 6.5,
+    fuente_tamanio_tramo: 6.0,
+    fuente_tamanio_frecuencia: 5.2,
+    fuente_tamanio_dias: 4.5
+  });
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: GenerarTucDialogData,
@@ -673,8 +933,74 @@ export class GenerarTucDialogComponent implements OnInit {
     });
 
     this.tucService.getGoogleDocsStatus().subscribe({
-      next: (st) => this.googleStatus.set(st),
+      next: (st) => {
+        this.googleStatus.set(st);
+        if (st?.configuracion) {
+          this.configPlantilla.set(st.configuracion);
+        }
+      },
       error: () => this.googleStatus.set({ disponible: false, mensaje: 'No disponible' })
+    });
+
+    this.tucService.getConfiguracionPlantilla().subscribe({
+      next: (cfg) => {
+        if (cfg) this.configPlantilla.set(cfg);
+      }
+    });
+  }
+
+  toggleConfigPlantilla(): void {
+    this.mostrarConfigPlantilla.update(v => !v);
+  }
+
+  actualizarCampoConfig(campo: keyof TucPlantillaConfig, valor: any): void {
+    this.configPlantilla.update(cfg => ({
+      ...cfg,
+      [campo]: valor
+    }));
+  }
+
+  aplicarPresetCentrado(): void {
+    this.configPlantilla.update(cfg => ({
+      ...cfg,
+      col_margen_izq: 99.2,
+      col_codigo: 28.0,
+      col_tramo: 172.0,
+      col_frecuencia: 45.0,
+      col_margen_der: 105.0,
+      auto_detectar_margen: true
+    }));
+    this.snackBar.open('Preset Centrado aplicado (99.2 pt). Haga clic en Guardar para persistirlo.', 'OK', { duration: 3000 });
+  }
+
+  aplicarPresetIzquierda(): void {
+    this.configPlantilla.update(cfg => ({
+      ...cfg,
+      col_margen_izq: 5.0,
+      col_codigo: 28.0,
+      col_tramo: 172.0,
+      col_frecuencia: 45.0,
+      col_margen_der: 200.0,
+      auto_detectar_margen: false
+    }));
+    this.snackBar.open('Preset Izquierda aplicado (5 pt). Haga clic en Guardar para persistirlo.', 'OK', { duration: 3000 });
+  }
+
+  guardarConfiguracion(): void {
+    this.isSavingConfig.set(true);
+    this.tucService.guardarConfiguracionPlantilla(this.configPlantilla()).subscribe({
+      next: (saved) => {
+        this.isSavingConfig.set(false);
+        this.configPlantilla.set(saved);
+        if (this.googleStatus()) {
+          this.googleStatus.update(st => st ? { ...st, plantilla_id: saved.plantilla_id } : null);
+        }
+        this.snackBar.open('Configuración de plantilla guardada correctamente en la BD.', 'OK', { duration: 3500 });
+      },
+      error: (err) => {
+        this.isSavingConfig.set(false);
+        this.snackBar.open('Error al guardar configuración: ' + (err?.error?.detail || err?.message), 'Cerrar', { duration: 4500 });
+      }
     });
   }
 
@@ -940,8 +1266,9 @@ export class GenerarTucDialogComponent implements OnInit {
       next: (resp) => {
         this.isGeneratingGoogle.set(false);
         if (resp && resp.exito && resp.url) {
+          this.data.vehiculo.link_tuc = resp.url;
           window.open(resp.url, '_blank');
-          this.snackBar.open('Copia en Google Docs generada exitosamente. Abriendo en nueva pestaña...', 'OK', { duration: 4500 });
+          this.snackBar.open('Copia en Google Docs generada y guardada en la columna de Links.', 'OK', { duration: 4500 });
         } else {
           this.snackBar.open(resp?.mensaje || 'No se pudo generar el documento en Google Docs.', 'Cerrar', { duration: 4000 });
         }
@@ -955,6 +1282,6 @@ export class GenerarTucDialogComponent implements OnInit {
   }
 
   cerrar(): void {
-    this.dialogRef.close();
+    this.dialogRef.close({ link_tuc: this.data.vehiculo.link_tuc });
   }
 }

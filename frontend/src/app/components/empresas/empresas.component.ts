@@ -266,6 +266,12 @@ const ESTADOS_RUC: Record<string, string> = {
                           <mat-icon class="sort-icon">{{ getSortIcon('razonSocial') }}</mat-icon>
                         </th>
                       }
+                      @if (columnaVisible('partidaRegistral')) {
+                        <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
+                          <span>Partida Registral</span>
+                          <mat-icon class="sort-icon">{{ getSortIcon('partidaRegistral') }}</mat-icon>
+                        </th>
+                      }
                       @if (columnaVisible('estado')) {
                         <th (click)="toggleSort('estado')" class="sortable-th">
                           <span>Estado Legal</span>
@@ -322,6 +328,11 @@ const ESTADOS_RUC: Record<string, string> = {
                                       [matTooltip]="'Estado legal: ' + (empresa.estado || 'AUTORIZADA')">
                                   {{ (empresa.estado || 'AUTORIZADA').toUpperCase() }}
                                 </span>
+                                @if (empresa.partidaRegistral) {
+                                  <span class="partida-pill-mini" [matTooltip]="'Partida Registral (SUNARP): ' + empresa.partidaRegistral">
+                                    <mat-icon class="partida-mini-icon">verified</mat-icon> {{ empresa.partidaRegistral }}
+                                  </span>
+                                }
                                 @for (srv of (empresa.tiposServicio || []).slice(0, 1); track srv) {
                                   <span class="service-tag-mini" [matTooltip]="'Tipo de Servicio: ' + srv">
                                     {{ getServicioAbreviado(srv) }}
@@ -341,6 +352,17 @@ const ESTADOS_RUC: Record<string, string> = {
                             <div class="empresa-name-container">
                               <span class="bold-text color-primary">{{ empresa.razonSocial.principal }}</span>
                             </div>
+                          </td>
+                        }
+                        @if (columnaVisible('partidaRegistral')) {
+                          <td>
+                            @if (empresa.partidaRegistral) {
+                              <span class="partida-pill-mini" [matTooltip]="'Partida Registral (SUNARP): ' + empresa.partidaRegistral">
+                                <mat-icon class="partida-mini-icon">verified</mat-icon> {{ empresa.partidaRegistral }}
+                              </span>
+                            } @else {
+                              <span style="font-size: 0.8rem; color: #9ca3af;">—</span>
+                            }
                           </td>
                         }
                         @if (columnaVisible('estado')) {
@@ -953,6 +975,27 @@ const ESTADOS_RUC: Record<string, string> = {
       &.status-cancelada { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 800; }
     }
 
+    .partida-pill-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: monospace;
+
+      .partida-mini-icon {
+        font-size: 11px;
+        width: 11px;
+        height: 11px;
+        color: #d97706;
+      }
+    }
+
     .services-chips-flex {
       display: flex;
       align-items: center;
@@ -1477,6 +1520,7 @@ export class EmpresasComponent implements OnInit {
     { id: 'seleccionar', label: 'Seleccionar', visible: true },
     { id: 'ruc', label: 'RUC', visible: true },
     { id: 'razonSocial', label: 'Razón Social', visible: true },
+    { id: 'partidaRegistral', label: 'Partida Registral (Columna)', visible: false },
     { id: 'estado', label: 'Estado Legal (Columna separada)', visible: false },
     { id: 'servicios', label: 'Tipos de Servicio (Columna separada)', visible: false },
     { id: 'representante', label: 'Representante / Socios', visible: true },
@@ -1528,6 +1572,7 @@ export class EmpresasComponent implements OnInit {
         e.ruc.toLowerCase().includes(search) ||
         e.razonSocial.principal.toLowerCase().includes(search) ||
         (e.razonSocial.sunat && e.razonSocial.sunat.toLowerCase().includes(search)) ||
+        (e.partidaRegistral && e.partidaRegistral.toLowerCase().includes(search)) ||
         repNombre.includes(search) ||
         repDni.includes(search);
 
@@ -1552,6 +1597,10 @@ export class EmpresasComponent implements OnInit {
         case 'razonSocial':
           valA = a.razonSocial?.principal || '';
           valB = b.razonSocial?.principal || '';
+          break;
+        case 'partidaRegistral':
+          valA = a.partidaRegistral || '';
+          valB = b.partidaRegistral || '';
           break;
         case 'estado':
           valA = a.estado || '';
@@ -2114,34 +2163,106 @@ export class EmpresasComponent implements OnInit {
         let filasOmitidas = 0;
 
         for (const row of jsonData as any[]) {
-          const ruc = (row as any)['RUC']?.toString().trim();
-          const razonSocialPrincipal = (row as any)['Razón Social Principal']?.toString().trim();
+          const ruc = ((row as any)['RUC'] || (row as any)['ruc'])?.toString().trim();
+          const razonSocialPrincipal = (
+            (row as any)['RAZON_SOCIAL'] ||
+            (row as any)['Razón Social Principal'] ||
+            (row as any)['RAZON SOCIAL'] ||
+            (row as any)['razon_social'] ||
+            (row as any)['razonSocial']
+          )?.toString().trim();
 
           if (!ruc || !razonSocialPrincipal) {
             filasOmitidas++;
             continue;
           }
 
-          const dni = (row as any)['DNI Representante']?.toString().trim() || '';
-          const nombres = (row as any)['Nombres Representante']?.toString().trim() || '';
-          const apellidos = (row as any)['Apellidos Representante']?.toString().trim() || '';
+          let dni = (
+            (row as any)['DNI_REPRESENTANTE_LEGAL'] ||
+            (row as any)['DNI Representante'] ||
+            (row as any)['dni_representante'] ||
+            (row as any)['DNI'] ||
+            ''
+          )?.toString().trim();
 
-          let estado = (row as any)['Estado']?.toString().trim().toUpperCase() || 'AUTORIZADA';
+          let nombres = (row as any)['Nombres Representante']?.toString().trim() || '';
+          let apellidos = (row as any)['Apellidos Representante']?.toString().trim() || '';
+          const repLegal = ((row as any)['REPRESENTANTE_LEGAL'] || (row as any)['Representante Legal'])?.toString().trim() || '';
+          if (!nombres && !apellidos && repLegal) {
+            const parts = repLegal.split(' ');
+            apellidos = parts.length > 0 ? parts[parts.length - 1] : '';
+            nombres = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
+          }
+
+          let estado = (
+            (row as any)['ESTADO'] ||
+            (row as any)['Estado'] ||
+            'AUTORIZADA'
+          )?.toString().trim().toUpperCase();
           if (!['AUTORIZADA', 'EN_TRAMITE', 'SUSPENDIDA', 'CANCELADA'].includes(estado)) {
             estado = 'AUTORIZADA';
           }
 
-          let partida = (row as any)['Partida Registral']?.toString().trim() || '00000000';
-          partida = partida.replace(/\D/g, '').padStart(8, '0').substring(0, 8);
+          let partidaRaw = (row as any)['PARTIDA_REGISTRAL'] ||
+                           (row as any)['Partida Registral'] ||
+                           (row as any)['PARTIDA REGISTRAL'] ||
+                           (row as any)['Partida'] ||
+                           (row as any)['PARTIDA'] ||
+                           (row as any)['partida_registral'] ||
+                           (row as any)['partida'] ||
+                           '';
+          let partida = partidaRaw.toString().trim();
+          if (partida && partida !== '-' && partida.toLowerCase() !== 'nan') {
+            const partidaNumerica = partida.replace(/\D/g, '');
+            if (partidaNumerica) {
+              partida = partidaNumerica.padStart(8, '0');
+            }
+          } else {
+            partida = '';
+          }
+
+          const direccionFiscal = (
+            (row as any)['DOMICILIO_LEGAL'] ||
+            (row as any)['Dirección Fiscal'] ||
+            (row as any)['DOMICILIO_FISCAL_SUNAT'] ||
+            (row as any)['domicilio_legal'] ||
+            ''
+          )?.toString().trim();
+
+          const emailContacto = (
+            (row as any)['CORREO_ELECTRONICO'] ||
+            (row as any)['Email Contacto'] ||
+            (row as any)['email'] ||
+            ''
+          )?.toString().trim();
+
+          const telefonoContacto = (
+            (row as any)['TELEFONO'] ||
+            (row as any)['Teléfono Contacto'] ||
+            (row as any)['telefono'] ||
+            ''
+          )?.toString().trim();
+
+          const observaciones = (
+            (row as any)['OBSERVACIONES'] ||
+            (row as any)['Observaciones'] ||
+            ''
+          )?.toString().trim();
+
+          const tipoServRaw = (row as any)['TIPO_SERVICIO'] || (row as any)['Tipo de Servicio'];
+          const tiposServicio = tipoServRaw
+            ? tipoServRaw.toString().split(';').map((s: string) => s.trim().toUpperCase()).filter((s: string) => s)
+            : ['PERSONAS'];
 
           const empresa: EmpresaCreate = {
             ruc,
             razonSocial: {
               principal: razonSocialPrincipal,
-              sunat: (row as any)['Razón Social SUNAT']?.toString().trim() || undefined,
+              sunat: ((row as any)['RAZON_SOCIAL_SUNAT'] || (row as any)['Razón Social SUNAT'])?.toString().trim() || undefined,
               minimo: (row as any)['Razón Social Mínimo']?.toString().trim() || undefined
             },
-            direccionFiscal: (row as any)['Dirección Fiscal']?.toString().trim() || '',
+            direccionFiscal: direccionFiscal || '',
+            partidaRegistral: partida || undefined,
             estado: estado as any,
             socios: dni || nombres || apellidos ? [
               {
@@ -2149,15 +2270,15 @@ export class EmpresasComponent implements OnInit {
                 nombres: nombres,
                 apellidos: apellidos,
                 tipoSocio: TipoSocio.REPRESENTANTE_LEGAL,
-                email: (row as any)['Email Contacto']?.toString().trim() || undefined,
-                direccion: (row as any)['Dirección Fiscal']?.toString().trim() || undefined
+                email: emailContacto || undefined,
+                direccion: direccionFiscal || undefined
               }
             ] : [],
-            tiposServicio: (row as any)['Tipo de Servicio']?.toString().split(';').map((s: string) => s.trim()).filter((s: string) => s) || ['PASAJEROS'],
-            emailContacto: (row as any)['Email Contacto']?.toString().trim() || '',
-            telefonoContacto: (row as any)['Teléfono Contacto']?.toString().trim() || '',
+            tiposServicio: tiposServicio,
+            emailContacto: emailContacto || '',
+            telefonoContacto: telefonoContacto || '',
             sitioWeb: (row as any)['Sitio Web']?.toString().trim() || '',
-            observaciones: (row as any)['Observaciones']?.toString().trim() || ''
+            observaciones: observaciones || ''
           };
 
           empresas.push(empresa);
