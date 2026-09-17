@@ -7,7 +7,8 @@ from app.services.tuc_document_service import TucDocumentService
 
 logger = logging.getLogger(__name__)
 
-OFFICIAL_TEMPLATE_DOC_ID = "1crxKiKG74B4zeTbNNByvoEWr_1IRsQ5qkj1a_tNs8lo"
+OFFICIAL_TEMPLATE_DOC_ID = "16BUXKmkdHclgcEloeRlj43p3X3RhQ0uO6FwYa34rWY4"
+DEFAULT_OUTPUT_FOLDER_ID = "1Yy6q47onyA7flX5MmI8EKuK61YtzGGiA"
 CREDENTIALS_PATHS = [
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config", "credentials.json"),
     os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "credentials.json"),
@@ -42,7 +43,7 @@ class GoogleDocsTucService:
             }
 
     @staticmethod
-    async def generar_copia_google_doc(placa_o_id: str, carpeta_destino_id: Optional[str] = None) -> Dict[str, Any]:
+    async def generar_copia_google_doc(placa_o_id: str, carpeta_destino_id: Optional[str] = DEFAULT_OUTPUT_FOLDER_ID) -> Dict[str, Any]:
         """
         Clona la plantilla oficial de Google Docs y reemplaza las etiquetas con la Google Docs API.
         """
@@ -73,7 +74,7 @@ class GoogleDocsTucService:
             drive_service = build('drive', 'v3', credentials=creds)
             docs_service = build('docs', 'v1', credentials=creds)
 
-            # 1. Clonar el archivo de la plantilla
+            # 1. Clonar la plantilla directamente en la carpeta destino del Shared Drive
             copy_metadata = {
                 'name': f"TUC_{placa}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             }
@@ -82,11 +83,12 @@ class GoogleDocsTucService:
 
             copia = drive_service.files().copy(
                 fileId=OFFICIAL_TEMPLATE_DOC_ID,
-                body=copy_metadata
+                body=copy_metadata,
+                supportsAllDrives=True
             ).execute()
 
             nuevo_doc_id = copia.get('id')
-
+            logger.info(f"Copia creada: {nuevo_doc_id} en carpeta {carpeta_destino_id or 'raiz'}")
             # 2. Reemplazar texto en el nuevo documento usando documents.batchUpdate
             requests = []
             for k, v in placeholders.items():

@@ -13,4 +13,4 @@ export DATABASE_NAME="drtc_db"
 
 # Iniciar el backend
 echo "✓ Iniciando servidor en http://localhost:8000"
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

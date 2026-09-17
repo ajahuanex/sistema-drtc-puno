@@ -42,6 +42,10 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Google API credentials (private keys)
+credentials.json
+backend/config/credentials.json
+
 # Database
 *.db
 *.sqlite
