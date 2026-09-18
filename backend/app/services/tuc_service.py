@@ -53,14 +53,23 @@ class TucService:
         cursor = db.tucs.find({"nroTuc": {"$regex": regex_pattern}}).sort("nroTuc", -1).limit(1)
         docs = await cursor.to_list(length=1)
         
+        max_db = 0
         if docs and "nroTuc" in docs[0]:
-            ultimo_nro = docs[0]["nroTuc"]
-            match = re.search(r"\d{6}", ultimo_nro)
+            match = re.search(r"\d{6}", docs[0]["nroTuc"])
             if match:
-                siguiente = int(match.group(0)) + 1
-                return f"{prefijo}{siguiente:06d}"
-        
-        return f"{prefijo}000001"
+                max_db = int(match.group(0))
+                
+        max_config = 0
+        if tipo_emision == TipoEmisionTuc.FISICA:
+            config_doc = await db.configuraciones.find_one({"nombre": "ULTIMO_NUMERO_TUC_FISICO", "activo": True})
+            if config_doc and config_doc.get("valor"):
+                try:
+                    max_config = int(re.sub(r"\D", "", config_doc["valor"]))
+                except ValueError:
+                    pass
+                    
+        siguiente = max(max_db, max_config) + 1
+        return f"{prefijo}{siguiente:06d}"
 
     @staticmethod
     async def verificar_unicidad_nro_tuc(nro_tuc: str, excluir_id: Optional[str] = None) -> bool:

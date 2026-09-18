@@ -242,6 +242,18 @@ class ConfiguracionService:
                 "fechaActualizacion": datetime.utcnow(),
                 "creadoPor": "SISTEMA",
                 "actualizadoPor": "SISTEMA"
+            },
+            {
+                "nombre": "ULTIMO_NUMERO_TUC_FISICO",
+                "valor": "0",
+                "descripcion": "Último número de TUC físico utilizado (Sirve como base para continuar la numeración)",
+                "categoria": CategoriaConfiguracion.GENERAL,
+                "activo": True,
+                "esEditable": True,
+                "fechaCreacion": datetime.utcnow(),
+                "fechaActualizacion": datetime.utcnow(),
+                "creadoPor": "SISTEMA",
+                "actualizadoPor": "SISTEMA"
             }
         ]
 

@@ -34,6 +34,11 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </div>
         }
         
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Dashboard' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard</span> }
+        </a>
+
         <a mat-list-item routerLink="/empresas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Empresas' : ''" matTooltipPosition="right">
           <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Empresas</span> }
