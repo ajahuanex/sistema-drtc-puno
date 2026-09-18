@@ -52,7 +52,6 @@ export const routes: Routes = [
       { path: 'vehiculos-empresa', loadComponent: () => import('./components/vehiculos-empresa/vehiculos-empresa.component').then(m => m.VehiculosEmpresaComponent) },
       { path: 'vehiculos-empresa/carga-masiva', loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent) },
       { path: 'vehiculos-empresa/carga-masiva-google-sheets', loadComponent: () => import('./components/vehiculos-empresa/carga-masiva-vehiculos-empresa.component').then(m => m.CargaMasivaVehiculosEmpresaComponent) },
-      { path: 'historial-vehiculos', loadComponent: () => import('./components/historial-vehiculos/historial-vehiculos.component').then(m => m.HistorialVehiculosComponent) },
       
       // TUCS (Tarjetas Únicas de Circulación)
       { path: 'tucs', loadComponent: () => import('./components/tucs/tuc-catalogo.component').then(m => m.TucCatalogoComponent) },
@@ -60,6 +59,9 @@ export const routes: Routes = [
       // INFRAESTRUCTURA COMPLEMENTARIA (Terminales Terrestres, Estaciones de Ruta)
       { path: 'infraestructura', loadComponent: () => import('./components/infraestructura/infraestructura.component').then(m => m.InfraestructuraComponent) },
       { path: 'infraestructura/:id', loadComponent: () => import('./components/infraestructura/infraestructura-detail.component').then(m => m.InfraestructuraDetailComponent) },
+
+      // AUDITORÍA Y TRAZABILIDAD DEL SISTEMA (Control Interno & Fiscalización)
+      { path: 'auditoria', loadComponent: () => import('./components/auditoria/auditoria.component').then(m => m.AuditoriaComponent) },
     ]
   },
   

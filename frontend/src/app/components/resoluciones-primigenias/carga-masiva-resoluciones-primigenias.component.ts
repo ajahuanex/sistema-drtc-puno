@@ -522,7 +522,7 @@ export interface RegistroResolucionPreview {
                         <ng-container matColumnDef="tipoAutorizacion">
                           <th mat-header-cell *matHeaderCellDef>Tipo Autorización</th>
                           <td mat-cell *matCellDef="let r">
-                            <span class="type-tag">{{ r.tipoAutorizacion || 'TURISMO' }}</span>
+                            <span class="type-tag">{{ r.tipoAutorizacion || 'PASAJEROS' }}</span>
                           </td>
                         </ng-container>
 
@@ -996,7 +996,20 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
         const estado = getVal('ESTADO', 'ESTADO_LEGAL');
         const obs = getVal('OBSERVACIONES', 'OBSERVACION', 'NOTAS');
         const eficaciaAnt = getVal('EFICACIA ANTICIPADA', 'EFICACIA_ANTICIPADA', 'EFICACIA');
-        const tipoAut = getVal('TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 'TIPO_RESOLUCION', 'MODALIDAD', 'TIPO_SERVICIO');
+        const tipoAutRaw = getVal('TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 'MODALIDAD', 'TIPO_SERVICIO');
+        let tipoAutFinal = 'PASAJEROS';
+        if (tipoAutRaw) {
+          const upper = tipoAutRaw.toUpperCase().trim();
+          if (upper.includes('TURIS')) {
+            tipoAutFinal = 'TURISMO';
+          } else if (upper.includes('CARGA')) {
+            tipoAutFinal = 'CARGA';
+          } else if (upper.includes('TRABAJ') || upper.includes('PERSONAL')) {
+            tipoAutFinal = 'TRABAJADORES';
+          } else {
+            tipoAutFinal = 'PASAJEROS';
+          }
+        }
         const link = getVal('LINK', 'LINK_DOCUMENTO', 'DRIVE', 'URL');
         const feErr = getVal('FE_DE_ERRTAS', 'FE_DE_ERRATAS', 'FE DE ERRATAS');
         const histCambios = getVal('HISTORIAL_CAMBIOS', 'HISTORIAL_MODIFICACIONES', 'HISTORIAL');
@@ -1026,7 +1039,7 @@ export class CargaMasivaResolucionesPrimigeniasComponent implements OnInit {
           estado: estado ? estado.toUpperCase() : 'VIGENTE',
           observaciones: obs,
           eficaciaAnticipada: eficaciaAnt,
-          tipoAutorizacion: tipoAut ? tipoAut.toUpperCase() : 'TURISMO',
+          tipoAutorizacion: tipoAutFinal,
           linkDocumento: link,
           feDeErratas: feErr,
           historialCambios: histCambios,

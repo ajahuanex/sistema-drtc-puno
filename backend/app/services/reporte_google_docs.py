@@ -54,15 +54,24 @@ class GoogleDocsReportService:
             <li><strong>Total Incrementos de Flota:</strong> {estadisticas.get('totalIncrementos', 0)}</li>
         </ul>
         
-        <h2 style="color: #374151; border-bottom: 1px solid #ccc;">EMPRESAS POR MODALIDAD</h2>
+        <h2 style="color: #374151; border-bottom: 1px solid #ccc;">DISTRIBUCIÓN DE EMPRESAS POR RESOLUCIONES PRIMIGENIAS</h2>
         <ul>
+            <li><strong>Empresas con 1 Resolución:</strong> {estadisticas.get('empresasPorResoluciones', {}).get('con1', 0)}</li>
+            <li><strong>Empresas con 2 Resoluciones:</strong> {estadisticas.get('empresasPorResoluciones', {}).get('con2', 0)}</li>
+            <li><strong>Empresas con 3 Resoluciones:</strong> {estadisticas.get('empresasPorResoluciones', {}).get('con3', 0)}</li>
+            <li><strong>Empresas con 4 Resoluciones:</strong> {estadisticas.get('empresasPorResoluciones', {}).get('con4', 0)}</li>
+            <li><strong>Empresas con 5 o más Resoluciones:</strong> {estadisticas.get('empresasPorResoluciones', {}).get('con5Mas', 0)}</li>
+        </ul>
+
+        <h2 style="color: #374151; border-bottom: 1px solid #ccc;">TOP CORREDORES POR FLOTA VEHICULAR (ORIGEN - DESTINO Y VIC.)</h2>
+        <ol>
         """
         
-        for emp in estadisticas.get('empresasPorModalidad', []):
-            html_content += f"<li><strong>{emp['modalidad']}:</strong> {emp['total']}</li>"
+        for corr in estadisticas.get('flotasPorCorredor', [])[:15]:
+            html_content += f"<li><strong>{corr['corredor']}:</strong> {corr['totalVehiculos']} vehículos ({corr['totalEmpresas']} empresas)</li>"
             
         html_content += """
-        </ul>
+        </ol>
         <h2 style="color: #374151; border-bottom: 1px solid #ccc;">RUTAS CON MÁS EMPRESAS AUTORIZADAS</h2>
         <ol>
         """
@@ -79,7 +88,26 @@ class GoogleDocsReportService:
         for flota in estadisticas.get('topFlotasPorEmpresa', []):
             html_content += f"<li><strong>{flota['razonSocial']}</strong> (RUC: {flota['ruc']}) - Flota: {flota['total']}</li>"
             
-        html_content += """
+        html_content += f"""
+        </ol>
+        <h2 style="color: #b91c1c; border-bottom: 1px solid #fca5a5;">RESOLUCIONES PRIMIGENIAS PRÓXIMAS A VENCER</h2>
+        <p><strong>Por vencer en los próximos 30 días:</strong> {estadisticas.get('resolucionesPorVencer30', {}).get('total', 0)} resoluciones</p>
+        <p><strong>Por vencer en los próximos 60 días (acumulado):</strong> {estadisticas.get('resolucionesPorVencer60', {}).get('total', 0)} resoluciones</p>
+        <ul>
+        """
+        for item in estadisticas.get('resolucionesPorVencer60', {}).get('items', [])[:15]:
+            html_content += f"<li><strong>{item['nroResolucion']}</strong> - {item['razonSocial']} (RUC: {item['ruc']}) • Vence: {item['fechaFinVigencia']} ({item['diasRestantes']} días restantes)</li>"
+
+        html_content += f"""
+        </ul>
+        <h2 style="color: #374151; border-bottom: 1px solid #ccc;">TOP EMPRESAS CON MAYOR VOLUMEN DE TRÁMITES (SUSTITUCIONES E INCREMENTOS)</h2>
+        <p><strong>Total Trámites Registrados:</strong> {estadisticas.get('totalTramitesFlota', 0)} ({estadisticas.get('totalSustituciones', 0)} sustituciones / {estadisticas.get('totalIncrementos', 0)} incrementos)</p>
+        <ol>
+        """
+        for t in estadisticas.get('topEmpresasTramites', [])[:10]:
+            html_content += f"<li><strong>{t['razonSocial']}</strong> (RUC: {t['ruc']}) - Total: {t['totalTramites']} ({t['sustituciones']} sustituciones, {t['incrementos']} incrementos)</li>"
+
+        html_content += f"""
         </ol>
         <br>
         <hr>

@@ -151,7 +151,7 @@ class ResolucionPrimigeniaService:
             if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
                 doc["fecha_resolucion"] = doc["fecha_emision"]
             if not doc.get("tipo_autorizacion"):
-                doc["tipo_autorizacion"] = "RENOVACION" if "RENOV" in str(doc.get("observaciones", "")).upper() else "PASAJEROS"
+                doc["tipo_autorizacion"] = "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
         
         return [ResolucionPrimigenia(**doc) for doc in docs]
@@ -169,7 +169,15 @@ class ResolucionPrimigeniaService:
             query["estado"] = filtros["estado"]
             
         if filtros.get("tipo_autorizacion"):
-            query["tipo_autorizacion"] = {"$regex": filtros["tipo_autorizacion"], "$options": "i"}
+            t_filtro = filtros["tipo_autorizacion"].strip().upper()
+            if t_filtro in ["PASAJEROS", "PERSONAS"]:
+                query["tipo_autorizacion"] = {"$in": ["PASAJEROS", "PERSONAS", "REGULAR", "RENOVACION", "AUTORIZACION"]}
+            elif "TURIS" in t_filtro:
+                query["tipo_autorizacion"] = "TURISMO"
+            elif "TRABAJ" in t_filtro or "PERSONAL" in t_filtro:
+                query["tipo_autorizacion"] = {"$in": ["TRABAJADORES", "PERSONAL"]}
+            else:
+                query["tipo_autorizacion"] = {"$regex": filtros["tipo_autorizacion"], "$options": "i"}
             
         if filtros.get("fecha_desde") or filtros.get("fecha_hasta"):
             query["fecha_resolucion"] = {}
@@ -187,7 +195,7 @@ class ResolucionPrimigeniaService:
             if not doc.get("fecha_resolucion") and doc.get("fecha_emision"):
                 doc["fecha_resolucion"] = doc["fecha_emision"]
             if not doc.get("tipo_autorizacion"):
-                doc["tipo_autorizacion"] = "RENOVACION" if "RENOV" in str(doc.get("observaciones", "")).upper() else "PASAJEROS"
+                doc["tipo_autorizacion"] = "PASAJEROS"
             doc["estado"] = self._calcular_estado_efectivo(doc)
                 
         return [ResolucionPrimigenia(**doc) for doc in docs]

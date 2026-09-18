@@ -88,15 +88,6 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
-        <a mat-list-item routerLink="/historial-vehiculos" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Historial Vehicular' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'history'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Historial Vehicular</span> }
-        </a>
-
-        <a mat-list-item routerLink="/vehiculos/solicitudes-baja" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Solicitudes de Baja' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'assignment'" [size]="24" class="nav-icon"></app-smart-icon>
-          @if (isExpanded()) { <span matListItemTitle class="nav-text">Solicitudes de Baja</span> }
-        </a>
 
 
 
@@ -189,6 +180,19 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
 
+
+        @if (isExpanded()) {
+          <div class="nav-section">
+            <h3 class="section-title">Control & Auditoría</h3>
+          </div>
+        }
+
+        <a mat-list-item routerLink="/auditoria" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Auditoría del Sistema' : ''" matTooltipPosition="right">
+          <app-smart-icon matListItemIcon [iconName]="'verified_user'" [size]="24" class="nav-icon"></app-smart-icon>
+          @if (isExpanded()) { <span matListItemTitle class="nav-text">Auditoría del Sistema</span> }
+        </a>
+
+        @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
 
         @if (isExpanded()) {
           <div class="nav-section">

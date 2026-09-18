@@ -147,10 +147,10 @@ import {
               <mat-label>Modalidad</mat-label>
               <mat-select [formControl]="tipoAutorizacionControl">
                 <mat-option value="">Todas las Modalidades</mat-option>
-                <mat-option value="TURISMO">Turismo</mat-option>
-                <mat-option value="PERSONAS">Pasajeros / Personas</mat-option>
+                <mat-option value="PASAJEROS">Transporte Regular de Pasajeros</mat-option>
+                <mat-option value="TURISMO">Transporte Especial de Turismo</mat-option>
                 <mat-option value="CARGA">Carga y Mercancías</mat-option>
-                <mat-option value="REGIONAL">Regional</mat-option>
+                <mat-option value="TRABAJADORES">Transporte de Trabajadores</mat-option>
               </mat-select>
             </mat-form-field>
 
@@ -251,12 +251,12 @@ import {
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Tipo Autorización</mat-label>
+                    <mat-label>Tipo Autorización / Modalidad</mat-label>
                     <mat-select formControlName="tipo_autorizacion">
-                      <mat-option value="TURISMO">Turismo</mat-option>
-                      <mat-option value="PERSONAS">Pasajeros / Personas</mat-option>
+                      <mat-option value="PASAJEROS">Transporte de Pasajeros / Regular</mat-option>
+                      <mat-option value="TURISMO">Transporte Especial de Turismo</mat-option>
                       <mat-option value="CARGA">Carga y Mercancías</mat-option>
-                      <mat-option value="REGIONAL">Regional</mat-option>
+                      <mat-option value="TRABAJADORES">Transporte de Trabajadores</mat-option>
                     </mat-select>
                   </mat-form-field>
 
@@ -339,12 +339,12 @@ import {
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Tipo Autorización</mat-label>
+                    <mat-label>Tipo Autorización / Modalidad</mat-label>
                     <mat-select formControlName="tipo_autorizacion">
-                      <mat-option value="TURISMO">Turismo</mat-option>
-                      <mat-option value="PERSONAS">Pasajeros / Personas</mat-option>
+                      <mat-option value="PASAJEROS">Transporte de Pasajeros / Regular</mat-option>
+                      <mat-option value="TURISMO">Transporte Especial de Turismo</mat-option>
                       <mat-option value="CARGA">Carga y Mercancías</mat-option>
-                      <mat-option value="REGIONAL">Regional</mat-option>
+                      <mat-option value="TRABAJADORES">Transporte de Trabajadores</mat-option>
                     </mat-select>
                   </mat-form-field>
 
@@ -657,7 +657,17 @@ import {
                           </td>
                         }
                         @if (columnaVisible('tipo_autorizacion')) {
-                          <td>{{ item.tipo_autorizacion }}</td>
+                          <td>
+                            @if (esTipoTurismo(item.tipo_autorizacion)) {
+                              <span class="tipo-badge badge-turismo">TURISMO</span>
+                            } @else if (esTipoCarga(item.tipo_autorizacion)) {
+                              <span class="tipo-badge badge-carga">CARGA</span>
+                            } @else if (esTipoTrabajadores(item.tipo_autorizacion)) {
+                              <span class="tipo-badge badge-trabajadores">TRABAJADORES</span>
+                            } @else {
+                              <span class="tipo-badge badge-pasajeros">PASAJEROS</span>
+                            }
+                          </td>
                         }
                         @if (columnaVisible('fecha_resolucion')) {
                           <td>{{ item.fecha_resolucion ? (item.fecha_resolucion | date:'dd/MM/yyyy') : 'N/A' }}</td>
@@ -1460,6 +1470,37 @@ import {
       &.badge-mod { background-color: #e0f2fe; color: #0369a1; }
     }
 
+    .tipo-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+
+      &.badge-pasajeros {
+        background-color: #e0e7ff;
+        color: #3730a3;
+        border: 1px solid #c7d2fe;
+      }
+      &.badge-turismo {
+        background-color: #f3e8ff;
+        color: #6b21a8;
+        border: 1px solid #e9d5ff;
+      }
+      &.badge-carga {
+        background-color: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fde68a;
+      }
+      &.badge-trabajadores {
+        background-color: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+    }
+
     .drive-link {
       color: #2563eb;
       &:hover { color: #1d4ed8; }
@@ -2142,7 +2183,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     fecha_resolucion: ['', Validators.required],
     fecha_inicio_vigencia: ['', Validators.required],
     anios_vigencia: [10, Validators.required],
-    tipo_autorizacion: ['TURISMO', Validators.required],
+    tipo_autorizacion: ['PASAJEROS', Validators.required],
     link_documento: [''],
     expedientes_codigos: [''],
     observaciones: ['']
@@ -2156,7 +2197,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     fecha_resolucion: ['', Validators.required],
     fecha_inicio_vigencia: ['', Validators.required],
     anios_vigencia: [10, Validators.required],
-    tipo_autorizacion: ['TURISMO', Validators.required],
+    tipo_autorizacion: ['PASAJEROS', Validators.required],
     link_documento: [''],
     observaciones: ['']
   });
@@ -2194,7 +2235,24 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
 
       const estEfectivo = this.getEstadoEfectivo(r);
       const matchEstado = !estado || estEfectivo === estado;
-      const matchTipo = !tipo || (r.tipo_autorizacion || '').toUpperCase() === tipo;
+
+      let matchTipo = true;
+      if (tipo) {
+        const rTipo = (r.tipo_autorizacion || '').toUpperCase().trim();
+        if (tipo === 'PASAJEROS' || tipo === 'PERSONAS') {
+          matchTipo = ['PASAJEROS', 'PERSONAS', 'REGULAR', 'RENOVACION', 'AUTORIZACION'].includes(rTipo) || 
+                      rTipo.includes('PASAJ') || rTipo.includes('PERSON');
+        } else if (tipo === 'TURISMO') {
+          matchTipo = rTipo === 'TURISMO' || rTipo.includes('TURIS');
+        } else if (tipo === 'CARGA') {
+          matchTipo = rTipo === 'CARGA' || rTipo.includes('CARGA') || rTipo.includes('MERCANC');
+        } else if (tipo === 'TRABAJADORES') {
+          matchTipo = rTipo === 'TRABAJADORES' || rTipo.includes('TRABAJ') || rTipo.includes('PERSONAL');
+        } else {
+          matchTipo = rTipo === tipo || rTipo.includes(tipo);
+        }
+      }
+
       const matchPorVencer = !soloPorVencer || this.esPorVencer30Dias(r.fecha_fin_vigencia, r.estado);
 
       return matchSearch && matchEstado && matchTipo && matchPorVencer;
@@ -2531,6 +2589,17 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     const fRes = item.fecha_resolucion ? new Date(item.fecha_resolucion).toISOString().substring(0, 10) : '';
     const fIni = item.fecha_inicio_vigencia ? new Date(item.fecha_inicio_vigencia).toISOString().substring(0, 10) : '';
 
+    let normTipo = (item.tipo_autorizacion || 'PASAJEROS').toUpperCase().trim();
+    if (['PERSONAS', 'REGULAR', 'RENOVACION', 'AUTORIZACION'].includes(normTipo) || normTipo.includes('PASAJ') || normTipo.includes('PERSON')) {
+      normTipo = 'PASAJEROS';
+    } else if (normTipo.includes('TURIS')) {
+      normTipo = 'TURISMO';
+    } else if (normTipo.includes('CARGA')) {
+      normTipo = 'CARGA';
+    } else if (normTipo.includes('TRABAJ') || normTipo.includes('PERSONAL')) {
+      normTipo = 'TRABAJADORES';
+    }
+
     this.editForm.patchValue({
       nro_resolucion: item.nro_resolucion,
       siglas: item.siglas || '',
@@ -2538,7 +2607,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
       fecha_resolucion: fRes,
       fecha_inicio_vigencia: fIni,
       anios_vigencia: item.anios_vigencia || 10,
-      tipo_autorizacion: item.tipo_autorizacion,
+      tipo_autorizacion: normTipo,
       link_documento: item.link_documento || '',
       observaciones: item.observaciones || ''
     });
@@ -2687,7 +2756,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     this.service.createResolucionPrimigenia(dto).subscribe({
       next: () => {
         this.snackBar.open('Resolución Primigenia registrada con éxito', 'Cerrar', { duration: 3000 });
-        this.primigeniaForm.reset({ anios_vigencia: 10, tipo_autorizacion: 'TURISMO' });
+        this.primigeniaForm.reset({ anios_vigencia: 10, tipo_autorizacion: 'PASAJEROS' });
         this.showFormModal.set(false);
         this.cargarResoluciones();
       },
@@ -2828,5 +2897,21 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
         this.isLoading.set(false);
       }
     });
+  }
+
+  esTipoTurismo(tipo?: string): boolean {
+    return !!tipo && tipo.toUpperCase().includes('TURIS');
+  }
+
+  esTipoCarga(tipo?: string): boolean {
+    if (!tipo) return false;
+    const t = tipo.toUpperCase();
+    return t.includes('CARGA') || t.includes('MERCANC');
+  }
+
+  esTipoTrabajadores(tipo?: string): boolean {
+    if (!tipo) return false;
+    const t = tipo.toUpperCase();
+    return t.includes('TRABAJ') || t.includes('PERSONAL');
   }
 }

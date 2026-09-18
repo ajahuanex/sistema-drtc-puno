@@ -185,11 +185,19 @@ class ResolucionPrimigeniaExcelService:
                 if estado_str in EstadoResolucionPrimigenia.__members__:
                     estado = EstadoResolucionPrimigenia[estado_str]
 
-                tipo_aut = get_col_val(
+                tipo_aut_val = get_col_val(
                     row, 
-                    'TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 'TIPO_RESOLUCION', 
+                    'TIPO AUTORIZACION', 'TIPO_AUTORIZACION', 
                     'MODALIDAD', 'TIPO_SERVICIO', 'MODALIDAD_SERVICIO'
-                ).upper() or 'TURISMO'
+                ).upper()
+                if 'TURIS' in tipo_aut_val:
+                    tipo_aut = 'TURISMO'
+                elif 'TRABAJ' in tipo_aut_val or 'PERSONAL' in tipo_aut_val:
+                    tipo_aut = 'TRABAJADORES'
+                elif 'CARGA' in tipo_aut_val or 'MERCAN' in tipo_aut_val:
+                    tipo_aut = 'CARGA'
+                else:
+                    tipo_aut = 'PASAJEROS'
 
                 eficacia_raw = get_col_val(row, 'EFICACIA ANTICIPADA', 'EFICACIA_ANTICIPADA', 'EFICACIA').upper()
                 tiene_eficacia = (eficacia_raw in ['SI', 'SÍ', 'TRUE', '1', 'VERDADERO']) if eficacia_raw else None

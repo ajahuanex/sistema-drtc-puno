@@ -26,6 +26,7 @@ from app.routers.resoluciones_hijas_router import router as resoluciones_hijas_r
 from app.routers.flota_empresa_router import router as flota_empresa_router
 from app.routers.database_router import router as database_router
 from app.routers.dashboard_router import router as dashboard_router
+from app.routers.auditoria_router import router as auditoria_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -128,6 +129,7 @@ app.include_router(data_manager_router, prefix=settings.API_V1_STR)
 app.include_router(flota_empresa_router, prefix=settings.API_V1_STR)
 app.include_router(database_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
+app.include_router(auditoria_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud
 @app.get("/health")

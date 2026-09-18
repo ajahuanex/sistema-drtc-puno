@@ -1,743 +1,1051 @@
-<div class="page-header">
-    <div class="header-content">
-        <div class="header-title">
-            <h1>VEHÍCULOS REGISTRADOS</h1>
+<div class="vehiculos-modulo-container">
+
+  <!-- ========================================================================= -->
+  <!-- HERO BARRA DE BÚSQUEDA Y CONTROL PRINCIPAL                                -->
+  <!-- ========================================================================= -->
+  <div class="hero-busqueda-card">
+    <div class="hero-header-row">
+      <div class="hero-title-group">
+        <div class="hero-icon-badge">
+          <mat-icon>directions_car</mat-icon>
         </div>
-        <p class="header-subtitle">GESTIÓN INTEGRAL DE VEHÍCULOS DE TRANSPORTE</p>
-    </div>
-    <div class="header-actions">
-        <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="action-button">
-            <mat-icon>add</mat-icon>
-            NUEVO VEHÍCULO
+        <div>
+          <h1 class="hero-main-title">Expediente Digital Vehicular</h1>
+          <p class="hero-subtitle">Récord 360° de trámites, resoluciones, datos técnicos y normativa MTC (RNAT D.S. 017-2009)</p>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <button mat-stroked-button class="btn-directorio" (click)="activeTab.set('directorio'); cargarDirectorio()">
+          <mat-icon>list_alt</mat-icon> Directorio de Flota
         </button>
-        <button mat-raised-button color="warn" (click)="cargaMasivaVehiculos()" class="action-button">
-            <mat-icon>upload_file</mat-icon>
-            CARGA MASIVA
+        @if (vehiculoData()) {
+          <button mat-flat-button color="accent" class="btn-imprimir" (click)="imprimirRecord()">
+            <mat-icon>print</mat-icon> Imprimir Récord Oficial
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Buscador Central -->
+    <div class="search-input-wrapper">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="custom-search-input"
+          placeholder="Ingrese placa (ej: F6S-964, V2Y-116, Z7O-332)..."
+          [formControl]="placaControl"
+          (input)="onInputChange($event)"
+          (keyup.enter)="buscarVehiculo()"
+          maxlength="8"
+          autocomplete="off"
+        />
+        @if (placaControl.value) {
+          <button mat-icon-button class="btn-clear" (click)="limpiarBusqueda()" matTooltip="Limpiar">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+        <button mat-flat-button color="primary" class="btn-search-main" (click)="buscarVehiculo()" [disabled]="cargando()">
+          @if (cargando()) {
+            <mat-spinner diameter="20" class="spinner-inline"></mat-spinner> Consultando...
+          } @else {
+            <mat-icon>manage_search</mat-icon> Consultar Récord
+          }
         </button>
-        <button mat-button color="accent" [matMenuTriggerFor]="historialMenu" class="action-button">
-            <mat-icon>history</mat-icon>
-            HISTORIAL
-        </button>
-        <mat-menu #historialMenu="matMenu">
-            <button mat-menu-item (click)="verHistorialCompleto()">
-                <mat-icon>history</mat-icon>
-                <span>VER HISTORIAL COMPLETO</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="actualizarHistorialTodos()">
-                <mat-icon>refresh</mat-icon>
-                <span>ACTUALIZAR HISTORIAL</span>
-            </button>
-            <button mat-menu-item (click)="verEstadisticasHistorial()">
-                <mat-icon>analytics</mat-icon>
-                <span>ESTADÍSTICAS HISTORIAL</span>
-            </button>
-            <button mat-menu-item (click)="marcarVehiculosActuales()">
-                <mat-icon>visibility</mat-icon>
-                <span>MARCAR ACTUALES</span>
-            </button>
-            <button mat-menu-item (click)="verEstadisticasFiltrado()">
-                <mat-icon>filter_list</mat-icon>
-                <span>ESTADÍSTICAS FILTRADO</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="verVehiculosEliminados()">
-                <mat-icon>delete_sweep</mat-icon>
-                <span>VEHÍCULOS ELIMINADOS</span>
-            </button>
-        </mat-menu>
-        <button mat-button color="accent" (click)="exportarVehiculos()" class="action-button">
-            <mat-icon>download</mat-icon>
-            @if (getVehiculosSeleccionadosCount() > 0) {
-                EXPORTAR SELECCIONADOS ({{ getVehiculosSeleccionadosCount() }})
-            } @else {
-                EXPORTAR TODOS
-            }
-        </button>
+      </div>
+
+      <!-- Menú Flotante de Sugerencias Predictivas -->
+      @if (mostrarSugerencias() && sugerencias().length > 0) {
+        <div class="sugerencias-dropdown">
+          <div class="sugerencias-header">Sugerencias encontradas en flota:</div>
+          @for (sug of sugerencias(); track sug.placa + sug.empresa) {
+            <div class="sugerencia-item" [class.item-historico]="!sug.es_actual" (click)="seleccionarSugerencia(sug)">
+              <div class="sug-placa-badge">{{ sug.placa }}</div>
+              <div class="sug-info">
+                <span class="sug-empresa">{{ sug.empresa }}</span>
+                <div class="sug-badges-row">
+                  <span class="sug-estado" [ngClass]="getEstadoClass(sug.estado)">{{ sug.estado || 'REGISTRADO' }}</span>
+                  @if (sug.tipo_registro) {
+                    <span class="sug-tipo-tag" [class.tag-actual]="sug.es_actual" [class.tag-hist]="!sug.es_actual">
+                      {{ sug.tipo_registro }}
+                    </span>
+                  }
+                </div>
+              </div>
+              <mat-icon class="sug-arrow">arrow_forward</mat-icon>
+            </div>
+          }
+        </div>
+      }
     </div>
-</div>
 
-<!-- Estadísticas -->
-@if (!cargando()) {
-<div class="stats-section">
-    <div class="stats-grid">
-        <div class="stat-card total">
-            <div class="stat-icon">
-                <mat-icon>directions_car</mat-icon>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ vehiculos().length }}</div>
-                <div class="stat-label">TOTAL VEHÍCULOS</div>
-            </div>
-        </div>
-        <div class="stat-card activos">
-            <div class="stat-icon">
-                <mat-icon>check_circle</mat-icon>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ getVehiculosActivos() }}</div>
-                <div class="stat-label">ACTIVOS</div>
-            </div>
-        </div>
-        <div class="stat-card suspendidos">
-            <div class="stat-icon">
-                <mat-icon>warning</mat-icon>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ getVehiculosPorEstado('SUSPENDIDO') }}</div>
-                <div class="stat-label">SUSPENDIDOS</div>
-            </div>
-        </div>
-        <div class="stat-card empresas">
-            <div class="stat-icon">
-                <mat-icon>business</mat-icon>
-            </div>
-            <div class="stat-content">
-                <div class="stat-value">{{ empresas().length }}</div>
-                <div class="stat-label">EMPRESAS</div>
-            </div>
-        </div>
+    <!-- Chips de Placas Rápidas / Recientes -->
+    <div class="chips-recientes-row">
+      <span class="chips-label"><mat-icon class="mini-icon">history</mat-icon> Consultas frecuentes:</span>
+      <div class="chips-list">
+        @for (pl of placasRecientes(); track pl) {
+          <button class="chip-placa-btn" (click)="buscarVehiculo(pl)" [class.active]="placaControl.value === pl">
+            {{ pl }}
+          </button>
+        }
+      </div>
     </div>
-</div>
-}
+  </div>
 
-<div class="content-section">
-    <!-- Filtros Avanzados -->
-    <mat-expansion-panel class="filters-panel">
-        <mat-expansion-panel-header>
-            <mat-panel-title>
-                <mat-icon>filter_list</mat-icon>
-                FILTROS AVANZADOS
-            </mat-panel-title>
-        </mat-expansion-panel-header>
-
-        <form [formGroup]="filtrosForm" class="filters-form">
-            <div class="filters-grid">
-                <mat-form-field appearance="outline">
-                    <mat-label>PLACA</mat-label>
-                    <input matInput formControlName="placa" placeholder="BUSCAR POR PLACA">
-                    <mat-icon matSuffix>directions_car</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>MARCA</mat-label>
-                    <input matInput formControlName="marca" placeholder="BUSCAR POR MARCA">
-                    <mat-icon matSuffix>local_shipping</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>EMPRESA</mat-label>
-                    <mat-select formControlName="empresaId">
-                        <mat-option value="">TODAS LAS EMPRESAS</mat-option>
-                        @for (empresa of empresas(); track empresa.id) {
-                            <mat-option [value]="empresa.id">{{ empresa.razonSocial.principal }}</mat-option>
-                        }
-                    </mat-select>
-                    <mat-icon matSuffix>business</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>ESTADO</mat-label>
-                    <mat-select formControlName="estado">
-                        <mat-option value="">TODOS LOS ESTADOS</mat-option>
-                        <mat-option value="HABILITADO">HABILITADO</mat-option>
-                        <mat-option value="ACTIVO">ACTIVO</mat-option>
-                        <mat-option value="BAJA">BAJA</mat-option>
-                        <mat-option value="BAJA_DE_OFICIO">BAJA DE OFICIO</mat-option>
-                        <mat-option value="BAJA_DEFINITIVA">BAJA DEFINITIVA</mat-option>
-                    </mat-select>
-                    <mat-icon matSuffix>info</mat-icon>
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                    <mat-label>CATEGORÍA</mat-label>
-                    <mat-select formControlName="categoria">
-                        <mat-option value="">TODAS LAS CATEGORÍAS</mat-option>
-                        <mat-option value="M1">M1</mat-option>
-                        <mat-option value="M2">M2</mat-option>
-                        <mat-option value="M3">M3</mat-option>
-                        <mat-option value="N1">N1</mat-option>
-                        <mat-option value="N2">N2</mat-option>
-                        <mat-option value="N3">N3</mat-option>
-                    </mat-select>
-                    <mat-icon matSuffix>category</mat-icon>
-                </mat-form-field>
-            </div>
-
-            <!-- Filtro para mostrar vehículos sin resolución -->
-            <div class="filtro-checkbox">
-                <mat-checkbox 
-                    formControlName="mostrarSinResolucion" 
-                    (change)="aplicarFiltros()"
-                    color="primary">
-                    Mostrar vehículos sin resolución o empresa (por defecto se ocultan)
-                </mat-checkbox>
-            </div>
-
-            <div class="filters-actions">
-                <button mat-raised-button color="primary" (click)="aplicarFiltros()">
-                    <mat-icon>search</mat-icon>
-                    BUSCAR
-                </button>
-                <button mat-button (click)="limpiarFiltros()">
-                    <mat-icon>clear</mat-icon>
-                    LIMPIAR
-                </button>
-            </div>
-        </form>
-    </mat-expansion-panel>
-
-    <!-- Loading State -->
-    @if (cargando()) {
-    <div class="loading-container">
-        <div class="loading-content">
-            <mat-spinner diameter="60" class="loading-spinner"></mat-spinner>
-            <h3>CARGANDO VEHÍCULOS...</h3>
-            <p>OBTENIENDO INFORMACIÓN DE LOS VEHÍCULOS REGISTRADOS</p>
-        </div>
+  <!-- ========================================================================= -->
+  <!-- ESTADO DE CARGA Y MENSAJES DE ERROR                                       -->
+  <!-- ========================================================================= -->
+  @if (cargando()) {
+    <div class="loading-state-card">
+      <mat-spinner diameter="48"></mat-spinner>
+      <h3>Consultando expediente vehicular 360°...</h3>
+      <p>Cruzando especificaciones SUNARP, flota habilitada, resoluciones DRTC y tarjetas TUC.</p>
     </div>
-    }
+  }
 
-    <!-- Empty State -->
-    @if (!cargando() && vehiculos().length === 0) {
-    <div class="empty-container">
-        <div class="empty-content">
-            <div class="empty-icon-container">
-                <mat-icon class="empty-icon">directions_car</mat-icon>
-            </div>
-            <h2>NO HAY VEHÍCULOS REGISTRADOS</h2>
-            <p>COMIENZA AGREGANDO EL PRIMER VEHÍCULO AL SISTEMA.</p>
-            <div class="empty-actions">
-                <button mat-raised-button color="primary" (click)="nuevoVehiculo()" class="primary-action">
-                    <mat-icon>add</mat-icon>
-                    AGREGAR PRIMER VEHÍCULO
-                </button>
-                <button mat-button color="accent" (click)="recargarVehiculos()" class="secondary-action">
-                    <mat-icon>refresh</mat-icon>
-                    RECARGAR
-                </button>
-            </div>
-        </div>
+  @if (errorMensaje() && !cargando()) {
+    <div class="error-state-card">
+      <mat-icon class="error-big-icon">warning_amber</mat-icon>
+      <h3>{{ errorMensaje() }}</h3>
+      <p>Verifique que el número de matrícula esté correctamente escrito o explore el directorio general.</p>
+      <button mat-stroked-button color="primary" (click)="activeTab.set('directorio'); cargarDirectorio()">
+        <mat-icon>search</mat-icon> Abrir Directorio de Vehículos
+      </button>
     </div>
-    }
+  }
 
-    <!-- Data Table -->
-    @if (!cargando() && vehiculos().length > 0) {
-    <div class="table-section">
-        <div class="table-header">
-            <div class="table-info">
-                <h3>VEHÍCULOS REGISTRADOS</h3>
-                <p class="table-subtitle">SE ENCONTRARON {{vehiculosFiltrados().length}} VEHÍCULOS</p>
-                <p class="table-sort-info">
-                    <mat-icon class="sort-icon">schedule</mat-icon>
-                    ORDENADOS POR FECHA MÁS RECIENTE PRIMERO
-                </p>
+  <!-- ========================================================================= -->
+  <!-- VISTA PRINCIPAL: EXPEDIENTE VEHICULAR 360°                                -->
+  <!-- ========================================================================= -->
+  @if (vehiculoData() && !cargando()) {
+    <div class="expediente-container" id="imprimible-record">
+
+      <!-- HEADER DE RESUMEN EJECUTIVO -->
+      <div class="resumen-ejecutivo-card">
+        <div class="placa-y-estado-col">
+          <!-- Placa estilo Matrícula Oficial Peruana con Franja Dinámica (Naranja / Morada) -->
+          <div class="placa-peruana">
+            <div class="placa-top-bar" [style.background]="vehiculoData()!.modalidad_placa.color_franja || '#ea580c'">
+              <span class="placa-pais">PERÚ • {{ vehiculoData()!.modalidad_placa.codigo || 'REGULAR' }}</span>
             </div>
-            <div class="table-actions">
-                <!-- Acciones en bloque -->
-                @if (getVehiculosSeleccionadosCount() > 0) {
-                    <div class="bulk-actions">
-                        <span class="selection-info">{{ getVehiculosSeleccionadosCount() }} seleccionado(s)</span>
-                        <button mat-raised-button color="primary" (click)="cambiarEstadoEnBloque()">
-                            <mat-icon>swap_horiz</mat-icon>
-                            CAMBIAR ESTADO ({{ getVehiculosSeleccionadosCount() }})
-                        </button>
-                        <button mat-raised-button color="accent" (click)="gestionarRutasEnBloque()">
-                            <mat-icon>route</mat-icon>
-                            GESTIONAR RUTAS ({{ getVehiculosSeleccionadosCount() }})
-                        </button>
-                        <button mat-button (click)="limpiarSeleccion()">
-                            <mat-icon>clear</mat-icon>
-                            LIMPIAR
-                        </button>
-                    </div>
-                } @else {
-                    <button mat-button [matMenuTriggerFor]="columnMenu" class="column-config-button">
-                        <mat-icon>view_column</mat-icon>
-                        COLUMNAS ({{ getVisibleColumnsCount() }})
-                    </button>
-                    <button mat-button color="accent" (click)="recargarVehiculos()">
-                        <mat-icon>refresh</mat-icon>
-                        RECARGAR
-                    </button>
+            <div class="placa-numero">{{ vehiculoData()!.placa }}</div>
+          </div>
+
+          <!-- Selector Rápido de Modalidad según Normativa MTC -->
+          <div class="modalidad-switcher-box">
+            <span class="mod-label">Modalidad:</span>
+            <div class="mod-pill-group">
+              <button
+                type="button"
+                class="mod-pill-btn btn-naranja"
+                [class.active]="vehiculoData()!.modalidad_placa.codigo === 'REGULAR'"
+                (click)="cambiarModalidadPlaca('REGULAR')"
+                matTooltip="Franja Naranja: Transporte Regular de Personas">
+                <span class="dot-naranja"></span> Pasajeros
+              </button>
+              <button
+                type="button"
+                class="mod-pill-btn btn-morado"
+                [class.active]="vehiculoData()!.modalidad_placa.codigo === 'TURISMO'"
+                (click)="cambiarModalidadPlaca('TURISMO')"
+                matTooltip="Franja Morada: Transporte Turístico">
+                <span class="dot-morado"></span> Turismo
+              </button>
+            </div>
+          </div>
+
+          <div class="estado-chip-wrapper">
+            <span class="badge-estado-grande" [ngClass]="getEstadoClass(vehiculoData()!.situacion_actual.estado_habilitacion)">
+              <mat-icon class="mini-icon">{{ vehiculoData()!.situacion_actual.estado_habilitacion === 'HABILITADO' ? 'verified' : 'info' }}</mat-icon>
+              {{ vehiculoData()!.situacion_actual.estado_habilitacion }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Tarjetas Métricas Clave -->
+        <div class="kpi-grid">
+          <!-- KPI 1: Empresa Operadora -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <mat-icon class="kpi-icon icon-empresa">business</mat-icon>
+              <span class="kpi-title">Empresa Operadora</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-primary-text">{{ vehiculoData()!.situacion_actual.empresa_actual }}</div>
+              <div class="kpi-secondary-text">
+                RUC: {{ vehiculoData()!.situacion_actual.ruc_empresa_actual || 'No registrado' }}
+                @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info) {
+                  • Res: <strong>{{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.nro_resolucion }}</strong>
+                  <span class="badge-mini-vigencia" [ngClass]="getVigenciaBadgeClass(vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia)">
+                    {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia }}
+                  </span>
                 }
-                <mat-menu #columnMenu="matMenu" class="columnas-menu vehiculos-columnas-menu">
-                    <div class="columnas-menu-header" (click)="$event.stopPropagation()">
-                        <h4>Mostrar columnas</h4>
-                    </div>
-                    <mat-divider></mat-divider>
-                    
-                    <div class="column-menu-content">
-                        @for (column of availableColumns(); track column.key) {
-                            <button mat-menu-item class="columna-checkbox" 
-                                    [class.disabled-column]="column.required"
-                                    (click)="$event.stopPropagation()">
-                                <mat-checkbox 
-                                    [checked]="column.visible"
-                                    [disabled]="column.required"
-                                    (change)="toggleColumn(column.key)"
-                                    (click)="$event.stopPropagation()">
-                                    {{ column.label }}
-                                </mat-checkbox>
-                            </button>
-                        }
-                    </div>
-                    <mat-divider></mat-divider>
-                    <button mat-menu-item (click)="resetColumns()">
-                        <mat-icon>refresh</mat-icon>
-                        <span>Restablecer</span>
-                    </button>
-                </mat-menu>
+              </div>
+              @if (vehiculoData()!.empresas_historicas.length > 1) {
+                <div class="kpi-historial-link" (click)="activeTab.set('timeline')" matTooltip="Haga clic para ver el historial de empresas donde operó esta unidad">
+                  <mat-icon class="mini-icon">history_edu</mat-icon>
+                  <span>Participó en {{ vehiculoData()!.empresas_historicas.length }} empresas concesionarias (Ver Histórico)</span>
+                </div>
+              }
             </div>
+          </div>
+
+          <!-- KPI 2: Semáforo Normativo MTC (RNAT & R.M. Puno) -->
+          <div class="kpi-card" [ngClass]="'kpi-border-' + vehiculoData()!.normativa_mtc.badge_color">
+            <div class="kpi-header">
+              <mat-icon class="kpi-icon icon-mtc">speed</mat-icon>
+              <span class="kpi-title">Antigüedad & R.M. Puno</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-primary-text">
+                @if (vehiculoData()!.normativa_mtc.antiguedad_anios !== null) {
+                  {{ vehiculoData()!.normativa_mtc.antiguedad_anios }} años 
+                  <span class="kpi-sub-badge" [ngClass]="getAntiguedadBadgeClass(vehiculoData()!.normativa_mtc.dictamen_final)">
+                    {{ vehiculoData()!.normativa_mtc.dictamen_final }}
+                  </span>
+                } @else {
+                  No registrado
+                }
+              </div>
+              <div class="kpi-secondary-text">
+                @if (vehiculoData()!.normativa_mtc.regimen_puno.aplica_cronograma_puno) {
+                  <strong>R.M. 585-2021 (Puno):</strong> Retiro 31/12/{{ vehiculoData()!.normativa_mtc.regimen_puno.fecha_retiro_puno }}
+                } @else {
+                  <strong>Marco Nacional RENAT:</strong> Límite 15 años (Año límite: {{ vehiculoData()!.normativa_mtc.anio_limite_salida_rnat || 'S/D' }})
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 3: Tarjeta TUC Activa -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <mat-icon class="kpi-icon icon-tuc">credit_card</mat-icon>
+              <span class="kpi-title">Tarjeta TUC Activa</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-primary-text">
+                {{ vehiculoData()!.situacion_actual.tuc_actual?.numero_tuc || 'Sin TUC Activa' }}
+              </div>
+              <div class="kpi-secondary-text">
+                Estado: 
+                <span class="tuc-badge-chip" [ngClass]="getEstadoClass(vehiculoData()!.situacion_actual.tuc_actual?.estado)">
+                  {{ vehiculoData()!.situacion_actual.tuc_actual?.estado || 'NO_EMITIDA' }}
+                </span>
+                @if (vehiculoData()!.situacion_actual.resolucion_primigenia) {
+                  • Res: {{ vehiculoData()!.situacion_actual.resolucion_primigenia }}
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI 4: Rutas e Itinerarios -->
+          <div class="kpi-card kpi-card-interactive" (click)="abrirModalRutas()" role="button" tabindex="0" title="Haga clic para ver las rutas completas asignadas a este vehículo">
+            <div class="kpi-header">
+              <mat-icon class="kpi-icon icon-ruta">alt_route</mat-icon>
+              <span class="kpi-title">Rutas Asignadas</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-primary-text">
+                {{ vehiculoData()!.situacion_actual.rutas_detalladas?.length || vehiculoData()!.situacion_actual.rutas_autorizadas.length }} Rutas
+              </div>
+              <div class="kpi-rutas-link">
+                <mat-icon class="mini-icon">visibility</mat-icon>
+                <span>Ver rutas autorizadas</span>
+                <mat-icon class="arrow-mini">chevron_right</mat-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BANNER DE ALERTAS NORMATIVAS / ADMINISTRATIVAS -->
+      @if (vehiculoData()!.alertas.length > 0) {
+        <div class="alertas-section">
+          @for (alerta of vehiculoData()!.alertas; track alerta.titulo) {
+            <div class="alerta-box" [ngClass]="'alerta-' + alerta.tipo.toLowerCase()">
+              <mat-icon class="alerta-icon">
+                {{ alerta.tipo === 'PELIGRO' ? 'error' : (alerta.tipo === 'ADVERTENCIA' ? 'warning' : 'info') }}
+              </mat-icon>
+              <div class="alerta-content">
+                <strong>{{ alerta.titulo }}:</strong> {{ alerta.descripcion }}
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- TABS NAVEGABLES DEL EXPEDIENTE -->
+      <div class="tabs-container">
+        <div class="custom-nav-tabs">
+          <button class="nav-tab-btn" [class.active]="activeTab() === 'ficha'" (click)="activeTab.set('ficha')">
+            <mat-icon>fact_check</mat-icon> Ficha Técnica SUNARP / MTC
+          </button>
+          <button class="nav-tab-btn" [class.active]="activeTab() === 'timeline'" (click)="activeTab.set('timeline')">
+            <mat-icon>history_edu</mat-icon> Récord de Trámites y Resoluciones
+            <span class="tab-badge">{{ vehiculoData()!.timeline_historial.length }}</span>
+          </button>
+          <button class="nav-tab-btn" [class.active]="activeTab() === 'tucs'" (click)="activeTab.set('tucs')">
+            <mat-icon>card_membership</mat-icon> Tarjetas TUC
+            <span class="tab-badge">{{ vehiculoData()!.tucs.length }}</span>
+          </button>
+          <button class="nav-tab-btn" [class.active]="activeTab() === 'rutas'" (click)="activeTab.set('rutas')">
+            <mat-icon>alt_route</mat-icon> Rutas Autorizadas
+            <span class="tab-badge">{{ vehiculoData()!.situacion_actual.rutas_autorizadas.length }}</span>
+          </button>
         </div>
 
-        <div class="table-container">
-            <table mat-table [dataSource]="getPaginatedVehiculos()" class="modern-table">
-                <!-- Selección Column -->
-                <ng-container matColumnDef="select">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell select-column">
-                        <mat-checkbox 
-                            [checked]="seleccionarTodos()"
-                            [indeterminate]="getVehiculosSeleccionadosCount() > 0 && !seleccionarTodos()"
-                            (change)="toggleSeleccionarTodos()"
-                            color="primary">
-                        </mat-checkbox>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell select-column">
-                        <mat-checkbox 
-                            [checked]="isVehiculoSeleccionado(vehiculo.id)"
-                            (change)="toggleVehiculoSeleccion(vehiculo.id)"
-                            color="primary">
-                        </mat-checkbox>
-                    </td>
+        <!-- ===================================================================== -->
+        <!-- TAB 1: FICHA TÉCNICA OFICIAL (SUNARP / MTC)                           -->
+        <!-- ===================================================================== -->
+        @if (activeTab() === 'ficha') {
+          <div class="tab-content-panel">
+            @if (vehiculoData()!.datos_tecnicos) {
+              <div class="ficha-tecnica-grid">
+                
+                <!-- Tarjeta 1: Motor e Identificación -->
+                <div class="ficha-card">
+                  <div class="ficha-card-header">
+                    <mat-icon>fingerprint</mat-icon> Identificación y Motor
+                  </div>
+                  <div class="ficha-card-body">
+                    <div class="ficha-data-row">
+                      <span class="label">Marca:</span>
+                      <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.marca || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Modelo:</span>
+                      <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.modelo || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Año de Fabricación:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.anio_fabricacion || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Año Modelo:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.anio_modelo || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Número de Motor:</span>
+                      <span class="val code-font">{{ vehiculoData()!.datos_tecnicos?.numero_motor || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">VIN / Chasis / Serie:</span>
+                      <span class="val code-font">{{ vehiculoData()!.datos_tecnicos?.vin || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Combustible:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.combustible || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Cilindrada:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.cilindrada ? vehiculoData()!.datos_tecnicos?.cilindrada + ' cc' : '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 2: Carrocería y Capacidad -->
+                <div class="ficha-card">
+                  <div class="ficha-card-header">
+                    <mat-icon>airline_seat_recline_extra</mat-icon> Carrocería y Capacidad
+                  </div>
+                  <div class="ficha-card-body">
+                    <div class="ficha-data-row">
+                      <span class="label">Categoría MTC:</span>
+                      <span class="val cat-badge">{{ vehiculoData()!.datos_tecnicos?.categoria || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Carrocería:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.carroceria || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Clase:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.clase || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Número de Asientos:</span>
+                      <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.numero_asientos ?? '-' }} asientos</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Número de Pasajeros:</span>
+                      <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.numero_pasajeros ?? '-' }} pasajeros</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Color Oficial:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.color || '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Ejes / Ruedas:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.numero_ejes || '-' }} ejes / {{ vehiculoData()!.datos_tecnicos?.numero_ruedas || '-' }} ruedas</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 3: Pesos y Medidas Reglamentarias -->
+                <div class="ficha-card">
+                  <div class="ficha-card-header">
+                    <mat-icon>straighten</mat-icon> Pesos y Medidas (D.S. 058-2003-MTC)
+                  </div>
+                  <div class="ficha-card-body">
+                    <div class="ficha-data-row">
+                      <span class="label">Peso Neto (Tara):</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.peso_neto ? vehiculoData()!.datos_tecnicos?.peso_neto + ' Tn' : '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Peso Bruto Vehicular:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.peso_bruto ? vehiculoData()!.datos_tecnicos?.peso_bruto + ' Tn' : '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Carga Útil:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.carga_util ? vehiculoData()!.datos_tecnicos?.carga_util + ' Tn' : '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Longitud:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.longitud ? vehiculoData()!.datos_tecnicos?.longitud + ' m' : '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Ancho:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.ancho ? vehiculoData()!.datos_tecnicos?.ancho + ' m' : '-' }}</span>
+                    </div>
+                    <div class="ficha-data-row">
+                      <span class="label">Altura:</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.altura ? vehiculoData()!.datos_tecnicos?.altura + ' m' : '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 4: Régimen de Permanencia Puno (R.M. N.° 585-2021-MTC/01) -->
+                <div class="ficha-card ficha-card-puno">
+                  <div class="ficha-card-header puno-header">
+                    <mat-icon>gavel</mat-icon> Régimen de Permanencia Puno (R.M. N.° 585-2021-MTC/01)
+                  </div>
+                  <div class="ficha-card-body">
+                    <div class="puno-resumen-estado">
+                      <div class="puno-estado-texto">
+                        <strong>Marco Normativo:</strong>
+                        <span class="puno-norma-pill">
+                          {{ vehiculoData()!.normativa_mtc.norma_aplicable || (vehiculoData()!.normativa_mtc.regimen_puno.aplica_cronograma_puno ? 'R.M. N.° 585-2021-MTC/01' : 'RENAT (D.S. 017-2009-MTC)') }}
+                        </span>
+                        <span class="puno-badge-pill" [ngClass]="getAntiguedadBadgeClass(vehiculoData()!.normativa_mtc.dictamen_final)">
+                          {{ vehiculoData()!.normativa_mtc.dictamen_final }}
+                        </span>
+                      </div>
+                      <p class="puno-diagnostico-p">
+                        {{ vehiculoData()!.normativa_mtc.regimen_puno.mensaje_puno }}
+                      </p>
+                    </div>
+
+                    <div class="tabla-cronograma-wrapper">
+                      <div class="cronograma-header-box">
+                        <span class="cronograma-title">Cronograma de Retiro Vehicular • R.M. N.° 585-2021-MTC/01:</span>
+                        <span class="cronograma-sub">Aplicable exclusivamente en el ámbito regional de Puno a unidades de 1990 a 2009. Para 2010 en adelante aplica la permanencia ordinaria del RENAT (15 años).</span>
+                      </div>
+                      <table class="mini-cronograma-table">
+                        <thead>
+                          <tr>
+                            <th>Año Fabricación</th>
+                            <th>Fecha Límite Retiro</th>
+                            <th>Norma Aplicable</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 1999">
+                            <td>1990 - 1999</td>
+                            <td>2021 - 2025</td>
+                            <td>R.M. 585-2021 (Puno)</td>
+                            <td><span class="mini-badge-rojo">RETIRO VENCIDO</span></td>
+                          </tr>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion === 2000 || vehiculoData()!.normativa_mtc.anio_fabricacion === 2001)">
+                            <td><strong>2000 - 2001</strong></td>
+                            <td><strong>31/12/2026</strong></td>
+                            <td>R.M. 585-2021 (Puno)</td>
+                            <td><span class="mini-badge-ambar">RETIRO ESTE AÑO (2026)</span></td>
+                          </tr>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2002 && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 2004)">
+                            <td>2002 - 2004</td>
+                            <td>31/12/2027</td>
+                            <td>R.M. 585-2021 (Puno)</td>
+                            <td><span class="mini-badge-verde">VIGENTE (Retiro 2027)</span></td>
+                          </tr>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2005 && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 2007)">
+                            <td>2005 - 2007</td>
+                            <td>31/12/2028</td>
+                            <td>R.M. 585-2021 (Puno)</td>
+                            <td><span class="mini-badge-verde">VIGENTE (Retiro 2028)</span></td>
+                          </tr>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion === 2008 || vehiculoData()!.normativa_mtc.anio_fabricacion === 2009)">
+                            <td>2008 - 2009</td>
+                            <td>31/12/2029</td>
+                            <td>R.M. 585-2021 (Puno)</td>
+                            <td><span class="mini-badge-verde">VIGENTE (Retiro 2029)</span></td>
+                          </tr>
+                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2010">
+                            <td>2010 en adelante</td>
+                            <td>15 años desde fab.</td>
+                            <td><strong>RENAT Nacional</strong></td>
+                            <td><span class="mini-badge-azul">MARCO NACIONAL RENAT</span></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="puno-condicion-nota">
+                      <mat-icon class="puno-info-icon">info</mat-icon>
+                      <span><strong>Condición Obligatoria (Art. 2.1 R.M. 585-2021):</strong> Acreditación con Certificado de Inspección Técnica Vehicular (CITV) obtenido conforme a normativa y controles inopinados aprobados.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tarjeta 5: Compatibilidad de Concesión vs. Régimen de Permanencia -->
+                @if (vehiculoData()!.situacion_actual.evaluacion_permanencia_vs_resolucion) {
+                  <div class="ficha-card ficha-card-compatibilidad">
+                    <div class="ficha-card-header compat-card-header">
+                      <mat-icon>compare_arrows</mat-icon> Compatibilidad: Concesión Matriz vs. Régimen de Permanencia
+                    </div>
+                    <div class="ficha-card-body">
+                      <div class="compat-status-row">
+                        <div class="compat-pill-badge" [ngClass]="getCompatibilidadClass(vehiculoData()!.situacion_actual.evaluacion_permanencia_vs_resolucion!.tipo_evaluacion)">
+                          {{ vehiculoData()!.situacion_actual.evaluacion_permanencia_vs_resolucion!.tipo_evaluacion.replace('_', ' ') }}
+                        </div>
+                        <p class="compat-text-msg">
+                          {{ vehiculoData()!.situacion_actual.evaluacion_permanencia_vs_resolucion!.mensaje }}
+                        </p>
+                      </div>
+
+                      <div class="compat-comparison-grid">
+                        <div class="comp-col">
+                          <span class="comp-label">Vigencia Resolución Concesión:</span>
+                          <span class="comp-val font-bold">
+                            {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_fin_vigencia ? (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_fin_vigencia | date:'dd/MM/yyyy') : (vehiculoData()!.situacion_actual.resolucion_primigenia || 'No especificada') }}
+                          </span>
+                          <span class="comp-sub">
+                            Estado: {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia || 'REGISTRADA' }}
+                          </span>
+                        </div>
+
+                        <div class="comp-col">
+                          <span class="comp-label">Fecha Límite Retiro Vehicular:</span>
+                          <span class="comp-val font-bold text-amber">
+                            @if (vehiculoData()!.normativa_mtc.regimen_puno.aplica_cronograma_puno) {
+                              31/12/{{ vehiculoData()!.normativa_mtc.regimen_puno.fecha_retiro_puno }} (R.M. 585-2021 Puno)
+                            } @else {
+                              31/12/{{ vehiculoData()!.normativa_mtc.anio_limite_salida_rnat || '2030' }} (RENAT 15 años)
+                            }
+                          </span>
+                          <span class="comp-sub">
+                            Dictamen: {{ vehiculoData()!.normativa_mtc.dictamen_final }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+
+              </div>
+            } @else {
+              <div class="sin-datos-tecnicos">
+                <mat-icon class="big-icon-muted">build</mat-icon>
+                <h3>Datos técnicos aún no registrados para esta placa</h3>
+                <p>El vehículo se encuentra registrado en resoluciones de flota, pero aún no se han cargado sus 23 características técnicas en Datos Técnicos Vehiculares.</p>
+                <a mat-stroked-button color="primary" routerLink="/vehiculos-data">
+                  <mat-icon>upload</mat-icon> Ir a Datos Técnicos Vehiculares
+                </a>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ===================================================================== -->
+        <!-- TAB 2: RÉCORD DE TRÁMITES Y RESOLUCIONES (TIMELINE 360°)              -->
+        <!-- ===================================================================== -->
+        @if (activeTab() === 'timeline') {
+          <div class="tab-content-panel">
+
+            <!-- BLOQUE DESTACADO: HISTORIAL DE EMPRESAS Y CONCESIONES -->
+            @if (vehiculoData()!.empresas_historicas.length > 0) {
+              <div class="empresas-historicas-section">
+                <div class="sec-header-row">
+                  <div class="sec-title-group">
+                    <mat-icon class="sec-header-icon">account_balance</mat-icon>
+                    <div>
+                      <h3>Historial de Empresas Operadoras y Transferencias ({{ vehiculoData()!.empresas_historicas.length }})</h3>
+                      <p>Concesionarias donde estuvo registrada la unidad, resoluciones de trámite y causas de desvinculación o sustitución:</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="empresas-grid-cards">
+                  @for (emp of vehiculoData()!.empresas_historicas; track emp.ruc) {
+                    <div class="empresa-card-box" [class.is-actual]="emp.es_operador_actual" [class.is-historico]="!emp.es_operador_actual">
+                      <div class="emp-top-bar">
+                        <div class="emp-main-info">
+                          <span class="emp-nombre">{{ emp.razon_social }}</span>
+                          <span class="emp-ruc-txt">RUC: {{ emp.ruc }}</span>
+                        </div>
+                        <div class="emp-badges-wrap">
+                          <span class="tag-rol-operador" [class.tag-rol-act]="emp.es_operador_actual" [class.tag-rol-ant]="!emp.es_operador_actual">
+                            {{ emp.es_operador_actual ? 'OPERADOR ACTUAL' : 'HISTORIAL ANTERIOR' }}
+                          </span>
+                          <span class="tag-estado-emp" [ngClass]="getEstadoClass(emp.ultimo_estado)">
+                            {{ emp.ultimo_estado || 'REGISTRADO' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="emp-content-grid">
+                        <div class="emp-field">
+                          <span class="lbl"><mat-icon class="field-ic">gavel</mat-icon> Concesión Matriz:</span>
+                          <span class="val font-semibold">{{ emp.resolucion_primigenia || 'No especificada' }}</span>
+                        </div>
+
+                        @if (emp.resolucion_tramite) {
+                          <div class="emp-field">
+                            <span class="lbl"><mat-icon class="field-ic">description</mat-icon> Trámite Registrado:</span>
+                            <span class="val highlight-tramite">{{ emp.tipo_tramite || 'Trámite' }} ({{ emp.resolucion_tramite }})</span>
+                          </div>
+                        }
+
+                        @if (emp.numero_tuc) {
+                          <div class="emp-field">
+                            <span class="lbl"><mat-icon class="field-ic">credit_card</mat-icon> Tarjeta TUC:</span>
+                            <span class="val code-val">{{ emp.numero_tuc }}</span>
+                          </div>
+                        }
+
+                        @if (emp.rutas && emp.rutas.length > 0) {
+                          <div class="emp-field">
+                            <span class="lbl"><mat-icon class="field-ic">alt_route</mat-icon> Rutas autorizadas:</span>
+                            <span class="val">
+                              @for (r of emp.rutas; track r) {
+                                <span class="ruta-code-chip">Ruta {{ r }}</span>
+                              }
+                            </span>
+                          </div>
+                        }
+                      </div>
+
+                      @if (emp.observaciones && emp.observaciones.length > 0) {
+                        <div class="emp-obs-box">
+                          <span class="obs-title"><mat-icon class="obs-ic">info</mat-icon> Observaciones / Motivo de cambio:</span>
+                          @for (obs of emp.observaciones; track obs) {
+                            <div class="obs-line">• {{ obs }}</div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="timeline-intro" style="margin-top: 24px;">
+              <h3>Línea de Tiempo de Resoluciones y Actos ({{ vehiculoData()!.timeline_historial.length }} Eventos)</h3>
+              <p>Relación cronológica de resoluciones primigenias, incrementos, sustituciones y expedientes donde participó este vehículo:</p>
+            </div>
+
+            <div class="timeline-tree">
+              @for (evento of vehiculoData()!.timeline_historial; track $index) {
+                <div class="timeline-item">
+                  <div class="timeline-marker">
+                    <mat-icon>{{ getIconoTipoEvento(evento.tipo_evento) }}</mat-icon>
+                  </div>
+                  <div class="timeline-card">
+                    <div class="timeline-header">
+                      <span class="timeline-title">{{ evento.titulo }}</span>
+                      <span class="timeline-badge" [ngClass]="getEstadoClass(evento.estado_resultado)">{{ evento.estado_resultado }}</span>
+                    </div>
+                    
+                    <div class="timeline-meta">
+                      <span><mat-icon class="inline-icon">business</mat-icon> {{ evento.empresa }}</span>
+                      @if (evento.resolucion) {
+                        <span><mat-icon class="inline-icon">gavel</mat-icon> Res: <strong>{{ evento.resolucion }}</strong></span>
+                      }
+                      @if (evento.tuc_asociada) {
+                        <span><mat-icon class="inline-icon">credit_card</mat-icon> TUC: {{ evento.tuc_asociada }}</span>
+                      }
+                    </div>
+
+                    @if (evento.rutas && evento.rutas.length > 0) {
+                      <div class="timeline-rutas">
+                        <strong>Rutas amparadas:</strong>
+                        @for (r of evento.rutas; track r) {
+                          <span class="ruta-mini-chip">Ruta {{ r }}</span>
+                        }
+                      </div>
+                    }
+
+                    @if (evento.observaciones && evento.observaciones.length > 0) {
+                      <div class="timeline-observaciones">
+                        @for (obs of evento.observaciones; track obs) {
+                          <div class="obs-item">
+                            <mat-icon class="obs-icon">notes</mat-icon> {{ obs }}
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ===================================================================== -->
+        <!-- TAB 3: TARJETAS TUC HISTÓRICAS                                        -->
+        <!-- ===================================================================== -->
+        @if (activeTab() === 'tucs') {
+          <div class="tab-content-panel">
+            <div class="tucs-table-wrapper">
+              <table mat-table [dataSource]="vehiculoData()!.tucs" class="modern-table">
+                
+                <!-- Columna Número TUC -->
+                <ng-container matColumnDef="numero_tuc">
+                  <th mat-header-cell *matHeaderCellDef> Número de TUC </th>
+                  <td mat-cell *matCellDef="let tuc">
+                    <strong class="tuc-code">{{ tuc.numero_tuc || 'S/N' }}</strong>
+                  </td>
                 </ng-container>
 
-                <!-- Placa Column -->
-                <ng-container matColumnDef="placa">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>PLACA</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.placa }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Marca/Modelo Column -->
-                <ng-container matColumnDef="marca">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>MARCA / MODELO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.marca || 'N/A' }} {{ vehiculo.modelo || '' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Empresa Column -->
-                <ng-container matColumnDef="empresa">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>EMPRESA</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getEmpresaNombre(vehiculo.empresaActualId) }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Categoría Column -->
-                <ng-container matColumnDef="categoria">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>CATEGORÍA</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.categoria || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Estado Column -->
-                <ng-container matColumnDef="estado">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>ESTADO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell estado-cell">
-                        <div class="cell-content">
-                            <app-vehiculo-estado-selector 
-                                [vehiculo]="vehiculo"
-                                (estadoChanged)="onEstadoVehiculoChanged($event)">
-                            </app-vehiculo-estado-selector>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Año Column -->
-                <ng-container matColumnDef="anio">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>AÑO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.anioFabricacion || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- TUC Column -->
-                <ng-container matColumnDef="tuc">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>TUC</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getVehiculoTuc(vehiculo) }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Resolución Column -->
+                <!-- Columna Resolución -->
                 <ng-container matColumnDef="resolucion">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>RESOLUCIÓN</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getVehiculoResolucion(vehiculo) }}</span>
-                        </div>
-                    </td>
+                  <th mat-header-cell *matHeaderCellDef> Resolución Autorizante </th>
+                  <td mat-cell *matCellDef="let tuc"> {{ tuc.resolucion || '-' }} </td>
                 </ng-container>
 
-                <!-- Sede Registro Column -->
-                <ng-container matColumnDef="sede-registro">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>SEDE REGISTRO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.sedeRegistro || 'N/A' }}</span>
-                        </div>
-                    </td>
+                <!-- Columna Estado -->
+                <ng-container matColumnDef="estado">
+                  <th mat-header-cell *matHeaderCellDef> Estado TUC </th>
+                  <td mat-cell *matCellDef="let tuc">
+                    <span class="badge-chip" [ngClass]="getEstadoClass(tuc.estado)">{{ tuc.estado }}</span>
+                  </td>
                 </ng-container>
 
-                <!-- Color Column -->
-                <ng-container matColumnDef="color">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>COLOR</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.color || 'N/A' }}</span>
-                        </div>
-                    </td>
+                <!-- Columna Fecha Emisión -->
+                <ng-container matColumnDef="fecha_emision">
+                  <th mat-header-cell *matHeaderCellDef> Fecha Emisión </th>
+                  <td mat-cell *matCellDef="let tuc"> {{ tuc.fecha_emision ? (tuc.fecha_emision | date:'dd/MM/yyyy') : '-' }} </td>
                 </ng-container>
 
-                <!-- Número Serie Column -->
-                <ng-container matColumnDef="numero-serie">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>N° SERIE</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.numeroSerie || 'N/A' }}</span>
-                        </div>
-                    </td>
+                <!-- Columna Fecha Vencimiento -->
+                <ng-container matColumnDef="fecha_vencimiento">
+                  <th mat-header-cell *matHeaderCellDef> Fecha Vencimiento </th>
+                  <td mat-cell *matCellDef="let tuc"> {{ tuc.fecha_vencimiento ? (tuc.fecha_vencimiento | date:'dd/MM/yyyy') : '-' }} </td>
                 </ng-container>
 
-                <!-- Motor Column -->
-                <ng-container matColumnDef="motor">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>MOTOR</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.motor || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Chasis Column -->
-                <ng-container matColumnDef="chasis">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>CHASIS</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.chasis || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Ejes Column -->
-                <ng-container matColumnDef="ejes">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>EJES</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.ejes || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Asientos Column -->
-                <ng-container matColumnDef="asientos">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>ASIENTOS</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.asientos || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Peso Neto Column -->
-                <ng-container matColumnDef="peso-neto">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>PESO NETO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.pesoNeto ? vehiculo.datosTecnicos.pesoNeto + ' kg' : 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Peso Bruto Column -->
-                <ng-container matColumnDef="peso-bruto">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>PESO BRUTO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.pesoBruto ? vehiculo.datosTecnicos.pesoBruto + ' kg' : 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Combustible Column -->
-                <ng-container matColumnDef="combustible">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>COMBUSTIBLE</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.tipoCombustible || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Cilindrada Column -->
-                <ng-container matColumnDef="cilindrada">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>CILINDRADA</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.cilindrada ? vehiculo.datosTecnicos.cilindrada + ' cc' : 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Potencia Column -->
-                <ng-container matColumnDef="potencia">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>POTENCIA</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.datosTecnicos?.potencia ? vehiculo.datosTecnicos.potencia + ' HP' : 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Medidas Column -->
-                <ng-container matColumnDef="medidas">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>MEDIDAS</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getMedidas(vehiculo) }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Fecha Registro Column -->
-                <ng-container matColumnDef="fecha-registro">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>FECHA REGISTRO</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getFechaRegistro(vehiculo) }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Fecha Actualización Column -->
-                <ng-container matColumnDef="fecha-actualizacion">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>ÚLTIMA ACTUALIZACIÓN</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ getFechaActualizacion(vehiculo) }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Observaciones Column -->
-                <ng-container matColumnDef="observaciones">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>OBSERVACIONES</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <span class="cell-text">{{ vehiculo.observaciones || 'N/A' }}</span>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Rutas Específicas Column -->
-                <ng-container matColumnDef="rutas-especificas">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>RUTAS ASIGNADAS</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content">
-                            <button mat-button 
-                                    color="primary"
-                                    (click)="gestionarRutasEspecificas(vehiculo)"
-                                    class="rutas-button"
-                                    [matTooltip]="getRutasCodigosCompletos(vehiculo)"
-                                    matTooltipClass="rutas-tooltip">
-                                <div class="rutas-content">
-                                    <span class="rutas-count">{{ getRutasEspecificasCount(vehiculo) }}</span>
-                                    <span class="rutas-text">{{ getRutasEspecificasText(vehiculo) }}</span>
-                                </div>
-                            </button>
-                        </div>
-                    </td>
-                </ng-container>
-
-                <!-- Acciones Column -->
+                <!-- Columna Acciones -->
                 <ng-container matColumnDef="acciones">
-                    <th mat-header-cell *matHeaderCellDef class="table-header-cell">
-                        <div class="header-content">
-                            <span>ACCIONES</span>
-                        </div>
-                    </th>
-                    <td mat-cell *matCellDef="let vehiculo" class="table-cell">
-                        <div class="cell-content actions-content">
-                            <button mat-icon-button 
-                                    [matMenuTriggerFor]="actionsMenu" 
-                                    class="actions-button-fixed"
-                                    matTooltip="Más acciones">
-                                <mat-icon>more_vert</mat-icon>
-                            </button>
-                            <mat-menu #actionsMenu="matMenu" class="vehicle-actions-menu">
-                                <button mat-menu-item (click)="verDetalle(vehiculo)">
-                                    <mat-icon>visibility</mat-icon>
-                                    <span>VER DETALLES</span>
-                                </button>
-                                <button mat-menu-item (click)="editarVehiculo(vehiculo)">
-                                    <mat-icon>edit</mat-icon>
-                                    <span>EDITAR VEHÍCULO</span>
-                                </button>
-                                <button mat-menu-item (click)="verHistorial(vehiculo)">
-                                    <mat-icon>history</mat-icon>
-                                    <span>VER HISTORIAL</span>
-                                </button>
-                                <button mat-menu-item (click)="transferirVehiculo(vehiculo)">
-                                    <mat-icon>swap_horiz</mat-icon>
-                                    <span>TRANSFERIR EMPRESA</span>
-                                </button>
-                                <button mat-menu-item (click)="duplicarVehiculo(vehiculo)">
-                                    <mat-icon>content_copy</mat-icon>
-                                    <span>DUPLICAR VEHÍCULO</span>
-                                </button>
-                                <button mat-menu-item (click)="solicitarBajaVehiculo(vehiculo)">
-                                    <mat-icon>remove_circle</mat-icon>
-                                    <span>SOLICITAR BAJA</span>
-                                </button>
-                                <mat-divider></mat-divider>
-                                <button mat-menu-item (click)="eliminarVehiculo(vehiculo)" class="delete-action">
-                                    <mat-icon>delete</mat-icon>
-                                    <span>ELIMINAR VEHÍCULO</span>
-                                </button>
-                            </mat-menu>
-                        </div>
-                    </td>
+                  <th mat-header-cell *matHeaderCellDef> Acciones </th>
+                  <td mat-cell *matCellDef="let tuc">
+                    @if (tuc.link_documento) {
+                      <a mat-button color="primary" [href]="tuc.link_documento" target="_blank">
+                        <mat-icon>open_in_new</mat-icon> Ver TUC
+                      </a>
+                    } @else {
+                      <span class="text-muted">Digitalizada</span>
+                    }
+                  </td>
                 </ng-container>
 
-                <tr mat-header-row *matHeaderRowDef="displayedColumnsArray" class="table-header-row"></tr>
-                <tr mat-row *matRowDef="let row; columns: displayedColumnsArray;" class="table-row"></tr>
-            </table>
+                <tr mat-header-row *matHeaderRowDef="columnasTucs"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasTucs;"></tr>
+              </table>
+
+              @if (vehiculoData()!.tucs.length === 0) {
+                <div class="empty-table-msg">
+                  <mat-icon>credit_card_off</mat-icon> No se han registrado tarjetas TUC formales para este vehículo.
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ===================================================================== -->
+        <!-- TAB 4: RUTAS AUTORIZADAS Y CONCESIÓN MATRIZ                           -->
+        <!-- ===================================================================== -->
+        @if (activeTab() === 'rutas') {
+          <div class="tab-content-panel" id="seccion-rutas-tab">
+            
+            <!-- Banner de Concesión Matriz / Resolución Primigenia -->
+            <div class="concesion-banner-card">
+              <div class="banner-left">
+                <div class="banner-icon-box">
+                  <mat-icon>verified</mat-icon>
+                </div>
+                <div class="banner-info">
+                  <div class="banner-title-row">
+                    <h3>Resolución Primigenia de Concesión: 
+                      <span class="highlight-res">{{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.nro_resolucion || vehiculoData()!.situacion_actual.resolucion_primigenia || 'DRTC Puno' }}</span>
+                    </h3>
+                    <span class="badge-vigencia-pill" [ngClass]="getVigenciaBadgeClass(vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia)">
+                      {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.estado_vigencia || 'CONCESIÓN REGISTRADA' }}
+                    </span>
+                  </div>
+
+                  <div class="banner-meta-row">
+                    <span class="meta-item">
+                      <mat-icon>event</mat-icon>
+                      <strong>Vigencia:</strong>
+                      {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_inicio_vigencia ? (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_inicio_vigencia | date:'dd/MM/yyyy') : 'Registrada' }}
+                      hasta 
+                      {{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_fin_vigencia ? (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.fecha_fin_vigencia | date:'dd/MM/yyyy') : 'Indeterminada' }}
+                      @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.anios_vigencia) {
+                        ({{ vehiculoData()!.situacion_actual.resolucion_primigenia_info?.anios_vigencia }} años)
+                      }
+                    </span>
+                    <span class="meta-item">
+                      <mat-icon>business</mat-icon>
+                      <strong>Empresa:</strong> {{ vehiculoData()!.situacion_actual.empresa_actual }}
+                    </span>
+                    @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.dias_restantes !== undefined && vehiculoData()!.situacion_actual.resolucion_primigenia_info?.dias_restantes !== null) {
+                      <span class="meta-item">
+                        <mat-icon>hourglass_bottom</mat-icon>
+                        @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info!.dias_restantes! > 0) {
+                          Quedan <strong>{{ vehiculoData()!.situacion_actual.resolucion_primigenia_info!.dias_restantes }} días</strong> de vigencia
+                        } @else {
+                          <strong class="text-danger">Venció hace {{ (vehiculoData()!.situacion_actual.resolucion_primigenia_info!.dias_restantes! * -1) }} días</strong>
+                        }
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (vehiculoData()!.situacion_actual.resolucion_primigenia_info?.link_documento) {
+                <div class="banner-actions">
+                  <a mat-flat-button color="primary" [href]="vehiculoData()!.situacion_actual.resolucion_primigenia_info!.link_documento" target="_blank">
+                    <mat-icon>picture_as_pdf</mat-icon> Ver Resolución Matriz
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- Listado Detallado de Rutas -->
+            <div class="rutas-detalladas-section">
+              <div class="section-sub-header">
+                <h3>Rutas Comerciales e Itinerarios Autorizados para esta Unidad</h3>
+                <span class="badge-count">{{ vehiculoData()!.situacion_actual.rutas_detalladas?.length || vehiculoData()!.situacion_actual.rutas_autorizadas.length }} Rutas</span>
+              </div>
+
+              @if (vehiculoData()!.situacion_actual.rutas_detalladas && vehiculoData()!.situacion_actual.rutas_detalladas!.length > 0) {
+                <div class="rutas-detalladas-grid">
+                  @for (ruta of vehiculoData()!.situacion_actual.rutas_detalladas; track $index) {
+                    <div class="ruta-detail-card">
+                      <!-- Encabezado de la Tarjeta de Ruta -->
+                      <div class="ruta-detail-top">
+                        <div class="ruta-code-badge">
+                          <mat-icon>alt_route</mat-icon>
+                          <span>Ruta {{ ruta.codigo_ruta }}</span>
+                        </div>
+                        <h4 class="ruta-title">{{ ruta.nombre_ruta }}</h4>
+                        <div class="ruta-pills">
+                          <span class="pill-servicio">{{ ruta.tipo_servicio }}</span>
+                          <span class="pill-estado" [ngClass]="ruta.estado === 'ACTIVA' ? 'pill-activa' : 'pill-inactiva'">
+                            {{ ruta.estado }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Diagrama Visual de Trayectoria / Escala comercial -->
+                      <div class="ruta-flow-diagram">
+                        <div class="flow-step origin-step">
+                          <div class="step-dot origin-dot"></div>
+                          <div class="step-label">
+                            <span class="step-role">ORIGEN</span>
+                            <strong class="step-city">{{ ruta.origen }}</strong>
+                            <span class="step-dep">{{ ruta.origen_departamento || 'PUNO' }}</span>
+                          </div>
+                        </div>
+
+                        <div class="flow-connector">
+                          <div class="connector-line"></div>
+                          @if (ruta.itinerario && ruta.itinerario.length > 0) {
+                            <div class="itinerario-stops-pill" [matTooltip]="'Escalas comerciales: ' + ruta.itinerario.join(' • ')">
+                              <mat-icon>pin_drop</mat-icon>
+                              <span>Vía: {{ ruta.itinerario.join(' - ') }}</span>
+                            </div>
+                          } @else {
+                            <div class="itinerario-stops-pill direct-pill">
+                              <mat-icon>navigation</mat-icon>
+                              <span>Trayecto Directo</span>
+                            </div>
+                          }
+                        </div>
+
+                        <div class="flow-step dest-step">
+                          <div class="step-dot dest-dot"></div>
+                          <div class="step-label">
+                            <span class="step-role">DESTINO</span>
+                            <strong class="step-city">{{ ruta.destino }}</strong>
+                            <span class="step-dep">{{ ruta.destino_departamento || 'PUNO' }}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Ficha Técnica de la Ruta -->
+                      <div class="ruta-specs-grid">
+                        <div class="spec-cell">
+                          <span class="spec-name"><mat-icon>schedule</mat-icon> Frecuencia:</span>
+                          <span class="spec-value font-bold">{{ ruta.frecuencia }}</span>
+                        </div>
+                        <div class="spec-cell">
+                          <span class="spec-name"><mat-icon>map</mat-icon> Clasificación:</span>
+                          <span class="spec-value">{{ ruta.tipo_ruta }}</span>
+                        </div>
+                        <div class="spec-cell">
+                          <span class="spec-name"><mat-icon>directions_bus</mat-icon> Flota en Ruta:</span>
+                          <span class="spec-value">{{ ruta.capacidad_vehiculos ? (ruta.capacidad_vehiculos + ' vehículos') : 'Flota Concesión' }}</span>
+                        </div>
+                        <div class="spec-cell">
+                          <span class="spec-name"><mat-icon>gavel</mat-icon> Resolución:</span>
+                          <span class="spec-value code-font">{{ ruta.resolucion || vehiculoData()!.situacion_actual.resolucion_primigenia || 'DRTC Puno' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="empty-table-msg">
+                  <mat-icon>route</mat-icon> El vehículo no cuenta con registros de rutas operativas asociadas en su concesión.
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- VISTA MODO DIRECTORIO GENERAL DE LA FLOTA                                 -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'directorio' && !cargando()) {
+    <div class="directorio-section">
+      
+      <div class="directorio-header-bar">
+        <div>
+          <h2>Directorio General del Parque Automotor</h2>
+          <p>Total de unidades registradas en flota regional: <strong>{{ directorioTotal() | number }}</strong></p>
         </div>
 
-        <!-- Paginador -->
-        <mat-paginator [length]="vehiculosFiltrados().length"
-                      [pageSize]="pageSize"
-                      [pageSizeOptions]="[5, 10, 25, 50, 100]"
-                      [pageIndex]="currentPage"
-                      (page)="onPageChange($event)"
-                      showFirstLastButtons>
-        </mat-paginator>
+        <div class="directorio-filtros-row">
+          <mat-form-field appearance="outline" class="filtro-field">
+            <mat-label>Filtrar por Estado</mat-label>
+            <mat-select [value]="directorioFiltroEstado()" (selectionChange)="onFiltroEstadoChange($event.value)">
+              <mat-option value="TODOS">Todos los Estados</mat-option>
+              <mat-option value="HABILITADO">Habilitados</mat-option>
+              <mat-option value="INHABILITADO">Inhabilitados</mat-option>
+              <mat-option value="OBSERVADO">Observados</mat-option>
+              <mat-option value="CANCELADO">Cancelados</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="filtro-field busqueda-directorio">
+            <mat-label>Buscar en directorio</mat-label>
+            <input matInput placeholder="Placa, empresa o resolución..." [value]="directorioSearch()" (keyup.enter)="onDirectorioSearch($any($event.target).value)" />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Tabla Directorio -->
+      <div class="table-container-card">
+        @if (cargandoDirectorio()) {
+          <div class="directorio-spinner">
+            <mat-spinner diameter="36"></mat-spinner>
+            <span>Cargando flota regional...</span>
+          </div>
+        } @else {
+          <table mat-table [dataSource]="directorioItems()" class="modern-table">
+            
+            <!-- Placa -->
+            <ng-container matColumnDef="placa">
+              <th mat-header-cell *matHeaderCellDef> Placa </th>
+              <td mat-cell *matCellDef="let item">
+                <span class="placa-mini-chip" (click)="buscarVehiculo(item.placa)">{{ item.placa }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Empresa -->
+            <ng-container matColumnDef="empresa">
+              <th mat-header-cell *matHeaderCellDef> Empresa Operadora </th>
+              <td mat-cell *matCellDef="let item">
+                <div class="empresa-cell-title">{{ item.razon_social }}</div>
+                <div class="empresa-cell-sub">RUC: {{ item.ruc }}</div>
+              </td>
+            </ng-container>
+
+            <!-- Resolución -->
+            <ng-container matColumnDef="resolucion">
+              <th mat-header-cell *matHeaderCellDef> Res. Primigenia </th>
+              <td mat-cell *matCellDef="let item"> {{ item.nro_resolucion_primigenia || '-' }} </td>
+            </ng-container>
+
+            <!-- TUC -->
+            <ng-container matColumnDef="tuc">
+              <th mat-header-cell *matHeaderCellDef> N° TUC </th>
+              <td mat-cell *matCellDef="let item"> {{ item.numero_tuc || '-' }} </td>
+            </ng-container>
+
+            <!-- Datos Técnicos -->
+            <ng-container matColumnDef="datos_tecnicos">
+              <th mat-header-cell *matHeaderCellDef> Marca / Modelo </th>
+              <td mat-cell *matCellDef="let item">
+                @if (item.marca) {
+                  <strong>{{ item.marca }}</strong> {{ item.modelo }} ({{ item.categoria || 'Cat M' }})
+                } @else {
+                  <span class="text-muted">Pendiente de ficha</span>
+                }
+              </td>
+            </ng-container>
+
+            <!-- Antigüedad -->
+            <ng-container matColumnDef="antiguedad">
+              <th mat-header-cell *matHeaderCellDef> Antigüedad </th>
+              <td mat-cell *matCellDef="let item">
+                @if (item.antiguedad_anios !== null && item.antiguedad_anios !== undefined) {
+                  <span>{{ item.antiguedad_anios }} años</span>
+                } @else {
+                  <span class="text-muted">-</span>
+                }
+              </td>
+            </ng-container>
+
+            <!-- Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef> Estado </th>
+              <td mat-cell *matCellDef="let item">
+                <span class="badge-chip" [ngClass]="getEstadoClass(item.estado)">{{ item.estado }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Acciones -->
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef> Acciones </th>
+              <td mat-cell *matCellDef="let item">
+                <button mat-flat-button color="primary" class="btn-consultar-row" (click)="buscarVehiculo(item.placa)">
+                  <mat-icon>manage_search</mat-icon> Ver Récord 360°
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasDirectorio"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasDirectorio;"></tr>
+          </table>
+
+          <mat-paginator
+            [length]="directorioTotal()"
+            [pageSize]="directorioLimit()"
+            [pageSizeOptions]="[10, 15, 25, 50]"
+            (page)="cambiarPaginaDirectorio($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+        }
+      </div>
     </div>
-    }
+  }
+
 </div>

@@ -83,10 +83,48 @@ def vehiculo_to_response(vehiculo: VehiculoInDB) -> VehiculoResponse:
         traceback.print_exc()
         raise
 
+from app.services.vehiculo_consulta_service import VehiculoConsultaService
+
 async def get_vehiculo_service():
     """Dependency para obtener el servicio de vehículos"""
     db = await get_database()
     return VehiculoService(db)
+
+async def get_vehiculo_consulta_service():
+    """Dependency para obtener el servicio de consulta integral de vehículos"""
+    db = await get_database()
+    return VehiculoConsultaService(db)
+
+@router.get("/consulta-integral/{placa}")
+async def consultar_vehiculo_integral(
+    placa: str,
+    consulta_service: VehiculoConsultaService = Depends(get_vehiculo_consulta_service)
+):
+    """Consulta 360° del vehículo: datos técnicos, historial en resoluciones, TUCs y normativa MTC"""
+    resultado = await consulta_service.consultar_vehiculo_360(placa)
+    if not resultado:
+        raise HTTPException(status_code=404, detail=f"No se encontró información para el vehículo con placa {placa}")
+    return resultado
+
+@router.get("/buscar-sugerencias")
+async def buscar_sugerencias_placa(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    consulta_service: VehiculoConsultaService = Depends(get_vehiculo_consulta_service)
+):
+    """Búsqueda predictiva de placas para autocompletado en tiempo real"""
+    return await consulta_service.buscar_sugerencias(q, limit)
+
+@router.get("/listado-resumen")
+async def listar_vehiculos_resumen(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    estado: Optional[str] = Query(None),
+    consulta_service: VehiculoConsultaService = Depends(get_vehiculo_consulta_service)
+):
+    """Directorio general de vehículos consolidados con estado, empresa, categoría y antigüedad"""
+    return await consulta_service.listar_resumen_vehiculos(skip, limit, search, estado)
 
 @router.get("/raw")
 async def get_vehiculos_raw(

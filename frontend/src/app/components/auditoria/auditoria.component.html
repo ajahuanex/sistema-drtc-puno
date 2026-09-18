@@ -1,0 +1,505 @@
+<div class="auditoria-container">
+  <!-- HEADER INSTITUCIONAL -->
+  <div class="auditoria-header">
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <span class="badge-auditoria-pill">
+          <i class="material-icons-outlined">verified_user</i>
+          Control Interno & Fiscalización Gubernamental
+        </span>
+        <span class="badge-norma-pill">RNAT D.S. 017-2009-MTC • Ley 27444</span>
+      </div>
+      <h1 class="page-title">Bitácora Oficial de Auditoría y Trazabilidad</h1>
+      <p class="page-subtitle">
+        Registro inmutable de actos administrativos, movimientos de flota, asignación de rutas, modificaciones de empresas y emisión de títulos habilitantes.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-sync" (click)="sincronizarHistorial()" [disabled]="sincronizando()" title="Reconstruir y sincronizar historial completo desde la base de datos">
+        <i class="material-icons-outlined" [class.spinning]="sincronizando()">sync</i>
+        <span>{{ sincronizando() ? 'Sincronizando...' : 'Sincronizar Histórico' }}</span>
+      </button>
+
+      <button class="btn-excel" (click)="descargarReporteExcel()" [disabled]="exportando()" title="Exportar el Libro Oficial de Auditoría en formato Excel (.xlsx)">
+        <i class="material-icons-outlined">{{ exportando() ? 'hourglass_top' : 'file_download' }}</i>
+        <span>{{ exportando() ? 'Generando Excel...' : 'Descargar Libro Oficial' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK MESSAGES -->
+  @if (mensajeFeedback()) {
+    <div class="alert alert-success">
+      <i class="material-icons-outlined">check_circle</i>
+      <span>{{ mensajeFeedback() }}</span>
+    </div>
+  }
+
+  @if (errorFeedback()) {
+    <div class="alert alert-error">
+      <i class="material-icons-outlined">error_outline</i>
+      <span>{{ errorFeedback() }}</span>
+    </div>
+  }
+
+  <!-- KPI CARDS -->
+  @if (kpis(); as kpiData) {
+    <div class="kpi-row">
+      
+      <!-- KPI 1: Total Eventos -->
+      <div class="kpi-card card-total">
+        <div class="kpi-icon-box">
+          <i class="material-icons-outlined">history_edu</i>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-number">{{ kpiData.totalEventos | number }}</span>
+          <span class="kpi-label">Total Actos Auditados</span>
+          <span class="kpi-detail">Historial completo en bitácora</span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Flota Vehicular -->
+      <div class="kpi-card card-vehiculos">
+        <div class="kpi-icon-box">
+          <i class="material-icons-outlined">directions_bus</i>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-number">{{ kpiData.porModulo['VEHICULOS'] || 0 | number }}</span>
+          <span class="kpi-label">Movimientos de Flota</span>
+          <span class="kpi-detail">Sustituciones e incrementos</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Rutas -->
+      <div class="kpi-card card-rutas">
+        <div class="kpi-icon-box">
+          <i class="material-icons-outlined">alt_route</i>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-number">{{ kpiData.porModulo['RUTAS'] || 0 | number }}</span>
+          <span class="kpi-label">Actos sobre Rutas</span>
+          <span class="kpi-detail">Habilitaciones y recorridos</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Empresas -->
+      <div class="kpi-card card-empresas">
+        <div class="kpi-icon-box">
+          <i class="material-icons-outlined">business</i>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-number">{{ kpiData.porModulo['EMPRESAS'] || 0 | number }}</span>
+          <span class="kpi-label">Empresas Acreditadas</span>
+          <span class="kpi-detail">Registros y representantes</span>
+        </div>
+      </div>
+
+      <!-- KPI 5: Críticos / Altos -->
+      <div class="kpi-card card-alertas">
+        <div class="kpi-icon-box">
+          <i class="material-icons-outlined">gavel</i>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-number">{{ (kpiData.eventosCriticos + kpiData.eventosAltos) | number }}</span>
+          <span class="kpi-label">Impacto Alto / Resolutivo</span>
+          <span class="kpi-detail">{{ kpiData.eventosCriticos }} críticas • {{ kpiData.eventosAltos }} altas</span>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  <!-- BARRA DE FILTROS RÁPIDOS POR MÓDULO -->
+  <div class="quick-filters-row">
+    <span class="quick-label">Filtrado rápido:</span>
+    <button class="quick-btn" [class.active]="filtroModulo() === 'TODOS'" (click)="cambiarFiltroRapido('TODOS')">
+      Todos los Registros
+    </button>
+    <button class="quick-btn" [class.active]="filtroModulo() === 'VEHICULOS'" (click)="cambiarFiltroRapido('VEHICULOS')">
+      <i class="material-icons-outlined text-sm">directions_bus</i> Flota Vehicular
+    </button>
+    <button class="quick-btn" [class.active]="filtroModulo() === 'RUTAS'" (click)="cambiarFiltroRapido('RUTAS')">
+      <i class="material-icons-outlined text-sm">alt_route</i> Rutas
+    </button>
+    <button class="quick-btn" [class.active]="filtroModulo() === 'EMPRESAS'" (click)="cambiarFiltroRapido('EMPRESAS')">
+      <i class="material-icons-outlined text-sm">business</i> Empresas
+    </button>
+    <button class="quick-btn" [class.active]="filtroModulo() === 'RESOLUCIONES'" (click)="cambiarFiltroRapido('RESOLUCIONES')">
+      <i class="material-icons-outlined text-sm">assignment</i> Resoluciones Matrices
+    </button>
+  </div>
+
+  <!-- TOOLBAR MULTI-CRITERIO -->
+  <div class="filter-panel">
+    <div class="filter-grid">
+      
+      <!-- Búsqueda textual -->
+      <div class="form-group search-group">
+        <label class="form-label">Búsqueda Forense / Trazabilidad</label>
+        <div class="search-input-wrapper">
+          <i class="material-icons-outlined search-icon">search</i>
+          <input 
+            type="text" 
+            class="form-control input-search" 
+            placeholder="Placa (ej: V0P-965), RUC, Resolución, Expediente o DNI..." 
+            [ngModel]="terminoBusqueda()" 
+            (ngModelChange)="terminoBusqueda.set($event)"
+            (keyup.enter)="buscar()"
+          />
+          @if (terminoBusqueda()) {
+            <button class="clear-search-btn" (click)="terminoBusqueda.set(''); buscar()">
+              <i class="material-icons-outlined">close</i>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Módulo -->
+      <div class="form-group">
+        <label class="form-label">Módulo Regulatorio</label>
+        <select class="form-control" [ngModel]="filtroModulo()" (ngModelChange)="filtroModulo.set($event); buscar()">
+          @for (m of modulosDisponibles; track m.value) {
+            <option [value]="m.value">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Acción -->
+      <div class="form-group">
+        <label class="form-label">Tipo de Acto / Operación</label>
+        <select class="form-control" [ngModel]="filtroAccion()" (ngModelChange)="filtroAccion.set($event); buscar()">
+          @for (a of accionesDisponibles; track a.value) {
+            <option [value]="a.value">{{ a.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Severidad -->
+      <div class="form-group">
+        <label class="form-label">Nivel de Criticidad</label>
+        <select class="form-control" [ngModel]="filtroSeveridad()" (ngModelChange)="filtroSeveridad.set($event); buscar()">
+          @for (s of severidadesDisponibles; track s.value) {
+            <option [value]="s.value">{{ s.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Fecha Desde -->
+      <div class="form-group">
+        <label class="form-label">Fecha Desde</label>
+        <input 
+          type="date" 
+          class="form-control" 
+          [ngModel]="fechaDesde()" 
+          (ngModelChange)="fechaDesde.set($event); buscar()"
+        />
+      </div>
+
+      <!-- Fecha Hasta -->
+      <div class="form-group">
+        <label class="form-label">Fecha Hasta</label>
+        <input 
+          type="date" 
+          class="form-control" 
+          [ngModel]="fechaHasta()" 
+          (ngModelChange)="fechaHasta.set($event); buscar()"
+        />
+      </div>
+
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn-filter-apply" (click)="buscar()">
+        <i class="material-icons-outlined">filter_alt</i>
+        Aplicar Filtros
+      </button>
+      <button class="btn-filter-reset" (click)="limpiarFiltros()">
+        <i class="material-icons-outlined">clear_all</i>
+        Restablecer
+      </button>
+    </div>
+  </div>
+
+  <!-- TABLA DE AUDITORÍA -->
+  <div class="table-container-card">
+    <div class="table-card-header">
+      <div class="table-info">
+        <span class="table-title">Registros de Bitácora Encontrados:</span>
+        <span class="table-count-badge">{{ totalLogs() | number }} eventos</span>
+      </div>
+      <div class="table-page-info">
+        Página {{ paginaActual() }} de {{ totalPaginas() }}
+      </div>
+    </div>
+
+    @if (cargando()) {
+      <div class="loading-box">
+        <div class="spinner"></div>
+        <p>Consultando registros de auditoría y pistas de control...</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th style="width: 155px;">Fecha / Hora</th>
+              <th style="width: 120px; text-align: center;">Módulo</th>
+              <th style="width: 130px; text-align: center;">Acto / Operación</th>
+              <th style="width: 140px;">Identificador</th>
+              <th>Descripción del Cambio y Entidad</th>
+              <th style="width: 220px;">Sustento Resolutivo / Legal</th>
+              <th style="width: 110px; text-align: center;">Severidad</th>
+              <th style="width: 160px;">Operador</th>
+              <th style="width: 80px; text-align: center;">Trazabilidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of logs(); track log._id || log.id; let idx = $index) {
+              <tr class="audit-row" [class.row-critica]="log.severidad === 'CRITICA'">
+                <!-- # -->
+                <td class="text-center font-mono text-muted">
+                  {{ (paginaActual() - 1) * pageSize() + idx + 1 }}
+                </td>
+
+                <!-- Fecha y Hora -->
+                <td class="font-mono text-xs">
+                  <div class="datetime-display">
+                    <span class="date-part">{{ formatDateOnly(log.timestamp) }}</span>
+                    <span class="time-part text-muted">{{ log.timestamp ? (log.timestamp | slice:11:19) : '' }}</span>
+                  </div>
+                </td>
+
+                <!-- Módulo -->
+                <td class="text-center">
+                  <span class="badge-modulo" [ngClass]="getModuloBadge(log.modulo)">
+                    {{ log.modulo }}
+                  </span>
+                </td>
+
+                <!-- Acción -->
+                <td class="text-center">
+                  <span class="badge-accion" [ngClass]="getAccionBadge(log.accion)">
+                    {{ log.accion }}
+                  </span>
+                </td>
+
+                <!-- Identificador -->
+                <td>
+                  <span class="font-mono font-bold id-highlight">{{ log.entidad_id }}</span>
+                </td>
+
+                <!-- Descripción y Referencia -->
+                <td>
+                  <div class="desc-box">
+                    <strong class="entidad-ref">{{ log.entidad_referencia }}</strong>
+                    <p class="desc-text">{{ log.descripcion }}</p>
+                  </div>
+                </td>
+
+                <!-- Sustento Legal / Resolutivo -->
+                <td>
+                  <div class="legal-box">
+                    @if (log.acto_resolutivo_sustento) {
+                      <div class="legal-resolucion">
+                        <i class="material-icons-outlined text-xs">description</i>
+                        <span>{{ log.acto_resolutivo_sustento }}</span>
+                      </div>
+                    }
+                    @if (log.expediente_numero) {
+                      <div class="legal-expediente">
+                        <i class="material-icons-outlined text-xs">folder_open</i>
+                        <span>Exp: {{ log.expediente_numero }}</span>
+                      </div>
+                    }
+                  </div>
+                </td>
+
+                <!-- Severidad -->
+                <td class="text-center">
+                  <span class="badge-severidad" [ngClass]="getSeveridadBadge(log.severidad)">
+                    {{ log.severidad }}
+                  </span>
+                </td>
+
+                <!-- Operador / Responsable -->
+                <td>
+                  <div class="user-box">
+                    <span class="user-name">{{ log.usuario?.nombre || 'Administrador' }}</span>
+                    <span class="user-role">{{ log.usuario?.rol || 'ADMIN' }} • {{ log.usuario?.dni || 'SISTEMA' }}</span>
+                  </div>
+                </td>
+
+                <!-- Botón de Trazabilidad / Diff -->
+                <td class="text-center">
+                  <button 
+                    class="btn-icon-diff" 
+                    (click)="abrirDetalle(log)" 
+                    title="Ver detalle de trazabilidad y comparativa de valores"
+                  >
+                    <i class="material-icons-outlined">visibility</i>
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="10" class="empty-state">
+                  <div class="empty-box">
+                    <i class="material-icons-outlined empty-icon">manage_search</i>
+                    <p class="empty-title">No se encontraron registros de auditoría</p>
+                    <p class="empty-subtitle">Intente ajustar los términos de búsqueda o los filtros seleccionados.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINACIÓN -->
+      @if (totalPaginas() > 1) {
+        <div class="pagination-bar">
+          <button class="pag-btn" [disabled]="paginaActual() === 1" (click)="cambiarPagina(-1)">
+            <i class="material-icons-outlined">chevron_left</i> Anterior
+          </button>
+          
+          <div class="pag-numbers">
+            Página <strong>{{ paginaActual() }}</strong> de <strong>{{ totalPaginas() }}</strong> ({{ totalLogs() | number }} registros)
+          </div>
+
+          <button class="pag-btn" [disabled]="paginaActual() === totalPaginas()" (click)="cambiarPagina(1)">
+            Siguiente <i class="material-icons-outlined">chevron_right</i>
+          </button>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- MODAL DE TRAZABILIDAD Y DIFF (ANTES VS DESPUÉS) -->
+  @if (modalAbierto() && logSeleccionado(); as item) {
+    <div class="modal-overlay" (click)="cerrarModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        
+        <div class="modal-header">
+          <div class="modal-title-box">
+            <span class="badge-severidad" [ngClass]="getSeveridadBadge(item.severidad)">
+              {{ item.severidad }}
+            </span>
+            <h3>Auditoría de Acto: {{ item.accion }} en {{ item.modulo }}</h3>
+          </div>
+          <button class="modal-close-btn" (click)="cerrarModal()">
+            <i class="material-icons-outlined">close</i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          
+          <!-- Ficha Técnica del Evento -->
+          <div class="evento-resumen-grid">
+            <div class="resumen-col">
+              <span class="resumen-lbl">Fecha y Hora Oficial</span>
+              <span class="resumen-val font-mono">{{ formatDateTime(item.timestamp) }}</span>
+            </div>
+            <div class="resumen-col">
+              <span class="resumen-lbl">Entidad / Recurso Afectado</span>
+              <span class="resumen-val font-bold">{{ item.entidad_referencia }} ({{ item.entidad_id }})</span>
+            </div>
+            <div class="resumen-col">
+              <span class="resumen-lbl">Operador Responsable</span>
+              <span class="resumen-val">{{ item.usuario?.nombre }} (DNI: {{ item.usuario?.dni }})</span>
+            </div>
+            <div class="resumen-col">
+              <span class="resumen-lbl">IP de Registro</span>
+              <span class="resumen-val font-mono">{{ item.ip_address || '127.0.0.1' }}</span>
+            </div>
+            <div class="resumen-col col-full">
+              <span class="resumen-lbl">Sustento Resolutivo / Expediente Administrativo</span>
+              <span class="resumen-val font-bold text-primary">
+                {{ item.acto_resolutivo_sustento || 'No consignado' }} 
+                {{ item.expediente_numero ? '• Exp: ' + item.expediente_numero : '' }}
+              </span>
+            </div>
+            <div class="resumen-col col-full">
+              <span class="resumen-lbl">Descripción Técnica</span>
+              <span class="resumen-val">{{ item.descripcion }}</span>
+            </div>
+          </div>
+
+          <!-- COMPARATIVA DE VALORES (DIFF ANTES VS DESPUÉS) -->
+          <div class="diff-section">
+            <h4 class="diff-title">
+              <i class="material-icons-outlined">compare_arrows</i>
+              Trazabilidad de Datos: Estado Previo vs. Estado Posterior
+            </h4>
+
+            @if (hasDiff(item)) {
+              <div class="diff-grid">
+                
+                <!-- Columna: Estado Previo -->
+                <div class="diff-column diff-before">
+                  <div class="diff-col-header header-red">
+                    <i class="material-icons-outlined">history</i>
+                    <span>Valores Anteriores (Antes)</span>
+                  </div>
+                  <div class="diff-content">
+                    @if (item.valores_anteriores) {
+                      <table class="diff-table">
+                        @for (k of objectKeys(item.valores_anteriores); track k) {
+                          <tr>
+                            <td class="diff-key">{{ k }}</td>
+                            <td class="diff-val diff-removed">{{ formatValue(item.valores_anteriores[k]) }}</td>
+                          </tr>
+                        }
+                      </table>
+                    } @else {
+                      <div class="diff-empty-notice">
+                        <em>No aplica estado previo (Acto de registro o incorporación inicial)</em>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <!-- Columna: Estado Posterior -->
+                <div class="diff-column diff-after">
+                  <div class="diff-col-header header-green">
+                    <i class="material-icons-outlined">update</i>
+                    <span>Valores Nuevos (Después)</span>
+                  </div>
+                  <div class="diff-content">
+                    @if (item.valores_nuevos) {
+                      <table class="diff-table">
+                        @for (k of objectKeys(item.valores_nuevos); track k) {
+                          <tr>
+                            <td class="diff-key">{{ k }}</td>
+                            <td class="diff-val diff-added">{{ formatValue(item.valores_nuevos[k]) }}</td>
+                          </tr>
+                        }
+                      </table>
+                    } @else {
+                      <div class="diff-empty-notice">
+                        <em>No aplica valores nuevos (Acto de eliminación o baja)</em>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+            } @else {
+              <div class="alert alert-info">
+                <i class="material-icons-outlined">info</i>
+                <span>Este evento registra un acto administrativo descriptivo sin modificación directa de campos JSON.</span>
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-modal-close" (click)="cerrarModal()">Cerrar Trazabilidad</button>
+        </div>
+
+      </div>
+    </div>
+  }
+</div>

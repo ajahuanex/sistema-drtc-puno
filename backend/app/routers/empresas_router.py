@@ -16,6 +16,8 @@ from app.dependencies.auth import get_current_active_user
 from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
+from app.services.auditoria_sistema_service import AuditoriaSistemaService
+from app.models.auditoria_sistema import ModuloAuditoria, AccionAuditoria, SeveridadAuditoria
 from app.repositories.empresa_repository import EmpresaRepository
 from app.models.empresa import EmpresaCreate, EmpresaUpdate, EmpresaInDB, EmpresaResponse, EmpresaEstadisticas, EmpresaCambioEstado, CambioEstadoEmpresa, EmpresaCambioRepresentante, CambioRepresentanteLegal, EstadoEmpresa
 from app.utils.exceptions import (
@@ -448,22 +450,39 @@ async def validar_ruc(ruc: str, empresa_service: EmpresaService = Depends(get_em
 async def update_empresa(
     empresa_id: str,
     empresa_data: EmpresaUpdate,
-    empresa_service: EmpresaService = Depends(get_empresa_service)
+    empresa_service: EmpresaService = Depends(get_empresa_service),
+    db = Depends(get_database)
 ) -> EmpresaResponse:
     """Actualizar empresa"""
-    # Guard clauses
-    # if not empresa_id.isdigit():
-    #    raise HTTPException(status_code=400, detail="ID de empresa inválido")
-    
     if not empresa_data.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No se proporcionaron datos para actualizar")
     
-    # TODO: Get usuario_id from authenticated user
     usuario_id = "USR001"
     updated_empresa = await empresa_service.update_empresa(empresa_id, empresa_data, usuario_id)
     
     if not updated_empresa:
         raise EmpresaNotFoundException(empresa_id)
+
+    # Registro de auditoría
+    try:
+        ruc_val = updated_empresa.get("ruc") if isinstance(updated_empresa, dict) else getattr(updated_empresa, "ruc", str(empresa_id))
+        rs_obj = updated_empresa.get("razonSocial") if isinstance(updated_empresa, dict) else getattr(updated_empresa, "razonSocial", "")
+        rs_val = rs_obj.get("principal") if isinstance(rs_obj, dict) else str(rs_obj or "")
+        
+        auditoria_service = AuditoriaSistemaService(db)
+        await auditoria_service.registrar_evento(
+            modulo=ModuloAuditoria.EMPRESAS,
+            accion=AccionAuditoria.MODIFICACION,
+            entidad_tipo="empresa",
+            entidad_id=str(ruc_val),
+            entidad_referencia=f"{rs_val} (RUC {ruc_val})",
+            descripcion=f"Modificación de datos generales de la empresa {rs_val}.",
+            acto_resolutivo_sustento="Trámite de Actualización Registral",
+            valores_nuevos=empresa_data.model_dump(exclude_unset=True),
+            severidad=SeveridadAuditoria.MEDIA
+        )
+    except Exception as err:
+        pass
     
     return create_empresa_response(updated_empresa)
 

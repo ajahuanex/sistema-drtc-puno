@@ -16,6 +16,8 @@ from app.utils.exceptions import (
     ValidationErrorException
 )
 from app.utils.buscar_localidad import buscar_localidad_por_nombre
+from app.services.auditoria_sistema_service import AuditoriaSistemaService
+from app.models.auditoria_sistema import ModuloAuditoria, AccionAuditoria, SeveridadAuditoria
 
 router = APIRouter(prefix="/rutas", tags=["rutas"])
 
@@ -73,7 +75,29 @@ async def create_ruta(
             ]},
             {"$addToSet": {"rutasAutorizadasIds": ruta_id}}
         )
-    
+    # Registro de auditoría
+    try:
+        nom_ruta = ruta_creada.get("nombre") or f"{ruta_data.codigoRuta}"
+        emp_obj = ruta_creada.get("empresa") or {}
+        rs_emp = emp_obj.get("razonSocial") if isinstance(emp_obj, dict) else ""
+        res_obj = ruta_creada.get("resolucion") or {}
+        nro_res = res_obj.get("nroResolucion") if isinstance(res_obj, dict) else ""
+        
+        auditoria_service = AuditoriaSistemaService(db)
+        await auditoria_service.registrar_evento(
+            modulo=ModuloAuditoria.RUTAS,
+            accion=AccionAuditoria.REGISTRO,
+            entidad_tipo="ruta",
+            entidad_id=ruta_data.codigoRuta,
+            entidad_referencia=f"{nom_ruta} ({ruta_data.codigoRuta})",
+            descripcion=f"Creación y registro de nueva ruta autorizada: {nom_ruta}. Tipo: {ruta_creada.get('tipoServicio', 'PASAJEROS')}.",
+            acto_resolutivo_sustento=f"Resolución {nro_res}" if nro_res else "Padrón Oficial de Rutas",
+            valores_nuevos={"codigo": ruta_data.codigoRuta, "nombre": nom_ruta, "tipoServicio": ruta_creada.get("tipoServicio")},
+            severidad=SeveridadAuditoria.ALTA
+        )
+    except Exception as err:
+        pass
+
     return Ruta(**ruta_creada)
 
 @router.post("/sincronizar-rutas-resoluciones")
@@ -1225,9 +1249,35 @@ async def update_ruta(
     ruta_service = RutaService(db)
     
     try:
+        ruta_previa = await ruta_service.get_ruta_by_id(ruta_id)
         ruta = await ruta_service.update_ruta(ruta_id, ruta_data)
         if not ruta:
             raise RutaNotFoundException(ruta_id)
+
+        # Registro de auditoría
+        try:
+            cod = ruta.codigoRuta if hasattr(ruta, "codigoRuta") else str(ruta_id)
+            nom = ruta.nombre if hasattr(ruta, "nombre") else f"Ruta {cod}"
+            res_nro = ""
+            if hasattr(ruta, "resolucion") and ruta.resolucion:
+                res_nro = getattr(ruta.resolucion, "nroResolucion", "") or getattr(ruta.resolucion, "numero", "")
+
+            auditoria_service = AuditoriaSistemaService(db)
+            await auditoria_service.registrar_evento(
+                modulo=ModuloAuditoria.RUTAS,
+                accion=AccionAuditoria.MODIFICACION,
+                entidad_tipo="ruta",
+                entidad_id=cod,
+                entidad_referencia=f"{nom} ({cod})",
+                descripcion=f"Modificación técnica del itinerario / datos de la ruta {nom}.",
+                acto_resolutivo_sustento=f"Resolución {res_nro}" if res_nro else "Resolución Modificatoria de Ruta",
+                valores_anteriores=ruta_previa.dict() if ruta_previa and hasattr(ruta_previa, "dict") else None,
+                valores_nuevos=ruta_data.dict(exclude_unset=True) if hasattr(ruta_data, "dict") else vars(ruta_data),
+                severidad=SeveridadAuditoria.ALTA
+            )
+        except Exception as err:
+            pass
+
         return build_ruta_response(ruta)
     except HTTPException:
         raise

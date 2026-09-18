@@ -1734,4 +1734,258 @@ export class VehiculoService {
       })
     );
   }
+
+  /**
+   * Consulta integral 360° del vehículo: datos técnicos SUNARP, estado administrativo,
+   * resoluciones primigenias e hijas, TUCs y evaluación normativa MTC.
+   */
+  consultarVehiculo360(placa: string): Observable<Vehiculo360Response> {
+    const cleanPlaca = placa.trim().toUpperCase();
+    return this.http.get<Vehiculo360Response>(`${this.apiUrl}/vehiculos/consulta-integral/${cleanPlaca}`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error(`Error en consulta integral para ${cleanPlaca}:`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Búsqueda predictiva de placas para autocompletado en tiempo real
+   */
+  buscarSugerenciasPlaca(query: string, limit: number = 10): Observable<SugerenciaVehiculo[]> {
+    const clean = query.trim().toUpperCase();
+    if (!clean) return of([]);
+    return this.http.get<SugerenciaVehiculo[]>(
+      `${this.apiUrl}/vehiculos/buscar-sugerencias?q=${encodeURIComponent(clean)}&limit=${limit}`,
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  /**
+   * Directorio general de vehículos consolidados
+   */
+  listarResumenVehiculos(skip: number = 0, limit: number = 20, search?: string, estado?: string): Observable<{ total: number; skip: number; limit: number; items: any[] }> {
+    let url = `${this.apiUrl}/vehiculos/listado-resumen?skip=${skip}&limit=${limit}`;
+    if (search) url += `&search=${encodeURIComponent(search.trim())}`;
+    if (estado && estado !== 'TODOS') url += `&estado=${encodeURIComponent(estado)}`;
+
+    return this.http.get<{ total: number; skip: number; limit: number; items: any[] }>(url, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => {
+        console.error('Error al listar resumen de vehículos:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+}
+
+// ==========================================
+// INTERFACES PARA LA CONSULTA 360° MTC / DRTC
+// ==========================================
+
+export interface DatosTecnicosVehiculo {
+  marca?: string;
+  modelo?: string;
+  anio_fabricacion?: number;
+  anio_modelo?: number;
+  categoria?: string;
+  carroceria?: string;
+  clase?: string;
+  combustible?: string;
+  color?: string;
+  numero_motor?: string;
+  vin?: string;
+  numero_serie?: string;
+  numero_asientos?: number;
+  numero_pasajeros?: number;
+  numero_ejes?: number;
+  numero_ruedas?: number;
+  cilindrada?: number;
+  peso_neto?: number;
+  peso_bruto?: number;
+  carga_util?: number;
+  longitud?: number;
+  ancho?: number;
+  altura?: number;
+  fuente_datos?: string;
+  observaciones_tecnicas?: string;
+}
+
+export interface RegimenPuno {
+  norma_legal?: string;
+  titulo_norma?: string;
+  aplica_cronograma_puno: boolean;
+  fecha_retiro_puno?: number | null;
+  estado_puno: string;
+  mensaje_puno: string;
+  condicion_citv_obligatoria: string;
+}
+
+export interface NormativaMTC {
+  anio_actual: number;
+  anio_fabricacion?: number;
+  antiguedad_anios?: number;
+  limite_permanencia_anios: number;
+  anio_limite_salida_rnat?: number;
+  estado_antiguedad_rnat: string;
+  badge_color: string;
+  mensaje_normativo: string;
+  categoria_valida_rnat: boolean;
+  observacion_categoria: string;
+  regimen_puno: RegimenPuno;
+  norma_aplicable?: string;
+  dictamen_final: string;
+  alerta_critica: boolean;
+}
+
+export interface ModalidadPlaca {
+  codigo: 'REGULAR' | 'TURISMO';
+  nombre: string;
+  color_franja: string;
+  color_texto: string;
+  color_nombre: string;
+  normativa_referencia: string;
+}
+
+export interface ResolucionPrimigeniaInfo {
+  tipo: string;
+  nro_resolucion: string;
+  fecha_resolucion?: string;
+  fecha_inicio_vigencia?: string;
+  fecha_fin_vigencia?: string;
+  anios_vigencia?: number;
+  dias_restantes?: number | null;
+  estado_vigencia: string;
+  tipo_autorizacion?: string;
+  tiene_eficacia_anticipada?: boolean;
+  link_documento?: string;
+  descripcion?: string;
+}
+
+export interface RutaDetalleVehiculo {
+  codigo_ruta: string;
+  nombre_ruta: string;
+  origen: string;
+  origen_departamento?: string;
+  destino: string;
+  destino_departamento?: string;
+  itinerario: string[];
+  frecuencia: string;
+  tipo_servicio: string;
+  tipo_ruta: string;
+  estado: string;
+  resolucion?: string;
+  capacidad_vehiculos?: number;
+  distancia_km?: number | null;
+  tiempo_estimado?: string | null;
+}
+
+export interface EvaluacionPermanenciaVsResolucion {
+  es_compatible: boolean;
+  tipo_evaluacion: 'COMPATIBLE' | 'RETIRO_PREVIO_A_CONCESION' | 'RETIRO_VENCIDO' | 'CONCESION_VENCIDA' | 'SIN_DATOS';
+  anio_retiro_vehiculo?: number | null;
+  fecha_fin_concesion?: string | null;
+  dias_restantes_concesion?: number | null;
+  mensaje: string;
+  badge_color: 'green' | 'amber' | 'red' | 'gray';
+}
+
+export interface SituacionActualVehiculo {
+  estado_habilitacion: string;
+  empresa_actual: string;
+  ruc_empresa_actual?: string;
+  resolucion_primigenia?: string;
+  resolucion_primigenia_info?: ResolucionPrimigeniaInfo;
+  resolucion_hija?: string;
+  tipo_resolucion_hija?: string;
+  rutas_autorizadas: string[];
+  rutas_detalladas?: RutaDetalleVehiculo[];
+  evaluacion_permanencia_vs_resolucion?: EvaluacionPermanenciaVsResolucion;
+  tuc_actual?: {
+    id?: string;
+    numero_tuc?: string;
+    estado?: string;
+    fecha_emision?: string;
+    fecha_vencimiento?: string;
+    resolucion?: string;
+    link_documento?: string;
+    qr_hash?: string;
+  };
+  link_notificacion?: string;
+  link_tuc?: string;
+}
+
+export interface TucHistorialItem {
+  id?: string;
+  numero_tuc?: string;
+  estado?: string;
+  fecha_emision?: string;
+  fecha_vencimiento?: string;
+  resolucion?: string;
+  link_documento?: string;
+  qr_hash?: string;
+}
+
+export interface EventoTimelineVehiculo {
+  fecha: string;
+  tipo_evento: string;
+  titulo: string;
+  empresa: string;
+  ruc?: string;
+  resolucion?: string;
+  estado_resultado?: string;
+  tuc_asociada?: string;
+  rutas: string[];
+  observaciones: string[];
+}
+
+export interface SugerenciaVehiculo {
+  placa: string;
+  empresa: string;
+  estado: string;
+  es_actual?: boolean;
+  tipo_registro?: string;
+}
+
+export interface EmpresaHistorica {
+  ruc: string;
+  razon_social: string;
+  ultimo_estado?: string;
+  es_operador_actual?: boolean;
+  resolucion_primigenia?: string;
+  resolucion_tramite?: string;
+  tipo_tramite?: string;
+  rutas: string[];
+  numero_tuc?: string;
+  observaciones?: string[];
+}
+
+export interface AlertaVehiculo {
+  tipo: 'INFO' | 'ADVERTENCIA' | 'PELIGRO';
+  titulo: string;
+  descripcion: string;
+}
+
+export interface Vehiculo360Response {
+  placa: string;
+  existe_en_base: boolean;
+  modalidad_placa: ModalidadPlaca;
+  situacion_actual: SituacionActualVehiculo;
+  normativa_mtc: NormativaMTC;
+  datos_tecnicos?: DatosTecnicosVehiculo;
+  tucs: TucHistorialItem[];
+  timeline_historial: EventoTimelineVehiculo[];
+  empresas_historicas: EmpresaHistorica[];
+  resoluciones_detalles: Record<string, any>;
+  rutas_detalladas?: RutaDetalleVehiculo[];
+  resolucion_primigenia_info?: ResolucionPrimigeniaInfo;
+  evaluacion_permanencia_vs_resolucion?: EvaluacionPermanenciaVsResolucion;
+  alertas: AlertaVehiculo[];
+  total_tramites_registrados: number;
+  total_empresas_participadas: number;
 }

@@ -17,6 +17,8 @@ from app.models.flota_empresa import (
 )
 from app.services.flota_empresa_service import FlotaEmpresaService
 from app.services.flota_empresa_excel_service import FlotaEmpresaExcelService
+from app.services.auditoria_sistema_service import AuditoriaSistemaService
+from app.models.auditoria_sistema import ModuloAuditoria, AccionAuditoria, SeveridadAuditoria
 
 router = APIRouter(prefix="/flota-empresa", tags=["flota-empresa"])
 
@@ -29,6 +31,11 @@ async def get_service():
 async def get_excel_service():
     db = await get_database()
     return FlotaEmpresaExcelService(db)
+
+
+async def get_auditoria_service():
+    db = await get_database()
+    return AuditoriaSistemaService(db)
 
 
 @router.post("/tramite-masivo", summary="Procesar trámite masivo (Sustitución, Renovación, Canje, Duplicado, Incremento)")
@@ -196,26 +203,67 @@ async def get_by_id(
 @router.post("/", response_model=VehiculoEmpresaResponse, status_code=status.HTTP_201_CREATED)
 async def create_vehiculo_empresa(
     data: VehiculoEmpresaCreate,
-    service: FlotaEmpresaService = Depends(get_service)
+    service: FlotaEmpresaService = Depends(get_service),
+    auditoria: AuditoriaSistemaService = Depends(get_auditoria_service)
 ):
     """Crear nuevo registro de vehículo en flota empresa."""
     if not data.ruc or len(data.ruc) < 8:
         raise HTTPException(status_code=400, detail="RUC inválido (mínimo 8 dígitos)")
     if not data.nro_resolucion_primigenia.strip():
         raise HTTPException(status_code=400, detail="El número de resolución primigenia es obligatorio")
-    return await service.create(data)
+    created = await service.create(data)
+    
+    # Registro de auditoría
+    try:
+        await auditoria.registrar_evento(
+            modulo=ModuloAuditoria.VEHICULOS,
+            accion=AccionAuditoria.REGISTRO,
+            entidad_tipo="flota_empresa",
+            entidad_id=data.placa.upper(),
+            entidad_referencia=f"Empresa RUC {data.ruc} • Placa {data.placa.upper()}",
+            descripcion=f"Registro vehicular en flota autorizada para la empresa RUC {data.ruc}. Placa: {data.placa.upper()}.",
+            acto_resolutivo_sustento=f"Resolución Primigenia {data.nro_resolucion_primigenia}",
+            valores_nuevos=data.dict() if hasattr(data, "dict") else vars(data),
+            severidad=SeveridadAuditoria.ALTA
+        )
+    except Exception as err:
+        pass
+
+    return created
 
 
 @router.put("/{doc_id}", response_model=VehiculoEmpresaResponse)
 async def update_vehiculo_empresa(
     doc_id: str,
     data: VehiculoEmpresaUpdate,
-    service: FlotaEmpresaService = Depends(get_service)
+    service: FlotaEmpresaService = Depends(get_service),
+    auditoria: AuditoriaSistemaService = Depends(get_auditoria_service)
 ):
     """Actualizar registro de vehículo en flota empresa."""
+    # Obtener estado previo para diff
+    prev = await service.get_by_id(doc_id)
     doc = await service.update(doc_id, data)
     if not doc:
         raise HTTPException(status_code=404, detail=f"Registro {doc_id} no encontrado")
+
+    # Registro de auditoría con diff
+    try:
+        placa_val = doc.placa if hasattr(doc, "placa") else str(doc_id)
+        ruc_val = doc.ruc if hasattr(doc, "ruc") else ""
+        await auditoria.registrar_evento(
+            modulo=ModuloAuditoria.VEHICULOS,
+            accion=AccionAuditoria.MODIFICACION,
+            entidad_tipo="flota_empresa",
+            entidad_id=placa_val,
+            entidad_referencia=f"Empresa RUC {ruc_val} • Placa {placa_val}",
+            descripcion=f"Modificación de datos vehiculares en flota. Placa: {placa_val}.",
+            valores_anteriores=prev.dict() if prev and hasattr(prev, "dict") else None,
+            valores_nuevos=data.dict(exclude_unset=True) if hasattr(data, "dict") else vars(data),
+            severidad=SeveridadAuditoria.MEDIA
+        )
+    except Exception as err:
+        pass
+
     return doc
 
 
@@ -238,12 +286,31 @@ async def agregar_observacion(
 @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_vehiculo_empresa(
     doc_id: str,
-    service: FlotaEmpresaService = Depends(get_service)
+    service: FlotaEmpresaService = Depends(get_service),
+    auditoria: AuditoriaSistemaService = Depends(get_auditoria_service)
 ):
     """Borrado lógico de registro en flota empresa."""
+    prev = await service.get_by_id(doc_id)
     success = await service.soft_delete(doc_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Registro {doc_id} no encontrado")
+
+    # Registro de auditoría
+    try:
+        placa_val = prev.placa if prev and hasattr(prev, "placa") else str(doc_id)
+        ruc_val = prev.ruc if prev and hasattr(prev, "ruc") else ""
+        await auditoria.registrar_evento(
+            modulo=ModuloAuditoria.VEHICULOS,
+            accion=AccionAuditoria.BAJA_VEHICULAR,
+            entidad_tipo="flota_empresa",
+            entidad_id=placa_val,
+            entidad_referencia=f"Empresa RUC {ruc_val} • Placa {placa_val}",
+            descripcion=f"Baja de unidad vehicular de la flota autorizada. Placa: {placa_val}.",
+            valores_anteriores=prev.dict() if prev and hasattr(prev, "dict") else None,
+            severidad=SeveridadAuditoria.CRITICA
+        )
+    except Exception as err:
+        pass
 
 
 # ======================================================================
