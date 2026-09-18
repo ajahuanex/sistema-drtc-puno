@@ -191,6 +191,18 @@ export class TucService {
     return this.http.post<any>(`${this.apiUrl}/generar-google-doc/${encodeURIComponent(placaOId)}`, {});
   }
 
+  // Generar copia en la nube en Google Docs para la Notificación
+  generarGoogleDocNotificacion(placaOId: string): Observable<{
+    exito: boolean;
+    mensaje: string;
+    url?: string;
+    nuevo_doc_id?: string;
+    placa?: string;
+  }> {
+    return this.http.post<any>(`${this.apiUrl}/generar-google-doc-notificacion/${encodeURIComponent(placaOId)}`, {});
+  }
+
+
   // Portal Público QR (Sin Autenticación)
   verificarTucPublico(hashOCodigo: string): Observable<TucVerificacionPublica> {
     return this.http.get<TucVerificacionPublica>(`${this.apiUrl}/verificar/${encodeURIComponent(hashOCodigo)}`);

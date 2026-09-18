@@ -328,11 +328,6 @@ const ESTADOS_RUC: Record<string, string> = {
                                       [matTooltip]="'Estado legal: ' + (empresa.estado || 'AUTORIZADA')">
                                   {{ (empresa.estado || 'AUTORIZADA').toUpperCase() }}
                                 </span>
-                                @if (empresa.partidaRegistral) {
-                                  <span class="partida-pill-mini" [matTooltip]="'Partida Registral (SUNARP): ' + empresa.partidaRegistral">
-                                    <mat-icon class="partida-mini-icon">verified</mat-icon> {{ empresa.partidaRegistral }}
-                                  </span>
-                                }
                                 @for (srv of (empresa.tiposServicio || []).slice(0, 1); track srv) {
                                   <span class="service-tag-mini" [matTooltip]="'Tipo de Servicio: ' + srv">
                                     {{ getServicioAbreviado(srv) }}

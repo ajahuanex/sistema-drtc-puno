@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TucService, GoogleDocsStatus, TucPlantillaConfig } from '../../services/tuc.service';
 import { VehiculoEmpresa } from '../../services/flota-empresa.service';
+import { environment } from '../../../environments/environment';
 
 export interface GenerarTucDialogData {
   vehiculo: VehiculoEmpresa;
@@ -178,7 +179,36 @@ export interface GenerarTucDialogData {
               <h3 class="actions-title">Opciones de Emisión</h3>
               <p class="actions-desc">Seleccione la modalidad deseada para emitir o imprimir el formato oficial de la TUC:</p>
 
-              <!-- OPCIÓN 1: DESCARGA WORD -->
+
+
+              <!-- OPCIÓN 1.5: IMPRIMIR NOTIFICACIÓN DE RESOLUCIÓN -->
+              <div class="action-card card-notif" style="border-color: #0284c7; background: rgba(2, 132, 199, 0.04);">
+                <div class="action-icon notif-icon" style="background: rgba(2, 132, 199, 0.15); color: #0284c7;">
+                  <mat-icon>assignment</mat-icon>
+                </div>
+                <div class="action-info">
+                  <div class="web-header">
+                    <h4 class="action-h" style="color: #0284c7;">Imprimir Cédula de Notificación</h4>
+                    <span class="badge-recomendado" style="background: rgba(2,132,199,0.15); color: #0284c7;">📄 Documento Oficial</span>
+                  </div>
+                  <p class="action-p">Genera e imprime la <strong>Cédula de Notificación de Resolución</strong> (Renovación, Incremento, Sustitución, Duplicado, Canje) con la tabla de vehículo(s) involucrados en hoja A4.</p>
+                  <button mat-raised-button style="background: #0284c7; color: #fff;" (click)="abrirNotificacionImpresion()">
+                    <mat-icon>open_in_new</mat-icon>
+                    <span>Imprimir Notificación (Ctrl+P)</span>
+                  </button>
+                  <button mat-raised-button style="background: #0284c7; color: #fff; margin-left: 8px;" (click)="generarNotificacionGoogleDocs()" [disabled]="isGeneratingNotifDocs()">
+                    @if (isGeneratingNotifDocs()) {
+                       <mat-spinner diameter="16" class="inline-spinner"></mat-spinner>
+                       <span>Generando...</span>
+                    } @else {
+                       <mat-icon>cloud</mat-icon>
+                       <span>Generar en Google Docs</span>
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <!-- OPCIÓN 2: DESCARGA WORD -->
               <div class="action-card card-word">
                 <div class="action-icon word-icon">
                   <mat-icon>article</mat-icon>
@@ -198,7 +228,7 @@ export interface GenerarTucDialogData {
                 </div>
               </div>
 
-              <!-- OPCIÓN 2: IMPRESIÓN DIRECTA / TARJETA FÍSICA -->
+              <!-- OPCIÓN 3: IMPRESIÓN DIRECTA / TARJETA FÍSICA -->
               <div class="action-card card-print">
                 <div class="action-icon print-icon">
                   <mat-icon>print</mat-icon>
@@ -213,7 +243,7 @@ export interface GenerarTucDialogData {
                 </div>
               </div>
 
-              <!-- OPCIÓN 3: GOOGLE DOCS EN LA NUBE -->
+              <!-- OPCIÓN 4: GOOGLE DOCS EN LA NUBE -->
               <div class="action-card card-google" [class.card-google-disabled]="!googleStatus()?.disponible">
                 <div class="action-icon google-icon">
                   <mat-icon>cloud</mat-icon>
@@ -624,6 +654,51 @@ export interface GenerarTucDialogData {
           .action-p { margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.4; code { background: #e2e8f0; padding: 1px 4px; border-radius: 4px; } }
         }
 
+        &.card-web {
+          border-left: 4px solid #f59e0b;
+          background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+          border-color: #fbbf24;
+          border-left-color: #f59e0b;
+          .web-icon { background: #fef3c7; color: #d97706; }
+
+          .web-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+
+          .badge-recomendado {
+            font-size: 10px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.3px;
+          }
+
+          .btn-vista-web {
+            align-self: flex-start;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 11.5px;
+            height: 36px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+            transition: all 0.2s ease;
+
+            &:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 5px 16px rgba(245, 158, 11, 0.4);
+            }
+          }
+        }
+
         &.card-word {
           border-left: 4px solid #2563eb;
           .word-icon { background: #dbeafe; color: #1d4ed8; }
@@ -885,6 +960,7 @@ export class GenerarTucDialogComponent implements OnInit {
   isLoading = signal<boolean>(true);
   isGeneratingDocx = signal<boolean>(false);
   isGeneratingGoogle = signal<boolean>(false);
+  isGeneratingNotifDocs = signal<boolean>(false);
 
   tucData = signal<any>(null);
   googleStatus = signal<GoogleDocsStatus | null>(null);
@@ -1254,6 +1330,35 @@ export class GenerarTucDialogComponent implements OnInit {
         iframe.remove();
       }, 2000);
     }, 350);
+  }
+
+  abrirNotificacionImpresion(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    const url = `${environment.apiUrl}/tucs/vista-impresion-notificacion/${encodeURIComponent(term)}`;
+    window.open(url, '_blank');
+    this.snackBar.open('Cédula de Notificación abierta en nueva pestaña. Usa Ctrl+P para imprimir.', 'OK', { duration: 3500 });
+  }
+
+  generarNotificacionGoogleDocs(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    this.isGeneratingNotifDocs.set(true);
+
+    this.tucService.generarGoogleDocNotificacion(term).subscribe({
+      next: (resp) => {
+        this.isGeneratingNotifDocs.set(false);
+        if (resp && resp.exito && resp.url) {
+          window.open(resp.url, '_blank');
+          this.snackBar.open('Notificación en Google Docs generada exitosamente.', 'OK', { duration: 4500 });
+        } else {
+          this.snackBar.open(resp?.mensaje || 'No se pudo generar la Notificación en Google Docs.', 'Cerrar', { duration: 4000 });
+        }
+      },
+      error: (err) => {
+        this.isGeneratingNotifDocs.set(false);
+        const msg = err?.error?.detail || 'Error al generar Notificación en Google Docs.';
+        this.snackBar.open(msg, 'Cerrar', { duration: 4000 });
+      }
+    });
   }
 
   generarGoogleDocs(): void {
