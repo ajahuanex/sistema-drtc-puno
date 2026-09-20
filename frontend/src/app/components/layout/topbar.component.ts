@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit, Input, inject, signal, computed } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, Input, inject, signal, computed, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -37,55 +37,46 @@ import { ChangeDetectionStrategy } from '@angular/core';
     FormsModule
   ],
   template: `
-    <header class="topbar">
+    <header class="topbar" data-purpose="topbar">
+      <!-- SECCIÓN IZQUIERDA: Toggle Menú + Identidad Institucional MTC/DRTC -->
       <div class="topbar-left">
-        <!-- Botón para toggle sidebar -->
         <button mat-icon-button (click)="toggleSidebar.emit()" class="sidebar-toggle"
-                [matTooltip]="sidebarExpanded ? 'Contraer menú' : 'Expandir menú'"
-                aria-label="Alternar menú">
+                [matTooltip]="sidebarExpanded ? 'Contraer menú lateral' : 'Expandir menú lateral'"
+                aria-label="Alternar menú lateral">
           <mat-icon>{{ sidebarExpanded ? 'menu_open' : 'menu' }}</mat-icon>
         </button>
 
-        <!-- Logo y título de la aplicación -->
-        <div class="topbar-brand">
-          <img src="assets/images/drtc-logo-light.png" alt="SIRRETT DRTC Puno" class="topbar-logo logo-light">
-          <img src="assets/images/drtc-logo-dark.png" alt="SIRRETT DRTC Puno" class="topbar-logo logo-dark">
+        <div class="v-divider hidden sm:block"></div>
+
+        <!-- MTC y Título Institucional -->
+        <div class="institutional-branding" routerLink="/dashboard" style="cursor: pointer;">
+          <img src="assets/images/mtc-logo.png" alt="Ministerio de Transportes y Comunicaciones" class="mtc-logo">
           <div class="brand-text">
             <div class="brand-title-row">
-              <span class="topbar-title">SIRRETT</span>
+              <span class="topbar-title font-display">SIRRETT</span>
               <span class="brand-pill">REGIÓN PUNO</span>
             </div>
-            <span class="topbar-subtitle">Dirección Regional de Transportes y Comunicaciones</span>
+            <span class="topbar-subtitle font-sans">Dirección Regional de Transportes y Comunicaciones</span>
           </div>
         </div>
       </div>
 
+      <!-- SECCIÓN CENTRAL: Omnibox Búsqueda Global (Ctrl+K) + Switch Conexión BD -->
       <div class="topbar-center">
-        <!-- Selector de temas -->
-        <div class="theme-selector">
-          <mat-form-field appearance="outline" class="theme-form-field">
-            <mat-label>Tema</mat-label>
-            <mat-select [(ngModel)]="selectedTheme" (selectionChange)="onThemeChange($event.value)">
-              @for (theme of availableThemes(); track theme.name) {
-                <mat-option [value]="theme.name">
-                  <div class="theme-option">
-                    <div class="theme-preview" [style.background]="theme.primary">
-                      <div class="theme-accent" [style.background]="theme.accent"></div>
-                    </div>
-                    <span>{{ getThemeDisplayName(theme.name) }}</span>
-                  </div>
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-        </div>
-
-        <!-- Toggle modo oscuro -->
-        <div class="dark-mode-toggle">
-          <button mat-icon-button (click)="toggleDarkMode()" class="btn-theme-toggle" 
-                  [matTooltip]="isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
-            <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-          </button>
+        <!-- Omnibox Global Search (Stitch Spec) -->
+        <div class="global-search-container" data-purpose="global-search">
+          <div class="search-input-wrapper">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              #searchInput
+              type="text"
+              class="search-input"
+              placeholder="Buscar RUC, Empresa, Flota, R.D. (Ctrl + K)"
+              [(ngModel)]="searchQuery"
+              (keydown.enter)="executeGlobalSearch()"
+            />
+            <kbd class="kbd-badge" (click)="focusSearch()" matTooltip="Presiona Ctrl + K">⌘K</kbd>
+          </div>
         </div>
 
         <!-- Switch Base de Datos MongoDB (Local vs Remoto) -->
@@ -100,9 +91,9 @@ import { ChangeDetectionStrategy } from '@angular/core';
           >
             <span class="db-status-dot" [class.online]="dbService.isConnected()"></span>
             <mat-icon class="db-icon">{{ dbService.isRemote() ? 'cloud' : 'dns' }}</mat-icon>
-            <span class="db-name">{{ dbService.isRemote() ? 'BD Remota' : 'BD Local' }}</span>
+            <span class="db-name font-sans">{{ dbService.isRemote() ? 'BD Remota' : 'BD Local' }}</span>
             @if (dbService.pingMs() !== null) {
-              <span class="db-ping">{{ dbService.pingMs() }}ms</span>
+              <span class="db-ping font-tabular">{{ dbService.pingMs() }}ms</span>
             }
             <mat-icon class="db-chevron">arrow_drop_down</mat-icon>
           </button>
@@ -159,64 +150,110 @@ import { ChangeDetectionStrategy } from '@angular/core';
         </div>
       </div>
 
+      <!-- SECCIÓN DERECHA: Ayuda RNAT + Toggle Modo Oscuro + Notificaciones + Perfil -->
       <div class="topbar-right">
-        <!-- Notificaciones -->
-        <div class="notifications" [matMenuTriggerFor]="notificationMenu" matTooltip="Notificaciones del sistema">
-          <mat-icon>notifications</mat-icon>
-          <span class="notification-badge">{{ notificationCount }}</span>
+        <!-- Botón Ayuda y Normativa RNAT (Stitch Spec) -->
+        <button mat-icon-button class="action-icon-btn" (click)="abrirAyudaNormativa()"
+                matTooltip="Ayuda y Marco Normativo RNAT (D.S. 017-2009-MTC)">
+          <mat-icon>help_outline</mat-icon>
+        </button>
+
+        <!-- Toggle Modo Oscuro Rápido (Stitch Spec) -->
+        <button mat-icon-button class="action-icon-btn theme-toggle-btn" (click)="toggleDarkMode()"
+                [matTooltip]="isDarkMode() ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'">
+          <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
+
+        <!-- Selector de Tema de Color -->
+        <div class="theme-palette-btn">
+          <button mat-icon-button class="action-icon-btn" [matMenuTriggerFor]="paletteMenu" matTooltip="Paleta de Estilos">
+            <mat-icon>palette</mat-icon>
+          </button>
+          <mat-menu #paletteMenu="matMenu" class="theme-palette-menu">
+            <div class="palette-header">Paletas del Sistema</div>
+            <mat-divider></mat-divider>
+            @for (theme of availableThemes(); track theme.name) {
+              <button mat-menu-item (click)="onThemeChange(theme.name)" [class.active-theme]="selectedTheme === theme.name">
+                <div class="palette-item">
+                  <span class="palette-color-preview" [style.background]="theme.primary">
+                    <span class="palette-accent-dot" [style.background]="theme.accent"></span>
+                  </span>
+                  <span>{{ getThemeDisplayName(theme.name) }}</span>
+                </div>
+              </button>
+            }
+          </mat-menu>
         </div>
+
+        <!-- Campana de Notificaciones con Live Ping Badge (Stitch Spec) -->
+        <button mat-icon-button class="action-icon-btn notification-btn" [matMenuTriggerFor]="notificationMenu" matTooltip="Notificaciones del Sistema">
+          <mat-icon>notifications</mat-icon>
+          <span class="pulse-container">
+            <span class="ping-ring"></span>
+            <span class="ping-dot"></span>
+          </span>
+          <span class="notification-count font-tabular">{{ notificationCount }}</span>
+        </button>
 
         <mat-menu #notificationMenu="matMenu" class="notification-menu">
           <div class="notification-header">
-            <h3>Notificaciones</h3>
+            <h3>Notificaciones de Fiscalización</h3>
+            <span class="badge font-tabular">{{ notificationCount }} nuevas</span>
           </div>
           <mat-divider></mat-divider>
           <div class="notification-list">
             @for (notification of notifications; track notification.id) {
               <div class="notification-item">
                 <mat-icon [class]="notification.type">{{ notification.icon }}</mat-icon>
-                <span>{{ notification.message }}</span>
+                <div class="notif-content">
+                  <span class="notif-msg">{{ notification.message }}</span>
+                  <span class="notif-time font-tabular">Hace 15 min</span>
+                </div>
               </div>
             }
           </div>
           <mat-divider></mat-divider>
-          <button mat-button class="view-all-btn" (click)="verTodasNotificaciones()">Ver todas</button>
+          <button mat-button class="view-all-btn" (click)="verTodasNotificaciones()">Ver todas las notificaciones</button>
         </mat-menu>
 
-        <div class="divider"></div>
+        <div class="v-divider hidden sm:block"></div>
 
-        <!-- Menú de usuario -->
-        <div class="user-menu-trigger" [matMenuTriggerFor]="userMenu">
-          <div class="user-avatar">
-            {{ currentUser()?.nombres?.charAt(0) || 'U' }}
+        <!-- Tarjeta Oficial de Usuario / Funcionario (Stitch Spec) -->
+        <div class="officer-profile-card" [matMenuTriggerFor]="userMenu" matTooltip="Cuenta de Usuario">
+          <div class="officer-avatar font-sans">
+            {{ getUserInitials() }}
           </div>
-          <div class="user-info">
-            <p class="user-name">{{ currentUser()?.nombres }} {{ currentUser()?.apellidos }}</p>
-            <p class="user-role">{{ getRoleDisplayName(currentUser()?.rolId) }}</p>
+          <div class="officer-info hidden lg:flex">
+            <span class="officer-name font-sans">{{ getOfficerFullName() }}</span>
+            <span class="officer-role font-sans">{{ getRoleDisplayName(currentUser()?.rolId) }}</span>
           </div>
-          <mat-icon class="user-chevron">keyboard_arrow_down</mat-icon>
+          <mat-icon class="officer-chevron">keyboard_arrow_down</mat-icon>
         </div>
 
         <mat-menu #userMenu="matMenu" class="user-dropdown-menu">
-          <div class="user-info">
-            <h3>{{ currentUser()?.nombres }} {{ currentUser()?.apellidos }}</h3>
-            <p>{{ currentUser()?.email }}</p>
+          <div class="user-header-info">
+            <div class="user-header-avatar font-sans">{{ getUserInitials() }}</div>
+            <div class="user-header-text">
+              <h4>{{ getOfficerFullName() }}</h4>
+              <p class="user-email font-mono">{{ currentUser()?.email || 'funcionario@drtc.gob.pe' }}</p>
+              <span class="user-badge font-sans">{{ getRoleDisplayName(currentUser()?.rolId) }}</span>
+            </div>
           </div>
           <mat-divider></mat-divider>
-          <button mat-menu-item class="menu-item" (click)="verPerfil()">
+          <button mat-menu-item (click)="verPerfil()">
             <mat-icon>person</mat-icon>
-            <span>Mi Perfil</span>
+            <span>Mi Perfil de Funcionario</span>
           </button>
-          <button mat-menu-item class="menu-item" (click)="irConfiguracion()">
+          <button mat-menu-item (click)="irConfiguracion()">
             <mat-icon>settings</mat-icon>
-            <span>Configuración</span>
+            <span>Configuración del Sistema</span>
           </button>
-          <button mat-menu-item class="menu-item" (click)="cambiarContrasena()">
+          <button mat-menu-item (click)="cambiarContrasena()">
             <mat-icon>lock</mat-icon>
-            <span>Cambiar Contraseña</span>
+            <span>Seguridad y Contraseña</span>
           </button>
           <mat-divider></mat-divider>
-          <button mat-menu-item class="menu-item logout-item" (click)="logout()">
+          <button mat-menu-item class="logout-item" (click)="logout()">
             <mat-icon>exit_to_app</mat-icon>
             <span>Cerrar Sesión</span>
           </button>
@@ -230,6 +267,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
 export class TopbarComponent implements OnInit {
   @Output() toggleSidebar = new EventEmitter<void>();
   @Input() sidebarExpanded = true;
+  @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
 
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
@@ -241,15 +279,24 @@ export class TopbarComponent implements OnInit {
   currentUser = signal<Usuario | null>(null);
   isDarkMode = this.themeService.isDarkMode;
   availableThemes = this.themeService.availableThemes;
-  
+
   // Estado local
   selectedTheme = '';
+  searchQuery = '';
   notificationCount = 3;
   notifications = [
-    { id: 1, type: 'info', icon: 'info', message: 'Nueva empresa registrada' },
-    { id: 2, type: 'warning', icon: 'warning', message: 'TUC próximo a vencer' },
-    { id: 3, type: 'success', icon: 'check_circle', message: 'Fiscalización completada' }
+    { id: 1, type: 'info', icon: 'business', message: 'Nueva empresa interprovincial registrada en Puno' },
+    { id: 2, type: 'warning', icon: 'warning', message: 'TUC próximo a caducar: Flota Z4V-960' },
+    { id: 3, type: 'success', icon: 'verified', message: 'Fiscalización conforme: Terminal Terrestre Juliaca' }
   ];
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcut(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      this.focusSearch();
+    }
+  }
 
   ngOnInit(): void {
     this.loadCurrentUser();
@@ -260,34 +307,90 @@ export class TopbarComponent implements OnInit {
     this.currentUser.set(this.authService.getCurrentUser());
   }
 
+  focusSearch(): void {
+    if (this.searchInputRef) {
+      this.searchInputRef.nativeElement.focus();
+      this.searchInputRef.nativeElement.select();
+    }
+  }
+
+  executeGlobalSearch(): void {
+    const q = this.searchQuery.trim();
+    if (!q) return;
+
+    // Si es un RUC de 11 dígitos
+    if (/^\d{11}$/.test(q)) {
+      this.router.navigate(['/empresas'], { queryParams: { ruc: q } });
+      this.snackBar.open(`Buscando Empresa por RUC: ${q}`, 'OK', { duration: 2500 });
+      return;
+    }
+
+    // Si es una placa (e.g. Z4V-960 o similar)
+    if (/^[A-Za-z0-9]{3}-?[A-Za-z0-9]{3}$/.test(q)) {
+      this.router.navigate(['/vehiculos'], { queryParams: { placa: q.toUpperCase() } });
+      this.snackBar.open(`Buscando Vehículo por Placa: ${q.toUpperCase()}`, 'OK', { duration: 2500 });
+      return;
+    }
+
+    // Búsqueda general
+    this.router.navigate(['/empresas'], { queryParams: { q } });
+    this.snackBar.open(`Búsqueda en Registros DRTC: "${q}"`, 'OK', { duration: 2500 });
+  }
+
+  getUserInitials(): string {
+    const u = this.currentUser();
+    if (!u) return 'MM';
+    const n = (u.nombres || '').trim();
+    const a = (u.apellidos || '').trim();
+    if (n && a) return `${n.charAt(0)}${a.charAt(0)}`.toUpperCase();
+    if (n) return n.slice(0, 2).toUpperCase();
+    return 'MM';
+  }
+
+  getOfficerFullName(): string {
+    const u = this.currentUser();
+    if (!u) return 'Ing. Marcos Mamani C.';
+    const fullName = `${u.nombres || ''} ${u.apellidos || ''}`.trim();
+    return fullName || 'Ing. Marcos Mamani C.';
+  }
+
   getRoleDisplayName(roleId?: string): string {
     const roleMap: { [key: string]: string } = {
-      'admin': 'Administrador General',
-      'fiscalizador': 'Inspector / Fiscalizador',
+      'admin': 'Administrador General DRTC',
+      'fiscalizador': 'Inspector de Fiscalización',
       'supervisor': 'Supervisor Regional',
-      'usuario': 'Oficial Registrador'
+      'usuario': 'Especialista DRTC-P'
     };
-    return roleMap[roleId || ''] || 'Oficial Registrador';
+    return roleMap[roleId || ''] || 'Especialista DRTC-P';
   }
 
   getThemeDisplayName(themeName: string): string {
     const themeMap: { [key: string]: string } = {
-      'SIRRETT Institucional': 'Institucional DRTC',
-      'Indigo Pink': 'Indigo Rosa',
-      'Deep Purple Amber': 'Púrpura Ámbar',
-      'Pink Blue Grey': 'Rosa Gris Azulado',
-      'Purple Green': 'Púrpura Verde',
-      'Custom Transport': 'Transporte Personalizado'
+      'SIRRETT Institucional': 'Azul Institucional DRTC',
+      'Indigo Pink': 'Índigo Ejecutivo',
+      'Deep Purple Amber': 'Púrpura Andino',
+      'Pink Blue Grey': 'Gris Platino',
+      'Purple Green': 'Púrpura Esmeralda',
+      'Custom Transport': 'Transporte Regional'
     };
     return themeMap[themeName] || themeName;
   }
 
   onThemeChange(themeName: string): void {
+    this.selectedTheme = themeName;
     this.themeService.setTheme(themeName);
   }
 
   toggleDarkMode(): void {
     this.themeService.toggleDarkMode();
+  }
+
+  abrirAyudaNormativa(): void {
+    this.snackBar.open('Reglamento Nacional de Administración de Transporte (D.S. N° 017-2009-MTC) - DRTC Región Puno', 'Normativa', {
+      duration: 4000,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom'
+    });
   }
 
   verTodasNotificaciones(): void {

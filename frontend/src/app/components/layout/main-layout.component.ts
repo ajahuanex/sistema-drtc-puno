@@ -59,7 +59,7 @@ import { TopbarComponent } from './topbar.component';
       top: 0;
       left: 0;
       right: 0;
-      height: 60px;
+      height: 64px;
       z-index: 1001;
       background: var(--bg-surface, #ffffff);
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
@@ -69,13 +69,13 @@ import { TopbarComponent } from './topbar.component';
       flex: 1;
       display: flex;
       height: 100vh;
-      padding-top: 60px;
+      padding-top: 64px;
       overflow: hidden;
     }
 
     .sidebar {
       width: 280px;
-      background: #0f244a;
+      background: #0b1f44;
       transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
       box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
@@ -131,7 +131,7 @@ import { TopbarComponent } from './topbar.component';
       .sidebar {
         width: 280px;
         position: fixed;
-        height: calc(100vh - 60px);
+        height: calc(100vh - 64px);
         z-index: 1000;
         transform: translateX(0);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
