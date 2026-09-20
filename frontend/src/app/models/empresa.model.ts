@@ -187,6 +187,7 @@ export interface VehiculoPrimigeniaItem {
   id: string;
   placa: string;
   estado: string;
+  es_habilitado?: boolean;
   categoria?: string;
   marca?: string;
   modelo?: string;
@@ -222,6 +223,8 @@ export interface PrimigeniaDetalleItem {
   es_detectada: boolean;
   rutas: RutaPrimigeniaItem[];
   flota: VehiculoPrimigeniaItem[];
+  total_vehiculos_habilitados?: number;
+  total_vehiculos_inhabilitados?: number;
   modificatorias: ModificatoriaHijaItem[];
 }
 
@@ -229,6 +232,7 @@ export interface KpisExpedienteEmpresa {
   total_primigenias: number;
   total_rutas: number;
   total_vehiculos_habilitados: number;
+  total_vehiculos_inhabilitados?: number;
   total_modificatorias: number;
 }
 

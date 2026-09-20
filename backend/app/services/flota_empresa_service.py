@@ -309,12 +309,24 @@ class FlotaEmpresaService:
             by_estado[doc["_id"] or "SIN_ESTADO"] = doc["count"]
 
         total = await self.collection.count_documents({"ruc": ruc, "esta_activo": {"$ne": False}})
-        total_activos = sum(by_estado.values())
+        total_habilitados = (
+            by_estado.get("HABILITADO", 0) +
+            by_estado.get("ACTIVO", 0) +
+            by_estado.get("VIGENTE", 0)
+        )
+        total_inhabilitados = (
+            by_estado.get("INHABILITADO", 0) +
+            by_estado.get("OBSERVADO", 0) +
+            by_estado.get("BAJA", 0) +
+            by_estado.get("INACTIVO", 0)
+        )
 
         return {
             "ruc": ruc,
             "total_registros": total,
-            "total_activos": total_activos,
+            "total_activos": total_habilitados,
+            "total_habilitados": total_habilitados,
+            "total_inhabilitados": total_inhabilitados,
             "por_estado": by_estado
         }
 

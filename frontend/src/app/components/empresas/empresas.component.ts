@@ -180,12 +180,25 @@ const ESTADOS_RUC: Record<string, string> = {
             </span>
           </div>
           <div class="kpi-body">
-            <span class="kpi-number text-emerald">{{ sunatActivas() }}</span>
-            <span class="kpi-subtext">activas y habidas</span>
+            <div class="kpi-split-stat">
+              <div>
+                <span class="kpi-number text-emerald">{{ sunatActivas() }}</span>
+                <span class="kpi-subtext">activas y habidas</span>
+              </div>
+              <div class="kpi-sunat-subpills">
+                <span class="kpi-pill-tag pill-rose" matTooltip="Empresas con RUC de Baja (Baja de oficio, definitiva o prov.)">
+                  <span class="tag-num">{{ sunatBajas() }}</span> Baja
+                </span>
+                <span class="kpi-pill-tag pill-amber" matTooltip="Empresas con condición No Habido o No Hallado">
+                  <span class="tag-num">{{ sunatNoHabidos() }}</span> No Habido
+                </span>
+              </div>
+            </div>
           </div>
           <div class="kpi-footer">
+            <span class="status-dot dot-emerald"></span>
             <span class="kpi-highlight font-emerald">{{ pctSunatConformes() }}%</span>
-            <span>condición conforme @if (sunatEnVerificacion() > 0) { <span class="text-amber font-mono">({{ sunatEnVerificacion() }} en verif.)</span> }</span>
+            <span>conformes @if (sunatEnVerificacion() > 0) { <span class="text-amber font-mono font-semibold">({{ sunatEnVerificacion() }} pendientes)</span> }</span>
           </div>
         </div>
 
@@ -790,6 +803,50 @@ const ESTADOS_RUC: Record<string, string> = {
           font-size: 11px;
           color: #64748b;
           font-weight: 500;
+        }
+
+        .kpi-split-stat {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          width: 100%;
+        }
+
+        .kpi-sunat-subpills {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+          align-items: flex-end;
+        }
+
+        .kpi-pill-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.12rem 0.45rem;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          border: 1px solid transparent;
+
+          .tag-num {
+            font-family: monospace;
+            font-weight: 900;
+            font-size: 11px;
+          }
+
+          &.pill-rose {
+            background: #ffe4e6;
+            color: #be123c;
+            border-color: #fecdd3;
+          }
+
+          &.pill-amber {
+            background: #fef3c7;
+            color: #b45309;
+            border-color: #fde68a;
+          }
         }
       }
 
@@ -1611,6 +1668,19 @@ const ESTADOS_RUC: Record<string, string> = {
 
       .text-emerald { color: #34d399 !important; }
 
+      .kpi-pill-tag {
+        &.pill-rose {
+          background: rgba(225, 29, 72, 0.2) !important;
+          color: #fda4af !important;
+          border-color: rgba(225, 29, 72, 0.35) !important;
+        }
+        &.pill-amber {
+          background: rgba(245, 158, 11, 0.2) !important;
+          color: #fde68a !important;
+          border-color: rgba(245, 158, 11, 0.35) !important;
+        }
+      }
+
       .kpi-modalidad-boxes {
         .kpi-mini-box {
           background: #131b2e !important;
@@ -1917,7 +1987,27 @@ export class EmpresasComponent implements OnInit {
     const cache = this.sunatCache();
     let count = 0;
     cache.forEach((data) => {
-      if (data.esActivo !== false && data.esHabido !== false) count++;
+      if (data.esActivo === true && data.esHabido === true) count++;
+    });
+    return count;
+  });
+
+  // SUNAT: empresas con RUC de Baja (esActivo === false)
+  sunatBajas = computed(() => {
+    const cache = this.sunatCache();
+    let count = 0;
+    cache.forEach((data) => {
+      if (data.esActivo === false) count++;
+    });
+    return count;
+  });
+
+  // SUNAT: empresas con condición NO HABIDO / NO HALLADO (esHabido === false)
+  sunatNoHabidos = computed(() => {
+    const cache = this.sunatCache();
+    let count = 0;
+    cache.forEach((data) => {
+      if (data.esHabido === false) count++;
     });
     return count;
   });
@@ -1929,13 +2019,13 @@ export class EmpresasComponent implements OnInit {
     return Math.max(0, total - enCache);
   });
 
-  // Porcentaje de conformes SUNAT
+  // Porcentaje de conformes SUNAT (Activas y Habidas sobre el total verificado)
   pctSunatConformes = computed(() => {
     const cache = this.sunatCache();
     if (cache.size === 0) return '0';
     let conformes = 0;
     cache.forEach((data) => {
-      if (data.esActivo !== false && data.esHabido !== false) conformes++;
+      if (data.esActivo === true && data.esHabido === true) conformes++;
     });
     return ((conformes / cache.size) * 100).toFixed(1);
   });

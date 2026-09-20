@@ -836,8 +836,9 @@ async def get_expediente_operativo_empresa(
         placa = str(f.get("placa", "")).strip().upper()
         if not placa or placa == "-":
             continue
-        estado_veh = str(f.get("estado", "ACTIVO")).upper()
-        if estado_veh in ["ACTIVO", "HABILITADO", "VIGENTE"]:
+        estado_veh = str(f.get("estado", "HABILITADO")).upper()
+        es_hab = estado_veh in ["ACTIVO", "HABILITADO", "VIGENTE"]
+        if es_hab:
             flota_activa_total += 1
             
         nro_prim = str(f.get("nro_resolucion_primigenia", "")).strip().upper()
@@ -845,6 +846,7 @@ async def get_expediente_operativo_empresa(
             "id": str(f.get("_id")),
             "placa": placa,
             "estado": estado_veh,
+            "es_habilitado": es_hab,
             "categoria": f.get("categoria"),
             "marca": f.get("marca"),
             "modelo": f.get("modelo"),
@@ -855,6 +857,11 @@ async def get_expediente_operativo_empresa(
             primigenias_map[nro_prim]["flota"].append(f_item)
         elif len(primigenias_map) > 0:
             list(primigenias_map.values())[0]["flota"].append(f_item)
+
+    # Calcular contadores de flota por resolución primigenia
+    for p_val in primigenias_map.values():
+        p_val["total_vehiculos_habilitados"] = sum(1 for v in p_val["flota"] if v.get("es_habilitado"))
+        p_val["total_vehiculos_inhabilitados"] = sum(1 for v in p_val["flota"] if not v.get("es_habilitado"))
 
     # 5. Asociar modificatorias (resoluciones hijas)
     total_modificatorias = len(hijas_docs)
@@ -878,12 +885,14 @@ async def get_expediente_operativo_empresa(
             list(primigenias_map.values())[0]["modificatorias"].append(h_item)
 
     lista_primigenias = list(primigenias_map.values())
+    total_inhab_total = sum(p.get("total_vehiculos_inhabilitados", 0) for p in lista_primigenias)
     
     return {
         "kpis": {
             "total_primigenias": len(lista_primigenias),
             "total_rutas": len(rutas_docs),
             "total_vehiculos_habilitados": flota_activa_total,
+            "total_vehiculos_inhabilitados": total_inhab_total,
             "total_modificatorias": total_modificatorias
         },
         "primigenias": lista_primigenias

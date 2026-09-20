@@ -12,7 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTabsModule } from '@angular/material/tabs';
 import { EmpresaService } from '../../services/empresa.service';
-import { Empresa, SunatData, ExpedienteOperativoEmpresa, PrimigeniaDetalleItem } from '../../models/empresa.model';
+import { Empresa, SunatData, ExpedienteOperativoEmpresa, PrimigeniaDetalleItem, VehiculoPrimigeniaItem } from '../../models/empresa.model';
 
 const ESTADOS_RUC: Record<string, string> = {
   '00': 'ACTIVO',
@@ -404,7 +404,12 @@ const ESTADOS_RUC: Record<string, string> = {
                               </div>
                               <div class="pm-item">
                                 <mat-icon class="text-emerald">directions_bus</mat-icon>
-                                <span><strong>{{ prim.flota.length }}</strong> Vehículos habilitados</span>
+                                <span><strong>{{ getVehiculosHabilitadosCount(prim) }}</strong> Vehículos habilitados</span>
+                                @if (getVehiculosInhabilitadosCount(prim) > 0) {
+                                  <span class="inhab-metric-tag" [matTooltip]="getVehiculosInhabilitadosCount(prim) + ' vehículos inhabilitados o dados de baja'">
+                                    ({{ getVehiculosInhabilitadosCount(prim) }} inhabilitados)
+                                  </span>
+                                }
                               </div>
                               <div class="pm-item">
                                 <mat-icon class="text-amber">history_edu</mat-icon>
@@ -452,22 +457,51 @@ const ESTADOS_RUC: Record<string, string> = {
                               <div class="sub-block">
                                 <div class="sub-block-title">
                                   <mat-icon style="color:#059669;">directions_bus</mat-icon>
-                                  <span>Flota Vehicular Habilitada ({{ prim.flota.length }})</span>
+                                  <span>Flota Vehicular Habilitada ({{ getVehiculosHabilitadosCount(prim) }})</span>
+                                  @if (getVehiculosInhabilitadosCount(prim) > 0) {
+                                    <span class="inhab-counter-pill">
+                                      <mat-icon class="pill-icon">do_not_disturb_on</mat-icon>
+                                      {{ getVehiculosInhabilitadosCount(prim) }} Inhabilitados
+                                    </span>
+                                  }
                                 </div>
                                 @if (prim.flota.length === 0) {
                                   <p class="empty-sub-text">No hay vehículos con padrón asignado a esta resolución.</p>
                                 } @else {
-                                  <div class="flota-chips-grid">
-                                    @for (veh of prim.flota; track veh.placa) {
-                                      <div class="vehiculo-mini-item">
-                                        <span class="veh-placa">{{ veh.placa }}</span>
-                                        <span class="veh-meta">{{ veh.marca || '' }} {{ veh.modelo || '' }} {{ veh.anio_fabricacion ? '(' + veh.anio_fabricacion + ')' : '' }}</span>
-                                        @if (veh.nro_tuc) {
-                                          <span class="veh-tuc" matTooltip="N° TUC">TUC: {{ veh.nro_tuc }}</span>
+                                  @if (getVehiculosHabilitadosCount(prim) === 0) {
+                                    <p class="empty-sub-text">No cuenta con vehículos activos/habilitados vigentes en esta resolución.</p>
+                                  } @else {
+                                    <div class="flota-chips-grid">
+                                      @for (veh of getVehiculosHabilitados(prim); track veh.placa) {
+                                        <div class="vehiculo-mini-item veh-habilitado">
+                                          <span class="veh-placa">{{ veh.placa }}</span>
+                                          <span class="veh-meta">{{ veh.marca || '' }} {{ veh.modelo || '' }} {{ veh.anio_fabricacion ? '(' + veh.anio_fabricacion + ')' : '' }}</span>
+                                          @if (veh.nro_tuc) {
+                                            <span class="veh-tuc" matTooltip="N° TUC">TUC: {{ veh.nro_tuc }}</span>
+                                          }
+                                        </div>
+                                      }
+                                    </div>
+                                  }
+
+                                  <!-- HISTORIAL DE UNIDADES INHABILITADAS / BAJAS -->
+                                  @if (getVehiculosInhabilitadosCount(prim) > 0) {
+                                    <div class="inhabilitados-section mt-3">
+                                      <div class="inhab-section-header">
+                                        <mat-icon class="inhab-warn-icon">history_toggle_off</mat-icon>
+                                        <span class="inhab-section-title">Historial de Unidades Inhabilitadas / Sustituidas ({{ getVehiculosInhabilitadosCount(prim) }})</span>
+                                      </div>
+                                      <div class="flota-chips-grid">
+                                        @for (veh of getVehiculosInhabilitados(prim); track veh.placa) {
+                                          <div class="vehiculo-mini-item veh-inhabilitado">
+                                            <span class="veh-placa-inhab">{{ veh.placa }}</span>
+                                            <span class="veh-meta">{{ veh.marca || '' }} {{ veh.modelo || '' }} {{ veh.anio_fabricacion ? '(' + veh.anio_fabricacion + ')' : '' }}</span>
+                                            <span class="veh-inhab-badge">{{ veh.estado || 'INHABILITADO' }}</span>
+                                          </div>
                                         }
                                       </div>
-                                    }
-                                  </div>
+                                    </div>
+                                  }
                                 }
                               </div>
 
@@ -1190,7 +1224,37 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
-    /* FLOTA CHIPS GRID */
+    /* FLOTA CHIPS GRID & INHABILITADOS */
+    .inhab-metric-tag {
+      font-size: 0.76rem;
+      color: #b45309;
+      background: #fef3c7;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    .inhab-counter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #b45309;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+
+      .pill-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+      }
+    }
+
     .flota-chips-grid {
       display: flex;
       flex-wrap: wrap;
@@ -1204,6 +1268,42 @@ const ESTADOS_RUC: Record<string, string> = {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
+      transition: all 0.2s ease;
+
+      &.veh-habilitado {
+        border-color: #cbd5e1;
+        &:hover {
+          border-color: #93c5fd;
+          background: #f0fdf4;
+        }
+      }
+
+      &.veh-inhabilitado {
+        background: #fafafa;
+        border: 1px dashed #d1d5db;
+        opacity: 0.85;
+
+        .veh-placa-inhab {
+          font-family: monospace;
+          font-weight: 700;
+          font-size: 0.84rem;
+          background: #f3f4f6;
+          color: #6b7280;
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-decoration: line-through;
+        }
+
+        .veh-inhab-badge {
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: #b91c1c;
+          background: #fee2e2;
+          padding: 1px 5px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+      }
 
       .veh-placa {
         font-family: monospace;
@@ -1226,6 +1326,30 @@ const ESTADOS_RUC: Record<string, string> = {
         padding: 1px 5px;
         border-radius: 4px;
         font-weight: 600;
+      }
+    }
+
+    .inhabilitados-section {
+      background: #fdfaf5;
+      border: 1px dashed #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+
+      .inhab-section-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #92400e;
+
+        .inhab-warn-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: #d97706;
+        }
       }
     }
 
@@ -1527,18 +1651,51 @@ const ESTADOS_RUC: Record<string, string> = {
         }
       }
 
-      .vehiculo-badge-item {
-        background: #111827;
-        border-color: #1e293b;
+      .inhab-metric-tag {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fcd34d;
+      }
+      .inhab-counter-pill {
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.3);
+        color: #fcd34d;
+      }
+      .inhabilitados-section {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: #334155;
+        .inhab-section-header { color: #fcd34d; }
+      }
 
-        .veh-placa {
-          background: #1e293b;
-          color: #93c5fd;
+      .vehiculo-mini-item {
+        &.veh-habilitado {
+          background: #111827;
+          border-color: #1e293b;
+          &:hover {
+            border-color: #38bdf8;
+            background: #1e293b;
+          }
+          .veh-placa {
+            background: #1e293b;
+            color: #93c5fd;
+          }
+          .veh-meta { color: #cbd5e1; }
+          .veh-tuc {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+          }
         }
-        .veh-meta { color: #cbd5e1; }
-        .veh-tuc {
-          background: rgba(16, 185, 129, 0.2);
-          color: #34d399;
+        &.veh-inhabilitado {
+          background: #0b0f19;
+          border-color: #334155;
+          .veh-placa-inhab {
+            background: #1e293b;
+            color: #94a3b8;
+          }
+          .veh-meta { color: #64748b; }
+          .veh-inhab-badge {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+          }
         }
       }
 
@@ -1753,6 +1910,30 @@ export class EmpresaDetailComponent implements OnInit {
       case 'CANCELADA': return 'cancel';
       default: return 'verified';
     }
+  }
+
+  isVehiculoHabilitado(veh: VehiculoPrimigeniaItem): boolean {
+    if (veh.es_habilitado !== undefined) return veh.es_habilitado;
+    const est = (veh.estado || '').toUpperCase();
+    return est === 'HABILITADO' || est === 'ACTIVO' || est === 'VIGENTE';
+  }
+
+  getVehiculosHabilitados(prim: PrimigeniaDetalleItem): VehiculoPrimigeniaItem[] {
+    return (prim?.flota || []).filter(v => this.isVehiculoHabilitado(v));
+  }
+
+  getVehiculosInhabilitados(prim: PrimigeniaDetalleItem): VehiculoPrimigeniaItem[] {
+    return (prim?.flota || []).filter(v => !this.isVehiculoHabilitado(v));
+  }
+
+  getVehiculosHabilitadosCount(prim: PrimigeniaDetalleItem): number {
+    if (prim?.total_vehiculos_habilitados !== undefined) return prim.total_vehiculos_habilitados;
+    return this.getVehiculosHabilitados(prim).length;
+  }
+
+  getVehiculosInhabilitadosCount(prim: PrimigeniaDetalleItem): number {
+    if (prim?.total_vehiculos_inhabilitados !== undefined) return prim.total_vehiculos_inhabilitados;
+    return this.getVehiculosInhabilitados(prim).length;
   }
 
   editar(): void {
