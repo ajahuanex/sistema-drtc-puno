@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, effect } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatButtonModule } from '@angular/material/button';
@@ -23,6 +23,7 @@ import { Resolucion } from '../../models/resolucion.model';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
@@ -39,6 +40,24 @@ import { Resolucion } from '../../models/resolucion.model';
   ],
   template: `
     <div class="page-container">
+      <!-- Submódulo Selector Tabs (Primigenias vs Hijas) -->
+      <div class="resoluciones-nav-tabs">
+        <a routerLink="/resoluciones-primigenias" routerLinkActive="tab-active" class="res-tab-item">
+          <mat-icon class="tab-icon">auto_awesome</mat-icon>
+          <span class="tab-title">Resoluciones Primigenias</span>
+          <span class="tab-tag tag-primigenia">Originarias</span>
+        </a>
+        <a routerLink="/resoluciones-hijas" routerLinkActive="tab-active" class="res-tab-item">
+          <mat-icon class="tab-icon">alt_route</mat-icon>
+          <span class="tab-title">Resoluciones Hijas</span>
+          <span class="tab-tag tag-hija">Modificatorias</span>
+        </a>
+        <a routerLink="/resoluciones" routerLinkActive="tab-active" [routerLinkActiveOptions]="{ exact: true }" class="res-tab-item">
+          <mat-icon class="tab-icon">table_chart</mat-icon>
+          <span class="tab-title">Todas las Resoluciones</span>
+        </a>
+      </div>
+
       <div class="page-header">
         <div class="header-content">
           <h1>Resoluciones</h1>

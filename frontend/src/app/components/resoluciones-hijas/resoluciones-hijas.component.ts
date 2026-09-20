@@ -19,7 +19,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { ResolucionHijaService } from '../../services/resolucion-hija.service';
 import { GoogleSheetsService } from '../../services/google-sheets.service';
@@ -34,6 +34,7 @@ import {
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     ReactiveFormsModule,
     MatTableModule,
     MatPaginatorModule,
@@ -55,6 +56,20 @@ import {
   ],
   template: `
     <div class="page-container">
+      <!-- Submódulo Selector Tabs (Primigenias vs Hijas) -->
+      <div class="resoluciones-nav-tabs">
+        <a routerLink="/resoluciones-primigenias" routerLinkActive="tab-active" class="res-tab-item">
+          <mat-icon class="tab-icon">auto_awesome</mat-icon>
+          <span class="tab-title">Resoluciones Primigenias</span>
+          <span class="tab-tag tag-primigenia">Originarias</span>
+        </a>
+        <a routerLink="/resoluciones-hijas" routerLinkActive="tab-active" [routerLinkActiveOptions]="{ exact: true }" class="res-tab-item">
+          <mat-icon class="tab-icon">alt_route</mat-icon>
+          <span class="tab-title">Resoluciones Hijas</span>
+          <span class="tab-tag tag-hija">Modificatorias</span>
+        </a>
+      </div>
+
       <!-- Header Banner -->
       <div class="page-header">
         <div class="header-content">

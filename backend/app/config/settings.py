@@ -7,7 +7,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Configuración de la aplicación
-    PROJECT_NAME: str = os.getenv("PROJECT_NAME", "Sistema Regional de Registros de Transporte (SIRRET)")
+    PROJECT_NAME: str = os.getenv("PROJECT_NAME", "Sistema Regional de Registros de Transporte Terrestre (SIRRETT)")
     VERSION: str = os.getenv("VERSION", "1.0.0")
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"

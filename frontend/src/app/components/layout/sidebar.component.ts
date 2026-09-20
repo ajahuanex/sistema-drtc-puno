@@ -1,8 +1,9 @@
-import { Component, input, signal, inject } from '@angular/core';
+import { Component, input, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -169,21 +170,17 @@ import { AuthService } from '../../services/auth.service';
 
                 @if (isExpanded() && expandedGroups().has('resoluciones')) {
                   <div class="sub-items-container">
-                    <a routerLink="/resoluciones" routerLinkActive="sub-active" class="sub-link">
+                    <a routerLink="/resoluciones-primigenias" routerLinkActive="sub-active" [routerLinkActiveOptions]="{ exact: true }" class="sub-link">
                       <span class="sub-bullet"></span>
-                      <span>Todas las Resoluciones</span>
-                    </a>
-                    <a routerLink="/resoluciones-primigenias/carga-masiva" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Carga Masiva Resoluciones</span>
+                      <span>Resoluciones Primigenias</span>
                     </a>
                     <a routerLink="/resoluciones-hijas" routerLinkActive="sub-active" class="sub-link">
                       <span class="sub-bullet"></span>
                       <span>Resoluciones Hijas</span>
                     </a>
-                    <a routerLink="/expedientes" routerLinkActive="sub-active" class="sub-link">
+                    <a routerLink="/resoluciones-primigenias/carga-masiva" routerLinkActive="sub-active" class="sub-link">
                       <span class="sub-bullet"></span>
-                      <span>Expedientes</span>
+                      <span>Carga Masiva Primigenias</span>
                     </a>
                   </div>
                 }
@@ -852,13 +849,32 @@ import { AuthService } from '../../services/auth.service';
     }
   `]
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
   isExpanded = input<boolean>(true);
   expandedGroups = signal<Set<string>>(new Set<string>());
 
   private authService = inject(AuthService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
+
+  ngOnInit(): void {
+    this.syncExpandedWithRoute(this.router.url);
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.syncExpandedWithRoute(event.urlAfterRedirects || event.url);
+    });
+  }
+
+  private syncExpandedWithRoute(url: string): void {
+    if (url.includes('resolucion')) {
+      this.expandedGroups.update(groups => new Set(groups).add('resoluciones'));
+    } else if (url.includes('vehiculo')) {
+      this.expandedGroups.update(groups => new Set(groups).add('vehiculos'));
+    } else if (url.includes('ruta') || url.includes('localidad')) {
+      this.expandedGroups.update(groups => new Set(groups).add('rutas'));
+    }
+  }
 
   toggleGroup(group: string, event: MouseEvent): void {
     event.stopPropagation();

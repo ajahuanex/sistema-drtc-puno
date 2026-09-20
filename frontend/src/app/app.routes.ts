@@ -27,8 +27,8 @@ export const routes: Routes = [
       { path: 'resoluciones-primigenias/carga-masiva', loadComponent: () => import('./components/resoluciones-primigenias/carga-masiva-resoluciones-primigenias.component').then(m => m.CargaMasivaResolucionesPrimigeniasComponent) },
       { path: 'resoluciones-primigenias', loadComponent: () => import('./components/resoluciones-primigenias/resoluciones-primigenias.component').then(m => m.ResolucionesPrimigeniasComponent) },
       { path: 'resoluciones-hijas', loadComponent: () => import('./components/resoluciones-hijas/resoluciones-hijas.component').then(m => m.ResolucionesHijasComponent) },
-      { path: 'resoluciones', loadComponent: () => import('./components/resoluciones/resoluciones.component').then(m => m.ResolucionesComponent) },
-      { path: 'resoluciones/carga-masiva', loadComponent: () => import('./components/resoluciones/carga-masiva-resoluciones.component').then(m => m.CargaMasivaResolucionesComponent) },
+      { path: 'resoluciones', redirectTo: 'resoluciones-primigenias', pathMatch: 'full' },
+      { path: 'resoluciones/carga-masiva', redirectTo: 'resoluciones-primigenias/carga-masiva', pathMatch: 'full' },
       
       // LOCALIDADES
       { path: 'localidades', loadComponent: () => import('./components/localidades/localidades.component').then(m => m.LocalidadesComponent) },

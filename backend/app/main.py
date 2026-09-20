@@ -27,6 +27,7 @@ from app.routers.flota_empresa_router import router as flota_empresa_router
 from app.routers.database_router import router as database_router
 from app.routers.dashboard_router import router as dashboard_router
 from app.routers.auditoria_router import router as auditoria_router
+from app.routers.busqueda_global_router import router as busqueda_global_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -40,7 +41,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="API RESTful para el Sistema Regional de Registros de Transporte (SIRRET)",
+    description="API RESTful para el Sistema Regional de Registros de Transporte Terrestre (SIRRETT)",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
@@ -130,11 +131,12 @@ app.include_router(flota_empresa_router, prefix=settings.API_V1_STR)
 app.include_router(database_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(auditoria_router, prefix=settings.API_V1_STR)
+app.include_router(busqueda_global_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud
 @app.get("/health")
 async def health_check():
-    """Endpoint de verificación de salud del sistema SIRRET"""
+    """Endpoint de verificación de salud del sistema SIRRETT"""
     from app.dependencies.db import health_check_mongo
     
     # Verificar estado de MongoDB

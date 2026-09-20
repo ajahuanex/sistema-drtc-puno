@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -179,16 +179,29 @@ export interface ColumnasState {
             <!-- BARRA DE NAVEGACIÓN Y DETALLE DE LA EMPRESA SELECCIONADA -->
             <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
               <button mat-stroked-button (click)="limpiarEmpresaSeleccionada()" style="background:#fff;border-color:#cbd5e1;font-weight:600;color:#334155;border-radius:10px;">
-                <mat-icon style="color:#2563eb;">arrow_back</mat-icon> <span class="hide-on-mobile">Volver</span>
+                <mat-icon style="color:#2563eb;">arrow_back</mat-icon> <span class="hide-on-mobile">Volver al Directorio</span>
               </button>
-              <div style="display:flex;align-items:center;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <span style="font-size:13.5px;font-weight:700;color:#334155;background:#f8fafc;padding:6px 14px;border-radius:10px;border:1px solid #e2e8f0;">
-                  Empresa activa: <strong style="color:#1e1b4b;">{{ razonSocialEmpresa() }}</strong> <span style="color:#2563eb;font-family:monospace;margin-left:4px;">(RUC: {{ empresaSearchControl.value }})</span>
+                  Empresa activa: <strong style="color:#1e1b4b;">{{ razonSocialEmpresa() || 'Cargando datos...' }}</strong> <span style="color:#2563eb;font-family:monospace;margin-left:4px;">(RUC: {{ empresaSearchControl.value }})</span>
                 </span>
+                <button mat-flat-button color="primary" (click)="buscarFlotaEmpresa()" [disabled]="isLoadingEmpresa()" style="border-radius:10px;font-weight:700;" matTooltip="Actualizar datos y sincronizar flota con la base de datos">
+                  <mat-icon [class.spin-icon]="isLoadingEmpresa()">sync</mat-icon>
+                  <span>{{ isLoadingEmpresa() ? 'Sincronizando...' : 'Actualizar / Sincronizar' }}</span>
+                </button>
               </div>
             </div>
 
-            <!-- CUADRITO 1: INFORMACIÓN DE LA EMPRESA (CORTINA DESPLEGABLE) -->
+            @if (isLoadingEmpresa()) {
+              <mat-card class="glass-panel" style="padding:48px 24px;text-align:center;margin-bottom:20px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;box-shadow:0 8px 30px rgba(15,23,42,0.06);">
+                <mat-spinner diameter="48" color="primary"></mat-spinner>
+                <div>
+                  <h3 style="margin:0 0 6px 0;font-weight:800;color:#1e293b;font-size:16px;">Cargando flota y autorizaciones de la empresa...</h3>
+                  <p style="margin:0;color:#64748b;font-size:13px;">Consultando base de datos, resoluciones primigenias y rutas oficiales.</p>
+                </div>
+              </mat-card>
+            } @else {
+              <!-- CUADRITO 1: INFORMACIÓN DE LA EMPRESA (CORTINA DESPLEGABLE) -->
             <mat-accordion class="rutas-primigenias-accordion" multi>
               <mat-expansion-panel style="margin-bottom:16px;border-radius:14px;box-shadow:0 4px 16px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8);" [expanded]="false">
                 <mat-expansion-panel-header style="height:auto;padding:14px 20px;">
@@ -537,7 +550,17 @@ export interface ColumnasState {
                 <mat-card-content>
                   <mat-icon class="empty-icon">directions_car</mat-icon>
                   <h3>No se encontraron vehículos</h3>
-                  <p>Ajusta los filtros o importa datos desde Carga Masiva.</p>
+                  <p>Ajusta los filtros, sincroniza con la base de datos o importa datos desde Carga Masiva.</p>
+                  <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                    <button mat-stroked-button color="primary" (click)="buscarFlotaEmpresa()">
+                      <mat-icon>sync</mat-icon> Sincronizar / Actualizar
+                    </button>
+                    @if (searchControl.value || estadoControl.value || tipoHijaControl.value || primigeniaFiltro()) {
+                      <button mat-button (click)="limpiarFiltros(); primigeniaFiltro.set('')" style="color:#dc2626;">
+                        <mat-icon>filter_alt_off</mat-icon> Limpiar Filtros
+                      </button>
+                    }
+                  </div>
                 </mat-card-content>
               </mat-card>
             } @else {
@@ -816,47 +839,51 @@ export interface ColumnasState {
             }
           }
         }
+      }
 
         <!-- ====================================================
              VISTA CRONOLÓGICA (TODAS las filas incluyendo guiones)
         ===================================================== -->
         @if (vistaActual() === 'cronologica') {
-          <!-- Filtros cronológica -->
-          <div class="glass-filters">
-            <div class="filters-bar">
-              <div class="search-and-toggle">
-                <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-                  <mat-icon matPrefix class="search-icon">search</mat-icon>
-                  <input matInput [formControl]="searchCronoControl"
-                         placeholder="Buscar RUC, placa, resolución, TUC...">
-                  @if (searchCronoControl.value) {
-                    <button mat-icon-button matSuffix (click)="searchCronoControl.setValue('')">
-                      <mat-icon>close</mat-icon>
-                    </button>
-                  }
-                </mat-form-field>
-              </div>
-              <div class="collapsible-filters show">
-                <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
-                  <mat-label>Estado</mat-label>
-                  <mat-select [formControl]="estadoCronoControl">
-                    <mat-option value="">Todos</mat-option>
-                    <mat-option value="HABILITADO">Habilitado</mat-option>
-                    <mat-option value="INHABILITADO">Inhabilitado</mat-option>
-                    <mat-option value="OBSERVADO">Observado</mat-option>
-                    <mat-option value="CANCELADO">Cancelado</mat-option>
-                    <mat-option value="SUSPENDIDO">Suspendido</mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <button mat-raised-button color="accent" [disabled]="isLoadingCrono()"
-                        (click)="cargarVistaCronologica()">
-                  <mat-icon [class.spin-icon]="isLoadingCrono()">
-                    {{ isLoadingCrono() ? 'sync' : 'refresh' }}
-                  </mat-icon>
-                  Cargar
+          <!-- Filtros cronológica modernos -->
+          <div class="modern-filters-bar glass-panel animate-fade-in" style="margin-bottom:16px;">
+            <div class="modern-search-input-wrapper">
+              <mat-icon class="search-icon">search</mat-icon>
+              <input [formControl]="searchCronoControl" placeholder="Buscar por RUC, empresa, placa, resolución, TUC..." class="modern-search-input">
+              @if (searchCronoControl.value) {
+                <button mat-icon-button (click)="searchCronoControl.setValue('')" class="clear-btn">
+                  <mat-icon>close</mat-icon>
                 </button>
+              }
+            </div>
+
+            <div class="modern-filters-options">
+              <div class="modern-select-wrapper">
+                <select [formControl]="estadoCronoControl" class="modern-select">
+                  <option value="">Estado: Todos</option>
+                  <option value="HABILITADO">Habilitado</option>
+                  <option value="INHABILITADO">Inhabilitado</option>
+                  <option value="OBSERVADO">Observado</option>
+                  <option value="CANCELADO">Cancelado</option>
+                  <option value="SUSPENDIDO">Suspendido</option>
+                </select>
+                <mat-icon class="select-icon">expand_more</mat-icon>
               </div>
+
+              <button mat-flat-button color="primary" [disabled]="isLoadingCrono()"
+                      (click)="cargarVistaCronologica()" class="modern-action-btn"
+                      style="background:linear-gradient(135deg, #4f46e5, #4338ca);color:#fff;border-radius:10px;font-weight:700;height:40px;padding:0 18px;display:inline-flex;align-items:center;gap:6px;">
+                <mat-icon [class.spin-icon]="isLoadingCrono()">
+                  {{ isLoadingCrono() ? 'sync' : 'refresh' }}
+                </mat-icon>
+                <span>{{ isLoadingCrono() ? 'Cargando...' : 'Recargar / Sincronizar' }}</span>
+              </button>
+
+              @if (searchCronoControl.value || estadoCronoControl.value) {
+                <button mat-button (click)="searchCronoControl.setValue(''); estadoCronoControl.setValue('')" class="modern-action-btn" style="color:#dc2626;border-color:#fca5a5;">
+                  <mat-icon>filter_alt_off</mat-icon> Limpiar
+                </button>
+              }
             </div>
           </div>
 
@@ -1010,6 +1037,7 @@ export class VehiculosEmpresaComponent implements OnInit {
   private rutaService = inject(RutaService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   // Vista activa
   vistaActual = signal<'empresa' | 'cronologica'>('empresa');
@@ -1667,6 +1695,15 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.cargarCatalogoEmpresas();
     this.cargarRutasOficiales();
 
+    // Si viene RUC por parámetro de ruta (?ruc=...)
+    this.route.queryParams.subscribe(params => {
+      const ruc = params['ruc'];
+      if (ruc) {
+        this.empresaSearchControl.setValue(ruc);
+        this.buscarFlotaEmpresa();
+      }
+    });
+
     // Reset page on filter change
     this.searchControl.valueChanges.subscribe(() => this.pageIndex.set(0));
     this.estadoControl.valueChanges.subscribe(() => this.pageIndex.set(0));
@@ -1704,10 +1741,11 @@ export class VehiculosEmpresaComponent implements OnInit {
     const ruc = this.empresaSearchControl.value?.trim();
     if (!ruc) return;
     this.isLoadingEmpresa.set(true);
-    this.empresaSeleccionada.set(false);
+    this.empresaSeleccionada.set(true);
     this.flotaEmpresa.set([]);
     this.empresaDetalle.set(null);
     this.resolucionesPrimigeniasMatriz.set([]);
+    this.rutasOficialesEmpresa.set([]);
     this.pageIndex.set(0);
 
     // 1. Obtener datos oficiales de la Empresa
@@ -1747,8 +1785,7 @@ export class VehiculosEmpresaComponent implements OnInit {
     this.service.getFlotaByEmpresa(ruc, false).subscribe({
       next: (resp) => {
         this.flotaEmpresa.set(resp.data);
-        this.empresaSeleccionada.set(true);
-        if (resp.data.length > 0) {
+        if (resp.data.length > 0 && (!this.razonSocialEmpresa() || this.razonSocialEmpresa() === 'Sin Razón Social')) {
           this.razonSocialEmpresa.set(resp.data[0].razon_social || '');
         }
         this.isLoadingEmpresa.set(false);

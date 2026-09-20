@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit, Input, inject, signal, computed, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, OnDestroy, Input, inject, signal, computed, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -7,11 +7,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { DatabaseStatusService } from '../../services/database-status.service';
+import { BusquedaGlobalService, ResultadosBusquedaGlobal, ItemResultadoBusqueda } from '../../services/busqueda-global.service';
 import { Usuario } from '../../models/usuario.model';
 import { ChangeDetectionStrategy } from '@angular/core';
 
@@ -27,10 +31,11 @@ import { ChangeDetectionStrategy } from '@angular/core';
     MatMenuModule,
     MatDividerModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     FormsModule
   ],
   template: `
-    <!-- TopBar Oficial Maestro (h-16 = 64px, fondo blanco limpio, border-b) -->
+    <!-- TopBar Oficial Maestro SIRRETT (h-16 = 64px, fondo blanco limpio, border-b) -->
     <header class="topbar-header" data-purpose="topbar">
       <!-- Izquierda: Toggle + Separador + MTC Logo Oficial -->
       <div class="topbar-left">
@@ -58,25 +63,237 @@ import { ChangeDetectionStrategy } from '@angular/core';
         </div>
       </div>
 
-      <!-- Centro: Omnibox Búsqueda Global (Ctrl + K) -->
-      <div class="topbar-center hidden md:block" data-purpose="global-search">
-        <div class="search-box-wrapper">
+      <!-- Centro: Omnibox Búsqueda Global Unificada (Ctrl + K) -->
+      <div class="topbar-center hidden md:block" data-purpose="global-search" (click)="$event.stopPropagation()">
+        <div class="search-box-wrapper" [class.is-focused]="isSearchFocused() || isSearchDropdownOpen()">
           <div class="search-icon-wrapper">
-            <svg class="search-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-            </svg>
+            @if (isSearching()) {
+              <mat-icon class="search-spin-icon">sync</mat-icon>
+            } @else {
+              <svg class="search-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            }
           </div>
           <input
             #searchInput
             type="text"
             class="search-input"
-            placeholder="Buscar RUC, Empresa, Flota, R.D. (Ctrl + K)"
-            [(ngModel)]="searchQuery"
-            (keydown.enter)="executeGlobalSearch()"
+            placeholder="Buscar RUC, Empresa, Flota, R.D., Ruta, DNI... (Ctrl + K)"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchInput($event)"
+            (focus)="onSearchFocus()"
+            (keydown)="handleSearchKeydown($event)"
           />
-          <div class="search-kbd-wrapper" (click)="focusSearch()">
-            <kbd class="search-kbd">⌘K</kbd>
-          </div>
+          @if (searchQuery()) {
+            <button type="button" class="clear-search-btn" (click)="clearSearch()" title="Limpiar búsqueda">
+              <mat-icon>close</mat-icon>
+            </button>
+          } @else {
+            <div class="search-kbd-wrapper" (click)="focusSearch()">
+              <kbd class="search-kbd">⌘K</kbd>
+            </div>
+          }
+
+          <!-- Dropdown Flotante de Resultados Spotlight -->
+          @if (isSearchDropdownOpen() && searchQuery().trim().length >= 2) {
+            <div class="global-search-dropdown shadow-2xl animate-fade-in" (click)="$event.stopPropagation()">
+              <!-- Cabecera del panel de búsqueda -->
+              <div class="dropdown-header">
+                <div class="header-title-flex">
+                  <mat-icon class="header-icon">manage_search</mat-icon>
+                  <span class="header-title">Búsqueda en Base de Datos SIRRETT</span>
+                </div>
+                <span class="results-badge">
+                  {{ totalCoincidencias() }} resultado(s)
+                </span>
+              </div>
+
+              <!-- Contenedor con scroll -->
+              <div class="dropdown-body custom-scroll">
+                @if (isSearching()) {
+                  <div class="search-loading-state">
+                    <mat-spinner diameter="32"></mat-spinner>
+                    <p>Consultando empresas, vehículos, resoluciones, rutas y conductores...</p>
+                  </div>
+                } @else if (totalCoincidencias() === 0) {
+                  <div class="search-empty-state">
+                    <mat-icon class="empty-icon">sentiment_dissatisfied</mat-icon>
+                    <p class="empty-title">Sin coincidencias para "{{ searchQuery() }}"</p>
+                    <span class="empty-hint">Verifica el RUC, número de placa, código de resolución, ruta o DNI.</span>
+                  </div>
+                } @else {
+                  <!-- 1. EMPRESAS -->
+                  @if (searchResults()?.empresas?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-empresa">
+                        <mat-icon>business</mat-icon>
+                        <span>Empresas de Transporte ({{ searchResults()!.empresas.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.empresas; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-blue-50 text-blue-600">
+                              <mat-icon>store</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-success">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- 2. VEHÍCULOS / FLOTA -->
+                  @if (searchResults()?.vehiculos?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-vehiculo">
+                        <mat-icon>directions_car</mat-icon>
+                        <span>Parque Automotor / Flota ({{ searchResults()!.vehiculos.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.vehiculos; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-indigo-50 text-indigo-600">
+                              <mat-icon>local_shipping</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-primary">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- 3. RESOLUCIONES -->
+                  @if (searchResults()?.resoluciones?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-resolucion">
+                        <mat-icon>description</mat-icon>
+                        <span>Resoluciones Directorales ({{ searchResults()!.resoluciones.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.resoluciones; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-emerald-50 text-emerald-600">
+                              <mat-icon>verified</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-success">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- 4. RUTAS -->
+                  @if (searchResults()?.rutas?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-ruta">
+                        <mat-icon>route</mat-icon>
+                        <span>Rutas Autorizadas ({{ searchResults()!.rutas.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.rutas; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-amber-50 text-amber-600">
+                              <mat-icon>alt_route</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-warning">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- 5. CONDUCTORES -->
+                  @if (searchResults()?.conductores?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-conductor">
+                        <mat-icon>badge</mat-icon>
+                        <span>Conductores Habilitados ({{ searchResults()!.conductores.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.conductores; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-purple-50 text-purple-600">
+                              <mat-icon>person</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-primary">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- 6. INFRACCIONES -->
+                  @if (searchResults()?.infracciones?.length) {
+                    <div class="search-category-group">
+                      <div class="category-title cat-infraccion">
+                        <mat-icon>gavel</mat-icon>
+                        <span>Infracciones / Actas ({{ searchResults()!.infracciones.length }})</span>
+                      </div>
+                      <div class="category-items">
+                        @for (item of searchResults()!.infracciones; track item.id) {
+                          <div class="search-item-row" (click)="selectResult(item)">
+                            <div class="item-icon-box bg-rose-50 text-rose-600">
+                              <mat-icon>report_problem</mat-icon>
+                            </div>
+                            <div class="item-text-info">
+                              <div class="item-main-title">{{ item.titulo }}</div>
+                              <div class="item-sub-title">{{ item.subtitulo }}</div>
+                            </div>
+                            @if (item.badge) {
+                              <span class="item-tag tag-danger">{{ item.badge }}</span>
+                            }
+                            <mat-icon class="arrow-icon">chevron_right</mat-icon>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+
+              <!-- Footer con atajos de teclado -->
+              <div class="dropdown-footer">
+                <span>Presiona <kbd>ESC</kbd> para cerrar</span>
+                <span><kbd>ENTER</kbd> para abrir</span>
+              </div>
+            </div>
+          }
         </div>
       </div>
 
@@ -151,13 +368,22 @@ import { ChangeDetectionStrategy } from '@angular/core';
             }
           </div>
           <mat-divider></mat-divider>
-          <button mat-button class="view-all-notif-btn" (click)="verTodasNotificaciones()">Ver todas las notificaciones</button>
+          <button mat-menu-item (click)="verTodasNotificaciones()" class="text-center w-full">
+            Ver todas las notificaciones
+          </button>
         </mat-menu>
 
         <div class="topbar-v-divider hidden sm:block"></div>
 
         <!-- Tarjeta Oficial de Usuario / Funcionario DRTC -->
-        <div class="officer-profile-pill group" [matMenuTriggerFor]="userMenu" title="Cuenta de Funcionario">
+        <div
+          class="officer-profile-pill group"
+          [matMenuTriggerFor]="userMenu"
+          role="button"
+          tabindex="0"
+          aria-label="Menú de usuario"
+          title="Cuenta de Funcionario"
+        >
           <div class="officer-avatar">
             <span>{{ getUserInitials() }}</span>
           </div>
@@ -173,11 +399,13 @@ import { ChangeDetectionStrategy } from '@angular/core';
         <!-- Menú de Usuario con Conexión MongoDB y Modo Oscuro integrados -->
         <mat-menu #userMenu="matMenu" class="stitch-user-menu">
           <div class="user-card-header">
-            <div class="user-card-avatar">{{ getUserInitials() }}</div>
+            <div class="user-card-avatar">
+              <span>{{ getUserInitials() }}</span>
+            </div>
             <div class="user-card-details">
               <h4>{{ getOfficerFullName() }}</h4>
               <p class="user-card-role">{{ getRoleDisplayName(currentUser()?.rolId) }}</p>
-              <span class="user-card-email font-mono">{{ currentUser()?.email || 'especialista@drtc.gob.pe' }}</span>
+              <span class="user-card-email font-mono">{{ currentUser()?.email || 'funcionario@drtc-puno.gob.pe' }}</span>
             </div>
           </div>
 
@@ -187,8 +415,12 @@ import { ChangeDetectionStrategy } from '@angular/core';
           <div class="db-section" (click)="$event.stopPropagation()">
             <div class="db-section-header">
               <span class="db-section-title">Base de Datos Activa</span>
-              <span class="db-status-badge" [class.badge-remote]="dbService.isRemote()" [class.badge-local]="!dbService.isRemote()">
-                {{ dbService.isRemote() ? 'REMOTA (161.132.52.69)' : 'LOCAL (localhost)' }}
+              <span
+                class="db-status-badge"
+                [class.badge-remote]="dbService.isRemote()"
+                [class.badge-local]="!dbService.isRemote()"
+              >
+                {{ dbService.isRemote() ? 'MongoDB Remoto' : 'MongoDB Local' }}
               </span>
             </div>
             <div class="db-section-row">
@@ -221,7 +453,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
 
           <mat-divider></mat-divider>
 
-          <!-- Modo Oscuro Toggle Rápido -->
+          <!-- Acciones de Usuario -->
           <button mat-menu-item (click)="toggleDarkMode()">
             <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
             <span>{{ isDarkMode() ? 'Activar Modo Claro' : 'Activar Modo Oscuro' }}</span>
@@ -255,7 +487,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./topbar.component.scss']
 })
-export class TopbarComponent implements OnInit {
+export class TopbarComponent implements OnInit, OnDestroy {
   @Output() toggleSidebar = new EventEmitter<void>();
   @Input() sidebarExpanded = true;
   @ViewChild('searchInput') searchInputRef?: ElementRef<HTMLInputElement>;
@@ -263,13 +495,24 @@ export class TopbarComponent implements OnInit {
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
   public dbService = inject(DatabaseStatusService);
+  private busquedaService = inject(BusquedaGlobalService);
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
   currentUser = signal<Usuario | null>(null);
   isDarkMode = this.themeService.isDarkMode;
 
-  searchQuery = '';
+  // Búsqueda global interactiva
+  searchQuery = signal<string>('');
+  isSearching = signal<boolean>(false);
+  isSearchDropdownOpen = signal<boolean>(false);
+  isSearchFocused = signal<boolean>(false);
+  searchResults = signal<ResultadosBusquedaGlobal | null>(null);
+  totalCoincidencias = signal<number>(0);
+
+  private searchSubject = new Subject<string>();
+  private searchSubscription?: Subscription;
+
   notifications = [
     { id: 1, type: 'info', icon: 'business', message: 'Nueva empresa interprovincial registrada' },
     { id: 2, type: 'warning', icon: 'warning', message: 'TUC próximo a vencer: Flota Z4V-960' },
@@ -284,39 +527,170 @@ export class TopbarComponent implements OnInit {
     }
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    this.isSearchDropdownOpen.set(false);
+    this.isSearchFocused.set(false);
+  }
+
   ngOnInit(): void {
     this.loadCurrentUser();
+    this.setupSearchObservable();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSubscription?.unsubscribe();
+  }
+
+  private setupSearchObservable(): void {
+    this.searchSubscription = this.searchSubject.pipe(
+      debounceTime(250),
+      distinctUntilChanged(),
+      switchMap(query => {
+        if (!query || query.trim().length < 2) {
+          this.isSearching.set(false);
+          this.searchResults.set(null);
+          this.totalCoincidencias.set(0);
+          return [];
+        }
+        this.isSearching.set(true);
+        return this.busquedaService.buscar(query, 5);
+      })
+    ).subscribe({
+      next: (resp) => {
+        if (resp && resp.resultados) {
+          this.searchResults.set(resp.resultados);
+          this.totalCoincidencias.set(resp.total_coincidencias || 0);
+          this.isSearchDropdownOpen.set(true);
+        }
+        this.isSearching.set(false);
+      },
+      error: (err) => {
+        console.warn('Error en búsqueda global:', err);
+        this.isSearching.set(false);
+      }
+    });
   }
 
   loadCurrentUser(): void {
     this.currentUser.set(this.authService.getCurrentUser());
   }
 
+  onSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    if (value && value.trim().length >= 2) {
+      this.isSearchDropdownOpen.set(true);
+      this.searchSubject.next(value);
+    } else {
+      this.isSearchDropdownOpen.set(false);
+      this.searchResults.set(null);
+      this.totalCoincidencias.set(0);
+    }
+  }
+
+  onSearchFocus(): void {
+    this.isSearchFocused.set(true);
+    if (this.searchQuery().trim().length >= 2) {
+      this.isSearchDropdownOpen.set(true);
+      if (!this.searchResults()) {
+        this.searchSubject.next(this.searchQuery());
+      }
+    }
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set('');
+    this.isSearchDropdownOpen.set(false);
+    this.searchResults.set(null);
+    this.totalCoincidencias.set(0);
+    this.focusSearch();
+  }
+
   focusSearch(): void {
     if (this.searchInputRef) {
       this.searchInputRef.nativeElement.focus();
       this.searchInputRef.nativeElement.select();
+      this.isSearchFocused.set(true);
+    }
+  }
+
+  handleSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.isSearchDropdownOpen.set(false);
+      this.searchInputRef?.nativeElement.blur();
+    } else if (event.key === 'Enter') {
+      this.executeGlobalSearch();
     }
   }
 
   executeGlobalSearch(): void {
-    const q = this.searchQuery.trim();
+    const q = this.searchQuery().trim();
     if (!q) return;
 
+    // Si hay un primer resultado visible, seleccionarlo
+    const results = this.searchResults();
+    if (results) {
+      if (results.empresas?.length) {
+        this.selectResult(results.empresas[0]);
+        return;
+      }
+      if (results.vehiculos?.length) {
+        this.selectResult(results.vehiculos[0]);
+        return;
+      }
+      if (results.resoluciones?.length) {
+        this.selectResult(results.resoluciones[0]);
+        return;
+      }
+      if (results.rutas?.length) {
+        this.selectResult(results.rutas[0]);
+        return;
+      }
+      if (results.conductores?.length) {
+        this.selectResult(results.conductores[0]);
+        return;
+      }
+      if (results.infracciones?.length) {
+        this.selectResult(results.infracciones[0]);
+        return;
+      }
+    }
+
+    // Fallback inteligente
     if (/^\d{11}$/.test(q)) {
-      this.router.navigate(['/empresas'], { queryParams: { ruc: q } });
-      this.snackBar.open(`Consultando RUC: ${q}`, 'OK', { duration: 2500 });
-      return;
-    }
-
-    if (/^[A-Za-z0-9]{3}-?[A-Za-z0-9]{3}$/.test(q)) {
+      this.router.navigate(['/vehiculos-empresa'], { queryParams: { ruc: q } });
+    } else if (/^[A-Za-z0-9]{3}-?[A-Za-z0-9]{3}$/.test(q)) {
       this.router.navigate(['/vehiculos'], { queryParams: { placa: q.toUpperCase() } });
-      this.snackBar.open(`Consultando Placa: ${q.toUpperCase()}`, 'OK', { duration: 2500 });
+    } else {
+      this.router.navigate(['/empresas'], { queryParams: { q } });
+    }
+    this.isSearchDropdownOpen.set(false);
+  }
+
+  selectResult(item: ItemResultadoBusqueda): void {
+    this.isSearchDropdownOpen.set(false);
+    if (!item.ruta) return;
+
+    if (item.tipo === 'empresa' && item.ruc) {
+      this.router.navigate(['/vehiculos-empresa'], { queryParams: { ruc: item.ruc } });
+      this.snackBar.open(`Abriendo empresa: ${item.titulo}`, 'OK', { duration: 2500 });
       return;
     }
 
-    this.router.navigate(['/empresas'], { queryParams: { q } });
-    this.snackBar.open(`Búsqueda: "${q}"`, 'OK', { duration: 2500 });
+    if (item.tipo === 'vehiculo' && item.ruc) {
+      this.router.navigate(['/vehiculos-empresa'], { queryParams: { ruc: item.ruc } });
+      this.snackBar.open(`Abriendo vehículo ${item.placa || ''}`, 'OK', { duration: 2500 });
+      return;
+    }
+
+    if (item.tipo === 'conductor' && item.dni) {
+      this.router.navigate(['/conductores'], { queryParams: { dni: item.dni } });
+      this.snackBar.open(`Abriendo conductor: ${item.titulo}`, 'OK', { duration: 2500 });
+      return;
+    }
+
+    this.router.navigateByUrl(item.ruta);
+    this.snackBar.open(`Navegando a: ${item.titulo}`, 'OK', { duration: 2500 });
   }
 
   getUserInitials(): string {
