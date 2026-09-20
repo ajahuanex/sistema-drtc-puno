@@ -66,23 +66,22 @@ const ESTADOS_RUC: Record<string, string> = {
   ],
   template: `
     <div class="page-container">
-      <!-- Header Banner -->
-      <div class="page-header">
+      <!-- Header Banner (Stitch Official module-hero-banner) -->
+      <div class="page-header" data-purpose="module-hero-banner">
         <div class="header-content">
           <div class="title-with-icon">
-            <mat-icon class="header-icon">business</mat-icon>
+            <span class="material-symbols-outlined header-icon">apartment</span>
             <div>
-              <h1>Gestión de Empresas</h1>
-              <p class="subtitle">Administración de empresas transportistas, autorizaciones y sus representantes legales</p>
+              <h1>Gestión de Empresas de Transporte Terrestre Interprovincial</h1>
+              <p class="subtitle">Padrón Oficial y Expediente Administrativo Digital 360° de Operadores Habilitados en la Región Puno (D.S. 017-2009-MTC)</p>
             </div>
           </div>
         </div>
         <div class="header-actions">
           <!-- Botón Exportar Excel con Menú -->
           <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar empresas a Excel">
-            <mat-icon class="btn-icon">file_download</mat-icon>
-            <span class="btn-text">Exportar Excel</span>
-            <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+            <span class="material-symbols-outlined btn-icon">download</span>
+            <span class="btn-text">Exportar Padrón (Excel/PDF)</span>
           </button>
           <mat-menu #exportExcelMenu="matMenu">
             <button mat-menu-item (click)="exportarExcelSeleccionadas()" [disabled]="empresasSeleccionadas().size === 0">
@@ -106,9 +105,8 @@ const ESTADOS_RUC: Record<string, string> = {
 
           <!-- Botón Carga Masiva con Menú -->
           <button mat-button class="header-action-btn" [matMenuTriggerFor]="cargaMasivaMenu" [disabled]="isLoading()" matTooltip="Carga masiva de empresas">
-            <mat-icon class="btn-icon">file_upload</mat-icon>
+            <span class="material-symbols-outlined btn-icon">upload_file</span>
             <span class="btn-text">Carga Masiva</span>
-            <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
           </button>
           <mat-menu #cargaMasivaMenu="matMenu">
             <button mat-menu-item (click)="abrirCargaMasivaGoogleSheets()">
@@ -128,73 +126,158 @@ const ESTADOS_RUC: Record<string, string> = {
 
           <!-- Botón Nueva Empresa -->
           <button mat-button class="header-action-btn btn-primary-custom" (click)="crearEmpresa()" [disabled]="isLoading()" matTooltip="Registrar nueva empresa">
-            <mat-icon class="btn-icon">domain_add</mat-icon>
-            <span class="btn-text">Nueva Empresa</span>
+            <span class="material-symbols-outlined btn-icon">add_circle</span>
+            <span class="btn-text">+ Nueva Empresa</span>
           </button>
         </div>
       </div>
 
-      <div class="content-section">
-        <!-- Tarjeta de Filtros Modernizada -->
-        <div class="glass-filters">
-          <div class="filters-bar">
-            <!-- Búsqueda rápida y botón de filtros móvil -->
-            <div class="search-and-toggle">
-              <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-                <mat-icon matPrefix class="search-icon">search</mat-icon>
-                <input matInput [formControl]="searchControl" placeholder="Buscar por RUC, Razón Social o Nombre...">
-                @if (searchControl.value) {
-                  <button mat-icon-button matSuffix (click)="searchControl.setValue('')" class="clear-input-btn" matTooltip="Limpiar búsqueda">
-                    <mat-icon>close</mat-icon>
-                  </button>
-                }
-              </mat-form-field>
-              
-              <button mat-icon-button class="mobile-filter-toggle" (click)="showMobileFilters.set(!showMobileFilters())" [class.active]="showMobileFilters()">
-                <mat-icon>filter_list</mat-icon>
-              </button>
-            </div>
-
-            <div class="collapsible-filters" [class.show]="showMobileFilters()">
-              <!-- Select Estado Legal -->
-              <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
-                <mat-label>Estado Legal</mat-label>
-                <mat-select [formControl]="estadoControl">
-                  <mat-option value="">Todos los Estados</mat-option>
-                  <mat-option value="AUTORIZADA">Autorizada</mat-option>
-                  <mat-option value="EN_TRAMITE">En Trámite</mat-option>
-                  <mat-option value="SUSPENDIDA">Suspendida</mat-option>
-                  <mat-option value="CANCELADA">Cancelada</mat-option>
-                </mat-select>
-              </mat-form-field>
-
-              <!-- Select Servicio -->
-              <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
-                <mat-label>Servicio / Modalidad</mat-label>
-                <mat-select [ngModel]="servicioFilter()" (ngModelChange)="servicioFilter.set($event); currentPage.set(0)">
-                  <mat-option value="">Todos los Servicios</mat-option>
-                  @for (srv of serviciosDisponibles; track srv) {
-                    <mat-option [value]="srv">{{ srv }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <!-- Botón Limpiar filtros -->
-              @if (searchControl.value || estadoControl.value || servicioFilter()) {
-                <button mat-button type="button" (click)="limpiarFiltros()" class="filter-action-btn btn-reset" matTooltip="Limpiar todos los filtros">
-                  <mat-icon>filter_alt_off</mat-icon>
-                  <span>Limpiar</span>
-                </button>
-              }
-
-              <!-- Botón Configurar Columnas -->
-              <button mat-button type="button" (click)="abrirConfiguracionColumnas()" class="filter-action-btn" matTooltip="Configurar columnas visibles">
-                <mat-icon>tune</mat-icon>
-                <span>Columnas</span>
-              </button>
-            </div>
+      <!-- KPI Metrics Grid (Stitch Official Padrón DRTC Puno) -->
+      <div class="kpi-metrics-grid" data-purpose="kpi-metrics-grid">
+        <!-- Card 1: Total Autorizadas -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Autorizadas</span>
+            <span class="kpi-icon-badge kpi-badge-blue">
+              <span class="material-symbols-outlined">verified</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-number">{{ totalAutorizadas() }}</span>
+            <span class="kpi-subtext">modalidad transporte de pasajeros</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="status-dot dot-emerald"></span>
+            <span class="kpi-highlight font-emerald">{{ pctAutorizadasPasajeros() }}%</span>
+            <span>del total de empresas autorizadas</span>
           </div>
         </div>
+
+        <!-- Card 2: Total Canceladas -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Canceladas</span>
+            <span class="kpi-icon-badge kpi-badge-rose">
+              <span class="material-symbols-outlined">cancel</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-number text-rose">{{ totalCanceladas() }}</span>
+            <span class="kpi-subtext">empresas canceladas</span>
+          </div>
+          <div class="kpi-footer font-rose">
+            <span class="material-symbols-outlined footer-icon">gavel</span>
+            <span class="font-semibold">R.D. de cancelación / sanción firme</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Estado SUNAT (RUC) -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Estado SUNAT (RUC)</span>
+            <span class="kpi-icon-badge kpi-badge-emerald">
+              <span class="material-symbols-outlined">check_circle</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-number text-emerald">{{ sunatActivas() }}</span>
+            <span class="kpi-subtext">activas y habidas</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="kpi-highlight font-emerald">{{ pctSunatConformes() }}%</span>
+            <span>condición conforme @if (sunatEnVerificacion() > 0) { <span class="text-amber font-mono">({{ sunatEnVerificacion() }} en verif.)</span> }</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Modalidad Autorizada -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Modalidad Autorizada</span>
+            <span class="kpi-icon-badge kpi-badge-blue">
+              <span class="material-symbols-outlined">directions_bus</span>
+            </span>
+          </div>
+          <div class="kpi-modalidad-boxes">
+            <div class="kpi-mini-box">
+              <span class="mini-box-label">Pasajeros</span>
+              <span class="mini-box-number">{{ pasajerosCount() }}</span>
+            </div>
+            <div class="kpi-mini-box">
+              <span class="mini-box-label label-amber">Turismo</span>
+              <span class="mini-box-number">{{ turismoCount() }}</span>
+            </div>
+            <div class="kpi-mini-box">
+              <span class="mini-box-label label-blue">Trabajad.</span>
+              <span class="mini-box-number">{{ trabajadoresCount() }}</span>
+            </div>
+          </div>
+          <div class="kpi-footer kpi-footer-between">
+            <span>Total: <strong class="font-mono text-dark">{{ totalEmpresasCount() }} empresas</strong></span>
+            <span class="text-primary-link">D.S. 017-2009-MTC</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <!-- Formulario de Filtros Oficial Stitch (data-purpose="table-filters") -->
+        <section class="stitch-filters" data-purpose="table-filters">
+          <!-- Búsqueda rápida -->
+          <div class="search-box-wrapper">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input 
+              type="text" 
+              [formControl]="searchControl" 
+              placeholder="Buscar por RUC, Razón Social o Representante Legal..." 
+              class="stitch-search-input">
+            @if (searchControl.value) {
+              <button type="button" (click)="searchControl.setValue('')" class="stitch-clear-btn" matTooltip="Limpiar búsqueda">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+
+          <!-- Filtros desplegables y acciones -->
+          <div class="filter-controls-group">
+            <div class="filter-item">
+              <label class="filter-label">Estado:</label>
+              <select [formControl]="estadoControl" class="stitch-select">
+                <option value="">Todos los Estados</option>
+                <option value="AUTORIZADA">Habilitada (Activa)</option>
+                <option value="EN_TRAMITE">En Renovación</option>
+                <option value="SUSPENDIDA">Suspendida</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label class="filter-label">Modalidad:</label>
+              <select [ngModel]="servicioFilter()" (ngModelChange)="servicioFilter.set($event); currentPage.set(0)" class="stitch-select">
+                <option value="">Todas las Modalidades</option>
+                <option value="PASAJEROS">Regular Personas (M2/M3)</option>
+                <option value="TURISMO">Turismo</option>
+                <option value="TRABAJADORES">Trabajadores</option>
+                <option value="MERCANCIAS">Mercancías</option>
+                <option value="CARGA">Carga</option>
+                <option value="INFRAESTRUCTURA">Infraestructura</option>
+                <option value="MIXTO">Mixto</option>
+              </select>
+            </div>
+
+            <!-- Botón Limpiar filtros -->
+            @if (searchControl.value || estadoControl.value || servicioFilter()) {
+              <button type="button" (click)="limpiarFiltros()" class="stitch-btn stitch-btn-reset" matTooltip="Limpiar todos los filtros">
+                <span class="material-symbols-outlined">filter_alt_off</span>
+                <span>Limpiar</span>
+              </button>
+            }
+
+            <!-- Botón Configurar Columnas -->
+            <button type="button" (click)="abrirConfiguracionColumnas()" class="stitch-btn" matTooltip="Configurar columnas visibles">
+              <span class="material-symbols-outlined">view_column</span>
+              <span>Columnas</span>
+            </button>
+          </div>
+        </section>
 
         <!-- Banner de Selección Múltiple -->
         @if (empresasSeleccionadas().size > 0) {
@@ -257,53 +340,54 @@ const ESTADOS_RUC: Record<string, string> = {
                       @if (columnaVisible('ruc')) {
                         <th (click)="toggleSort('ruc')" class="sortable-th ruc-th">
                           <span>RUC</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('ruc') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('ruc') }}</span>
                         </th>
                       }
                       @if (columnaVisible('razonSocial')) {
                         <th (click)="toggleSort('razonSocial')" class="sortable-th razon-th">
                           <span>Razón Social</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('razonSocial') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('razonSocial') }}</span>
                         </th>
                       }
                       @if (columnaVisible('partidaRegistral')) {
                         <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
                           <span>Partida Registral</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('partidaRegistral') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('partidaRegistral') }}</span>
                         </th>
                       }
                       @if (columnaVisible('estado')) {
                         <th (click)="toggleSort('estado')" class="sortable-th">
                           <span>Estado Legal</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('estado') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('estado') }}</span>
                         </th>
                       }
                       @if (columnaVisible('servicios')) {
                         <th (click)="toggleSort('servicios')" class="sortable-th">
                           <span>Tipos de Servicio</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('servicios') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('servicios') }}</span>
                         </th>
                       }
                       @if (columnaVisible('representante')) {
                         <th (click)="toggleSort('representante')" class="sortable-th">
                           <span>Representante Legal</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('representante') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('representante') }}</span>
                         </th>
                       }
                       @if (columnaVisible('contacto')) {
                         <th (click)="toggleSort('contacto')" class="sortable-th">
                           <span>Contacto</span>
-                          <mat-icon class="sort-icon">{{ getSortIcon('contacto') }}</mat-icon>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('contacto') }}</span>
                         </th>
                       }
                       @if (columnaVisible('estadoSunat')) {
-                        <th class="text-center">
+                        <th (click)="toggleSort('estadoSunat')" class="sortable-th text-center" matTooltip="Ordenar por Estado SUNAT">
                           <span>Estado SUNAT</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('estadoSunat') }}</span>
                         </th>
                       }
                       @if (columnaVisible('acciones')) {
                         <th class="text-center th-actions-icon-col" matTooltip="Opciones y Acciones">
-                          <mat-icon class="th-actions-icon">more_vert</mat-icon>
+                          <span class="material-symbols-outlined th-actions-icon">more_vert</span>
                         </th>
                       }
                     </tr>
@@ -322,19 +406,19 @@ const ESTADOS_RUC: Record<string, string> = {
                         @if (columnaVisible('ruc')) {
                           <td class="ruc-cell">
                             <div class="ruc-cell-stacked">
-                              <span class="ruc-badge">{{ empresa.ruc }}</span>
+                              <span class="ruc-text">{{ empresa.ruc }}</span>
                               <div class="ruc-meta-row">
-                                <span [class]="'status-pill status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')"
+                                <span [class]="'badge-autorizada status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')"
                                       [matTooltip]="'Estado legal: ' + (empresa.estado || 'AUTORIZADA')">
                                   {{ (empresa.estado || 'AUTORIZADA').toUpperCase() }}
                                 </span>
                                 @for (srv of (empresa.tiposServicio || []).slice(0, 1); track srv) {
-                                  <span class="service-tag-mini" [matTooltip]="'Tipo de Servicio: ' + srv">
+                                  <span [class]="isTurismo(srv) ? 'badge-turismo' : 'badge-modalidad'" [matTooltip]="'Tipo de Servicio: ' + srv">
                                     {{ getServicioAbreviado(srv) }}
                                   </span>
                                 }
                                 @if ((empresa.tiposServicio || []).length > 1) {
-                                  <span class="service-tag-mini badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
+                                  <span class="badge-modalidad badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
                                     +{{ (empresa.tiposServicio || []).length - 1 }}
                                   </span>
                                 }
@@ -345,7 +429,7 @@ const ESTADOS_RUC: Record<string, string> = {
                         @if (columnaVisible('razonSocial')) {
                           <td class="razon-social-td">
                             <div class="empresa-name-container">
-                              <span class="bold-text color-primary">{{ empresa.razonSocial.principal }}</span>
+                              <span class="company-name-text">{{ empresa.razonSocial.principal }}</span>
                             </div>
                           </td>
                         }
@@ -362,7 +446,7 @@ const ESTADOS_RUC: Record<string, string> = {
                         }
                         @if (columnaVisible('estado')) {
                           <td>
-                            <span [class]="'status-pill status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')">
+                            <span [class]="'badge-autorizada status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')">
                               {{ getEstadoDisplayName(empresa.estado) }}
                             </span>
                           </td>
@@ -371,10 +455,10 @@ const ESTADOS_RUC: Record<string, string> = {
                           <td>
                             <div class="services-chips-flex">
                               @for (srv of (empresa.tiposServicio || []).slice(0, 2); track srv) {
-                                <span class="service-tag">{{ srv }}</span>
+                                <span [class]="isTurismo(srv) ? 'badge-turismo' : 'badge-modalidad'">{{ srv }}</span>
                               }
                               @if ((empresa.tiposServicio || []).length > 2) {
-                                <span class="service-tag badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
+                                <span class="badge-modalidad badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
                                   +{{ (empresa.tiposServicio || []).length - 2 }}
                                 </span>
                               }
@@ -409,25 +493,27 @@ const ESTADOS_RUC: Record<string, string> = {
                                 <span class="rep-dni">DNI: {{ empresa.socios[0].dni }}</span>
                               </div>
                             } @else {
-                              <span class="sin-datos">-</span>
+                              <span class="sin-datos">—</span>
                             }
                           </td>
                         }
                         @if (columnaVisible('contacto')) {
                           <td>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div class="contact-info-col">
                               @if (empresa.emailContacto) {
-                                <span class="contact-text" [matTooltip]="empresa.emailContacto">
-                                  <mat-icon class="inline-icon">email</mat-icon> {{ empresa.emailContacto }}
+                                <span class="contact-text email-text" [matTooltip]="empresa.emailContacto">
+                                  <span class="material-symbols-outlined inline-icon">mail</span>
+                                  <span>{{ empresa.emailContacto }}</span>
                                 </span>
                               }
                               @if (empresa.telefonoContacto) {
-                                <span class="contact-text">
-                                  <mat-icon class="inline-icon">phone</mat-icon> {{ empresa.telefonoContacto }}
+                                <span class="contact-text phone-text">
+                                  <span class="material-symbols-outlined inline-icon">call</span>
+                                  <span>{{ empresa.telefonoContacto }}</span>
                                 </span>
                               }
                               @if (!empresa.emailContacto && !empresa.telefonoContacto) {
-                                <span class="sin-datos">-</span>
+                                <span class="sin-datos">—</span>
                               }
                             </div>
                           </td>
@@ -435,37 +521,17 @@ const ESTADOS_RUC: Record<string, string> = {
                         @if (columnaVisible('estadoSunat')) {
                           <td class="text-center">
                             @if (sunatCargando().has(empresa.ruc)) {
-                              <mat-progress-bar mode="indeterminate" style="width:80px; margin:auto;"></mat-progress-bar>
-                            } @else if (sunatCache().has(empresa.ruc)) {
-                              <div class="sunat-status-cell">
-                                @let sData = sunatCache().get(empresa.ruc);
-                                @if (sData) {
-                                  <div class="sunat-cell">
-                                    <div class="sunat-badges">
-                                      <span [class]="'sunat-state-pill sunat-' + (sData.esActivo ? 'activo' : 'baja')">
-                                        <mat-icon>{{ sData.esActivo ? 'check_circle' : 'cancel' }}</mat-icon>
-                                        {{ sData.esActivo ? 'ACTIVO' : 'BAJA' }}
-                                      </span>
-                                      <span [class]="'sunat-habido-pill ' + (sData.esHabido ? 'habido' : 'no-habido')">
-                                        {{ sData.esHabido ? 'HABIDO' : 'NO HABIDO' }}
-                                      </span>
-                                    </div>
-                                    <span class="sunat-desc-text" [matTooltip]="sData.desc_estado || ''">
-                                      {{ getSunatEstadoDesc(sData.ddp_estado) || sData.desc_estado }}
-                                    </span>
-                                    @if (sData.ddp_nombre && sData.ddp_nombre !== empresa.razonSocial.sunat) {
-                                      <span class="sunat-nombre-hint" [matTooltip]="'SUNAT: ' + sData.ddp_nombre">
-                                        <mat-icon style="font-size:12px;width:12px;height:12px;">info</mat-icon>
-                                        {{ sData.ddp_nombre | slice:0:25 }}{{ (sData.ddp_nombre.length || 0) > 25 ? '...' : '' }}
-                                      </span>
-                                    }
-                                  </div>
-                                }
-                              </div>
+                              <mat-progress-bar mode="indeterminate" style="width:70px; margin:auto;"></mat-progress-bar>
                             } @else {
-                              <button mat-icon-button class="btn-consultar-sunat" (click)="consultarSunat(empresa)" matTooltip="Consultar estado en SUNAT">
-                                <mat-icon>fact_check</mat-icon>
-                              </button>
+                              @let sData = sunatCache().get(empresa.ruc);
+                              <div class="sunat-badges-only">
+                                <span [class]="'badge-sunat-pill ' + (sData?.esActivo !== false ? 'sunat-activo' : 'sunat-baja')">
+                                  {{ sData?.esActivo !== false ? 'ACTIVO' : 'BAJA' }}
+                                </span>
+                                <span [class]="'badge-sunat-pill ' + (sData?.esHabido !== false ? 'sunat-habido' : 'sunat-no-habido')">
+                                  {{ sData?.esHabido !== false ? 'HABIDO' : 'NO HABIDO' }}
+                                </span>
+                              </div>
                             }
                           </td>
                         }
@@ -524,16 +590,17 @@ const ESTADOS_RUC: Record<string, string> = {
       font-family: 'Inter', Roboto, sans-serif;
     }
 
+    /* ── Hero Banner (Stitch module-hero-banner) ───────────────── */
     .page-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      margin-bottom: 1.25rem;
+      background: linear-gradient(to right, #112348, #1e3a8a, #2563eb);
       color: white;
-      padding: 1.75rem 2rem;
+      padding: 1.5rem 1.75rem;
       border-radius: 12px;
-      box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);
+      box-shadow: 0 4px 20px rgba(30, 58, 138, 0.25);
 
       .title-with-icon {
         display: flex;
@@ -541,23 +608,28 @@ const ESTADOS_RUC: Record<string, string> = {
         gap: 1rem;
 
         .header-icon {
-          font-size: 2.5rem;
-          width: 2.5rem;
-          height: 2.5rem;
-          color: #818cf8;
+          font-size: 2.25rem;
+          width: 2.25rem;
+          height: 2.25rem;
+          color: #93c5fd;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         h1 {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 700;
           letter-spacing: -0.5px;
+          line-height: 1.2;
         }
 
         .subtitle {
           margin: 0.25rem 0 0 0;
-          opacity: 0.85;
-          font-size: 0.9rem;
+          opacity: 0.9;
+          font-size: 0.85rem;
+          color: #dbeafe;
         }
       }
 
@@ -565,29 +637,33 @@ const ESTADOS_RUC: Record<string, string> = {
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        flex-shrink: 0;
 
         .header-action-btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 0.4rem;
-          height: 42px;
-          padding: 0 1.1rem;
-          border-radius: 10px;
-          font-size: 0.88rem;
+          height: 38px;
+          padding: 0 1rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
           font-weight: 600;
-          background-color: rgba(255, 255, 255, 0.15);
+          background-color: rgba(255, 255, 255, 0.12);
           color: #ffffff !important;
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.22);
           backdrop-filter: blur(8px);
           transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 
           .btn-icon {
-            font-size: 1.25rem;
-            width: 1.25rem;
-            height: 1.25rem;
+            font-size: 1.15rem;
+            width: 1.15rem;
+            height: 1.15rem;
             color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
 
           .dropdown-arrow {
@@ -599,142 +675,363 @@ const ESTADOS_RUC: Record<string, string> = {
           }
 
           &:hover {
-            background-color: rgba(255, 255, 255, 0.28);
-            border-color: rgba(255, 255, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.4);
             transform: translateY(-1px);
           }
 
           &.btn-primary-custom {
-            background-color: #6366f1 !important;
-            border-color: #818cf8 !important;
+            background-color: #2563eb !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 
             &:hover {
-              background-color: #4f46e5 !important;
+              background-color: #1d4ed8 !important;
+              box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
             }
           }
         }
       }
     }
 
-    .glass-filters {
+    /* ── KPI Metrics Grid (Stitch kpi-metrics-grid) ─────────────── */
+    .kpi-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kpi-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
-      padding: 0.5rem 0.75rem;
-      margin-bottom: 1.25rem;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-      .filters-bar {
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      .kpi-header {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+        justify-content: space-between;
 
-        .search-field {
-          flex: 1 1 260px;
-          min-width: 200px;
-
-          .search-icon {
-            color: #94a3b8;
-            font-size: 1.2rem;
-            width: 1.2rem;
-            height: 1.2rem;
-            margin-right: 0.35rem;
-          }
-
-          .clear-input-btn {
-            width: 24px;
-            height: 24px;
-            line-height: 24px;
-            .mat-icon {
-              font-size: 1rem;
-              width: 1rem;
-              height: 1rem;
-              color: #94a3b8;
-            }
-          }
+        .kpi-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
-        .filter-select {
-          width: 180px;
-          flex-shrink: 0;
-        }
-
-        ::ng-deep {
-          .search-field, .filter-select {
-            .mat-mdc-text-field-wrapper {
-              height: 40px !important;
-              padding: 0 0.65rem !important;
-              background-color: #f8fafc !important;
-              border-radius: 8px !important;
-            }
-
-            .mat-mdc-form-field-flex {
-              height: 40px !important;
-              align-items: center !important;
-            }
-
-            .mat-mdc-form-field-infix {
-              padding-top: 6px !important;
-              padding-bottom: 6px !important;
-              min-height: 40px !important;
-            }
-
-            .mat-mdc-floating-label {
-              top: 20px !important;
-              font-size: 0.82rem !important;
-            }
-
-            .mat-mdc-select-value-text, input.mat-mdc-input-element {
-              font-size: 0.82rem !important;
-              color: #1e293b !important;
-            }
-
-            .mat-mdc-select-arrow-wrapper {
-              transform: translateY(0) !important;
-            }
-
-            .mdc-notched-outline__leading,
-            .mdc-notched-outline__notch,
-            .mdc-notched-outline__trailing {
-              border-color: #e2e8f0 !important;
-            }
-          }
-        }
-
-        .filter-action-btn {
-          height: 40px;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          color: #475569;
-          font-size: 0.82rem;
-          font-weight: 500;
-          padding: 0 0.75rem;
+        .kpi-icon-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.35rem;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+
+          .material-symbols-outlined, mat-icon {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+          }
+
+          &.kpi-badge-blue {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #dbeafe;
+          }
+          &.kpi-badge-amber {
+            background: #fffbeb;
+            color: #b45309;
+            border: 1px solid #fef3c7;
+          }
+          &.kpi-badge-rose {
+            background: #fff1f2;
+            color: #e11d48;
+            border: 1px solid #ffe4e6;
+          }
+        }
+      }
+
+      .kpi-body {
+        margin-top: 0.65rem;
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+
+        .kpi-number {
+          font-size: 1.75rem;
+          font-weight: 900;
+          line-height: 1;
+          color: #1d4ed8;
+
+          &.text-amber { color: #b45309; }
+          &.text-rose { color: #e11d48; }
+        }
+
+        .kpi-subtext {
+          font-size: 11px;
+          color: #64748b;
+          font-weight: 500;
+        }
+      }
+
+      .kpi-footer {
+        margin-top: 0.85rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 11px;
+        color: #64748b;
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
+
+          &.dot-emerald { background-color: #10b981; }
+          &.dot-amber { background-color: #f59e0b; }
+        }
+
+        .font-emerald { color: #059669; font-weight: 600; }
+        .font-blue { color: #1d4ed8; font-weight: 700; font-family: monospace; }
+        &.font-amber { color: #b45309; font-weight: 600; }
+        &.font-rose { color: #e11d48; font-weight: 600; }
+
+        .footer-icon {
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+
+    /* ── KPI Modalidad Boxes (Stitch Card 4) ─────────────────────── */
+    .kpi-modalidad-boxes {
+      margin-top: 0.5rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.35rem;
+
+      .kpi-mini-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 0.35rem 0.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+
+        .mini-box-label {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #64748b;
+          letter-spacing: 0.02em;
+
+          &.label-amber { color: #d97706; }
+          &.label-blue { color: #2563eb; }
+        }
+
+        .mini-box-number {
+          font-size: 1rem;
+          font-weight: 900;
+          font-family: monospace;
+          color: #0f172a;
+          line-height: 1.2;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    .kpi-footer-between {
+      justify-content: space-between !important;
+      .text-dark { color: #0f172a; font-weight: 700; }
+      .text-primary-link { color: #2563eb; font-weight: 600; font-size: 10px; }
+    }
+
+    .kpi-badge-emerald {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+
+    .text-emerald { color: #059669; }
+
+    /* ── Formulario de Filtros Oficial Stitch (data-purpose="table-filters") ─ */
+    .stitch-filters {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+
+      @media (max-width: 900px) {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-box-wrapper {
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 220px;
+        display: flex;
+        align-items: center;
+
+        .search-icon {
+          position: absolute;
+          left: 0.75rem;
+          color: #94a3b8;
+          font-size: 1.15rem;
+          pointer-events: none;
+        }
+
+        .stitch-search-input {
+          width: 100%;
+          background: #f8fafc;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.45rem 2rem 0.45rem 2.25rem;
+          font-size: 0.75rem;
+          color: #1e293b;
+          font-family: inherit;
           transition: all 0.2s ease;
 
-          .mat-icon {
-            font-size: 1.1rem;
-            width: 1.1rem;
-            height: 1.1rem;
+          &::placeholder {
+            color: #94a3b8;
+          }
+
+          &:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+          }
+        }
+
+        .stitch-clear-btn {
+          position: absolute;
+          right: 0.5rem;
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          span {
+            font-size: 1rem;
+          }
+
+          &:hover {
+            color: #475569;
+          }
+        }
+      }
+
+      .filter-controls-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
+
+        .filter-item {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+
+          .filter-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+          }
+
+          .stitch-select {
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.45rem 1.75rem 0.45rem 0.65rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #334155;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 12px;
+
+            &:focus {
+              outline: none;
+              background-color: #ffffff;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+            }
+          }
+        }
+
+        .stitch-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.45rem 0.75rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #334155;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          .material-symbols-outlined {
+            font-size: 17px;
             color: #64748b;
           }
 
           &:hover {
             background: #f8fafc;
-            border-color: #cbd5e1;
-            color: #1e293b;
+            border-color: #94a3b8;
+            color: #0f172a;
           }
 
-          &.btn-reset {
+          &.stitch-btn-reset {
             color: #ef4444;
-            border-color: #fecaca;
             background: #fef2f2;
+            border-color: #fecaca;
 
-            .mat-icon {
+            .material-symbols-outlined {
               color: #ef4444;
             }
 
@@ -746,6 +1043,7 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
+    /* ── Selection Banner ──────────────────────────────────────── */
     .selection-banner {
       background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
       border: 1px solid #a5b4fc;
@@ -786,9 +1084,13 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
+    /* ── Data Table (Stitch enterprises-table) ─────────────────── */
     .table-card {
       border-radius: 12px;
       overflow: hidden;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 
       .table-container { overflow-x: auto; }
     }
@@ -798,7 +1100,7 @@ const ESTADOS_RUC: Record<string, string> = {
       border-collapse: separate;
       border-spacing: 0;
       text-align: left;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
 
       th, td {
         &:first-child {
@@ -820,9 +1122,12 @@ const ESTADOS_RUC: Record<string, string> = {
 
       th {
         background-color: #f8fafc;
-        color: #475569;
-        font-weight: 600;
-        padding: 0.85rem 1rem;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
         border-bottom: 2px solid #e2e8f0;
         white-space: nowrap;
 
@@ -837,11 +1142,11 @@ const ESTADOS_RUC: Record<string, string> = {
           transition: background-color 0.2s ease, color 0.2s ease;
 
           &:hover {
-            background-color: #eef2ff !important;
-            color: #4338ca !important;
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
 
             .sort-icon {
-              color: #4338ca !important;
+              color: #1d4ed8 !important;
             }
           }
 
@@ -851,9 +1156,9 @@ const ESTADOS_RUC: Record<string, string> = {
           }
 
           .sort-icon {
-            font-size: 1.1rem;
-            width: 1.1rem;
-            height: 1.1rem;
+            font-size: 14px;
+            width: 14px;
+            height: 14px;
             vertical-align: middle;
             margin-left: 4px;
             color: #94a3b8;
@@ -863,20 +1168,20 @@ const ESTADOS_RUC: Record<string, string> = {
       }
 
       td {
-        padding: 0.85rem 1rem;
+        padding: 0.75rem 1rem;
         border-bottom: 1px solid #f1f5f9;
         vertical-align: middle;
       }
 
       tr:hover td {
-        background-color: #f8fafc;
+        background-color: #eff6ff;
       }
     }
 
     .ruc-th, .ruc-cell {
-      width: 135px;
-      min-width: 125px;
-      max-width: 145px;
+      width: 145px;
+      min-width: 135px;
+      max-width: 155px;
       white-space: nowrap;
     }
 
@@ -889,20 +1194,13 @@ const ESTADOS_RUC: Record<string, string> = {
       flex-direction: column;
       gap: 3px;
       width: fit-content;
-      max-width: 130px;
 
-      .ruc-badge {
-        background-color: #e0e7ff;
-        color: #3730a3;
-        padding: 0.20rem 0.45rem;
-        border-radius: 5px;
+      .ruc-text {
+        color: #0f172a;
         font-family: monospace;
         font-weight: 800;
-        font-size: 0.92rem;
-        letter-spacing: 0.5px;
-        width: fit-content;
-        line-height: 1.25;
-        display: inline-block;
+        font-size: 0.88rem;
+        letter-spacing: 0.3px;
       }
 
       .ruc-meta-row {
@@ -911,63 +1209,119 @@ const ESTADOS_RUC: Record<string, string> = {
         gap: 3px;
         flex-wrap: nowrap;
         width: 100%;
-
-        .status-pill {
-          padding: 1.5px 3.5px;
-          font-size: 0.58rem;
-          line-height: 1.1;
-          font-weight: 800;
-          letter-spacing: 0.2px;
-          border-radius: 3px;
-          white-space: nowrap;
-          text-transform: uppercase;
-        }
-
-        .service-tag-mini {
-          font-size: 0.56rem;
-          line-height: 1.1;
-          font-weight: 700;
-          background-color: #f1f5f9;
-          color: #475569;
-          border: 1px solid #cbd5e1;
-          padding: 1.5px 3.5px;
-          border-radius: 3px;
-          white-space: nowrap;
-          text-transform: uppercase;
-
-          &.badge-more {
-            background-color: #e2e8f0;
-            color: #334155;
-            padding: 1.5px 3px;
-          }
-        }
       }
     }
 
-    .bold-text { font-weight: 600; }
-    .color-primary { color: #4338ca; }
+    /* ── Badges Oficiales Stitch ───────────────────────────────── */
+    .badge-autorizada {
+      background-color: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      padding: 1.5px 5px;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 4px;
+      white-space: nowrap;
 
-    .empresa-name-container {
-      min-width: 280px;
-      .bold-text {
-        font-size: 0.95rem;
-        font-weight: 700;
-        line-height: 1.35;
-        display: block;
+      &.status-en_tramite {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+      }
+      &.status-suspendida {
+        background-color: #fffbeb;
+        color: #d97706;
+        border-color: #fde68a;
+      }
+      &.status-cancelada {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border-color: #fecaca;
       }
     }
 
-    .status-pill {
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
+    .badge-modalidad {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 1.5px 5px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
+      border-radius: 4px;
+      white-space: nowrap;
 
-      &.status-autorizada { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-      &.status-en_tramite { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-      &.status-suspendida { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-      &.status-cancelada { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 800; }
+      &.badge-more {
+        background-color: #e2e8f0;
+        color: #334155;
+      }
+    }
+
+    .badge-turismo {
+      background-color: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fde68a;
+      padding: 1.5px 5px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* ── Estado SUNAT (Sólo ACTIVO / HABIDO) ──────────────────────── */
+    .sunat-badges-only {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+
+    .badge-sunat-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      border-radius: 4px;
+      text-transform: uppercase;
+      line-height: 1.2;
+
+      &.sunat-activo {
+        background-color: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+      }
+
+      &.sunat-habido {
+        background-color: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+      }
+
+      &.sunat-baja {
+        background-color: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+      }
+
+      &.sunat-no-habido {
+        background-color: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+      }
+    }
+
+    .company-name-text {
+      color: #1d4ed8;
+      font-size: 0.92rem;
+      font-weight: 600;
+      line-height: 1.35;
+      display: block;
     }
 
     .partida-pill-mini {
@@ -996,43 +1350,30 @@ const ESTADOS_RUC: Record<string, string> = {
       align-items: center;
       gap: 0.35rem;
       flex-wrap: wrap;
-
-      .service-tag {
-        font-size: 0.72rem;
-        font-weight: 700;
-        background-color: #e0f2fe;
-        color: #0369a1;
-        padding: 0.15rem 0.45rem;
-        border-radius: 4px;
-
-        &.badge-more {
-          background-color: #f1f5f9;
-          color: #475569;
-        }
-      }
     }
 
     .representante-info {
       display: flex;
       flex-direction: column;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       gap: 0.1rem;
 
       .rep-name {
         color: #1e293b;
         font-weight: 600;
+        font-size: 11px;
       }
 
       .rep-cargo {
         font-size: 0.72rem;
         font-weight: 700;
-        color: #4338ca;
+        color: #1d4ed8;
         text-transform: uppercase;
         letter-spacing: 0.03em;
       }
 
       .rep-dni {
-        font-size: 0.75rem;
+        font-size: 10px;
         color: #64748b;
         font-family: monospace;
       }
@@ -1066,156 +1407,33 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
-    .empresa-name-container {
+    .contact-info-col {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      gap: 0.2rem;
-
-      .empresa-hint-text {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: #64748b;
-      }
-
-      .rs-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.2rem;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 0.1rem 0.4rem;
-        border-radius: 4px;
-        cursor: help;
-        max-width: 220px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-
-        &.rs-sunat {
-          background-color: #fef3c7;
-          color: #92400e;
-          border: 1px solid #fde68a;
-        }
-
-        &.rs-minimo {
-          background-color: #f0fdf4;
-          color: #166534;
-          border: 1px solid #bbf7d0;
-        }
-      }
+      gap: 3px;
     }
-
-    /* ── SUNAT Status Column ───────────────────────────────────── */
-    .sunat-status-cell {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.2rem;
-
-      .sunat-badges {
-        display: flex;
-        gap: 0.3rem;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-
-      .sunat-state-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.2rem;
-        padding: 0.15rem 0.5rem;
-        border-radius: 10px;
-        font-size: 0.7rem;
-        font-weight: 700;
-
-        mat-icon {
-          font-size: 0.85rem;
-          width: 0.85rem;
-          height: 0.85rem;
-        }
-
-        &.sunat-activo {
-          background-color: #dcfce7;
-          color: #15803d;
-        }
-
-        &.sunat-baja {
-          background-color: #fee2e2;
-          color: #b91c1c;
-        }
-      }
-
-      .sunat-habido-pill {
-        display: inline-block;
-        padding: 0.1rem 0.4rem;
-        border-radius: 8px;
-        font-size: 0.65rem;
-        font-weight: 700;
-
-        &.habido {
-          background-color: #e0f2fe;
-          color: #0369a1;
-        }
-
-        &.no-habido {
-          background-color: #fff7ed;
-          color: #c2410c;
-        }
-      }
-
-      .sunat-desc-text {
-        font-size: 0.68rem;
-        color: #64748b;
-        text-align: center;
-        max-width: 140px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        cursor: help;
-      }
-
-      .sunat-nombre-hint {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.15rem;
-        font-size: 0.65rem;
-        color: #94a3b8;
-        cursor: help;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 140px;
-      }
-    }
-
-    .btn-consultar-sunat {
-      color: #059669;
-      transition: color 0.15s, transform 0.15s;
-
-      &:hover {
-        color: #047857;
-        transform: scale(1.1);
-      }
-    }
-
 
     .contact-text {
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      font-size: 0.82rem;
+      font-size: 11px;
       color: #475569;
+      transition: color 0.15s ease;
 
       .inline-icon {
-        font-size: 1rem;
-        width: 1rem;
-        height: 1rem;
-        color: #64748b;
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #94a3b8;
+      }
+
+      &.email-text:hover {
+        color: #1d4ed8;
       }
     }
 
-    .sin-datos { color: #cbd5e1; }
+    .sin-datos { color: #94a3b8; font-size: 0.8rem; }
     .text-center { text-align: center; }
 
     .checkbox-th, .checkbox-td {
@@ -1226,8 +1444,8 @@ const ESTADOS_RUC: Record<string, string> = {
     }
 
     .selected-row {
-      background-color: #eef2ff !important;
-      td { background-color: #eef2ff !important; }
+      background-color: #eff6ff !important;
+      td { background-color: #eff6ff !important; }
     }
 
     /* Mobile Filter Toggle */
@@ -1244,7 +1462,7 @@ const ESTADOS_RUC: Record<string, string> = {
 
       .mobile-filter-toggle.active {
         background-color: #e0e7ff;
-        color: #4338ca;
+        color: #1d4ed8;
       }
 
       .search-and-toggle {
@@ -1277,7 +1495,7 @@ const ESTADOS_RUC: Record<string, string> = {
         .header-action-btn {
           flex: 1;
           min-width: 0 !important;
-          height: 42px !important;
+          height: 38px !important;
           padding: 0 !important;
           justify-content: center;
 
@@ -1297,140 +1515,337 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
-    /* Dark Mode Support */
+    /* =================================================================
+       STITCH MODO OSCURO (Screen 22b66c09a8ce4c859e57611ab90a5ff8)
+       ================================================================= */
     :host-context([data-theme="dark"]), :host-context(.dark-theme), :host-context(.dark-mode) {
-      .header-actions .header-action-btn {
-        background-color: rgba(30, 41, 59, 0.7) !important;
-        color: #f8fafc !important;
-        border-color: #475569 !important;
+      .page-header {
+        background: linear-gradient(to right, #07152f, #112348, #1e3a8a) !important;
+        border: 1px solid #1e293b !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
 
-        .btn-icon, .dropdown-arrow { color: #f8fafc !important; }
-        &:hover { background-color: #334155 !important; }
+        .title-with-icon {
+          .header-icon { color: #93c5fd !important; }
+          h1 { color: #ffffff !important; }
+          .subtitle { color: #bfdbfe !important; }
+        }
 
-        &.btn-primary-custom {
-          background-color: #6366f1 !important;
-          border-color: #818cf8 !important;
-          &:hover { background-color: #4f46e5 !important; }
+        .header-actions .header-action-btn {
+          background-color: rgba(255, 255, 255, 0.1) !important;
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.2) !important;
+
+          .btn-icon, .dropdown-arrow { color: #ffffff !important; }
+          &:hover { background-color: rgba(255, 255, 255, 0.2) !important; }
+
+          &.btn-primary-custom {
+            background-color: #2563eb !important;
+            border-color: #3b82f6 !important;
+            &:hover { background-color: #1d4ed8 !important; }
+          }
         }
       }
 
-      .mobile-filter-toggle {
-        background-color: #334155 !important;
-        color: #cbd5e1 !important;
-      }
-
-      .mobile-filter-toggle.active {
-        background-color: #1e1b4b !important;
-        color: #818cf8 !important;
-      }
-
-      .page-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;
-        border: 1px solid #334155 !important;
-      }
-
-      .glass-filters {
-        background: #1e293b !important;
-        border-color: #334155 !important;
-      }
-
-      .filter-action-btn {
+      .kpi-card {
         background: #0f172a !important;
-        border-color: #334155 !important;
-        color: #f8fafc !important;
+        border-color: #1e293b !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
 
-        .mat-icon { color: #94a3b8 !important; }
-        &:hover { background: #334155 !important; }
+        &:hover {
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+          border-color: #334155 !important;
+        }
 
-        &.btn-reset {
-          background: rgba(239, 68, 68, 0.2) !important;
-          border-color: #ef4444 !important;
-          color: #fca5a5 !important;
-          .mat-icon { color: #ef4444 !important; }
+        .kpi-header {
+          .kpi-title { color: #94a3b8 !important; }
+
+          .kpi-icon-badge {
+            &.kpi-badge-blue {
+              background: rgba(59, 130, 246, 0.1) !important;
+              color: #60a5fa !important;
+              border-color: rgba(59, 130, 246, 0.25) !important;
+            }
+            &.kpi-badge-amber {
+              background: rgba(245, 158, 11, 0.1) !important;
+              color: #fbbf24 !important;
+              border-color: rgba(245, 158, 11, 0.25) !important;
+            }
+            &.kpi-badge-rose {
+              background: rgba(244, 63, 94, 0.1) !important;
+              color: #fb7185 !important;
+              border-color: rgba(244, 63, 94, 0.25) !important;
+            }
+          }
+        }
+
+        .kpi-body {
+          .kpi-number {
+            color: #ffffff !important;
+            &.text-amber { color: #fbbf24 !important; }
+            &.text-rose { color: #f87171 !important; }
+          }
+          .kpi-subtext { color: #94a3b8 !important; }
+        }
+
+        .kpi-footer {
+          border-top-color: #1e293b !important;
+          color: #94a3b8 !important;
+
+          .status-dot {
+            &.dot-emerald { background-color: #34d399 !important; }
+            &.dot-amber { background-color: #fbbf24 !important; }
+          }
+
+          .font-emerald { color: #34d399 !important; }
+          .font-blue { color: #60a5fa !important; }
+          &.font-amber { color: #fbbf24 !important; }
+          &.font-rose { color: #f87171 !important; }
+        }
+      }
+
+      .kpi-badge-emerald {
+        background: rgba(6, 78, 59, 0.4) !important;
+        color: #34d399 !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+
+      .text-emerald { color: #34d399 !important; }
+
+      .kpi-modalidad-boxes {
+        .kpi-mini-box {
+          background: #131b2e !important;
+          border-color: #1e293b !important;
+
+          .mini-box-label {
+            color: #94a3b8 !important;
+            &.label-amber { color: #fbbf24 !important; }
+            &.label-blue { color: #93c5fd !important; }
+          }
+
+          .mini-box-number {
+            color: #ffffff !important;
+          }
+        }
+      }
+
+      .kpi-footer-between {
+        .text-dark { color: #f1f5f9 !important; }
+        .text-primary-link { color: #60a5fa !important; }
+      }
+
+      .stitch-filters {
+        background: #0f172a !important;
+        border-color: #1e293b !important;
+
+        .search-box-wrapper {
+          .search-icon { color: #94a3b8 !important; }
+
+          .stitch-search-input {
+            background: #131b2e !important;
+            border-color: #1e293b !important;
+            color: #f1f5f9 !important;
+
+            &::placeholder { color: #64748b !important; }
+
+            &:focus {
+              background: #17223b !important;
+              border-color: #3b82f6 !important;
+              box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+            }
+          }
+
+          .stitch-clear-btn {
+            color: #64748b !important;
+            &:hover { color: #cbd5e1 !important; }
+          }
+        }
+
+        .filter-controls-group {
+          .filter-item {
+            .filter-label { color: #94a3b8 !important; }
+
+            .stitch-select {
+              background-color: #131b2e !important;
+              border-color: #1e293b !important;
+              color: #cbd5e1 !important;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+
+              option {
+                background-color: #0f172a !important;
+                color: #f1f5f9 !important;
+              }
+
+              &:focus {
+                background-color: #17223b !important;
+                border-color: #3b82f6 !important;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+              }
+            }
+          }
+
+          .stitch-btn {
+            background: #131b2e !important;
+            border-color: #1e293b !important;
+            color: #cbd5e1 !important;
+
+            .material-symbols-outlined { color: #94a3b8 !important; }
+
+            &:hover {
+              background: #17223b !important;
+              border-color: #334155 !important;
+              color: #ffffff !important;
+            }
+
+            &.stitch-btn-reset {
+              background: rgba(239, 68, 68, 0.15) !important;
+              border-color: rgba(239, 68, 68, 0.3) !important;
+              color: #fca5a5 !important;
+              .material-symbols-outlined { color: #ef4444 !important; }
+            }
+          }
         }
       }
 
       .table-card {
-        background: #1e293b !important;
-        border-color: #334155 !important;
+        background: #0f172a !important;
+        border-color: #1e293b !important;
       }
 
       .custom-table {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
+        background-color: #0f172a !important;
+        color: #cbd5e1 !important;
 
         th {
-          background-color: #0f172a !important;
-          color: #f1f5f9 !important;
-          border-bottom-color: #334155 !important;
+          background-color: #131b2e !important;
+          color: #94a3b8 !important;
+          border-bottom-color: #1e293b !important;
+
+          &.sortable-th:hover {
+            background-color: #17223b !important;
+            color: #60a5fa !important;
+            .sort-icon { color: #60a5fa !important; }
+          }
         }
 
         td {
-          background-color: #1e293b !important;
-          border-bottom-color: #334155 !important;
+          background-color: #0f172a !important;
+          border-bottom-color: #1e293b !important;
           color: #cbd5e1 !important;
         }
 
         tr:hover td {
-          background-color: #334155 !important;
+          background-color: #17223b !important;
           color: #ffffff !important;
         }
 
         th:first-child, th:last-child {
-          background-color: #0f172a !important;
+          background-color: #131b2e !important;
           box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
         }
 
         td:first-child, td:last-child {
-          background-color: #1e293b !important;
+          background-color: #0f172a !important;
           box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
         }
 
         tr:hover td:first-child, tr:hover td:last-child {
-          background-color: #334155 !important;
+          background-color: #17223b !important;
         }
 
         tr.selected-row td {
-          background-color: #312e81 !important;
-          color: #e0e7ff !important;
+          background-color: #172554 !important;
+          color: #bfdbfe !important;
         }
       }
 
-      .bold-text.color-primary { color: #a5b4fc !important; }
-
-      .ruc-badge {
-        background-color: #312e81 !important;
-        color: #c7d2fe !important;
-        border: 1px solid #4338ca !important;
-      }
-
-      .empresa-hint-text { color: #cbd5e1 !important; }
-
-      .status-pill {
-        &.status-autorizada { background-color: rgba(22, 101, 52, 0.35) !important; color: #4ade80 !important; border: 1px solid #166534 !important; }
-        &.status-en_tramite { background-color: rgba(180, 83, 9, 0.35) !important; color: #fcd34d !important; border: 1px solid #b45309 !important; }
-        &.status-suspendida { background-color: rgba(185, 28, 28, 0.35) !important; color: #fca5a5 !important; border: 1px solid #991b1b !important; }
-        &.status-cancelada { background-color: rgba(100, 116, 139, 0.35) !important; color: #cbd5e1 !important; border: 1px solid #475569 !important; }
-      }
-
-      .services-chips-flex .service-tag {
-        background-color: #0369a1 !important;
+      .company-name-text {
         color: #ffffff !important;
       }
 
+      .ruc-text {
+        color: #60a5fa !important;
+      }
+
+      .badge-autorizada {
+        background-color: rgba(16, 185, 129, 0.15) !important;
+        color: #34d399 !important;
+        border: 1px solid rgba(52, 211, 153, 0.3) !important;
+
+        &.status-en_tramite {
+          background-color: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+        &.status-suspendida {
+          background-color: rgba(245, 158, 11, 0.15) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(245, 158, 11, 0.3) !important;
+        }
+        &.status-cancelada {
+          background-color: rgba(239, 68, 68, 0.15) !important;
+          color: #f87171 !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+      }
+
+      .badge-modalidad {
+        background-color: rgba(148, 163, 184, 0.12) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(203, 213, 225, 0.2) !important;
+
+        &.badge-more {
+          background-color: rgba(148, 163, 184, 0.2) !important;
+          color: #e2e8f0 !important;
+        }
+      }
+
+      .badge-turismo {
+        background-color: rgba(245, 158, 11, 0.15) !important;
+        color: #fbbf24 !important;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
+      }
+
+      .badge-sunat-pill {
+        &.sunat-activo {
+          background-color: rgba(16, 185, 129, 0.15) !important;
+          color: #34d399 !important;
+          border-color: rgba(52, 211, 153, 0.3) !important;
+        }
+
+        &.sunat-habido {
+          background-color: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+        }
+
+        &.sunat-baja {
+          background-color: rgba(239, 68, 68, 0.15) !important;
+          color: #f87171 !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+
+        &.sunat-no-habido {
+          background-color: rgba(245, 158, 11, 0.15) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(245, 158, 11, 0.3) !important;
+        }
+      }
+
       .representante-info {
-        .rep-name { color: #f8fafc !important; }
+        .rep-name { color: #f1f5f9 !important; }
         .rep-dni { color: #94a3b8 !important; }
       }
 
       .contact-text {
         color: #cbd5e1 !important;
         .inline-icon { color: #94a3b8 !important; }
+        &.email-text:hover { color: #60a5fa !important; }
       }
 
       ::ng-deep {
         .search-field .mat-mdc-text-field-wrapper, .filter-select .mat-mdc-text-field-wrapper {
-          background-color: #0f172a !important;
+          background-color: #131b2e !important;
+          border-color: #1e293b !important;
         }
 
         .mat-mdc-select-value-text, input.mat-mdc-input-element {
@@ -1443,12 +1858,13 @@ const ESTADOS_RUC: Record<string, string> = {
         .mdc-notched-outline__leading,
         .mdc-notched-outline__notch,
         .mdc-notched-outline__trailing {
-          border-color: #334155 !important;
+          border-color: #1e293b !important;
         }
 
         .mat-mdc-paginator {
-          background-color: #1e293b !important;
-          color: #cbd5e1 !important;
+          background-color: #0f172a !important;
+          color: #94a3b8 !important;
+          border-top: 1px solid #1e293b !important;
 
           .mat-mdc-paginator-range-label,
           .mat-mdc-paginator-page-size-label,
@@ -1481,12 +1897,80 @@ export class EmpresasComponent implements OnInit {
   servicioFilter = signal<string>('');
   showMobileFilters = signal<boolean>(false);
 
+  // Computed KPI Metrics (Stitch Official Padrón DRTC Puno) — DINÁMICOS
+  totalAutorizadas = computed(() => {
+    const list = this.empresas();
+    return list.filter(e => 
+      (!e.estado || e.estado === 'AUTORIZADA') && 
+      (e.tiposServicio as string[])?.some(s => s?.toUpperCase().includes('PASAJER'))
+    ).length;
+  });
+
+  totalEmpresasCount = computed(() => this.empresas().length);
+
+  totalCanceladas = computed(() => {
+    return this.empresas().filter(e => e.estado === 'CANCELADA').length;
+  });
+
+  // SUNAT: contar desde sunatCache las que tienen esActivo=true AND esHabido=true
+  sunatActivas = computed(() => {
+    const cache = this.sunatCache();
+    let count = 0;
+    cache.forEach((data) => {
+      if (data.esActivo !== false && data.esHabido !== false) count++;
+    });
+    return count;
+  });
+
+  // SUNAT: empresas sin datos SUNAT en cache (pendientes de verificación)
+  sunatEnVerificacion = computed(() => {
+    const total = this.empresas().length;
+    const enCache = this.sunatCache().size;
+    return Math.max(0, total - enCache);
+  });
+
+  // Porcentaje de conformes SUNAT
+  pctSunatConformes = computed(() => {
+    const cache = this.sunatCache();
+    if (cache.size === 0) return '0';
+    let conformes = 0;
+    cache.forEach((data) => {
+      if (data.esActivo !== false && data.esHabido !== false) conformes++;
+    });
+    return ((conformes / cache.size) * 100).toFixed(1);
+  });
+
+  // Porcentaje de autorizadas pasajeros sobre el total
+  pctAutorizadasPasajeros = computed(() => {
+    const total = this.empresas().filter(e => !e.estado || e.estado === 'AUTORIZADA').length;
+    if (total === 0) return '0';
+    return ((this.totalAutorizadas() / total) * 100).toFixed(1);
+  });
+
+  pasajerosCount = computed(() => {
+    return this.empresas().filter(e => (e.tiposServicio as string[])?.some(s => s?.toUpperCase().includes('PASAJER'))).length;
+  });
+
+  turismoCount = computed(() => {
+    return this.empresas().filter(e => (e.tiposServicio as string[])?.some(s => s?.toUpperCase().includes('TURISMO'))).length;
+  });
+
+  trabajadoresCount = computed(() => {
+    return this.empresas().filter(e => (e.tiposServicio as string[])?.some(s => s?.toUpperCase().includes('TRABAJADOR'))).length;
+  });
+
+  isTurismo(servicio: string): boolean {
+    if (!servicio) return false;
+    return servicio.toUpperCase().includes('TURISMO');
+  }
+
   columnasVisibles = signal<string[]>([
     'seleccionar',
     'ruc',
     'razonSocial',
     'representante',
     'contacto',
+    'estadoSunat',
     'acciones'
   ]);
   empresasSeleccionadas = signal<Set<string>>(new Set());
@@ -1520,7 +2004,7 @@ export class EmpresasComponent implements OnInit {
     { id: 'servicios', label: 'Tipos de Servicio (Columna separada)', visible: false },
     { id: 'representante', label: 'Representante / Socios', visible: true },
     { id: 'contacto', label: 'Contacto', visible: true },
-    { id: 'estadoSunat', label: 'Estado SUNAT', visible: false },
+    { id: 'estadoSunat', label: 'Estado SUNAT', visible: true },
     { id: 'acciones', label: 'Acciones', visible: true }
   ];
 
@@ -1619,6 +2103,17 @@ export class EmpresasComponent implements OnInit {
           valA = a.telefonoContacto || '';
           valB = b.telefonoContacto || '';
           break;
+        case 'estadoSunat': {
+          const sA = this.sunatCache().get(a.ruc);
+          const sB = this.sunatCache().get(b.ruc);
+          const activoA = sA?.esActivo !== false ? '1_ACTIVO' : '0_BAJA';
+          const activoB = sB?.esActivo !== false ? '1_ACTIVO' : '0_BAJA';
+          const habidoA = sA?.esHabido !== false ? '1_HABIDO' : '0_NO_HABIDO';
+          const habidoB = sB?.esHabido !== false ? '1_HABIDO' : '0_NO_HABIDO';
+          valA = `${activoA}_${habidoA}`;
+          valB = `${activoB}_${habidoB}`;
+          break;
+        }
       }
 
       const res = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' });
@@ -1669,8 +2164,8 @@ export class EmpresasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Restaurar columnas visibles desde localStorage (v2 con RUC/Estado/Servicio compactado)
-    const savedColumns = localStorage.getItem('drtc_empresas_columnas_v2');
+    // Restaurar columnas visibles desde localStorage (v4 con Estado SUNAT visible por defecto)
+    const savedColumns = localStorage.getItem('drtc_empresas_columnas_v4');
     if (savedColumns) {
       try {
         const cols: string[] = JSON.parse(savedColumns);
@@ -2100,7 +2595,7 @@ export class EmpresasComponent implements OnInit {
         this.columnasVisibles.set(columnasActualizadas);
         this.columnasDisponibles = result;
         // Persistir en localStorage
-        localStorage.setItem('drtc_empresas_columnas_v2', JSON.stringify(columnasActualizadas));
+        localStorage.setItem('drtc_empresas_columnas_v4', JSON.stringify(columnasActualizadas));
       }
     });
   }
@@ -2455,6 +2950,13 @@ export class EmpresasComponent implements OnInit {
     }
     .columna-item { display: flex; align-items: center; }
     mat-dialog-actions { padding: 16px 0 0 0; }
+
+    :host-context([data-theme="dark"]), :host-context(.dark-theme) {
+      color: #f8fafc;
+      .columna-item mat-checkbox { color: #f1f5f9; }
+      button[mat-button] { color: #94a3b8; }
+      button[mat-raised-button] { background-color: #2563eb !important; color: #ffffff !important; }
+    }
   `]
 })
 export class ConfiguracionColumnasDialog {
@@ -2501,6 +3003,14 @@ export class ConfiguracionColumnasDialog {
   `,
   styles: [`
     .full-width { width: 100%; margin-bottom: 1rem; }
+
+    :host-context([data-theme="dark"]), :host-context(.dark-theme) {
+      color: #f8fafc;
+      p { color: #cbd5e1; }
+      strong { color: #ffffff; }
+      button[mat-button] { color: #94a3b8; }
+      button[mat-raised-button] { background-color: #2563eb !important; color: #ffffff !important; }
+    }
   `]
 })
 export class EdicionBloqueEstadoDialog {
@@ -2556,6 +3066,15 @@ export class EdicionBloqueEstadoDialog {
       padding: 16px 0;
     }
     .servicio-item { display: flex; align-items: center; }
+
+    :host-context([data-theme="dark"]), :host-context(.dark-theme) {
+      color: #f8fafc;
+      p { color: #cbd5e1; }
+      strong { color: #ffffff; }
+      .servicio-item mat-checkbox { color: #f1f5f9; }
+      button[mat-button] { color: #94a3b8; }
+      button[mat-raised-button] { background-color: #2563eb !important; color: #ffffff !important; }
+    }
   `]
 })
 export class EdicionBloqueServiciosDialog {

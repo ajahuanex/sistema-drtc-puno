@@ -1370,6 +1370,221 @@ const ESTADOS_RUC: Record<string, string> = {
     .flex-center { display: flex; align-items: center; justify-content: center; }
     .sunat-header { display: flex; justify-content: space-between; align-items: center; }
     .fs-large { font-size: 1.05rem; }
+
+    /* =================================================================
+       STITCH MODO OSCURO - DETALLE DE EMPRESA
+       ================================================================= */
+    :host-context([data-theme="dark"]), :host-context(.dark-theme) {
+      .page-container {
+        color: #f8fafc;
+      }
+
+      .page-header-actions button[mat-stroked-button] {
+        background-color: #1e293b;
+        border-color: #334155;
+        color: #e2e8f0;
+        &:hover { background-color: #334155; }
+      }
+
+      .company-header-compact {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        border-left: 6px solid #3b82f6;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+        .ch-avatar {
+          background: #1e293b;
+          color: #60a5fa;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .ch-title { color: #f8fafc; }
+        .ch-overline { color: #94a3b8; }
+        .ruc-pill-tag {
+          background-color: #1e293b;
+          color: #93c5fd;
+          border: 1px solid #334155;
+        }
+
+        .service-header-chip {
+          background: #1e293b;
+          color: #cbd5e1;
+          border-color: #334155;
+          .chip-icon { color: #60a5fa; }
+          &.chip-muted { background: #111827; color: #64748b; }
+        }
+
+        .ch-dates {
+          color: #94a3b8;
+          .lbl { color: #cbd5e1; }
+        }
+      }
+
+      .main-content-card {
+        background: #0f172a !important;
+        border: 1px solid #1e293b !important;
+        color: #f8fafc;
+      }
+
+      .info-block {
+        background: #0f172a;
+        border-color: #1e293b;
+
+        &.bg-light {
+          background: #111827;
+          border-color: #1e293b;
+        }
+
+        .block-title {
+          color: #f8fafc;
+          mat-icon { color: #60a5fa; }
+        }
+      }
+
+      .detail-item {
+        .d-label { color: #94a3b8; }
+        .d-value { color: #f8fafc; }
+
+        &.highlight-item {
+          background: #111827;
+          border-color: #1e293b;
+        }
+      }
+
+      .address-item {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(5, 150, 105, 0.4);
+
+        .address-content {
+          .loc-icon { color: #34d399; }
+          .address-text { color: #6ee7b7; }
+        }
+      }
+
+      .contact-link {
+        color: #60a5fa;
+      }
+
+      .kpi-stat-card {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+
+        &.card-blue {
+          background: rgba(30, 58, 138, 0.25);
+          border-color: rgba(59, 130, 246, 0.35);
+          .kpi-icon-box { background: #1e293b; color: #60a5fa; }
+          .kpi-count { color: #93c5fd; }
+          .kpi-label { color: #60a5fa; }
+        }
+        &.card-indigo {
+          background: rgba(49, 46, 129, 0.25);
+          border-color: rgba(99, 102, 241, 0.35);
+          .kpi-icon-box { background: #1e293b; color: #818cf8; }
+          .kpi-count { color: #c7d2fe; }
+          .kpi-label { color: #818cf8; }
+        }
+        &.card-emerald {
+          background: rgba(6, 78, 59, 0.25);
+          border-color: rgba(16, 185, 129, 0.35);
+          .kpi-icon-box { background: #064e3b; color: #34d399; }
+          .kpi-count { color: #a7f3d0; }
+          .kpi-label { color: #34d399; }
+        }
+        &.card-amber {
+          background: rgba(120, 53, 15, 0.25);
+          border-color: rgba(245, 158, 11, 0.35);
+          .kpi-icon-box { background: #451a03; color: #fbbf24; }
+          .kpi-count { color: #fde68a; }
+          .kpi-label { color: #fbbf24; }
+        }
+      }
+
+      .section-title-row {
+        .section-heading { color: #f8fafc; }
+        .section-counter-badge {
+          background: rgba(37, 99, 235, 0.25);
+          color: #93c5fd;
+        }
+        .section-subtitle { color: #94a3b8; }
+      }
+
+      .primigenia-card {
+        background: #0f172a;
+        border-color: #1e293b;
+        border-top: 4px solid #3b82f6;
+
+        .primigenia-header {
+          background: #111827;
+          border-bottom-color: #1e293b;
+
+          .res-num { color: #f8fafc; }
+          .res-siglas { color: #94a3b8; }
+
+          .auth-type-pill {
+            background: #1e293b;
+            color: #cbd5e1;
+            border-color: #334155;
+          }
+        }
+      }
+
+      .vehiculo-badge-item {
+        background: #111827;
+        border-color: #1e293b;
+
+        .veh-placa {
+          background: #1e293b;
+          color: #93c5fd;
+        }
+        .veh-meta { color: #cbd5e1; }
+        .veh-tuc {
+          background: rgba(16, 185, 129, 0.2);
+          color: #34d399;
+        }
+      }
+
+      .mod-timeline-item {
+        background: #181307;
+        border-color: #78350f;
+        border-left: 4px solid #f59e0b;
+
+        .mod-item-left {
+          .mod-res-num { color: #f8fafc; }
+          .mod-date { color: #94a3b8; }
+        }
+
+        .mod-item-desc .mod-obs {
+          color: #cbd5e1;
+        }
+      }
+
+      .socio-card {
+        background: #0f172a;
+        border-color: #1e293b;
+
+        &.border-primary { border-left-color: #3b82f6; }
+
+        .sc-avatar {
+          background: #1e293b;
+          color: #93c5fd;
+        }
+
+        .sc-title {
+          h4 { color: #f8fafc; }
+          .sc-role { color: #94a3b8; }
+        }
+
+        .s-detail {
+          color: #cbd5e1;
+          mat-icon { color: #64748b; }
+        }
+      }
+
+      .empty-state, .loading-wrapper {
+        background: #0f172a;
+        border-color: #334155;
+        color: #94a3b8;
+      }
+    }
   `]
 })
 export class EmpresaDetailComponent implements OnInit {

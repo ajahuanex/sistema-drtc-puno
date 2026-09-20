@@ -16,162 +16,129 @@ import { TopbarComponent } from './topbar.component';
     TopbarComponent
   ],
   template: `
-    <div class="app-container">
-      <!-- Topbar fijo -->
-      <div class="topbar-container">
-        <app-topbar 
-          (toggleSidebar)="toggleSidebar()" 
-          [sidebarExpanded]="sidebarExpanded()">
-        </app-topbar>
-      </div>
+    <div class="master-layout-container" data-purpose="master-container">
+      <!-- 1. Menú Lateral Institucional (w-64 = 260px, de arriba a abajo 100vh) -->
+      <aside
+        class="sidebar-wrapper"
+        [class.collapsed]="!sidebarExpanded()"
+        data-purpose="sidebar-nav"
+        id="sidebar"
+      >
+        <app-sidebar [isExpanded]="sidebarExpanded()"></app-sidebar>
+      </aside>
 
-      <!-- Contenedor principal -->
-      <div class="main-container">
-        <!-- Sidebar -->
-        <div class="sidebar" [class.collapsed]="!sidebarExpanded()">
-          <app-sidebar [isExpanded]="sidebarExpanded()"></app-sidebar>
-        </div>
+      <!-- 2. Contenedor Principal Derecho (Topbar + Contenido) -->
+      <div class="right-viewport">
+        <!-- Topbar Oficial (h-16 = 64px, fondo blanco, border-b) -->
+        <header class="topbar-wrapper" data-purpose="topbar">
+          <app-topbar 
+            (toggleSidebar)="toggleSidebar()" 
+            [sidebarExpanded]="sidebarExpanded()">
+          </app-topbar>
+        </header>
 
-        <!-- Contenido principal -->
-        <div class="content-area">
-          <div class="content-wrapper">
-            <router-outlet></router-outlet>
-          </div>
-        </div>
+        <!-- Canvas de Contenido con Scroll Independiente -->
+        <main class="main-canvas" data-purpose="main-workspace-canvas">
+          <router-outlet></router-outlet>
+        </main>
       </div>
     </div>
   `,
   styles: [`
-    .app-container {
+    .master-layout-container {
       height: 100vh;
+      width: 100vw;
       display: flex;
-      flex-direction: column;
-      background: var(--bg-app, #f8fafc);
-      color: var(--text-primary, #0f172a);
+      flex-direction: row;
+      overflow: hidden;
+      background-color: #f8fafc;
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
-    .topbar-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 64px;
-      z-index: 1001;
-      background: var(--bg-surface, #ffffff);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-    }
-
-    .main-container {
-      flex: 1;
-      display: flex;
+    // 1. Sidebar va de arriba a abajo completo (100vh)
+    .sidebar-wrapper {
+      width: 260px;
       height: 100vh;
-      padding-top: 64px;
-      overflow: hidden;
-    }
-
-    .sidebar {
-      width: 280px;
-      background: #0b1f44;
-      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
-      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
-      z-index: 1000;
-    }
-
-    .sidebar.collapsed {
-      width: 68px;
-    }
-
-    .content-area {
-      flex: 1;
-      background: transparent;
-      overflow-y: auto;
-      overflow-x: hidden;
+      background-color: #0b1f44;
+      border-right: 1px solid #152e60;
+      z-index: 30;
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
       position: relative;
     }
 
-    .content-wrapper {
-      padding: 18px 24px;
-      min-height: 100%;
-      max-width: 100%;
-      margin: 0 auto;
-      box-sizing: border-box;
+    .sidebar-wrapper.collapsed {
+      width: 64px;
     }
 
-    /* Scrollbar personalizado */
-    .content-area::-webkit-scrollbar {
+    // 2. Viewport derecho con Topbar arriba y Canvas de Contenido abajo
+    .right-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f8fafc;
+    }
+
+    .topbar-wrapper {
+      height: 64px;
+      flex-shrink: 0;
+      background-color: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      z-index: 20;
+    }
+
+    .main-canvas {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background-color: #f8fafc;
+      position: relative;
+    }
+
+    /* Scrollbar estilizado institucional */
+    .main-canvas::-webkit-scrollbar {
       width: 6px;
     }
 
-    .content-area::-webkit-scrollbar-track {
+    .main-canvas::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    .content-area::-webkit-scrollbar-thumb {
+    .main-canvas::-webkit-scrollbar-thumb {
       background: rgba(148, 163, 184, 0.35);
       border-radius: 4px;
     }
 
-    .content-area::-webkit-scrollbar-thumb:hover {
+    .main-canvas::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.55);
     }
 
     /* Responsive */
-    @media (max-width: 1024px) {
-      .content-wrapper {
-        padding: 16px;
-      }
-    }
-
     @media (max-width: 768px) {
-      .sidebar {
-        width: 280px;
+      .sidebar-wrapper {
         position: fixed;
-        height: calc(100vh - 64px);
+        top: 0;
+        left: 0;
+        bottom: 0;
         z-index: 1000;
         transform: translateX(0);
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .sidebar.collapsed {
-        width: 280px;
+      .sidebar-wrapper.collapsed {
         transform: translateX(-100%);
-      }
-
-      .content-area {
-        margin-left: 0;
-      }
-
-      .content-wrapper {
-        padding: 12px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .sidebar {
-        width: 100%;
-        max-width: 280px;
-      }
-
-      .content-wrapper {
-        padding: 10px;
       }
     }
   `]
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
-  // Signals
   sidebarExpanded = signal(true);
   isMobile = signal(false);
-
-  // Computed properties
-  sidebarWidth = computed(() => {
-    return this.sidebarExpanded() ? '280px' : '68px';
-  });
 
   private resizeObserver?: ResizeObserver;
 
@@ -191,7 +158,6 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       this.resizeObserver = new ResizeObserver(() => {
         this.checkScreenSize();
       });
-      
       this.resizeObserver.observe(document.body);
     }
   }
@@ -199,10 +165,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private checkScreenSize(): void {
     const width = window.innerWidth;
     const isMobileView = width <= 768;
-    
     this.isMobile.set(isMobileView);
-    
-    // En móvil, colapsar sidebar por defecto
     if (isMobileView && this.sidebarExpanded()) {
       this.sidebarExpanded.set(false);
     }

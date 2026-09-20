@@ -1,4 +1,4 @@
-// Estilos Oficiales Topbar SIRRETT (Stitch GovTech Master Shell Spec)
+// Topbar Oficial Stitch GovTech Master Shell (h-16 = 64px)
 @keyframes ping {
   75%, 100% {
     transform: scale(2);
@@ -6,558 +6,308 @@
   }
 }
 
-.topbar {
+.topbar-header {
+  height: 64px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 64px;
-  background-color: #ffffff;
-  color: #0f172a;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   position: relative;
   z-index: 1000;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
   user-select: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 
-  // 1. SECCIÓN IZQUIERDA
+  @media (min-width: 640px) {
+    padding: 0 24px;
+  }
+
+  // 1. IZQUIERDA
   .topbar-left {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-shrink: 0;
 
-    .sidebar-toggle {
+    @media (min-width: 1024px) {
+      gap: 16px;
+    }
+
+    .sidebar-toggle-btn {
+      padding: 6px;
+      border-radius: 8px;
       color: #475569;
-      width: 38px;
-      height: 38px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      transition: background-color 0.15s ease, color 0.15s ease;
+      transition: all 0.15s ease;
 
       &:hover {
-        background-color: #f1f5f9;
         color: #0f172a;
+        background-color: #f1f5f9;
       }
 
-      mat-icon {
-        font-size: 22px;
-        width: 22px;
-        height: 22px;
+      &:focus {
+        outline: 2px solid #2563eb;
+      }
+
+      .toggle-svg {
+        width: 24px;
+        height: 24px;
       }
     }
 
-    .v-divider {
-      width: 1px;
+    .topbar-v-divider {
       height: 24px;
+      width: 1px;
       background-color: #e2e8f0;
     }
 
-    .institutional-branding {
+    .mtc-logo-container {
       display: flex;
       align-items: center;
-      gap: 12px;
-      text-decoration: none;
 
-      .mtc-logo {
-        height: 34px;
+      .mtc-logo-img {
+        height: 32px;
         width: auto;
         object-fit: contain;
-        display: block;
-      }
 
-      .brand-text {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.2;
-
-        .brand-title-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-
-          .topbar-title {
-            font-size: 17px;
-            font-weight: 800;
-            letter-spacing: -0.01em;
-            color: #00236f;
-            font-family: 'Space Grotesk', 'Inter', sans-serif;
-          }
-
-          .brand-pill {
-            font-size: 9.5px;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            padding: 1.5px 6px;
-            border-radius: 4px;
-            background: #e0f2fe;
-            color: #0369a1;
-            border: 1px solid #bae6fd;
-          }
-        }
-
-        .topbar-subtitle {
-          font-size: 10.5px;
-          color: #64748b;
-          font-weight: 500;
-          white-space: nowrap;
+        @media (min-width: 1024px) {
+          height: 36px;
         }
       }
     }
   }
 
-  // 2. SECCIÓN CENTRAL
+  // 2. CENTRO: Omnibox
   .topbar-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
     flex: 1;
-    max-width: 700px;
+    max-width: 384px; // max-w-sm
     margin: 0 16px;
 
-    // Omnibox de Búsqueda Global (Stitch Spec)
-    .global-search-container {
-      flex: 1;
-      max-width: 440px;
+    .search-box-wrapper {
+      position: relative;
+      width: 100%;
 
-      .search-input-wrapper {
-        position: relative;
+      .search-icon-wrapper {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        padding-left: 12px;
         display: flex;
         align-items: center;
-        width: 100%;
+        pointer-events: none;
+        color: #94a3b8;
 
-        .search-icon {
-          position: absolute;
-          left: 10px;
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
-
-        .search-input {
-          width: 100%;
-          height: 36px;
-          padding: 6px 54px 6px 34px;
-          font-size: 12px;
-          font-family: 'Inter', sans-serif;
-          border-radius: 8px;
-          border: 1px solid #cbd5e1;
-          background-color: #f8fafc;
-          color: #0f172a;
-          outline: none;
-          transition: all 0.15s ease-in-out;
-
-          &::placeholder {
-            color: #94a3b8;
-          }
-
-          &:focus {
-            background-color: #ffffff;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-          }
-        }
-
-        .kbd-badge {
-          position: absolute;
-          right: 8px;
-          font-family: monospace;
-          font-size: 10px;
-          font-weight: 600;
-          padding: 2px 6px;
-          border-radius: 4px;
-          background-color: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #64748b;
-          cursor: pointer;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-          user-select: none;
-          transition: background-color 0.1s ease;
-
-          &:hover {
-            background-color: #f1f5f9;
-            color: #0f172a;
-          }
-        }
-      }
-    }
-
-    // Switch Base de Datos MongoDB (Pill GovTech)
-    .db-switch-container {
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-
-      .db-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        height: 34px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 600;
-        cursor: pointer;
-        border: 1px solid #e2e8f0;
-        transition: all 0.15s ease-in-out;
-        background: #f8fafc;
-        color: #334155;
-        outline: none;
-
-        &:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-          border-color: #cbd5e1;
-        }
-
-        &.db-chip-local {
-          background: rgba(16, 185, 129, 0.08);
-          border-color: rgba(16, 185, 129, 0.3);
-          color: #047857;
-
-          .db-icon {
-            color: #059669;
-          }
-        }
-
-        &.db-chip-remote {
-          background: rgba(37, 99, 235, 0.08);
-          border-color: rgba(37, 99, 235, 0.3);
-          color: #1d4ed8;
-
-          .db-icon {
-            color: #2563eb;
-          }
-        }
-
-        .db-status-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #ef4444;
-          display: inline-block;
-
-          &.online {
-            background: #10b981;
-            box-shadow: 0 0 6px #10b981;
-          }
-        }
-
-        .db-icon {
-          font-size: 15px;
-          width: 15px;
-          height: 15px;
-        }
-
-        .db-name {
-          letter-spacing: 0.01em;
-        }
-
-        .db-ping {
-          font-size: 10px;
-          font-family: monospace;
-          opacity: 0.85;
-          background: rgba(0, 0, 0, 0.06);
-          padding: 1px 5px;
-          border-radius: 4px;
-        }
-
-        .db-chevron {
-          font-size: 16px;
+        .search-svg {
           width: 16px;
           height: 16px;
-          margin-left: -2px;
-          opacity: 0.6;
+        }
+      }
+
+      .search-input {
+        display: block;
+        width: 100%;
+        padding-left: 36px;
+        padding-right: 48px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        font-size: 12px;
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        color: #0f172a;
+        transition: all 0.15s ease;
+        outline: none;
+
+        &::placeholder {
+          color: #94a3b8;
+        }
+
+        &:focus {
+          background-color: #ffffff;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 1px #2563eb;
+        }
+      }
+
+      .search-kbd-wrapper {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        padding-right: 10px;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+
+        .search-kbd {
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+          background-color: #ffffff;
+          padding: 2px 6px;
+          font-size: 10px;
+          font-family: monospace;
+          color: #94a3b8;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
       }
     }
   }
 
-  // 3. SECCIÓN DERECHA
+  // 3. DERECHA
   .topbar-right {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
 
-    .action-icon-btn {
-      width: 38px;
-      height: 38px;
+    @media (min-width: 640px) {
+      gap: 12px;
+    }
+
+    .topbar-icon-action {
+      padding: 8px;
+      color: #64748b;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      color: #64748b;
-      position: relative;
       transition: all 0.15s ease;
 
       &:hover {
+        color: #334155;
         background-color: #f1f5f9;
-        color: #0f172a;
       }
 
-      mat-icon {
-        font-size: 20px;
+      .action-svg {
         width: 20px;
         height: 20px;
+
+        &.text-amber-500 {
+          color: #f59e0b;
+        }
       }
 
-      &.notification-btn {
-        .pulse-container {
+      &.relative {
+        position: relative;
+      }
+
+      .notification-ping-container {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: flex;
+        height: 8px;
+        width: 8px;
+
+        .ping-ring {
           position: absolute;
-          top: 8px;
-          right: 8px;
-          display: flex;
-          width: 8px;
-          height: 8px;
-
-          .ping-ring {
-            position: absolute;
-            display: inline-flex;
-            height: 100%;
-            width: 100%;
-            border-radius: 9999px;
-            background-color: #60a5fa;
-            opacity: 0.75;
-            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-          }
-
-          .ping-dot {
-            position: relative;
-            display: inline-flex;
-            border-radius: 9999px;
-            height: 8px;
-            width: 8px;
-            background-color: #2563eb;
-          }
-        }
-
-        .notification-count {
-          position: absolute;
-          bottom: 4px;
-          right: 4px;
-          background: #ef4444;
-          color: #ffffff;
-          font-size: 9px;
-          font-weight: 700;
-          line-height: 1;
-          padding: 2px 4px;
+          display: inline-flex;
+          height: 100%;
+          width: 100%;
           border-radius: 9999px;
-          border: 1.5px solid #ffffff;
+          background-color: #60a5fa;
+          opacity: 0.75;
+          animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        .ping-dot {
+          position: relative;
+          display: inline-flex;
+          border-radius: 9999px;
+          height: 8px;
+          width: 8px;
+          background-color: #2563eb;
         }
       }
     }
 
-    .v-divider {
-      width: 1px;
+    .topbar-v-divider {
       height: 24px;
+      width: 1px;
       background-color: #e2e8f0;
-      margin: 0 4px;
     }
 
-    // Tarjeta Oficial Funcionario (Stitch Spec)
-    .officer-profile-card {
+    // Tarjeta de Funcionario Oficial (Stitch Spec)
+    .officer-profile-pill {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 4px 10px 4px 6px;
-      border-radius: 8px;
+      gap: 12px;
+      padding-left: 4px;
       cursor: pointer;
-      transition: all 0.15s ease;
-      border: 1px solid transparent;
-
-      &:hover {
-        background-color: #f8fafc;
-        border-color: #e2e8f0;
-      }
 
       .officer-avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: #2563eb;
+        height: 32px;
+        width: 32px;
+        border-radius: 9999px;
+        background-color: #2563eb;
         color: #ffffff;
         font-weight: 700;
-        font-size: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        font-size: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         outline: 2px solid #eff6ff;
         flex-shrink: 0;
       }
 
-      .officer-info {
+      .officer-meta {
         display: flex;
         flex-direction: column;
-        line-height: 1.2;
         text-align: left;
 
         .officer-name {
-          font-size: 12.5px;
+          font-size: 12px;
           font-weight: 600;
-          color: #0f172a;
-          white-space: nowrap;
+          color: #1e293b;
+          line-height: 1.25;
+          transition: color 0.15s ease;
         }
 
         .officer-role {
           font-size: 10px;
-          font-weight: 500;
           color: #64748b;
-          white-space: nowrap;
+          line-height: 1.25;
+          font-weight: 500;
         }
       }
 
-      .officer-chevron {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+      &:hover .officer-name {
+        color: #2563eb;
+      }
+
+      .chevron-down-svg {
+        width: 16px;
+        height: 16px;
         color: #94a3b8;
         transition: color 0.15s ease;
       }
 
-      &:hover .officer-chevron {
-        color: #0f172a;
+      &:hover .chevron-down-svg {
+        color: #475569;
       }
     }
   }
 }
 
-// 4. ESTILOS MENÚS DROPDOWN
+// Menús Desplegables Stitch
 ::ng-deep {
-  .db-menu-dropdown {
-    width: 320px;
-    padding: 0 !important;
-    border-radius: 8px !important;
-    overflow: hidden;
-
-    .db-menu-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      background: #0f244a;
-      color: #ffffff;
-
-      .db-menu-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        font-size: 13px;
-
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-          color: #60a5fa;
-        }
-      }
-
-      .db-badge {
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 4px;
-        letter-spacing: 0.05em;
-
-        &.badge-local {
-          background: #059669;
-          color: #ffffff;
-        }
-
-        &.badge-remote {
-          background: #2563eb;
-          color: #ffffff;
-        }
-      }
-    }
-
-    .db-menu-details {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      background: #f8fafc;
-      font-size: 12px;
-
-      .db-detail-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        .label {
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        .val {
-          color: #0f172a;
-          font-weight: 600;
-        }
-
-        .text-green { color: #059669 !important; }
-        .text-red { color: #dc2626 !important; }
-      }
-    }
-  }
-
-  .theme-palette-menu {
-    min-width: 210px;
-    padding: 4px 0 !important;
-
-    .palette-header {
-      padding: 8px 16px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #64748b;
-    }
-
-    .palette-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12.5px;
-
-      .palette-color-preview {
-        width: 16px;
-        height: 16px;
-        border-radius: 4px;
-        position: relative;
-        border: 1px solid rgba(0, 0, 0, 0.15);
-
-        .palette-accent-dot {
-          position: absolute;
-          bottom: 1px;
-          right: 1px;
-          width: 6px;
-          height: 6px;
-          border-radius: 1px;
-        }
-      }
-    }
-
-    button.active-theme {
-      background-color: rgba(37, 99, 235, 0.08);
-      font-weight: 600;
-      color: #2563eb;
-    }
-  }
-
-  .notification-menu {
+  .stitch-notification-menu {
     width: 320px;
     padding: 0 !important;
 
-    .notification-header {
+    .menu-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -571,25 +321,24 @@
       }
 
       .badge {
-        font-size: 10.5px;
+        font-size: 10px;
         font-weight: 600;
-        color: #2563eb;
         background: #eff6ff;
-        padding: 2px 6px;
-        border-radius: 4px;
+        color: #2563eb;
+        padding: 2px 8px;
+        border-radius: 9999px;
       }
     }
 
-    .notification-list {
-      max-height: 240px;
+    .notif-items {
+      max-height: 220px;
       overflow-y: auto;
 
-      .notification-item {
+      .notif-row {
         display: flex;
         gap: 12px;
         padding: 10px 16px;
         border-bottom: 1px solid #f1f5f9;
-        font-size: 12px;
 
         mat-icon {
           font-size: 18px;
@@ -602,17 +351,15 @@
           &.success { color: #10b981; }
         }
 
-        .notif-content {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-
-          .notif-msg {
+        .notif-body {
+          .notif-text {
+            margin: 0;
+            font-size: 12px;
             color: #334155;
             line-height: 1.3;
           }
 
-          .notif-time {
+          .notif-sub {
             font-size: 10px;
             color: #94a3b8;
           }
@@ -620,7 +367,7 @@
       }
     }
 
-    .view-all-btn {
+    .view-all-notif-btn {
       width: 100%;
       text-align: center;
       font-size: 12px;
@@ -630,32 +377,32 @@
     }
   }
 
-  .user-dropdown-menu {
-    width: 260px;
+  .stitch-user-menu {
+    width: 280px;
     padding: 0 !important;
 
-    .user-header-info {
+    .user-card-header {
       display: flex;
       align-items: center;
       gap: 12px;
       padding: 14px 16px;
       background: #f8fafc;
 
-      .user-header-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+      .user-card-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 9999px;
         background: #2563eb;
         color: #ffffff;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 13px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
       }
 
-      .user-header-text {
+      .user-card-details {
         overflow: hidden;
 
         h4 {
@@ -668,28 +415,112 @@
           text-overflow: ellipsis;
         }
 
-        .user-email {
+        .user-card-role {
           margin: 1px 0;
-          font-size: 11px;
+          font-size: 10.5px;
+          color: #0284c7;
+          font-weight: 600;
+        }
+
+        .user-card-email {
+          font-size: 10px;
           color: #64748b;
+          display: block;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
+      }
+    }
 
-        .user-badge {
-          display: inline-block;
-          font-size: 9.5px;
+    .db-section {
+      padding: 10px 16px;
+      background: #ffffff;
+      border-bottom: 1px solid #f1f5f9;
+
+      .db-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+
+        .db-section-title {
+          font-size: 11px;
           font-weight: 700;
-          color: #0369a1;
-          background: #e0f2fe;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .db-status-badge {
+          font-size: 9px;
+          font-weight: 700;
           padding: 1px 5px;
           border-radius: 3px;
+
+          &.badge-local {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+          }
+
+          &.badge-remote {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+          }
+        }
+      }
+
+      .db-section-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11.5px;
+        color: #475569;
+        margin-bottom: 8px;
+
+        .text-emerald { color: #059669; }
+        .text-rose { color: #e11d48; }
+        .db-ping-val { font-family: monospace; }
+      }
+
+      .db-switch-actions {
+        display: flex;
+        gap: 8px;
+
+        .db-btn {
+          flex: 1;
+          padding: 4px;
+          font-size: 11px;
+          font-weight: 600;
+          border-radius: 4px;
+          border: 1px solid #cbd5e1;
+          background: #f8fafc;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.15s ease;
+
+          &:hover:not(:disabled) {
+            background: #ffffff;
+            border-color: #2563eb;
+            color: #2563eb;
+          }
+
+          &.active-db {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+          }
+
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
         }
       }
     }
 
-    .logout-item {
+    .logout-menu-item {
       color: #dc2626 !important;
 
       mat-icon {
@@ -699,182 +530,98 @@
   }
 }
 
-// 5. MODO OSCURO (Stitch Spec Screen 90626c5c7a7d4ce3ab1aefdf15670368)
+// 4. MODO OSCURO (Stitch Spec Screen 90626c5c7a7d4ce3ab1aefdf15670368)
 :host-context(.dark-theme) {
-  .topbar {
+  .topbar-header {
     background-color: #0a0e1a;
-    border-bottom: 1px solid #1e293b;
-    color: #f8fafc;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    border-bottom-color: #1e293b;
 
     .topbar-left {
-      .sidebar-toggle {
+      .sidebar-toggle-btn {
         color: #94a3b8;
 
         &:hover {
-          background-color: #172033;
           color: #ffffff;
+          background-color: #172033;
         }
       }
 
-      .v-divider {
+      .topbar-v-divider {
         background-color: #1e293b;
-      }
-
-      .institutional-branding {
-        .brand-text {
-          .brand-title-row {
-            .topbar-title {
-              color: #60a5fa;
-            }
-
-            .brand-pill {
-              background: rgba(30, 58, 138, 0.4);
-              color: #93c5fd;
-              border-color: rgba(59, 130, 246, 0.3);
-            }
-          }
-
-          .topbar-subtitle {
-            color: #94a3b8;
-          }
-        }
       }
     }
 
     .topbar-center {
-      .global-search-container {
-        .search-input-wrapper {
-          .search-icon {
+      .search-box-wrapper {
+        .search-icon-wrapper {
+          color: #64748b;
+        }
+
+        .search-input {
+          background-color: #111827;
+          border-color: #1e293b;
+          color: #e2e8f0;
+
+          &::placeholder {
             color: #64748b;
           }
 
-          .search-input {
-            background-color: #111827;
-            border-color: #1e293b;
-            color: #e2e8f0;
-
-            &::placeholder {
-              color: #64748b;
-            }
-
-            &:focus {
-              background-color: #162032;
-              border-color: #3b82f6;
-              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            }
-          }
-
-          .kbd-badge {
-            background-color: #1e293b;
-            border-color: #334155;
-            color: #94a3b8;
-
-            &:hover {
-              background-color: #334155;
-              color: #ffffff;
-            }
+          &:focus {
+            background-color: #162032;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 1px #3b82f6;
           }
         }
-      }
 
-      .db-switch-container .db-chip {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.1);
-        color: #cbd5e1;
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        &.db-chip-local {
-          background: rgba(16, 185, 129, 0.15);
-          border-color: rgba(16, 185, 129, 0.3);
-          color: #34d399;
-        }
-
-        &.db-chip-remote {
-          background: rgba(59, 130, 246, 0.15);
-          border-color: rgba(59, 130, 246, 0.3);
-          color: #60a5fa;
-        }
-
-        .db-ping {
-          background: rgba(255, 255, 255, 0.1);
+        .search-kbd-wrapper .search-kbd {
+          border-color: #334155;
+          background-color: #1e293b;
+          color: #94a3b8;
         }
       }
     }
 
     .topbar-right {
-      .action-icon-btn {
+      .topbar-icon-action {
         color: #94a3b8;
 
         &:hover {
-          background-color: #172033;
           color: #ffffff;
-        }
-
-        &.theme-toggle-btn {
-          color: #fbbf24;
-        }
-
-        &.notification-btn .notification-count {
-          border-color: #0a0e1a;
+          background-color: #172033;
         }
       }
 
-      .v-divider {
+      .topbar-v-divider {
         background-color: #1e293b;
       }
 
-      .officer-profile-card {
-        &:hover {
-          background-color: #172033;
-          border-color: #1e293b;
-        }
-
+      .officer-profile-pill {
         .officer-avatar {
-          outline-color: rgba(37, 99, 235, 0.3);
+          outline-color: rgba(37, 99, 235, 0.2);
         }
 
-        .officer-info {
+        .officer-meta {
           .officer-name {
-            color: #f8fafc;
+            color: #e2e8f0;
           }
 
           .officer-role {
             color: #94a3b8;
           }
         }
+
+        &:hover .officer-name {
+          color: #60a5fa;
+        }
+
+        .chevron-down-svg {
+          color: #64748b;
+        }
+
+        &:hover .chevron-down-svg {
+          color: #cbd5e1;
+        }
       }
-    }
-  }
-}
-
-// 6. RESPONSIVE BREAKPOINTS
-@media (max-width: 1024px) {
-  .topbar {
-    padding: 0 14px;
-
-    .topbar-left .institutional-branding .brand-text .topbar-subtitle {
-      display: none;
-    }
-
-    .topbar-center .global-search-container {
-      max-width: 240px;
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .topbar {
-    .topbar-center {
-      display: none;
-    }
-
-    .topbar-right .officer-profile-card .officer-info {
-      display: none;
     }
   }
 }

@@ -34,10 +34,9 @@ class Settings(BaseSettings):
             self.MONGODB_TARGET = "remote"
             self.MONGODB_URL = self.MONGODB_URL_REMOTE
         else:
-            if not self.MONGODB_URL or str(self.MONGODB_URL).strip().lower() == "local":
-                self.MONGODB_URL = self.MONGODB_URL_LOCAL
             self.USE_REMOTE_DB = False
             self.MONGODB_TARGET = "local"
+            self.MONGODB_URL = self.MONGODB_URL_LOCAL
         return self
 
     @property

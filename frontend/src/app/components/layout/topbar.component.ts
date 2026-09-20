@@ -1,17 +1,13 @@
 import { Component, EventEmitter, Output, OnInit, Input, inject, signal, computed, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
@@ -24,236 +20,231 @@ import { ChangeDetectionStrategy } from '@angular/core';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
-    MatBadgeModule,
     MatDividerModule,
     MatTooltipModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatSlideToggleModule,
     FormsModule
   ],
   template: `
-    <header class="topbar" data-purpose="topbar">
-      <!-- SECCIÓN IZQUIERDA: Toggle Menú + Identidad Institucional MTC/DRTC -->
+    <!-- TopBar Oficial Maestro (h-16 = 64px, fondo blanco limpio, border-b) -->
+    <header class="topbar-header" data-purpose="topbar">
+      <!-- Izquierda: Toggle + Separador + MTC Logo Oficial -->
       <div class="topbar-left">
-        <button mat-icon-button (click)="toggleSidebar.emit()" class="sidebar-toggle"
-                [matTooltip]="sidebarExpanded ? 'Contraer menú lateral' : 'Expandir menú lateral'"
-                aria-label="Alternar menú lateral">
-          <mat-icon>{{ sidebarExpanded ? 'menu_open' : 'menu' }}</mat-icon>
+        <button
+          type="button"
+          class="sidebar-toggle-btn"
+          id="sidebarToggle"
+          (click)="toggleSidebar.emit()"
+          title="Alternar Menú Lateral"
+          aria-label="Alternar Menú Lateral"
+        >
+          <svg class="toggle-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
         </button>
 
-        <div class="v-divider hidden sm:block"></div>
+        <div class="topbar-v-divider hidden sm:block"></div>
 
-        <!-- MTC y Título Institucional -->
-        <div class="institutional-branding" routerLink="/dashboard" style="cursor: pointer;">
-          <img src="assets/images/mtc-logo.png" alt="Ministerio de Transportes y Comunicaciones" class="mtc-logo">
-          <div class="brand-text">
-            <div class="brand-title-row">
-              <span class="topbar-title font-display">SIRRETT</span>
-              <span class="brand-pill">REGIÓN PUNO</span>
-            </div>
-            <span class="topbar-subtitle font-sans">Dirección Regional de Transportes y Comunicaciones</span>
+        <div class="mtc-logo-container">
+          <img
+            alt="Ministerio de Transportes y Comunicaciones"
+            class="mtc-logo-img"
+            src="assets/images/mtc-logo-stitch.png"
+          />
+        </div>
+      </div>
+
+      <!-- Centro: Omnibox Búsqueda Global (Ctrl + K) -->
+      <div class="topbar-center hidden md:block" data-purpose="global-search">
+        <div class="search-box-wrapper">
+          <div class="search-icon-wrapper">
+            <svg class="search-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            placeholder="Buscar RUC, Empresa, Flota, R.D. (Ctrl + K)"
+            [(ngModel)]="searchQuery"
+            (keydown.enter)="executeGlobalSearch()"
+          />
+          <div class="search-kbd-wrapper" (click)="focusSearch()">
+            <kbd class="search-kbd">⌘K</kbd>
           </div>
         </div>
       </div>
 
-      <!-- SECCIÓN CENTRAL: Omnibox Búsqueda Global (Ctrl+K) + Switch Conexión BD -->
-      <div class="topbar-center">
-        <!-- Omnibox Global Search (Stitch Spec) -->
-        <div class="global-search-container" data-purpose="global-search">
-          <div class="search-input-wrapper">
-            <mat-icon class="search-icon">search</mat-icon>
-            <input
-              #searchInput
-              type="text"
-              class="search-input"
-              placeholder="Buscar RUC, Empresa, Flota, R.D. (Ctrl + K)"
-              [(ngModel)]="searchQuery"
-              (keydown.enter)="executeGlobalSearch()"
-            />
-            <kbd class="kbd-badge" (click)="focusSearch()" matTooltip="Presiona Ctrl + K">⌘K</kbd>
-          </div>
-        </div>
-
-        <!-- Switch Base de Datos MongoDB (Local vs Remoto) -->
-        <div class="db-switch-container">
-          <button
-            type="button"
-            class="db-chip"
-            [class.db-chip-remote]="dbService.isRemote()"
-            [class.db-chip-local]="!dbService.isRemote()"
-            [matMenuTriggerFor]="dbMenu"
-            matTooltip="Base de datos MongoDB activa. Clic para alternar"
-          >
-            <span class="db-status-dot" [class.online]="dbService.isConnected()"></span>
-            <mat-icon class="db-icon">{{ dbService.isRemote() ? 'cloud' : 'dns' }}</mat-icon>
-            <span class="db-name font-sans">{{ dbService.isRemote() ? 'BD Remota' : 'BD Local' }}</span>
-            @if (dbService.pingMs() !== null) {
-              <span class="db-ping font-tabular">{{ dbService.pingMs() }}ms</span>
-            }
-            <mat-icon class="db-chevron">arrow_drop_down</mat-icon>
-          </button>
-
-          <mat-menu #dbMenu="matMenu" class="db-menu-dropdown">
-            <div class="db-menu-header" (click)="$event.stopPropagation()">
-              <div class="db-menu-title">
-                <mat-icon>storage</mat-icon>
-                <span>Conexión MongoDB</span>
-              </div>
-              <span class="db-badge" [class.badge-remote]="dbService.isRemote()" [class.badge-local]="!dbService.isRemote()">
-                {{ dbService.isRemote() ? 'REMOTA' : 'LOCAL' }}
-              </span>
-            </div>
-
-            <div class="db-menu-details" (click)="$event.stopPropagation()">
-              <div class="db-detail-row">
-                <span class="label">Host:</span>
-                <span class="val font-tabular">{{ dbService.host() }}</span>
-              </div>
-              <div class="db-detail-row">
-                <span class="label">Estado:</span>
-                <span class="val" [class.text-green]="dbService.isConnected()" [class.text-red]="!dbService.isConnected()">
-                  {{ dbService.isConnected() ? 'Conectado ✅' : 'Desconectado ❌' }}
-                </span>
-              </div>
-              @if (dbService.pingMs() !== null) {
-                <div class="db-detail-row">
-                  <span class="label">Latencia:</span>
-                  <span class="val font-tabular">{{ dbService.pingMs() }} ms</span>
-                </div>
-              }
-            </div>
-
-            <mat-divider></mat-divider>
-
-            <button mat-menu-item (click)="switchDatabase('remote')" [disabled]="dbService.isRemote() || dbService.isSwitching()">
-              <mat-icon color="primary">cloud</mat-icon>
-              <span>Conectar a Servidor Remoto (161.132.52.69)</span>
-            </button>
-
-            <button mat-menu-item (click)="switchDatabase('local')" [disabled]="!dbService.isRemote() || dbService.isSwitching()">
-              <mat-icon>computer</mat-icon>
-              <span>Conectar a MongoDB Local (localhost)</span>
-            </button>
-
-            <mat-divider></mat-divider>
-
-            <button mat-menu-item (click)="refreshDbStatus()">
-              <mat-icon>refresh</mat-icon>
-              <span>Actualizar estado / Medir ping</span>
-            </button>
-          </mat-menu>
-        </div>
-      </div>
-
-      <!-- SECCIÓN DERECHA: Ayuda RNAT + Toggle Modo Oscuro + Notificaciones + Perfil -->
+      <!-- Derecha: Modo Oscuro + Ayuda + Notificaciones + Perfil Funcionario -->
       <div class="topbar-right">
-        <!-- Botón Ayuda y Normativa RNAT (Stitch Spec) -->
-        <button mat-icon-button class="action-icon-btn" (click)="abrirAyudaNormativa()"
-                matTooltip="Ayuda y Marco Normativo RNAT (D.S. 017-2009-MTC)">
-          <mat-icon>help_outline</mat-icon>
+        <!-- Alternar Modo Oscuro / Claro Directo -->
+        <button
+          type="button"
+          class="topbar-icon-action"
+          id="themeToggleBtn"
+          [title]="isDarkMode() ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'"
+          (click)="toggleDarkMode()"
+          aria-label="Alternar Modo Oscuro / Claro"
+        >
+          @if (isDarkMode()) {
+            <!-- Icono Sol (Modo Claro) -->
+            <svg class="action-svg text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+          } @else {
+            <!-- Icono Luna (Modo Oscuro) -->
+            <svg class="action-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+          }
         </button>
 
-        <!-- Toggle Modo Oscuro Rápido (Stitch Spec) -->
-        <button mat-icon-button class="action-icon-btn theme-toggle-btn" (click)="toggleDarkMode()"
-                [matTooltip]="isDarkMode() ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'">
-          <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        <!-- Ayuda y Normativa RNAT -->
+        <button
+          type="button"
+          class="topbar-icon-action"
+          title="Ayuda y Normativa RNAT"
+          (click)="abrirAyudaNormativa()"
+        >
+          <svg class="action-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
         </button>
 
-        <!-- Selector de Tema de Color -->
-        <div class="theme-palette-btn">
-          <button mat-icon-button class="action-icon-btn" [matMenuTriggerFor]="paletteMenu" matTooltip="Paleta de Estilos">
-            <mat-icon>palette</mat-icon>
-          </button>
-          <mat-menu #paletteMenu="matMenu" class="theme-palette-menu">
-            <div class="palette-header">Paletas del Sistema</div>
-            <mat-divider></mat-divider>
-            @for (theme of availableThemes(); track theme.name) {
-              <button mat-menu-item (click)="onThemeChange(theme.name)" [class.active-theme]="selectedTheme === theme.name">
-                <div class="palette-item">
-                  <span class="palette-color-preview" [style.background]="theme.primary">
-                    <span class="palette-accent-dot" [style.background]="theme.accent"></span>
-                  </span>
-                  <span>{{ getThemeDisplayName(theme.name) }}</span>
-                </div>
-              </button>
-            }
-          </mat-menu>
-        </div>
-
-        <!-- Campana de Notificaciones con Live Ping Badge (Stitch Spec) -->
-        <button mat-icon-button class="action-icon-btn notification-btn" [matMenuTriggerFor]="notificationMenu" matTooltip="Notificaciones del Sistema">
-          <mat-icon>notifications</mat-icon>
-          <span class="pulse-container">
+        <!-- Notificaciones con Pulso Vivo Azul -->
+        <button
+          type="button"
+          class="topbar-icon-action relative"
+          title="Notificaciones"
+          [matMenuTriggerFor]="notificationMenu"
+        >
+          <svg class="action-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          <span class="notification-ping-container">
             <span class="ping-ring"></span>
             <span class="ping-dot"></span>
           </span>
-          <span class="notification-count font-tabular">{{ notificationCount }}</span>
         </button>
 
-        <mat-menu #notificationMenu="matMenu" class="notification-menu">
-          <div class="notification-header">
-            <h3>Notificaciones de Fiscalización</h3>
-            <span class="badge font-tabular">{{ notificationCount }} nuevas</span>
+        <!-- Menú de Notificaciones -->
+        <mat-menu #notificationMenu="matMenu" class="stitch-notification-menu">
+          <div class="menu-head">
+            <h3>Notificaciones del Sistema</h3>
+            <span class="badge">3 Nuevas</span>
           </div>
           <mat-divider></mat-divider>
-          <div class="notification-list">
-            @for (notification of notifications; track notification.id) {
-              <div class="notification-item">
-                <mat-icon [class]="notification.type">{{ notification.icon }}</mat-icon>
-                <div class="notif-content">
-                  <span class="notif-msg">{{ notification.message }}</span>
-                  <span class="notif-time font-tabular">Hace 15 min</span>
+          <div class="notif-items">
+            @for (item of notifications; track item.id) {
+              <div class="notif-row">
+                <mat-icon [class]="item.type">{{ item.icon }}</mat-icon>
+                <div class="notif-body">
+                  <p class="notif-text">{{ item.message }}</p>
+                  <span class="notif-sub">Hace 10 min</span>
                 </div>
               </div>
             }
           </div>
           <mat-divider></mat-divider>
-          <button mat-button class="view-all-btn" (click)="verTodasNotificaciones()">Ver todas las notificaciones</button>
+          <button mat-button class="view-all-notif-btn" (click)="verTodasNotificaciones()">Ver todas las notificaciones</button>
         </mat-menu>
 
-        <div class="v-divider hidden sm:block"></div>
+        <div class="topbar-v-divider hidden sm:block"></div>
 
-        <!-- Tarjeta Oficial de Usuario / Funcionario (Stitch Spec) -->
-        <div class="officer-profile-card" [matMenuTriggerFor]="userMenu" matTooltip="Cuenta de Usuario">
-          <div class="officer-avatar font-sans">
-            {{ getUserInitials() }}
+        <!-- Tarjeta Oficial de Usuario / Funcionario DRTC -->
+        <div class="officer-profile-pill group" [matMenuTriggerFor]="userMenu" title="Cuenta de Funcionario">
+          <div class="officer-avatar">
+            <span>{{ getUserInitials() }}</span>
           </div>
-          <div class="officer-info hidden lg:flex">
-            <span class="officer-name font-sans">{{ getOfficerFullName() }}</span>
-            <span class="officer-role font-sans">{{ getRoleDisplayName(currentUser()?.rolId) }}</span>
+          <div class="officer-meta hidden lg:flex">
+            <span class="officer-name">{{ getOfficerFullName() }}</span>
+            <span class="officer-role">{{ getRoleDisplayName(currentUser()?.rolId) }}</span>
           </div>
-          <mat-icon class="officer-chevron">keyboard_arrow_down</mat-icon>
+          <svg class="chevron-down-svg hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
         </div>
 
-        <mat-menu #userMenu="matMenu" class="user-dropdown-menu">
-          <div class="user-header-info">
-            <div class="user-header-avatar font-sans">{{ getUserInitials() }}</div>
-            <div class="user-header-text">
+        <!-- Menú de Usuario con Conexión MongoDB y Modo Oscuro integrados -->
+        <mat-menu #userMenu="matMenu" class="stitch-user-menu">
+          <div class="user-card-header">
+            <div class="user-card-avatar">{{ getUserInitials() }}</div>
+            <div class="user-card-details">
               <h4>{{ getOfficerFullName() }}</h4>
-              <p class="user-email font-mono">{{ currentUser()?.email || 'funcionario@drtc.gob.pe' }}</p>
-              <span class="user-badge font-sans">{{ getRoleDisplayName(currentUser()?.rolId) }}</span>
+              <p class="user-card-role">{{ getRoleDisplayName(currentUser()?.rolId) }}</p>
+              <span class="user-card-email font-mono">{{ currentUser()?.email || 'especialista@drtc.gob.pe' }}</span>
             </div>
           </div>
+
           <mat-divider></mat-divider>
+
+          <!-- Diagnóstico y Cambio de Base de Datos MongoDB -->
+          <div class="db-section" (click)="$event.stopPropagation()">
+            <div class="db-section-header">
+              <span class="db-section-title">Base de Datos Activa</span>
+              <span class="db-status-badge" [class.badge-remote]="dbService.isRemote()" [class.badge-local]="!dbService.isRemote()">
+                {{ dbService.isRemote() ? 'REMOTA (161.132.52.69)' : 'LOCAL (localhost)' }}
+              </span>
+            </div>
+            <div class="db-section-row">
+              <span>Estado: <strong [class.text-emerald]="dbService.isConnected()" [class.text-rose]="!dbService.isConnected()">{{ dbService.isConnected() ? 'Conectado' : 'Desconectado' }}</strong></span>
+              @if (dbService.pingMs() !== null) {
+                <span class="db-ping-val font-tabular">{{ dbService.pingMs() }} ms</span>
+              }
+            </div>
+            <div class="db-switch-actions">
+              <button
+                type="button"
+                class="db-btn"
+                [class.active-db]="!dbService.isRemote()"
+                (click)="switchDatabase('local')"
+                [disabled]="!dbService.isRemote() || dbService.isSwitching()"
+              >
+                Local
+              </button>
+              <button
+                type="button"
+                class="db-btn"
+                [class.active-db]="dbService.isRemote()"
+                (click)="switchDatabase('remote')"
+                [disabled]="dbService.isRemote() || dbService.isSwitching()"
+              >
+                Remoto
+              </button>
+            </div>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Modo Oscuro Toggle Rápido -->
+          <button mat-menu-item (click)="toggleDarkMode()">
+            <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+            <span>{{ isDarkMode() ? 'Activar Modo Claro' : 'Activar Modo Oscuro' }}</span>
+          </button>
+
           <button mat-menu-item (click)="verPerfil()">
             <mat-icon>person</mat-icon>
             <span>Mi Perfil de Funcionario</span>
           </button>
+
           <button mat-menu-item (click)="irConfiguracion()">
             <mat-icon>settings</mat-icon>
             <span>Configuración del Sistema</span>
           </button>
+
           <button mat-menu-item (click)="cambiarContrasena()">
             <mat-icon>lock</mat-icon>
-            <span>Seguridad y Contraseña</span>
+            <span>Cambiar Contraseña</span>
           </button>
+
           <mat-divider></mat-divider>
-          <button mat-menu-item class="logout-item" (click)="logout()">
+
+          <button mat-menu-item class="logout-menu-item" (click)="logout()">
             <mat-icon>exit_to_app</mat-icon>
             <span>Cerrar Sesión</span>
           </button>
@@ -275,19 +266,14 @@ export class TopbarComponent implements OnInit {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
-  // Signals
   currentUser = signal<Usuario | null>(null);
   isDarkMode = this.themeService.isDarkMode;
-  availableThemes = this.themeService.availableThemes;
 
-  // Estado local
-  selectedTheme = '';
   searchQuery = '';
-  notificationCount = 3;
   notifications = [
-    { id: 1, type: 'info', icon: 'business', message: 'Nueva empresa interprovincial registrada en Puno' },
-    { id: 2, type: 'warning', icon: 'warning', message: 'TUC próximo a caducar: Flota Z4V-960' },
-    { id: 3, type: 'success', icon: 'verified', message: 'Fiscalización conforme: Terminal Terrestre Juliaca' }
+    { id: 1, type: 'info', icon: 'business', message: 'Nueva empresa interprovincial registrada' },
+    { id: 2, type: 'warning', icon: 'warning', message: 'TUC próximo a vencer: Flota Z4V-960' },
+    { id: 3, type: 'success', icon: 'verified', message: 'Fiscalización completada en Terminal Terrestre' }
   ];
 
   @HostListener('window:keydown', ['$event'])
@@ -300,7 +286,6 @@ export class TopbarComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
-    this.selectedTheme = this.themeService.currentTheme().name;
   }
 
   loadCurrentUser(): void {
@@ -318,23 +303,20 @@ export class TopbarComponent implements OnInit {
     const q = this.searchQuery.trim();
     if (!q) return;
 
-    // Si es un RUC de 11 dígitos
     if (/^\d{11}$/.test(q)) {
       this.router.navigate(['/empresas'], { queryParams: { ruc: q } });
-      this.snackBar.open(`Buscando Empresa por RUC: ${q}`, 'OK', { duration: 2500 });
+      this.snackBar.open(`Consultando RUC: ${q}`, 'OK', { duration: 2500 });
       return;
     }
 
-    // Si es una placa (e.g. Z4V-960 o similar)
     if (/^[A-Za-z0-9]{3}-?[A-Za-z0-9]{3}$/.test(q)) {
       this.router.navigate(['/vehiculos'], { queryParams: { placa: q.toUpperCase() } });
-      this.snackBar.open(`Buscando Vehículo por Placa: ${q.toUpperCase()}`, 'OK', { duration: 2500 });
+      this.snackBar.open(`Consultando Placa: ${q.toUpperCase()}`, 'OK', { duration: 2500 });
       return;
     }
 
-    // Búsqueda general
     this.router.navigate(['/empresas'], { queryParams: { q } });
-    this.snackBar.open(`Búsqueda en Registros DRTC: "${q}"`, 'OK', { duration: 2500 });
+    this.snackBar.open(`Búsqueda: "${q}"`, 'OK', { duration: 2500 });
   }
 
   getUserInitials(): string {
@@ -364,29 +346,12 @@ export class TopbarComponent implements OnInit {
     return roleMap[roleId || ''] || 'Especialista DRTC-P';
   }
 
-  getThemeDisplayName(themeName: string): string {
-    const themeMap: { [key: string]: string } = {
-      'SIRRETT Institucional': 'Azul Institucional DRTC',
-      'Indigo Pink': 'Índigo Ejecutivo',
-      'Deep Purple Amber': 'Púrpura Andino',
-      'Pink Blue Grey': 'Gris Platino',
-      'Purple Green': 'Púrpura Esmeralda',
-      'Custom Transport': 'Transporte Regional'
-    };
-    return themeMap[themeName] || themeName;
-  }
-
-  onThemeChange(themeName: string): void {
-    this.selectedTheme = themeName;
-    this.themeService.setTheme(themeName);
-  }
-
   toggleDarkMode(): void {
     this.themeService.toggleDarkMode();
   }
 
   abrirAyudaNormativa(): void {
-    this.snackBar.open('Reglamento Nacional de Administración de Transporte (D.S. N° 017-2009-MTC) - DRTC Región Puno', 'Normativa', {
+    this.snackBar.open('Reglamento Nacional de Administración de Transporte (D.S. N° 017-2009-MTC) - DRTC Puno', 'Normativa', {
       duration: 4000,
       horizontalPosition: 'center',
       verticalPosition: 'bottom'
@@ -411,10 +376,6 @@ export class TopbarComponent implements OnInit {
 
   switchDatabase(target: 'local' | 'remote'): void {
     this.dbService.switchTarget(target).subscribe();
-  }
-
-  refreshDbStatus(): void {
-    this.dbService.refreshStatus().subscribe();
   }
 
   logout(): void {

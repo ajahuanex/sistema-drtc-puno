@@ -139,6 +139,7 @@ async def close_mongo_connection():
 async def lifespan(app):
     """Maneja el ciclo de vida de la aplicación"""
     # Startup
+    sunat_cron_task = None
     try:
         await connect_to_mongo()
         # Crear índices para optimizar búsquedas frecuentes
@@ -154,6 +155,14 @@ async def lifespan(app):
                 logger.info("✅ Índices de vehiculos_data creados/verificados")
             except Exception as idx_err:
                 logger.warning(f"⚠️ Error creando índices vehiculos_data: {idx_err}")
+
+        # Iniciar cron automático diario de validación SUNAT
+        try:
+            from app.services.sunat_sync_service import loop_cron_sunat_diario
+            sunat_cron_task = asyncio.create_task(loop_cron_sunat_diario())
+            logger.info("✅ [LIFESPAN] Tarea de validación SUNAT diaria iniciada en segundo plano")
+        except Exception as cron_err:
+            logger.warning(f"⚠️ Error iniciando cron SUNAT: {cron_err}")
     except Exception as e:
         logger.warning(f"⚠️ No se pudo conectar a MongoDB al inicio: {e}")
         logger.info("🔄 La aplicación continuará ejecutándose. MongoDB se reconectará automáticamente cuando esté disponible.")
@@ -161,6 +170,8 @@ async def lifespan(app):
     yield
     
     # Shutdown
+    if sunat_cron_task and not sunat_cron_task.done():
+        sunat_cron_task.cancel()
     await close_mongo_connection()
 
 async def health_check_mongo() -> dict:

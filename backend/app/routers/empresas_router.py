@@ -1840,3 +1840,30 @@ async def _tarea_actualizacion_masiva_sunat(empresa_service: EmpresaService):
             errores += 1
     
     logger.info(f"✅ Actualización masiva SUNAT completa: {actualizadas} ok, {errores} errores")
+
+
+@router.get("/cron-sunat/status")
+async def obtener_estado_cron():
+    """
+    Retorna el estado de la validación automática diaria con SUNAT.
+    """
+    from app.services.sunat_sync_service import obtener_estado_cron_sunat
+    return obtener_estado_cron_sunat()
+
+
+@router.post("/sincronizar-sunat-diario")
+async def ejecutar_sincronizacion_sunat_diaria(
+    background_tasks: BackgroundTasks,
+    forzar: bool = False
+):
+    """
+    Dispara la sincronización automática diaria de SUNAT en segundo plano.
+    """
+    from app.services.sunat_sync_service import ejecutar_validacion_sunat_masiva
+    background_tasks.add_task(ejecutar_validacion_sunat_masiva, forzar)
+    return {
+        "mensaje": "Sincronización diaria SUNAT programada en segundo plano",
+        "forzar_todas": forzar,
+        "status": "iniciado"
+    }
+
