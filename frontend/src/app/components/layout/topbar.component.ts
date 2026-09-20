@@ -43,13 +43,20 @@ import { ChangeDetectionStrategy } from '@angular/core';
         <button mat-icon-button (click)="toggleSidebar.emit()" class="sidebar-toggle"
                 [matTooltip]="sidebarExpanded ? 'Contraer menú' : 'Expandir menú'"
                 aria-label="Alternar menú">
-          <mat-icon aria-hidden="false">{{ sidebarExpanded ? 'menu_open' : 'menu' }}</mat-icon>
+          <mat-icon>{{ sidebarExpanded ? 'menu_open' : 'menu' }}</mat-icon>
         </button>
 
         <!-- Logo y título de la aplicación -->
         <div class="topbar-brand">
-          <img src="assets/logo-test.svg" alt="SIRRET Logo" class="topbar-logo">
-          <h1 class="topbar-title">SIRRET</h1>
+          <img src="assets/images/drtc-logo-light.png" alt="SIRRETT DRTC Puno" class="topbar-logo logo-light">
+          <img src="assets/images/drtc-logo-dark.png" alt="SIRRETT DRTC Puno" class="topbar-logo logo-dark">
+          <div class="brand-text">
+            <div class="brand-title-row">
+              <span class="topbar-title">SIRRETT</span>
+              <span class="brand-pill">REGIÓN PUNO</span>
+            </div>
+            <span class="topbar-subtitle">Dirección Regional de Transportes y Comunicaciones</span>
+          </div>
         </div>
       </div>
 
@@ -75,14 +82,10 @@ import { ChangeDetectionStrategy } from '@angular/core';
 
         <!-- Toggle modo oscuro -->
         <div class="dark-mode-toggle">
-          <mat-slide-toggle
-            [checked]="isDarkMode()"
-            (change)="toggleDarkMode()"
-            color="primary"
-            [matTooltip]="isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-          >
+          <button mat-icon-button (click)="toggleDarkMode()" class="btn-theme-toggle" 
+                  [matTooltip]="isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'">
             <mat-icon>{{ isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
-          </mat-slide-toggle>
+          </button>
         </div>
 
         <!-- Switch Base de Datos MongoDB (Local vs Remoto) -->
@@ -118,7 +121,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
             <div class="db-menu-details" (click)="$event.stopPropagation()">
               <div class="db-detail-row">
                 <span class="label">Host:</span>
-                <span class="val">{{ dbService.host() }}</span>
+                <span class="val font-tabular">{{ dbService.host() }}</span>
               </div>
               <div class="db-detail-row">
                 <span class="label">Estado:</span>
@@ -129,7 +132,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
               @if (dbService.pingMs() !== null) {
                 <div class="db-detail-row">
                   <span class="label">Latencia:</span>
-                  <span class="val">{{ dbService.pingMs() }} ms</span>
+                  <span class="val font-tabular">{{ dbService.pingMs() }} ms</span>
                 </div>
               }
             </div>
@@ -158,7 +161,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
 
       <div class="topbar-right">
         <!-- Notificaciones -->
-        <div class="notifications" [matMenuTriggerFor]="notificationMenu">
+        <div class="notifications" [matMenuTriggerFor]="notificationMenu" matTooltip="Notificaciones del sistema">
           <mat-icon>notifications</mat-icon>
           <span class="notification-badge">{{ notificationCount }}</span>
         </div>
@@ -191,7 +194,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
             <p class="user-name">{{ currentUser()?.nombres }} {{ currentUser()?.apellidos }}</p>
             <p class="user-role">{{ getRoleDisplayName(currentUser()?.rolId) }}</p>
           </div>
-          <mat-icon>keyboard_arrow_down</mat-icon>
+          <mat-icon class="user-chevron">keyboard_arrow_down</mat-icon>
         </div>
 
         <mat-menu #userMenu="matMenu" class="user-dropdown-menu">
@@ -253,31 +256,23 @@ export class TopbarComponent implements OnInit {
     this.selectedTheme = this.themeService.currentTheme().name;
   }
 
-  /**
-   * Carga el usuario actual
-   */
   loadCurrentUser(): void {
     this.currentUser.set(this.authService.getCurrentUser());
   }
 
-  /**
-   * Obtiene el nombre de visualización del rol
-   */
   getRoleDisplayName(roleId?: string): string {
     const roleMap: { [key: string]: string } = {
-      'admin': 'Administrador',
-      'fiscalizador': 'Fiscalizador',
-      'supervisor': 'Supervisor',
-      'usuario': 'Usuario'
+      'admin': 'Administrador General',
+      'fiscalizador': 'Inspector / Fiscalizador',
+      'supervisor': 'Supervisor Regional',
+      'usuario': 'Oficial Registrador'
     };
-    return roleMap[roleId || ''] || 'Usuario';
+    return roleMap[roleId || ''] || 'Oficial Registrador';
   }
 
-  /**
-   * Obtiene el nombre de visualización del tema
-   */
   getThemeDisplayName(themeName: string): string {
     const themeMap: { [key: string]: string } = {
+      'SIRRETT Institucional': 'Institucional DRTC',
       'Indigo Pink': 'Indigo Rosa',
       'Deep Purple Amber': 'Púrpura Ámbar',
       'Pink Blue Grey': 'Rosa Gris Azulado',
@@ -287,65 +282,38 @@ export class TopbarComponent implements OnInit {
     return themeMap[themeName] || themeName;
   }
 
-  /**
-   * Maneja el cambio de tema
-   */
   onThemeChange(themeName: string): void {
     this.themeService.setTheme(themeName);
   }
 
-  /**
-   * Alterna el modo oscuro
-   */
   toggleDarkMode(): void {
     this.themeService.toggleDarkMode();
   }
 
-  /**
-   * Navega a ver todas las notificaciones
-   */
   verTodasNotificaciones(): void {
     this.router.navigate(['/notificaciones']);
   }
 
-  /**
-   * Navega al perfil del usuario
-   */
   verPerfil(): void {
     this.router.navigate(['/perfil']);
   }
 
-  /**
-   * Navega a la configuración
-   */
   irConfiguracion(): void {
     this.router.navigate(['/configuracion']);
   }
 
-  /**
-   * Navega a cambiar contraseña
-   */
   cambiarContrasena(): void {
     this.router.navigate(['/cambiar-contrasena']);
   }
 
-  /**
-   * Cambia el destino de la base de datos MongoDB
-   */
   switchDatabase(target: 'local' | 'remote'): void {
     this.dbService.switchTarget(target).subscribe();
   }
 
-  /**
-   * Refresca el estado y mide la latencia de MongoDB
-   */
   refreshDbStatus(): void {
     this.dbService.refreshStatus().subscribe();
   }
 
-  /**
-   * Cierra la sesión del usuario
-   */
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
@@ -355,4 +323,4 @@ export class TopbarComponent implements OnInit {
       verticalPosition: 'bottom'
     });
   }
-} 
+}

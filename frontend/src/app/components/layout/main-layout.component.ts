@@ -46,10 +46,12 @@ import { TopbarComponent } from './topbar.component';
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: #f5f7fa;
+      background: var(--bg-app, #f8fafc);
+      color: var(--text-primary, #0f172a);
       margin: 0;
       padding: 0;
       overflow: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .topbar-container {
@@ -57,51 +59,52 @@ import { TopbarComponent } from './topbar.component';
       top: 0;
       left: 0;
       right: 0;
-      height: 64px;
+      height: 60px;
       z-index: 1001;
-      background: white;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: var(--bg-surface, #ffffff);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
     }
 
     .main-container {
       flex: 1;
       display: flex;
       height: 100vh;
-      padding-top: 64px;
+      padding-top: 60px;
       overflow: hidden;
     }
 
     .sidebar {
       width: 280px;
-      background: transparent;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #0f244a;
+      transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
-      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
       z-index: 1000;
     }
 
     .sidebar.collapsed {
-      width: 80px;
+      width: 68px;
     }
 
     .content-area {
       flex: 1;
       background: transparent;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       position: relative;
     }
 
     .content-wrapper {
-      padding: 16px;
-      height: 100%;
-      max-width: 1400px;
+      padding: 18px 24px;
+      min-height: 100%;
+      max-width: 100%;
       margin: 0 auto;
+      box-sizing: border-box;
     }
 
     /* Scrollbar personalizado */
     .content-area::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
 
     .content-area::-webkit-scrollbar-track {
@@ -109,33 +112,33 @@ import { TopbarComponent } from './topbar.component';
     }
 
     .content-area::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(148, 163, 184, 0.35);
       border-radius: 4px;
     }
 
     .content-area::-webkit-scrollbar-thumb:hover {
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(148, 163, 184, 0.55);
     }
 
     /* Responsive */
     @media (max-width: 1024px) {
       .content-wrapper {
-        padding: 20px;
+        padding: 16px;
       }
     }
 
     @media (max-width: 768px) {
       .sidebar {
-        width: 250px;
+        width: 280px;
         position: fixed;
-        height: 100%;
+        height: calc(100vh - 60px);
         z-index: 1000;
         transform: translateX(0);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .sidebar.collapsed {
-        width: 250px;
+        width: 280px;
         transform: translateX(-100%);
       }
 
@@ -144,7 +147,7 @@ import { TopbarComponent } from './topbar.component';
       }
 
       .content-wrapper {
-        padding: 16px;
+        padding: 12px;
       }
     }
 
@@ -155,24 +158,8 @@ import { TopbarComponent } from './topbar.component';
       }
 
       .content-wrapper {
-        padding: 12px;
+        padding: 10px;
       }
-    }
-
-    /* Animaciones */
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .content-wrapper {
-      animation: fadeIn 0.3s ease-out;
     }
   `]
 })
@@ -183,16 +170,14 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   // Computed properties
   sidebarWidth = computed(() => {
-    return this.sidebarExpanded() ? '280px' : '80px';
+    return this.sidebarExpanded() ? '280px' : '68px';
   });
 
   private resizeObserver?: ResizeObserver;
 
   ngOnInit(): void {
-    console.log('🏗️ [MAIN-LAYOUT] ngOnInit iniciado');
     this.checkScreenSize();
     this.setupResizeObserver();
-    console.log('✅ [MAIN-LAYOUT] ngOnInit completado');
   }
 
   ngOnDestroy(): void {
@@ -226,4 +211,4 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   toggleSidebar(): void {
     this.sidebarExpanded.update(expanded => !expanded);
   }
-} 
+}

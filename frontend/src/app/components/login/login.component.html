@@ -1,0 +1,400 @@
+<div class="login-page" [class.dark-theme]="themeService.isDarkMode()" [attr.data-theme]="themeService.isDarkMode() ? 'dark' : 'light'">
+  <!-- ================================================================= -->
+  <!-- 1. CABECERA INSTITUCIONAL SUPERIOR (GOBIERNO DEL PERÚ & PUNO)     -->
+  <!-- ================================================================= -->
+  <header class="login-header-top">
+    <!-- Franja Bandera Nacional -->
+    <div class="flag-strip">
+      <div class="flag-red"></div>
+      <div class="flag-white"></div>
+      <div class="flag-red"></div>
+    </div>
+
+    <div class="header-nav">
+      <!-- Logos Oficiales del Estado -->
+      <div class="brand-cluster">
+        <div class="logo-mtc-wrapper">
+          <img src="assets/images/mtc-logo.png" alt="MTC - República del Perú" class="logo-mtc" />
+        </div>
+        <div class="divider-v"></div>
+        <div class="regional-brand">
+          <img src="assets/images/escudo-region-puno.png" alt="Escudo de Puno" class="escudo-puno" />
+          <div class="brand-text">
+            <span class="brand-title">SIRRETT <span class="badge-puno">PUNO</span></span>
+            <span class="brand-sub">Gobierno Regional Puno</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accesos Directos de Cabecera -->
+      <div class="action-cluster">
+        <a href="https://www.gob.pe/drtc" target="_blank" rel="noopener noreferrer" class="btn-header-link" title="Portal Institucional gob.pe/drtc">
+          <mat-icon>account_balance</mat-icon>
+          <span>Página Institucional</span>
+        </a>
+        <a href="https://casilla.mtc.gob.pe/" target="_blank" rel="noopener noreferrer" class="btn-header-link" title="Casilla Electrónica MTC">
+          <mat-icon>mark_email_read</mat-icon>
+          <span>Casilla Electrónica</span>
+        </a>
+        <a href="#consulta-tuc" class="btn-header-link" title="Consulta Pública de TUC">
+          <mat-icon>qr_code_scanner</mat-icon>
+          <span>Verificación Pública TUC</span>
+        </a>
+        <a href="#mesa-partes" class="btn-header-link btn-primary-header" title="Mesa de Partes Virtual">
+          <mat-icon>drafts</mat-icon>
+          <span>Mesa de Partes</span>
+        </a>
+        <button type="button" class="theme-btn" (click)="toggleTheme()" [title]="themeService.isDarkMode() ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'">
+          <mat-icon>{{ themeService.isDarkMode() ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================= -->
+  <!-- 2. CONTENEDOR PRINCIPAL: SPLIT-SCREEN WORKSPACE                   -->
+  <!-- ================================================================= -->
+  <main class="login-workspace">
+    <!-- PANEL IZQUIERDO: Branding Institucional, Hero & Métricas -->
+    <section class="hero-panel">
+      <div class="hero-bg-overlay" style="background-image: url('assets/images/login-hero-bg.png');"></div>
+      <div class="hero-glow-1"></div>
+      <div class="hero-glow-2"></div>
+
+      <!-- Contenido Superior del Panel Izquierdo -->
+      <div class="hero-top-cluster">
+        <div class="hero-top-badges">
+          <div class="official-badge">
+            <span class="pulse-dot"></span>
+            <span>Plataforma Oficial Segura • DRTC Región Puno</span>
+          </div>
+          <div class="ssl-badge">
+            <span class="ssl-dot"></span>
+            <mat-icon class="ssl-icon">lock</mat-icon>
+            <span class="ssl-text">SSL SECURE 256-BIT</span>
+          </div>
+        </div>
+
+        <div class="hero-branding-row">
+          <img src="assets/images/drtc-logo-light.png" alt="DRTC-P Gobierno Regional Puno" class="logo-drtc-hero" />
+          <div class="divider-hero"></div>
+          <img src="assets/images/sello-circulacion.png" alt="Dirección de Circulación Terrestre Puno" class="sello-circular" />
+        </div>
+
+        <div class="title-with-badge">
+          <div class="title-row">
+            <h1 class="main-title">SIRRETT</h1>
+            <span class="badge-fiscalizacion">FISCALIZACIÓN ACTIVA</span>
+          </div>
+          <p class="subtitle">Sistema Regional de Registros de Transporte y Tránsito • DRTC Puno</p>
+        </div>
+      </div>
+
+      <!-- Bento Grid de 2 Tarjetas -->
+      <div class="hero-bento-grid">
+        <div class="bento-card">
+          <div class="bento-icon-box">
+            <mat-icon>map</mat-icon>
+          </div>
+          <div class="bento-info">
+            <span class="bento-title">13 Provincias</span>
+            <span class="bento-sub">Red Vial Regional &amp; Rutas Interprovinciales</span>
+          </div>
+        </div>
+
+        <div class="bento-card">
+          <div class="bento-icon-box">
+            <mat-icon>qr_code_2</mat-icon>
+          </div>
+          <div class="bento-info">
+            <span class="bento-title">TUC Digital &amp; QR</span>
+            <span class="bento-sub">Verificación en ruta y trazabilidad en tiempo real</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner de Consulta Pública de Autorizaciones con 3 Botones -->
+      <div class="public-query-banner">
+        <div class="query-top-row">
+          <div class="query-icon-box">
+            <mat-icon>fact_check</mat-icon>
+          </div>
+          <div class="query-texts">
+            <div class="query-title-row">
+              <h4 class="query-title">Consulta Pública de Autorizaciones</h4>
+              <span class="badge-free-access">ACCESO LIBRE</span>
+            </div>
+            <p class="query-desc">
+              Verifique la vigencia de autorizaciones de ruta, habilitación vehicular y estado de TUC en tiempo real ingresando placa o RUC de la empresa.
+            </p>
+          </div>
+        </div>
+
+        <div class="query-buttons-grid">
+          <a href="#consulta-tuc" class="btn-query-primary">
+            <div class="btn-inner-left">
+              <mat-icon>qr_code_scanner</mat-icon>
+              <span>Consultar TUC</span>
+            </div>
+            <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+          </a>
+          <a href="https://www.gob.pe/drtc" target="_blank" rel="noopener noreferrer" class="btn-query-outline">
+            <mat-icon>account_balance</mat-icon>
+            <span>Portal DRTC Puno</span>
+          </a>
+          <a href="https://casilla.mtc.gob.pe/" target="_blank" rel="noopener noreferrer" class="btn-query-outline">
+            <mat-icon>mark_email_read</mat-icon>
+            <span>Casilla MTC</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Micro Footer Normativo -->
+      <div class="hero-footer">
+        <div class="pide-tag">
+          <mat-icon>verified_user</mat-icon>
+          <span>Interoperabilidad PIDE • RENIEC • SUNARP • SUTRAN</span>
+        </div>
+        <span class="law-tag">Ley N° 27181 - Transporte Terrestre</span>
+      </div>
+    </section>
+
+    <!-- PANEL DERECHO: Formulario de Autenticación Institucional -->
+    <section class="form-panel">
+      <div class="form-wrapper">
+        <div class="form-header-badge-wrapper">
+          <div class="badge-halo"></div>
+          <div class="form-header-badge">
+            <div class="badge-texture"></div>
+            <mat-icon class="badge-icon">admin_panel_settings</mat-icon>
+            <div class="badge-status-dot">
+              <span class="status-inner"></span>
+            </div>
+          </div>
+        </div>
+        <h2 class="login-heading">Acceso Institucional</h2>
+        <p class="login-subheading">
+          Ingrese sus credenciales oficiales o autentíquese con DNI electrónico.
+        </p>
+
+        <!-- Selector de Perfil / Tabs de Autenticación -->
+        <div class="profile-tabs">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="selectedRole() === 'personal'" 
+            (click)="setRole('personal')">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>Personal DRTC</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="selectedRole() === 'inspector'" 
+            (click)="setRole('inspector')">
+            <mat-icon>local_police</mat-icon>
+            <span>Inspectores</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            [class.active]="selectedRole() === 'empresa'" 
+            (click)="setRole('empresa')">
+            <mat-icon>domain</mat-icon>
+            <span>Empresas RUC</span>
+          </button>
+        </div>
+
+        <!-- Formulario -->
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <!-- Tipo y Número de Documento -->
+          <div class="form-group">
+            <label class="group-label">Documento de Identidad / Usuario Institucional</label>
+            <div class="input-wrapper-duo">
+              <div class="doc-select-box">
+                <mat-icon class="select-lead-icon">badge</mat-icon>
+                <select 
+                  class="doc-select" 
+                  [ngModel]="docType()" 
+                  (ngModelChange)="onDocTypeChange($event)" 
+                  [ngModelOptions]="{standalone: true}">
+                  <option value="DNI">DNI</option>
+                  <option value="CE">C.E.</option>
+                  <option value="RUC">RUC</option>
+                  <option value="PASAPORTE">Pasaporte</option>
+                </select>
+              </div>
+
+              <div class="input-with-icon">
+                <mat-icon class="lead-icon">pin</mat-icon>
+                <input 
+                  type="text" 
+                  formControlName="dni" 
+                  class="font-tabular" 
+                  [placeholder]="docType() === 'RUC' ? 'Número RUC (11 dígitos)' : (docType() === 'DNI' ? 'Número DNI (8 dígitos)' : 'Número de Documento')" 
+                  [maxlength]="docType() === 'RUC' ? 11 : 12" 
+                  autocomplete="username" />
+              </div>
+            </div>
+            @if (loginForm.get('dni')?.hasError('required') && loginForm.get('dni')?.touched) {
+              <div class="field-error">El número de documento es requerido.</div>
+            }
+            @if (loginForm.get('dni')?.hasError('pattern') && loginForm.get('dni')?.touched) {
+              <div class="field-error">Formato de documento inválido.</div>
+            }
+          </div>
+
+          <!-- Contraseña -->
+          <div class="form-group">
+            <div class="group-label">
+              <span>Contraseña Institucional</span>
+              <a href="#recuperar" class="forgot-link">¿Olvidó su contraseña?</a>
+            </div>
+            <div class="input-with-icon">
+              <mat-icon class="lead-icon">lock</mat-icon>
+              <input 
+                [type]="showPassword() ? 'text' : 'password'" 
+                formControlName="password" 
+                placeholder="••••••••••••" 
+                autocomplete="current-password" />
+              <button 
+                type="button" 
+                class="toggle-pwd-btn" 
+                (click)="showPassword.set(!showPassword())" 
+                [title]="showPassword() ? 'Ocultar contraseña' : 'Ver contraseña'">
+                <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            @if (loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched) {
+              <div class="field-error">La contraseña es requerida.</div>
+            }
+          </div>
+
+          <!-- Código de Seguridad (Captcha) -->
+          <div class="captcha-form-group">
+            <div class="captcha-label-row">
+              <label class="group-label flex-label">
+                <mat-icon class="captcha-label-icon">verified</mat-icon>
+                <span>Código de Seguridad</span>
+              </label>
+              <span class="captcha-case-hint">Sensible a mayúsculas</span>
+            </div>
+
+            <div class="captcha-grid-row">
+              <div class="captcha-plate-box">
+                <div class="captcha-plate-display">
+                  <div class="captcha-bg-texture"></div>
+                  <span class="captcha-text font-plate">{{ captchaCode() }}</span>
+                </div>
+                <button type="button" class="btn-refresh-captcha" (click)="generateCaptcha()" title="Generar nuevo código">
+                  <mat-icon>refresh</mat-icon>
+                </button>
+              </div>
+
+              <div class="captcha-input-container">
+                <input 
+                  type="text" 
+                  class="captcha-input font-tabular" 
+                  maxlength="3" 
+                  placeholder="CÓDIGO (3 CAR.)" 
+                  [ngModel]="captchaInput()" 
+                  (ngModelChange)="captchaInput.set($event)" 
+                  [ngModelOptions]="{standalone: true}" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Recordar Sesión & TLS -->
+          <div class="session-options">
+            <label class="remember-check">
+              <input 
+                type="checkbox" 
+                [ngModel]="rememberMe()" 
+                (ngModelChange)="rememberMe.set($event)" 
+                [ngModelOptions]="{standalone: true}" />
+              <span>Recordar en este equipo seguro</span>
+            </label>
+            <span class="tls-badge">TLS 1.3</span>
+          </div>
+
+          <!-- Botón de Ingreso Principal -->
+          <button type="submit" class="btn-submit-login" [disabled]="loginForm.invalid || isLoading()">
+            @if (isLoading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>Validando Credenciales...</span>
+            } @else {
+              <span>Ingresar al Sistema</span>
+              <mat-icon>arrow_forward</mat-icon>
+            }
+          </button>
+
+          <!-- Sesión IP Auditada (Stitch Pill Update) -->
+          <div class="ip-audit-row">
+            <div class="ip-audit-pill">
+              <span class="ip-dot"></span>
+              <span class="ip-text font-tabular">IP: 190.119.245.12</span>
+              <span class="ip-sep">•</span>
+              <span class="ip-label">Sesión Auditada</span>
+            </div>
+          </div>
+
+          <!-- Separador Visual -->
+          <div class="auth-separator">
+            <span>O MEDIANTE CREDENCIAL DIGITAL</span>
+          </div>
+
+          <!-- Botón DNIe -->
+          <button type="button" class="btn-dnie" title="Autenticación con DNI Electrónico y Lector Inteligente">
+            <mat-icon>credit_card</mat-icon>
+            <span>Autenticar con DNI Electrónico (DNIe / RENIEC)</span>
+          </button>
+        </form>
+
+        <!-- Test credentials helper pill for quick dev access -->
+        <div class="test-credentials-box">
+          <div class="cred-info">
+            <mat-icon>info</mat-icon>
+            <span>Credenciales demo: <strong>12345678 / admin</strong></span>
+          </div>
+          <button type="button" class="btn-auto-fill" (click)="fillDemoCredentials()">
+            Auto-completar
+          </button>
+        </div>
+
+        <!-- Aviso Normativo de Confidencialidad -->
+        <div class="security-notice">
+          <mat-icon>info</mat-icon>
+          <p>
+            <strong>Aviso de Confidencialidad:</strong> El uso de credenciales en SIRRETT es personal e intransferible. Todo acceso y consulta queda registrado para efectos de auditoría y trazabilidad bajo la <span class="law-underline">Ley N° 29733</span>.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================================================================= -->
+  <!-- 3. PIE DE PÁGINA INSTITUCIONAL                                    -->
+  <!-- ================================================================= -->
+  <footer class="login-footer-bottom">
+    <div class="footer-inner">
+      <div class="footer-credits">
+        © 2026 <strong>Dirección Regional de Transportes y Comunicaciones de Puno</strong> • Gobierno Regional de Puno
+      </div>
+      <div class="footer-links">
+        <a href="#terminos">Términos de Uso</a>
+        <span>•</span>
+        <a href="#privacidad">Política de Privacidad</a>
+        <span>•</span>
+        <a href="mailto:soporte@drtc-puno.gob.pe">
+          <mat-icon class="footer-icon">support_agent</mat-icon>
+          <span>Mesa de Ayuda DRTC</span>
+        </a>
+        <span>•</span>
+        <span class="ip-pill">
+          <span class="live-dot"></span>
+          <span>SIRRETT v2.4.1</span>
+        </span>
+      </div>
+    </div>
+  </footer>
+</div>

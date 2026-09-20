@@ -35,24 +35,28 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
         
         <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Dashboard' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'dashboard'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Dashboard</span> }
         </a>
 
         <a mat-list-item routerLink="/empresas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Empresas' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'business'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'business'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Empresas</span> }
         </a>
 
         <a mat-list-item routerLink="/infraestructura" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Infraestructura' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'location_city'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'location_city'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Infraestructura</span> }
         </a>
 
         <a mat-list-item routerLink="/vehiculos" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Vehículos' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'directions_car'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'directions_car'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Vehículos</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculos')" (click)="toggleGroup('vehiculos', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculos')" (click)="toggleGroup('vehiculos', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('vehiculos')) {
@@ -63,9 +67,13 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/vehiculos-empresa" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Flota por Empresa' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'directions_bus'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'directions_bus'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Flota por Empresa</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosEmpresa')" (click)="toggleGroup('vehiculosEmpresa', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosEmpresa')" (click)="toggleGroup('vehiculosEmpresa', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('vehiculosEmpresa')) {
@@ -76,9 +84,13 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/vehiculos-data" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Datos Técnicos Vehiculares' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'build'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'build'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Datos Técnicos Vehiculares</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosSolo')" (click)="toggleGroup('vehiculosSolo', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('vehiculosSolo')" (click)="toggleGroup('vehiculosSolo', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('vehiculosSolo')) {
@@ -88,11 +100,8 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </a>
         }
 
-
-
-
         <a mat-list-item routerLink="/tucs" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Tarjetas TUC' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'card_membership'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'card_membership'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Tarjetas TUC</span> }
         </a>
 
@@ -104,12 +113,14 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
           </div>
         }
 
-
-
         <a mat-list-item routerLink="/rutas" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Rutas' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'route'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'route'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Rutas</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('rutas')" (click)="toggleGroup('rutas', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('rutas')" (click)="toggleGroup('rutas', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('rutas')) {
@@ -128,9 +139,13 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/localidades" routerLinkActive="active-link" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Localidades' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'place'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'place'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Localidades</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('localidades')" (click)="toggleGroup('localidades', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('localidades')" (click)="toggleGroup('localidades', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('localidades')) {
@@ -138,9 +153,6 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
             <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
             @if (isExpanded()) { <span matListItemTitle class="nav-text">Gestionar Alias</span> }
           </a>
-        }
-
-        @if (isExpanded() && expandedGroups().has('localidades')) {
           <a mat-list-item routerLink="/localidades/geometrias" routerLinkActive="active-link" class="nav-item sub-item" [matTooltip]="!isExpanded() ? 'Gestionar Geometrías' : ''" matTooltipPosition="right">
             <mat-icon matListItemIcon class="nav-icon sub-icon">arrow_right</mat-icon>
             @if (isExpanded()) { <span matListItemTitle class="nav-text">Gestionar Geometrías</span> }
@@ -148,9 +160,13 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/resoluciones-primigenias" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: true}" class="nav-item nav-parent" [matTooltip]="!isExpanded() ? 'Resoluciones Primigenias' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'auto_awesome'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'auto_awesome'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones Primigenias</span> }
-          @if (isExpanded()) { <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('resolucionesPrimigenias')" (click)="toggleGroup('resolucionesPrimigenias', $event)">chevron_right</mat-icon> }
+          @if (isExpanded()) { 
+            <mat-icon class="expand-icon" [class.expanded]="expandedGroups().has('resolucionesPrimigenias')" (click)="toggleGroup('resolucionesPrimigenias', $event)">
+              chevron_right
+            </mat-icon> 
+          }
         </a>
 
         @if (isExpanded() && expandedGroups().has('resolucionesPrimigenias')) {
@@ -161,25 +177,21 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/resoluciones-hijas" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones Hijas / Modificatorias' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'alt_route'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'alt_route'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones Hijas</span> }
         </a>
 
         <a mat-list-item routerLink="/resoluciones" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Resoluciones' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'description'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'description'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Resoluciones</span> }
         </a>
 
         <a mat-list-item routerLink="/expedientes" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Expedientes' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'folder'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'folder'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Expedientes</span> }
         </a>
 
-
-
         @if (isExpanded()) { <mat-divider class="section-divider"></mat-divider> }
-
-
 
         @if (isExpanded()) {
           <div class="nav-section">
@@ -188,7 +200,7 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/auditoria" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Auditoría del Sistema' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'verified_user'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'verified_user'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Auditoría del Sistema</span> }
         </a>
 
@@ -201,55 +213,304 @@ import { SmartIconComponent } from '../../shared/smart-icon.component';
         }
 
         <a mat-list-item routerLink="/configuracion" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Configuración' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'settings'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'settings'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Configuración</span> }
         </a>
 
         <a mat-list-item routerLink="/perfil" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Perfil' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'account_circle'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'account_circle'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Perfil</span> }
         </a>
 
         <a mat-list-item routerLink="/ayuda" routerLinkActive="active-link" class="nav-item" [matTooltip]="!isExpanded() ? 'Ayuda' : ''" matTooltipPosition="right">
-          <app-smart-icon matListItemIcon [iconName]="'help'" [size]="24" class="nav-icon"></app-smart-icon>
+          <app-smart-icon matListItemIcon [iconName]="'help'" [size]="18" class="nav-icon"></app-smart-icon>
           @if (isExpanded()) { <span matListItemTitle class="nav-text">Ayuda</span> }
         </a>
       </mat-nav-list>
+
+      <!-- Pie Institucional del Sidebar -->
+      <div class="sidebar-footer" [class.collapsed]="!isExpanded()">
+        @if (isExpanded()) {
+          <div class="footer-badge">
+            <span class="pulse-dot"></span>
+            <span class="version-text font-tabular">SIRRETT v2.4 • DRTC Puno</span>
+          </div>
+        } @else {
+          <div class="footer-badge-dot" [matTooltip]="'SIRRETT v2.4 - Región Puno'" matTooltipPosition="right">
+            <span class="pulse-dot"></span>
+          </div>
+        }
+      </div>
     </nav>
   `,
   styles: [`
-    .sidebar-nav { height: 100%; background: white; border-radius: 0 16px 16px 0; box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1); overflow: hidden; }
-    .nav-list { padding: 8px 0 0 0; height: 100%; overflow-y: auto; }
-    .nav-section { padding: 8px 16px 8px 16px; }
-    .section-title { margin: 0; font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
-    .nav-item { margin: 4px 8px; border-radius: 8px; transition: all 0.2s ease-in-out; position: relative; display: flex !important; align-items: center !important; height: 48px !important; }
-    .nav-item:hover { background-color: #f8f9fa; transform: translateX(4px); }
-    .nav-item.active-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-    .nav-item.active-link:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); transform: translateX(4px); }
-    .nav-icon { color: #6c757d; transition: color 0.2s ease-in-out; display: inline-flex !important; align-items: center !important; justify-content: center !important; margin-right: 16px; flex-shrink: 0; vertical-align: middle !important; }
-    .nav-item.active-link .nav-icon { color: white; }
-    .nav-item.sub-item .sub-icon { font-size: 18px !important; width: 18px !important; height: 18px !important; color: #adb5bd !important; margin-right: 12px !important; }
-    .nav-item.sub-item.active-link .sub-icon { color: rgba(255, 255, 255, 0.8) !important; }
-    .nav-item ::ng-deep app-smart-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; vertical-align: middle !important; }
-    .nav-item ::ng-deep .mdc-list-item__content { display: flex !important; align-items: center !important; flex-direction: row !important; }
-    .nav-item ::ng-deep .mat-mdc-list-item-unscoped-content { display: flex !important; align-items: center !important; flex-direction: row !important; }
-    .nav-text { font-weight: 500; color: #2c3e50; transition: color 0.2s ease-in-out; }
-    .nav-item.active-link .nav-text { color: white; }
-    .nav-item.sub-item { margin-left: 24px; padding-left: 16px; border-left: 2px solid #e9ecef; font-size: 0.9em; }
-    .nav-item.sub-item:hover { border-left-color: #667eea; }
-    .nav-item.sub-item.active-link { border-left-color: #667eea; }
-    .expand-icon { font-size: 16px; color: #adb5bd; cursor: pointer; transition: transform 0.2s ease-in-out; margin-left: auto; margin-right: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-    .expand-icon.expanded { transform: rotate(90deg); }
-    .nav-parent { display: flex !important; align-items: center !important; }
-    .nav-parent .nav-text { flex: 1; }
-    .section-divider { margin: 16px 8px; border-color: #e9ecef; }
-    .nav-list::-webkit-scrollbar { width: 4px; }
-    .nav-list::-webkit-scrollbar-track { background: transparent; }
-    .nav-list::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 2px; }
-    .nav-list::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
-    @media (max-width: 768px) { .sidebar-nav { border-radius: 0; } .nav-item { margin: 2px 4px; } .nav-section { padding: 12px 12px 6px 12px; } }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-    .nav-item { animation: slideIn 0.3s ease-out; }
+    .sidebar-nav { 
+      height: 100%; 
+      display: flex;
+      flex-direction: column;
+      background: #0f244a; /* Azul institucional profundo Stitch */
+      border-right: 1px solid rgba(255, 255, 255, 0.08); 
+      box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18); 
+      overflow: hidden; 
+      user-select: none;
+    }
+
+    .nav-list { 
+      flex: 1;
+      padding: 8px 0; 
+      overflow-y: auto; 
+      overflow-x: hidden; 
+    }
+
+    .nav-section { 
+      padding: 12px 14px 4px 14px; 
+    }
+
+    .section-title { 
+      margin: 0; 
+      font-size: 10.5px; 
+      font-weight: 700; 
+      color: rgba(255, 255, 255, 0.45); 
+      text-transform: uppercase; 
+      letter-spacing: 0.08em; 
+      font-family: 'Inter', sans-serif;
+    }
+
+    .nav-item { 
+      margin: 2px 6px; 
+      padding: 0 10px !important;
+      border-radius: 6px; 
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1); 
+      position: relative; 
+      display: flex !important; 
+      align-items: center !important; 
+      height: 38px !important; 
+      color: rgba(255, 255, 255, 0.82) !important;
+      text-decoration: none;
+    }
+
+    .nav-item:hover { 
+      background-color: rgba(255, 255, 255, 0.08); 
+      color: #ffffff !important;
+      transform: translateX(2px); 
+    }
+
+    .nav-item.active-link { 
+      background: linear-gradient(90deg, rgba(30, 58, 138, 0.95) 0%, rgba(37, 99, 235, 0.9) 100%) !important; 
+      color: #ffffff !important; 
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35); 
+      border-left: 3px solid #60a5fa;
+    }
+
+    .nav-item.active-link:hover { 
+      background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%) !important; 
+      transform: translateX(2px); 
+    }
+
+    .nav-icon { 
+      color: rgba(255, 255, 255, 0.65); 
+      transition: color 0.18s ease-in-out; 
+      display: inline-flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      margin-right: 10px; 
+      flex-shrink: 0; 
+      vertical-align: middle !important; 
+    }
+
+    .nav-item:hover .nav-icon,
+    .nav-item.active-link .nav-icon { 
+      color: #ffffff; 
+    }
+
+    .nav-item.sub-item .sub-icon { 
+      font-size: 16px !important; 
+      width: 16px !important; 
+      height: 16px !important; 
+      color: rgba(255, 255, 255, 0.45) !important; 
+      margin-right: 8px !important; 
+    }
+
+    .nav-item.sub-item:hover .sub-icon,
+    .nav-item.sub-item.active-link .sub-icon { 
+      color: #93c5fd !important; 
+    }
+
+    .nav-item ::ng-deep app-smart-icon { 
+      display: inline-flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      vertical-align: middle !important; 
+    }
+
+    .nav-item ::ng-deep .mdc-list-item__content { 
+      display: flex !important; 
+      align-items: center !important; 
+      flex-direction: row !important; 
+      width: 100%;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+
+    .nav-item ::ng-deep .mat-mdc-list-item-unscoped-content { 
+      display: flex !important; 
+      align-items: center !important; 
+      flex-direction: row !important; 
+      width: 100%;
+      overflow: visible !important;
+    }
+
+    .nav-item ::ng-deep .mdc-list-item__primary-text {
+      display: flex !important;
+      align-items: center !important;
+      flex: 1 1 auto;
+      overflow: visible !important;
+      white-space: nowrap !important;
+    }
+
+    .nav-text { 
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500; 
+      color: inherit; 
+      transition: color 0.18s ease-in-out; 
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .nav-item.sub-item { 
+      margin-left: 18px; 
+      padding-left: 8px !important; 
+      border-left: 1.5px solid rgba(255, 255, 255, 0.12); 
+      height: 34px !important;
+      font-size: 12px;
+    }
+
+    .nav-item.sub-item:hover { 
+      border-left-color: #60a5fa; 
+    }
+
+    .nav-item.sub-item.active-link { 
+      background: rgba(37, 99, 235, 0.25) !important; 
+      color: #93c5fd !important; 
+      border-left: 2.5px solid #60a5fa !important; 
+    }
+
+    .expand-icon { 
+      font-size: 16px; 
+      width: 16px;
+      height: 16px;
+      color: rgba(255, 255, 255, 0.45); 
+      cursor: pointer; 
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+      margin-left: auto; 
+      margin-right: 0; 
+      flex-shrink: 0; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+    }
+
+    .expand-icon:hover {
+      color: #ffffff;
+    }
+
+    .expand-icon.expanded { 
+      transform: rotate(90deg); 
+      color: #60a5fa;
+    }
+
+    .nav-parent { 
+      display: flex !important; 
+      align-items: center !important; 
+    }
+
+    .nav-parent .nav-text { 
+      flex: 1; 
+    }
+
+    .section-divider { 
+      margin: 8px 12px; 
+      border-color: rgba(255, 255, 255, 0.08); 
+    }
+
+    .nav-list::-webkit-scrollbar { 
+      width: 4px; 
+    }
+
+    .nav-list::-webkit-scrollbar-track { 
+      background: transparent; 
+    }
+
+    .nav-list::-webkit-scrollbar-thumb { 
+      background: rgba(255, 255, 255, 0.15); 
+      border-radius: 2px; 
+    }
+
+    .nav-list::-webkit-scrollbar-thumb:hover { 
+      background: rgba(255, 255, 255, 0.3); 
+    }
+
+    .sidebar-footer {
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.22);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .footer-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 9999px;
+        padding: 4px 10px;
+
+        .pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 6px #10b981;
+        }
+
+        .version-text {
+          font-size: 10.5px;
+          color: rgba(255, 255, 255, 0.65);
+          letter-spacing: 0.03em;
+        }
+      }
+
+      &.collapsed {
+        padding: 10px 0;
+
+        .footer-badge-dot {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.05);
+
+          .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+          }
+        }
+      }
+    }
+
+    @media (max-width: 768px) { 
+      .nav-item { margin: 2px 4px; } 
+      .nav-section { padding: 10px 12px 4px 12px; } 
+    }
   `]
 })
 export class SidebarComponent {

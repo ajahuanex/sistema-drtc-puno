@@ -18,6 +18,13 @@ export class ThemeService {
   // Temas predefinidos
   private readonly themes: ThemeConfig[] = [
     {
+      name: 'SIRRETT Institucional',
+      primary: '#1e3a8a',
+      accent: '#2563eb',
+      warn: '#dc2626',
+      isDark: false
+    },
+    {
       name: 'Indigo Pink',
       primary: '#3f51b5',
       accent: '#ff4081',
@@ -96,11 +103,16 @@ export class ThemeService {
     this.currentTheme.set(newTheme);
     this.isDarkMode.set(newTheme.isDark);
     this.applyTheme(newTheme);
+    localStorage.setItem('selected-theme-mode', newTheme.isDark ? 'dark' : 'light');
     
     const mode = newTheme.isDark ? 'oscuro' : 'claro';
     this.snackBar.open(`Modo ${mode} activado`, 'Cerrar', {
       duration: 2000
     });
+  }
+
+  toggleTheme(): void {
+    this.toggleDarkMode();
   }
 
   /**
@@ -140,9 +152,22 @@ export class ThemeService {
    */
   private loadSavedTheme(): void {
     const savedTheme = localStorage.getItem('selected-theme');
+    const savedMode = localStorage.getItem('selected-theme-mode');
+    
+    let baseTheme = this.themes[0];
     if (savedTheme) {
-      this.setTheme(savedTheme);
+      const found = this.themes.find(t => t.name === savedTheme);
+      if (found) {
+        baseTheme = found;
+      }
     }
+
+    const isDark = savedMode !== null ? savedMode === 'dark' : baseTheme.isDark;
+    const finalTheme = { ...baseTheme, isDark };
+    
+    this.currentTheme.set(finalTheme);
+    this.isDarkMode.set(isDark);
+    this.applyTheme(finalTheme);
   }
 
   /**
