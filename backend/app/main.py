@@ -42,9 +42,8 @@ logger = logging.getLogger(__name__)
 # Crear aplicación FastAPI
 app = FastAPI(
     title="API SIRRETT",
-    description="API RESTful para el Sistema Regional de Registros de Transporte de Tránsito (SIRRETT)",
-    version=settings.VERSION,
     description="API RESTful para el Sistema Regional de Registros de Transporte Terrestre (SIRRETT)",
+    version=settings.VERSION,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
@@ -101,42 +100,45 @@ async def log_requests(request, call_next):
     return response
 
 # Incluir routers
-app.include_router(auth_router, prefix=settings.API_V1_STR)
-app.include_router(empresas_router, prefix=settings.API_V1_STR)
-app.include_router(infraestructura_router, prefix=settings.API_V1_STR)
-app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
-app.include_router(vehiculo_data_router, prefix=settings.API_V1_STR)
-app.include_router(vehiculos_historial_router, prefix=settings.API_V1_STR)
-app.include_router(historial_vehicular_router, prefix=settings.API_V1_STR)
-app.include_router(conductores_router, prefix=settings.API_V1_STR)
-app.include_router(rutas_router, prefix=settings.API_V1_STR)  # Router principal de rutas
-app.include_router(rutas_simples_router, prefix=settings.API_V1_STR)
-app.include_router(resoluciones_router, prefix=settings.API_V1_STR)
-app.include_router(resoluciones_primigenias_router, prefix=settings.API_V1_STR)
-app.include_router(resoluciones_hijas_router, prefix=settings.API_V1_STR)
-app.include_router(expedientes_router, prefix=settings.API_V1_STR)
-app.include_router(tucs_router, prefix=settings.API_V1_STR)
-app.include_router(infracciones_router, prefix=settings.API_V1_STR)
-app.include_router(oficinas_router, prefix=settings.API_V1_STR)
-app.include_router(notificaciones_router, prefix=settings.API_V1_STR)
-app.include_router(localidades_router, prefix=settings.API_V1_STR)
-app.include_router(localidades_alias_router, prefix=settings.API_V1_STR)
-app.include_router(localidades_import_geojson_router, prefix=settings.API_V1_STR, tags=["Localidades Import"])
-app.include_router(normalizar_ubigeos_router, prefix=settings.API_V1_STR)
-app.include_router(importar_geojson_router, prefix=settings.API_V1_STR)
-app.include_router(localidades_geojson_router, prefix=settings.API_V1_STR + "/localidades", tags=["Localidades GeoJSON"])
-app.include_router(geometrias_router, prefix=settings.API_V1_STR)
-app.include_router(nivel_territorial_router, prefix=settings.API_V1_STR)
-app.include_router(additional_router, prefix=settings.API_V1_STR)
-app.include_router(data_manager_router, prefix=settings.API_V1_STR)
-app.include_router(flota_empresa_router, prefix=settings.API_V1_STR)
-app.include_router(database_router, prefix=settings.API_V1_STR)
-app.include_router(dashboard_router, prefix=settings.API_V1_STR)
-app.include_router(auditoria_router, prefix=settings.API_V1_STR)
-app.include_router(busqueda_global_router, prefix=settings.API_V1_STR)
-app.include_router(parametros_router, prefix=settings.API_V1_STR)
-app.include_router(usuarios_router, prefix=settings.API_V1_STR)
-app.include_router(permisos_router, prefix=settings.API_V1_STR)
+api_prefix = settings.API_V1_STR.strip()
+app.include_router(auth_router, prefix=api_prefix)
+app.include_router(empresas_router, prefix=api_prefix)
+app.include_router(infraestructura_router, prefix=api_prefix)
+app.include_router(vehiculos_router, prefix=api_prefix)
+app.include_router(vehiculo_data_router, prefix=api_prefix)
+app.include_router(vehiculos_historial_router, prefix=api_prefix)
+app.include_router(historial_vehicular_router, prefix=api_prefix)
+app.include_router(conductores_router, prefix=api_prefix)
+app.include_router(rutas_router, prefix=api_prefix)  # Router principal de rutas
+app.include_router(rutas_simples_router, prefix=api_prefix)
+app.include_router(resoluciones_router, prefix=api_prefix)
+app.include_router(resoluciones_primigenias_router, prefix=api_prefix)
+app.include_router(resoluciones_hijas_router, prefix=api_prefix)
+app.include_router(expedientes_router, prefix=api_prefix)
+app.include_router(tucs_router, prefix=api_prefix)
+app.include_router(infracciones_router, prefix=api_prefix)
+app.include_router(oficinas_router, prefix=api_prefix)
+app.include_router(notificaciones_router, prefix=api_prefix)
+app.include_router(localidades_router, prefix=api_prefix)
+app.include_router(localidades_alias_router, prefix=api_prefix)
+app.include_router(localidades_import_geojson_router, prefix=api_prefix, tags=["Localidades Import"])
+app.include_router(normalizar_ubigeos_router, prefix=api_prefix)
+app.include_router(importar_geojson_router, prefix=api_prefix)
+app.include_router(localidades_geojson_router, prefix=api_prefix + "/localidades", tags=["Localidades GeoJSON"])
+app.include_router(geometrias_router, prefix=api_prefix)
+app.include_router(nivel_territorial_router, prefix=api_prefix)
+app.include_router(additional_router, prefix=api_prefix)
+app.include_router(data_manager_router, prefix=api_prefix)
+app.include_router(flota_empresa_router, prefix=api_prefix)
+app.include_router(database_router, prefix=api_prefix)
+app.include_router(dashboard_router, prefix=api_prefix)
+app.include_router(auditoria_router, prefix=api_prefix)
+app.include_router(busqueda_global_router, prefix=api_prefix)
+app.include_router(parametros_router, prefix=api_prefix)
+app.include_router(usuarios_router, prefix=api_prefix)
+app.include_router(permisos_router, prefix=api_prefix)
+from app.routers.bajas_router import router as bajas_router
+app.include_router(bajas_router, prefix=api_prefix)
 
 # Endpoint de salud
 @app.get("/api/v1/health", tags=["Health"])

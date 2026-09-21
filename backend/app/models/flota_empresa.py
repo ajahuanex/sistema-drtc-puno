@@ -238,9 +238,14 @@ class TramiteMasivoRequest(BaseModel):
     ruc: str = Field(..., min_length=11, max_length=11, description="RUC de la empresa")
     razon_social: Optional[str] = None
     nro_resolucion_primigenia: str = Field(..., description="Resolución primigenia actual o de referencia")
-    tipo_tramite: str = Field(..., description="INCREMENTO, SUSTITUCION, RENOVACION, DUPLICADO, CANJE, MODIFICACION, CANCELACION")
+    tipo_tramite: str = Field(..., description="INCREMENTO, SUSTITUCION, RENOVACION, DUPLICADO, CANJE, MODIFICACION, CANCELACION, BAJAS")
+    
+    # Datos de origen del trámite
+    es_de_oficio: bool = Field(default=False, description="Indica si el trámite se inició de oficio")
+    documento_origen: Optional[str] = Field(None, description="Documento que dio origen al trámite (si es de oficio)")
     num_expediente: Optional[str] = None
     fecha_expediente: Optional[Any] = None
+    
     nro_resolucion_hija: Optional[str] = None
     tipo_resolucion_hija: Optional[str] = None
     fecha_emision_resolucion: Optional[Any] = None
@@ -254,7 +259,14 @@ class TramiteMasivoRequest(BaseModel):
     nuevas_rutas: List[str] = Field(default_factory=list)
     nuevas_rutas_detalle: List[RutaRenovacionDetalle] = Field(default_factory=list)
     
-    # Lista de vehículos a procesar:
+    # Específico para CANCELACION:
+    cancelacion_total: bool = Field(default=False, description="Si es True, cancela toda la resolución primigenia")
+    rutas_a_cancelar: List[str] = Field(default_factory=list, description="Rutas a cancelar si no es total")
+
+    # Específico para MODIFICACION:
+    datos_modificacion: Optional[dict] = Field(default_factory=dict, description="Datos generales de empresa o rutas que cambian")
+
+    # Lista de vehículos a procesar (para Incremento, Sustitución, Duplicado, Canje, Bajas):
     vehiculos: List[ItemTramiteVehiculo] = Field(default_factory=list)
 
 

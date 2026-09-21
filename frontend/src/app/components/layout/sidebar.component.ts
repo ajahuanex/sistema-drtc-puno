@@ -99,6 +99,25 @@ import { AuthService } from '../../services/auth.service';
                 </a>
               }
 
+              <!-- Centro de Trámites -->
+              @if (canAccess('resoluciones')) {
+                <a
+                  routerLink="/centro-tramites"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Centro de Trámites' : ''"
+                  matTooltipPosition="right"
+                  style="background-color: rgba(37, 99, 235, 0.1); border-left: 3px solid #60a5fa;"
+                >
+                  <svg class="item-svg text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title font-bold text-blue-300">Centro de Trámites</span>
+                  }
+                </a>
+              }
+
               <!-- 3. Parque Automotor (Vehículos) -->
               @if (canAccess('vehiculos')) {
                 <div class="nav-accordion-group">
@@ -316,6 +335,24 @@ import { AuthService } from '../../services/auth.service';
                   </svg>
                   @if (isExpanded()) {
                     <span class="item-title">Catálogo Geoespacial</span>
+                  }
+                </a>
+              }
+
+              <!-- Bajas Externas y MTC -->
+              @if (canAccess('vehiculos')) {
+                <a
+                  routerLink="/bajas-externas"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Bajas Externas (MTC)' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Bajas Externas (MTC)</span>
                   }
                 </a>
               }

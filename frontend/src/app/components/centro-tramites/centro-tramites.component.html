@@ -1,0 +1,553 @@
+<div class="page-container">
+  
+  <!-- Hero / Search Section -->
+  <div class="page-header" data-purpose="module-hero-banner">
+    <div class="header-content">
+      <div class="title-with-icon">
+        <span class="material-symbols-outlined header-icon">dashboard_customize</span>
+        <div>
+          <h1>Centro de Gestión de Trámites</h1>
+          <p class="subtitle">
+            Módulo centralizado para fiscalización, autorizaciones y modificaciones de transporte.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button mat-button class="header-action-btn" matTooltip="Exportar Historial">
+        <span class="material-symbols-outlined btn-icon">download</span>
+        <span class="btn-text">Exportar Historial</span>
+      </button>
+      <button mat-button class="header-action-btn btn-primary-custom" matTooltip="Iniciar Trámite" (click)="enfocarBuscador()">
+        <span class="material-symbols-outlined btn-icon">add</span>
+        <span class="btn-text">Iniciar Trámite</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div class="content-section relative z-20" style="margin-top: 1rem;">
+    
+    @if (!empresaBuscada()) {
+      <!-- Dashboard Inicial -->
+      <div class="animate-fade-in-up space-y-6">
+        
+        <!-- METRICS SECTION: 4 CARDS -->
+        <div class="kpi-metrics-grid" data-purpose="kpi-metrics-grid">
+          <!-- Card 1 -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Trámites</span>
+              <span class="kpi-icon-badge kpi-badge-blue">
+                <span class="material-symbols-outlined">folder_managed</span>
+              </span>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-number">{{estadisticas().total}}</span>
+              <span class="kpi-subtext">registrados en el sistema</span>
+            </div>
+            <div class="kpi-footer">
+              <span class="status-dot dot-emerald"></span>
+              <span class="kpi-highlight font-emerald">+8.4%</span>
+              <span>vs mes anterior</span>
+            </div>
+          </div>
+          
+          <!-- Card 2 -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Renovaciones</span>
+              <span class="kpi-icon-badge kpi-badge-amber">
+                <span class="material-symbols-outlined">autorenew</span>
+              </span>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-number text-amber">{{estadisticas().renovaciones}}</span>
+              <span class="kpi-subtext">en curso (TUPA 07 d.)</span>
+            </div>
+          </div>
+          
+          <!-- Card 3 -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Sustituciones</span>
+              <span class="kpi-icon-badge kpi-badge-blue">
+                <span class="material-symbols-outlined">swap_horiz</span>
+              </span>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-number text-blue">{{estadisticas().sustituciones}}</span>
+              <span class="kpi-subtext">alta demanda</span>
+            </div>
+          </div>
+          
+          <!-- Card 4 -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Incrementos</span>
+              <span class="kpi-icon-badge kpi-badge-rose">
+                <span class="material-symbols-outlined">trending_up</span>
+              </span>
+            </div>
+            <div class="kpi-body">
+              <span class="kpi-number text-rose">{{estadisticas().incrementos}}</span>
+              <span class="kpi-subtext">atendidos a tiempo</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEARCH AND FILTER SECTION -->
+        <section class="stitch-filters" data-purpose="table-filters" style="margin-bottom: 1.5rem;">
+          <form [formGroup]="busquedaForm" (ngSubmit)="buscarEmpresa()" class="search-box-wrapper" style="flex-grow: 1;">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input 
+              #searchInput
+              formControlName="criterio" 
+              class="stitch-search-input" 
+              placeholder="Buscar por RUC, Razón Social o N° Resolución / Expediente..." 
+              type="text"/>
+            
+            <button type="submit" [disabled]="busquedaForm.invalid" class="stitch-btn btn-primary-custom" style="margin-left: auto;">
+              <span class="material-symbols-outlined">manage_search</span>
+              <span>Buscar</span>
+            </button>
+          </form>
+        </section>
+
+        <!-- DATA TABLE SECTION -->
+        <mat-card class="table-card">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50" style="padding: 1rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem;">
+              <mat-icon style="color: #2563eb;">assignment</mat-icon>
+              <h2 style="margin:0; font-size: 1rem; font-weight: bold; color: #0f172a;">Expedientes Recientes de Regulación</h2>
+            </div>
+          </div>
+          <mat-card-content style="padding: 0;">
+            <div class="table-container">
+              <table mat-table [dataSource]="tramitesRecientes()" class="custom-table" style="width: 100%;">
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Cod. Trámite</th>
+                  <td mat-cell *matCellDef="let element">
+                    <span style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: bold; color: #475569;">{{element.id}}</span>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Fecha</th>
+                  <td mat-cell *matCellDef="let element"><strong>{{element.fecha}}</strong></td>
+                </ng-container>
+                <ng-container matColumnDef="empresa">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Empresa</th>
+                  <td mat-cell *matCellDef="let element">
+                    <div class="company-name-text">{{element.empresa}}</div>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="tipo">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Tipo Trámite</th>
+                  <td mat-cell *matCellDef="let element">
+                    <div>{{element.tipo}}</div>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="doc">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Origen</th>
+                  <td mat-cell *matCellDef="let element">
+                    <div style="color: #2563eb; font-family: monospace; font-size: 12px;">{{element.doc}}</div>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="estado">
+                  <th mat-header-cell *matHeaderCellDef class="sortable-th">Estado</th>
+                  <td mat-cell *matCellDef="let element">
+                    <span class="badge-autorizada" [ngClass]="element.estado === 'PROCESADO' ? 'status-autorizada' : 'status-suspendida'">
+                      {{element.estado}}
+                    </span>
+                  </td>
+                </ng-container>
+                <ng-container matColumnDef="acciones">
+                  <th mat-header-cell *matHeaderCellDef class="text-center"></th>
+                  <td mat-cell *matCellDef="let element" class="text-center">
+                    <button mat-icon-button color="primary" matTooltip="Ver Expediente"><mat-icon>visibility</mat-icon></button>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="columnasTabla" style="background: #f1f5f9;"></tr>
+                <tr mat-row *matRowDef="let row; columns: columnasTabla;"></tr>
+              </table>
+            </div>
+            <mat-paginator [pageSize]="5" [hidePageSize]="true"></mat-paginator>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+    }
+
+    <!-- Resultado de Empresa -->
+    @if (empresaBuscada()) {
+      <div class="form-container" style="margin-bottom: 2rem;">
+        <mat-card class="stitch-card mb-4" style="border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <div style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; position: relative;">
+            <button mat-icon-button (click)="cancelarTramite()" style="position: absolute; top: 1rem; right: 1rem;" matTooltip="Cancelar y volver">
+              <mat-icon>close</mat-icon>
+            </button>
+            
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+                <span class="badge-autorizada" [ngClass]="empresaBuscada().estado === 'ACTIVO' ? 'status-autorizada' : 'status-suspendida'">
+                  {{empresaBuscada().estado}}
+                </span>
+                <span style="color: #64748b; font-size: 0.875rem; font-family: monospace;">RUC: {{empresaBuscada().ruc}}</span>
+              </div>
+              <h2 style="font-size: 1.5rem; font-weight: bold; color: #0f172a; margin: 0;">{{empresaBuscada().razon_social}}</h2>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; text-align: center;">
+              <div style="background: white; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; min-width: 100px;">
+                <p style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin: 0;">Flota</p>
+                <p style="font-size: 1.25rem; font-weight: bold; color: #1d4ed8; margin: 0;">{{empresaBuscada().flota}}</p>
+              </div>
+              <div style="background: white; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; min-width: 100px;">
+                <p style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin: 0;">Vigencia</p>
+                <p style="font-size: 1.25rem; font-weight: bold; color: #1d4ed8; margin: 0;">{{empresaBuscada().vigencia}}</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding: 1.5rem;">
+            <h3 style="font-size: 1.125rem; font-weight: bold; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <mat-icon style="color: #2563eb;">category</mat-icon> 
+              Seleccione el Tipo de Trámite a Iniciar
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+              @for (tramite of tiposTramite; track tramite.id) {
+                <button 
+                     (click)="seleccionarTramite(tramite.id)" 
+                     style="display: flex; flex-direction: column; align-items: center; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s; position: relative;"
+                     [style.background]="tramiteSeleccionado() === tramite.id ? '#2563eb' : 'white'"
+                     [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#334155'"
+                     [style.borderColor]="tramiteSeleccionado() === tramite.id ? '#2563eb' : '#e2e8f0'"
+                     [style.boxShadow]="tramiteSeleccionado() === tramite.id ? '0 10px 15px -3px rgba(37,99,235,0.3)' : 'none'"
+                     [style.transform]="tramiteSeleccionado() === tramite.id ? 'translateY(-4px)' : 'none'">
+                  
+                  <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;"
+                       [style.background]="tramiteSeleccionado() === tramite.id ? 'rgba(255,255,255,0.2)' : '#f1f5f9'">
+                    <mat-icon [style.color]="tramiteSeleccionado() === tramite.id ? 'white' : '#2563eb'">{{tramite.icono}}</mat-icon>
+                  </div>
+                  
+                  <h4 style="font-weight: bold; margin-bottom: 0.25rem; text-align: center;">{{tramite.nombre}}</h4>
+                  <p style="font-size: 0.7rem; text-align: center; opacity: 0.8; margin: 0;">{{tramite.desc}}</p>
+                  
+                  @if (tramiteSeleccionado() === tramite.id) {
+                    <div style="position: absolute; bottom: -6px; width: 12px; height: 12px; background: #2563eb; transform: rotate(45deg);"></div>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        </mat-card>
+      </div>
+    }
+
+    <!-- Drawer / Offcanvas para el Asistente del Trámite -->
+    <div class="drawer-backdrop" [class.visible]="tramiteSeleccionado()" (click)="tramiteSeleccionado.set(null)"></div>
+
+    <div class="side-drawer" [class.open]="tramiteSeleccionado()">
+      <div class="drawer-header">
+        <div class="title-area">
+          <mat-icon>assignment</mat-icon>
+          <div>
+            <h2>Asistente: {{tramiteSeleccionado()}}</h2>
+            <p>Complete los pasos para registrar el trámite</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="tramiteSeleccionado.set(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        @if (tramiteSeleccionado()) {
+          <mat-stepper [linear]="false" #stepper style="background: transparent;">
+            <!-- PASO 1: Selección de Resolución y Tipo -->
+            <mat-step>
+              <ng-template matStepLabel>Resolución y Origen</ng-template>
+              <div style="padding: 1.5rem 1.5rem;">
+                
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                  
+                  <!-- Columna 1: Resolución Afectada -->
+                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
+                    <div style="background: #f8fafc; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                      <h4 style="font-size: 0.875rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <mat-icon style="color: #2563eb; font-size: 20px; width: 20px; height: 20px;">gavel</mat-icon> Resolución Afectada
+                      </h4>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                      <form [formGroup]="resolucionForm">
+                        <mat-form-field appearance="outline" style="width: 100%;">
+                          <mat-label>Seleccione la Resolución Primigenia</mat-label>
+                          <mat-select formControlName="nro_resolucion_primigenia">
+                            @for (res of resoluciones(); track res.id) {
+                              <mat-option [value]="res.nro_resolucion">
+                                {{res.nro_resolucion}} <span style="color: #64748b; font-size: 0.8rem;">(Vigente)</span>
+                              </mat-option>
+                            } @empty {
+                              <mat-option disabled>La empresa no tiene resoluciones vigentes</mat-option>
+                            }
+                          </mat-select>
+                          <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">description</mat-icon>
+                        </mat-form-field>
+                      </form>
+
+                      @if (resolucionForm.get('nro_resolucion_primigenia')?.value) {
+                        <div style="margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; gap: 1rem; align-items: flex-start;">
+                          <mat-icon style="color: #16a34a;">check_circle</mat-icon>
+                          <div>
+                            <p style="color: #166534; font-weight: bold; margin: 0 0 0.25rem 0;">Resolución Seleccionada</p>
+                            <p style="color: #15803d; font-size: 0.875rem; margin: 0;">Se modificará el padrón vehicular amparado bajo la resolución <strong>{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</strong>.</p>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Columna 2: Datos del Expediente / Oficio -->
+                  <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
+                    <div style="background: #f8fafc; padding: 1rem 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                      <h4 style="font-size: 0.875rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <mat-icon style="color: #2563eb; font-size: 20px; width: 20px; height: 20px;">source</mat-icon> Origen del Trámite
+                      </h4>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                      <form [formGroup]="datosOrigenForm">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                          <mat-form-field appearance="outline" style="width: 100%;">
+                            <mat-label>Tipo de Documento</mat-label>
+                            <mat-select formControlName="tipo_origen" (selectionChange)="cambiarTipoOrigen()">
+                              <mat-option value="EXPEDIENTE">Expediente</mat-option>
+                              <mat-option value="OFICIO">Oficio</mat-option>
+                              <mat-option value="MEMORANDUM">Memorándum</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+                          
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Número (Ej. 123)</mat-label>
+                              <input matInput formControlName="numero_origen" placeholder="Se normalizará al salir..." (blur)="normalizarNumero()">
+                              <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">tag</mat-icon>
+                            </mat-form-field>
+                            
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Fecha</mat-label>
+                              <input matInput type="date" formControlName="fecha_origen">
+                            </mat-form-field>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f1f5f9;">
+                  <button mat-flat-button color="primary" style="padding: 0 2rem; height: 48px; border-radius: 8px; font-size: 1rem;" 
+                          [disabled]="resolucionForm.invalid" matStepperNext>
+                    Continuar <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </div>
+            </mat-step>
+
+            <!-- PASO 2: Vehículos / Detalles según tipo de trámite -->
+            <mat-step>
+              <ng-template matStepLabel>Detalles Técnicos</ng-template>
+              <div style="padding: 1.5rem 1.5rem;">
+                
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
+                  <div style="background: #eff6ff; color: #2563eb; padding: 0.75rem; border-radius: 12px;">
+                    <mat-icon style="font-size: 28px; width: 28px; height: 28px;">engineering</mat-icon>
+                  </div>
+                  <div>
+                    <h3 style="font-size: 1.25rem; font-weight: bold; color: #0f172a; margin: 0;">Gestión de Flota - {{tramiteSeleccionado()}}</h3>
+                    <p style="color: #64748b; font-size: 0.875rem; margin: 0;">Agregue o seleccione los vehículos involucrados.</p>
+                  </div>
+                </div>
+
+                <!-- CONTENIDO DINÁMICO SEGÚN TRÁMITE -->
+                @switch (tramiteSeleccionado()) {
+                  
+                  @case ('INCREMENTO') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="font-weight: 600; color: #1e293b; margin: 0;">Vehículos a Incorporar</h4>
+                        <button mat-flat-button color="primary" style="border-radius: 8px;" (click)="abrirModalVehiculo()">
+                          <mat-icon>add</mat-icon> Agregar Vehículo
+                        </button>
+                      </div>
+                      
+                      @if (vehiculosNuevos().length === 0) {
+                        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 2rem; text-align: center;">
+                          <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #94a3b8; margin-bottom: 1rem;">no_crash</mat-icon>
+                          <p style="color: #64748b; font-weight: 500; margin: 0;">No hay vehículos agregados.</p>
+                        </div>
+                      } @else {
+                        <table class="custom-table" style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                          <thead>
+                            <tr>
+                              <th>Placa Entrante</th>
+                              <th>Marca / Modelo</th>
+                              <th>Año</th>
+                              <th style="width: 60px; text-align: center;">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (v of vehiculosNuevos(); track v.placa) {
+                              <tr>
+                                <td><strong style="font-family: monospace; font-size: 1rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #059669;">{{v.placa}}</strong></td>
+                                <td style="color: #475569;">{{v.marca}} / {{v.modelo}}</td>
+                                <td style="color: #475569;">{{v.anio_fabricacion}}</td>
+                                <td style="text-align: center;">
+                                  <button mat-icon-button color="warn"><mat-icon>delete</mat-icon></button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      }
+                    </div>
+                  }
+
+                  @case ('BAJAS') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="font-weight: 600; color: #1e293b; margin: 0;">Seleccione Vehículos a Dar de Baja</h4>
+                      </div>
+                      <div style="padding: 1rem; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; margin-bottom: 1rem;">
+                        <p style="color: #9a3412; font-size: 0.875rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                          <mat-icon style="font-size: 20px;">info</mat-icon> Inhabilitación definitiva.
+                        </p>
+                      </div>
+                      <div style="max-height: 300px; overflow-y: auto;">
+                        <table class="custom-table" style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px;">
+                          <thead>
+                            <tr>
+                              <th style="width: 40px; text-align: center;">Sel.</th>
+                              <th>Placa</th>
+                              <th>Marca / Modelo</th>
+                              <th>Año</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (v of vehiculosEnResolucion(); track v.placa) {
+                              <tr>
+                                <td style="text-align: center;"><mat-checkbox color="warn"></mat-checkbox></td>
+                                <td><strong style="font-family: monospace; font-size: 1rem;">{{v.placa}}</strong></td>
+                                <td style="color: #475569;">{{v.marca}} / {{v.modelo}}</td>
+                                <td style="color: #475569;">{{v.anio_fabricacion}}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  }
+
+                  @case ('SUSTITUCION') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h4 style="font-weight: 600; color: #1e293b; margin: 0;">Sustituciones (Saliente -> Entrante)</h4>
+                        <button mat-flat-button color="primary" style="border-radius: 8px;" (click)="abrirModalSustitucion()">
+                          <mat-icon>swap_horiz</mat-icon> Nueva Sustitución
+                        </button>
+                      </div>
+
+                      @if (paresSustitucion().length === 0) {
+                        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 2rem; text-align: center;">
+                          <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #94a3b8; margin-bottom: 1rem;">sync_alt</mat-icon>
+                          <p style="color: #64748b; font-weight: 500; margin: 0;">No se han configurado sustituciones.</p>
+                        </div>
+                      } @else {
+                        <table class="custom-table" style="width: 100%; background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                          <thead>
+                            <tr>
+                              <th>Vehículo Saliente</th>
+                              <th></th>
+                              <th>Vehículo Entrante</th>
+                              <th style="width: 60px; text-align: center;">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (p of paresSustitucion(); track p.placa_saliente) {
+                              <tr>
+                                <td><strong style="font-family: monospace; font-size: 1rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a; background: #fffbeb; color: #b45309;">{{p.placa_saliente}}</strong></td>
+                                <td style="text-align: center;"><mat-icon style="color: #94a3b8;">arrow_forward</mat-icon></td>
+                                <td><strong style="font-family: monospace; font-size: 1rem; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0; background: #ecfdf5; color: #059669;">{{p.placa_entrante}}</strong></td>
+                                <td style="text-align: center;">
+                                  <button mat-icon-button color="warn"><mat-icon>delete</mat-icon></button>
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      }
+                    </div>
+                  }
+
+                  @default {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2rem; text-align: center;">
+                      <mat-icon style="font-size: 40px; width: 40px; height: 40px; color: #94a3b8; margin-bottom: 1rem;">settings_suggest</mat-icon>
+                      <p style="color: #475569; font-weight: 500;">Formulario en construcción.</p>
+                    </div>
+                  }
+                }
+
+                <div style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #f1f5f9;">
+                  <button mat-stroked-button style="padding: 0 1.5rem; height: 48px; border-radius: 8px;" matStepperPrevious><mat-icon>arrow_back</mat-icon> Atrás</button>
+                  <button mat-flat-button color="primary" style="padding: 0 2rem; height: 48px; border-radius: 8px;" matStepperNext>Continuar <mat-icon iconPositionEnd>arrow_forward</mat-icon></button>
+                </div>
+              </div>
+            </mat-step>
+
+            <!-- PASO 3: Confirmación -->
+            <mat-step>
+              <ng-template matStepLabel>Confirmación</ng-template>
+              <div style="padding: 1.5rem 1.5rem;">
+                
+                <div style="background: linear-gradient(to bottom right, #f8fafc, #ffffff); border-radius: 16px; border: 1px solid #e2e8f0; padding: 1.5rem; margin-bottom: 2rem;">
+                  <h3 style="font-size: 1.25rem; font-weight: bold; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <mat-icon style="color: #10b981;">task_alt</mat-icon> Resumen
+                  </h3>
+                  
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: white; border-radius: 8px; border: 1px solid #f1f5f9;">
+                      <mat-icon style="color: #2563eb;">business</mat-icon>
+                      <div>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Empresa</p>
+                        <p style="font-weight: bold; color: #1e293b; margin: 0;">{{empresaBuscada()?.razon_social}}</p>
+                      </div>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: white; border-radius: 8px; border: 1px solid #f1f5f9;">
+                      <mat-icon style="color: #4f46e5;">assignment</mat-icon>
+                      <div>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Trámite</p>
+                        <p style="font-weight: bold; color: #1e293b; margin: 0;">{{tramiteSeleccionado()}}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: auto;">
+                  <button mat-flat-button style="height: 48px; border-radius: 8px; background: #059669; color: white;" (click)="confirmar()">
+                    <mat-icon>check_circle</mat-icon> Procesar y Guardar Trámite
+                  </button>
+                  <button mat-button style="height: 48px; color: #64748b;" matStepperPrevious>
+                    <mat-icon>arrow_back</mat-icon> Volver a Detalles
+                  </button>
+                </div>
+              </div>
+            </mat-step>
+
+          </mat-stepper>
+        }
+      </div>
+    </div>
+  </div>
+</div>

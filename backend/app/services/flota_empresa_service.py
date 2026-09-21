@@ -852,12 +852,149 @@ class FlotaEmpresaService:
                         req.nuevas_rutas = [r.codigo for r in req.nuevas_rutas_detalle]
 
         # -------------------------------------------------------------
-        # 2. PROCESAR CADA VEHÍCULO EN EL TRÁMITE
+        # 1.5. CASO ESPECIAL: CANCELACION
         # -------------------------------------------------------------
+        bajas_cancelacion = 0
+        if req.tipo_tramite == "CANCELACION":
+            res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
+            if req.cancelacion_total:
+                # Inhabilitar toda la flota de la primigenia
+                cursor_prev = self.collection.find({
+                    "ruc": ruc,
+                    "nro_resolucion_primigenia": req.nro_resolucion_primigenia,
+                    "esta_activo": {"$ne": False}
+                })
+                async for prev_veh in cursor_prev:
+                    detalles_prev = prev_veh.get("detalles", "")
+                    nuevo_detalle = f"{detalles_prev} | CANCELADO({res_ref})".strip(" |")
+                    nueva_obs = {
+                        "fecha": now,
+                        "texto": f"CANCELADO({res_ref}) - Flota inhabilitada por cancelación de autorización",
+                        "fuente": "tramite_cancelacion"
+                    }
+                    await self.collection.update_one(
+                        {"_id": prev_veh["_id"]},
+                        {
+                            "$set": {
+                                "estado": "INHABILITADO",
+                                "estado_primigenia": "CANCELADA",
+                                "detalles": nuevo_detalle,
+                                "fecha_actualizacion": now
+                            },
+                            "$push": {"observaciones_historial": nueva_obs}
+                        }
+                    )
+                    bajas_cancelacion += 1
+
+                # Actualizar resolución
+                if req.nro_resolucion_primigenia:
+                    nro_old = req.nro_resolucion_primigenia.strip()
+                    sin_p = nro_old[2:] if nro_old.upper().startswith("R-") else nro_old
+                    await self.db.resoluciones_primigenias.update_many(
+                        {
+                            "ruc_empresa": ruc,
+                            "$or": [
+                                {"nro_resolucion": nro_old},
+                                {"nro_resolucion": f"R-{sin_p}"},
+                                {"nro_resolucion": sin_p}
+                            ]
+                        },
+                        {
+                            "$set": {
+                                "estado": "CANCELADA",
+                                "observaciones": f"CANCELADA SEGUN {res_ref}",
+                                "fecha_actualizacion": now
+                            }
+                        }
+                    )
+                    # Inhabilitar todas las rutas
+                    await self.db.rutas.update_many(
+                        {
+                            "empresa.ruc": ruc,
+                            "$or": [
+                                {"resolucion.nroResolucion": nro_old},
+                                {"resolucion.nroResolucion": f"R-{sin_p}"},
+                                {"resolucion.nroResolucion": sin_p},
+                                {"nro_resolucion": nro_old}
+                            ]
+                        },
+                        {
+                            "$set": {
+                                "estado": "CANCELADA",
+                                "estaActivo": False,
+                                "observaciones": f"CANCELADA SEGUN {res_ref}",
+                                "fechaActualizacion": now
+                            }
+                        }
+                    )
+            else:
+                # Cancelación parcial (solo rutas)
+                for cod_ruta in req.rutas_a_cancelar:
+                    await self.db.rutas.update_many(
+                        {
+                            "empresa.ruc": ruc,
+                            "codigoRuta": cod_ruta.strip()
+                        },
+                        {
+                            "$set": {
+                                "estado": "CANCELADA",
+                                "estaActivo": False,
+                                "observaciones": f"RUTA CANCELADA SEGUN {res_ref}",
+                                "fechaActualizacion": now
+                            }
+                        }
+                    )
+                # NOTA: Según regla de negocio, los vehículos que usan estas rutas NO se modifican automáticamente.
+                # Deben esperar a un trámite de CANJE.
+
+        # -------------------------------------------------------------
+        # 1.6. CASO ESPECIAL: MODIFICACION
+        # -------------------------------------------------------------
+        if req.tipo_tramite == "MODIFICACION" and req.datos_modificacion:
+            # Aquí se puede actualizar la empresa (ej: cambio de Razón Social)
+            # Y guardar historial en resoluciones hijas
+            logger.info(f"Tramite MODIFICACION recibido para {ruc}: {req.datos_modificacion}")
+            res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
+            if req.datos_modificacion.get("nueva_razon_social"):
+                await self.db.empresas.update_one(
+                    {"ruc": ruc},
+                    {
+                        "$set": {
+                            "razon_social": req.datos_modificacion["nueva_razon_social"],
+                            "fecha_actualizacion": now
+                        }
+                    }
+                )
+
+        # -------------------------------------------------------------
+        # 2. PROCESAR CADA VEHÍCULO EN EL TRÁMITE (BAJAS, INCREMENTO, SUSTITUCION, DUPLICADO, CANJE)
+        # -------------------------------------------------------------
+        bajas_oficio = 0
         for item in req.vehiculos:
             placa_in = item.placa.strip().upper()
             if not placa_in:
                 continue
+                
+            origen_texto = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {req.num_expediente or 'S/N'}"
+                
+            if req.tipo_tramite == "BAJAS":
+                v_saliente = await self.collection.find_one({"ruc": ruc, "placa": placa_in, "esta_activo": {"$ne": False}})
+                if v_saliente:
+                    res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
+                    nueva_obs_sal = {
+                        "fecha": now,
+                        "texto": f"BAJA SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                        "fuente": "tramite_baja"
+                    }
+                    await self.collection.update_one(
+                        {"_id": v_saliente["_id"]},
+                        {
+                            "$set": {"estado": "INHABILITADO", "fecha_actualizacion": now},
+                            "$push": {"observaciones_historial": nueva_obs_sal}
+                        }
+                    )
+                    bajas_oficio += 1
+                continue # No hay inserción de vehículo nuevo en baja simple
 
             rutas_item = item.rutas if item.rutas else req.nuevas_rutas
             datos_tech = item.datos_tecnicos or {}
@@ -903,8 +1040,10 @@ class FlotaEmpresaService:
                 "fecha_emision_resolucion": req.fecha_emision_resolucion or req.nueva_fecha_emision,
                 "num_expediente": req.num_expediente,
                 "fecha_expediente": req.fecha_expediente,
+                "documento_origen": req.documento_origen,
+                "es_de_oficio": req.es_de_oficio,
                 "placa": placa_in,
-                "estado": "HABILITADO" if req.tipo_tramite != "CANCELACION" else "CANCELADO",
+                "estado": "HABILITADO",
                 "rutas": rutas_item,
                 "numero_tuc": nro_tuc_val,
                 
@@ -983,7 +1122,7 @@ class FlotaEmpresaService:
             if req.tipo_tramite == "SUSTITUCION" and item.placa_saliente:
                 obs_lista.append({
                     "fecha": now,
-                    "texto": f"SUSTITUYE A {item.placa_saliente.strip().upper()}",
+                    "texto": f"SUSTITUYE A {item.placa_saliente.strip().upper()} SEGUN RESOLUCION {res_ref} / {origen_texto}",
                     "fuente": "tramite_sustitucion"
                 })
 
@@ -994,7 +1133,7 @@ class FlotaEmpresaService:
                     res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
                     nueva_obs_sal = {
                         "fecha": now,
-                        "texto": f"BAJA POR SUSTITUCION SEGUN RESOLUCION {res_ref} / EXP. {req.num_expediente or 'S/N'}",
+                        "texto": f"BAJA POR SUSTITUCION SEGUN RESOLUCION {res_ref} / {origen_texto}",
                         "fuente": "tramite_sustitucion"
                     }
                     await self.collection.update_one(
@@ -1009,13 +1148,13 @@ class FlotaEmpresaService:
             elif req.tipo_tramite == "DUPLICADO":
                 obs_lista.append({
                     "fecha": now,
-                    "texto": f"DUPLICADO SEGUNDO EJEMPLAR SEGUN EXPEDIENTE {req.num_expediente or 'S/N'}",
+                    "texto": f"DUPLICADO SEGUNDO EJEMPLAR SEGUN {origen_texto}",
                     "fuente": "tramite_duplicado"
                 })
             elif req.tipo_tramite == "CANJE":
                 obs_lista.append({
                     "fecha": now,
-                    "texto": f"CANJE DE TARJETA UNICA DE CIRCULACION SEGUN EXPEDIENTE {req.num_expediente or 'S/N'}",
+                    "texto": f"CANJE DE TARJETA UNICA DE CIRCULACION SEGUN {origen_texto}",
                     "fuente": "tramite_canje"
                 })
 
@@ -1050,7 +1189,9 @@ class FlotaEmpresaService:
             "creados": creados,
             "actualizados": actualizados,
             "bajas_sustitucion": bajas_sustitucion,
-            "bajas_renovacion": bajas_renovacion
+            "bajas_renovacion": bajas_renovacion,
+            "bajas_oficio": bajas_oficio,
+            "bajas_cancelacion": bajas_cancelacion
         }
 
 

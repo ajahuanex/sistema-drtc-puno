@@ -38,6 +38,7 @@ import { FormTramitePrimigeniaDialogComponent } from './form-tramite-primigenia-
 import { CambiarTucDialogComponent } from './cambiar-tuc-dialog.component';
 import { GenerarTucDialogComponent } from './generar-tuc-dialog.component';
 
+
 export interface ColumnasState {
   primigenia: boolean;
   placaHija: boolean;
@@ -1038,6 +1039,8 @@ export class VehiculosEmpresaComponent implements OnInit {
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private dialog = inject(MatDialog);
+
 
   // Vista activa
   vistaActual = signal<'empresa' | 'cronologica'>('empresa');
@@ -1862,7 +1865,7 @@ export class VehiculosEmpresaComponent implements OnInit {
     }
   }
 
-  private dialog = inject(MatDialog);
+  private tucDialog = inject(MatDialog); // just in case it's used elsewhere as tucDialog or keep it, wait I will just remove the private dialog = inject(MatDialog); and let the one at top work
 
   abrirDetalle(item: VehiculoEmpresa): void {
     this.dialog.open(DetalleVehiculoDialogComponent, {

@@ -229,6 +229,22 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { modulo: 'auditoria' }
       },
+      
+      // MÓDULO DE BAJAS EXTERNAS (MTC, etc)
+      { 
+        path: 'bajas-externas', 
+        loadComponent: () => import('./components/bajas-externas/bajas-externas-list/bajas-externas-list.component').then(m => m.BajasExternasListComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'vehiculos' }
+      },
+
+      // CENTRO DE TRAMITES
+      { 
+        path: 'centro-tramites', 
+        loadComponent: () => import('./components/centro-tramites/centro-tramites.component').then(m => m.CentroTramites),
+        canActivate: [RoleGuard],
+        data: { modulo: 'resoluciones' }
+      },
     ]
   },
   

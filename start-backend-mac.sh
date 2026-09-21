@@ -85,7 +85,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${CYAN}======================================================${NC}"
-echo -e "${BOLD}🚀 Iniciando Backend SIRRET (FastAPI) en macOS${NC}"
+echo -e "${BOLD}🚀 Iniciando Backend SIRRET (FastAPI) en macOS / Windows (Git Bash)${NC}"
 echo -e "${CYAN}======================================================${NC}"
 
 # 1. Verificar si el puerto ya está en uso
@@ -122,9 +122,12 @@ if [ ! -d "$VENV_PATH" ]; then
     echo -e "${YELLOW}No se encontró venv en $VENV_PATH. Creando nuevo entorno...${NC}"
     if command -v python3 >/dev/null 2>&1; then
         python3 -m venv "$VENV_PATH"
-        echo -e "${GREEN}✓ Entorno virtual creado exitosamente.${NC}"
+        echo -e "${GREEN}✓ Entorno virtual creado exitosamente con python3.${NC}"
+    elif command -v python >/dev/null 2>&1; then
+        python -m venv "$VENV_PATH"
+        echo -e "${GREEN}✓ Entorno virtual creado exitosamente con python.${NC}"
     else
-        echo -e "${RED}❌ Error: 'python3' no está instalado en este sistema macOS.${NC}"
+        echo -e "${RED}❌ Error: 'python3' ni 'python' están instalados o en el PATH.${NC}"
         exit 1
     fi
 fi
@@ -133,9 +136,13 @@ fi
 if [ -f "$VENV_PATH/bin/activate" ]; then
     # shellcheck disable=SC1091
     source "$VENV_PATH/bin/activate"
-    echo -e "${GREEN}✓ Entorno virtual activado (${VENV_PATH})${NC}"
+    echo -e "${GREEN}✓ Entorno virtual activado (${VENV_PATH}/bin/activate)${NC}"
+elif [ -f "$VENV_PATH/Scripts/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_PATH/Scripts/activate"
+    echo -e "${GREEN}✓ Entorno virtual activado (${VENV_PATH}/Scripts/activate)${NC}"
 else
-    echo -e "${RED}❌ Error: No se encontró script de activación en $VENV_PATH/bin/activate${NC}"
+    echo -e "${RED}❌ Error: No se encontró script de activación en $VENV_PATH/bin/activate ni en $VENV_PATH/Scripts/activate${NC}"
     exit 1
 fi
 

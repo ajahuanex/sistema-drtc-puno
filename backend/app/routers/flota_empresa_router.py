@@ -56,6 +56,35 @@ async def procesar_tramite_masivo(
 
 
 
+from app.services.sustitucion_service import SustitucionService
+from app.models.sustitucion import SustitucionRequest
+from app.dependencies.auth import get_current_active_user
+from app.models.usuario import UsuarioResponse
+
+async def get_sustitucion_service():
+    db = await get_database()
+    return SustitucionService(db)
+
+@router.post("/sustitucion", summary="Procesar sustitución de vehículo")
+async def procesar_sustitucion_vehiculo(
+    req: SustitucionRequest,
+    service: SustitucionService = Depends(get_sustitucion_service),
+    current_user: UsuarioResponse = Depends(get_current_active_user)
+):
+    """
+    Ejecuta el proceso completo de sustitución vehicular:
+    Da de baja al vehículo saliente, registra la resolución y da de alta al sustituto.
+    """
+    try:
+        res = await service.procesar_sustitucion(req, current_user.dni)
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        logger.error(f"Error en sustitución: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error interno procesando sustitución: {str(e)}")
+
 # ======================================================================
 # ENDPOINTS DE CONSULTA
 # ======================================================================
