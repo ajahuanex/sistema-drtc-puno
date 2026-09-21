@@ -15,14 +15,12 @@ from app.models.empresa import (
     TipoDocumento
 )
 from app.services.empresa_service import EmpresaService
-from app.services.configuracion_service import ConfiguracionService
 from app.dependencies.db import get_database
 import unicodedata
 
 class EmpresaExcelService:
     def __init__(self):
         self.empresa_service = None
-        self.configuracion_service = None
 
     def _normalizar_estado(self, valor: Any) -> str:
         """Normalizar variantes de estado legal de empresa a los valores de EstadoEmpresa"""
@@ -80,20 +78,6 @@ class EmpresaExcelService:
                 print(f"Error obteniendo servicio de empresas: {e}")
                 return None
         return self.empresa_service
-    
-    async def _get_configuracion_service(self):
-        """Obtener servicio de configuraciones"""
-        if not self.configuracion_service:
-            try:
-                db = await get_database()
-                if db is None:
-                    return None
-                self.configuracion_service = ConfiguracionService(db)
-            except Exception as e:
-                print(f"Error obteniendo servicio de configuraciones: {e}")
-                return None
-        return self.configuracion_service
-        
     def generar_plantilla_excel(self) -> BytesIO:
         """Generar plantilla Excel profesional para carga masiva de empresas con múltiples hojas"""
         
@@ -734,22 +718,10 @@ class EmpresaExcelService:
         # Validar tipo de servicio (opcional)
         tipo_servicio = limpiar_valor(row.get('Tipo de Servicio', ''))
         if tipo_servicio:
-            # Obtener tipos válidos desde configuraciones
-            try:
-                config_service = await self._get_configuracion_service()
-                if config_service:
-                    tipos_validos = await config_service.get_tipos_servicio_codigos()
-                    if tipo_servicio.upper() not in tipos_validos:
-                        errores.append(f"Tipo de Servicio inválido: {tipo_servicio}. Valores válidos: {', '.join(tipos_validos)}")
-                else:
-                    # Si no hay conexión a BD, usar tipos básicos para validación
-                    tipos_basicos = ['PERSONAS', 'TURISMO', 'MERCANCIAS', 'CARGA']
-                    if tipo_servicio.upper() not in tipos_basicos:
-                        advertencias.append(f"Tipo de Servicio no validado contra BD: {tipo_servicio}")
-            except Exception as e:
-                print(f"Error validando tipo de servicio: {e}")
-                # En caso de error, solo advertir
-                advertencias.append(f"No se pudo validar Tipo de Servicio: {tipo_servicio}")
+            # Validar usando tipos básicos (el módulo de configuración será reconstruido)
+            tipos_basicos = ['PERSONAS', 'TURISMO', 'MERCANCIAS', 'CARGA']
+            if tipo_servicio.upper() not in tipos_basicos:
+                advertencias.append(f"Tipo de Servicio no estándar: {tipo_servicio}")
         
         return errores, advertencias
     

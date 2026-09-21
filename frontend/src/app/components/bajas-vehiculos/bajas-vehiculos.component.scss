@@ -381,50 +381,60 @@
   }
 }
 
-// Dark theme support
-@media (prefers-color-scheme: dark) {
+// =========================================================================
+// MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)
+// =========================================================================
+:host-context([data-theme="dark"]),
+:host-context(.dark-theme) {
   .bajas-vehiculos-container {
+    color: #f8fafc;
+
     .header-section .header-title h1 {
-      color: #fff;
+      color: #f8fafc;
     }
 
     .header-section .header-subtitle {
-      color: #ccc;
+      color: #94a3b8;
     }
 
     .filtros-card,
     .resumen-card,
     .tabla-card {
-      background: #424242;
-      color: #fff;
+      background: #111622 !important;
+      border: 1px solid #1e2433 !important;
+      color: #f8fafc !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .resumen-card .resumen-grid .resumen-item {
-      background: #616161;
+      background: #171b26;
+      border: 1px solid #283046;
 
       .resumen-info .resumen-label {
-        color: #ccc;
+        color: #94a3b8;
       }
 
       .resumen-info .resumen-value {
-        color: #fff;
+        color: #f8fafc;
       }
     }
 
     .tabla-card .table-container {
       table th {
-        background: #616161;
-        color: #fff;
-        border-bottom-color: #666;
+        background: #131722;
+        color: #94a3b8;
+        border-bottom-color: #1e2433;
       }
 
       table td {
-        border-bottom-color: #666;
+        color: #cbd5e1;
+        border-bottom-color: #171b26;
       }
 
       table tr:hover {
-        background: #616161;
+        background: #171b26;
       }
     }
   }
-} 
+}
+ 

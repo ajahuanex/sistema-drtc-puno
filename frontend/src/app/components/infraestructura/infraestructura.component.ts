@@ -90,11 +90,11 @@ export class InfraestructuraComponent implements OnInit, AfterViewInit {
     'select',
     'ruc',
     'razonSocial',
-    'tipo',
+    'tipoInfraestructura',
     'ubicacion',
     'capacidad',
     'estado',
-    'actions'
+    'acciones'
   ]);
 
   // Available columns for configuration
@@ -102,14 +102,14 @@ export class InfraestructuraComponent implements OnInit, AfterViewInit {
     { key: 'select', label: 'Selección', enabled: true },
     { key: 'ruc', label: 'RUC', enabled: true },
     { key: 'razonSocial', label: 'Razón Social', enabled: true },
-    { key: 'tipo', label: 'Tipo', enabled: true },
+    { key: 'tipoInfraestructura', label: 'Tipo', enabled: true },
     { key: 'ubicacion', label: 'Ubicación', enabled: true },
     { key: 'capacidad', label: 'Capacidad', enabled: true },
     { key: 'estado', label: 'Estado', enabled: true },
     { key: 'fechaRegistro', label: 'Fecha Registro', enabled: false },
     { key: 'representante', label: 'Representante', enabled: false },
     { key: 'contacto', label: 'Contacto', enabled: false },
-    { key: 'actions', label: 'Acciones', enabled: true }
+    { key: 'acciones', label: 'Acciones', enabled: true }
   ];
 
   // Filters
@@ -386,12 +386,18 @@ export class InfraestructuraComponent implements OnInit, AfterViewInit {
 
   resetColumns(): void {
     this.availableColumns.forEach(col => {
-      col.enabled = ['select', 'ruc', 'razonSocial', 'tipo', 'ubicacion', 'capacidad', 'estado', 'actions'].includes(col.key);
+      col.enabled = ['select', 'ruc', 'razonSocial', 'tipoInfraestructura', 'ubicacion', 'capacidad', 'estado', 'acciones'].includes(col.key);
     });
     this.updateDisplayedColumns();
   }
 
   isColumnVisible(columnKey: string): boolean {
+    if (columnKey === 'tipo' || columnKey === 'tipoInfraestructura') {
+      return this.displayedColumns().includes('tipoInfraestructura') || this.displayedColumns().includes('tipo');
+    }
+    if (columnKey === 'actions' || columnKey === 'acciones') {
+      return this.displayedColumns().includes('acciones') || this.displayedColumns().includes('actions');
+    }
     return this.displayedColumns().includes(columnKey);
   }
 

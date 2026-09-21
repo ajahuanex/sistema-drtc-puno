@@ -2213,3 +2213,107 @@
     padding: 10px 0 !important;
   }
 }
+
+/* ========================================================================= */
+/* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+/* ========================================================================= */
+:host-context([data-theme="dark"]),
+:host-context(.dark-theme) {
+  .vehiculos-modulo-container {
+    color: #f8fafc;
+  }
+
+  .resumen-ejecutivo-card,
+  .ficha-card,
+  .timeline-card,
+  .directorio-section,
+  .historial-table-wrapper,
+  .detalle-card {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    color: #f8fafc !important;
+  }
+
+  .ficha-header {
+    background: #131722 !important;
+    border-bottom-color: #1e2433 !important;
+    color: #f8fafc !important;
+    .ficha-title { color: #f8fafc !important; }
+  }
+
+  .ficha-item {
+    border-bottom-color: #171b26 !important;
+    .ficha-label { color: #94a3b8 !important; }
+    .ficha-value {
+      color: #f8fafc !important;
+      &.code-font {
+        background: #171b26 !important;
+        border-color: #283046 !important;
+      }
+    }
+  }
+
+  .custom-nav-tabs {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    .nav-tab-btn {
+      color: #94a3b8 !important;
+      &.active {
+        background: #1e2433 !important;
+        color: #38bdf8 !important;
+        border-bottom-color: #38bdf8 !important;
+      }
+      &:hover:not(.active) {
+        background: #171b26 !important;
+        color: #f8fafc !important;
+      }
+    }
+  }
+
+  .busqueda-input-wrapper {
+    background: #171b26 !important;
+    border-color: #283046 !important;
+    input {
+      color: #ffffff !important;
+      &::placeholder { color: #64748b !important; }
+    }
+  }
+
+  .table-directorio, .data-table {
+    th {
+      background-color: #131722 !important;
+      color: #94a3b8 !important;
+      border-bottom-color: #1e2433 !important;
+    }
+    td {
+      color: #cbd5e1 !important;
+      border-bottom-color: #171b26 !important;
+    }
+    tr:hover td {
+      background-color: #171b26 !important;
+    }
+  }
+
+  .puno-resumen-estado {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: rgba(245, 158, 11, 0.25) !important;
+    .puno-estado-texto { color: #fbbf24 !important; }
+    .puno-diagnostico-p { color: #fde68a !important; }
+  }
+
+  .cronograma-title {
+    color: #f8fafc !important;
+  }
+
+  .obs-box {
+    background: #171b26 !important;
+    border-color: #283046 !important;
+    .obs-title { color: #94a3b8 !important; }
+    .obs-line { color: #cbd5e1 !important; }
+  }
+
+  .empty-state {
+    color: #64748b !important;
+  }
+}

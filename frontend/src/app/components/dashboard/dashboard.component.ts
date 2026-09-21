@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { 
@@ -7,6 +7,7 @@ import {
   FlotaCorredor, 
   EmpresaMultiResolucionItem 
 } from '../../services/dashboard.service';
+import { ThemeService } from '../../services/theme.service';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx';
 
@@ -19,6 +20,7 @@ import * as XLSX from 'xlsx';
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private dashboardService = inject(DashboardService);
+  public themeService = inject(ThemeService);
   
   estadisticas = signal<DashboardEstadisticas | null>(null);
   cargando = signal<boolean>(true);
@@ -53,6 +55,20 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('rutasChart') rutasChartRef!: ElementRef<HTMLCanvasElement>;
   resolucionesChartInstance: Chart | null = null;
   rutasChartInstance: Chart | null = null;
+
+  constructor() {
+    effect(() => {
+      // Re-renderizar gráficos cuando el usuario conmuta Modo Claro / Oscuro
+      const isDark = this.themeService.isDarkMode();
+      const stats = this.estadisticas();
+      if (stats && this.resolucionesChartRef?.nativeElement) {
+        setTimeout(() => {
+          this.inicializarGraficoResoluciones(stats);
+          this.inicializarGraficoRutas(stats);
+        }, 60);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.cargarEstadisticas();
@@ -365,6 +381,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     
     const borderColors = backgroundColors.map(color => color.replace('0.85', '1'));
     
+    const isDark = this.themeService.isDarkMode();
+    const legendColor = isDark ? '#cbd5e1' : '#334155';
+
     this.resolucionesChartInstance = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -385,7 +404,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             position: 'right',
             labels: {
               font: { family: "'Inter', sans-serif", size: 12 },
-              color: '#334155',
+              color: legendColor,
               padding: 12
             }
           },
@@ -437,6 +456,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     ];
     
     const borderColors = backgroundColors.map(color => color.replace('0.8', '1'));
+    const isDark = this.themeService.isDarkMode();
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
     
     this.rutasChartInstance = new Chart(ctx, {
       type: 'bar',
@@ -468,15 +490,18 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         scales: {
           x: {
             beginAtZero: true,
-            ticks: { precision: 0 }
+            ticks: { precision: 0, color: tickColor },
+            grid: { color: gridColor }
           },
           y: {
             ticks: {
+              color: tickColor,
               callback: function(value, index) {
                 const label = this.getLabelForValue(index as number);
                 return label.length > 28 ? label.substring(0, 28) + '...' : label;
               }
-            }
+            },
+            grid: { color: gridColor }
           }
         }
       }

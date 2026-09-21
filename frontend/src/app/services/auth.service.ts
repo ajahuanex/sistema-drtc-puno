@@ -50,7 +50,8 @@ export class AuthService {
             nombres: response.user?.nombres || 'Usuario',
             apellidos: response.user?.apellidos || 'Sistema',
             email: response.user?.email || `${credentials.username}@sistema.com`,
-            rolId: response.user?.rolId || 'administrador'
+            rolId: response.user?.rolId || 'administrador',
+            modulosPermitidos: response.user?.modulosPermitidos || []
           }
         } as LoginResponse;
       }),
@@ -77,6 +78,7 @@ export class AuthService {
         email: response.user.email,
         rolId: response.user.rolId,
         estaActivo: true,
+        modulosPermitidos: response.user.modulosPermitidos || [], // Permisos de módulos dinámicos
         fechaCreacion: new Date().toISOString()
       };
       
@@ -155,5 +157,34 @@ export class AuthService {
       return { 'Authorization': `Bearer ${token}` };
     }
     return { 'Content-Type': 'application/json' };
+  }
+
+  /**
+   * Determina si el usuario autenticado tiene acceso a un módulo específico.
+   * - Superadministradores (admin / oti) tienen acceso irrestricto total.
+   * - Si el usuario tiene una lista de módulos permitidos (por rol o personalizada), se valida pertenencia.
+   */
+  canAccessModule(moduleKey: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+
+    const rol = (user.rolId || user.rol_id || '').toLowerCase();
+    if (rol === 'admin' || rol === 'oti') {
+      return true;
+    }
+
+    // Si tiene lista de módulos permitidos asignados
+    if (user.modulosPermitidos && Array.isArray(user.modulosPermitidos) && user.modulosPermitidos.length > 0) {
+      if (moduleKey === 'terminales' || moduleKey === 'infraestructura') {
+        return user.modulosPermitidos.includes('infraestructura') || user.modulosPermitidos.includes('terminales');
+      }
+      return user.modulosPermitidos.includes(moduleKey);
+    }
+
+    // Regla base por defecto si aún no se inicializó la lista
+    if (moduleKey === 'dashboard') return true;
+    if (moduleKey === 'configuracion' || moduleKey === 'auditoria') return false;
+
+    return true;
   }
 } 

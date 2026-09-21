@@ -479,6 +479,81 @@ import { Resolucion } from '../../models/resolucion.model';
       color: #999;
       font-style: italic;
     }
+
+    /* Dark Mode GovTech Sentinel DRTC Puno */
+    :host-context([data-theme="dark"]), :host-context(.dark-theme), :host-context(.dark-mode) {
+      .page-container {
+        background-color: #0b0f19;
+        color: #f8fafc;
+      }
+
+      .page-header {
+        background: linear-gradient(135deg, #07152f 0%, #0b1f44 50%, #1e3a8a 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+
+        .header-content h1 { color: #ffffff !important; }
+        .subtitle { color: #cbd5e1 !important; }
+      }
+
+      .filters-card, .table-card {
+        background-color: #111622 !important;
+        border: 1px solid #1e2433 !important;
+        color: #f8fafc !important;
+      }
+
+      table.mat-mdc-table {
+        background-color: #111622 !important;
+
+        th.mat-mdc-header-cell {
+          background-color: #131722 !important;
+          color: #94a3b8 !important;
+          border-bottom-color: #1e2433 !important;
+        }
+
+        td.mat-mdc-cell {
+          color: #cbd5e1 !important;
+          border-bottom-color: #171b26 !important;
+        }
+
+        tr.mat-mdc-row:hover td {
+          background-color: #171b26 !important;
+          color: #ffffff !important;
+        }
+      }
+
+      ::ng-deep {
+        .mat-mdc-text-field-wrapper {
+          background-color: #171b26 !important;
+        }
+        .mat-mdc-select-value-text, input.mat-mdc-input-element {
+          color: #f8fafc !important;
+        }
+        .mat-mdc-floating-label {
+          color: #94a3b8 !important;
+        }
+        .mdc-notched-outline__leading,
+        .mdc-notched-outline__notch,
+        .mdc-notched-outline__trailing {
+          border-color: #283046 !important;
+        }
+        .mat-mdc-paginator {
+          background-color: #131722 !important;
+          color: #94a3b8 !important;
+          border-top: 1px solid #1e2433 !important;
+        }
+      }
+
+      .hija-badge, .expediente-badge, .obs-badge, .renovada-badge {
+        background-color: #171b26 !important;
+        color: #93c5fd !important;
+        border: 1px solid rgba(37, 99, 235, 0.35) !important;
+      }
+
+      .loading-container {
+        color: #94a3b8 !important;
+      }
+    }
   `]
 })
 export class ResolucionesComponent implements OnInit {

@@ -1989,3 +1989,145 @@
     }
   }
 }
+
+/* ========================================================================= */
+/* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+/* ========================================================================= */
+:host-context([data-theme="dark"]),
+:host-context(.dark-theme) {
+  .page-container {
+    background-color: #0b0f19;
+    color: #f8fafc;
+  }
+
+  .page-header {
+    background: linear-gradient(135deg, #0b1329 0%, #172554 50%, #1e3a8a 100%);
+    border: 1px solid #1e293b;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  }
+
+  .glass-filters {
+    background: #111622;
+    border-color: #1e2433;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+    .search-input {
+      background: #171b26;
+      border-color: #283046;
+      color: #f8fafc;
+
+      &:focus {
+        border-color: #3b82f6;
+        background: #1e2433;
+      }
+    }
+
+    .filter-btn-toggle {
+      background: #171b26;
+      border-color: #283046;
+      color: #cbd5e1;
+
+      &:hover {
+        background: #1e2433;
+        color: #ffffff;
+      }
+    }
+  }
+
+  .advanced-filters-panel {
+    background: #111622;
+    border-color: #1e2433;
+
+    .filter-group-label {
+      color: #94a3b8;
+    }
+
+    .custom-select, .custom-input {
+      background: #171b26;
+      border-color: #283046;
+      color: #f8fafc;
+    }
+  }
+
+  .rutas-table-card, .table-card {
+    background: #111622;
+    border-color: #1e2433;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .mat-mdc-table, mat-table {
+    background-color: transparent !important;
+  }
+
+  .mat-mdc-header-row, mat-header-row {
+    background-color: #131722 !important;
+    border-bottom-color: #1e2433 !important;
+  }
+
+  .mat-mdc-header-cell, mat-header-cell {
+    color: #94a3b8 !important;
+    font-weight: 700;
+  }
+
+  .mat-mdc-row, mat-row {
+    border-bottom-color: #171b26 !important;
+    background-color: transparent;
+
+    &:hover {
+      background-color: #171b26 !important;
+    }
+  }
+
+  .mat-mdc-cell, mat-cell {
+    color: #cbd5e1 !important;
+  }
+
+  .ruta-codigo-badge {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+  }
+
+  .ruta-card-mobile {
+    background: #111622;
+    border-color: #1e2433;
+    color: #f8fafc;
+
+    .mobile-header {
+      background-color: #131722;
+      border-bottom-color: #1e2433;
+    }
+
+    .mobile-info-row {
+      color: #cbd5e1;
+    }
+  }
+
+  .stat-card {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+
+    .stat-details {
+      .stat-value {
+        color: #ffffff !important;
+      }
+      .stat-label {
+        color: #94a3b8 !important;
+      }
+      .stat-subtitle {
+        color: #64748b !important;
+      }
+    }
+  }
+
+  .paginator-card {
+    background: #111622;
+    border-color: #1e2433;
+    color: #cbd5e1;
+  }
+
+  .empty-state {
+    color: #64748b;
+  }
+}
+

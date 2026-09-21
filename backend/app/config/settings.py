@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
     
-    # CORS - URLs específicas para SIRRET
+    # CORS - URLs específicas para SIRRETT
     BACKEND_CORS_ORIGINS: List[str] = [
         url.strip() for url in os.getenv(
             "BACKEND_CORS_ORIGINS",
@@ -64,14 +64,14 @@ class Settings(BaseSettings):
         ).split(",")
     ]
     
-    # URLs del sistema SIRRET
+    # URLs del sistema SIRRETT
     BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:4200")
     API_BASE_URL: str = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
     
     # Información del sistema
-    SISTEMA_NOMBRE: str = os.getenv("SISTEMA_NOMBRE", "SIRRET")
-    SISTEMA_NOMBRE_COMPLETO: str = os.getenv("SISTEMA_NOMBRE_COMPLETO", "Sistema Regional de Registros de Transporte (SIRRET)")
+    SISTEMA_NOMBRE: str = os.getenv("SISTEMA_NOMBRE", "SIRRETT")
+    SISTEMA_NOMBRE_COMPLETO: str = os.getenv("SISTEMA_NOMBRE_COMPLETO", "Sistema Regional de Registros de Transporte de Tránsito (SIRRETT)")
     ENTIDAD_NOMBRE: str = os.getenv("ENTIDAD_NOMBRE", "Dirección Regional de Transportes y Comunicaciones Puno")
     DOMINIO_INSTITUCIONAL: str = os.getenv("DOMINIO_INSTITUCIONAL", "transportespuno.gob.pe")
     EMAIL_INSTITUCIONAL: str = os.getenv("EMAIL_INSTITUCIONAL", "admin@transportespuno.gob.pe")

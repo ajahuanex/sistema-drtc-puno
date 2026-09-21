@@ -59,7 +59,10 @@ class VehiculoDataService:
         if not clean_placa or len(clean_placa) < 6:
             return None
         
-        url = f"https://pcm.guillermo.pe/api/v1/sunarp/vehiculo/{clean_placa}"
+        param_col = self.db["parametros_sistema"]
+        param_doc = await param_col.find_one({"clave": "INTEROPERABILIDAD_BASE_URL"})
+        base_url = (param_doc.get("valor") if param_doc else "https://pcm.guillermo.pe").rstrip("/")
+        url = f"{base_url}/api/v1/sunarp/vehiculo/{clean_placa}"
         try:
             async with httpx.AsyncClient(verify=False, timeout=12.0) as client:
                 resp = await client.get(url)

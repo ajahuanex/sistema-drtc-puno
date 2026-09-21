@@ -8,7 +8,7 @@ import re
 import uuid
 import logging
 from io import BytesIO
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 
 import pandas as pd
@@ -201,7 +201,7 @@ def _normalizar_rutas(val) -> List[str]:
     return [s]
 
 
-def _normalizar_placa(val) -> tuple[str, bool]:
+def _normalizar_placa(val) -> Tuple[str, bool]:
     """
     Normalizar placa. Retorna (placa, es_cronologico).
     Si vacío/guion → ("-", True).

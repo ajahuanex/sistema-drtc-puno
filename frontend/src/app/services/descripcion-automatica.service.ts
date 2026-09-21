@@ -1,5 +1,11 @@
 import { Injectable } from '@angular/core';
-import { CategoriaConfiguracion } from '../models/configuracion.model';
+export enum CategoriaConfiguracion {
+  SISTEMA = 'SISTEMA',
+  RESOLUCIONES = 'RESOLUCIONES',
+  EXPEDIENTES = 'EXPEDIENTES',
+  EMPRESAS = 'EMPRESAS',
+  NOTIFICACIONES = 'NOTIFICACIONES'
+}
 
 @Injectable({
   providedIn: 'root'

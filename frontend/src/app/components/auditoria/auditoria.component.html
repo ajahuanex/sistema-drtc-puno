@@ -136,7 +136,7 @@
       
       <!-- Búsqueda textual -->
       <div class="form-group search-group">
-        <label class="form-label">Búsqueda Forense / Trazabilidad</label>
+        <label class="form-label" title="Búsqueda Forense / Trazabilidad">Búsqueda Forense / Trazabilidad</label>
         <div class="search-input-wrapper">
           <i class="material-icons-outlined search-icon">search</i>
           <input 
@@ -148,7 +148,7 @@
             (keyup.enter)="buscar()"
           />
           @if (terminoBusqueda()) {
-            <button class="clear-search-btn" (click)="terminoBusqueda.set(''); buscar()">
+            <button class="clear-search-btn" (click)="terminoBusqueda.set(''); buscar()" title="Limpiar búsqueda">
               <i class="material-icons-outlined">close</i>
             </button>
           }
@@ -157,7 +157,7 @@
 
       <!-- Módulo -->
       <div class="form-group">
-        <label class="form-label">Módulo Regulatorio</label>
+        <label class="form-label" title="Módulo Regulatorio">Módulo Regulatorio</label>
         <select class="form-control" [ngModel]="filtroModulo()" (ngModelChange)="filtroModulo.set($event); buscar()">
           @for (m of modulosDisponibles; track m.value) {
             <option [value]="m.value">{{ m.label }}</option>
@@ -167,7 +167,7 @@
 
       <!-- Acción -->
       <div class="form-group">
-        <label class="form-label">Tipo de Acto / Operación</label>
+        <label class="form-label" title="Tipo de Acto / Operación">Tipo de Acto / Operación</label>
         <select class="form-control" [ngModel]="filtroAccion()" (ngModelChange)="filtroAccion.set($event); buscar()">
           @for (a of accionesDisponibles; track a.value) {
             <option [value]="a.value">{{ a.label }}</option>
@@ -177,7 +177,7 @@
 
       <!-- Severidad -->
       <div class="form-group">
-        <label class="form-label">Nivel de Criticidad</label>
+        <label class="form-label" title="Nivel de Criticidad">Nivel de Criticidad</label>
         <select class="form-control" [ngModel]="filtroSeveridad()" (ngModelChange)="filtroSeveridad.set($event); buscar()">
           @for (s of severidadesDisponibles; track s.value) {
             <option [value]="s.value">{{ s.label }}</option>
@@ -187,7 +187,7 @@
 
       <!-- Fecha Desde -->
       <div class="form-group">
-        <label class="form-label">Fecha Desde</label>
+        <label class="form-label" title="Fecha Desde">Fecha Desde</label>
         <input 
           type="date" 
           class="form-control" 
@@ -198,7 +198,7 @@
 
       <!-- Fecha Hasta -->
       <div class="form-group">
-        <label class="form-label">Fecha Hasta</label>
+        <label class="form-label" title="Fecha Hasta">Fecha Hasta</label>
         <input 
           type="date" 
           class="form-control" 
@@ -326,8 +326,8 @@
                 <!-- Operador / Responsable -->
                 <td>
                   <div class="user-box">
-                    <span class="user-name">{{ log.usuario?.nombre || 'Administrador' }}</span>
-                    <span class="user-role">{{ log.usuario?.rol || 'ADMIN' }} • {{ log.usuario?.dni || 'SISTEMA' }}</span>
+                    <span class="user-name">{{ log.usuario.nombre || 'Administrador' }}</span>
+                    <span class="user-role">{{ log.usuario.rol || 'ADMIN' }} • {{ log.usuario.dni || 'SISTEMA' }}</span>
                   </div>
                 </td>
 
@@ -407,7 +407,7 @@
             </div>
             <div class="resumen-col">
               <span class="resumen-lbl">Operador Responsable</span>
-              <span class="resumen-val">{{ item.usuario?.nombre }} (DNI: {{ item.usuario?.dni }})</span>
+              <span class="resumen-val">{{ item.usuario.nombre }} (DNI: {{ item.usuario.dni }})</span>
             </div>
             <div class="resumen-col">
               <span class="resumen-lbl">IP de Registro</span>

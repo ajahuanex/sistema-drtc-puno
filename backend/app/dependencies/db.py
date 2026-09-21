@@ -142,6 +142,25 @@ async def lifespan(app):
     sunat_cron_task = None
     try:
         await connect_to_mongo()
+        
+        # Inicializar parámetros por defecto del sistema
+        if db.client and db.is_connected:
+            try:
+                from app.config.inicializar_parametros import inicializar_parametros_db
+                database = db.client[settings.DATABASE_NAME]
+                await inicializar_parametros_db(database)
+            except Exception as e:
+                logger.warning(f"⚠️ Error al inicializar parámetros de sistema: {e}")
+
+        # Inicializar roles y permisos por defecto
+        if db.client and db.is_connected:
+            try:
+                from app.services.permisos_service import PermisosService
+                database = db.client[settings.DATABASE_NAME]
+                await PermisosService(database).inicializar_roles_permisos()
+            except Exception as e:
+                logger.warning(f"⚠️ Error al inicializar roles y permisos: {e}")
+
         # Crear índices para optimizar búsquedas frecuentes
         if db.client and db.is_connected:
             try:

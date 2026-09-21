@@ -505,3 +505,81 @@
 .documento-card:nth-child(4) { animation-delay: 0.4s; }
 .documento-card:nth-child(5) { animation-delay: 0.5s; }
 .documento-card:nth-child(6) { animation-delay: 0.6s; }
+
+// ========================================
+// MODO OSCURO (GOVTECH SENTINEL)
+// ========================================
+:host-context([data-theme="dark"]),
+:host-context(.dark-theme) {
+  .infraestructura-detail-container {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9;
+
+    .loading-container h3 { color: #f1f5f9; }
+
+    .detail-header {
+      background: #111622 !important;
+      border: 1px solid #1e2433;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+      .header-actions button {
+        color: #94a3b8;
+        &:hover { color: #f1f5f9; }
+      }
+
+      .header-info {
+        .infraestructura-title {
+          h1 { color: #f1f5f9 !important; }
+          .title-icon { color: #3b82f6 !important; }
+        }
+        .infraestructura-subtitle {
+          .ruc { color: #94a3b8 !important; }
+          .tipo { color: #60a5fa !important; }
+        }
+      }
+
+      .header-stats {
+        .stat-card {
+          background: #171b26 !important;
+          border: 1px solid #1e2433;
+          mat-icon { color: #3b82f6 !important; }
+          .stat-value { color: #38bdf8 !important; }
+          .stat-label { color: #94a3b8 !important; }
+        }
+      }
+    }
+
+    .detail-tabs {
+      background: #111622 !important;
+      border: 1px solid #1e2433;
+
+      ::ng-deep .mat-mdc-tab-header {
+        border-bottom-color: #1e2433 !important;
+      }
+
+      ::ng-deep .mat-mdc-tab .mdc-tab__text-label {
+        color: #94a3b8 !important;
+      }
+
+      ::ng-deep .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+        color: #60a5fa !important;
+      }
+
+      .info-card, .documento-card {
+        background: #171b26 !important;
+        border: 1px solid #1e2433 !important;
+        color: #f1f5f9;
+
+        mat-card-header {
+          border-bottom-color: #1e2433 !important;
+          mat-card-title { color: #60a5fa !important; }
+        }
+
+        .info-row {
+          .info-label { color: #94a3b8 !important; }
+          .info-value { color: #f1f5f9 !important; }
+        }
+      }
+    }
+  }
+}

@@ -236,9 +236,14 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
 
                     <!-- Placa / Vehículo -->
                     <td>
-                      <div class="placa-title font-mono">{{ tuc.placa }}</div>
-                      <div class="vehiculo-sub">
-                        {{ tuc.datosVehiculo?.['marca'] || '' }} {{ tuc.datosVehiculo?.['categoria'] || '' }}
+                      <div class="placa-wrapper">
+                        <div class="placa-badge font-mono">
+                          <span class="placa-pais">PERÚ</span>
+                          <span class="placa-codigo">{{ tuc.placa }}</span>
+                        </div>
+                        <div class="vehiculo-sub">
+                          {{ tuc.datosVehiculo?.['marca'] || '' }} {{ tuc.datosVehiculo?.['categoria'] || '' }}
+                        </div>
                       </div>
                     </td>
 
@@ -325,8 +330,8 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .page-container {
       padding: 24px;
       min-height: 100vh;
-      background-color: #0f172a;
-      color: #f8fafc;
+      background-color: #f8fafc;
+      color: #0f172a;
       font-family: system-ui, -apple-system, sans-serif;
     }
 
@@ -335,7 +340,7 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       justify-content: space-between;
       align-items: center;
       padding-bottom: 20px;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid #e2e8f0;
       margin-bottom: 24px;
       flex-wrap: wrap;
       gap: 16px;
@@ -356,11 +361,11 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       font-size: 36px;
       width: 36px;
       height: 36px;
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.15);
+      color: #1e3a8a;
+      background: #eff6ff;
       padding: 12px;
       border-radius: 16px;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      border: 1px solid #bfdbfe;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -369,14 +374,14 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .page-title {
       font-size: 24px;
       font-weight: 800;
-      color: #ffffff;
+      color: #0f172a;
       margin: 0;
       letter-spacing: -0.5px;
     }
 
     .subtitle {
       font-size: 13px;
-      color: #94a3b8;
+      color: #64748b;
       margin: 4px 0 0 0;
     }
 
@@ -394,32 +399,41 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       font-size: 13px;
       border-radius: 10px;
       padding: 8px 16px;
+      transition: all 0.2s;
     }
 
     .btn-sync {
-      background: #1e293b;
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: #ffffff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
-    .btn-sync:hover { background: #334155; }
+    .btn-sync:hover { background: #f0f9ff; }
 
     .btn-kardex {
-      background: #1e293b;
-      color: #f59e0b;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: #ffffff;
+      color: #b45309;
+      border: 1px solid #fde68a;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
-    .btn-kardex:hover { background: #334155; }
+    .btn-kardex:hover { background: #fffbeb; }
 
     .btn-excel {
-      background: #1e293b;
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: #ffffff;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
-    .btn-excel:hover { background: #334155; }
+    .btn-excel:hover { background: #ecfdf5; }
 
     .btn-emitir {
-      background: #2563eb;
-      color: white;
+      background: #1e3a8a !important;
+      color: #ffffff !important;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+    }
+    .btn-emitir:hover {
+      background: #1e40af !important;
     }
 
     /* KPI Grid */
@@ -431,27 +445,33 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     }
 
     .kpi-card {
-      background: #1e293b;
+      background: #ffffff;
       border-radius: 16px;
       padding: 16px;
-      border: 1px solid #334155;
-      backdrop-filter: blur(10px);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
-    .border-kpi-total { border-color: #475569; }
-    .border-kpi-emerald { border-color: rgba(16, 185, 129, 0.4); }
-    .border-kpi-blue { border-color: rgba(59, 130, 246, 0.4); }
-    .border-kpi-amber { border-color: rgba(245, 158, 11, 0.4); }
-    .border-kpi-rose { border-color: rgba(244, 63, 94, 0.4); }
-    .border-kpi-purple { border-color: rgba(168, 85, 247, 0.4); }
+    .border-kpi-total { border-top: 4px solid #64748b; }
+    .border-kpi-emerald { border-top: 4px solid #10b981; }
+    .border-kpi-blue { border-top: 4px solid #2563eb; }
+    .border-kpi-amber { border-top: 4px solid #f59e0b; }
+    .border-kpi-rose { border-top: 4px solid #ef4444; }
+    .border-kpi-purple { border-top: 4px solid #8b5cf6; }
 
     .kpi-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 12px;
-      color: #94a3b8;
+      color: #64748b;
       margin-bottom: 6px;
+      font-weight: 600;
     }
 
     .kpi-value {
@@ -459,20 +479,21 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       font-weight: 900;
     }
 
-    .text-slate { color: #f8fafc; }
-    .text-emerald { color: #34d399; }
-    .text-blue { color: #60a5fa; }
-    .text-amber { color: #fbbf24; }
-    .text-rose { color: #f87171; }
-    .text-purple { color: #c084fc; }
+    .text-slate { color: #0f172a; }
+    .text-emerald { color: #059669; }
+    .text-blue { color: #2563eb; }
+    .text-amber { color: #d97706; }
+    .text-rose { color: #e11d48; }
+    .text-purple { color: #7c3aed; }
 
     /* Glass Filters */
     .glass-filters {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .filters-grid {
@@ -497,23 +518,25 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .search-icon {
       position: absolute;
       left: 12px;
-      color: #64748b;
+      color: #94a3b8;
       font-size: 20px;
     }
 
     .search-input {
       width: 100%;
       padding: 10px 12px 10px 40px;
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 10px;
-      color: white;
+      color: #0f172a;
       font-size: 13px;
       outline: none;
+      transition: border-color 0.2s;
     }
 
     .search-input:focus {
-      border-color: #3b82f6;
+      border-color: #2563eb;
+      background: #ffffff;
     }
 
     .btn-clear-search {
@@ -530,12 +553,18 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .filter-select {
       width: 100%;
       padding: 10px 12px;
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 10px;
-      color: #f8fafc;
+      color: #0f172a;
       font-size: 13px;
       outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .filter-select:focus {
+      border-color: #2563eb;
+      background: #ffffff;
     }
 
     .filter-buttons {
@@ -546,22 +575,39 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .btn-filter {
       padding: 8px 16px;
       border-radius: 10px;
+      background: #1e3a8a !important;
+      color: #ffffff !important;
     }
 
     .btn-clear {
-      color: #94a3b8;
+      color: #64748b;
+      border-color: #cbd5e1;
     }
 
     /* Table Styles */
     .table-card {
-      background: #1e293b !important;
-      border: 1px solid #334155 !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
       border-radius: 16px !important;
       overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
     }
 
     .table-container {
       overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f8fafc;
+    }
+
+    .table-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    .table-container::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
     }
 
     .custom-table {
@@ -569,36 +615,39 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       border-collapse: collapse;
       text-align: left;
       font-size: 13px;
+      min-width: 950px;
     }
 
     .custom-table th {
-      background: #0f172a;
-      color: #94a3b8;
+      background: #f8fafc;
+      color: #475569;
       padding: 14px 16px;
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      border-bottom: 1px solid #334155;
+      border-bottom: 2px solid #e2e8f0;
+      letter-spacing: 0.05em;
     }
 
     .custom-table td {
       padding: 14px 16px;
-      border-bottom: 1px solid #1e293b;
-      color: #f1f5f9;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: middle;
     }
 
     .custom-table tr:hover td {
-      background: rgba(51, 65, 85, 0.4);
+      background: #f8fafc;
     }
 
     .tuc-badge {
       font-weight: 800;
       font-size: 13px;
-      background: #0f172a;
+      background: #f1f5f9;
       padding: 4px 10px;
       border-radius: 8px;
-      border: 1px solid #334155;
-      color: white;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
     }
 
     .tipo-badge {
@@ -612,28 +661,58 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     }
 
     .tipo-electronica {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93c5fd;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
     }
 
     .tipo-fisica {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fde047;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fde68a;
     }
 
-    .placa-title {
+    /* Placa Oficial Perú */
+    .placa-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .placa-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      background: #ffffff;
+      border: 1.5px solid #0f172a;
+      border-radius: 4px;
+      padding: 1px 8px 2px 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      width: fit-content;
+    }
+
+    .placa-pais {
+      font-size: 8px;
       font-weight: 800;
-      font-size: 14px;
-      color: white;
+      color: #1e3a8a;
+      letter-spacing: 1.2px;
+      line-height: 1;
     }
-    .vehiculo-sub { font-size: 11px; color: #94a3b8; }
 
-    .empresa-title { font-weight: 700; color: #f8fafc; }
-    .ruc-sub { font-size: 11px; color: #60a5fa; }
+    .placa-codigo {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.05em;
+      line-height: 1.1;
+    }
 
-    .res-title { font-weight: 700; color: #34d399; }
+    .vehiculo-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .empresa-title { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
+    .ruc-sub { font-size: 11px; color: #1e40af; font-weight: 600; }
+
+    .res-title { font-weight: 700; color: #047857; }
     .motivo-sub { font-size: 10px; color: #64748b; text-transform: uppercase; }
 
     .tipo-hija-pill {
@@ -646,18 +725,18 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       letter-spacing: 0.04em;
       text-transform: uppercase;
       
-      &.tipo-i { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
-      &.tipo-s { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); }
-      &.tipo-m { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
-      &.tipo-fe { background: rgba(250, 204, 21, 0.2); color: #fde047; border: 1px solid rgba(250, 204, 21, 0.4); }
-      &.tipo-r { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); }
-      &.tipo-d { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.4); }
-      &.tipo-c { background: rgba(244, 63, 94, 0.2); color: #fca5a5; border: 1px solid rgba(244, 63, 94, 0.4); }
-      &.tipo-o { background: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.4); }
+      &.tipo-i { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+      &.tipo-s { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+      &.tipo-m { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+      &.tipo-fe { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+      &.tipo-r { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+      &.tipo-d { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+      &.tipo-c { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+      &.tipo-o { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     }
 
-    .fecha-main { font-weight: 500; color: #f1f5f9; }
-    .fecha-sub { font-size: 11px; color: #94a3b8; }
+    .fecha-main { font-weight: 600; color: #0f172a; }
+    .fecha-sub { font-size: 11px; color: #64748b; }
 
     .status-pill {
       display: inline-block;
@@ -666,24 +745,25 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       font-size: 10px;
       font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .status-vigente {
-      background: rgba(16, 185, 129, 0.2);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
     }
 
     .status-anulada {
-      background: rgba(244, 63, 94, 0.2);
-      color: #fca5a5;
-      border: 1px solid rgba(244, 63, 94, 0.4);
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
     }
 
     .status-reemplazada {
-      background: rgba(100, 116, 139, 0.3);
-      color: #cbd5e1;
-      border: 1px solid #64748b;
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fde68a;
     }
 
     .actions-flex {
@@ -694,27 +774,30 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     }
 
     .btn-icon-qr {
-      color: #60a5fa;
+      color: #1e40af;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
       padding: 6px;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
 
     .btn-icon-qr:hover {
-      background: rgba(59, 130, 246, 0.2);
+      background: #dbeafe;
+      color: #1e3a8a;
     }
 
     .btn-more {
-      color: #94a3b8;
+      color: #64748b;
     }
 
     .loading-cell, .empty-cell {
       text-align: center;
       padding: 40px 16px;
-      color: #94a3b8;
+      color: #64748b;
     }
 
     .spinner-icon {
@@ -733,13 +816,13 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
       font-size: 40px;
       width: 40px;
       height: 40px;
-      color: #475569;
+      color: #94a3b8;
       margin-bottom: 8px;
     }
 
     .empty-title {
       font-weight: 700;
-      color: #f1f5f9;
+      color: #0f172a;
       margin: 0;
     }
 
@@ -752,6 +835,216 @@ import { TucImportarExcelDialogComponent } from './tuc-importar-excel-dialog.com
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .text-warn { color: #f43f5e; }
+
+    /* ==========================================================================
+       MODO OSCURO (DARK MODE / FISCALIZACIÓN NOCTURNA) - STITCH GOVTECH
+       ========================================================================== */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .page-container {
+        background-color: #0b1329 !important;
+        color: #f8fafc !important;
+      }
+
+      .page-header {
+        border-bottom-color: #1e293b !important;
+      }
+
+      .header-icon {
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        color: #60a5fa !important;
+      }
+
+      .page-title {
+        color: #f8fafc !important;
+      }
+
+      .subtitle {
+        color: #94a3b8 !important;
+      }
+
+      .btn-sync {
+        background: #1e293b !important;
+        color: #38bdf8 !important;
+        border-color: rgba(56, 189, 248, 0.3) !important;
+      }
+      .btn-sync:hover { background: #334155 !important; }
+
+      .btn-kardex {
+        background: #1e293b !important;
+        color: #fbbf24 !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+      }
+      .btn-kardex:hover { background: #334155 !important; }
+
+      .btn-excel {
+        background: #1e293b !important;
+        color: #34d399 !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+      .btn-excel:hover { background: #334155 !important; }
+
+      .btn-emitir {
+        background: #2563eb !important;
+        color: #ffffff !important;
+      }
+      .btn-emitir:hover { background: #1d4ed8 !important; }
+
+      .kpi-card {
+        background: #111827 !important;
+        border-color: #1e293b !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      .kpi-header {
+        color: #94a3b8 !important;
+      }
+
+      .text-slate { color: #f8fafc !important; }
+      .text-emerald { color: #34d399 !important; }
+      .text-blue { color: #60a5fa !important; }
+      .text-amber { color: #fbbf24 !important; }
+      .text-rose { color: #f87171 !important; }
+      .text-purple { color: #c084fc !important; }
+
+      .glass-filters {
+        background: #111827 !important;
+        border-color: #1e293b !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      .search-input {
+        background: #0b0f19 !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      .search-input:focus {
+        border-color: #3b82f6 !important;
+      }
+
+      .filter-select {
+        background: #0b0f19 !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      .filter-select:focus {
+        border-color: #3b82f6 !important;
+      }
+
+      .btn-filter {
+        background: #2563eb !important;
+      }
+      .btn-clear {
+        color: #94a3b8 !important;
+        border-color: #334155 !important;
+      }
+
+      .table-card {
+        background: #111827 !important;
+        border-color: #1e293b !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      .table-container {
+        scrollbar-color: #334155 #0f172a !important;
+      }
+      .table-container::-webkit-scrollbar-track {
+        background: #0f172a !important;
+      }
+      .table-container::-webkit-scrollbar-thumb {
+        background: #334155 !important;
+      }
+
+      .custom-table th {
+        background: #0f172a !important;
+        color: #94a3b8 !important;
+        border-bottom-color: #1e293b !important;
+      }
+
+      .custom-table td {
+        border-bottom-color: #1e293b !important;
+        color: #f1f5f9 !important;
+      }
+
+      .custom-table tr:hover td {
+        background: #1e293b !important;
+      }
+
+      .tuc-badge {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+
+      .tipo-electronica {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: #93c5fd !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+      }
+
+      .tipo-fisica {
+        background: rgba(245, 158, 11, 0.15) !important;
+        color: #fde047 !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+      }
+
+      .empresa-title {
+        color: #f8fafc !important;
+      }
+      .ruc-sub {
+        color: #60a5fa !important;
+      }
+
+      .res-title {
+        color: #34d399 !important;
+      }
+
+      .fecha-main {
+        color: #f8fafc !important;
+      }
+      .fecha-sub {
+        color: #94a3b8 !important;
+      }
+
+      .status-vigente {
+        background: rgba(16, 185, 129, 0.15) !important;
+        color: #34d399 !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+      }
+
+      .status-anulada {
+        background: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+        border-color: rgba(239, 68, 68, 0.3) !important;
+      }
+
+      .status-reemplazada {
+        background: rgba(245, 158, 11, 0.15) !important;
+        color: #fbbf24 !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+      }
+
+      .btn-icon-qr {
+        color: #60a5fa !important;
+        background: rgba(59, 130, 246, 0.15) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+      }
+      .btn-icon-qr:hover {
+        background: rgba(59, 130, 246, 0.3) !important;
+      }
+
+      .btn-more {
+        color: #94a3b8 !important;
+      }
+
+      .empty-title {
+        color: #f8fafc !important;
+      }
+      .empty-desc {
+        color: #94a3b8 !important;
+      }
+    }
   `]
 })
 export class TucCatalogoComponent implements OnInit {

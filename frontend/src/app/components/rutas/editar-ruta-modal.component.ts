@@ -208,6 +208,31 @@ export interface EditarRutaModalData {
       font-weight: 500;
       color: #333;
     }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .campo-seleccion label {
+        color: #cbd5e1;
+      }
+      .seleccion-display {
+        border-color: #334155;
+        background-color: #171b26;
+        color: #f8fafc;
+        .placeholder { color: #64748b; }
+        &.has-value {
+          border-color: #3b82f6;
+          background-color: rgba(59, 130, 246, 0.15);
+          .value { color: #60a5fa; }
+        }
+      }
+      .frecuencia-section {
+        background: #171b26;
+        border-left-color: #10b981;
+        border: 1px solid #1e293b;
+        border-left-width: 4px;
+        h4 { color: #f8fafc; }
+      }
+    }
   `]
 })
 export class EditarRutaModalComponent implements OnInit {

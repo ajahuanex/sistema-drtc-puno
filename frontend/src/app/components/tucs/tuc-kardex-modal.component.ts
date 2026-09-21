@@ -108,12 +108,13 @@ import { TucKardexStock } from '../../models/tuc.model';
   `,
   styles: [`
     .dialog-container {
-      background-color: #0f172a;
-      color: #f8fafc;
+      background-color: #ffffff;
+      color: #0f172a;
       padding: 24px;
       border-radius: 16px;
       max-width: 600px;
       font-family: system-ui, -apple-system, sans-serif;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
     .dialog-header {
@@ -121,15 +122,15 @@ import { TucKardexStock } from '../../models/tuc.model';
       justify-content: space-between;
       align-items: center;
       padding-bottom: 16px;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid #e2e8f0;
       margin-bottom: 16px;
     }
 
     .header-title-box { display: flex; align-items: center; gap: 14px; }
 
     .header-icon-badge {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
       padding: 10px;
       border-radius: 12px;
       display: flex;
@@ -137,15 +138,15 @@ import { TucKardexStock } from '../../models/tuc.model';
       justify-content: center;
     }
 
-    .icon-amber { color: #fbbf24; }
+    .icon-amber { color: #d97706; }
 
-    .dialog-title { font-size: 18px; font-weight: 800; color: white; margin: 0; }
-    .dialog-subtitle { font-size: 12px; color: #94a3b8; margin: 2px 0 0 0; }
-    .btn-close { color: #94a3b8; }
+    .dialog-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; }
+    .dialog-subtitle { font-size: 12px; color: #64748b; margin: 2px 0 0 0; }
+    .btn-close { color: #64748b; }
 
     .lotes-card {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 14px;
       margin-bottom: 16px;
@@ -154,13 +155,13 @@ import { TucKardexStock } from '../../models/tuc.model';
     .section-subtitle {
       font-size: 11px;
       font-weight: 700;
-      color: #94a3b8;
+      color: #475569;
       text-transform: uppercase;
       margin: 0 0 10px 0;
     }
 
-    .status-msg { font-size: 12px; color: #94a3b8; margin: 0; }
-    .status-msg.warning { color: #fbbf24; }
+    .status-msg { font-size: 12px; color: #64748b; margin: 0; }
+    .status-msg.warning { color: #d97706; }
 
     .lotes-list {
       display: flex;
@@ -174,19 +175,19 @@ import { TucKardexStock } from '../../models/tuc.model';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #0f172a;
+      background: #ffffff;
       padding: 10px 12px;
       border-radius: 8px;
-      border: 1px solid #334155;
+      border: 1px solid #e2e8f0;
       font-size: 12px;
     }
 
-    .lote-name { font-weight: 800; color: #fbbf24; margin-right: 8px; }
-    .lote-series { color: #94a3b8; }
+    .lote-name { font-weight: 800; color: #b45309; margin-right: 8px; }
+    .lote-series { color: #64748b; }
 
     .lote-stock-badge {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
       padding: 2px 8px;
       border-radius: 6px;
       font-weight: 700;
@@ -196,7 +197,7 @@ import { TucKardexStock } from '../../models/tuc.model';
     .form-section-title {
       font-size: 13px;
       font-weight: 800;
-      color: #fbbf24;
+      color: #b45309;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -207,41 +208,48 @@ import { TucKardexStock } from '../../models/tuc.model';
     .grid-2 { grid-template-columns: 1fr 1fr; }
 
     .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .form-label { font-size: 12px; font-weight: 700; color: #cbd5e1; }
+    .form-label { font-size: 12px; font-weight: 700; color: #334155; }
     .required { color: #f43f5e; }
 
     .form-input, .form-textarea {
       width: 100%;
       box-sizing: border-box;
       padding: 10px 12px;
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 10px;
-      color: white;
+      color: #0f172a;
       font-size: 13px;
       outline: none;
+      transition: all 0.2s;
     }
 
-    .form-input:focus, .form-textarea:focus { border-color: #fbbf24; }
+    .form-input:focus, .form-textarea:focus {
+      border-color: #d97706;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+    }
 
     .dialog-footer {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
       padding-top: 14px;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid #e2e8f0;
     }
 
     .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
       padding: 10px 18px;
       border-radius: 10px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
+      transition: all 0.2s;
     }
+    .btn-secondary:hover { background: #e2e8f0; }
 
     .btn-amber {
       background: #f59e0b;
@@ -255,11 +263,70 @@ import { TucKardexStock } from '../../models/tuc.model';
       align-items: center;
       gap: 6px;
       cursor: pointer;
+      transition: all 0.2s;
     }
-    .btn-amber:hover:not(:disabled) { background: #fbbf24; }
+    .btn-amber:hover:not(:disabled) { background: #d97706; color: white; }
     .btn-amber:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .icon-sm { font-size: 16px; width: 16px; height: 16px; }
+
+    /* ========================================================
+       DARK THEME OVERRIDES
+       ======================================================== */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .dialog-container {
+        background-color: #0f172a;
+        color: #f8fafc;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        border: 1px solid #1e293b;
+      }
+      .dialog-header { border-bottom-color: #1e293b; }
+      .header-icon-badge {
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.3);
+      }
+      .icon-amber { color: #fbbf24; }
+      .dialog-title { color: white; }
+      .dialog-subtitle { color: #94a3b8; }
+      .btn-close { color: #94a3b8; }
+      .lotes-card {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      .section-subtitle { color: #94a3b8; }
+      .status-msg { color: #94a3b8; }
+      .status-msg.warning { color: #fbbf24; }
+      .lote-item {
+        background: #0f172a;
+        border-color: #334155;
+      }
+      .lote-name { color: #fbbf24; }
+      .lote-series { color: #94a3b8; }
+      .form-section-title { color: #fbbf24; }
+      .form-label { color: #cbd5e1; }
+      .form-input, .form-textarea {
+        background: #1e293b;
+        border-color: #334155;
+        color: white;
+      }
+      .form-input:focus, .form-textarea:focus {
+        border-color: #fbbf24;
+        background: #1e293b;
+      }
+      .dialog-footer { border-top-color: #1e293b; }
+      .btn-secondary {
+        background: #1e293b;
+        color: #cbd5e1;
+        border-color: #334155;
+      }
+      .btn-secondary:hover { background: #334155; }
+      .btn-amber {
+        background: #f59e0b;
+        color: #0f172a;
+      }
+      .btn-amber:hover:not(:disabled) { background: #fbbf24; }
+    }
   `]
 })
 export class TucKardexModalComponent implements OnInit {

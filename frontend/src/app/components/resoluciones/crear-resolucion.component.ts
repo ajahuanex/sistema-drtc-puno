@@ -19,7 +19,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { ResolucionService } from '../../services/resolucion.service';
 import { EmpresaService } from '../../services/empresa.service';
-import { ConfiguracionService } from '../../services/configuracion.service';
+
 import { Resolucion, ResolucionCreate, TipoTramite } from '../../models/resolucion.model';
 import { Empresa } from '../../models/empresa.model';
 // import { EmpresaSelectorComponent } from '../../shared/empresa-selector.component'; // DESHABILITADO
@@ -716,7 +716,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private resolucionService = inject(ResolucionService);
   private empresaService = inject(EmpresaService);
-  private configuracionService = inject(ConfiguracionService);
+
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -882,17 +882,17 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
       resolucionPadreId: [null],
       fechaVigenciaInicio: [null],
       aniosVigencia: [
-        this.configuracionService.aniosVigenciaDefault(),
+        10,
         [
           Validators.required,
-          Validators.min(this.configuracionService.minAniosVigencia()),
-          Validators.max(this.configuracionService.maxAniosVigencia())
+          Validators.min(1),
+          Validators.max(10)
         ]
       ]
     });
 
     // Inicializar signals con valores del formulario
-    this.aniosVigenciaSignal.set(this.configuracionService.aniosVigenciaDefault());
+    this.aniosVigenciaSignal.set(10);
 
     // Suscribirse a cambios en las configuraciones para actualizar el formulario
     this.suscribirseACambiosEnConfiguraciones();
@@ -904,9 +904,9 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
   private suscribirseACambiosEnConfiguraciones(): void {
     // Crear un computed que observe cambios en las configuraciones
     const configuracionesWatcher = computed(() => {
-      const aniosDefault = this.configuracionService.aniosVigenciaDefault();
-      const minAnios = this.configuracionService.minAniosVigencia();
-      const maxAnios = this.configuracionService.maxAniosVigencia();
+      const aniosDefault = 10;
+      const minAnios = 1;
+      const maxAnios = 10; // Default max años
 
       return { aniosDefault, minAnios, maxAnios };
     });
@@ -1019,7 +1019,7 @@ export class CrearResolucionComponent implements OnInit, OnDestroy {
 
         // Calcular años de vigencia
         // IMPORTANTE: Usar el campo aniosVigencia de la BD si existe
-        let aniosVigencia = resolucion.aniosVigencia || this.configuracionService.aniosVigenciaDefault();
+        let aniosVigencia = resolucion.aniosVigencia || 10;
         
         // Solo calcular desde fechas si aniosVigencia no está definido
         if (!resolucion.aniosVigencia && resolucion.fechaVigenciaInicio && resolucion.fechaVigenciaFin) {

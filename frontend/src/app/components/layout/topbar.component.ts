@@ -464,10 +464,7 @@ import { ChangeDetectionStrategy } from '@angular/core';
             <span>Mi Perfil de Funcionario</span>
           </button>
 
-          <button mat-menu-item (click)="irConfiguracion()">
-            <mat-icon>settings</mat-icon>
-            <span>Configuración del Sistema</span>
-          </button>
+
 
           <button mat-menu-item (click)="cambiarContrasena()">
             <mat-icon>lock</mat-icon>
@@ -740,9 +737,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     this.router.navigate(['/perfil']);
   }
 
-  irConfiguracion(): void {
-    this.router.navigate(['/configuracion']);
-  }
+
 
   cambiarContrasena(): void {
     this.router.navigate(['/cambiar-contrasena']);

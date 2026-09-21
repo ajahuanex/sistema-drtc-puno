@@ -64,109 +64,116 @@ import { AuthService } from '../../services/auth.service';
 
             <div class="section-links">
               <!-- 1. Dashboard General -->
-              <a
-                routerLink="/dashboard"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Dashboard General' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Dashboard General</span>
-                }
-              </a>
+              @if (canAccess('dashboard')) {
+                <a
+                  routerLink="/dashboard"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Dashboard General' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Dashboard General</span>
+                  }
+                </a>
+              }
 
               <!-- 2. Empresas de Transporte -->
-              <a
-                routerLink="/empresas"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Empresas de Transporte' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Empresas de Transporte</span>
-                }
-              </a>
+              @if (canAccess('empresas')) {
+                <a
+                  routerLink="/empresas"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Empresas de Transporte' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Empresas de Transporte</span>
+                  }
+                </a>
+              }
 
               <!-- 3. Parque Automotor (Vehículos) -->
-              <div class="nav-accordion-group">
-                <a
-                  routerLink="/vehiculos"
-                  routerLinkActive="active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  class="nav-link-item group"
-                  [matTooltip]="!isExpanded() ? 'Parque Automotor' : ''"
-                  matTooltipPosition="right"
-                >
-                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                  </svg>
-                  @if (isExpanded()) {
-                    <span class="item-title">Parque Automotor</span>
-                    <button
-                      type="button"
-                      class="accordion-toggle-btn"
-                      (click)="toggleGroup('vehiculos', $event)"
-                      title="Alternar opciones"
-                    >
-                      <svg class="chevron-svg" [class.rotated]="expandedGroups().has('vehiculos')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                      </svg>
-                    </button>
-                  }
-                </a>
+              @if (canAccess('vehiculos')) {
+                <div class="nav-accordion-group">
+                  <a
+                    routerLink="/vehiculos"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: true }"
+                    class="nav-link-item group"
+                    [matTooltip]="!isExpanded() ? 'Parque Automotor' : ''"
+                    matTooltipPosition="right"
+                  >
+                    <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    @if (isExpanded()) {
+                      <span class="item-title">Parque Automotor</span>
+                      <button
+                        type="button"
+                        class="accordion-toggle-btn"
+                        (click)="toggleGroup('vehiculos', $event)"
+                        title="Alternar opciones"
+                      >
+                        <svg class="chevron-svg" [class.rotated]="expandedGroups().has('vehiculos')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                      </button>
+                    }
+                  </a>
 
-                @if (isExpanded() && expandedGroups().has('vehiculos')) {
-                  <div class="sub-items-container">
-                    <a routerLink="/vehiculos-empresa" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Flota por Empresa</span>
-                    </a>
-                    <a routerLink="/vehiculos/carga-masiva" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Carga Masiva Flota</span>
-                    </a>
-                    <a routerLink="/vehiculos-data" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Datos Técnicos</span>
-                    </a>
-                  </div>
-                }
-              </div>
+                  @if (isExpanded() && expandedGroups().has('vehiculos')) {
+                    <div class="sub-items-container">
+                      <a routerLink="/vehiculos-empresa" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Flota por Empresa</span>
+                      </a>
+                      <a routerLink="/vehiculos/carga-masiva" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Carga Masiva Flota</span>
+                      </a>
+                      <a routerLink="/vehiculos-data" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Datos Técnicos</span>
+                      </a>
+                    </div>
+                  }
+                </div>
+              }
 
               <!-- 4. Resoluciones Directorales -->
-              <div class="nav-accordion-group">
-                <a
-                  routerLink="/resoluciones-primigenias"
-                  routerLinkActive="active"
-                  class="nav-link-item group"
-                  [matTooltip]="!isExpanded() ? 'Resoluciones Directorales' : ''"
-                  matTooltipPosition="right"
-                >
-                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                  </svg>
-                  @if (isExpanded()) {
-                    <span class="item-title">Resoluciones Directorales</span>
-                    <button
-                      type="button"
-                      class="accordion-toggle-btn"
-                      (click)="toggleGroup('resoluciones', $event)"
-                      title="Alternar opciones"
-                    >
-                      <svg class="chevron-svg" [class.rotated]="expandedGroups().has('resoluciones')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                      </svg>
-                    </button>
-                  }
-                </a>
+              @if (canAccess('resoluciones')) {
+                <div class="nav-accordion-group">
+                  <a
+                    routerLink="/resoluciones-primigenias"
+                    routerLinkActive="active"
+                    class="nav-link-item group"
+                    [matTooltip]="!isExpanded() ? 'Resoluciones Directorales' : ''"
+                    matTooltipPosition="right"
+                  >
+                    <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    @if (isExpanded()) {
+                      <span class="item-title">Resoluciones Directorales</span>
+                      <button
+                        type="button"
+                        class="accordion-toggle-btn"
+                        (click)="toggleGroup('resoluciones', $event)"
+                        title="Alternar opciones"
+                      >
+                        <svg class="chevron-svg" [class.rotated]="expandedGroups().has('resoluciones')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                      </button>
+                    }
+                  </a>
 
                 @if (isExpanded() && expandedGroups().has('resoluciones')) {
                   <div class="sub-items-container">
@@ -178,94 +185,113 @@ import { AuthService } from '../../services/auth.service';
                       <span class="sub-bullet"></span>
                       <span>Resoluciones Hijas</span>
                     </a>
+                    <a routerLink="/resoluciones" routerLinkActive="sub-active" class="sub-link">
+                      <span class="sub-bullet"></span>
+                      <span>Todas las Resoluciones</span>
+                    </a>
                     <a routerLink="/resoluciones-primigenias/carga-masiva" routerLinkActive="sub-active" class="sub-link">
                       <span class="sub-bullet"></span>
                       <span>Carga Masiva Primigenias</span>
                     </a>
+                    <a routerLink="/resoluciones/carga-masiva" routerLinkActive="sub-active" class="sub-link">
+                      <span class="sub-bullet"></span>
+                      <span>Carga Masiva Resoluciones</span>
+                    </a>
+                    <a routerLink="/expedientes" routerLinkActive="sub-active" class="sub-link">
+                      <span class="sub-bullet"></span>
+                      <span>Expedientes</span>
+                    </a>
                   </div>
                 }
               </div>
+            }
 
               <!-- 5. Red Vial y Rutas -->
-              <div class="nav-accordion-group">
+              @if (canAccess('rutas')) {
+                <div class="nav-accordion-group">
+                  <a
+                    routerLink="/rutas"
+                    routerLinkActive="active"
+                    class="nav-link-item group"
+                    [matTooltip]="!isExpanded() ? 'Red Vial y Rutas' : ''"
+                    matTooltipPosition="right"
+                  >
+                    <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    @if (isExpanded()) {
+                      <span class="item-title">Red Vial y Rutas</span>
+                      <button
+                        type="button"
+                        class="accordion-toggle-btn"
+                        (click)="toggleGroup('rutas', $event)"
+                        title="Alternar opciones"
+                      >
+                        <svg class="chevron-svg" [class.rotated]="expandedGroups().has('rutas')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        </svg>
+                      </button>
+                    }
+                  </a>
+
+                  @if (isExpanded() && expandedGroups().has('rutas')) {
+                    <div class="sub-items-container">
+                      <a routerLink="/rutas/mapa" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Mapa de Rutas</span>
+                      </a>
+                      <a routerLink="/localidades" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Localidades</span>
+                      </a>
+                      <a routerLink="/rutas/carga-masiva" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Carga Masiva Rutas</span>
+                      </a>
+                      <a routerLink="/rutas/estadisticas" routerLinkActive="sub-active" class="sub-link">
+                        <span class="sub-bullet"></span>
+                        <span>Estadísticas</span>
+                      </a>
+                    </div>
+                  }
+                </div>
+              }
+
+              <!-- 6. Tarjetas TUC & QR -->
+              @if (canAccess('tucs')) {
                 <a
-                  routerLink="/rutas"
+                  routerLink="/tucs"
                   routerLinkActive="active"
                   class="nav-link-item group"
-                  [matTooltip]="!isExpanded() ? 'Red Vial y Rutas' : ''"
+                  [matTooltip]="!isExpanded() ? 'Tarjetas TUC & QR' : ''"
                   matTooltipPosition="right"
                 >
                   <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
                   </svg>
                   @if (isExpanded()) {
-                    <span class="item-title">Red Vial y Rutas</span>
-                    <button
-                      type="button"
-                      class="accordion-toggle-btn"
-                      (click)="toggleGroup('rutas', $event)"
-                      title="Alternar opciones"
-                    >
-                      <svg class="chevron-svg" [class.rotated]="expandedGroups().has('rutas')" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                      </svg>
-                    </button>
+                    <span class="item-title">Tarjetas TUC &amp; QR</span>
                   }
                 </a>
-
-                @if (isExpanded() && expandedGroups().has('rutas')) {
-                  <div class="sub-items-container">
-                    <a routerLink="/rutas/mapa" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Mapa de Rutas</span>
-                    </a>
-                    <a routerLink="/localidades" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Localidades</span>
-                    </a>
-                    <a routerLink="/rutas/carga-masiva" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Carga Masiva Rutas</span>
-                    </a>
-                    <a routerLink="/rutas/estadisticas" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Estadísticas</span>
-                    </a>
-                  </div>
-                }
-              </div>
-
-              <!-- 6. Tarjetas TUC & QR -->
-              <a
-                routerLink="/tucs"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Tarjetas TUC & QR' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Tarjetas TUC &amp; QR</span>
-                }
-              </a>
+              }
 
               <!-- 7. Terminales Terrestres -->
-              <a
-                routerLink="/infraestructura"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Terminales Terrestres' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Terminales Terrestres</span>
-                }
-              </a>
+              @if (canAccess('infraestructura')) {
+                <a
+                  routerLink="/infraestructura"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Terminales Terrestres' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Terminales Terrestres</span>
+                  }
+                </a>
+              }
             </div>
           </div>
 
@@ -277,53 +303,60 @@ import { AuthService } from '../../services/auth.service';
 
             <div class="section-links">
               <!-- Catálogo Geoespacial -->
-              <a
-                routerLink="/rutas/mapa"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Catálogo Geoespacial' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Catálogo Geoespacial</span>
-                }
-              </a>
+              @if (canAccess('localidades')) {
+                <a
+                  routerLink="/rutas/mapa"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Catálogo Geoespacial' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Catálogo Geoespacial</span>
+                  }
+                </a>
+              }
 
               <!-- Auditoría y Trazabilidad -->
-              <a
-                routerLink="/auditoria"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Auditoría y Trazabilidad' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Auditoría y Trazabilidad</span>
-                }
-              </a>
+              @if (canAccess('auditoria')) {
+                <a
+                  routerLink="/auditoria"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Auditoría y Trazabilidad' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Auditoría y Trazabilidad</span>
+                  }
+                </a>
+              }
 
-              <!-- Configuración del Sistema -->
-              <a
-                routerLink="/configuracion"
-                routerLinkActive="active"
-                class="nav-link-item group"
-                [matTooltip]="!isExpanded() ? 'Configuración del Sistema' : ''"
-                matTooltipPosition="right"
-              >
-                <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-                </svg>
-                @if (isExpanded()) {
-                  <span class="item-title">Configuración del Sistema</span>
-                }
-              </a>
+              <!-- Configuración -->
+              @if (canAccess('configuracion')) {
+                <a
+                  routerLink="/configuracion"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Configuración' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Configuración</span>
+                  }
+                </a>
+              }
+
             </div>
           </div>
         </nav>
@@ -874,6 +907,10 @@ export class SidebarComponent implements OnInit {
     } else if (url.includes('ruta') || url.includes('localidad')) {
       this.expandedGroups.update(groups => new Set(groups).add('rutas'));
     }
+  }
+
+  canAccess(modulo: string): boolean {
+    return this.authService.canAccessModule(modulo);
   }
 
   toggleGroup(group: string, event: MouseEvent): void {

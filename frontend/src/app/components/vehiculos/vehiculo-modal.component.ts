@@ -24,7 +24,7 @@ import { VehiculoService } from '../../services/vehiculo.service';
 import { EmpresaService } from '../../services/empresa.service';
 import { ResolucionService } from '../../services/resolucion.service';
 import { RutaService } from '../../services/ruta.service';
-import { ConfiguracionService } from '../../services/configuracion.service';
+
 import { Vehiculo, VehiculoCreate, VehiculoUpdate, DatosTecnicos } from '../../models/vehiculo.model';
 import { Empresa, EstadoEmpresa } from '../../models/empresa.model';
 import { Resolucion } from '../../models/resolucion.model';
@@ -359,7 +359,7 @@ export class VehiculoModalComponent implements OnInit {
   private vehiculoService = inject(VehiculoService);
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
-  private configuracionService = inject(ConfiguracionService);
+
   private dialogRef = inject(MatDialogRef<VehiculoModalComponent>);
   private dialogData = inject(MAT_DIALOG_DATA) as VehiculoModalData;
 

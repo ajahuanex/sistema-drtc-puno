@@ -7,7 +7,6 @@ import logging
 import time
 from app.config.settings import settings
 from app.routers import auth_router, empresas_router, vehiculos_router, rutas_router, resoluciones_router, expedientes_router, tucs_router, infracciones_router, oficinas_router, notificaciones_router, conductores_router, additional_router, localidades_router
-from app.routers.configuraciones import router as configuraciones_router
 from app.routers.data_manager_router import router as data_manager_router
 from app.routers.rutas_simples import router as rutas_simples_router
 from app.routers.vehiculos_historial_router import router as vehiculos_historial_router
@@ -28,6 +27,9 @@ from app.routers.database_router import router as database_router
 from app.routers.dashboard_router import router as dashboard_router
 from app.routers.auditoria_router import router as auditoria_router
 from app.routers.busqueda_global_router import router as busqueda_global_router
+from app.routers.parametros_router import router as parametros_router
+from app.routers.usuarios_router import router as usuarios_router
+from app.routers.permisos_router import router as permisos_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -39,7 +41,8 @@ logger = logging.getLogger(__name__)
 
 # Crear aplicación FastAPI
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title="API SIRRETT",
+    description="API RESTful para el Sistema Regional de Registros de Transporte de Tránsito (SIRRETT)",
     version=settings.VERSION,
     description="API RESTful para el Sistema Regional de Registros de Transporte Terrestre (SIRRETT)",
     lifespan=lifespan,
@@ -47,7 +50,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Middleware de CORS - Configuración específica para SIRRET
+# Middleware de CORS - Configuración específica para SIRRETT
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -99,7 +102,6 @@ async def log_requests(request, call_next):
 
 # Incluir routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
-app.include_router(configuraciones_router, prefix=settings.API_V1_STR)
 app.include_router(empresas_router, prefix=settings.API_V1_STR)
 app.include_router(infraestructura_router, prefix=settings.API_V1_STR)
 app.include_router(vehiculos_router, prefix=settings.API_V1_STR)
@@ -132,9 +134,12 @@ app.include_router(database_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(auditoria_router, prefix=settings.API_V1_STR)
 app.include_router(busqueda_global_router, prefix=settings.API_V1_STR)
+app.include_router(parametros_router, prefix=settings.API_V1_STR)
+app.include_router(usuarios_router, prefix=settings.API_V1_STR)
+app.include_router(permisos_router, prefix=settings.API_V1_STR)
 
 # Endpoint de salud
-@app.get("/health")
+@app.get("/api/v1/health", tags=["Health"])
 async def health_check():
     """Endpoint de verificación de salud del sistema SIRRETT"""
     from app.dependencies.db import health_check_mongo
@@ -161,9 +166,9 @@ async def health_check():
     }
 
 # Endpoint raíz
-@app.get("/")
+@app.get("/", tags=["Root"])
 async def root():
-    """Endpoint raíz con información del sistema SIRRET"""
+    """Endpoint raíz con información del sistema SIRRETT"""
     from app.dependencies.db import db
     mode = "database" if db.client else "no_database"
     
