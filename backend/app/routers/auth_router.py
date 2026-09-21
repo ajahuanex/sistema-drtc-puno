@@ -49,6 +49,11 @@ async def login(
     # Crear token de acceso
     access_token = create_access_token(data={"sub": usuario.id})
     
+    # Calcular módulos permitidos del usuario
+    from app.services.permisos_service import PermisosService
+    permisos_service = PermisosService(usuario_service.db)
+    modulos = await permisos_service.calcular_modulos_usuario(usuario.model_dump())
+
     # Crear respuesta de usuario
     user_response = UsuarioResponse(
         id=usuario.id,
@@ -58,7 +63,8 @@ async def login(
         email=usuario.email,
         rolId=usuario.rolId,
         estaActivo=usuario.estaActivo,
-        fechaCreacion=usuario.fechaCreacion
+        fechaCreacion=usuario.fechaCreacion,
+        modulosPermitidos=modulos
     )
     
     return LoginResponse(
@@ -76,6 +82,10 @@ async def register(
     
     try:
         usuario = await usuario_service.create_usuario(usuario_data)
+        from app.services.permisos_service import PermisosService
+        permisos_service = PermisosService(usuario_service.db)
+        modulos = await permisos_service.calcular_modulos_usuario(usuario.model_dump())
+        
         return UsuarioResponse(
             id=usuario.id,
             dni=usuario.dni,
@@ -84,7 +94,8 @@ async def register(
             email=usuario.email,
             rolId=usuario.rolId,
             estaActivo=usuario.estaActivo,
-            fechaCreacion=usuario.fechaCreacion
+            fechaCreacion=usuario.fechaCreacion,
+            modulosPermitidos=modulos
         )
     except ValueError as e:
         if "DNI" in str(e):
@@ -96,9 +107,14 @@ async def register(
 
 @router.get("/me", response_model=UsuarioResponse)
 async def get_current_user_info(
-    current_user = Depends(get_current_active_user)
+    current_user = Depends(get_current_active_user),
+    usuario_service: UsuarioService = Depends(get_usuario_service)
 ) -> UsuarioResponse:
-    """Obtener información del usuario actual"""
+    """Obtener información del usuario actual con sus módulos permitidos"""
+    from app.services.permisos_service import PermisosService
+    permisos_service = PermisosService(usuario_service.db)
+    modulos = await permisos_service.calcular_modulos_usuario(current_user.model_dump())
+    
     return UsuarioResponse(
         id=current_user.id,
         dni=current_user.dni,
@@ -107,5 +123,6 @@ async def get_current_user_info(
         email=current_user.email,
         rolId=current_user.rolId,
         estaActivo=current_user.estaActivo,
-        fechaCreacion=current_user.fechaCreacion
+        fechaCreacion=current_user.fechaCreacion,
+        modulosPermitidos=modulos
     )

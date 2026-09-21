@@ -1,6 +1,18 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+from enum import Enum
+
+class RolUsuario(str, Enum):
+    OTI = "oti"
+    ADMIN = "admin"
+    DIRECTIVO = "directivo"
+    SUPERVISOR = "supervisor"
+    FISCALIZADOR = "fiscalizador"
+    ESPECIALISTA = "especialista"
+    USUARIO = "usuario" # Legacy / Alias de especialista
+    OPERADOR = "operador"
+    GERENTE = "gerente"
 
 class UsuarioBase(BaseModel):
     dni: str = Field(..., pattern=r'^\d{8}$', description="DNI del usuario")
@@ -11,6 +23,7 @@ class UsuarioBase(BaseModel):
 class UsuarioCreate(UsuarioBase):
     password: str = Field(..., min_length=6, max_length=100)
     rolId: Optional[str] = Field(default="usuario")
+    modulosPermitidos: Optional[List[str]] = Field(default=None, description="Módulos personalizados del usuario (None para heredar del rol)")
 
 class UsuarioUpdate(BaseModel):
     nombres: Optional[str] = Field(None, min_length=2, max_length=100)
@@ -19,6 +32,7 @@ class UsuarioUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=6, max_length=100)
     rolId: Optional[str] = None
     estaActivo: Optional[bool] = None
+    modulosPermitidos: Optional[List[str]] = None
 
 class UsuarioInDB(UsuarioBase):
     id: str
@@ -27,6 +41,7 @@ class UsuarioInDB(UsuarioBase):
     estaActivo: bool = True
     fechaCreacion: datetime
     fechaActualizacion: Optional[datetime] = None
+    modulosPermitidos: Optional[List[str]] = None
     
     model_config = ConfigDict(
         populate_by_name=True,
@@ -42,6 +57,7 @@ class UsuarioResponse(BaseModel):
     rolId: str
     estaActivo: bool
     fechaCreacion: datetime
+    modulosPermitidos: Optional[List[str]] = None
     
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

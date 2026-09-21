@@ -1327,3 +1327,50 @@
     background: #ff9800 !important;
   }
 }
+
+/* ========================================================================= */
+/* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+/* ========================================================================= */
+:host-context([data-theme="dark"]),
+:host-context(.dark-theme) {
+  .localidades-container {
+    background-color: #0b0f19;
+    color: #f8fafc;
+  }
+
+  .page-header {
+    background: linear-gradient(135deg, #0b1329 0%, #1e1b4b 50%, #312e81 100%);
+    border: 1px solid #1e293b;
+  }
+
+  .filtros-card, .table-card, .stats-card, mat-card {
+    background-color: #111622 !important;
+    border: 1px solid #1e2433 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .mat-mdc-table, table {
+    background-color: transparent !important;
+  }
+
+  th, .mat-mdc-header-cell {
+    background-color: #131722 !important;
+    color: #94a3b8 !important;
+    border-bottom-color: #1e2433 !important;
+  }
+
+  td, .mat-mdc-cell {
+    color: #cbd5e1 !important;
+    border-bottom-color: #171b26 !important;
+  }
+
+  tr:hover td, tr:hover .mat-mdc-cell {
+    background-color: #171b26 !important;
+  }
+
+  .fila-alias {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+  }
+}
+

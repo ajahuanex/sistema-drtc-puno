@@ -17,7 +17,7 @@ import { RutaService } from '../services/ruta.service';
 import { LocalidadService } from '../services/localidad.service';
 import { EmpresaService } from '../services/empresa.service';
 import { ResolucionService } from '../services/resolucion.service';
-import { ConfiguracionService } from '../services/configuracion.service'; // ✅ NUEVO
+
 import { Ruta, RutaCreate, RutaUpdate, EstadoRuta, TipoRuta, ValidacionRuta } from '../models/ruta.model';
 import { Localidad } from '../models/localidad.model';
 import { Empresa, EstadoEmpresa } from '../models/empresa.model';
@@ -363,7 +363,7 @@ export class RutaWizardComponent {
   private empresaService = inject(EmpresaService);
   private resolucionService = inject(ResolucionService);
   private snackBar = inject(MatSnackBar);
-  private configuracionService = inject(ConfiguracionService); // ✅ NUEVO
+
 
   // Signals
   isLoading = signal(false);
@@ -385,13 +385,13 @@ export class RutaWizardComponent {
   // Formulario
   rutaForm!: FormGroup;
 
-  // ✅ Opciones desde configuración
+  // ✅ Opciones de tipos de ruta temporales (antes estaban en configuracion)
   tiposRuta = computed(() => {
-    const config = this.configuracionService.tiposRutaConfig();
-    return config.filter((t: any) => t.estaActivo).map((t: any) => ({
-      value: t.codigo,
-      label: t.nombre
-    }));
+    return [
+      { value: 'INTERPROVINCIAL', label: 'Interprovincial' },
+      { value: 'INTERURBANO', label: 'Interurbano' },
+      { value: 'URBANO', label: 'Urbano' }
+    ];
   });
 
   estadosRuta = [

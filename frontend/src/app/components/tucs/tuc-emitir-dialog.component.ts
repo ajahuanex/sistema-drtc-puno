@@ -170,12 +170,13 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
   `,
   styles: [`
     .dialog-container {
-      background-color: #0f172a;
-      color: #f8fafc;
+      background-color: #ffffff;
+      color: #0f172a;
       padding: 24px;
       border-radius: 16px;
       max-width: 640px;
       font-family: system-ui, -apple-system, sans-serif;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
     .dialog-header {
@@ -183,7 +184,7 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       justify-content: space-between;
       align-items: center;
       padding-bottom: 16px;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid #e2e8f0;
       margin-bottom: 20px;
     }
 
@@ -194,8 +195,8 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
     }
 
     .header-icon-badge {
-      background: rgba(59, 130, 246, 0.15);
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(37, 99, 235, 0.2);
       padding: 10px;
       border-radius: 12px;
       display: flex;
@@ -203,23 +204,23 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       justify-content: center;
     }
 
-    .icon-blue { color: #60a5fa; }
+    .icon-blue { color: #2563eb; }
 
     .dialog-title {
       font-size: 18px;
       font-weight: 800;
-      color: white;
+      color: #0f172a;
       margin: 0;
     }
 
     .dialog-subtitle {
       font-size: 12px;
-      color: #94a3b8;
+      color: #64748b;
       margin: 2px 0 0 0;
     }
 
     .btn-close {
-      color: #94a3b8;
+      color: #64748b;
     }
 
     .dialog-form {
@@ -249,7 +250,7 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
     .form-label {
       font-size: 12px;
       font-weight: 700;
-      color: #cbd5e1;
+      color: #334155;
     }
 
     .required { color: #f43f5e; }
@@ -258,17 +259,19 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       width: 100%;
       box-sizing: border-box;
       padding: 10px 12px;
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 10px;
-      color: white;
+      color: #0f172a;
       font-size: 13px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .form-input:focus, .form-select:focus, .form-textarea:focus {
-      border-color: #3b82f6;
+      border-color: #2563eb;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 
     .input-mono { font-family: monospace; font-weight: 700; }
@@ -276,8 +279,8 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
 
     /* Unicidad Card */
     .unicidad-card {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 14px;
       display: flex;
@@ -294,7 +297,7 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
     .unicidad-label {
       font-size: 12px;
       font-weight: 700;
-      color: #60a5fa;
+      color: #2563eb;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -303,7 +306,7 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
     .btn-auto-gen {
       background: none;
       border: none;
-      color: #34d399;
+      color: #059669;
       font-size: 11px;
       font-weight: 700;
       cursor: pointer;
@@ -319,17 +322,17 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       margin: 0;
     }
 
-    .text-slate { color: #94a3b8; }
-    .text-success { color: #34d399; }
-    .text-danger { color: #f87171; }
+    .text-slate { color: #64748b; }
+    .text-success { color: #059669; }
+    .text-danger { color: #dc2626; }
 
     .border-success { border-color: #10b981 !important; }
     .border-danger { border-color: #f43f5e !important; }
 
     /* Kardex Section */
     .kardex-section {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
       border-radius: 12px;
       padding: 14px;
       display: flex;
@@ -340,7 +343,7 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
     .kardex-title {
       font-size: 11px;
       font-weight: 800;
-      color: #fbbf24;
+      color: #b45309;
       text-transform: uppercase;
       margin: 0;
     }
@@ -351,21 +354,22 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       justify-content: flex-end;
       gap: 10px;
       padding-top: 16px;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid #e2e8f0;
       margin-top: 8px;
     }
 
     .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
       padding: 10px 18px;
       border-radius: 10px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
+      transition: all 0.2s;
     }
-    .btn-secondary:hover { background: #334155; }
+    .btn-secondary:hover { background: #e2e8f0; }
 
     .btn-primary {
       background: #2563eb;
@@ -379,12 +383,66 @@ import { TipoEmisionTuc, MotivoEmision, TucKardexStock } from '../../models/tuc.
       align-items: center;
       gap: 6px;
       cursor: pointer;
+      transition: all 0.2s;
     }
-    .btn-primary:hover:not(:disabled) { background: #3b82f6; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .icon-sm { font-size: 16px; width: 16px; height: 16px; }
     .icon-xs { font-size: 14px; width: 14px; height: 14px; }
+
+    /* ========================================================
+       DARK THEME OVERRIDES
+       ======================================================== */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .dialog-container {
+        background-color: #0f172a;
+        color: #f8fafc;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        border: 1px solid #1e293b;
+      }
+      .dialog-header { border-bottom-color: #1e293b; }
+      .header-icon-badge {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+      .icon-blue { color: #60a5fa; }
+      .dialog-title { color: white; }
+      .dialog-subtitle { color: #94a3b8; }
+      .btn-close { color: #94a3b8; }
+      .form-label { color: #cbd5e1; }
+      .form-input, .form-select, .form-textarea {
+        background: #1e293b;
+        border-color: #334155;
+        color: white;
+      }
+      .form-input:focus, .form-select:focus, .form-textarea:focus {
+        border-color: #3b82f6;
+        background: #1e293b;
+      }
+      .unicidad-card {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      .unicidad-label { color: #60a5fa; }
+      .btn-auto-gen { color: #34d399; }
+      .text-slate { color: #94a3b8; }
+      .text-success { color: #34d399; }
+      .text-danger { color: #f87171; }
+      .kardex-section {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.3);
+      }
+      .kardex-title { color: #fbbf24; }
+      .dialog-footer { border-top-color: #1e293b; }
+      .btn-secondary {
+        background: #1e293b;
+        color: #cbd5e1;
+        border-color: #334155;
+      }
+      .btn-secondary:hover { background: #334155; }
+    }
   `]
 })
 export class TucEmitirDialogComponent implements OnInit {

@@ -1090,16 +1090,6 @@ import {
       background-color: #ede9fe !important;
     }
 
-    .obs-text {
-      display: inline-block;
-      max-width: 200px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 0.85rem;
-      color: #475569;
-    }
-
     .animate-fade-in {
       animation: fadeIn 0.3s ease-in-out;
     }
@@ -1107,6 +1097,68 @@ import {
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================================================= */
+    /* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+    /* ========================================================================= */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .page-container {
+        color: #f8fafc;
+      }
+      .page-header {
+        background: linear-gradient(135deg, #0b1329 0%, #134e4a 50%, #0f766e 100%);
+        border: 1px solid #1e293b;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      }
+      .filters-card, .table-card, .stats-section, .form-card {
+        background: #111622 !important;
+        border: 1px solid #1e2433 !important;
+        color: #f8fafc;
+      }
+      .stats-header h3 {
+        color: #f8fafc !important;
+      }
+      .custom-table th {
+        background-color: #131722 !important;
+        color: #94a3b8 !important;
+        border-bottom: 2px solid #1e2433 !important;
+      }
+      .custom-table td {
+        color: #cbd5e1 !important;
+        border-bottom: 1px solid #171b26 !important;
+      }
+      .custom-table tr:hover {
+        background-color: #171b26 !important;
+      }
+      .stat-card {
+        background: #171b26 !important;
+        border: 1px solid #283046 !important;
+        .stat-value { color: #f8fafc !important; }
+        .stat-label { color: #94a3b8 !important; }
+      }
+      .res-hija-cell .res-nro-main { color: #f8fafc; }
+      .res-fecha-sub, .exp-fecha-sub, .obs-text { color: #94a3b8 !important; }
+      .detail-grid {
+        background: #171b26 !important;
+        border-color: #283046 !important;
+      }
+      .detail-value { color: #f8fafc !important; }
+      .detail-label { color: #94a3b8 !important; }
+      .selected-row { background-color: rgba(139, 92, 246, 0.25) !important; }
+      .btn-action-fixed {
+        background-color: #171b26 !important;
+        color: #2dd4bf !important;
+        &:hover { background-color: #1e2433 !important; }
+      }
+      .ruc-badge {
+        background-color: #1e2433 !important;
+        color: #94a3b8 !important;
+      }
+      .columns-menu-header {
+        color: #cbd5e1;
+      }
     }
   `]
 })

@@ -8,7 +8,7 @@ from datetime import datetime
 import logging
 
 from app.dependencies.db import get_database
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_current_user_optional
 from app.services.infraestructura_service import InfraestructuraService
 from app.schemas.infraestructura import (
     InfraestructuraCreate,
@@ -82,7 +82,7 @@ async def listar_infraestructuras(
     score_riesgo_maximo: Optional[int] = Query(None, ge=0, le=100),
     busqueda: Optional[str] = Query(None, description="Búsqueda por RUC, razón social o dirección"),
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """
     Listar infraestructuras con paginación y filtros
@@ -141,7 +141,7 @@ async def listar_infraestructuras(
 @router.get("/estadisticas", response_model=InfraestructuraEstadisticas)
 async def obtener_estadisticas(
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """
     Obtener estadísticas generales de infraestructuras
@@ -162,7 +162,7 @@ async def obtener_estadisticas(
 async def obtener_infraestructura(
     infraestructura_id: str,
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """
     Obtener infraestructura por ID
@@ -297,7 +297,7 @@ async def eliminar_infraestructura(
 async def validar_ruc(
     ruc: str = Query(..., min_length=11, max_length=11),
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """
     Validar RUC con SUNAT
@@ -318,7 +318,7 @@ async def validar_ruc(
 async def verificar_disponibilidad_ruc(
     ruc: str,
     db=Depends(get_database),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user_optional)
 ):
     """
     Verificar si un RUC ya está registrado

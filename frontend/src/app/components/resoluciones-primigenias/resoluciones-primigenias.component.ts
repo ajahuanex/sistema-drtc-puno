@@ -107,6 +107,64 @@ import {
         </div>
       </div>
 
+      <!-- KPI Bento Cards (Stitch GovTech Sentinel) -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-icon-box card-total">
+            <mat-icon>gavel</mat-icon>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-number">{{ totalResoluciones() | number }}</span>
+            <span class="kpi-label">Total Resoluciones</span>
+            <span class="kpi-detail">Padrón histórico oficial</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box card-vigentes">
+            <mat-icon>verified</mat-icon>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-number">{{ totalVigentes() | number }}</span>
+            <span class="kpi-label">Títulos Vigentes</span>
+            <span class="kpi-detail">Concesiones activas (10 años)</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-clickable" (click)="toggleFiltroPorVencer()" [class.kpi-active-filter]="filtroPorVencer30()" matTooltip="Filtrar resoluciones por vencer en 30 días">
+          <div class="kpi-icon-box card-por-vencer">
+            <mat-icon>timer</mat-icon>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-number">{{ totalPorVencer() | number }}</span>
+            <span class="kpi-label">Por Vencer (&lt; 30d)</span>
+            <span class="kpi-detail">Requerimiento de prórroga</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box card-criticas">
+            <mat-icon>report_problem</mat-icon>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-number">{{ totalCriticas() | number }}</span>
+            <span class="kpi-label">Vencidas / Revocadas</span>
+            <span class="kpi-detail">Bajas y suspensiones</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box card-empresas">
+            <mat-icon>business</mat-icon>
+          </div>
+          <div class="kpi-data">
+            <span class="kpi-number">{{ totalEmpresasTitulares() | number }}</span>
+            <span class="kpi-label">Empresas Titulares</span>
+            <span class="kpi-detail">Operadores acreditados</span>
+          </div>
+        </div>
+      </div>
+
       <div class="content-section">
         <!-- Tarjeta de Filtros Modernizada -->
         <div class="glass-filters">
@@ -924,6 +982,98 @@ import {
       }
     }
 
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      min-width: 0;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+      }
+
+      &.kpi-clickable {
+        cursor: pointer;
+      }
+
+      &.kpi-active-filter {
+        border-color: #ea580c;
+        background: #fff7ed;
+      }
+    }
+
+    .kpi-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      mat-icon {
+        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+
+      &.card-total { background-color: #eff6ff; color: #2563eb; }
+      &.card-vigentes { background-color: #ecfdf5; color: #059669; }
+      &.card-por-vencer { background-color: #fff7ed; color: #ea580c; }
+      &.card-criticas { background-color: #fef2f2; color: #dc2626; }
+      &.card-empresas { background-color: #eef2ff; color: #4f46e5; }
+    }
+
+    .kpi-data {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .kpi-number {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #475569;
+      margin-top: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .kpi-detail {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      margin-top: 0.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .glass-filters {
       background: #ffffff;
       border: 1px solid #e2e8f0;
@@ -1669,231 +1819,582 @@ import {
       }
     }
     
-    /* Dark Mode Support */
+    /* ========================================================================= */
+    /* MODO OSCURO INSTITUCIONAL (GOVTECH SENTINEL DRTC PUNO)                    */
+    /* ========================================================================= */
     :host-context([data-theme="dark"]), :host-context(.dark-theme), :host-context(.dark-mode) {
-      .header-actions .header-action-btn {
-        background-color: rgba(30, 41, 59, 0.7) !important;
+      .page-container {
+        background-color: #0b0f19 !important;
         color: #f8fafc !important;
-        border-color: #475569 !important;
+      }
+
+      .page-header {
+        background: linear-gradient(135deg, #07152f 0%, #0b1f44 50%, #1e3a8a 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+
+        .header-icon {
+          color: #60a5fa !important;
+        }
+
+        h1 {
+          color: #ffffff !important;
+        }
+
+        .subtitle {
+          color: #cbd5e1 !important;
+        }
+      }
+
+      .header-actions .header-action-btn {
+        background-color: rgba(23, 27, 38, 0.75) !important;
+        color: #f8fafc !important;
+        border-color: #283046 !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
 
         .btn-icon, .dropdown-arrow {
           color: #f8fafc !important;
         }
 
         &:hover {
-          background-color: #334155 !important;
+          background-color: #1e2433 !important;
+          border-color: #3b82f6 !important;
         }
 
         &.btn-primary-custom {
-          background-color: #6366f1 !important;
-          border-color: #818cf8 !important;
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+          border-color: #3b82f6 !important;
+          color: #ffffff !important;
 
           &:hover {
-            background-color: #4f46e5 !important;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.5) !important;
           }
         }
       }
 
-      .mobile-filter-toggle {
-        background-color: #334155 !important;
-        color: #cbd5e1 !important;
-      }
-      .mobile-filter-toggle.active {
-        background-color: #1e1b4b !important;
-        color: #818cf8 !important;
+      /* KPI CARDS EN DARK */
+      .kpi-card {
+        background-color: #111622 !important;
+        border-color: #1e2433 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+
+        &:hover {
+          border-color: #283046 !important;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        &.kpi-active-filter {
+          border-color: #f59e0b !important;
+          background-color: rgba(245, 158, 11, 0.12) !important;
+        }
+
+        .kpi-number {
+          color: #f8fafc !important;
+        }
+
+        .kpi-label {
+          color: #cbd5e1 !important;
+        }
+
+        .kpi-detail {
+          color: #94a3b8 !important;
+        }
       }
 
-      .page-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;
-        border: 1px solid #334155 !important;
+      .kpi-icon-box {
+        &.card-total { background-color: rgba(37, 99, 235, 0.15) !important; color: #60a5fa !important; }
+        &.card-vigentes { background-color: rgba(16, 185, 129, 0.15) !important; color: #34d399 !important; }
+        &.card-por-vencer { background-color: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+        &.card-criticas { background-color: rgba(220, 38, 38, 0.15) !important; color: #f87171 !important; }
+        &.card-empresas { background-color: rgba(99, 102, 241, 0.15) !important; color: #a5b4fc !important; }
       }
-      
+
+      /* FILTROS EN DARK */
       .glass-filters {
-        background: #1e293b !important;
-        border-color: #334155 !important;
+        background-color: #111622 !important;
+        border-color: #1e2433 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .mobile-filter-toggle {
+        background-color: #171b26 !important;
+        color: #cbd5e1 !important;
+        border: 1px solid #283046 !important;
+
+        &.active {
+          background-color: rgba(37, 99, 235, 0.2) !important;
+          color: #60a5fa !important;
+          border-color: #3b82f6 !important;
+        }
       }
 
       .filter-chip-btn {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-        color: #f8fafc !important;
+        background-color: #171b26 !important;
+        border-color: #283046 !important;
+        color: #cbd5e1 !important;
+
+        .chip-icon {
+          color: #fbbf24 !important;
+        }
+
+        .badge-vencer {
+          background-color: #1e2433 !important;
+          color: #94a3b8 !important;
+        }
 
         &:hover {
-          background: #334155 !important;
+          background-color: #1e2433 !important;
+          border-color: #3b82f6 !important;
+          color: #ffffff !important;
         }
 
         &.active-vencer {
-          background: rgba(225, 29, 72, 0.25) !important;
+          background-color: rgba(225, 29, 72, 0.2) !important;
           border-color: #e11d48 !important;
           color: #fda4af !important;
+
+          .chip-icon {
+            color: #fb7185 !important;
+          }
+
+          .badge-vencer {
+            background-color: #e11d48 !important;
+            color: #ffffff !important;
+          }
         }
       }
 
       .filter-action-btn {
-        background: #0f172a !important;
-        border-color: #334155 !important;
-        color: #f8fafc !important;
+        background-color: #171b26 !important;
+        border-color: #283046 !important;
+        color: #cbd5e1 !important;
 
         .mat-icon {
           color: #94a3b8 !important;
         }
 
         &:hover {
-          background: #334155 !important;
-        }
-
-        &.btn-reset {
-          background: rgba(239, 68, 68, 0.2) !important;
-          border-color: #ef4444 !important;
-          color: #fca5a5 !important;
-
-          .mat-icon {
-            color: #ef4444 !important;
-          }
-        }
-      }
-      
-      .table-card {
-        background: #1e293b !important;
-        border-color: #334155 !important;
-      }
-      
-      .custom-table {
-        background-color: #1e293b !important;
-        color: #f8fafc !important;
-
-        th {
-          background-color: #0f172a !important;
-          color: #f1f5f9 !important;
-          border-bottom-color: #334155 !important;
-
-          &.sortable-th:hover {
-            background-color: #1e293b !important;
-            color: #818cf8 !important;
-          }
-        }
-
-        td {
-          background-color: #1e293b !important;
-          border-bottom-color: #334155 !important;
-          color: #cbd5e1 !important;
-        }
-
-        tr:hover td {
-          background-color: #334155 !important;
+          background-color: #1e2433 !important;
+          border-color: #3b82f6 !important;
           color: #ffffff !important;
         }
 
-        th:first-child, th:last-child {
-          background-color: #0f172a !important;
-          box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
-        }
+        &.btn-reset {
+          background-color: rgba(239, 68, 68, 0.15) !important;
+          border-color: rgba(239, 68, 68, 0.35) !important;
+          color: #f87171 !important;
 
-        td:first-child, td:last-child {
-          background-color: #1e293b !important;
-          box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.4) !important;
-        }
+          .mat-icon {
+            color: #f87171 !important;
+          }
 
-        tr:hover td:first-child, tr:hover td:last-child {
-          background-color: #334155 !important;
-        }
-
-        tr.selected-row td {
-          background-color: #312e81 !important;
-          color: #e0e7ff !important;
+          &:hover {
+            background-color: rgba(239, 68, 68, 0.25) !important;
+          }
         }
       }
 
-      .bold-text.color-primary {
-        color: #a5b4fc !important;
-      }
-
-      .ruc-badge {
-        background-color: #312e81 !important;
-        color: #c7d2fe !important;
-        border: 1px solid #4338ca !important;
-      }
-
-      .empresa-hint-text {
-        color: #cbd5e1 !important;
-      }
-
-      .siglas-badge {
-        background-color: #334155 !important;
-        color: #e2e8f0 !important;
-        border-color: #475569 !important;
-      }
-
-      .status-pill {
-        &.status-vigente { background-color: rgba(22, 101, 52, 0.35) !important; color: #4ade80 !important; border: 1px solid #166534 !important; }
-        &.status-suspendida { background-color: rgba(180, 83, 9, 0.35) !important; color: #fcd34d !important; border: 1px solid #b45309 !important; }
-        &.status-cancelada, &.status-anulada { background-color: rgba(185, 28, 28, 0.35) !important; color: #fca5a5 !important; border: 1px solid #991b1b !important; }
-        &.status-vencida { background-color: rgba(153, 27, 27, 0.35) !important; color: #fca5a5 !important; border: 1px solid #dc2626 !important; }
-      }
-      
+      /* INPUTS & SELECTS MATERIAL EN DARK */
       ::ng-deep {
-        .search-field .mat-mdc-text-field-wrapper, .filter-select .mat-mdc-text-field-wrapper {
-          background-color: #0f172a !important;
-        }
+        .search-field, .filter-select {
+          .mat-mdc-text-field-wrapper {
+            background-color: #171b26 !important;
+            border-radius: 8px !important;
+          }
 
-        .mat-mdc-select-value-text, input.mat-mdc-input-element {
-          color: #f1f5f9 !important;
-        }
+          .mat-mdc-select-value-text, input.mat-mdc-input-element {
+            color: #f8fafc !important;
+          }
 
-        .mat-mdc-floating-label {
-          color: #94a3b8 !important;
-        }
-        
-        .mat-mdc-select-arrow {
-          color: #94a3b8 !important;
-        }
+          .mat-mdc-floating-label {
+            color: #94a3b8 !important;
+          }
 
-        .mdc-notched-outline__leading,
-        .mdc-notched-outline__notch,
-        .mdc-notched-outline__trailing {
-          border-color: #334155 !important;
+          .search-icon, .mat-mdc-select-arrow {
+            color: #94a3b8 !important;
+          }
+
+          .clear-input-btn .mat-icon {
+            color: #64748b !important;
+            &:hover { color: #cbd5e1 !important; }
+          }
+
+          .mdc-notched-outline__leading,
+          .mdc-notched-outline__notch,
+          .mdc-notched-outline__trailing {
+            border-color: #283046 !important;
+          }
+
+          &:hover {
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: #3b82f6 !important;
+            }
+          }
+
+          &.mat-focused {
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: #3b82f6 !important;
+            }
+            .mat-mdc-floating-label {
+              color: #60a5fa !important;
+            }
+          }
         }
 
         .mat-mdc-paginator {
-          background-color: #1e293b !important;
-          color: #cbd5e1 !important;
+          background-color: #131722 !important;
+          color: #94a3b8 !important;
+          border-top: 1px solid #1e2433 !important;
 
           .mat-mdc-paginator-range-label,
           .mat-mdc-paginator-page-size-label,
           .mat-mdc-select-value-text,
           .mat-mdc-paginator-navigation-previous,
-          .mat-mdc-paginator-navigation-next {
+          .mat-mdc-paginator-navigation-next,
+          .mat-mdc-paginator-icon {
+            color: #94a3b8 !important;
+            fill: #94a3b8 !important;
+          }
+        }
+
+        .mat-mdc-menu-panel {
+          background-color: #111622 !important;
+          border: 1px solid #1e2433 !important;
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6) !important;
+
+          .mat-mdc-menu-item {
+            color: #cbd5e1 !important;
+
+            .mat-icon {
+              color: #94a3b8 !important;
+            }
+
+            &:hover {
+              background-color: #171b26 !important;
+              color: #ffffff !important;
+            }
+          }
+
+          .columns-menu-header {
+            color: #f8fafc !important;
+            span { font-weight: 700; }
+          }
+
+          .mat-divider {
+            border-top-color: #1e2433 !important;
+          }
+
+          .mat-mdc-checkbox label {
             color: #cbd5e1 !important;
           }
         }
       }
-      
-      .selection-banner {
-        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
-        border-color: #4338ca !important;
-        color: #e0e7ff !important;
-      }
-      
-      .btn-clear-selection {
-        color: #a5b4fc !important;
-      }
-      
-      .form-card, .detail-card {
-        background: #1e293b !important;
-        color: #f8fafc !important;
-        border-color: #334155 !important;
 
-        .detail-item strong {
+      /* BANNER DE SELECCIÓN MÚLTIPLE EN DARK */
+      .selection-banner {
+        background: linear-gradient(135deg, #07152f 0%, #0b1f44 100%) !important;
+        border: 1px solid #2563eb !important;
+        color: #93c5fd !important;
+        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important;
+
+        .banner-info {
+          .banner-icon {
+            color: #60a5fa !important;
+          }
+          strong {
+            color: #ffffff !important;
+          }
+        }
+
+        .btn-clear-selection {
+          color: #93c5fd !important;
+          &:hover {
+            background-color: rgba(37, 99, 235, 0.2) !important;
+          }
+        }
+      }
+
+      /* TABLA PRINCIPAL EN DARK */
+      .table-card {
+        background-color: #111622 !important;
+        border: 1px solid #1e2433 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .custom-table {
+        background-color: #111622 !important;
+        color: #cbd5e1 !important;
+
+        th {
+          background-color: #131722 !important;
+          color: #94a3b8 !important;
+          border-bottom: 2px solid #1e2433 !important;
+
+          &.sortable-th {
+            &:hover {
+              background-color: #171b26 !important;
+              color: #60a5fa !important;
+            }
+
+            .sort-icon {
+              color: #60a5fa !important;
+            }
+          }
+
+          &:first-child, &:last-child {
+            background-color: #131722 !important;
+            box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.5) !important;
+          }
+        }
+
+        td {
+          background-color: #111622 !important;
+          border-bottom: 1px solid #171b26 !important;
+          color: #cbd5e1 !important;
+
+          &:first-child, &:last-child {
+            background-color: #111622 !important;
+            box-shadow: 2px 0 6px -2px rgba(0, 0, 0, 0.5) !important;
+          }
+        }
+
+        tr:hover td,
+        tr:hover td:first-child,
+        tr:hover td:last-child {
+          background-color: #171b26 !important;
+          color: #ffffff !important;
+        }
+
+        tr.selected-row td,
+        tr.selected-row td:first-child,
+        tr.selected-row td:last-child {
+          background-color: rgba(37, 99, 235, 0.2) !important;
+          color: #93c5fd !important;
+        }
+      }
+
+      .th-actions-icon-col .th-actions-icon {
+        color: #94a3b8 !important;
+      }
+
+      /* CELDAS Y DETALLES EN DARK */
+      .bold-text {
+        color: #f8fafc !important;
+      }
+
+      .bold-text.color-primary {
+        color: #60a5fa !important;
+      }
+
+      .ruc-container .empresa-hint-text {
+        color: #cbd5e1 !important;
+      }
+
+      .ruc-badge {
+        background-color: rgba(37, 99, 235, 0.18) !important;
+        color: #93c5fd !important;
+        border: 1px solid rgba(37, 99, 235, 0.35) !important;
+      }
+
+      .siglas-badge {
+        background-color: #171b26 !important;
+        color: #cbd5e1 !important;
+        border-color: #283046 !important;
+      }
+
+      /* BADGES DE ESTADO LEGAL EN DARK */
+      .status-pill {
+        &.status-vigente {
+          background-color: rgba(16, 185, 129, 0.18) !important;
+          color: #34d399 !important;
+          border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        }
+        &.status-suspendida {
+          background-color: rgba(245, 158, 11, 0.18) !important;
+          color: #fbbf24 !important;
+          border: 1px solid rgba(245, 158, 11, 0.35) !important;
+        }
+        &.status-cancelada, &.status-anulada {
+          background-color: rgba(239, 68, 68, 0.18) !important;
+          color: #f87171 !important;
+          border: 1px solid rgba(239, 68, 68, 0.35) !important;
+        }
+        &.status-vencida {
+          background-color: rgba(220, 38, 38, 0.22) !important;
+          color: #fca5a5 !important;
+          border: 1px solid rgba(220, 38, 38, 0.45) !important;
+        }
+        &.status-por-vencer {
+          background-color: rgba(234, 88, 12, 0.2) !important;
+          color: #fb923c !important;
+          border: 1px solid rgba(234, 88, 12, 0.4) !important;
+        }
+      }
+
+      .fecha-fin-container {
+        .por-vencer-hint {
+          background-color: rgba(234, 88, 12, 0.2) !important;
+          color: #fb923c !important;
+          border-color: rgba(234, 88, 12, 0.4) !important;
+        }
+        .text-por-vencer {
+          color: #fb923c !important;
+        }
+      }
+
+      .fecha-vencida-cell {
+        background-color: rgba(220, 38, 38, 0.22) !important;
+        color: #fca5a5 !important;
+        border-color: rgba(220, 38, 38, 0.45) !important;
+
+        .vencida-icon {
+          color: #f87171 !important;
+        }
+      }
+
+      .fecha-por-vencer-cell {
+        background-color: rgba(234, 88, 12, 0.2) !important;
+        color: #fb923c !important;
+        border-color: rgba(234, 88, 12, 0.4) !important;
+
+        .por-vencer-icon {
+          color: #fb923c !important;
+        }
+      }
+
+      .fecha-vigente-cell {
+        color: #f8fafc !important;
+      }
+
+      .obs-text {
+        color: #94a3b8 !important;
+      }
+
+      .badge-eficacia {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+      }
+
+      .badge-no {
+        color: #64748b !important;
+      }
+
+      .badge-count {
+        &.badge-errata {
+          background-color: rgba(217, 119, 6, 0.2) !important;
+          color: #fcd34d !important;
+          border: 1px solid rgba(217, 119, 6, 0.35) !important;
+        }
+        &.badge-mod {
+          background-color: rgba(3, 105, 161, 0.25) !important;
+          color: #7dd3fc !important;
+          border: 1px solid rgba(3, 105, 161, 0.35) !important;
+        }
+      }
+
+      /* BADGES DE MODALIDAD EN DARK */
+      .tipo-badge {
+        &.badge-pasajeros {
+          background-color: rgba(99, 102, 241, 0.2) !important;
           color: #a5b4fc !important;
+          border-color: rgba(99, 102, 241, 0.35) !important;
+        }
+        &.badge-turismo {
+          background-color: rgba(168, 85, 247, 0.2) !important;
+          color: #d8b4fe !important;
+          border-color: rgba(168, 85, 247, 0.35) !important;
+        }
+        &.badge-carga {
+          background-color: rgba(245, 158, 11, 0.2) !important;
+          color: #fcd34d !important;
+          border-color: rgba(245, 158, 11, 0.35) !important;
+        }
+        &.badge-trabajadores {
+          background-color: rgba(16, 185, 129, 0.2) !important;
+          color: #6ee7b7 !important;
+          border-color: rgba(16, 185, 129, 0.35) !important;
+        }
+      }
+
+      .drive-link {
+        color: #60a5fa !important;
+        &:hover { color: #93c5fd !important; }
+      }
+
+      /* EMPTY STATE & LOADING EN DARK */
+      .empty-state {
+        background-color: #111622 !important;
+        border: 1px solid #1e2433 !important;
+        color: #f8fafc !important;
+
+        .empty-icon {
+          color: #475569 !important;
+        }
+
+        h3 {
+          color: #f8fafc !important;
+        }
+
+        p {
+          color: #94a3b8 !important;
+        }
+      }
+
+      .loading-container {
+        color: #94a3b8 !important;
+      }
+
+      /* FORM & DETAIL CARDS EN DARK */
+      .form-card, .detail-card {
+        background-color: #111622 !important;
+        border-color: #1e2433 !important;
+        color: #f8fafc !important;
+
+        mat-card-title {
+          color: #f8fafc !important;
+        }
+
+        .detail-item {
+          color: #cbd5e1 !important;
+          strong {
+            color: #f8fafc !important;
+          }
+        }
+
+        .sub-section {
+          background-color: #171b26 !important;
+          border: 1px solid #1e2433 !important;
+
+          h3 {
+            color: #f8fafc !important;
+          }
+
+          .sin-datos {
+            color: #64748b !important;
+          }
+
+          .sub-list li {
+            color: #cbd5e1 !important;
+            strong { color: #f8fafc !important; }
+          }
         }
 
         .primigenia-form ::ng-deep {
           .mat-mdc-text-field-wrapper {
-            background-color: #0f172a !important;
+            background-color: #171b26 !important;
           }
 
           .mat-mdc-select-value-text, input.mat-mdc-input-element, textarea.mat-mdc-input-element {
             color: #f8fafc !important;
+          }
+
+          input[type="date"] {
+            color-scheme: dark;
           }
 
           .mat-mdc-floating-label {
@@ -1903,22 +2404,17 @@ import {
           .mdc-notched-outline__leading,
           .mdc-notched-outline__notch,
           .mdc-notched-outline__trailing {
-            border-color: #334155 !important;
+            border-color: #283046 !important;
+          }
+
+          &:hover {
+            .mdc-notched-outline__leading,
+            .mdc-notched-outline__notch,
+            .mdc-notched-outline__trailing {
+              border-color: #3b82f6 !important;
+            }
           }
         }
-      }
-      
-      .sub-section {
-        background-color: #0f172a !important;
-        color: #f8fafc !important;
-      }
-      
-      .fecha-vigente-cell {
-        color: #f8fafc !important;
-      }
-      
-      .obs-text {
-        color: #cbd5e1 !important;
       }
     }
   `]
@@ -2262,6 +2758,13 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
   conteoPorVencer30 = computed(() => {
     return this.resoluciones().filter(r => this.esPorVencer30Dias(r.fecha_fin_vigencia, r.estado)).length;
   });
+
+  // KPI Metrics (Stitch GovTech Sentinel)
+  totalResoluciones = computed(() => this.resoluciones().length);
+  totalVigentes = computed(() => this.resoluciones().filter(r => this.getEstadoEfectivo(r) === 'VIGENTE').length);
+  totalPorVencer = computed(() => this.conteoPorVencer30());
+  totalCriticas = computed(() => this.resoluciones().filter(r => ['VENCIDA', 'CANCELADA', 'SUSPENDIDA', 'ANULADA'].includes(this.getEstadoEfectivo(r))).length);
+  totalEmpresasTitulares = computed(() => new Set(this.resoluciones().map(r => r.ruc_empresa).filter(Boolean)).size);
 
   // Signals para Ordenamiento por Columna
   sortColumn = signal<string>('nro_resolucion');

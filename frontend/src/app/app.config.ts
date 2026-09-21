@@ -14,7 +14,7 @@ import { authInterceptor } from './interceptors/auth.interceptor';
 import { TokenAutoFixInterceptor } from './interceptors/token-auto-fix.interceptor';
 import { TokenAutoFixService } from './services/token-auto-fix.service';
 import { IconService } from './services/icon.service';
-import { ConfiguracionService } from './services/configuracion.service';
+
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -58,16 +58,13 @@ export const appConfig: ApplicationConfig = {
     // Configuración de inicialización eager
     {
       provide: APP_INITIALIZER,
-      useFactory: (configuracionService: ConfiguracionService) => {
+      useFactory: () => {
         return () => {
           console.log('🔧 [APP_INITIALIZER] Registrando locale español...');
           registerLocaleData(localeEs, 'es');
-          console.log('🔧 [APP_INITIALIZER] Cargando configuraciones...');
-          // Cargar configuraciones al inicio
-          return configuracionService.cargarConfiguraciones();
+          return Promise.resolve(true);
         };
       },
-      deps: [ConfiguracionService],
       multi: true
     }
   ]

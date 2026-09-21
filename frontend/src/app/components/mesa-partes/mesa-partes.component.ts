@@ -381,6 +381,57 @@ import { Documento } from '../../models/mesa-partes/documento.model';
         padding: 24px 12px;
       }
     }
+
+    /* ========================================================================= */
+    /* MODO OSCURO (SIRRETT OFICIAL DRTC PUNO)                                  */
+    /* ========================================================================= */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .mesa-partes-container {
+        background: #0b0f19;
+      }
+
+      .header {
+        background: #111622;
+        border: 1px solid #1e2433;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+        h1 {
+          color: #f8fafc;
+        }
+
+        .subtitle {
+          color: #94a3b8;
+        }
+      }
+
+      .mesa-tabs {
+        background: #111622;
+        border: 1px solid #1e2433;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .mesa-tabs ::ng-deep .mat-mdc-tab-header {
+        background: #131722;
+        border-bottom-color: #1e2433;
+      }
+
+      .mesa-tabs ::ng-deep .mat-mdc-tab.mat-mdc-tab-active {
+        background: rgba(99, 102, 241, 0.15);
+      }
+
+      .tab-content {
+        color: #f8fafc;
+      }
+
+      .placeholder-content h3 {
+        color: #f8fafc;
+      }
+
+      .placeholder-content p {
+        color: #94a3b8;
+      }
+    }
   `]
 })
 export class MesaPartesComponent implements OnInit, OnDestroy {

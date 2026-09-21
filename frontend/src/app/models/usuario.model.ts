@@ -5,7 +5,9 @@ export interface Usuario {
   apellidos: string;
   email: string;
   rolId: string;
+  rol_id?: string;
   estaActivo: boolean;
+  modulosPermitidos?: string[];
   fechaCreacion: string;
   fechaActualizacion?: string;
 }
@@ -43,5 +45,6 @@ export interface LoginResponse {
     apellidos: string;
     email: string;
     rolId: string;
+    modulosPermitidos?: string[];
   };
 } 

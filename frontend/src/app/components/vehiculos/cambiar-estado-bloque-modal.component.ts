@@ -14,7 +14,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { SmartIconComponent } from '../../shared/smart-icon.component';
 import { Vehiculo, EstadoVehiculo } from '../../models/vehiculo.model';
 import { VehiculoService } from '../../services/vehiculo.service';
-import { ConfiguracionService } from '../../services/configuracion.service';
+
 import { forkJoin } from 'rxjs';
 
 export interface CambiarEstadoBloqueModalData {
@@ -475,7 +475,7 @@ export class CambiarEstadoBloqueModalComponent {
   data = inject(MAT_DIALOG_DATA) as CambiarEstadoBloqueModalData;
   private fb = inject(FormBuilder);
   private vehiculoService = inject(VehiculoService);
-  private configuracionService = inject(ConfiguracionService);
+
   private snackBar = inject(MatSnackBar);
 
   procesando = signal(false);
@@ -487,13 +487,12 @@ export class CambiarEstadoBloqueModalComponent {
   }
 
   // Obtener estados desde la configuración
-  estadosDisponibles = this.configuracionService.estadosVehiculosConfig().map((estado: any) => ({
-    value: estado.codigo,
-    label: estado.nombre,
-    icon: this.getIconoParaEstado(estado.codigo),
-    color: estado.color,
-    descripcion: estado.descripcion
-  }));
+  estadosDisponibles = [
+    { value: 'ACTIVO', label: 'Activo', color: '#10b981', icon: 'check_circle' },
+    { value: 'INACTIVO', label: 'Inactivo', color: '#ef4444', icon: 'cancel' },
+    { value: 'MANTENIMIENTO', label: 'En Mantenimiento', color: '#f59e0b', icon: 'build' },
+    { value: 'BAJA', label: 'Dado de Baja', color: '#6b7280', icon: 'block' }
+  ];
 
   estadoForm = this.fb.group({
     nuevoEstado: ['', Validators.required],

@@ -3,7 +3,6 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of, catchError, throwError, map, tap, switchMap } from 'rxjs';
 import { Vehiculo, VehiculoCreate, VehiculoUpdate } from '../models/vehiculo.model';
 import { AuthService } from './auth.service';
-import { ConfiguracionService } from './configuracion.service';
 import { DataManagerClientService } from './data-manager-client.service';
 import { HistorialVehicularService } from './historial-vehicular.service';
 import { TipoEventoHistorial, EstadoVehiculo } from '../models/historial-vehicular.model';
@@ -48,7 +47,6 @@ interface EstadisticasCargaMasiva {
 export class VehiculoService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  private configuracionService = inject(ConfiguracionService);
   private dataManager = inject(DataManagerClientService);
   private historialService = inject(HistorialVehicularService);
   
@@ -1659,35 +1657,41 @@ export class VehiculoService {
    * Obtener los estados de vehículos configurados
    */
   getEstadosVehiculos() {
-    return this.configuracionService.estadosVehiculosConfig();
+    return [
+      { codigo: 'ACTIVO', nombre: 'Activo', color: '#10b981' },
+      { codigo: 'INACTIVO', nombre: 'Inactivo', color: '#ef4444' },
+      { codigo: 'MANTENIMIENTO', nombre: 'En Mantenimiento', color: '#f59e0b' },
+      { codigo: 'BAJA', nombre: 'Dado de Baja', color: '#6b7280' }
+    ];
   }
 
   /**
    * Obtener el color de un estado específico
    */
   getColorEstado(codigo: string): string {
-    return this.configuracionService.getColorEstadoVehiculo(codigo);
+    const estado = this.getEstadosVehiculos().find(e => e.codigo === codigo);
+    return estado ? estado.color : '#6b7280';
   }
 
   /**
    * Obtener información completa de un estado
    */
   getEstadoInfo(codigo: string) {
-    return this.configuracionService.getEstadoVehiculo(codigo);
+    return this.getEstadosVehiculos().find(e => e.codigo === codigo);
   }
 
   /**
    * Verificar si el cambio de estado masivo está habilitado
    */
   isCambioEstadoMasivoHabilitado(): boolean {
-    return this.configuracionService.permitirCambioEstadoMasivo();
+    return true;
   }
 
   /**
    * Verificar si el motivo es obligatorio para cambios de estado
    */
   isMotivoObligatorio(): boolean {
-    return this.configuracionService.motivoObligatorioCambioEstado();
+    return true;
   }
 
   /**

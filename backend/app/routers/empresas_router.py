@@ -1667,10 +1667,10 @@ async def consultar_sunat_proxy(
     Proxy para consultar la API de SUNAT y persistir automáticamente los datos en MongoDB
     si la empresa ya existe registrada.
     """
-    if not ruc or len(ruc) != 11 or not ruc.isdigit():
-        raise HTTPException(status_code=400, detail="RUC inválido")
-        
-    url = f"https://pcm.guillermo.pe/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
+    param_col = empresa_service.db["parametros_sistema"]
+    param_doc = await param_col.find_one({"clave": "INTEROPERABILIDAD_BASE_URL"})
+    base_url = (param_doc.get("valor") if param_doc else "https://pcm.guillermo.pe").rstrip("/")
+    url = f"{base_url}/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
     
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:

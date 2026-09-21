@@ -52,46 +52,47 @@ class UsuarioService:
         return await self.get_usuario_by_id(str(result.inserted_id))
 
     async def get_usuario_by_id(self, usuario_id: str) -> Optional[UsuarioInDB]:
-        """Obtener usuario por ID"""
-        usuario = await self.collection.find_one({"_id": ObjectId(usuario_id)})
-        if usuario:
-            usuario["id"] = str(usuario.pop("_id"))
-            # Mapear snake_case a camelCase
-            if "password_hash" in usuario:
-                usuario["passwordHash"] = usuario.pop("password_hash")
-            if "rol_id" in usuario:
-                usuario["rolId"] = usuario.pop("rol_id")
-        return UsuarioInDB(**usuario) if usuario else None
+        """Obtener usuario por ID o DNI de forma segura"""
+        if not usuario_id:
+            return None
+        try:
+            if not ObjectId.is_valid(usuario_id):
+                usuario = await self.collection.find_one({"dni": usuario_id})
+                return self._map_usuario(usuario) if usuario else None
+            usuario = await self.collection.find_one({"_id": ObjectId(usuario_id)})
+            return self._map_usuario(usuario) if usuario else None
+        except Exception:
+            return None
 
     async def get_usuario_by_dni(self, dni: str) -> Optional[UsuarioInDB]:
         """Obtener usuario por DNI"""
         usuario = await self.collection.find_one({"dni": dni})
-        if usuario:
-            usuario["id"] = str(usuario.pop("_id"))
-            # Mapear snake_case a camelCase
-            if "password_hash" in usuario:
-                usuario["passwordHash"] = usuario.pop("password_hash")
-            if "rol_id" in usuario:
-                usuario["rolId"] = usuario.pop("rol_id")
-        return UsuarioInDB(**usuario) if usuario else None
+        return self._map_usuario(usuario) if usuario else None
 
     async def get_usuario_by_email(self, email: str) -> Optional[UsuarioInDB]:
         """Obtener usuario por email"""
         usuario = await self.collection.find_one({"email": email})
-        if usuario:
-            usuario["id"] = str(usuario.pop("_id"))
-            # Mapear snake_case a camelCase
-            if "password_hash" in usuario:
-                usuario["passwordHash"] = usuario.pop("password_hash")
-            if "rol_id" in usuario:
-                usuario["rolId"] = usuario.pop("rol_id")
-        return UsuarioInDB(**usuario) if usuario else None
+        return self._map_usuario(usuario) if usuario else None
 
     async def get_usuarios_activos(self) -> List[UsuarioInDB]:
         """Obtener todos los usuarios activos"""
         cursor = self.collection.find({"estaActivo": True})
         usuarios = await cursor.to_list(length=None)
-        return [UsuarioInDB(**usuario) for usuario in usuarios]
+        return [self._map_usuario(usuario) for usuario in usuarios]
+
+    async def get_all_usuarios(self) -> List[UsuarioInDB]:
+        """Obtener todos los usuarios (activos e inactivos)"""
+        cursor = self.collection.find({})
+        usuarios = await cursor.to_list(length=None)
+        return [self._map_usuario(usuario) for usuario in usuarios]
+
+    def _map_usuario(self, usuario: dict) -> UsuarioInDB:
+        usuario["id"] = str(usuario.pop("_id"))
+        if "password_hash" in usuario:
+            usuario["passwordHash"] = usuario.pop("password_hash")
+        if "rol_id" in usuario:
+            usuario["rolId"] = usuario.pop("rol_id")
+        return UsuarioInDB(**usuario)
 
     async def update_usuario(self, usuario_id: str, usuario_data: UsuarioUpdate) -> Optional[UsuarioInDB]:
         """Actualizar usuario"""

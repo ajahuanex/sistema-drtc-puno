@@ -123,12 +123,13 @@ import { TucService } from '../../services/tuc.service';
   `,
   styles: [`
     .dialog-container {
-      background-color: #0f172a;
-      color: #f8fafc;
+      background-color: #ffffff;
+      color: #0f172a;
       padding: 24px;
       border-radius: 16px;
       max-width: 600px;
       font-family: system-ui, -apple-system, sans-serif;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     }
 
     .dialog-header {
@@ -136,15 +137,15 @@ import { TucService } from '../../services/tuc.service';
       justify-content: space-between;
       align-items: center;
       padding-bottom: 16px;
-      border-bottom: 1px solid #1e293b;
+      border-bottom: 1px solid #e2e8f0;
       margin-bottom: 20px;
     }
 
     .header-title-box { display: flex; align-items: center; gap: 14px; }
 
     .header-icon-badge {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
       padding: 10px;
       border-radius: 12px;
       display: flex;
@@ -152,21 +153,24 @@ import { TucService } from '../../services/tuc.service';
       justify-content: center;
     }
 
-    .icon-emerald { color: #34d399; }
-    .dialog-title { font-size: 18px; font-weight: 800; color: white; margin: 0; }
-    .dialog-subtitle { font-size: 12px; color: #94a3b8; margin: 2px 0 0 0; }
-    .btn-close { color: #94a3b8; }
+    .icon-emerald { color: #059669; }
+    .dialog-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; }
+    .dialog-subtitle { font-size: 12px; color: #64748b; margin: 2px 0 0 0; }
+    .btn-close { color: #64748b; }
 
     .dropzone-box {
-      border: 2px dashed #334155;
+      border: 2px dashed #cbd5e1;
       border-radius: 16px;
-      background: #1e293b;
+      background: #f8fafc;
       padding: 32px;
       text-align: center;
       margin-bottom: 16px;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
-    .dropzone-box:hover { border-color: #10b981; }
+    .dropzone-box:hover {
+      border-color: #10b981;
+      background: #f0fdf4;
+    }
 
     .hidden-input { display: none; }
 
@@ -179,7 +183,7 @@ import { TucService } from '../../services/tuc.service';
 
     .icon-circle {
       background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
+      color: #059669;
       padding: 16px;
       border-radius: 50%;
       display: flex;
@@ -189,31 +193,33 @@ import { TucService } from '../../services/tuc.service';
 
     .upload-icon { font-size: 32px; width: 32px; height: 32px; }
 
-    .filename-text { font-size: 14px; font-weight: 700; color: white; margin: 0; }
-    .hint-text { font-size: 11px; color: #94a3b8; margin: 4px 0 0 0; }
+    .filename-text { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0; }
+    .hint-text { font-size: 11px; color: #64748b; margin: 4px 0 0 0; }
 
     .btn-select-file {
-      background: #0f172a;
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: #ffffff;
+      color: #059669;
+      border: 1px solid #10b981;
       padding: 8px 16px;
       border-radius: 8px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
+      transition: all 0.2s;
     }
+    .btn-select-file:hover { background: #f0fdf4; }
 
     .info-cols-box {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 12px;
       font-size: 12px;
-      color: #94a3b8;
+      color: #64748b;
       margin-bottom: 16px;
     }
 
-    .info-title { font-weight: 700; color: #cbd5e1; display: block; margin-bottom: 6px; }
+    .info-title { font-weight: 700; color: #334155; display: block; margin-bottom: 6px; }
 
     .cols-grid {
       display: grid;
@@ -221,35 +227,35 @@ import { TucService } from '../../services/tuc.service';
       gap: 4px;
       font-family: monospace;
       font-size: 11px;
-      color: #34d399;
+      color: #059669;
     }
 
     .progress-box { margin-bottom: 16px; }
-    .progress-msg { font-size: 12px; color: #34d399; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .progress-msg { font-size: 12px; color: #059669; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 
     .spinner-icon { animation: spin 1s linear infinite; font-size: 16px; width: 16px; height: 16px; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
     .results-box {
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 14px;
       margin-bottom: 16px;
     }
 
-    .results-title { font-size: 12px; font-weight: 800; color: white; text-transform: uppercase; margin: 0 0 10px 0; }
+    .results-title { font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 0 0 10px 0; }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center; }
 
-    .stat-card { background: #0f172a; padding: 8px; border-radius: 8px; }
-    .stat-card.bg-emerald { background: rgba(16, 185, 129, 0.1); }
-    .stat-card.bg-rose { background: rgba(244, 63, 94, 0.1); }
+    .stat-card { background: #ffffff; padding: 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .stat-card.bg-emerald { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+    .stat-card.bg-rose { background: rgba(244, 63, 94, 0.1); border-color: rgba(244, 63, 94, 0.2); }
 
-    .stat-label { font-size: 11px; color: #94a3b8; display: block; }
-    .stat-val { font-size: 18px; font-weight: 800; }
-    .text-emerald { color: #34d399; }
-    .text-rose { color: #f87171; }
+    .stat-label { font-size: 11px; color: #64748b; display: block; }
+    .stat-val { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .text-emerald { color: #059669; }
+    .text-rose { color: #dc2626; }
 
     .errors-list {
       margin-top: 10px;
@@ -259,7 +265,7 @@ import { TucService } from '../../services/tuc.service';
       background: rgba(244, 63, 94, 0.1);
       border-radius: 6px;
       font-size: 11px;
-      color: #fca5a5;
+      color: #b91c1c;
     }
 
     .dialog-footer {
@@ -267,19 +273,21 @@ import { TucService } from '../../services/tuc.service';
       justify-content: flex-end;
       gap: 10px;
       padding-top: 16px;
-      border-top: 1px solid #1e293b;
+      border-top: 1px solid #e2e8f0;
     }
 
     .btn-secondary {
-      background: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #334155;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
       padding: 10px 18px;
       border-radius: 10px;
       font-weight: 700;
       font-size: 13px;
       cursor: pointer;
+      transition: all 0.2s;
     }
+    .btn-secondary:hover { background: #e2e8f0; }
 
     .btn-emerald {
       background: #10b981;
@@ -293,9 +301,82 @@ import { TucService } from '../../services/tuc.service';
       align-items: center;
       gap: 6px;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .btn-emerald:hover:not(:disabled) { background: #059669; }
     .btn-emerald:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ========================================================
+       DARK THEME OVERRIDES
+       ======================================================== */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .dialog-container {
+        background-color: #0f172a;
+        color: #f8fafc;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        border: 1px solid #1e293b;
+      }
+      .dialog-header { border-bottom-color: #1e293b; }
+      .header-icon-badge {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+      .icon-emerald { color: #34d399; }
+      .dialog-title { color: white; }
+      .dialog-subtitle { color: #94a3b8; }
+      .btn-close { color: #94a3b8; }
+      .dropzone-box {
+        border-color: #334155;
+        background: #1e293b;
+      }
+      .dropzone-box:hover { border-color: #10b981; }
+      .icon-circle {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+      }
+      .filename-text { color: white; }
+      .hint-text { color: #94a3b8; }
+      .btn-select-file {
+        background: #0f172a;
+        color: #34d399;
+        border-color: rgba(16, 185, 129, 0.4);
+      }
+      .info-cols-box {
+        background: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+      }
+      .info-title { color: #cbd5e1; }
+      .cols-grid { color: #34d399; }
+      .progress-msg { color: #34d399; }
+      .results-box {
+        background: #1e293b;
+        border-color: #334155;
+      }
+      .results-title { color: white; }
+      .stat-card {
+        background: #0f172a;
+        border-color: #334155;
+      }
+      .stat-card.bg-emerald { background: rgba(16, 185, 129, 0.1); }
+      .stat-card.bg-rose { background: rgba(244, 63, 94, 0.1); }
+      .stat-label { color: #94a3b8; }
+      .stat-val { color: white; }
+      .text-emerald { color: #34d399; }
+      .text-rose { color: #f87171; }
+      .errors-list {
+        background: rgba(244, 63, 94, 0.1);
+        color: #fca5a5;
+      }
+      .dialog-footer { border-top-color: #1e293b; }
+      .btn-secondary {
+        background: #1e293b;
+        color: #cbd5e1;
+        border-color: #334155;
+      }
+      .btn-secondary:hover { background: #334155; }
+    }
   `]
 })
 export class TucImportarExcelDialogComponent {

@@ -426,6 +426,42 @@ export interface DetalleRutaModalData {
         grid-template-columns: 1fr;
       }
     }
+
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme) {
+      .modal-header {
+        border-bottom-color: #1e2433;
+        h2 { color: #f8fafc; }
+      }
+      .modal-content {
+        color: #f8fafc;
+      }
+      .header-info .codigo-section .ruta-nombre {
+        color: #f8fafc;
+      }
+      .info-section .section-title {
+        color: #f8fafc;
+      }
+      .info-item .info-label {
+        color: #94a3b8;
+      }
+      .info-item .info-value {
+        color: #f8fafc;
+      }
+      .observaciones-text {
+        background-color: #171b26;
+        color: #cbd5e1;
+      }
+      .itinerario-section {
+        background-color: #171b26;
+        .itinerario-title { color: #f8fafc; }
+        .localidad-nombre { color: #f8fafc; }
+        .localidad-detalle { color: #94a3b8; }
+      }
+      mat-dialog-actions {
+        border-top-color: #1e2433;
+      }
+    }
   `]
 })
 export class DetalleRutaModalComponent {
