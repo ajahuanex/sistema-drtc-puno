@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_ROOT_PASSWORD: ClaveSuperSegura2026!ok
       MONGO_INITDB_DATABASE: drtc_db
     ports:
       - "27017:27017"
@@ -32,7 +32,7 @@ services:
     container_name: sirret-backend
     restart: unless-stopped
     environment:
-      - MONGODB_URL=mongodb://admin:admin123@mongodb:27017/
+      - MONGODB_URL=mongodb://admin:ClaveSuperSegura2026!ok@mongodb:27017/?authSource=admin
       - DATABASE_NAME=drtc_db
       - SECRET_KEY=sirret-production-secret-key-2025-very-secure
       - DEBUG=false

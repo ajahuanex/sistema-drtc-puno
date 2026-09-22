@@ -1145,6 +1145,29 @@ class FlotaEmpresaService:
                     )
                     bajas_sustitucion += 1
 
+                # Si se solicitó dar de baja en otra empresa donde estuviese previamente habilitado:
+                if getattr(item, "dar_de_baja_otra_empresa", False):
+                    otra_flota_cursor = self.collection.find({
+                        "ruc": {"$ne": ruc},
+                        "placa": placa_in,
+                        "estado": "HABILITADO",
+                        "esta_activo": {"$ne": False}
+                    })
+                    async for v_otra in otra_flota_cursor:
+                        obs_otra = {
+                            "fecha": now,
+                            "texto": f"BAJA POR TRANSFERENCIA / SUSTITUCION A EMPRESA RUC {ruc} SEGUN RESOLUCION {res_ref} / {origen_texto}",
+                            "fuente": "tramite_sustitucion_otra_empresa"
+                        }
+                        await self.collection.update_one(
+                            {"_id": v_otra["_id"]},
+                            {
+                                "$set": {"estado": "INHABILITADO", "fecha_actualizacion": now},
+                                "$push": {"observaciones_historial": obs_otra}
+                            }
+                        )
+                        logger.info(f"Baja automatica procesada para placa {placa_in} en empresa RUC {v_otra.get('ruc')}")
+
             elif req.tipo_tramite == "DUPLICADO":
                 obs_lista.append({
                     "fecha": now,

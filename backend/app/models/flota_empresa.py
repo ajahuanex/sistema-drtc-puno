@@ -224,6 +224,7 @@ class ItemTramiteVehiculo(BaseModel):
     datos_tecnicos: Optional[dict] = Field(default_factory=dict, description="Diccionario con los 23 campos de especificaciones técnicas")
     observacion_custom: Optional[str] = None
     numero_tuc: Optional[str] = None
+    dar_de_baja_otra_empresa: bool = Field(default=False, description="Dar de baja en la otra empresa si estaba habilitada")
 
 
 class RutaRenovacionDetalle(BaseModel):

@@ -7,7 +7,7 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: Clave123Segura!
+      MONGO_INITDB_ROOT_PASSWORD: ClaveSuperSegura2026!ok
       MONGO_INITDB_DATABASE: sirret_db
     volumes:
       - mongodb_data_local_v2:/data/db

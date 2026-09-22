@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
+import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -100,11 +100,12 @@ import { MatSelectModule } from '@angular/material/select';
     </form>
   `
 })
-export class BajaExternaFormComponent {
+export class BajaExternaFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private bajaService = inject(BajaExternaService);
   private dialogRef = inject(MatDialogRef<BajaExternaFormComponent>);
   private snackBar = inject(MatSnackBar);
+  public data = inject(MAT_DIALOG_DATA, { optional: true });
 
   submitting = false;
   selectedFile: File | null = null;
@@ -116,6 +117,16 @@ export class BajaExternaFormComponent {
     motivo: ['', Validators.required],
     observaciones: ['']
   });
+
+  ngOnInit() {
+    if (this.data) {
+      if (this.data.placa) this.form.patchValue({ placa: this.data.placa });
+      if (this.data.ruc_empresa) this.form.patchValue({ ruc_empresa: this.data.ruc_empresa });
+      if (this.data.razon_social) this.form.patchValue({ razon_social: this.data.razon_social });
+      if (this.data.motivo) this.form.patchValue({ motivo: this.data.motivo });
+      if (this.data.observaciones) this.form.patchValue({ observaciones: this.data.observaciones });
+    }
+  }
 
   onFileSelected(event: any) {
     const file = event.target.files[0];

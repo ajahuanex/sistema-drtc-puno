@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# Desactivar conversión automática de rutas POSIX en Git Bash / MSYS2 en Windows
+export MSYS_NO_PATHCONV=1
+
 # ==============================================================================
-# Script de Inicio de Frontend (SIRRETT - Angular 20) para macOS
-# Compatible con Bash y Zsh en macOS
+# Script de Inicio de Frontend (SIRRETT - Angular 20) para macOS y Windows (Git Bash)
 # ==============================================================================
 
 # Colores para salida de terminal

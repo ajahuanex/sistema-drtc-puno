@@ -6,7 +6,7 @@ services:
     container_name: sirret-mongodb-dev
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_ROOT_PASSWORD: ClaveSuperSegura2026!ok
       MONGO_INITDB_DATABASE: sirret_dev
     ports:
       - "27017:27017"
@@ -26,7 +26,7 @@ services:
       dockerfile: docker/backend/Dockerfile
     container_name: sirret-backend-dev
     environment:
-      DATABASE_URL: mongodb://admin:admin123@mongodb:27017/sirret_dev
+      DATABASE_URL: mongodb://admin:ClaveSuperSegura2026!ok@mongodb:27017/sirret_dev?authSource=admin
       ENVIRONMENT: development
       DEBUG: "true"
       LOG_LEVEL: debug

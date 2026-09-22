@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# Desactivar conversión automática de rutas POSIX en Git Bash / MSYS2 en Windows
+export MSYS_NO_PATHCONV=1
+
 # ==============================================================================
-# Script de Inicio de Backend (SIRRETT) para macOS
-# Compatible con Bash y Zsh en macOS
+# Script de Inicio de Backend (SIRRETT) para macOS y Windows (Git Bash)
 # ==============================================================================
 
 # Colores para salida de terminal
@@ -190,9 +192,15 @@ echo -e "\n${BLUE}[3/3] Verificando conectividad con base de datos...${NC}"
 if [ "$USE_REMOTE_DB" = "true" ] || [ "$MONGODB_TARGET" = "remote" ]; then
     echo -e "${GREEN}✓ Configurado para MongoDB Remoto.${NC}"
 else
-    # Probar puerto 27017 localmente
-    nc -z -w 1 127.0.0.1 27017 >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
+    # Probar puerto 27017 localmente (compatible con macOS, Linux y Git Bash en Windows)
+    PORT_OK=1
+    if command -v nc >/dev/null 2>&1; then
+        nc -z -w 1 127.0.0.1 27017 >/dev/null 2>&1 && PORT_OK=0
+    fi
+    if [ "$PORT_OK" -ne 0 ]; then
+        python -c "import socket; s = socket.socket(); s.settimeout(1); exit(0 if s.connect_ex(('127.0.0.1', 27017)) == 0 else 1)" >/dev/null 2>&1 && PORT_OK=0
+    fi
+    if [ "$PORT_OK" -ne 0 ]; then
         echo -e "${YELLOW}⚠️  ADVERTENCIA: MongoDB local no responde en 127.0.0.1:27017${NC}"
         echo -e "   Si no tienes MongoDB local activo, puedes conectar a la BD remota ejecutando:"
         echo -e "   ${BOLD}./start-backend-mac.sh --remote${NC}"

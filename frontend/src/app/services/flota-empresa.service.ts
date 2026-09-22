@@ -181,6 +181,7 @@ export interface ItemTramiteVehiculo {
   datos_tecnicos?: Record<string, any>;
   observacion_custom?: string;
   numero_tuc?: string;
+  dar_de_baja_otra_empresa?: boolean;
 }
 
 export interface TramiteMasivoRequest {
@@ -188,6 +189,8 @@ export interface TramiteMasivoRequest {
   razon_social?: string;
   nro_resolucion_primigenia: string;
   tipo_tramite: string;
+  es_de_oficio?: boolean;
+  documento_origen?: string;
   tipo_resolucion_hija?: string;
   num_expediente?: string;
   fecha_expediente?: string;
@@ -200,6 +203,9 @@ export interface TramiteMasivoRequest {
   nueva_fecha_fin_vigencia?: string;
   nuevas_rutas?: string[];
   nuevas_rutas_detalle?: any[];
+  cancelacion_total?: boolean;
+  rutas_a_cancelar?: string[];
+  datos_modificacion?: Record<string, any>;
   vehiculos: ItemTramiteVehiculo[];
 }
 
@@ -212,6 +218,10 @@ export class FlotaEmpresaService {
 
   procesarTramiteMasivo(payload: TramiteMasivoRequest): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/tramite-masivo`, payload);
+  }
+
+  procesarSustitucion(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/sustitucion`, payload);
   }
 
   getFlotaPaginada(params: {

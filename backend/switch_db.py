@@ -30,7 +30,7 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
         pass
 
 # Credenciales y URLs predeterminadas
-URL_LOCAL_DEFAULT = "mongodb://admin:admin123@localhost:27017/"
+URL_LOCAL_DEFAULT = "mongodb://admin:ClaveSuperSegura2026!ok@localhost:27017/?authSource=admin"
 URL_REMOTE_DEFAULT = "mongodb://admin_user:ClaveSuperSegura2026!ok@161.132.52.69:27017/?authSource=admin"
 DB_NAME_DEFAULT = "drtc_db"
 

@@ -1,4 +1,4 @@
-import { Component, Inject, signal } from '@angular/core';
+import { Component, Inject, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { VehiculoDataService } from '../../services/vehiculo-data.service';
 
 @Component({
   selector: 'app-sustitucion-modal',
@@ -19,7 +21,8 @@ import { MatSelectModule } from '@angular/material/select';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    MatTooltipModule
   ],
   template: `
     <div class="modal-container">
@@ -62,10 +65,18 @@ import { MatSelectModule } from '@angular/material/select';
             <h3>Datos del Nuevo Vehículo</h3>
             
             <div class="grid-form">
-              <mat-form-field appearance="outline">
+              <mat-form-field appearance="outline" style="grid-column: 1 / -1;">
                 <mat-label>Placa Entrante</mat-label>
                 <input matInput formControlName="placa_entrante" placeholder="Ej. ABC-123" style="font-family: monospace; text-transform: uppercase;">
+                <button type="button" mat-icon-button matSuffix (click)="buscarPorPlaca()" [disabled]="form.get('placa_entrante')?.invalid || buscando" matTooltip="Buscar en Base de Datos" color="primary">
+                  <mat-icon *ngIf="!buscando">search</mat-icon>
+                  <mat-icon *ngIf="buscando" class="spin">sync</mat-icon>
+                </button>
               </mat-form-field>
+              
+              <div *ngIf="mensajeBusqueda" style="grid-column: 1 / -1; margin-top: -8px; margin-bottom: 8px; font-size: 0.85rem;" [style.color]="errorBusqueda ? '#ef4444' : '#10b981'">
+                {{ mensajeBusqueda }}
+              </div>
 
               <mat-form-field appearance="outline">
                 <mat-label>Marca</mat-label>
@@ -80,6 +91,16 @@ import { MatSelectModule } from '@angular/material/select';
               <mat-form-field appearance="outline">
                 <mat-label>Año Fab.</mat-label>
                 <input matInput type="number" formControlName="anio_fabricacion" placeholder="2024">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Categoría</mat-label>
+                <mat-select formControlName="categoria">
+                  <mat-option value="M2">M2 (Microbús)</mat-option>
+                  <mat-option value="M3">M3 (Ómnibus)</mat-option>
+                  <mat-option value="N2">N2 (Camión Mediano)</mat-option>
+                  <mat-option value="N3">N3 (Camión Pesado)</mat-option>
+                </mat-select>
               </mat-form-field>
               
               <mat-form-field appearance="outline" style="grid-column: 1 / -1;">
@@ -191,6 +212,11 @@ import { MatSelectModule } from '@angular/material/select';
 })
 export class SustitucionModalComponent {
   form: FormGroup;
+  buscando = false;
+  mensajeBusqueda = '';
+  errorBusqueda = false;
+
+  private vehiculoDataService = inject(VehiculoDataService);
 
   constructor(
     private fb: FormBuilder,
@@ -203,7 +229,45 @@ export class SustitucionModalComponent {
       marca: ['', Validators.required],
       modelo: ['', Validators.required],
       anio_fabricacion: ['', [Validators.required, Validators.min(1980), Validators.max(2027)]],
-      numero_tuc: ['']
+      categoria: ['M2', Validators.required],
+      numero_tuc: [''],
+      asientos: [''],
+      peso_neto: ['']
+    });
+  }
+
+  buscarPorPlaca() {
+    let placa = this.form.get('placa_entrante')?.value;
+    if (!placa) return;
+
+    placa = placa.toUpperCase().trim();
+    this.buscando = true;
+    this.mensajeBusqueda = 'Buscando vehículo en base de datos...';
+    this.errorBusqueda = false;
+
+    this.vehiculoDataService.getVehiculoDataByPlaca(placa).subscribe({
+      next: (res) => {
+        this.buscando = false;
+        if (res.success && res.data) {
+          this.mensajeBusqueda = '✓ Vehículo encontrado y autocompletado';
+          this.form.patchValue({
+            marca: res.data.marca || '',
+            modelo: res.data.modelo || '',
+            anio_fabricacion: res.data.anio_fabricacion || '',
+            categoria: res.data.categoria || 'M2',
+            asientos: res.data.asientos || res.data.numero_asientos || '',
+            peso_neto: res.data.peso_neto || res.data.peso_seco || ''
+          });
+        } else {
+          this.errorBusqueda = true;
+          this.mensajeBusqueda = res.message || 'Vehículo no encontrado en BD local. Ingrese los datos manualmente.';
+        }
+      },
+      error: () => {
+        this.buscando = false;
+        this.errorBusqueda = true;
+        this.mensajeBusqueda = 'Vehículo no registrado previamente. Ingrese los datos manualmente.';
+      }
     });
   }
 
@@ -214,7 +278,7 @@ export class SustitucionModalComponent {
   guardar() {
     if (this.form.valid) {
       const value = this.form.value;
-      value.placa_entrante = value.placa_entrante.toUpperCase();
+      value.placa_entrante = value.placa_entrante.toUpperCase().trim();
       this.dialogRef.close(value);
     }
   }

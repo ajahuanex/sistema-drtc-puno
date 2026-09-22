@@ -100,7 +100,11 @@ async def log_requests(request, call_next):
     return response
 
 # Incluir routers
-api_prefix = settings.API_V1_STR.strip()
+api_prefix = settings.API_V1_STR.strip().replace("\\", "/")
+if "api/v1" in api_prefix:
+    api_prefix = "/api/v1"
+elif not api_prefix.startswith("/"):
+    api_prefix = "/" + api_prefix.lstrip("/")
 app.include_router(auth_router, prefix=api_prefix)
 app.include_router(empresas_router, prefix=api_prefix)
 app.include_router(infraestructura_router, prefix=api_prefix)
