@@ -225,6 +225,7 @@ class ItemTramiteVehiculo(BaseModel):
     observacion_custom: Optional[str] = None
     numero_tuc: Optional[str] = None
     dar_de_baja_otra_empresa: bool = Field(default=False, description="Dar de baja en la otra empresa si estaba habilitada")
+    orden: Optional[int] = Field(default=None, description="Número de orden correlativo en la resolución/flota")
 
 
 class RutaRenovacionDetalle(BaseModel):
@@ -257,6 +258,8 @@ class TramiteMasivoRequest(BaseModel):
     nueva_fecha_emision: Optional[datetime] = None
     nueva_fecha_inicio_vigencia: Optional[datetime] = None
     nueva_fecha_fin_vigencia: Optional[datetime] = None
+    duracion_anios: Optional[int] = Field(default=4, description="Años de vigencia de la renovación (4 o 10)")
+    rutas_a_ratificar: List[str] = Field(default_factory=list, description="Códigos de rutas de la resolución anterior a ratificar y clonar")
     nuevas_rutas: List[str] = Field(default_factory=list)
     nuevas_rutas_detalle: List[RutaRenovacionDetalle] = Field(default_factory=list)
     
@@ -267,7 +270,7 @@ class TramiteMasivoRequest(BaseModel):
     # Específico para MODIFICACION:
     datos_modificacion: Optional[dict] = Field(default_factory=dict, description="Datos generales de empresa o rutas que cambian")
 
-    # Lista de vehículos a procesar (para Incremento, Sustitución, Duplicado, Canje, Bajas):
+    # Lista de vehículos a procesar (para Incremento, Sustitución, Duplicado, Canje, Bajas, Renovación):
     vehiculos: List[ItemTramiteVehiculo] = Field(default_factory=list)
 
 

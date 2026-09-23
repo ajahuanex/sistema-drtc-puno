@@ -28,6 +28,13 @@ export class ResolucionHijaService {
     return this.http.get<ResolucionHija[]>(this.apiUrl, { params });
   }
 
+  getSiguienteNumero(tipoTramite?: string, anio?: number): Observable<{ siguiente_numero: string }> {
+    let params = new HttpParams();
+    if (tipoTramite) params = params.set('tipo_tramite', tipoTramite);
+    if (anio) params = params.set('anio', anio.toString());
+    return this.http.get<{ siguiente_numero: string }>(`${this.apiUrl}/siguiente-numero`, { params });
+  }
+
   getHijaById(id: string): Observable<ResolucionHija> {
     return this.http.get<ResolucionHija>(`${this.apiUrl}/${id}`);
   }

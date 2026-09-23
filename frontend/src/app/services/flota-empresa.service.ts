@@ -182,6 +182,7 @@ export interface ItemTramiteVehiculo {
   observacion_custom?: string;
   numero_tuc?: string;
   dar_de_baja_otra_empresa?: boolean;
+  orden?: number;
 }
 
 export interface TramiteMasivoRequest {
@@ -201,6 +202,8 @@ export interface TramiteMasivoRequest {
   nueva_fecha_emision?: string;
   nueva_fecha_inicio_vigencia?: string;
   nueva_fecha_fin_vigencia?: string;
+  duracion_anios?: number;
+  rutas_a_ratificar?: string[];
   nuevas_rutas?: string[];
   nuevas_rutas_detalle?: any[];
   cancelacion_total?: boolean;

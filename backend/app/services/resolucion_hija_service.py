@@ -155,7 +155,7 @@ class ResolucionHijaService:
             if filtros.get("fecha_hasta"):
                 query["fecha_resolucion"]["$lte"] = filtros["fecha_hasta"]
 
-        cursor = self.collection.find(query).sort("fecha_resolucion", -1)
+        cursor = self.collection.find(query).sort([("fecha_registro", -1), ("fecha_resolucion", -1), ("_id", -1)])
         docs = await cursor.to_list(length=None)
 
         for doc in docs:
@@ -211,4 +211,32 @@ class ResolucionHijaService:
             {"$set": {"esta_activo": False, "fecha_actualizacion": datetime.utcnow()}}
         )
         return result.modified_count
+
+    async def generar_siguiente_numero(self, tipo_tramite: Optional[str] = None, anio: Optional[int] = None) -> str:
+        """
+        Genera el siguiente número correlativo disponible para resolución hija (ej. R-0638-2026).
+        """
+        import re
+        now = datetime.utcnow()
+        anio_val = anio or now.year
+
+        cursor = self.collection.find()
+        max_num = 0
+        async for doc in cursor:
+            r_str = str(doc.get("nro_resolucion", "")).strip().upper()
+            if str(anio_val) in r_str and not r_str.startswith("E-"):
+                m = re.search(rf'(\d+)[-_]{anio_val}', r_str)
+                if not m:
+                    m = re.search(r'(\d+)', r_str)
+                if m:
+                    try:
+                        num = int(m.group(1))
+                        if num < 9000 and num != anio_val:
+                            if num > max_num:
+                                max_num = num
+                    except ValueError:
+                        pass
+
+        siguiente = max_num + 1
+        return f"R-{siguiente:04d}-{anio_val}"
 

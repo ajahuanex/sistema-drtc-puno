@@ -2356,11 +2356,30 @@ body.dark-theme, [data-theme="dark"], .dark-theme {
 .dark-dialog-panel input::placeholder,
 .dark-dialog-panel textarea::placeholder,
 .vehiculo-dialog-container input::placeholder,
-.vehiculo-dialog-container textarea::placeholder,
-body input::placeholder,
-body textarea::placeholder {
-  color: #64748b !important;
-  opacity: 0.45 !important;
+.vehiculo-dialog-container textarea::placeholder {
+  color: #64748b;
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+/* ── REGLA GLOBAL PARA PLACEHOLDERS EN MAT-FORM-FIELD ──
+   Evita que el placeholder ("letra de fondo") se superponga con la etiqueta
+   cuando esta se encuentra en posición de reposo dentro del input. */
+.mat-mdc-form-field:not(.mat-form-field-should-float):not(.mdc-text-field--focused) input::placeholder,
+.mat-mdc-form-field:not(.mat-form-field-should-float):not(.mdc-text-field--focused) textarea::placeholder {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  opacity: 0 !important;
+}
+
+/* El placeholder se muestra únicamente cuando el campo tiene foco o la etiqueta ya flota arriba */
+.mat-mdc-form-field.mdc-text-field--focused input::placeholder,
+.mat-mdc-form-field.mdc-text-field--focused textarea::placeholder,
+.mat-mdc-form-field.mat-form-field-should-float input::placeholder,
+.mat-mdc-form-field.mat-form-field-should-float textarea::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+  opacity: 0.65 !important;
   font-weight: 400 !important;
 }
 
@@ -2755,6 +2774,105 @@ body.dark-theme, [data-theme="dark"], .dark-theme {
         }
       }
     }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   CLASES COMPACTAS PARA MAT-ICON-BUTTON (Alineación exacta de click, foco y ripple)
+   ══════════════════════════════════════════════════════════ */
+.compact-icon-btn,
+button.mat-mdc-icon-button.compact-icon-btn {
+  --mdc-icon-button-state-layer-size: 32px !important;
+  --mdc-icon-button-icon-size: 18px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+
+  .mat-mdc-button-touch-target {
+    width: 32px !important;
+    height: 32px !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+
+  .mat-mdc-button-persistent-ripple,
+  .mdc-icon-button__ripple {
+    width: 32px !important;
+    height: 32px !important;
+    top: 0 !important;
+    left: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .mat-icon {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+.compact-icon-btn-sm,
+button.mat-mdc-icon-button.compact-icon-btn-sm {
+  --mdc-icon-button-state-layer-size: 26px !important;
+  --mdc-icon-button-icon-size: 16px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+
+  .mat-mdc-button-touch-target {
+    width: 26px !important;
+    height: 26px !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+  }
+
+  .mat-mdc-button-persistent-ripple,
+  .mdc-icon-button__ripple {
+    width: 26px !important;
+    height: 26px !important;
+    top: 0 !important;
+    left: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .mat-icon {
+    font-size: 16px !important;
+    width: 16px !important;
+    height: 16px !important;
+    line-height: 16px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }
 

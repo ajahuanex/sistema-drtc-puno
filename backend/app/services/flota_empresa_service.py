@@ -5,6 +5,7 @@ Colección MongoDB: flota_empresa
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import re
+import uuid
 import logging
 from bson import ObjectId
 
@@ -770,7 +771,7 @@ class FlotaEmpresaService:
                         }
                     )
                     
-                    # Inhabilitar las rutas anteriores de esta resolución en la colección 'rutas'
+                    # Inhabilitar las rutas anteriores de esta resolución en la colección 'rutas' manteniendo histórico
                     await self.db.rutas.update_many(
                         {
                             "empresa.ruc": ruc,
@@ -785,13 +786,82 @@ class FlotaEmpresaService:
                             "$set": {
                                 "estado": "INACTIVA",
                                 "estaActivo": False,
-                                "observaciones": f"RENOVADA({nueva_res})" if nueva_res else "RENOVADA",
+                                "observaciones": f"Histórico: Reemplazada por Renovación {nueva_res}",
                                 "fechaActualizacion": now
                             }
                         }
                     )
 
-                # Upsert de la NUEVA resolución primigenia
+                    # Clonar las rutas ratificadas para la NUEVA resolución
+                    rutas_ratificar_set = set([r.strip().upper() for r in (getattr(req, "rutas_a_ratificar", None) or []) if r.strip()])
+                    
+                    detalles_map = {}
+                    if req.nuevas_rutas_detalle:
+                        for rd in req.nuevas_rutas_detalle:
+                            c_up = (rd.codigo or "").strip().upper()
+                            if c_up:
+                                detalles_map[c_up] = rd
+
+                    cursor_rutas_old = self.db.rutas.find({
+                        "empresa.ruc": ruc,
+                        "$or": [
+                            {"resolucion.nroResolucion": nro_old},
+                            {"resolucion.nroResolucion": f"R-{sin_p}"},
+                            {"resolucion.nroResolucion": sin_p},
+                            {"nro_resolucion": nro_old}
+                        ]
+                    })
+
+                    cloned_rutas = []
+                    rutas_codigos_clonados = []
+                    async for r_old in cursor_rutas_old:
+                        cod = (r_old.get("codigoRuta") or "").strip().upper()
+                        if not rutas_ratificar_set or cod in rutas_ratificar_set:
+                            nueva_r_doc = dict(r_old)
+                            nueva_r_doc.pop("_id", None)
+                            nueva_r_doc["id"] = str(uuid.uuid4())
+                            nueva_r_doc["resolucion"] = {
+                                "id": "N/A",
+                                "nroResolucion": nueva_res,
+                                "tipoResolucion": "PADRE",
+                                "estado": "VIGENTE"
+                            }
+                            # Aplicar modificaciones si la ruta fue editada en el frontend
+                            if cod in detalles_map:
+                                det = detalles_map[cod]
+                                nueva_r_doc["origen"] = {"id": "N/A", "nombre": det.origen}
+                                nueva_r_doc["destino"] = {"id": "N/A", "nombre": det.destino}
+                                if det.itinerario:
+                                    nueva_r_doc["itinerario"] = [
+                                        {"id": "N/A", "nombre": loc.strip(), "orden": i+1}
+                                        for i, loc in enumerate(det.itinerario.split("-")) if loc.strip()
+                                    ]
+                                if det.frecuencia:
+                                    nueva_r_doc["frecuencia"] = {
+                                        "tipo": "ESPECIAL",
+                                        "cantidad": 1,
+                                        "dias": [],
+                                        "descripcion": det.frecuencia
+                                    }
+                                nueva_r_doc["nombre"] = f"RUTA {det.codigo} - {det.origen} A {det.destino}"
+
+                            nueva_r_doc["estado"] = "ACTIVA"
+                            nueva_r_doc["estaActivo"] = True
+                            nueva_r_doc["fechaRegistro"] = now
+                            nueva_r_doc["fechaActualizacion"] = now
+                            nueva_r_doc["observaciones"] = f"Ratificada por Renovación de {req.nro_resolucion_primigenia}"
+                            cloned_rutas.append(nueva_r_doc)
+                            if cod:
+                                rutas_codigos_clonados.append(cod)
+
+                    if cloned_rutas:
+                        await self.db.rutas.insert_many(cloned_rutas)
+                        logger.info(f"{len(cloned_rutas)} rutas ratificadas y clonadas para nueva resolución {nueva_res}")
+
+                    if not req.nuevas_rutas and rutas_codigos_clonados:
+                        req.nuevas_rutas = rutas_codigos_clonados
+
+                # Upsert de la NUEVA resolución primigenia con las 3 fechas oficiales
                 nueva_prim = {
                     "ruc_empresa": ruc,
                     "razon_social": razon_social,
@@ -800,6 +870,7 @@ class FlotaEmpresaService:
                     "fecha_emision": req.nueva_fecha_emision or now,
                     "fecha_inicio_vigencia": req.nueva_fecha_inicio_vigencia,
                     "fecha_fin_vigencia": req.nueva_fecha_fin_vigencia,
+                    "duracion_anios": getattr(req, "duracion_anios", None) or 4,
                     "tipo_autorizacion": "RENOVACION",
                     "estado": "VIGENTE",
                     "esta_activo": True,
@@ -814,39 +885,43 @@ class FlotaEmpresaService:
                     upsert=True
                 )
                 
-                # Insertar nuevas rutas detalladas en la colección 'rutas'
+                # Insertar rutas completamente nuevas (que no venían de la resolución anterior)
                 if req.nuevas_rutas_detalle:
                     from app.models.ruta import TipoFrecuencia
+                    clonados_set = set(rutas_codigos_clonados)
                     nuevas_rutas_docs = []
                     for ruta_det in req.nuevas_rutas_detalle:
-                        nueva_ruta_doc = {
-                            "codigoRuta": ruta_det.codigo,
-                            "nombre": f"RUTA {ruta_det.codigo} - {ruta_det.origen} A {ruta_det.destino}",
-                            "origen": {"id": "N/A", "nombre": ruta_det.origen},
-                            "destino": {"id": "N/A", "nombre": ruta_det.destino},
-                            "itinerario": [
-                                {"id": "N/A", "nombre": loc.strip(), "orden": i+1}
-                                for i, loc in enumerate(ruta_det.itinerario.split("-")) if loc.strip()
-                            ] if ruta_det.itinerario else [],
-                            "empresa": {"id": "N/A", "ruc": ruc, "razonSocial": razon_social},
-                            "resolucion": {"id": "N/A", "nroResolucion": nueva_res, "tipoResolucion": "PADRE", "estado": "VIGENTE"},
-                            "frecuencia": {
-                                "tipo": TipoFrecuencia.ESPECIAL, 
-                                "cantidad": 1, 
-                                "dias": [], 
-                                "descripcion": ruta_det.frecuencia or "No especificada"
-                            },
-                            "horarios": [],
-                            "tipoServicio": "PASAJEROS",
-                            "estado": "ACTIVA",
-                            "estaActivo": True,
-                            "fechaRegistro": now,
-                            "observaciones": f"Generada por Renovación de {req.nro_resolucion_primigenia}"
-                        }
-                        nuevas_rutas_docs.append(nueva_ruta_doc)
+                        c_det = (ruta_det.codigo or "").strip().upper()
+                        if c_det not in clonados_set:
+                            nueva_ruta_doc = {
+                                "codigoRuta": ruta_det.codigo,
+                                "nombre": f"RUTA {ruta_det.codigo} - {ruta_det.origen} A {ruta_det.destino}",
+                                "origen": {"id": "N/A", "nombre": ruta_det.origen},
+                                "destino": {"id": "N/A", "nombre": ruta_det.destino},
+                                "itinerario": [
+                                    {"id": "N/A", "nombre": loc.strip(), "orden": i+1}
+                                    for i, loc in enumerate(ruta_det.itinerario.split("-")) if loc.strip()
+                                ] if ruta_det.itinerario else [],
+                                "empresa": {"id": "N/A", "ruc": ruc, "razonSocial": razon_social},
+                                "resolucion": {"id": "N/A", "nroResolucion": nueva_res, "tipoResolucion": "PADRE", "estado": "VIGENTE"},
+                                "frecuencia": {
+                                    "tipo": TipoFrecuencia.ESPECIAL, 
+                                    "cantidad": 1, 
+                                    "dias": [], 
+                                    "descripcion": ruta_det.frecuencia or "No especificada"
+                                },
+                                "horarios": [],
+                                "tipoServicio": "PASAJEROS",
+                                "estado": "ACTIVA",
+                                "estaActivo": True,
+                                "fechaRegistro": now,
+                                "observaciones": f"Generada por Renovación de {req.nro_resolucion_primigenia}"
+                            }
+                            nuevas_rutas_docs.append(nueva_ruta_doc)
                     
                     if nuevas_rutas_docs:
                         await self.db.rutas.insert_many(nuevas_rutas_docs)
+                        logger.info(f"{len(nuevas_rutas_docs)} nuevas rutas exclusivas insertadas para {nueva_res}")
                         
                     if not req.nuevas_rutas:
                         req.nuevas_rutas = [r.codigo for r in req.nuevas_rutas_detalle]
@@ -997,7 +1072,20 @@ class FlotaEmpresaService:
                 continue # No hay inserción de vehículo nuevo en baja simple
 
             rutas_item = item.rutas if item.rutas else req.nuevas_rutas
-            datos_tech = item.datos_tecnicos or {}
+            datos_tech = dict(item.datos_tecnicos or {})
+
+            # Si faltan datos técnicos (ej. cargados por multifila sólo con placa), enriquecer desde vehiculos_data o flota previa
+            if not datos_tech.get("marca"):
+                clean_p = placa_in.replace("-", "").strip().upper()
+                v_encontrado = await self.db["vehiculos_data"].find_one({"$or": [{"placa_actual": placa_in}, {"placa_actual": clean_p}, {"placa": placa_in}]})
+                if not v_encontrado:
+                    v_encontrado = await self.collection.find_one({"ruc": ruc, "placa": placa_in})
+                if v_encontrado:
+                    for k in ["marca", "modelo", "anio_fabricacion", "color", "categoria", "carroceria", "clase", "combustible",
+                              "numero_motor", "numero_serie", "vin", "pasajeros", "asientos", "cilindros", "ejes", "ruedas",
+                              "peso_bruto", "peso_neto", "carga_util", "largo", "ancho", "alto", "observaciones"]:
+                        if not datos_tech.get(k) and v_encontrado.get(k):
+                            datos_tech[k] = v_encontrado[k]
 
             cat_val = (datos_tech.get("categoria") or "M2").strip().upper()
             clase_val = (datos_tech.get("clase") or "").strip().upper()
@@ -1043,6 +1131,7 @@ class FlotaEmpresaService:
                 "documento_origen": req.documento_origen,
                 "es_de_oficio": req.es_de_oficio,
                 "placa": placa_in,
+                "orden": getattr(item, "orden", None),
                 "estado": "HABILITADO",
                 "rutas": rutas_item,
                 "numero_tuc": nro_tuc_val,
@@ -1119,6 +1208,7 @@ class FlotaEmpresaService:
 
             # Observaciones automatizadas según el tipo de trámite
             obs_lista = []
+            res_ref = req.nro_resolucion_hija or req.nro_resolucion_primigenia
             if req.tipo_tramite == "SUSTITUCION" and item.placa_saliente:
                 obs_lista.append({
                     "fecha": now,
@@ -1204,11 +1294,130 @@ class FlotaEmpresaService:
             if doc_veh.get("numero_tuc"):
                 await self._sincronizar_tuc_registro(doc_veh)
 
+        # -------------------------------------------------------------
+        # 3. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN HIJA EN 'resoluciones_hijas'
+        # -------------------------------------------------------------
+        nro_hija_val = (req.nro_resolucion_hija or "").strip().upper()
+        if not nro_hija_val:
+            from app.services.resolucion_hija_service import ResolucionHijaService
+            hija_srv = ResolucionHijaService(self.db)
+            nro_hija_val = await hija_srv.generar_siguiente_numero(req.tipo_tramite)
+
+        # Mapeo de tipo_acto
+        tipo_acto_map = {
+            "INCREMENTO": "INCREMENTO_FLOTA",
+            "SUSTITUCION": "SUSTITUCION_VEHICULAR",
+            "RENOVACION": "RENOVACION",
+            "BAJAS": "BAJA_VEHICULAR",
+            "DUPLICADO": "OTROS",
+            "CANJE": "OTROS",
+            "CANCELACION": "CANCELACION_PARCIAL" if not getattr(req, "cancelacion_total", False) else "OTROS",
+            "MODIFICACION": "MODIFICACION_RUTA"
+        }
+        tipo_acto = tipo_acto_map.get(req.tipo_tramite.upper(), "OTROS")
+
+        # Placas y TUCs involucrados
+        placas_ing = []
+        placas_sal = []
+        tucs_alta = []
+
+        if req.tipo_tramite == "SUSTITUCION":
+            for item in req.vehiculos:
+                if item.placa:
+                    placas_ing.append(item.placa.strip().upper())
+                if item.placa_saliente:
+                    placas_sal.append(item.placa_saliente.strip().upper())
+                if item.numero_tuc:
+                    tucs_alta.append(item.numero_tuc.strip())
+        elif req.tipo_tramite == "INCREMENTO":
+            for item in req.vehiculos:
+                if item.placa:
+                    placas_ing.append(item.placa.strip().upper())
+                if item.numero_tuc:
+                    tucs_alta.append(item.numero_tuc.strip())
+        elif req.tipo_tramite == "BAJAS":
+            for item in req.vehiculos:
+                if item.placa:
+                    placas_sal.append(item.placa.strip().upper())
+        elif req.tipo_tramite in ["DUPLICADO", "CANJE"]:
+            for item in req.vehiculos:
+                if item.placa:
+                    placas_ing.append(item.placa.strip().upper())
+                if item.numero_tuc:
+                    tucs_alta.append(item.numero_tuc.strip())
+        elif req.tipo_tramite == "RENOVACION":
+            if req.vehiculos:
+                for item in req.vehiculos:
+                    if item.placa:
+                        placas_ing.append(item.placa.strip().upper())
+
+        # Vinculación con resolución primigenia
+        prim_doc = await self.db.resoluciones_primigenias.find_one({
+            "ruc_empresa": ruc,
+            "$or": [
+                {"nro_resolucion": req.nro_resolucion_primigenia},
+                {"nro_resolucion": f"R-{req.nro_resolucion_primigenia}"}
+            ]
+        })
+        prim_id = prim_doc.get("id") or str(prim_doc["_id"]) if prim_doc else None
+
+        fecha_res = req.fecha_emision_resolucion or req.nueva_fecha_emision or now
+        exp_num = req.num_expediente or req.documento_origen or ""
+        origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
+
+        doc_hija_id = str(uuid.uuid4())
+        doc_hija = {
+            "id": doc_hija_id,
+            "nro_resolucion": nro_hija_val,
+            "nro_resolucion_primigenia": req.nro_resolucion_primigenia,
+            "resolucion_primigenia_id": prim_id,
+            "ruc_empresa": ruc,
+            "razon_social": razon_social,
+            "tipo_acto": tipo_acto,
+            "tipo_tramite_origen": req.tipo_tramite,
+            "fecha_resolucion": fecha_res,
+            "fecha_inicio_efectos": fecha_res,
+            "expediente_numero": exp_num,
+            "fecha_expediente": req.fecha_expediente or now,
+            "vehiculos_ingresantes": placas_ing,
+            "vehiculos_salientes": placas_sal,
+            "rutas_modificadas_ids": req.nuevas_rutas or [],
+            "numeros_tuc": tucs_alta,
+            "tucs_baja": [],
+            "observaciones": f"Trámite de {req.tipo_tramite} procesado en Centro de Trámites ({origen_txt})",
+            "esta_activo": True,
+            "fecha_registro": now,
+            "fecha_actualizacion": now
+        }
+
+        # Guardar en base de datos resoluciones_hijas
+        await self.db["resoluciones_hijas"].insert_one(doc_hija)
+        logger.info(f"Resolución hija {nro_hija_val} ({doc_hija_id}) registrada exitosamente en resoluciones_hijas para {ruc}")
+
+        # Si existe resolución primigenia, añadir entrada al historial_modificaciones
+        if prim_doc and "_id" in prim_doc:
+            mod_entry = {
+                "resolucion_hija_id": doc_hija_id,
+                "nro_resolucion_hija": nro_hija_val,
+                "tipo_modificacion": tipo_acto,
+                "fecha_acto": fecha_res,
+                "observacion": f"Trámite {req.tipo_tramite} procesado ({origen_txt})"
+            }
+            await self.db.resoluciones_primigenias.update_one(
+                {"_id": prim_doc["_id"]},
+                {
+                    "$push": {"historial_modificaciones": mod_entry},
+                    "$set": {"fecha_actualizacion": now}
+                }
+            )
+
         return {
             "success": True,
             "tipo_tramite": req.tipo_tramite,
             "ruc": ruc,
             "resolucion_primigenia": res_target,
+            "nro_resolucion_hija": nro_hija_val,
+            "resolucion_hija_id": doc_hija_id,
             "creados": creados,
             "actualizados": actualizados,
             "bajas_sustitucion": bajas_sustitucion,

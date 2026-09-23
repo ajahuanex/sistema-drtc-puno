@@ -12,12 +12,22 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { TokenAutoFixInterceptor } from './interceptors/token-auto-fix.interceptor';
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { TokenAutoFixService } from './services/token-auto-fix.service';
 import { IconService } from './services/icon.service';
 
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Configuración global de formularios Material: etiquetas siempre en el notch, altura compacta dinámica
+    { 
+      provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, 
+      useValue: { 
+        appearance: 'outline',
+        subscriptSizing: 'dynamic',
+        floatLabel: 'always'
+      } 
+    },
     // Router con lazy loading optimizado
     provideRouter(routes),
     

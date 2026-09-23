@@ -29,14 +29,14 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
       <div class="modal-header">
         <div class="header-title">
           <div class="header-icon-box">
-            <mat-icon style="color: #2563eb; font-size: 20px;">build</mat-icon>
+            <mat-icon style="color: #2563eb; font-size: 20px;">directions_car</mat-icon>
           </div>
           <div>
-            <h2 class="title-text">Datos Técnicos (vehiculos_data)</h2>
-            <span class="subtitle-text">Ficha técnica para evaluación y contraste de unidades</span>
+            <h2 class="title-text">Ficha Técnica Vehicular (vehiculos_data)</h2>
+            <span class="subtitle-text">Especificaciones técnicas completas para habilitación y contraste oficial</span>
           </div>
         </div>
-        <button mat-icon-button (click)="cerrar()" style="color: #64748b;">
+        <button mat-icon-button (click)="cerrar()" style="color: #64748b;" type="button">
           <mat-icon>close</mat-icon>
         </button>
       </div>
@@ -48,7 +48,7 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
           <div class="form-section-compact">
             <div class="placa-search-row">
               <mat-form-field appearance="outline" class="field-placa" subscriptSizing="dynamic">
-                <mat-label>Número de Placa</mat-label>
+                <mat-label>Número de Placa *</mat-label>
                 <input matInput formControlName="placa" placeholder="ABC-123" style="font-family: monospace; font-weight: 700; text-transform: uppercase;">
                 <button type="button" mat-icon-button matSuffix (click)="buscarPorPlaca()" [disabled]="form.get('placa')?.invalid || buscando" matTooltip="Consultar en vehiculos_data" color="primary">
                   <mat-icon *ngIf="!buscando">search</mat-icon>
@@ -63,45 +63,66 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
             </div>
           </div>
 
-          <!-- Sección 2: Especificaciones Técnicas (vehiculos_data) - SIN MARCA, SIN MODELO, SIN TUC -->
+          <!-- Sección 2: Identificación General -->
           <div class="form-section-compact">
             <div class="section-badge-header">
-              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #3b82f6;">tune</mat-icon>
-              <span>Especificaciones Técnicas Requeridas</span>
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #2563eb;">badge</mat-icon>
+              <span>1. Identificación y Fabricación</span>
             </div>
 
             <div class="grid-form-compact">
-              <!-- Año Fabricación -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>Año Fabricación</mat-label>
+                <mat-label>Marca *</mat-label>
+                <input matInput formControlName="marca" placeholder="Ej. TOYOTA" style="text-transform: uppercase;">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Modelo *</mat-label>
+                <input matInput formControlName="modelo" placeholder="Ej. HIACE" style="text-transform: uppercase;">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Año Fabricación *</mat-label>
                 <input matInput type="number" formControlName="anio_fabricacion" placeholder="Ej. 2018">
               </mat-form-field>
 
-              <!-- Categoría -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>Categoría</mat-label>
-                <input matInput formControlName="categoria" placeholder="Ej. M2-C3 o M3" style="text-transform: uppercase;">
+                <mat-label>Color</mat-label>
+                <input matInput formControlName="color" placeholder="Ej. BLANCO" style="text-transform: uppercase;">
               </mat-form-field>
 
-              <!-- Cantidad de Asientos -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>N° Asientos</mat-label>
-                <input matInput type="number" formControlName="asientos" placeholder="Ej. 16">
+                <mat-label>Clase Vehicular</mat-label>
+                <input matInput formControlName="clase" placeholder="Ej. CAMIONETA / OMNIBUS" style="text-transform: uppercase;">
               </mat-form-field>
 
-              <!-- Peso Neto -->
-              <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>Peso Neto (tn / kg)</mat-label>
-                <input matInput type="number" step="0.01" formControlName="peso_neto" placeholder="Ej. 2.26">
-              </mat-form-field>
-
-              <!-- Tipo Carrocería -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Carrocería</mat-label>
-                <input matInput formControlName="carroceria" placeholder="Ej. MICROBUS" style="text-transform: uppercase;">
+                <input matInput formControlName="carroceria" placeholder="Ej. MINIBUS" style="text-transform: uppercase;">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Sección 3: Clasificación, Combustible y Motor -->
+          <div class="form-section-compact">
+            <div class="section-badge-header">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #059669;">tune</mat-icon>
+              <span>2. Clasificación, Motor e Identificadores</span>
+            </div>
+
+            <div class="grid-form-compact">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Categoría *</mat-label>
+                <mat-select formControlName="categoria">
+                  <mat-option value="M1">M1 (Pasajeros <= 8 as.)</mat-option>
+                  <mat-option value="M2">M2 (Minibús / <= 5 ton)</mat-option>
+                  <mat-option value="M3">M3 (Ómnibus / > 5 ton)</mat-option>
+                  <mat-option value="N1">N1 (Mercancías <= 3.5 ton)</mat-option>
+                  <mat-option value="N2">N2 (Mercancías 3.5 a 12 ton)</mat-option>
+                  <mat-option value="N3">N3 (Carga Heavy > 12 ton)</mat-option>
+                </mat-select>
               </mat-form-field>
 
-              <!-- Combustible -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Combustible</mat-label>
                 <mat-select formControlName="combustible">
@@ -110,30 +131,107 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
                   <mat-option value="GNV">GNV</mat-option>
                   <mat-option value="GLP">GLP</mat-option>
                   <mat-option value="ELECTRICO">ELECTRICO</mat-option>
+                  <mat-option value="HIBRIDO">HIBRIDO</mat-option>
                 </mat-select>
               </mat-form-field>
 
-              <!-- N° Motor -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>N° Motor</mat-label>
                 <input matInput formControlName="numero_motor" placeholder="Opcional" style="font-family: monospace; text-transform: uppercase;">
               </mat-form-field>
 
-              <!-- N° Serie / VIN -->
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                <mat-label>N° Serie / VIN</mat-label>
-                <input matInput formControlName="numero_serie" placeholder="Opcional" style="font-family: monospace; text-transform: uppercase;">
+                <mat-label>VIN / N° Serie</mat-label>
+                <input matInput formControlName="vin" placeholder="Opcional" style="font-family: monospace; text-transform: uppercase;">
               </mat-form-field>
             </div>
+          </div>
+
+          <!-- Sección 4: Capacidad y Rodaje -->
+          <div class="form-section-compact">
+            <div class="section-badge-header">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #d97706;">airline_seat_recline_normal</mat-icon>
+              <span>3. Capacidad y Rodaje</span>
+            </div>
+
+            <div class="grid-form-compact-4">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>N° Asientos</mat-label>
+                <input matInput type="number" formControlName="numero_asientos" placeholder="Ej. 16">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>N° Pasajeros</mat-label>
+                <input matInput type="number" formControlName="numero_pasajeros" placeholder="Ej. 15">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>N° Ejes</mat-label>
+                <input matInput type="number" formControlName="numero_ejes" placeholder="Ej. 2">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>N° Ruedas</mat-label>
+                <input matInput type="number" formControlName="numero_ruedas" placeholder="Ej. 4">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Sección 5: Pesos y Dimensiones -->
+          <div class="form-section-compact">
+            <div class="section-badge-header">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px; color: #7c3aed;">straighten</mat-icon>
+              <span>4. Pesos (Toneladas) y Dimensiones (Metros)</span>
+            </div>
+
+            <div class="grid-form-compact-3">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Peso Bruto (Ton)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="peso_bruto" placeholder="Ej. 3.500">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Peso Seco/Neto (Ton)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="peso_seco" placeholder="Ej. 2.260">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Carga Útil (Ton)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="carga_util" placeholder="Ej. 1.240">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Longitud (m)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="longitud" placeholder="Ej. 5.380">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Ancho (m)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="ancho" placeholder="Ej. 1.880">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Altura (m)</mat-label>
+                <input matInput type="number" step="0.001" formControlName="altura" placeholder="Ej. 2.285">
+              </mat-form-field>
+            </div>
+          </div>
+
+          <!-- Observaciones -->
+          <div class="form-section-compact" style="margin-bottom: 0;">
+            <mat-form-field appearance="outline" style="width: 100%;" subscriptSizing="dynamic">
+              <mat-label>Observaciones de Ficha Técnica</mat-label>
+              <input matInput formControlName="observaciones" placeholder="Notas sobre la unidad técnica...">
+            </mat-form-field>
           </div>
 
         </form>
       </div>
 
       <div class="modal-footer">
-        <button mat-button (click)="cerrar()" style="color: #64748b;">Cancelar</button>
-        <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="guardar()" style="border-radius: 8px;">
-          <mat-icon>check</mat-icon> Aplicar Ficha Técnica
+        <button mat-button (click)="cerrar()" style="color: #64748b;" type="button">Cancelar</button>
+        <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="guardar()" style="border-radius: 8px;" type="button">
+          <mat-icon>check</mat-icon> Guardar Ficha Técnica
         </button>
       </div>
     </div>
@@ -159,30 +257,31 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
       gap: 0.65rem;
 
       .header-icon-box {
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         background: #eff6ff;
         border: 1px solid #bfdbfe;
-        border-radius: 6px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
       }
       .title-text {
         margin: 0;
-        font-size: 0.98rem;
+        font-size: 1rem;
         font-weight: 700;
         color: #0f172a;
         line-height: 1.2;
       }
       .subtitle-text {
-        font-size: 0.72rem;
+        font-size: 0.73rem;
         color: #64748b;
       }
     }
     .modal-content {
       padding: 1rem;
       overflow-y: auto;
+      max-height: calc(85vh - 120px);
     }
     .form-section-compact {
       background: white;
@@ -199,7 +298,7 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
       flex-wrap: wrap;
 
       .field-placa {
-        width: 180px;
+        width: 200px;
       }
     }
     .search-status-box {
@@ -207,7 +306,7 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
       color: #059669;
       background: #ecfdf5;
       border: 1px solid #a7f3d0;
-      padding: 5px 8px;
+      padding: 6px 10px;
       border-radius: 6px;
       display: flex;
       align-items: center;
@@ -223,22 +322,27 @@ import { VehiculoDataService } from '../../services/vehiculo-data.service';
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      font-size: 0.76rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: #334155;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.65rem;
       padding-bottom: 0.35rem;
       border-bottom: 1px solid #f1f5f9;
     }
     .grid-form-compact {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0.6rem;
-
-      ::ng-deep .mat-mdc-text-field-wrapper {
-        padding-left: 8px !important;
-        padding-right: 8px !important;
-      }
+      gap: 0.65rem;
+    }
+    .grid-form-compact-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+    }
+    .grid-form-compact-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.65rem;
     }
     .spin {
       animation: spin 1s linear infinite;
@@ -261,31 +365,45 @@ export class VehiculoModalComponent {
   errorBusqueda = false;
 
   private vehiculoDataService = inject(VehiculoDataService);
-  private rawMarca = '';
-  private rawModelo = '';
 
   constructor(
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<VehiculoModalComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { vehiculo?: any, isEdit?: boolean }
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {
-    const v = data.vehiculo || {};
-    this.rawMarca = v.marca || '';
-    this.rawModelo = v.modelo || '';
+    const v = data?.vehiculo || data || {};
+
+    const anioFab = v.anio_fabricacion || v.anio_modelo || v.ano_fabricacion || v.anio || 2020;
+    const asientos = v.asientos || v.numero_asientos || v.numero_pasajeros || 16;
+    const pesoNeto = v.peso_neto || v.peso_seco || 0;
 
     this.form = this.fb.group({
-      placa: [v.placa || '', [Validators.required, Validators.pattern(/^[A-Z0-9-]{6,8}$/i)]],
-      anio_fabricacion: [v.anio_fabricacion || v.anio_modelo || v.ano_fabricacion || v.anio || '', [Validators.required, Validators.min(1970), Validators.max(2027)]],
+      placa: [v.placa || v.placa_actual || '', [Validators.required, Validators.pattern(/^[A-Z0-9-]{6,10}$/i)]],
+      marca: [v.marca || '', Validators.required],
+      modelo: [v.modelo || '', Validators.required],
+      anio_fabricacion: [anioFab, [Validators.required, Validators.min(1950), Validators.max(2030)]],
+      color: [v.color || 'BLANCO'],
+      clase: [v.clase || 'CAMIONETA'],
+      carroceria: [v.carroceria || 'MINIBUS'],
       categoria: [v.categoria || 'M2', Validators.required],
-      asientos: [v.asientos || v.numero_asientos || v.numero_pasajeros || ''],
-      peso_neto: [v.peso_neto || v.peso_seco || ''],
-      carroceria: [v.carroceria || ''],
       combustible: [v.combustible || 'DIESEL'],
       numero_motor: [v.numero_motor || ''],
-      numero_serie: [v.numero_serie || v.vin || '']
+      vin: [v.vin || v.numero_serie || ''],
+      numero_asientos: [asientos, [Validators.min(1)]],
+      numero_pasajeros: [v.numero_pasajeros || Math.max(1, asientos - 1), [Validators.min(1)]],
+      numero_ejes: [v.numero_ejes || 2, [Validators.min(1)]],
+      numero_ruedas: [v.numero_ruedas || 4, [Validators.min(2)]],
+      peso_bruto: [v.peso_bruto || 0.0, [Validators.min(0)]],
+      peso_seco: [pesoNeto, [Validators.min(0)]],
+      carga_util: [v.carga_util || 0.0, [Validators.min(0)]],
+      longitud: [v.longitud || 0.0, [Validators.min(0)]],
+      ancho: [v.ancho || 0.0, [Validators.min(0)]],
+      altura: [v.altura || 0.0, [Validators.min(0)]],
+      observaciones: [v.observaciones || '']
     });
 
-    if (v.placa && (!v.anio_fabricacion || !v.asientos)) {
+    const currentPlaca = v.placa || v.placa_actual;
+    if (currentPlaca && (!v.marca || !v.modelo || !v.numero_motor)) {
       this.buscarPorPlaca();
     }
   }
@@ -301,7 +419,7 @@ export class VehiculoModalComponent {
     }
 
     this.buscando = true;
-    this.mensajeBusqueda = 'Consultando vehiculos_data...';
+    this.mensajeBusqueda = 'Consultando en vehiculos_data...';
     this.errorBusqueda = false;
     
     this.vehiculoDataService.getVehiculoDataByPlaca(placa).subscribe({
@@ -310,18 +428,29 @@ export class VehiculoModalComponent {
         if (res.success && res.data) {
           const d = res.data;
           this.mensajeBusqueda = 'Datos técnicos cargados desde vehiculos_data';
-          this.rawMarca = d.marca || this.rawMarca;
-          this.rawModelo = d.modelo || this.rawModelo;
-
+          
           this.form.patchValue({
-            anio_fabricacion: d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || d.anoFabricacion || '',
-            categoria: d.categoria || 'M2',
-            asientos: d.numero_asientos || d.asientos || d.numero_pasajeros || d.pasajeros || '',
-            peso_neto: d.peso_neto || d.peso_seco || '',
-            carroceria: d.carroceria || '',
-            combustible: d.combustible || 'DIESEL',
-            numero_motor: d.numero_motor || '',
-            numero_serie: d.numero_serie || d.vin || ''
+            marca: d.marca || this.form.get('marca')?.value,
+            modelo: d.modelo || this.form.get('modelo')?.value,
+            anio_fabricacion: d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || this.form.get('anio_fabricacion')?.value,
+            color: d.color || this.form.get('color')?.value || 'BLANCO',
+            clase: d.clase || this.form.get('clase')?.value || 'CAMIONETA',
+            carroceria: d.carroceria || this.form.get('carroceria')?.value || 'MINIBUS',
+            categoria: d.categoria || this.form.get('categoria')?.value || 'M2',
+            combustible: d.combustible || this.form.get('combustible')?.value || 'DIESEL',
+            numero_motor: d.numero_motor || this.form.get('numero_motor')?.value || '',
+            vin: d.vin || d.numero_serie || this.form.get('vin')?.value || '',
+            numero_asientos: d.numero_asientos || d.asientos || this.form.get('numero_asientos')?.value || 16,
+            numero_pasajeros: d.numero_pasajeros || d.pasajeros || this.form.get('numero_pasajeros')?.value || 15,
+            numero_ejes: d.numero_ejes || this.form.get('numero_ejes')?.value || 2,
+            numero_ruedas: d.numero_ruedas || this.form.get('numero_ruedas')?.value || 4,
+            peso_bruto: d.peso_bruto !== undefined ? d.peso_bruto : this.form.get('peso_bruto')?.value,
+            peso_seco: d.peso_seco !== undefined ? d.peso_seco : (d.peso_neto !== undefined ? d.peso_neto : this.form.get('peso_seco')?.value),
+            carga_util: d.carga_util !== undefined ? d.carga_util : this.form.get('carga_util')?.value,
+            longitud: d.longitud !== undefined ? d.longitud : this.form.get('longitud')?.value,
+            ancho: d.ancho !== undefined ? d.ancho : this.form.get('ancho')?.value,
+            altura: d.altura !== undefined ? d.altura : this.form.get('altura')?.value,
+            observaciones: d.observaciones || this.form.get('observaciones')?.value || ''
           });
         } else {
           this.errorBusqueda = true;
@@ -342,11 +471,17 @@ export class VehiculoModalComponent {
 
   guardar() {
     if (this.form.valid) {
-      const value = this.form.value;
-      value.placa = (value.placa || '').toUpperCase().trim();
-      value.marca = this.rawMarca;
-      value.modelo = this.rawModelo;
-      this.dialogRef.close(value);
+      const val = this.form.value;
+      const cleanPlaca = (val.placa || '').toUpperCase().trim();
+      const result = {
+        ...val,
+        placa: cleanPlaca,
+        placa_actual: cleanPlaca,
+        asientos: val.numero_asientos,
+        peso_neto: val.peso_seco,
+        numero_serie: val.vin
+      };
+      this.dialogRef.close(result);
     }
   }
 }

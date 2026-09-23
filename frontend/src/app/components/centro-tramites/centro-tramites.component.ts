@@ -24,6 +24,7 @@ import { ResolucionPrimigenia } from '../../models/resolucion-primigenia.model';
 import { BusquedaGlobalService } from '../../services/busqueda-global.service';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
 import { VehiculoModalComponent } from './vehiculo-modal.component';
+import { RutaModalComponent } from './ruta-modal.component';
 import { SustitucionModalComponent } from './sustitucion-modal.component';
 import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/baja-externa-form.component';
 
@@ -48,8 +49,7 @@ import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/ba
     MatDialogModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatTooltipModule,
-    BajaExternaFormComponent
+    MatTooltipModule
   ],
   templateUrl: './centro-tramites.component.html',
   styleUrls: ['./centro-tramites.component.scss']
@@ -101,6 +101,21 @@ export class CentroTramites implements OnInit {
   isProcessing = signal<boolean>(false);
   cargandoHistorial = signal<boolean>(false);
 
+  // States for Renovación Master Flow
+  duracionAniosRenovacion = signal<number>(4);
+  rutasEmpresaActual = signal<any[]>([]);
+  rutasSeleccionadasRenovacion = signal<string[]>([]);
+  cargandoRutas = signal<boolean>(false);
+  modoCargaVehiculosRenovacion = signal<'PRECARGADA' | 'MULTIFILA'>('PRECARGADA');
+  lineasExcelInput = signal<string>('');
+  procesandoLineasExcel = signal<boolean>(false);
+  vehiculosRenovacionLista = signal<any[]>([]);
+
+  // Estados de Colapso para Secciones del Paso 3 (Renovación)
+  grupoVigenciaColapsado = signal<boolean>(false);
+  grupoRutasColapsado = signal<boolean>(false);
+  grupoFlotaColapsado = signal<boolean>(false);
+
   // Catálogo completo de empresas y resoluciones
   empresasCatalogo = signal<ResumenEmpresa[]>([]);
   todasResoluciones = signal<any[]>([]);
@@ -121,7 +136,31 @@ export class CentroTramites implements OnInit {
     incrementos: 0
   });
 
-  columnasTabla = ['id', 'fecha', 'empresa', 'tipo', 'doc', 'vehiculos', 'estado', 'acciones'];
+  // Column configuration
+  todasColumnasDisponibles = [
+    { key: 'correlativo', label: 'Correlativo', visible: true, fija: false },
+    { key: 'id', label: 'N° Resolución', visible: true, fija: false },
+    { key: 'fecha', label: 'Fecha', visible: true, fija: false },
+    { key: 'empresa', label: 'Empresa / RUC', visible: true, fija: false },
+    { key: 'tipo', label: 'Tipo Trámite', visible: true, fija: false },
+    { key: 'doc', label: 'Origen / Exp.', visible: true, fija: false },
+    { key: 'vehiculos', label: 'Vehículos', visible: true, fija: false },
+    { key: 'estado', label: 'Estado', visible: true, fija: false },
+    { key: 'acciones', label: 'Acciones', visible: true, fija: true }
+  ];
+  columnasVisibles = signal<Record<string, boolean>>(this._cargarColumnasGuardadas());
+  mostrarConfigColumnas = signal<boolean>(false);
+
+  // Detail panel
+  tramiteDetalle = signal<any>(null);
+  mostrarDetalle = signal<boolean>(false);
+
+  columnasTablaVisibles = computed(() => {
+    const config = this.columnasVisibles();
+    return this.todasColumnasDisponibles
+      .filter(c => config[c.key] !== false)
+      .map(c => c.key);
+  });
 
   tiposTramite = [
     { id: 'RENOVACION', nombre: 'Renovación', icono: 'autorenew', desc: 'Extensión de vigencia' },
@@ -242,6 +281,7 @@ export class CentroTramites implements OnInit {
 
     if (txt) {
       list = list.filter(item => 
+        (item.correlativo && item.correlativo.toLowerCase().includes(txt)) ||
         (item.id && item.id.toLowerCase().includes(txt)) ||
         (item.empresa && item.empresa.toLowerCase().includes(txt)) ||
         (item.ruc && item.ruc.toLowerCase().includes(txt)) ||
@@ -277,11 +317,19 @@ export class CentroTramites implements OnInit {
     this.cargarHistorialTramites();
     this.cargarCatalogoEmpresas();
 
-    // Auto-calcular 10 años de vigencia para renovación
+    // Vigencia predeterminada de 4 años para renovación
     const hoy = new Date();
-    const enDiezAnios = new Date(hoy.getFullYear() + 10, hoy.getMonth(), hoy.getDate());
+    const hoyStr = hoy.toISOString().substring(0, 10);
     this.renovacionForm.patchValue({
-      nueva_fecha_fin_vigencia: enDiezAnios.toISOString().substring(0, 10)
+      nueva_fecha_emision: hoyStr,
+      nueva_fecha_inicio_vigencia: hoyStr
+    });
+    this.setVigenciaRenovacion(4);
+
+    this.renovacionForm.get('nueva_fecha_inicio_vigencia')?.valueChanges.subscribe(val => {
+      if (val) {
+        this.setVigenciaRenovacion(this.duracionAniosRenovacion());
+      }
     });
   }
 
@@ -317,9 +365,13 @@ export class CentroTramites implements OnInit {
         // Mapear todas las resoluciones
         const mapeadas = lista.map((r: any) => {
           let anio = 'S/A';
+          let fechaSort = '1970-01-01';
           if (r.fecha_resolucion) {
             const d = new Date(r.fecha_resolucion);
-            if (!isNaN(d.getFullYear())) anio = d.getFullYear().toString();
+            if (!isNaN(d.getFullYear())) {
+              anio = d.getFullYear().toString();
+              fechaSort = d.toISOString();
+            }
           }
           if (anio === 'S/A' && r.nro_resolucion) {
             const m = r.nro_resolucion.match(/(19\d\d|20\d\d)/);
@@ -335,8 +387,11 @@ export class CentroTramites implements OnInit {
           const razon = r.razon_social || r.ruc_empresa || 'EMPRESA NO ESPECIFICADA';
 
           return {
+            _id: r._id || r.id,
+            correlativo: '', // se asigna después del sort
             id: r.nro_resolucion || 'S/N',
             fecha: r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : 'S/F',
+            fechaSort,
             anio,
             empresa: razon,
             ruc: r.ruc_empresa || '',
@@ -347,8 +402,43 @@ export class CentroTramites implements OnInit {
             placasIng,
             placasSal,
             placasTexto: todasPlacas,
-            estado: r.esta_activo !== false ? 'PROCESADO' : 'INACTIVO'
+            estado: r.esta_activo !== false ? 'PROCESADO' : 'INACTIVO',
+            // datos extra para detalle
+            observaciones: r.observaciones || '',
+            fecha_resolucion_raw: r.fecha_resolucion || null,
+            fecha_inicio_efectos: r.fecha_inicio_efectos || null,
+            expediente_numero: r.expediente_numero || '',
+            link_documento: r.link_documento || '',
+            link_notificacion: r.link_notificacion || '',
+            numeros_tuc: r.numeros_tuc || [],
+            rutas_modificadas_ids: r.rutas_modificadas_ids || [],
+            fecha_registro: r.fecha_registro || null
           };
+        });
+
+        // Ordenar descendente:
+        // Los trámites registrados en el sistema recientemente (fecha_registro posterior a la importación 2026-09-15)
+        // se colocan en la cima absoluta de la tabla para recibir el último correlativo disponible.
+        mapeadas.sort((a, b) => {
+          const regA = a.fecha_registro ? new Date(a.fecha_registro).getTime() : 0;
+          const regB = b.fecha_registro ? new Date(b.fecha_registro).getTime() : 0;
+          const cutoff = new Date('2026-09-15T00:00:00Z').getTime();
+
+          const isNewA = regA > cutoff;
+          const isNewB = regB > cutoff;
+
+          if (isNewA && !isNewB) return -1;
+          if (!isNewA && isNewB) return 1;
+          if (isNewA && isNewB) return regB - regA;
+
+          return b.fechaSort.localeCompare(a.fechaSort);
+        });
+
+        // Generar correlativo TR-XXXX-YY
+        const anioActual = new Date().getFullYear().toString().slice(-2);
+        mapeadas.forEach((item, index) => {
+          const num = (mapeadas.length - index).toString().padStart(4, '0');
+          item.correlativo = `TR-${num}-${anioActual}`;
         });
 
         this.todasResoluciones.set(mapeadas);
@@ -393,6 +483,50 @@ export class CentroTramites implements OnInit {
     this.filtroAnio.set('TODOS');
     this.filtroEstado.set('TODOS');
     this.pageIndex.set(0);
+  }
+
+  // COLUMN CONFIGURATION
+  private _cargarColumnasGuardadas(): Record<string, boolean> {
+    try {
+      const saved = localStorage.getItem('drtc_tramites_columnas');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    const defaults: Record<string, boolean> = {};
+    this.todasColumnasDisponibles?.forEach(c => defaults[c.key] = c.visible);
+    return defaults;
+  }
+
+  toggleColumna(key: string) {
+    const col = this.todasColumnasDisponibles.find(c => c.key === key);
+    if (col?.fija) return; // No se puede ocultar columna fija
+    this.columnasVisibles.update(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem('drtc_tramites_columnas', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }
+
+  toggleConfigColumnas() {
+    this.mostrarConfigColumnas.update(v => !v);
+  }
+
+  cerrarConfigColumnas() {
+    this.mostrarConfigColumnas.set(false);
+  }
+
+  isColumnaVisible(key: string): boolean {
+    return this.columnasVisibles()[key] !== false;
+  }
+
+  // DETAIL PANEL
+  verDetalleTramite(tramite: any) {
+    this.tramiteDetalle.set(tramite);
+    this.mostrarDetalle.set(true);
+  }
+
+  cerrarDetalle() {
+    this.mostrarDetalle.set(false);
+    setTimeout(() => this.tramiteDetalle.set(null), 300);
   }
 
   cambiarPagina(event: PageEvent) {
@@ -508,13 +642,21 @@ export class CentroTramites implements OnInit {
   cargarVehiculosResolucion(nroRes: string) {
     this.flotaService.getFlotaPaginada({ nro_resolucion_primigenia: nroRes, solo_activos: true, limit: 100 }).subscribe({
       next: (res) => {
-        this.vehiculosEnResolucion.set(res.data || []);
+        const list = res.data || [];
+        this.vehiculosEnResolucion.set(list);
+        this.inicializarFlotaRenovacion(list);
       },
       error: (err) => {
         console.error('Error al cargar vehículos', err);
         this.vehiculosEnResolucion.set([]);
+        this.vehiculosRenovacionLista.set([]);
       }
     });
+
+    const emp = this.empresaBuscada();
+    if (emp?.ruc) {
+      this.cargarRutasEmpresa(emp.ruc, nroRes);
+    }
   }
 
   cancelarTramite() {
@@ -525,6 +667,12 @@ export class CentroTramites implements OnInit {
     this.paresSustitucion.set([]);
     this.vehiculosBajaSeleccionados.set([]);
     this.vehiculosTramiteSeleccionados.set([]);
+    this.vehiculosRenovacionLista.set([]);
+    this.rutasEmpresaActual.set([]);
+    this.rutasSeleccionadasRenovacion.set([]);
+    this.lineasExcelInput.set('');
+    this.modoCargaVehiculosRenovacion.set('PRECARGADA');
+    this.duracionAniosRenovacion.set(4);
     this.placaSalienteTemp.set('');
     this.filtroSalienteText.set('');
     this.datosTecnicosSaliente.set(null);
@@ -550,6 +698,9 @@ export class CentroTramites implements OnInit {
   }
 
   avanzarPaso() {
+    if (this.tramiteSeleccionado() === 'RENOVACION' && this.pasoActual() === 1) {
+      this.normalizarNuevaResolucion();
+    }
     if (this.stepper) {
       this.stepper.next();
     }
@@ -560,14 +711,20 @@ export class CentroTramites implements OnInit {
       return !!this.empresaBuscada() && !!this.tramiteSeleccionado();
     }
     if (stepIndex === 1) {
-      return !!this.resolucionForm.get('nro_resolucion_primigenia')?.value;
+      const tieneResolucion = !!this.resolucionForm.get('nro_resolucion_primigenia')?.value;
+      if (this.tramiteSeleccionado() === 'RENOVACION') {
+        return tieneResolucion && this.renovacionForm.valid;
+      }
+      return tieneResolucion;
     }
     if (stepIndex === 2) {
       const t = this.tramiteSeleccionado();
       if (t === 'SUSTITUCION') return this.paresSustitucion().length > 0;
       if (t === 'INCREMENTO') return this.vehiculosNuevos().length > 0;
       if (t === 'BAJAS') return this.vehiculosBajaSeleccionados().length > 0;
-      if (t === 'RENOVACION') return this.renovacionForm.valid;
+      if (t === 'RENOVACION') {
+        return this.vehiculosRenovacionLista().some(v => v.seleccionado);
+      }
       if (t === 'DUPLICADO' || t === 'CANJE') return this.vehiculosTramiteSeleccionados().length > 0;
       return true;
     }
@@ -666,6 +823,32 @@ export class CentroTramites implements OnInit {
 
   seleccionarTramite(id: string) {
     this.tramiteSeleccionado.set(id);
+    if (!this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
+      this.cargarSiguienteResolucionHija(id);
+    }
+    if (id === 'RENOVACION') {
+      const vList = this.vehiculosEnResolucion();
+      if (vList.length > 0 && this.vehiculosRenovacionLista().length === 0) {
+        this.inicializarFlotaRenovacion(vList);
+      }
+      const emp = this.empresaBuscada();
+      const res = this.resolucionForm.get('nro_resolucion_primigenia')?.value;
+      if (emp?.ruc) {
+        this.cargarRutasEmpresa(emp.ruc, res || undefined);
+      }
+    }
+  }
+
+  cargarSiguienteResolucionHija(tipo?: string) {
+    const t = tipo || this.tramiteSeleccionado() || undefined;
+    this.resolucionHijaService.getSiguienteNumero(t).subscribe({
+      next: (res) => {
+        if (res && res.siguiente_numero && !this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
+          this.datosOrigenForm.get('nro_resolucion_hija')?.setValue(res.siguiente_numero);
+        }
+      },
+      error: (err) => console.warn('No se pudo precargar siguiente número correlativo:', err)
+    });
   }
 
   abrirModalVehiculo() {
@@ -1040,6 +1223,438 @@ export class CentroTramites implements OnInit {
     return this.vehiculosTramiteSeleccionados().includes(placa);
   }
 
+  // MÉTODOS PARA EL FLUJO MAESTRO DE RENOVACIÓN
+  normalizarResolucionTexto(raw: string, fechaEmision?: string | null): string {
+    if (!raw) return '';
+    let str = raw.trim().toUpperCase();
+
+    // Si ya coincide exactamente con R-0123-2026
+    if (/^R-\d{4}-\d{4}$/.test(str)) {
+      return str;
+    }
+
+    // Extraer año si existe (4 dígitos 19XX o 20XX)
+    let anio = '';
+    const anioMatch = str.match(/\b(19\d{2}|20\d{2})\b/);
+    if (anioMatch) {
+      anio = anioMatch[1];
+      // Remover el año temporalmente para aislar el número correlativo
+      str = str.replace(anioMatch[1], '');
+    } else if (fechaEmision && fechaEmision.length >= 4) {
+      anio = fechaEmision.substring(0, 4);
+    } else {
+      anio = String(new Date().getFullYear());
+    }
+
+    // Extraer el número correlativo
+    const numMatch = str.match(/(\d+)/);
+    if (numMatch) {
+      const padNum = numMatch[1].padStart(4, '0');
+      return `R-${padNum}-${anio}`;
+    }
+
+    return raw.trim().toUpperCase();
+  }
+
+  normalizarNuevaResolucion() {
+    const ctrl = this.renovacionForm.get('nueva_resolucion_primigenia');
+    const fecha = this.renovacionForm.get('nueva_fecha_emision')?.value;
+    if (ctrl && ctrl.value) {
+      const normalizado = this.normalizarResolucionTexto(ctrl.value, fecha);
+      if (normalizado && normalizado !== ctrl.value) {
+        ctrl.setValue(normalizado);
+      }
+    }
+  }
+
+  toggleColapsoVigencia() {
+    this.grupoVigenciaColapsado.update(v => !v);
+  }
+
+  toggleColapsoRutas() {
+    this.grupoRutasColapsado.update(v => !v);
+  }
+
+  toggleColapsoFlota() {
+    this.grupoFlotaColapsado.update(v => !v);
+  }
+
+  setVigenciaRenovacion(anios: number) {
+    this.duracionAniosRenovacion.set(anios);
+    const inicio = this.renovacionForm.get('nueva_fecha_inicio_vigencia')?.value;
+    if (inicio) {
+      const partes = inicio.split('-');
+      if (partes.length === 3) {
+        const y = parseInt(partes[0], 10) + anios;
+        const m = partes[1];
+        const d = partes[2];
+        this.renovacionForm.patchValue({
+          nueva_fecha_fin_vigencia: `${y}-${m}-${d}`
+        });
+      }
+    }
+  }
+
+  cargarRutasEmpresa(ruc: string, resolucionId?: string | null) {
+    this.cargandoRutas.set(true);
+    this.flotaService.getRutasEmpresa(ruc).subscribe({
+      next: (res) => {
+        this.cargandoRutas.set(false);
+        const todas = res.data || [];
+        this.rutasEmpresaActual.set(todas);
+
+        let seleccionadas: string[] = [];
+        if (resolucionId) {
+          const resNorm = resolucionId.replace(/^R-/i, '').trim().toLowerCase();
+          const filtradas = todas.filter(r => {
+            const rNro = ((r.resolucion?.nroResolucion || r.nro_resolucion || '').replace(/^R-/i, '')).trim().toLowerCase();
+            return rNro === resNorm || rNro.includes(resNorm) || resNorm.includes(rNro);
+          });
+          if (filtradas.length > 0) {
+            seleccionadas = filtradas.map(r => r.codigoRuta || r.codigo).filter(Boolean);
+          }
+        }
+        if (seleccionadas.length === 0 && todas.length > 0) {
+          seleccionadas = todas.map(r => r.codigoRuta || r.codigo).filter(Boolean);
+        }
+        this.rutasSeleccionadasRenovacion.set(seleccionadas);
+      },
+      error: (err) => {
+        this.cargandoRutas.set(false);
+        console.warn('Error cargando rutas de la empresa:', err);
+        this.rutasEmpresaActual.set([]);
+        this.rutasSeleccionadasRenovacion.set([]);
+      }
+    });
+  }
+
+  toggleRutaRenovacion(codigo: string) {
+    this.rutasSeleccionadasRenovacion.update(list =>
+      list.includes(codigo) ? list.filter(c => c !== codigo) : [...list, codigo]
+    );
+  }
+
+  isRutaRenovacionSeleccionada(codigo: string): boolean {
+    return this.rutasSeleccionadasRenovacion().includes(codigo);
+  }
+
+  formatearItinerario(itinerario: any): string {
+    if (!itinerario) return '';
+    if (typeof itinerario === 'string') {
+      if (itinerario.includes('[object Object]') || itinerario.includes('[OBJECT OBJECT]')) return '';
+      return itinerario;
+    }
+    if (Array.isArray(itinerario)) {
+      return itinerario
+        .map((item: any) => {
+          if (!item) return '';
+          if (typeof item === 'string') {
+            if (item.includes('[object Object]') || item.includes('[OBJECT OBJECT]')) return '';
+            return item;
+          }
+          if (typeof item === 'object') {
+            return item.punto || item.nombre || item.localidad || item.distrito || item.descripcion || '';
+          }
+          return String(item);
+        })
+        .filter(Boolean)
+        .join(' - ');
+    }
+    return String(itinerario);
+  }
+
+  seleccionarTodasRutasRenovacion(seleccionar: boolean) {
+    if (seleccionar) {
+      const cods = this.rutasEmpresaActual().map(r => r.codigoRuta || r.codigo).filter(Boolean);
+      this.rutasSeleccionadasRenovacion.set(cods);
+    } else {
+      this.rutasSeleccionadasRenovacion.set([]);
+    }
+  }
+
+  abrirModalEditarRuta(ruta: any, index: number) {
+    const rutaParaEditar = {
+      ...ruta,
+      itinerario: this.formatearItinerario(ruta.itinerario)
+    };
+    const dialogRef = this.dialog.open(RutaModalComponent, {
+      width: '520px',
+      data: { ruta: rutaParaEditar, isNew: false }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        const codOriginal = ruta.codigoRuta || ruta.codigo;
+        const nuevoCod = res.codigoRuta;
+        
+        // Actualizar en rutasEmpresaActual
+        this.rutasEmpresaActual.update(rutas =>
+          rutas.map((r, i) => i === index ? { ...r, ...res } : r)
+        );
+
+        // Si cambió el código, actualizar en rutasSeleccionadasRenovacion
+        this.rutasSeleccionadasRenovacion.update(sel => {
+          if (sel.includes(codOriginal)) {
+            return sel.map(c => c === codOriginal ? nuevoCod : c);
+          } else {
+            return [...sel, nuevoCod];
+          }
+        });
+
+        this.snackBar.open(`✓ Ruta ${nuevoCod} actualizada`, 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  eliminarRutaRenovacion(ruta: any, index: number) {
+    const cod = ruta.codigoRuta || ruta.codigo;
+    if (confirm(`¿Está seguro de quitar la Ruta ${cod} de esta renovación? No será ratificada ni clonada para la nueva resolución.`)) {
+      this.rutasEmpresaActual.update(rutas => rutas.filter((_, i) => i !== index));
+      this.rutasSeleccionadasRenovacion.update(sel => sel.filter(c => c !== cod));
+      this.snackBar.open(`Ruta ${cod} eliminada de la renovación`, 'Cerrar', { duration: 3000 });
+    }
+  }
+
+  abrirModalNuevaRuta() {
+    const dialogRef = this.dialog.open(RutaModalComponent, {
+      width: '520px',
+      data: { isNew: true }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        const cod = res.codigoRuta;
+        this.rutasEmpresaActual.update(rutas => [...rutas, res]);
+        this.rutasSeleccionadasRenovacion.update(sel => [...sel, cod]);
+        this.snackBar.open(`✓ Nueva Ruta ${cod} agregada`, 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  inicializarFlotaRenovacion(vehiculos: any[]) {
+    const anioActual = new Date().getFullYear();
+    const items = vehiculos.map((v, index) => {
+      const anioFab = v.anio_fabricacion || v.anio || null;
+      const edad = anioFab ? (anioActual - anioFab) : 0;
+      return {
+        ...v,
+        orden: index + 1,
+        seleccionado: true,
+        placa: v.placa,
+        marca: v.marca || '',
+        modelo: v.modelo || '',
+        anio_fabricacion: anioFab,
+        categoria: v.categoria || 'M2',
+        asientos: v.asientos || v.numero_asientos || null,
+        numero_asientos: v.numero_asientos || v.asientos || null,
+        peso_neto: v.peso_neto || v.peso_seco || null,
+        peso_seco: v.peso_seco || v.peso_neto || null,
+        numero_tuc: v.numero_tuc || '',
+        rutas: Array.isArray(v.rutas) ? [...v.rutas] : (v.rutas ? [v.rutas] : []),
+        edad: edad,
+        alerta_antiguedad: edad >= 15,
+        datos_verificados: !!(v.marca && v.modelo && anioFab)
+      };
+    });
+    this.vehiculosRenovacionLista.set(items);
+  }
+
+  setModoCargaVehiculos(modo: 'PRECARGADA' | 'MULTIFILA') {
+    this.modoCargaVehiculosRenovacion.set(modo);
+  }
+
+  onLineasExcelChange(event: Event) {
+    const val = (event.target as HTMLTextAreaElement).value;
+    this.lineasExcelInput.set(val);
+  }
+
+  procesarLineasExcelRenovacion() {
+    const texto = this.lineasExcelInput().trim();
+    if (!texto) {
+      this.snackBar.open('Pegue las líneas de placas desde Excel', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    this.procesandoLineasExcel.set(true);
+    const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const anioActual = new Date().getFullYear();
+    const nuevosVehiculos: any[] = [];
+    const anterioresMap = new Map<string, any>();
+    for (const v of this.vehiculosEnResolucion()) {
+      if (v.placa) anterioresMap.set(v.placa.replace(/[\s-]/g, '').toUpperCase(), v);
+    }
+
+    let ordenContador = 1;
+    for (const linea of lineas) {
+      const tokens = linea.split(/[\t\s]+/).filter(t => t.trim().length > 0);
+      if (tokens.length === 0) continue;
+
+      let placaToken = '';
+      let rutasTokens: string[] = [];
+
+      let placaIdx = tokens.findIndex(t => /^[A-Z0-9]{3}-?[A-Z0-9]{3}$/i.test(t));
+      if (placaIdx !== -1) {
+        placaToken = tokens[placaIdx];
+        const resto = tokens.filter((_, idx) => idx !== placaIdx);
+        rutasTokens = resto.join(',').split(',').map(r => r.trim()).filter(r => r.length > 0);
+      } else {
+        if (/^\d+$/.test(tokens[0]) && tokens.length > 1) {
+          placaToken = tokens[1];
+          rutasTokens = tokens.slice(2).join(',').split(',').map(r => r.trim()).filter(r => r.length > 0);
+        } else {
+          placaToken = tokens[0];
+          rutasTokens = tokens.slice(1).join(',').split(',').map(r => r.trim()).filter(r => r.length > 0);
+        }
+      }
+
+      let cleanPlaca = placaToken.replace(/[\s-]/g, '').toUpperCase();
+      if (cleanPlaca.length === 6) {
+        cleanPlaca = `${cleanPlaca.substring(0, 3)}-${cleanPlaca.substring(3)}`;
+      }
+
+      const cleanRutas = rutasTokens.map(r => {
+        const num = r.replace(/\D/g, '');
+        return num.length === 1 ? `0${num}` : r.toUpperCase();
+      });
+
+      const rawKey = cleanPlaca.replace(/[\s-]/g, '');
+      const anterior = anterioresMap.get(rawKey);
+
+      const anioFab = anterior?.anio_fabricacion || anterior?.anio || null;
+      const edad = anioFab ? (anioActual - anioFab) : 0;
+
+      const itemVehiculo: any = {
+        orden: ordenContador++,
+        seleccionado: true,
+        placa: cleanPlaca,
+        marca: anterior?.marca || '',
+        modelo: anterior?.modelo || '',
+        anio_fabricacion: anioFab,
+        categoria: anterior?.categoria || 'M2',
+        asientos: anterior?.asientos || null,
+        peso_neto: anterior?.peso_neto || null,
+        numero_tuc: anterior?.numero_tuc || '',
+        rutas: cleanRutas.length > 0 ? cleanRutas : (anterior?.rutas || []),
+        edad: edad,
+        alerta_antiguedad: edad >= 15,
+        datos_verificados: !!(anterior?.marca && anterior?.modelo && anioFab)
+      };
+
+      nuevosVehiculos.push(itemVehiculo);
+    }
+
+    this.vehiculosRenovacionLista.set(nuevosVehiculos);
+    this.procesandoLineasExcel.set(false);
+    this.snackBar.open(`✓ ${nuevosVehiculos.length} vehículos procesados con éxito`, 'Entendido', { duration: 4000 });
+
+    // Enriquecer en segundo plano los que falten datos técnicos
+    for (const v of nuevosVehiculos) {
+      if (!v.marca || !v.anio_fabricacion) {
+        this.vehiculoDataService.getVehiculoDataByPlaca(v.placa).subscribe({
+          next: (res) => {
+            if (res && res.success && res.data) {
+              const d = res.data;
+              this.vehiculosRenovacionLista.update(lista =>
+                lista.map(item => {
+                  if (item.placa === v.placa) {
+                    const aFab = d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || item.anio_fabricacion;
+                    const ed = aFab ? (anioActual - aFab) : 0;
+                    return {
+                      ...item,
+                      marca: d.marca || item.marca,
+                      modelo: d.modelo || item.modelo,
+                      anio_fabricacion: aFab,
+                      categoria: d.categoria || item.categoria,
+                      asientos: d.numero_asientos || d.asientos || item.asientos,
+                      peso_neto: d.peso_neto || item.peso_neto,
+                      edad: ed,
+                      alerta_antiguedad: ed >= 15,
+                      datos_verificados: true
+                    };
+                  }
+                  return item;
+                })
+              );
+            }
+          }
+        });
+      }
+    }
+  }
+
+  abrirVerificacionTecnica(v: any, index: number) {
+    const dialogRef = this.dialog.open(VehiculoModalComponent, {
+      width: '820px',
+      data: {
+        vehiculo: v,
+        isEdit: true
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((res: any) => {
+      if (res) {
+        const anioActual = new Date().getFullYear();
+        const aFab = res.anio_fabricacion || null;
+        const edad = aFab ? (anioActual - aFab) : 0;
+        this.vehiculosRenovacionLista.update(lista =>
+          lista.map((item, i) => {
+            if (i === index) {
+              return {
+                ...item,
+                ...res,
+                marca: res.marca || item.marca,
+                modelo: res.modelo || item.modelo,
+                anio_fabricacion: aFab,
+                categoria: res.categoria || item.categoria,
+                asientos: res.asientos || res.numero_asientos || item.asientos,
+                numero_asientos: res.numero_asientos || res.asientos || item.numero_asientos,
+                peso_neto: res.peso_neto || res.peso_seco || item.peso_neto,
+                peso_seco: res.peso_seco || res.peso_neto || item.peso_seco,
+                numero_tuc: res.numero_tuc || item.numero_tuc,
+                edad: edad,
+                alerta_antiguedad: edad >= 15,
+                datos_verificados: true
+              };
+            }
+            return item;
+          })
+        );
+        this.snackBar.open(`✓ Ficha técnica actualizada para ${v.placa}`, 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  cambiarOrdenVehiculo(index: number, event: Event) {
+    const val = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(val)) {
+      this.vehiculosRenovacionLista.update(lista =>
+        lista.map((item, i) => i === index ? { ...item, orden: val } : item)
+      );
+    }
+  }
+
+  toggleVehiculoRenovacion(index: number) {
+    this.vehiculosRenovacionLista.update(lista =>
+      lista.map((item, i) => i === index ? { ...item, seleccionado: !item.seleccionado } : item)
+    );
+  }
+
+  toggleTodosVehiculosRenovacion(seleccionar?: boolean) {
+    this.vehiculosRenovacionLista.update(lista => {
+      const target = seleccionar !== undefined ? seleccionar : !lista.every(v => v.seleccionado);
+      return lista.map(v => ({ ...v, seleccionado: target }));
+    });
+  }
+
+  estanTodosVehiculosRenovacionSeleccionados(): boolean {
+    const list = this.vehiculosRenovacionLista();
+    return list.length > 0 && list.every(v => v.seleccionado);
+  }
+
+  vehiculosRenovacionSeleccionadosCount(): number {
+    return this.vehiculosRenovacionLista().filter(v => v.seleccionado).length;
+  }
+
   cambiarTipoOrigen() {
     let current = this.datosOrigenForm.get('numero_origen')?.value;
     if (current && current.includes('-')) {
@@ -1163,12 +1778,68 @@ export class CentroTramites implements OnInit {
         this.snackBar.open('Complete los datos de la nueva resolución primigenia', 'Cerrar', { duration: 4000 });
         return;
       }
+      const seleccionados = this.vehiculosRenovacionLista().filter(v => v.seleccionado);
+      if (seleccionados.length === 0) {
+        this.snackBar.open('Debe seleccionar o cargar al menos un vehículo para la renovación', 'Cerrar', { duration: 4000 });
+        return;
+      }
+
+      vehiculosItems = seleccionados.map(v => ({
+        placa: v.placa,
+        orden: v.orden,
+        rutas: v.rutas || [],
+        numero_tuc: v.numero_tuc || undefined,
+        tipo_operacion: 'RENOVACION',
+        datos_tecnicos: {
+          marca: v.marca,
+          modelo: v.modelo,
+          anio_fabricacion: v.anio_fabricacion,
+          categoria: v.categoria || 'M2',
+          asientos: v.asientos || v.numero_asientos || undefined,
+          numero_asientos: v.numero_asientos || v.asientos || undefined,
+          numero_pasajeros: v.numero_pasajeros || undefined,
+          numero_ejes: v.numero_ejes || undefined,
+          numero_ruedas: v.numero_ruedas || undefined,
+          peso_bruto: v.peso_bruto || undefined,
+          peso_neto: v.peso_neto || v.peso_seco || undefined,
+          peso_seco: v.peso_seco || v.peso_neto || undefined,
+          carga_util: v.carga_util || undefined,
+          longitud: v.longitud || undefined,
+          ancho: v.ancho || undefined,
+          altura: v.altura || undefined,
+          carroceria: v.carroceria || undefined,
+          clase: v.clase || undefined,
+          color: v.color || undefined,
+          combustible: v.combustible || undefined,
+          numero_motor: v.numero_motor || undefined,
+          vin: v.vin || v.numero_serie || undefined,
+          observaciones: v.observaciones || undefined
+        }
+      }));
+
+      // Recolectar detalle de rutas ratificadas
+      const rutasDetalle = this.rutasEmpresaActual()
+        .filter(r => this.rutasSeleccionadasRenovacion().includes(r.codigoRuta || r.codigo))
+        .map(r => ({
+          codigo: (r.codigoRuta || r.codigo || '').toUpperCase().trim(),
+          origen: (typeof r.origen === 'object' ? (r.origen?.nombre || '') : String(r.origen || '')).toUpperCase().trim(),
+          destino: (typeof r.destino === 'object' ? (r.destino?.nombre || '') : String(r.destino || '')).toUpperCase().trim(),
+          itinerario: (r.itinerario || '').toUpperCase().trim(),
+          frecuencia: (typeof r.frecuencia === 'object' ? (r.frecuencia?.descripcion || '') : String(r.frecuencia || '')).toUpperCase().trim()
+        }));
+
       payloadExtra = {
         es_renovacion: true,
-        nueva_resolucion_primigenia: this.renovacionForm.value.nueva_resolucion_primigenia?.toUpperCase().trim(),
+        nueva_resolucion_primigenia: this.normalizarResolucionTexto(
+          this.renovacionForm.value.nueva_resolucion_primigenia || '',
+          this.renovacionForm.value.nueva_fecha_emision
+        ),
         nueva_fecha_emision: this.renovacionForm.value.nueva_fecha_emision,
         nueva_fecha_inicio_vigencia: this.renovacionForm.value.nueva_fecha_inicio_vigencia,
-        nueva_fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia
+        nueva_fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia,
+        duracion_anios: this.duracionAniosRenovacion(),
+        rutas_a_ratificar: this.rutasSeleccionadasRenovacion(),
+        nuevas_rutas_detalle: rutasDetalle
       };
     } else if (tipo === 'DUPLICADO' || tipo === 'CANJE') {
       if (this.vehiculosTramiteSeleccionados().length === 0) {
@@ -1208,8 +1879,9 @@ export class CentroTramites implements OnInit {
     this.flotaService.procesarTramiteMasivo(payload).subscribe({
       next: (res) => {
         this.isProcessing.set(false);
-        this.snackBar.open(`✓ Trámite de ${tipo} procesado exitosamente`, 'Entendido', {
-          duration: 5000
+        const resHija = res?.nro_resolucion_hija ? ` - Resolución: ${res.nro_resolucion_hija}` : '';
+        this.snackBar.open(`✓ Trámite de ${tipo} procesado exitosamente${resHija}`, 'Entendido', {
+          duration: 6000
         });
 
         // Limpiar formularios y cerrar drawer
@@ -1218,7 +1890,9 @@ export class CentroTramites implements OnInit {
         this.vehiculosBajaSeleccionados.set([]);
         this.vehiculosTramiteSeleccionados.set([]);
         this.tramiteSeleccionado.set(null);
+        this.datosOrigenForm.reset({ tipo_origen: 'EXPEDIENTE' });
         this.isDrawerOpen.set(false);
+        this.pageIndex.set(0);
 
         // Recargar datos actualizados
         this.cargarVehiculosResolucion(resPrimigenia);

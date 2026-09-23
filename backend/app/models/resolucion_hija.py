@@ -53,7 +53,7 @@ class ResolucionHija(BaseModel):
     id_origen: Optional[str] = Field(None, description="ID externo de origen")
     observaciones: Optional[str] = Field(None, description="Notas explicativas del acto modificatorio")
     esta_activo: bool = True
-    fecha_registro: datetime = Field(default_factory=datetime.utcnow)
+    fecha_registro: Optional[datetime] = Field(default=None, description="Fecha de creación en el sistema")
     fecha_actualizacion: Optional[datetime] = None
 
 class ResolucionHijaCreate(BaseModel):

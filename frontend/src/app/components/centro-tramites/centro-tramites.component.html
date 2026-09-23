@@ -172,16 +172,57 @@
             </span>
           </div>
           
-          <button mat-button color="primary" style="font-size: 0.8rem; font-weight: 600;" (click)="iniciarNuevoTramite()">
-            <mat-icon style="font-size: 18px; width: 18px; height: 18px;">add_circle</mat-icon>
-            <span>Nuevo Trámite</span>
-          </button>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <!-- Botón Configurar Columnas -->
+            <div class="col-config-wrapper">
+              <button mat-stroked-button class="btn-config-columnas" (click)="toggleConfigColumnas()" matTooltip="Configurar columnas visibles">
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px;">view_column</mat-icon>
+                <span>Columnas</span>
+              </button>
+              @if (mostrarConfigColumnas()) {
+                <div class="col-config-popover">
+                  <div class="col-config-header">
+                    <span class="material-symbols-outlined" style="font-size: 16px; color: #2563eb;">settings</span>
+                    <span>Columnas visibles</span>
+                  </div>
+                  @for (col of todasColumnasDisponibles; track col.key) {
+                    <label class="col-config-item" [class.disabled]="col.fija">
+                      <mat-checkbox
+                        [checked]="isColumnaVisible(col.key)"
+                        [disabled]="col.fija"
+                        (change)="toggleColumna(col.key)"
+                        color="primary">
+                      </mat-checkbox>
+                      <span>{{col.label}}</span>
+                      @if (col.fija) {
+                        <span class="col-config-fija-badge">fija</span>
+                      }
+                    </label>
+                  }
+                </div>
+                <div class="col-config-backdrop" (click)="cerrarConfigColumnas()"></div>
+              }
+            </div>
+
+            <button mat-button color="primary" style="font-size: 0.8rem; font-weight: 600;" (click)="iniciarNuevoTramite()">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px;">add_circle</mat-icon>
+              <span>Nuevo Trámite</span>
+            </button>
+          </div>
         </div>
 
         <mat-card-content style="padding: 0;">
           <div class="table-container">
             <table mat-table [dataSource]="tramitesPaginados()" class="custom-table" style="width: 100%;">
               
+              <!-- Correlativo -->
+              <ng-container matColumnDef="correlativo">
+                <th mat-header-cell *matHeaderCellDef class="sortable-th">Correlativo</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="correlativo-badge">{{element.correlativo}}</span>
+                </td>
+              </ng-container>
+
               <!-- N° Resolución -->
               <ng-container matColumnDef="id">
                 <th mat-header-cell *matHeaderCellDef class="sortable-th">N° Resolución</th>
@@ -267,14 +308,14 @@
                   <button mat-icon-button color="primary" matTooltip="Iniciar trámite para esta empresa" (click)="iniciarTramiteParaEmpresa(element)">
                     <mat-icon>add_task</mat-icon>
                   </button>
-                  <button mat-icon-button color="accent" matTooltip="Ver detalle del expediente">
+                  <button mat-icon-button color="accent" matTooltip="Ver detalle del expediente" (click)="verDetalleTramite(element)">
                     <mat-icon>visibility</mat-icon>
                   </button>
                 </td>
               </ng-container>
 
-              <tr mat-header-row *matHeaderRowDef="columnasTabla" style="background: #f1f5f9;"></tr>
-              <tr mat-row *matRowDef="let row; columns: columnasTabla;"></tr>
+              <tr mat-header-row *matHeaderRowDef="columnasTablaVisibles()" style="background: #f1f5f9;"></tr>
+              <tr mat-row *matRowDef="let row; columns: columnasTablaVisibles();" class="tramite-row" (click)="verDetalleTramite(row)" style="cursor: pointer;"></tr>
             </table>
 
             @if (tramitesFiltrados().length === 0) {
@@ -493,7 +534,8 @@
                   <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden;">
                     <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
                       <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                        <mat-icon style="color: #2563eb; font-size: 20px;">source</mat-icon> Origen del Trámite y Resolución Modificatoria
+                        <mat-icon style="color: #2563eb; font-size: 20px;">source</mat-icon> 
+                        {{tramiteSeleccionado() === 'RENOVACION' ? 'Origen del Trámite' : 'Origen del Trámite y Resolución Modificatoria'}}
                       </h4>
                     </div>
                     <div style="padding: 1.25rem;">
@@ -521,27 +563,109 @@
                             </mat-form-field>
                           </div>
 
-                          <div style="margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed #e2e8f0;">
-                            <span style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">
-                              Resolución Directoral Modificatoria (Resolución Hija - Opcional):
-                            </span>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                              <mat-form-field appearance="outline" style="width: 100%;">
-                                <mat-label>N° Resolución (Ej. R-0012-2026)</mat-label>
-                                <input matInput formControlName="nro_resolucion_hija" placeholder="R-0123-2026" (blur)="normalizarResolucionHija()">
-                                <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">description</mat-icon>
-                              </mat-form-field>
-                              
-                              <mat-form-field appearance="outline" style="width: 100%;">
-                                <mat-label>Fecha de Emisión</mat-label>
-                                <input matInput type="date" formControlName="fecha_emision_resolucion">
-                              </mat-form-field>
+                          <!-- Para trámites regulares (Sustitución, Incremento, Bajas, etc.): Resolución Hija -->
+                          @if (tramiteSeleccionado() !== 'RENOVACION') {
+                            <div style="margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px dashed #e2e8f0;">
+                              <span style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.5rem;">
+                                Resolución Directoral Modificatoria (Resolución Hija - Opcional):
+                              </span>
+                              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <mat-form-field appearance="outline" style="width: 100%;">
+                                  <mat-label>N° Resolución (Ej. R-0012-2026)</mat-label>
+                                  <input matInput formControlName="nro_resolucion_hija" placeholder="R-0123-2026" (blur)="normalizarResolucionHija()">
+                                  <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">description</mat-icon>
+                                  <button mat-icon-button matSuffix type="button" (click)="cargarSiguienteResolucionHija()" title="Generar siguiente correlativo disponible">
+                                    <mat-icon style="font-size: 18px; color: #3b82f6;">autorenew</mat-icon>
+                                  </button>
+                                  <mat-hint style="font-size: 11px;">Correlativo automático si se deja vacío</mat-hint>
+                                </mat-form-field>
+                                
+                                <mat-form-field appearance="outline" style="width: 100%;">
+                                  <mat-label>Fecha de Emisión</mat-label>
+                                  <input matInput type="date" formControlName="fecha_emision_resolucion">
+                                </mat-form-field>
+                              </div>
                             </div>
-                          </div>
+                          }
                         </div>
                       </form>
                     </div>
                   </div>
+
+                  <!-- SI ES RENOVACIÓN: Bloque completo de la Nueva Resolución Primigenia en Paso 2 -->
+                  @if (tramiteSeleccionado() === 'RENOVACION') {
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); overflow: hidden; margin-top: 1rem;">
+                      <div style="background: #f8fafc; padding: 0.85rem 1.25rem; border-bottom: 1px solid #e2e8f0;">
+                        <h4 style="font-size: 0.85rem; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                          <mat-icon style="color: #059669; font-size: 20px;">verified</mat-icon> Datos de la Nueva Resolución Primigenia (Nueva Concesión)
+                        </h4>
+                      </div>
+                      <div style="padding: 1.25rem;">
+                        <form [formGroup]="renovacionForm">
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>Número de Nueva Resolución Primigenia *</mat-label>
+                              <input matInput 
+                                     formControlName="nueva_resolucion_primigenia" 
+                                     (blur)="normalizarNuevaResolucion()"
+                                     placeholder="Ej. R-0123-2026" 
+                                     style="text-transform: uppercase; font-weight: bold; font-family: monospace;">
+                              <mat-icon matPrefix style="margin-right: 0.5rem; color: #059669;">verified</mat-icon>
+                              <mat-hint style="font-size: 0.72rem; color: #64748b;">Formato normalizado: R-0123-2026</mat-hint>
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>1. Fecha de Emisión de Resolución *</mat-label>
+                              <input matInput type="date" formControlName="nueva_fecha_emision">
+                              <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">event</mat-icon>
+                            </mat-form-field>
+                          </div>
+
+                          <!-- Vigencia Selector: 4 años o 10 años -->
+                          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                              <mat-icon style="color: #2563eb; font-size: 20px; width: 20px; height: 20px;">timer</mat-icon>
+                              <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">Plazo de Vigencia Legal:</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                              <button type="button" 
+                                      mat-stroked-button 
+                                      [style.background]="duracionAniosRenovacion() === 4 ? '#2563eb' : 'white'"
+                                      [style.color]="duracionAniosRenovacion() === 4 ? '#ffffff' : '#334155'"
+                                      [style.borderColor]="duracionAniosRenovacion() === 4 ? '#1d4ed8' : '#cbd5e1'"
+                                      (click)="setVigenciaRenovacion(4)">
+                                <mat-icon style="font-size: 16px; width: 16px; height: 16px;">verified</mat-icon>
+                                4 Años (Régimen Especial)
+                              </button>
+                              <button type="button" 
+                                      mat-stroked-button 
+                                      [style.background]="duracionAniosRenovacion() === 10 ? '#2563eb' : 'white'"
+                                      [style.color]="duracionAniosRenovacion() === 10 ? '#ffffff' : '#334155'"
+                                      [style.borderColor]="duracionAniosRenovacion() === 10 ? '#1d4ed8' : '#cbd5e1'"
+                                      (click)="setVigenciaRenovacion(10)">
+                                <mat-icon style="font-size: 16px; width: 16px; height: 16px;">star</mat-icon>
+                                10 Años (D.S. 017-2009-MTC)
+                              </button>
+                            </div>
+                          </div>
+
+                          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>2. Fecha de Inicio de Vigencia *</mat-label>
+                              <input matInput type="date" formControlName="nueva_fecha_inicio_vigencia">
+                              <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">date_range</mat-icon>
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline" style="width: 100%;">
+                              <mat-label>3. Fecha de Fin de Vigencia ({{duracionAniosRenovacion()}} Años) *</mat-label>
+                              <input matInput type="date" formControlName="nueva_fecha_fin_vigencia">
+                              <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">event_available</mat-icon>
+                            </mat-form-field>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  }
                 </div>
 
               </div>
@@ -955,54 +1079,369 @@
 
                   <!-- CASO 4: RENOVACIÓN -->
                   @case ('RENOVACION') {
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-                        <div style="background: #fef3c7; color: #d97706; padding: 0.65rem; border-radius: 10px;">
-                          <mat-icon style="font-size: 26px; width: 26px; height: 26px;">autorenew</mat-icon>
+                    <div class="renovacion-panel" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                      
+                      <!-- Header Card con Resumen de Nueva Concesión (Colapsable) -->
+                      <!-- Sección 1: Resumen y Vigencia (Colapsable) -->
+                      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.15rem; cursor: pointer; user-select: none;"
+                             [style.background]="grupoVigenciaColapsado() ? '#f8fafc' : '#ffffff'"
+                             [style.borderBottom]="grupoVigenciaColapsado() ? 'none' : '1px solid #f1f5f9'"
+                             (click)="toggleColapsoVigencia()">
+                          <div style="display: flex; align-items: center; gap: 0.65rem;">
+                            <div style="background: #fef3c7; color: #d97706; padding: 0.45rem; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;">
+                              <mat-icon style="font-size: 20px; width: 20px; height: 20px;">autorenew</mat-icon>
+                            </div>
+                            <div>
+                              <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.92rem;">1. Resumen y Vigencia de la Nueva Concesión</h4>
+                              <span style="font-size: 0.73rem; color: #64748b;">
+                                Vigencia: {{renovacionForm.get('nueva_fecha_inicio_vigencia')?.value || '-'}} al {{renovacionForm.get('nueva_fecha_fin_vigencia')?.value || '-'}}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 3px 8px; display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
+                              <span style="font-size: 0.7rem; color: #1e40af; font-weight: 600;">Nueva Concesión:</span>
+                              <span style="font-family: monospace; font-weight: 700; color: #1d4ed8; font-size: 0.82rem;">
+                                {{renovacionForm.get('nueva_resolucion_primigenia')?.value || 'S/N'}}
+                              </span>
+                              <span style="font-size: 0.68rem; color: #2563eb; background: #dbeafe; padding: 1px 5px; border-radius: 4px; font-weight: 600;">
+                                {{duracionAniosRenovacion()}} Años
+                              </span>
+                            </div>
+
+                            <button mat-icon-button class="compact-icon-btn" (click)="$event.stopPropagation(); toggleColapsoVigencia()" [matTooltip]="grupoVigenciaColapsado() ? 'Expandir grupo' : 'Colapsar grupo'">
+                              <mat-icon style="color: #64748b;">{{grupoVigenciaColapsado() ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}}</mat-icon>
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <h4 style="font-weight: 600; color: #1e293b; margin: 0;">Renovación de Autorización</h4>
-                          <span style="font-size: 0.8rem; color: #64748b;">Emisión de nueva Resolución Primigenia por 10 años</span>
-                        </div>
+
+                        @if (!grupoVigenciaColapsado()) {
+                          <div style="padding: 0.85rem 1.15rem;">
+                            <div style="padding: 0.65rem 0.85rem; background: #f0fdf4; border-left: 4px solid #16a34a; border-radius: 6px;">
+                              <p style="color: #15803d; font-size: 0.8rem; margin: 0; line-height: 1.4;">
+                                <strong>Vigencia establecida:</strong> Del <strong>{{renovacionForm.get('nueva_fecha_inicio_vigencia')?.value}}</strong> al <strong>{{renovacionForm.get('nueva_fecha_fin_vigencia')?.value}}</strong> (Emisión: {{renovacionForm.get('nueva_fecha_emision')?.value}}). A continuación ratifique las rutas activas y configure el orden de la flota.
+                              </p>
+                            </div>
+                          </div>
+                        }
                       </div>
 
-                      <div style="padding: 0.85rem 1rem; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 1.25rem;">
-                        <p style="color: #1e40af; font-size: 0.85rem; margin: 0;">
-                          <strong>Efecto en el sistema:</strong> La resolución actual (<strong>{{resolucionForm.get('nro_resolucion_primigenia')?.value}}</strong>) quedará en estado <em>SUSPENDIDA / RENOVADA</em> y toda la flota habilitada pasará automáticamente a la nueva resolución primigenia.
-                        </p>
-                      </div>
+                      <!-- Sección 2: Rutas Ratificadas (Colapsable con Edición y Eliminación) -->
+                      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.15rem; cursor: pointer; user-select: none;"
+                             [style.background]="grupoRutasColapsado() ? '#f8fafc' : '#ffffff'"
+                             [style.borderBottom]="grupoRutasColapsado() ? 'none' : '1px solid #f1f5f9'"
+                             (click)="toggleColapsoRutas()">
+                          <div style="display: flex; align-items: center; gap: 0.65rem;">
+                            <div style="background: #e0f2fe; color: #0284c7; padding: 0.45rem; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;">
+                              <mat-icon style="font-size: 20px; width: 20px; height: 20px;">alt_route</mat-icon>
+                            </div>
+                            <div>
+                              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                                <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.92rem; white-space: nowrap;">2. Ratificación y Configuración de Rutas</h4>
+                                <span style="background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; border: 1px solid #bfdbfe; white-space: nowrap; flex-shrink: 0;">
+                                  {{rutasSeleccionadasRenovacion().length}} seleccionada(s)
+                                </span>
+                              </div>
+                              <span style="font-size: 0.73rem; color: #64748b;">Seleccione, edite o agregue las rutas ratificadas para la nueva resolución</span>
+                            </div>
+                          </div>
 
-                      <form [formGroup]="renovacionForm">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                          <mat-form-field appearance="outline" style="width: 100%;">
-                            <mat-label>Número de Nueva Resolución Primigenia</mat-label>
-                            <input matInput formControlName="nueva_resolucion_primigenia" placeholder="Ej. 0450-2026-MTC/DRTC" style="text-transform: uppercase;">
-                            <mat-icon matPrefix style="margin-right: 0.5rem; color: #94a3b8;">verified</mat-icon>
-                          </mat-form-field>
-
-                          <mat-form-field appearance="outline" style="width: 100%;">
-                            <mat-label>Fecha de Emisión</mat-label>
-                            <input matInput type="date" formControlName="nueva_fecha_emision">
-                          </mat-form-field>
+                          <div style="display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;" (click)="$event.stopPropagation()">
+                            <button mat-icon-button class="compact-icon-btn" (click)="seleccionarTodasRutasRenovacion(true)" matTooltip="Seleccionar todas las rutas" style="color: #2563eb;">
+                              <mat-icon>done_all</mat-icon>
+                            </button>
+                            <button mat-icon-button class="compact-icon-btn" (click)="seleccionarTodasRutasRenovacion(false)" matTooltip="Deseleccionar todas" style="color: #64748b;">
+                              <mat-icon>remove_done</mat-icon>
+                            </button>
+                            <button mat-stroked-button color="primary" 
+                                    style="font-size: 0.74rem; height: 28px; line-height: 28px; padding: 0 8px; border-radius: 6px; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;" 
+                                    (click)="abrirModalNuevaRuta()">
+                              <mat-icon style="font-size: 15px; width: 15px; height: 15px; margin: 0;">add</mat-icon>
+                              <span>Nueva Ruta</span>
+                            </button>
+                            <button mat-icon-button class="compact-icon-btn" (click)="toggleColapsoRutas()" [matTooltip]="grupoRutasColapsado() ? 'Expandir grupo' : 'Colapsar grupo'">
+                              <mat-icon style="color: #64748b;">{{grupoRutasColapsado() ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}}</mat-icon>
+                            </button>
+                          </div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
-                          <mat-form-field appearance="outline" style="width: 100%;">
-                            <mat-label>Fecha de Inicio de Vigencia</mat-label>
-                            <input matInput type="date" formControlName="nueva_fecha_inicio_vigencia">
-                          </mat-form-field>
+                        @if (!grupoRutasColapsado()) {
+                          <div style="padding: 1rem 1.15rem;">
+                            <div style="padding: 0.5rem 0.75rem; background: #fffbeb; border-radius: 6px; border: 1px solid #fde68a; margin-bottom: 0.65rem;">
+                              <p style="margin: 0; font-size: 0.75rem; color: #92400e; display: flex; align-items: center; gap: 0.4rem;">
+                                <mat-icon style="font-size: 15px; width: 15px; height: 15px; flex-shrink: 0;">history</mat-icon>
+                                Las rutas seleccionadas serán clonadas para la nueva resolución. Si sufrieron cambios de origen, destino o itinerario, use el botón de editar.
+                              </p>
+                            </div>
 
-                          <mat-form-field appearance="outline" style="width: 100%;">
-                            <mat-label>Fecha de Fin de Vigencia (10 Años)</mat-label>
-                            <input matInput type="date" formControlName="nueva_fecha_fin_vigencia">
-                          </mat-form-field>
-                        </div>
-                      </form>
+                            @if (cargandoRutas()) {
+                              <div style="text-align: center; padding: 1.25rem; color: #64748b;">
+                                <mat-spinner diameter="22" style="margin: 0 auto 0.4rem;"></mat-spinner>
+                                <span style="font-size: 0.78rem;">Cargando catálogo de rutas...</span>
+                              </div>
+                            } @else if (rutasEmpresaActual().length === 0) {
+                              <div style="text-align: center; padding: 1.25rem; color: #94a3b8; background: #f8fafc; border-radius: 8px;">
+                                <mat-icon style="font-size: 28px; width: 28px; height: 28px; color: #cbd5e1; margin-bottom: 0.2rem;">route</mat-icon>
+                                <p style="margin: 0; font-size: 0.8rem; font-weight: 500;">No se encontraron rutas para esta empresa.</p>
+                                <button mat-stroked-button color="primary" style="margin-top: 0.4rem; font-size: 0.74rem;" (click)="abrirModalNuevaRuta()">
+                                  <mat-icon style="font-size: 15px; width: 15px; height: 15px;">add</mat-icon> Agregar Primera Ruta
+                                </button>
+                              </div>
+                            } @else {
+                              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0.6rem; max-height: 240px; overflow-y: auto; padding-right: 4px;">
+                                @for (ruta of rutasEmpresaActual(); track ruta.id || ruta._id || ruta.codigoRuta; let idx = $index) {
+                                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s;"
+                                       [style.background]="isRutaRenovacionSeleccionada(ruta.codigoRuta || ruta.codigo) ? '#f0fdf4' : '#ffffff'"
+                                       [style.borderColor]="isRutaRenovacionSeleccionada(ruta.codigoRuta || ruta.codigo) ? '#86efac' : '#e2e8f0'"
+                                       (click)="toggleRutaRenovacion(ruta.codigoRuta || ruta.codigo)">
+                                    <div style="display: flex; align-items: center; gap: 0.45rem; min-width: 0; flex-grow: 1;">
+                                      <mat-checkbox 
+                                        color="primary" 
+                                        [checked]="isRutaRenovacionSeleccionada(ruta.codigoRuta || ruta.codigo)"
+                                        (click)="$event.stopPropagation()"
+                                        (change)="toggleRutaRenovacion(ruta.codigoRuta || ruta.codigo)">
+                                      </mat-checkbox>
+                                      <div style="flex-grow: 1; min-width: 0;">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem; min-width: 0;">
+                                          <span style="font-family: monospace; font-weight: 700; font-size: 0.74rem; background: #eff6ff; color: #2563eb; padding: 1px 5px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;">
+                                            Ruta {{ruta.codigoRuta || ruta.codigo}}
+                                          </span>
+                                          @if (ruta.editada) {
+                                            <span style="font-size: 0.65rem; font-weight: 600; background: #fef3c7; color: #d97706; padding: 1px 4px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;">
+                                              Modificada
+                                            </span>
+                                          }
+                                          <span style="font-size: 0.76rem; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;" [matTooltip]="(ruta.origen?.nombre || ruta.origen || 'Origen') + ' ➔ ' + (ruta.destino?.nombre || ruta.destino || 'Destino')">
+                                            {{ruta.origen?.nombre || ruta.origen || 'Origen'}} ➔ {{ruta.destino?.nombre || ruta.destino || 'Destino'}}
+                                          </span>
+                                        </div>
+                                        @if (ruta.itinerario) {
+                                          <span style="font-size: 0.68rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; margin-top: 1px;" [matTooltip]="'Vía: ' + formatearItinerario(ruta.itinerario)">
+                                            Vía: {{formatearItinerario(ruta.itinerario)}}
+                                          </span>
+                                        }
+                                      </div>
+                                    </div>
 
-                      <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.85rem; color: #475569;">Flota actual que será transferida:</span>
-                        <span style="font-weight: bold; color: #1d4ed8; font-size: 1rem;">{{vehiculosEnResolucion().length}} vehículos</span>
+                                    <!-- Acciones en cada ruta: Editar y Eliminar -->
+                                    <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;" (click)="$event.stopPropagation()">
+                                      <button mat-icon-button class="compact-icon-btn-sm" color="primary" (click)="abrirModalEditarRuta(ruta, idx)" matTooltip="Editar especificaciones de la ruta">
+                                        <mat-icon>edit</mat-icon>
+                                      </button>
+                                      <button mat-icon-button class="compact-icon-btn-sm" color="warn" (click)="eliminarRutaRenovacion(ruta, idx)" matTooltip="Quitar ruta de la renovación">
+                                        <mat-icon>delete_outline</mat-icon>
+                                      </button>
+                                    </div>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
                       </div>
+
+                      <!-- Sección 3: Flota de Vehículos y Opciones de Carga (Colapsable) -->
+                      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.15rem; cursor: pointer; user-select: none;"
+                             [style.background]="grupoFlotaColapsado() ? '#f8fafc' : '#ffffff'"
+                             [style.borderBottom]="grupoFlotaColapsado() ? 'none' : '1px solid #f1f5f9'"
+                             (click)="toggleColapsoFlota()">
+                          <div style="display: flex; align-items: center; gap: 0.65rem;">
+                            <div style="background: #ecfdf5; color: #059669; padding: 0.45rem; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0;">
+                              <mat-icon style="font-size: 20px; width: 20px; height: 20px;">directions_bus</mat-icon>
+                            </div>
+                            <div>
+                              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                                <h4 style="font-weight: 700; color: #1e293b; margin: 0; font-size: 0.92rem; white-space: nowrap;">3. Padrón Vehicular de la Nueva Concesión</h4>
+                                <span style="background: #f0fdf4; color: #15803d; font-weight: 700; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; border: 1px solid #bbf7d0; white-space: nowrap; flex-shrink: 0;">
+                                  {{vehiculosRenovacionSeleccionadosCount()}} / {{vehiculosRenovacionLista().length}} veh.
+                                </span>
+                              </div>
+                              <span style="font-size: 0.73rem; color: #64748b;">Ordene las unidades y verifique su ficha técnica con vehiculos_data</span>
+                            </div>
+                          </div>
+
+                          <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;" (click)="$event.stopPropagation()">
+                            <!-- Selector de Modo de Carga Compacto -->
+                            <div style="display: flex; background: #f1f5f9; padding: 2px; border-radius: 7px; border: 1px solid #e2e8f0;">
+                              <button type="button" 
+                                      mat-button 
+                                      style="font-size: 0.73rem; height: 28px; line-height: 28px; padding: 0 8px; border-radius: 5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;"
+                                      [style.background]="modoCargaVehiculosRenovacion() === 'PRECARGADA' ? '#ffffff' : 'transparent'"
+                                      [style.color]="modoCargaVehiculosRenovacion() === 'PRECARGADA' ? '#1e293b' : '#64748b'"
+                                      [style.fontWeight]="modoCargaVehiculosRenovacion() === 'PRECARGADA' ? '700' : '500'"
+                                      [style.boxShadow]="modoCargaVehiculosRenovacion() === 'PRECARGADA' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'"
+                                      (click)="setModoCargaVehiculos('PRECARGADA')">
+                                <mat-icon style="font-size: 15px; width: 15px; height: 15px; margin: 0;">checklist</mat-icon>
+                                <span>Flota Anterior</span>
+                              </button>
+                              <button type="button" 
+                                      mat-button 
+                                      style="font-size: 0.73rem; height: 28px; line-height: 28px; padding: 0 8px; border-radius: 5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;"
+                                      [style.background]="modoCargaVehiculosRenovacion() === 'MULTIFILA' ? '#ffffff' : 'transparent'"
+                                      [style.color]="modoCargaVehiculosRenovacion() === 'MULTIFILA' ? '#1e293b' : '#64748b'"
+                                      [style.fontWeight]="modoCargaVehiculosRenovacion() === 'MULTIFILA' ? '700' : '500'"
+                                      [style.boxShadow]="modoCargaVehiculosRenovacion() === 'MULTIFILA' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'"
+                                      (click)="setModoCargaVehiculos('MULTIFILA')">
+                                <mat-icon style="font-size: 15px; width: 15px; height: 15px; margin: 0;">content_paste</mat-icon>
+                                <span>Pegar Excel</span>
+                              </button>
+                            </div>
+
+                            <button mat-icon-button class="compact-icon-btn" (click)="toggleColapsoFlota()" [matTooltip]="grupoFlotaColapsado() ? 'Expandir grupo' : 'Colapsar grupo'">
+                              <mat-icon style="color: #64748b;">{{grupoFlotaColapsado() ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}}</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        @if (!grupoFlotaColapsado()) {
+                          <div style="padding: 1rem 1.15rem;">
+                            <!-- Sub-vista 2: Input Multifila desde Excel -->
+                            @if (modoCargaVehiculosRenovacion() === 'MULTIFILA') {
+                              <div style="margin-bottom: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                  <span style="font-size: 0.78rem; font-weight: 600; color: #334155;">
+                                    Ingrese o pegue la lista desde Excel (1 vehículo por fila):
+                                  </span>
+                                  <span style="font-size: 0.72rem; color: #64748b;">
+                                    Formato: <code>PLACA [RUTAS]</code> (Ej: <code>A3B-123 01,02</code> o <code>B4C-987 01</code>)
+                                  </span>
+                                </div>
+
+                                <textarea 
+                                  [value]="lineasExcelInput()"
+                                  (input)="onLineasExcelChange($event)"
+                                  rows="5" 
+                                  style="width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.6rem; font-family: monospace; font-size: 0.82rem; resize: vertical; box-sizing: border-box;"
+                                  placeholder="A3B-123 01,02&#10;B4C-987 01&#10;C5D-654 02"></textarea>
+
+                                <div style="display: flex; justify-content: flex-end; margin-top: 0.4rem;">
+                                  <button mat-flat-button color="primary" style="height: 32px; line-height: 32px; font-size: 0.75rem;" [disabled]="procesandoLineasExcel() || !lineasExcelInput().trim()" (click)="procesarLineasExcelRenovacion()">
+                                    <mat-icon style="font-size: 16px; width: 16px; height: 16px;">table_rows</mat-icon>
+                                    Procesar Lista de Vehículos
+                                  </button>
+                                </div>
+                              </div>
+                            }
+
+                            <!-- Controles de selección y conteo de flota -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; padding-bottom: 0.45rem; border-bottom: 1px solid #f1f5f9;">
+                              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <button mat-stroked-button 
+                                        style="font-size: 0.74rem; height: 26px; line-height: 26px; padding: 0 8px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px;"
+                                        [color]="estanTodosVehiculosRenovacionSeleccionados() ? 'warn' : 'primary'"
+                                        (click)="toggleTodosVehiculosRenovacion()">
+                                  <mat-icon style="font-size: 15px; width: 15px; height: 15px; margin: 0;">
+                                    {{estanTodosVehiculosRenovacionSeleccionados() ? 'deselect' : 'select_all'}}
+                                  </mat-icon>
+                                  <span>{{estanTodosVehiculosRenovacionSeleccionados() ? 'Deseleccionar todos' : 'Seleccionar todos'}}</span>
+                                </button>
+                                <span style="font-size: 0.76rem; color: #64748b;">
+                                  Total: <strong>{{vehiculosRenovacionSeleccionadosCount()}}</strong> de {{vehiculosRenovacionLista().length}} vehículos
+                                </span>
+                              </div>
+
+                              <span style="font-size: 0.72rem; color: #64748b; font-style: italic;">
+                                El orden define la prelación en la resolución
+                              </span>
+                            </div>
+
+                            <!-- Tabla de Vehículos con Orden y Verificación Técnica -->
+                            <div style="max-height: 340px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                              <table class="custom-table" style="width: 100%; background: white;">
+                                <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 2;">
+                                  <tr>
+                                    <th style="width: 45px; text-align: center;">Sel.</th>
+                                    <th style="width: 60px; text-align: center;">Orden</th>
+                                    <th>Placa</th>
+                                    <th>Datos Técnicos</th>
+                                    <th>Rutas</th>
+                                    <th>Antigüedad / Estado</th>
+                                    <th style="text-align: center; width: 55px;">Ficha</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (v of vehiculosRenovacionLista(); track v.placa; let i = $index) {
+                                    <tr [style.background]="v.seleccionado ? (v.alerta_antiguedad ? '#fffbeb' : '#f0fdf4') : 'white'">
+                                      <td style="text-align: center;">
+                                        <mat-checkbox 
+                                          color="primary" 
+                                          [checked]="v.seleccionado"
+                                          (change)="toggleVehiculoRenovacion(i)">
+                                        </mat-checkbox>
+                                      </td>
+                                      <td style="text-align: center;">
+                                        <input 
+                                          type="number" 
+                                          [value]="v.orden" 
+                                          (change)="cambiarOrdenVehiculo(i, $event)"
+                                          style="width: 42px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 0; font-size: 0.82rem;">
+                                      </td>
+                                      <td>
+                                        <strong style="font-family: monospace; font-size: 0.92rem; color: #1e293b;">{{v.placa}}</strong>
+                                      </td>
+                                      <td style="font-size: 0.78rem; color: #475569;">
+                                        <div><strong>{{v.marca || 'S/M'}}</strong> {{v.modelo || ''}}</div>
+                                        <span style="font-size: 0.71rem; color: #64748b;">
+                                          Año: {{v.anio_fabricacion || 'S/A'}} • Cat: {{v.categoria || 'M2'}}{{v.asientos ? ' • ' + v.asientos + ' as.' : ''}}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <div style="display: flex; gap: 3px; flex-wrap: wrap;">
+                                          @if (v.rutas && v.rutas.length > 0) {
+                                            @for (r of v.rutas; track r) {
+                                              <span style="font-family: monospace; font-size: 0.71rem; background: #e0f2fe; color: #0284c7; padding: 1px 4px; border-radius: 4px; border: 1px solid #bae6fd;">
+                                                {{r}}
+                                              </span>
+                                            }
+                                          } @else {
+                                            <span style="font-size: 0.74rem; color: #94a3b8;">Todas</span>
+                                          }
+                                        </div>
+                                      </td>
+                                      <td>
+                                        @if (v.alerta_antiguedad) {
+                                          <span style="font-size: 0.71rem; font-weight: 700; color: #b45309; background: #fef3c7; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde68a; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">
+                                            <mat-icon style="font-size: 13px; width: 13px; height: 13px;">warning</mat-icon>
+                                            {{v.edad}} años (Límite MTC)
+                                          </span>
+                                        } @else if (v.anio_fabricacion) {
+                                          <span style="font-size: 0.73rem; color: #059669; font-weight: 600; white-space: nowrap;">
+                                            {{v.edad}} años (Conforme)
+                                          </span>
+                                        } @else {
+                                          <span style="font-size: 0.73rem; color: #94a3b8; white-space: nowrap;">Sin año</span>
+                                        }
+                                      </td>
+                                      <td style="text-align: center;">
+                                        <button 
+                                          mat-icon-button 
+                                          class="compact-icon-btn-sm"
+                                          [matTooltip]="v.datos_verificados ? 'Ficha técnica completa en vehiculos_data (Click para ver/editar)' : 'Ficha técnica pendiente (Click para completar)'"
+                                          (click)="abrirVerificacionTecnica(v, i)">
+                                          <mat-icon [style.color]="v.datos_verificados ? '#16a34a' : '#2563eb'">
+                                            {{v.datos_verificados ? 'verified' : 'fact_check'}}
+                                          </mat-icon>
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  } @empty {
+                                    <tr>
+                                      <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                                        No hay vehículos cargados. Use la opción de Flota Anterior o pegue la lista desde Excel.
+                                      </td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        }
+                      </div>
+
                     </div>
                   }
 
@@ -1323,10 +1762,41 @@
                           }
                         </div>
                       } @else if (tramiteSeleccionado() === 'RENOVACION') {
-                        <p style="font-size: 0.85rem; color: #1e40af; margin: 0;">
-                          Nueva Concesión: <strong>{{renovacionForm.get('nueva_resolucion_primigenia')?.value}}</strong> 
-                          (Vigencia: {{renovacionForm.get('nueva_fecha_inicio_vigencia')?.value}} al {{renovacionForm.get('nueva_fecha_fin_vigencia')?.value}})
-                        </p>
+                        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                          <div style="font-size: 0.85rem; color: #1e40af; background: #eff6ff; padding: 8px 12px; border-radius: 6px; border: 1px solid #bfdbfe;">
+                            Nueva Concesión: <strong>{{renovacionForm.get('nueva_resolucion_primigenia')?.value}}</strong> 
+                            • Vigencia: <strong>{{renovacionForm.get('nueva_fecha_inicio_vigencia')?.value}}</strong> al <strong>{{renovacionForm.get('nueva_fecha_fin_vigencia')?.value}}</strong> ({{duracionAniosRenovacion()}} años)
+                          </div>
+                          
+                          <!-- Rutas Ratificadas -->
+                          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #475569;">Rutas ratificadas ({{rutasSeleccionadasRenovacion().length}}):</span>
+                            @for (rcod of rutasSeleccionadasRenovacion(); track rcod) {
+                              <span style="font-family: monospace; font-size: 0.75rem; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd; font-weight: bold;">
+                                Ruta {{rcod}}
+                              </span>
+                            } @empty {
+                              <span style="font-size: 0.75rem; color: #94a3b8;">Ninguna ruta ratificada</span>
+                            }
+                          </div>
+
+                          <!-- Flota Ordenada -->
+                          <div>
+                            <span style="font-size: 0.8rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.35rem;">
+                              Flota ordenada que pasará a la nueva resolución ({{vehiculosRenovacionSeleccionadosCount()}} unidades):
+                            </span>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; max-height: 120px; overflow-y: auto;">
+                              @for (v of vehiculosRenovacionLista(); track v.placa) {
+                                @if (v.seleccionado) {
+                                  <span style="font-family: monospace; font-size: 0.78rem; background: #ecfdf5; color: #059669; padding: 3px 7px; border-radius: 6px; border: 1px solid #a7f3d0; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+                                    <span style="background: #059669; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: inline-flex; align-items: center; justify-content: center;">{{v.orden}}</span>
+                                    {{v.placa}}
+                                  </span>
+                                }
+                              }
+                            </div>
+                          </div>
+                        </div>
                       } @else if (tramiteSeleccionado() === 'DUPLICADO' || tramiteSeleccionado() === 'CANJE') {
                         <p style="font-size: 0.8rem; font-weight: 600; color: #475569; margin: 0 0 0.5rem 0;">
                           Placas tramitadas ({{vehiculosTramiteSeleccionados().length}}):
@@ -1397,5 +1867,232 @@
         </div>
       }
     </div>
+  </div>
+
+  <!-- DETAIL PANEL: DETALLE DEL EXPEDIENTE -->
+  <div class="detail-backdrop" [class.visible]="mostrarDetalle()" (click)="cerrarDetalle()"></div>
+  <div class="detail-drawer" [class.open]="mostrarDetalle()">
+    @if (tramiteDetalle(); as det) {
+      <!-- Header -->
+      <div class="detail-header">
+        <div class="detail-header-left">
+          <span class="correlativo-badge correlativo-lg">{{det.correlativo}}</span>
+          <div>
+            <h3 class="detail-title">Detalle del Expediente</h3>
+            <span class="detail-subtitle">{{det.id}}</span>
+          </div>
+        </div>
+        <button mat-icon-button (click)="cerrarDetalle()" matTooltip="Cerrar detalle" style="width: 32px; height: 32px; line-height: 32px;">
+          <mat-icon style="font-size: 20px;">close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="detail-body">
+
+        <!-- Tipo de Trámite Badge -->
+        <div class="detail-type-bar">
+          <span class="detail-type-badge">
+            <mat-icon style="font-size: 16px; width: 16px; height: 16px;">
+              @switch (det.tipoRaw) {
+                @case ('SUSTITUCION') { sync_alt }
+                @case ('RENOVACION') { autorenew }
+                @case ('INCREMENTO') { trending_up }
+                @case ('BAJAS') { remove_circle }
+                @case ('CANCELACION') { cancel }
+                @case ('DUPLICADO') { file_copy }
+                @case ('CANJE') { change_circle }
+                @default { tune }
+              }
+            </mat-icon>
+            {{det.tipo}}
+          </span>
+          <span class="badge-autorizada" [ngClass]="det.estado === 'PROCESADO' ? 'status-autorizada' : 'status-suspendida'">
+            {{det.estado}}
+          </span>
+        </div>
+
+        <!-- Datos Generales -->
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #2563eb;">business</mat-icon>
+            Datos Generales
+          </h4>
+          <div class="detail-grid">
+            <div class="detail-field">
+              <span class="detail-label">Empresa</span>
+              <span class="detail-value company-name-text">{{det.empresa}}</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">RUC</span>
+              <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.ruc}}</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">Fecha de Resolución</span>
+              <span class="detail-value">{{det.fecha}}</span>
+            </div>
+            <div class="detail-field">
+              <span class="detail-label">Año</span>
+              <span class="detail-value">{{det.anio}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Origen / Expediente -->
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #7c3aed;">description</mat-icon>
+            Origen del Trámite
+          </h4>
+          <div class="detail-grid">
+            <div class="detail-field">
+              <span class="detail-label">N° Expediente / Origen</span>
+              <span class="detail-value" style="font-family: monospace; font-weight: 700; color: #2563eb;">{{det.doc}}</span>
+            </div>
+            @if (det.nro_resolucion_primigenia) {
+              <div class="detail-field">
+                <span class="detail-label">Resolución Primigenia</span>
+                <span class="detail-value" style="font-family: monospace; font-weight: 700;">{{det.nro_resolucion_primigenia}}</span>
+              </div>
+            }
+            @if (det.expediente_numero) {
+              <div class="detail-field">
+                <span class="detail-label">N° Expediente</span>
+                <span class="detail-value">{{det.expediente_numero}}</span>
+              </div>
+            }
+            @if (det.fecha_inicio_efectos) {
+              <div class="detail-field">
+                <span class="detail-label">Inicio de Efectos</span>
+                <span class="detail-value">{{det.fecha_inicio_efectos}}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Vehículos -->
+        @if ((det.placasIng && det.placasIng.length > 0) || (det.placasSal && det.placasSal.length > 0)) {
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #059669;">directions_car</mat-icon>
+              Vehículos Involucrados
+            </h4>
+
+            @if (det.placasIng && det.placasIng.length > 0) {
+              <div class="detail-vehicles-group">
+                <span class="detail-vehicles-label label-ingresantes">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">add_circle</span>
+                  Ingresantes ({{det.placasIng.length}})
+                </span>
+                <div class="detail-vehicles-list">
+                  @for (placa of det.placasIng; track placa) {
+                    <span class="plate-badge plate-emerald">{{placa}}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (det.placasSal && det.placasSal.length > 0) {
+              <div class="detail-vehicles-group" style="margin-top: 0.75rem;">
+                <span class="detail-vehicles-label label-salientes">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">remove_circle</span>
+                  Salientes ({{det.placasSal.length}})
+                </span>
+                <div class="detail-vehicles-list">
+                  @for (placa of det.placasSal; track placa) {
+                    <span class="plate-badge plate-amber">{{placa}}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- TUCs -->
+        @if (det.numeros_tuc && det.numeros_tuc.length > 0) {
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #b45309;">badge</mat-icon>
+              TUCs Asociados
+            </h4>
+            <div class="detail-vehicles-list">
+              @for (tuc of det.numeros_tuc; track tuc) {
+                <span class="tuc-badge">{{tuc}}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Rutas -->
+        @if (det.rutas_modificadas_ids && det.rutas_modificadas_ids.length > 0) {
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #dc2626;">route</mat-icon>
+              Rutas Modificadas
+            </h4>
+            <div class="detail-vehicles-list">
+              @for (ruta of det.rutas_modificadas_ids; track ruta) {
+                <span class="tuc-badge">{{ruta}}</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Observaciones -->
+        @if (det.observaciones) {
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #64748b;">notes</mat-icon>
+              Observaciones
+            </h4>
+            <p class="detail-obs-text">{{det.observaciones}}</p>
+          </div>
+        }
+
+        <!-- Documentos -->
+        @if (det.link_documento || det.link_notificacion) {
+          <div class="detail-section">
+            <h4 class="detail-section-title">
+              <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #2563eb;">attach_file</mat-icon>
+              Documentos
+            </h4>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              @if (det.link_documento) {
+                <a [href]="det.link_documento" target="_blank" class="detail-doc-link">
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">picture_as_pdf</mat-icon>
+                  Ver Resolución
+                </a>
+              }
+              @if (det.link_notificacion) {
+                <a [href]="det.link_notificacion" target="_blank" class="detail-doc-link">
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">mail</mat-icon>
+                  Ver Notificación
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Fechas de registro -->
+        @if (det.fecha_registro) {
+          <div class="detail-meta">
+            <span class="material-symbols-outlined" style="font-size: 14px;">schedule</span>
+            Registrado: {{det.fecha_registro | date:'dd/MM/yyyy HH:mm'}}
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="detail-footer">
+        <button mat-stroked-button (click)="cerrarDetalle()">
+          <mat-icon>close</mat-icon>
+          Cerrar
+        </button>
+        <button mat-flat-button color="primary" (click)="cerrarDetalle(); iniciarTramiteParaEmpresa(det)">
+          <mat-icon>add_task</mat-icon>
+          Nuevo Trámite para esta Empresa
+        </button>
+      </div>
+    }
   </div>
 </div>

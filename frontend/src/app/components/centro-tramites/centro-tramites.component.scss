@@ -1000,3 +1000,1436 @@
   background: #fff7ed;
   border: 1px solid #fed7aa;
 }
+
+/* ── Correlativo Badge ─────────────── */
+.correlativo-badge {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+
+  &.correlativo-lg {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 8px;
+  }
+}
+
+/* ── Column Configurator ─────────────── */
+.col-config-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-config-columnas {
+  height: 34px !important;
+  border-radius: 8px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  padding: 0 0.75rem !important;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3b82f6 !important;
+    color: #2563eb !important;
+    background: #eff6ff !important;
+  }
+}
+
+.col-config-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+  z-index: 1100;
+  padding: 0.5rem 0;
+  animation: popoverIn 0.2s ease-out;
+
+  .col-config-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 0.25rem;
+  }
+
+  .col-config-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1rem;
+    font-size: 0.82rem;
+    color: #334155;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover:not(.disabled) {
+      background: #eff6ff;
+    }
+
+    &.disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    ::ng-deep .mat-mdc-checkbox {
+      transform: scale(0.85);
+    }
+
+    .col-config-fija-badge {
+      font-size: 9px;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-left: auto;
+    }
+  }
+}
+
+.col-config-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1099;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Detail Panel / Drawer ─────────────── */
+.detail-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(3px);
+  z-index: 900;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.detail-drawer {
+  position: fixed;
+  top: 0;
+  right: -580px;
+  width: 560px;
+  max-width: 95vw;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  z-index: 950;
+  transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+
+  &.open {
+    right: 0;
+  }
+}
+
+.detail-header {
+  height: 56px;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  flex-shrink: 0;
+
+  .detail-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .detail-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+  }
+
+  .detail-subtitle {
+    font-size: 0.78rem;
+    color: #64748b;
+    font-family: monospace;
+    font-weight: 600;
+  }
+}
+
+.detail-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: #f8fafc;
+}
+
+.detail-type-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.detail-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  text-transform: capitalize;
+}
+
+.detail-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  .detail-section-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-field {
+  .detail-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+
+  .detail-value {
+    display: block;
+    font-size: 0.88rem;
+    color: #1e293b;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+}
+
+.detail-vehicles-group {
+  .detail-vehicles-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+
+    &.label-ingresantes {
+      color: #059669;
+    }
+
+    &.label-salientes {
+      color: #d97706;
+    }
+  }
+}
+
+.detail-vehicles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.tuc-badge {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.detail-obs-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.6;
+  background: #f8fafc;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.detail-doc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+  }
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  padding: 0.75rem 0 0 0;
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.detail-footer {
+  height: 60px;
+  padding: 0 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.04);
+
+  button {
+    height: 38px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+
+/* ── Tramite Row Hover ─────────────── */
+.tramite-row {
+  transition: background 0.15s ease;
+
+  &:hover td {
+    background-color: #eff6ff !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   DARK MODE
+   ══════════════════════════════════════════════════ */
+:host-context(.dark-theme) {
+
+  /* ── Page Container ───────────────── */
+  .page-container {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9;
+  }
+
+  /* ── Hero Banner ───────────────── */
+  .page-header {
+    background: linear-gradient(to right, #0c1425, #111d3a, #172554) !important;
+    border: 1px solid #1e2433;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+    .title-with-icon {
+      .header-icon { color: #60a5fa; }
+      h1 { color: #f1f5f9; }
+      .subtitle { color: #94a3b8; }
+    }
+
+    .header-actions {
+      .header-action-btn {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        color: #e2e8f0 !important;
+
+        .btn-icon { color: #e2e8f0; }
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15) !important;
+          border-color: rgba(255, 255, 255, 0.25) !important;
+        }
+
+        &.btn-primary-custom {
+          background-color: #1d4ed8 !important;
+          border-color: #2563eb !important;
+
+          &:hover {
+            background-color: #1e40af !important;
+          }
+        }
+      }
+    }
+  }
+
+  /* ── KPI Metrics Cards ───────────────── */
+  .kpi-card {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .kpi-header {
+      .kpi-title { color: #94a3b8 !important; }
+
+      .kpi-icon-badge {
+        &.kpi-badge-blue {
+          background: rgba(37, 99, 235, 0.15) !important;
+          color: #60a5fa !important;
+          border-color: rgba(59, 130, 246, 0.25) !important;
+        }
+        &.kpi-badge-amber {
+          background: rgba(245, 158, 11, 0.12) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(245, 158, 11, 0.25) !important;
+        }
+        &.kpi-badge-rose {
+          background: rgba(225, 29, 72, 0.12) !important;
+          color: #fb7185 !important;
+          border-color: rgba(225, 29, 72, 0.25) !important;
+        }
+      }
+    }
+
+    .kpi-body {
+      .kpi-number {
+        color: #60a5fa !important;
+        &.text-amber { color: #fbbf24 !important; }
+        &.text-rose { color: #fb7185 !important; }
+        &.text-blue { color: #60a5fa !important; }
+      }
+      .kpi-subtext { color: #64748b !important; }
+    }
+
+    .kpi-footer {
+      border-top-color: #1e2433 !important;
+      color: #64748b !important;
+      .font-emerald { color: #34d399 !important; }
+    }
+  }
+
+  /* ── Filtros / Search ───────────────── */
+  .stitch-filters {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    .search-box-wrapper {
+      .search-icon { color: #64748b !important; }
+
+      .stitch-search-input {
+        background: #171b26 !important;
+        border-color: #1e2433 !important;
+        color: #f1f5f9 !important;
+
+        &::placeholder { color: #64748b !important; }
+
+        &:focus {
+          background: #1a1f2e !important;
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+      }
+    }
+
+    .stitch-select-field {
+      ::ng-deep .mat-mdc-text-field-wrapper {
+        background: #171b26 !important;
+      }
+      ::ng-deep .mat-mdc-select-value-text {
+        color: #e2e8f0 !important;
+      }
+      ::ng-deep .mat-mdc-select-arrow {
+        color: #64748b !important;
+      }
+      ::ng-deep .mdc-floating-label {
+        color: #94a3b8 !important;
+      }
+      ::ng-deep .mdc-notched-outline__leading,
+      ::ng-deep .mdc-notched-outline__notch,
+      ::ng-deep .mdc-notched-outline__trailing {
+        border-color: #1e2433 !important;
+      }
+    }
+
+    .btn-clear-filters {
+      border-color: #1e2433 !important;
+      color: #94a3b8 !important;
+      background: transparent;
+
+      &:hover {
+        border-color: #f87171 !important;
+        color: #f87171 !important;
+        background-color: rgba(248, 113, 113, 0.08) !important;
+      }
+    }
+  }
+
+  .results-count-badge {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: #60a5fa !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+  }
+
+  /* ── Data Table ───────────────── */
+  .table-card {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .custom-table {
+    th {
+      background-color: #131722 !important;
+      color: #94a3b8 !important;
+      border-bottom-color: #1e2433 !important;
+    }
+
+    td {
+      color: #e2e8f0 !important;
+      border-bottom-color: #1e2433 !important;
+    }
+
+    tr:hover td {
+      background-color: #171b26 !important;
+    }
+  }
+
+  .tramite-row {
+    &:hover td {
+      background-color: #171b26 !important;
+    }
+  }
+
+  .company-name-text {
+    color: #60a5fa !important;
+  }
+
+  /* ── Badges ───────────────── */
+  .badge-autorizada {
+    background-color: rgba(5, 150, 105, 0.12) !important;
+    color: #34d399 !important;
+    border-color: rgba(52, 211, 153, 0.25) !important;
+
+    &.status-suspendida {
+      background-color: rgba(217, 119, 6, 0.12) !important;
+      color: #fbbf24 !important;
+      border-color: rgba(251, 191, 36, 0.25) !important;
+    }
+  }
+
+  .correlativo-badge {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ── Drawer (Nuevo Trámite) ───────────────── */
+  .drawer-backdrop {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .side-drawer {
+    background: #0f1320 !important;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .drawer-top-bar {
+    background: #111622 !important;
+    border-bottom-color: #1e2433 !important;
+
+    .drawer-step-indicator {
+      color: #f1f5f9 !important;
+
+      .badge-tramite {
+        background: rgba(37, 99, 235, 0.15) !important;
+        color: #60a5fa !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+      }
+    }
+  }
+
+  .drawer-scroll-body {
+    background: #0b0f19 !important;
+
+    .mat-stepper-horizontal {
+      background: transparent !important;
+    }
+  }
+
+  .drawer-fixed-footer {
+    background: #111622 !important;
+    border-top-color: #1e2433 !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+
+    .footer-center-indicator { color: #94a3b8 !important; }
+  }
+
+  /* ── Sustitución Compact Box ───────────────── */
+  .sustitucion-compact-box {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    .compact-box-header {
+      border-bottom-color: #1e2433 !important;
+    }
+
+    .vehicle-column {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+
+      .col-label { color: #cbd5e1 !important; }
+
+      .compact-plate-input {
+        background: #0f1320 !important;
+        border-color: #1e2433 !important;
+        color: #f1f5f9 !important;
+
+        &:focus {
+          background: #131722 !important;
+          border-color: #3b82f6 !important;
+        }
+      }
+
+      .selection-preview-chip {
+        &.chip-amber {
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.25) !important;
+          color: #fbbf24 !important;
+        }
+        &.chip-emerald {
+          background: rgba(16, 185, 129, 0.1) !important;
+          border-color: rgba(16, 185, 129, 0.25) !important;
+          color: #34d399 !important;
+        }
+      }
+
+      .btn-tech-specs {
+        background: rgba(37, 99, 235, 0.12) !important;
+        border-color: rgba(59, 130, 246, 0.3) !important;
+        color: #60a5fa !important;
+
+        &:hover {
+          background: rgba(37, 99, 235, 0.2) !important;
+        }
+      }
+    }
+
+    .transition-indicator { color: #475569 !important; }
+  }
+
+  /* ── Sustitución Compact Bar ───────────────── */
+  .sustitucion-compact-bar {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
+    .compact-inputs-row {
+      .input-with-label {
+        .mini-label { color: #cbd5e1 !important; }
+
+        .search-input-wrap {
+          .compact-plate-input {
+            background: #171b26 !important;
+            border-color: #1e2433 !important;
+            color: #f1f5f9 !important;
+
+            &:focus {
+              background: #1a1f2e !important;
+              border-color: #3b82f6 !important;
+            }
+          }
+
+          .plate-suggestions-dropdown {
+            background: #111622 !important;
+            border-color: #1e2433 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+
+            .suggestion-item {
+              border-bottom-color: #1e2433 !important;
+
+              &:hover { background: #171b26 !important; }
+
+              .sug-plate { color: #60a5fa !important; }
+              .sug-desc { color: #94a3b8 !important; }
+            }
+          }
+        }
+      }
+
+      .arrow-sep { color: #475569 !important; }
+
+      .btn-icon-tech {
+        background: rgba(37, 99, 235, 0.12) !important;
+        border-color: rgba(59, 130, 246, 0.25) !important;
+
+        &:hover {
+          background: rgba(37, 99, 235, 0.2) !important;
+        }
+      }
+
+      .btn-icon-baja-ext {
+        background: rgba(234, 88, 12, 0.1) !important;
+        border-color: rgba(234, 88, 12, 0.25) !important;
+
+        &:hover {
+          background: rgba(234, 88, 12, 0.18) !important;
+        }
+      }
+    }
+
+    .compact-info-chips {
+      border-top-color: #1e2433 !important;
+
+      .chips-row .chip-item {
+        &.chip-saliente {
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: rgba(245, 158, 11, 0.25) !important;
+          color: #fbbf24 !important;
+        }
+        &.chip-entrante {
+          background: rgba(16, 185, 129, 0.1) !important;
+          border-color: rgba(16, 185, 129, 0.25) !important;
+          color: #34d399 !important;
+        }
+      }
+
+      .alert-otra-empresa {
+        background: rgba(234, 88, 12, 0.1) !important;
+        border-color: rgba(234, 88, 12, 0.2) !important;
+        color: #fb923c !important;
+
+        .btn-quick-baja-ext {
+          background: rgba(234, 88, 12, 0.15) !important;
+          border-color: rgba(234, 88, 12, 0.3) !important;
+          color: #fb923c !important;
+
+          &:hover {
+            background: rgba(234, 88, 12, 0.25) !important;
+          }
+        }
+      }
+    }
+  }
+
+  /* ── Pair Unit Box (Sustitución pares) ───────────────── */
+  .pair-unit-box {
+    .plate-badge {
+      &.plate-amber {
+        background: rgba(245, 158, 11, 0.1) !important;
+        border-color: rgba(245, 158, 11, 0.25) !important;
+        color: #fbbf24 !important;
+      }
+      &.plate-emerald {
+        background: rgba(16, 185, 129, 0.1) !important;
+        border-color: rgba(16, 185, 129, 0.25) !important;
+        color: #34d399 !important;
+      }
+    }
+    .pair-mini-specs { color: #94a3b8 !important; }
+  }
+
+  .solo-icon-baja {
+    background: rgba(234, 88, 12, 0.1) !important;
+    border-color: rgba(234, 88, 12, 0.25) !important;
+  }
+
+  /* ── Column Configurator Popover ───────────────── */
+  .btn-config-columnas {
+    border-color: #1e2433 !important;
+    color: #cbd5e1 !important;
+    background: #171b26 !important;
+
+    &:hover {
+      border-color: #3b82f6 !important;
+      color: #60a5fa !important;
+      background: rgba(37, 99, 235, 0.1) !important;
+    }
+  }
+
+  .col-config-popover {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+    .col-config-header {
+      color: #f1f5f9 !important;
+      border-bottom-color: #1e2433 !important;
+    }
+
+    .col-config-item {
+      color: #cbd5e1 !important;
+
+      &:hover:not(.disabled) {
+        background: #171b26 !important;
+      }
+
+      .col-config-fija-badge {
+        color: #64748b !important;
+        background: #1e2433 !important;
+      }
+    }
+  }
+
+  /* ── Detail Drawer ───────────────── */
+  .detail-drawer {
+    background: #0f1320 !important;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .detail-header {
+    background: #111622 !important;
+    border-bottom-color: #1e2433 !important;
+
+    .detail-title { color: #f1f5f9 !important; }
+    .detail-subtitle { color: #94a3b8 !important; }
+  }
+
+  .detail-body {
+    background: #0b0f19 !important;
+  }
+
+  .detail-type-bar {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+  }
+
+  .detail-type-badge {
+    background: rgba(37, 99, 235, 0.15) !important;
+    color: #60a5fa !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+  }
+
+  .detail-section {
+    background: #111622 !important;
+    border-color: #1e2433 !important;
+
+    .detail-section-title {
+      color: #cbd5e1 !important;
+      border-bottom-color: #1e2433 !important;
+    }
+  }
+
+  .detail-field {
+    .detail-label { color: #64748b !important; }
+    .detail-value { color: #e2e8f0 !important; }
+  }
+
+  .detail-vehicles-group {
+    .detail-vehicles-label {
+      &.label-ingresantes { color: #34d399 !important; }
+      &.label-salientes { color: #fbbf24 !important; }
+    }
+  }
+
+  .tuc-badge {
+    background: #171b26 !important;
+    border-color: #1e2433 !important;
+    color: #cbd5e1 !important;
+  }
+
+  .detail-obs-text {
+    color: #cbd5e1 !important;
+    background: #171b26 !important;
+    border-color: #1e2433 !important;
+  }
+
+  .detail-doc-link {
+    color: #60a5fa !important;
+    background: rgba(37, 99, 235, 0.12) !important;
+    border-color: rgba(59, 130, 246, 0.25) !important;
+
+    &:hover {
+      background: rgba(37, 99, 235, 0.2) !important;
+    }
+  }
+
+  .detail-meta {
+    color: #64748b !important;
+    border-top-color: #1e2433 !important;
+  }
+
+  .detail-footer {
+    background: #111622 !important;
+    border-top-color: #1e2433 !important;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── Mat-Stepper inside drawer ───────────────── */
+  ::ng-deep .mat-stepper-horizontal {
+    background: transparent !important;
+  }
+
+  ::ng-deep .mat-horizontal-stepper-header-container {
+    background: #111622 !important;
+    border-bottom: 1px solid #1e2433;
+  }
+
+  ::ng-deep .mat-step-header {
+    .mat-step-label { color: #94a3b8 !important; }
+    .mat-step-label-active { color: #f1f5f9 !important; }
+    .mat-step-label-selected { color: #60a5fa !important; }
+  }
+
+  ::ng-deep .mat-horizontal-content-container {
+    background: transparent !important;
+  }
+
+  /* ── Mat Form Fields inside dark context ───────────────── */
+  ::ng-deep .mat-mdc-form-field {
+    .mdc-text-field--outlined {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: #1e2433 !important;
+      }
+    }
+
+    .mat-mdc-input-element { color: #f1f5f9 !important; }
+    .mdc-floating-label { color: #94a3b8 !important; }
+
+    .mat-mdc-text-field-wrapper {
+      background: #171b26 !important;
+    }
+  }
+
+  /* ── Paginator ───────────────── */
+  ::ng-deep .mat-mdc-paginator {
+    background: #111622 !important;
+    color: #cbd5e1 !important;
+    border-top: 1px solid #1e2433;
+
+    .mat-mdc-paginator-range-label { color: #94a3b8 !important; }
+
+    .mat-mdc-icon-button {
+      color: #94a3b8 !important;
+      &:hover { color: #f1f5f9 !important; }
+      &[disabled] { color: #334155 !important; }
+    }
+
+    .mat-mdc-select-value { color: #cbd5e1 !important; }
+  }
+
+  /* ══════════════════════════════════════════════════
+     DRAWER FORMS — Override inline styles
+     ══════════════════════════════════════════════════ */
+
+  /* ── Generic white card sections inside drawer steps ── */
+  .drawer-scroll-body {
+
+    /* All inline "background: white" cards/sections */
+    div[style*="background: white"],
+    div[style*="background:white"],
+    div[style*="background: linear-gradient"] {
+      background: #111622 !important;
+      border-color: #1e2433 !important;
+      color: #e2e8f0 !important;
+    }
+
+    /* Section headers with #f8fafc bg */
+    div[style*="background: #f8fafc"],
+    div[style*="background:#f8fafc"] {
+      background: #131722 !important;
+      border-color: #1e2433 !important;
+    }
+
+    /* Headings in dark mode */
+    h3[style*="color: #1e293b"],
+    h4[style*="color: #1e293b"] {
+      color: #f1f5f9 !important;
+    }
+
+    h4[style*="color: #dc2626"] {
+      color: #f87171 !important;
+    }
+
+    /* Paragraph text colors */
+    p[style*="color: #475569"],
+    span[style*="color: #475569"] {
+      color: #cbd5e1 !important;
+    }
+
+    p[style*="color: #64748b"],
+    span[style*="color: #64748b"] {
+      color: #94a3b8 !important;
+    }
+
+    p[style*="color: #1e293b"],
+    span[style*="color: #1e293b"],
+    div[style*="color: #1e293b"] {
+      color: #f1f5f9 !important;
+    }
+
+    /* Enterprise search input */
+    input[style*="background: #f8fafc"] {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+      color: #f1f5f9 !important;
+    }
+
+    /* Enterprise list items */
+    div[style*="border-bottom: 1px solid #f1f5f9"] {
+      border-bottom-color: #1e2433 !important;
+    }
+
+    /* Enterprise list hover container */
+    div[style*="border: 1px solid #f1f5f9"] {
+      border-color: #1e2433 !important;
+    }
+
+    /* Selected empresa card (blue bg) */
+    div[style*="background: #eff6ff"] {
+      background: rgba(37, 99, 235, 0.12) !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+    }
+
+    /* Tramite type selector buttons (unselected, white bg) */
+    button[style*="background: white"],
+    button[style*="border: 1px solid #e2e8f0"] {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+      color: #cbd5e1 !important;
+    }
+
+    /* Tramite button icon circle (light bg) */
+    div[style*="background: #f1f5f9"]:not([style*="background: #f1f5f9;"]) {
+      background: #1e2433 !important;
+    }
+
+    div[style*="background: '#f1f5f9'"] {
+      background: #1e2433 !important;
+    }
+
+    /* Info alerts (blue, green, orange, red backgrounds) */
+    div[style*="background: #f0fdf4"],
+    div[style*="background:#f0fdf4"] {
+      background: rgba(16, 185, 129, 0.1) !important;
+      border-color: rgba(16, 185, 129, 0.25) !important;
+    }
+    p[style*="color: #166534"],
+    p[style*="color: #15803d"] {
+      color: #34d399 !important;
+    }
+
+    div[style*="background: #eff6ff"],
+    div[style*="background:#eff6ff"] {
+      background: rgba(37, 99, 235, 0.1) !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+    }
+    p[style*="color: #1e40af"] {
+      color: #93c5fd !important;
+    }
+
+    div[style*="background: #fff7ed"],
+    div[style*="background:#fff7ed"] {
+      background: rgba(234, 88, 12, 0.08) !important;
+      border-color: rgba(249, 115, 22, 0.25) !important;
+    }
+    p[style*="color: #9a3412"] {
+      color: #fb923c !important;
+    }
+
+    div[style*="background: #fef2f2"],
+    div[style*="background:#fef2f2"] {
+      background: rgba(239, 68, 68, 0.08) !important;
+      border-color: rgba(239, 68, 68, 0.25) !important;
+    }
+    p[style*="color: #991b1b"] {
+      color: #fca5a5 !important;
+    }
+
+    div[style*="background: #fef3c7"] {
+      background: rgba(245, 158, 11, 0.12) !important;
+    }
+
+    div[style*="background: #fee2e2"] {
+      background: rgba(220, 38, 38, 0.12) !important;
+    }
+
+    div[style*="background: #e0e7ff"] {
+      background: rgba(99, 102, 241, 0.12) !important;
+    }
+
+    div[style*="background: #e0f2fe"] {
+      background: rgba(14, 165, 233, 0.12) !important;
+    }
+
+    span[style*="background: #fee2e2"] {
+      background: rgba(220, 38, 38, 0.15) !important;
+      color: #fca5a5 !important;
+    }
+
+    span[style*="background: #e0f2fe"] {
+      background: rgba(14, 165, 233, 0.15) !important;
+      color: #7dd3fc !important;
+    }
+
+    /* Flota summary bar */
+    div[style*="background: #f8fafc"][style*="border: 1px solid #e2e8f0"] {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+    }
+
+    /* Dashed border empty states */
+    div[style*="border: 1px dashed #cbd5e1"] {
+      background: #0f1320 !important;
+      border-color: #1e2433 !important;
+    }
+
+    /* Inline tables inside forms */
+    table[style*="background: white"],
+    table[style*="background:white"] {
+      background: #111622 !important;
+      border-color: #1e2433 !important;
+    }
+
+    thead[style*="background: #f8fafc"] {
+      background: #131722 !important;
+    }
+
+    /* Baja row selection colors */
+    tr[style*="background"][style*="#fff1f2"] {
+      background: rgba(239, 68, 68, 0.08) !important;
+    }
+
+    tr[style*="background"][style*="#f0f9ff"] {
+      background: rgba(37, 99, 235, 0.08) !important;
+    }
+
+    /* Inline borders on scrollable containers */
+    div[style*="border: 1px solid #e2e8f0"] {
+      border-color: #1e2433 !important;
+    }
+
+    /* Dashed separator */
+    div[style*="border-top: 1px dashed #e2e8f0"] {
+      border-top-color: #1e2433 !important;
+    }
+
+    /* N° resolución badges inline */
+    span[style*="background: #e2e8f0"] {
+      background: #1e2433 !important;
+      color: #e2e8f0 !important;
+    }
+
+    /* Flota badge in empresa list */
+    span[style*="background: #f1f5f9"][style*="color: #1d4ed8"] {
+      background: rgba(37, 99, 235, 0.15) !important;
+      color: #60a5fa !important;
+    }
+
+    /* Monospace text */
+    span[style*="color: #2563eb"] {
+      color: #60a5fa !important;
+    }
+
+    /* Confirmation step summary cards */
+    div[style*="background: white"][style*="border: 1px solid #f1f5f9"],
+    div[style*="background:white"][style*="border: 1px solid #f1f5f9"] {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+    }
+
+    /* Inline substitution pair summary row */
+    div[style*="background: #f8fafc"][style*="border: 1px solid #e2e8f0"][style*="border-radius: 8px"] {
+      background: #171b26 !important;
+      border-color: #1e2433 !important;
+    }
+
+    /* Enterprise mouse-hover inline styles need JS but we override via CSS */
+    div[onmouseover] {
+      background: transparent !important;
+      &:hover {
+        background: rgba(37, 99, 235, 0.1) !important;
+      }
+    }
+
+    /* Enterprise selected card text */
+    h3[style*="color: #1e3a8a"] {
+      color: #93c5fd !important;
+    }
+    span[style*="color: #b45309"] {
+      color: #fbbf24 !important;
+    }
+    strong[style*="color: #1d4ed8"] {
+      color: #60a5fa !important;
+    }
+
+    /* Inline green plate badges */
+    strong[style*="background: #ecfdf5"] {
+      background: rgba(16, 185, 129, 0.15) !important;
+      border-color: rgba(16, 185, 129, 0.25) !important;
+      color: #34d399 !important;
+    }
+
+    /* Inline amber plate badges in summary */
+    span[style*="background: #fffbeb"][style*="color: #b45309"],
+    span[style*="background: #fffbeb"][style*="border: 1px solid #fde68a"] {
+      background: rgba(245, 158, 11, 0.12) !important;
+      border-color: rgba(245, 158, 11, 0.25) !important;
+      color: #fbbf24 !important;
+    }
+
+    span[style*="background: #ecfdf5"][style*="color: #059669"],
+    span[style*="background: #ecfdf5"][style*="border: 1px solid #a7f3d0"] {
+      background: rgba(16, 185, 129, 0.12) !important;
+      border-color: rgba(16, 185, 129, 0.25) !important;
+      color: #34d399 !important;
+    }
+
+    /* MTC / baja badges in summary */
+    span[style*="background: #fff7ed"][style*="color: #ea580c"] {
+      background: rgba(234, 88, 12, 0.12) !important;
+      border-color: rgba(234, 88, 12, 0.25) !important;
+      color: #fb923c !important;
+    }
+
+    span[style*="color: #94a3b8"] {
+      color: #64748b !important;
+    }
+  }
+
+  /* ── Inline table styles in table main view ── */
+  .table-container {
+    span[style*="background: #e2e8f0"] {
+      background: #1e2433 !important;
+      color: #e2e8f0 !important;
+    }
+
+    span[style*="background: #eff6ff"][style*="color: #1d4ed8"] {
+      background: rgba(37, 99, 235, 0.15) !important;
+      color: #60a5fa !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+    }
+
+    div[style*="color: #2563eb"] {
+      color: #60a5fa !important;
+    }
+
+    span[style*="background: #ecfdf5"] {
+      background: rgba(16, 185, 129, 0.12) !important;
+      color: #34d399 !important;
+      border-color: rgba(16, 185, 129, 0.25) !important;
+    }
+
+    span[style*="background: #fffbeb"] {
+      background: rgba(245, 158, 11, 0.1) !important;
+      color: #fbbf24 !important;
+      border-color: rgba(245, 158, 11, 0.25) !important;
+    }
+
+    tr[style*="background: #f1f5f9"] {
+      background: #131722 !important;
+    }
+  }
+
+  /* ── Mat-select overlay panel (global) ── */
+  ::ng-deep .mat-mdc-select-panel {
+    background: #111622 !important;
+    border: 1px solid #1e2433;
+
+    .mat-mdc-option {
+      color: #e2e8f0 !important;
+
+      &:hover, &.mat-mdc-option-active {
+        background: #171b26 !important;
+      }
+
+      &.mdc-list-item--selected {
+        background: rgba(37, 99, 235, 0.15) !important;
+        color: #60a5fa !important;
+      }
+    }
+  }
+
+  /* ── Empty state messages ── */
+  div[style*="text-align: center"][style*="color: #94a3b8"] {
+    color: #64748b !important;
+  }
+  p[style*="color: #475569"][style*="font-weight: 500"] {
+    color: #94a3b8 !important;
+  }
+
+  /* ── Step 3 table rows with Angular [style.background] bindings ── */
+  .drawer-scroll-body {
+
+    /* Default 'white' rows in Canje/Duplicado/Bajas vehicle tables */
+    tr[style*="white"],
+    tr[style] {
+      background: transparent !important;
+    }
+
+    /* Baja selected row (pink) */
+    tr[style*="#fff1f2"] {
+      background: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Tramite selected row (light blue) */
+    tr[style*="#f0f9ff"] {
+      background: rgba(37, 99, 235, 0.1) !important;
+    }
+
+    /* Scrollable table wrapper borders */
+    div[style*="max-height"][style*="overflow-y: auto"][style*="border: 1px solid #e2e8f0"] {
+      border-color: #1e2433 !important;
+    }
+
+    /* Sticky thead in scrollable tables */
+    thead[style*="position: sticky"][style*="background: #f8fafc"] {
+      background: #131722 !important;
+    }
+
+    /* Inline td text colors */
+    td[style*="color: #475569"] {
+      color: #94a3b8 !important;
+    }
+    td[style*="color: #2563eb"] {
+      color: #60a5fa !important;
+    }
+
+    /* Monospace plate text default color */
+    strong[style*="font-family: monospace"] {
+      color: #e2e8f0 !important;
+    }
+
+    /* Renovación Master Flow Panel in Dark Theme */
+    .renovacion-panel {
+      div[style*="background: white"] {
+        background: #111622 !important;
+        border-color: #1e2433 !important;
+      }
+      div[style*="background: #f8fafc"] {
+        background: #171b26 !important;
+        border-color: #1e2433 !important;
+      }
+      div[style*="background: #f1f5f9"] {
+        background: #171b26 !important;
+      }
+      textarea {
+        background: #0f1320 !important;
+        color: #e2e8f0 !important;
+        border-color: #1e2433 !important;
+      }
+      input[type="number"] {
+        background: #0f1320 !important;
+        color: #e2e8f0 !important;
+        border-color: #1e2433 !important;
+      }
+      tr[style*="#f0fdf4"] {
+        background: rgba(16, 185, 129, 0.08) !important;
+      }
+      tr[style*="#fffbeb"] {
+        background: rgba(245, 158, 11, 0.08) !important;
+      }
+      div[style*="background: #fffbeb"] {
+        background: rgba(245, 158, 11, 0.1) !important;
+        border-color: rgba(245, 158, 11, 0.25) !important;
+      }
+      p[style*="color: #92400e"] {
+        color: #fcd34d !important;
+      }
+      h4[style*="color: #1e293b"] {
+        color: #e2e8f0 !important;
+      }
+      span[style*="color: #334155"] {
+        color: #cbd5e1 !important;
+      }
+      span[style*="color: #1e293b"] {
+        color: #e2e8f0 !important;
+      }
+    }
+  }
+}
+

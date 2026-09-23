@@ -89,6 +89,16 @@ async def get_hijas_by_empresa(
     hijas = await service.get_hijas_by_ruc(ruc_empresa)
     return [ResolucionHijaResponse.model_validate(h) for h in hijas]
 
+@router.get("/siguiente-numero", summary="Generar el siguiente número correlativo para resolución hija")
+async def get_siguiente_numero_resolucion(
+    tipo_tramite: Optional[str] = Query(None, description="Tipo de trámite (SUSTITUCION, INCREMENTO, etc.)"),
+    anio: Optional[int] = Query(None, description="Año de la resolución"),
+    service: ResolucionHijaService = Depends(get_service)
+):
+    """Obtener el siguiente número correlativo sugerido para resolución hija"""
+    siguiente = await service.generar_siguiente_numero(tipo_tramite, anio)
+    return {"siguiente_numero": siguiente}
+
 @router.get("/numero/{nro_resolucion}", response_model=ResolucionHijaResponse)
 async def get_resolucion_hija_by_numero(
     nro_resolucion: str,

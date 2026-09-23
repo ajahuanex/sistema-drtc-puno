@@ -89,3 +89,4 @@ build/
 scratch/
 *.ps1
 ia.py
+backend/uploads/
