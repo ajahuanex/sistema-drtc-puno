@@ -28,6 +28,8 @@ import { VehiculoModalComponent, calcularCompletitudVehiculo, enriquecerFichaTec
 import { RutaModalComponent } from './ruta-modal.component';
 import { SustitucionModalComponent } from './sustitucion-modal.component';
 import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/baja-externa-form.component';
+import { RenovacionTucModalComponent } from './renovacion-tuc-modal.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-centro-tramites',
@@ -2205,6 +2207,40 @@ export class CentroTramites implements OnInit {
         this.cargarVehiculosResolucion(resPrimigenia);
         this.cargarHistorialTramites();
         this.cargarCatalogoEmpresas();
+
+        // En caso de RENOVACIÓN: Abrir automáticamente el diálogo de generación e impresión de TUCs
+        if (tipo === 'RENOVACION') {
+          const vehiculosParaTuc = res?.vehiculos && res.vehiculos.length > 0
+            ? res.vehiculos
+            : (vehiculosItems || []).map((v: any, idx: number) => ({
+                placa: v.placa,
+                numero_tuc: v.numero_tuc,
+                orden: v.orden || (idx + 1),
+                marca: v.datos_tecnicos?.marca,
+                modelo: v.datos_tecnicos?.modelo,
+                anio_fabricacion: v.datos_tecnicos?.anio_fabricacion,
+                categoria: v.datos_tecnicos?.categoria || 'M2',
+                color: v.datos_tecnicos?.color,
+                rutas: v.rutas || []
+              }));
+
+          this.dialog.open(RenovacionTucModalComponent, {
+            data: {
+              nro_resolucion: res?.nro_resolucion_hija || payloadExtra.nueva_resolucion_primigenia || resPrimigenia,
+              ruc: emp.ruc,
+              razon_social: emp.razon_social,
+              fecha_emision: this.renovacionForm.value.nueva_fecha_emision,
+              fecha_inicio_vigencia: this.renovacionForm.value.nueva_fecha_inicio_vigencia,
+              fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia,
+              duracion_anios: this.duracionAniosRenovacion(),
+              vehiculos: vehiculosParaTuc
+            },
+            width: '1060px',
+            maxWidth: '96vw',
+            maxHeight: '92vh',
+            panelClass: 'tuc-impresion-dialog-panel'
+          });
+        }
       },
       error: (err) => {
         this.isProcessing.set(false);
@@ -2213,5 +2249,43 @@ export class CentroTramites implements OnInit {
         this.snackBar.open(`❌ ${msg}`, 'Cerrar', { duration: 6000 });
       }
     });
+  }
+
+  // ACCIONES DE IMPRESIÓN DE TUC PARA EL HISTORIAL
+  abrirModalImpresionTucs(tramite: any) {
+    if (!tramite) return;
+    const placas: string[] = tramite.placasIng && tramite.placasIng.length > 0
+      ? tramite.placasIng
+      : (tramite.placasTexto ? tramite.placasTexto.split(' ').filter(Boolean) : []);
+
+    const tucs: string[] = tramite.numeros_tuc || [];
+
+    const vehiculosInfo = placas.map((p, idx) => ({
+      placa: p,
+      numero_tuc: tucs[idx] || undefined,
+      orden: idx + 1
+    }));
+
+    this.dialog.open(RenovacionTucModalComponent, {
+      data: {
+        nro_resolucion: tramite.nro_resolucion_primigenia || tramite.id || 'S/N',
+        ruc: tramite.ruc,
+        razon_social: tramite.empresa,
+        fecha_emision: tramite.fecha_resolucion_raw,
+        fecha_inicio_vigencia: tramite.fecha_inicio_efectos,
+        vehiculos: vehiculosInfo
+      },
+      width: '1060px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
+      panelClass: 'tuc-impresion-dialog-panel'
+    });
+  }
+
+  imprimirTucIndividual(placa: string) {
+    if (!placa) return;
+    const url = `${environment.apiUrl}/tucs/vista-impresion/${encodeURIComponent(placa)}`;
+    window.open(url, '_blank');
+    this.snackBar.open(`Vista A4 para ${placa} abierta en nueva pestaña. Presione Ctrl+P para imprimir.`, 'OK', { duration: 3500 });
   }
 }

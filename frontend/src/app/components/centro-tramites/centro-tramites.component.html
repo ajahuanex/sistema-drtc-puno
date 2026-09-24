@@ -305,9 +305,14 @@
               <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef class="text-center">Acciones</th>
                 <td mat-cell *matCellDef="let element" class="text-center" style="white-space: nowrap;">
-                  <button mat-icon-button color="primary" matTooltip="Iniciar trámite para esta empresa" (click)="iniciarTramiteParaEmpresa(element)">
+                  <button mat-icon-button color="primary" matTooltip="Iniciar trámite para esta empresa" (click)="iniciarTramiteParaEmpresa(element); $event.stopPropagation();">
                     <mat-icon>add_task</mat-icon>
                   </button>
+                  @if (element.tipoRaw === 'RENOVACION' || (element.numeros_tuc && element.numeros_tuc.length > 0)) {
+                    <button mat-icon-button matTooltip="Imprimir TUC(s) de este trámite" (click)="abrirModalImpresionTucs(element); $event.stopPropagation();">
+                      <mat-icon style="color: #059669;">print</mat-icon>
+                    </button>
+                  }
                   <button mat-icon-button color="accent" matTooltip="Ver detalle del expediente" (click)="verDetalleTramite(element)">
                     <mat-icon>visibility</mat-icon>
                   </button>
@@ -2048,9 +2053,17 @@
             <span class="detail-subtitle">{{det.id}}</span>
           </div>
         </div>
-        <button mat-icon-button (click)="cerrarDetalle()" matTooltip="Cerrar detalle" style="width: 32px; height: 32px; line-height: 32px;">
-          <mat-icon style="font-size: 20px;">close</mat-icon>
-        </button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          @if (det.tipoRaw === 'RENOVACION' || (det.numeros_tuc && det.numeros_tuc.length > 0)) {
+            <button mat-stroked-button (click)="abrirModalImpresionTucs(det)" matTooltip="Imprimir TUCs de esta renovación" style="border-color: #0284c7; color: #0284c7; font-size: 12px; height: 32px; padding: 0 10px;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px; margin-right: 4px;">print</mat-icon>
+              <span>Imprimir TUC(s)</span>
+            </button>
+          }
+          <button mat-icon-button (click)="cerrarDetalle()" matTooltip="Cerrar detalle" style="width: 32px; height: 32px; line-height: 32px;">
+            <mat-icon style="font-size: 20px;">close</mat-icon>
+          </button>
+        </div>
       </div>
 
       <!-- Body -->
@@ -2150,9 +2163,14 @@
                   <span class="material-symbols-outlined" style="font-size: 14px;">add_circle</span>
                   Ingresantes ({{det.placasIng.length}})
                 </span>
-                <div class="detail-vehicles-list">
+                <div class="detail-vehicles-list" style="display: flex; gap: 6px; flex-wrap: wrap;">
                   @for (placa of det.placasIng; track placa) {
-                    <span class="plate-badge plate-emerald">{{placa}}</span>
+                    <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 2px 6px;">
+                      <span class="plate-badge plate-emerald" style="box-shadow: none;">{{placa}}</span>
+                      <button mat-icon-button (click)="imprimirTucIndividual(placa)" matTooltip="Imprimir TUC A4 (Ctrl+P)" style="width: 22px; height: 22px; line-height: 22px;">
+                        <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #059669;">print</mat-icon>
+                      </button>
+                    </div>
                   }
                 </div>
               </div>

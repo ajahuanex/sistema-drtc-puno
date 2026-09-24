@@ -709,6 +709,10 @@ class FlotaEmpresaService:
         bajas_renovacion = 0
 
         res_target = req.nro_resolucion_primigenia
+        dt_inicio = None
+        dt_fin = None
+        vehiculos_procesados_info = []
+        vehiculos_tucs_map = {}
 
         # -------------------------------------------------------------
         # 1. CASO ESPECIAL: RENOVACIÓN
@@ -1148,6 +1152,8 @@ class FlotaEmpresaService:
                 "nro_resolucion_hija": req.nro_resolucion_hija,
                 "tipo_resolucion_hija": tipo_hija_val,
                 "fecha_emision_resolucion": req.fecha_emision_resolucion or req.nueva_fecha_emision,
+                "fecha_inicio_vigencia": dt_inicio if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else None,
+                "fecha_vigencia_hasta": dt_fin if (req.tipo_tramite == "RENOVACION" or req.es_renovacion) else None,
                 "num_expediente": req.num_expediente,
                 "fecha_expediente": req.fecha_expediente,
                 "documento_origen": req.documento_origen,
@@ -1315,6 +1321,23 @@ class FlotaEmpresaService:
 
             if doc_veh.get("numero_tuc"):
                 await self._sincronizar_tuc_registro(doc_veh)
+                vehiculos_tucs_map[placa_in] = doc_veh.get("numero_tuc")
+
+            vehiculos_procesados_info.append({
+                "placa": placa_in,
+                "numero_tuc": doc_veh.get("numero_tuc"),
+                "orden": getattr(item, "orden", None),
+                "marca": doc_veh.get("marca"),
+                "modelo": doc_veh.get("modelo"),
+                "anio_fabricacion": doc_veh.get("anio_fabricacion"),
+                "categoria": cat_val,
+                "color": doc_veh.get("color"),
+                "rutas": rutas_item or [],
+                "estado": "HABILITADO",
+                "ruc": ruc,
+                "razon_social": razon_social,
+                "nro_resolucion_primigenia": res_target
+            })
 
         # -------------------------------------------------------------
         # 3. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN EN 'resoluciones_hijas'
@@ -1380,6 +1403,9 @@ class FlotaEmpresaService:
                 for item in req.vehiculos:
                     if item.placa:
                         placas_ing.append(item.placa.strip().upper())
+                    tuc_num = item.numero_tuc or vehiculos_tucs_map.get(item.placa.strip().upper())
+                    if tuc_num:
+                        tucs_alta.append(tuc_num.strip())
 
         # Vinculación con resolución primigenia
         prim_doc = await self.db.resoluciones_primigenias.find_one({
@@ -1454,7 +1480,8 @@ class FlotaEmpresaService:
             "bajas_sustitucion": bajas_sustitucion,
             "bajas_renovacion": bajas_renovacion,
             "bajas_oficio": bajas_oficio,
-            "bajas_cancelacion": bajas_cancelacion
+            "bajas_cancelacion": bajas_cancelacion,
+            "vehiculos": vehiculos_procesados_info
         }
 
 

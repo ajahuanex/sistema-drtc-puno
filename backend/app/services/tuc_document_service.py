@@ -208,12 +208,16 @@ class TucDocumentService:
                 ]
             }
 
-        vehiculo = await db.flota_empresa.find_one(query)
+        cursor = db.flota_empresa.find(query).sort([("esta_activo", -1), ("fecha_actualizacion", -1), ("fecha_registro", -1)])
+        vehiculos_res = await cursor.to_list(1)
+        vehiculo = vehiculos_res[0] if vehiculos_res else None
         if not vehiculo:
             placa_limpia = term.replace("-", "").strip()
-            vehiculo = await db.flota_empresa.find_one({
+            cursor2 = db.flota_empresa.find({
                 "placa": {"$regex": f"^{re.escape(placa_limpia)}$", "$options": "i"}
-            })
+            }).sort([("esta_activo", -1), ("fecha_actualizacion", -1), ("fecha_registro", -1)])
+            vehiculos_res2 = await cursor2.to_list(1)
+            vehiculo = vehiculos_res2[0] if vehiculos_res2 else None
 
         if not vehiculo:
             raise ValueError(f"No se encontró el vehículo con identificador o placa '{placa_o_id}' en la flota.")

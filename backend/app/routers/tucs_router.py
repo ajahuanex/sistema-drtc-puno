@@ -189,53 +189,129 @@ async def obtener_datos_impresion(placa_o_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener datos de impresión: {str(e)}")
 
-@router.get("/vista-impresion/{placa_o_id}", summary="Página HTML A4 completa del TUC con Anverso y Reverso (Ctrl+P)", response_class=HTMLResponse)
-async def vista_impresion_tuc(placa_o_id: str):
+def _generar_sheet_tuc_html(tuc_info: dict) -> str:
+    d = tuc_info.get("datos", {})
+    numero_tuc = tuc_info.get("numero_tuc", "S/N")
+    placa = d.get("placa", "-")
+
+    def clean_val(val):
+        if val is None:
+            return "-"
+        s = str(val).strip()
+        return s if s else "-"
+
+    rutas_rows_html = ""
+    rutas_detalle = d.get("rutas_detalle", [])
+    if rutas_detalle:
+        for r in rutas_detalle:
+            cod = r.get("codigo", "")
+            origen = r.get("origen", "")
+            itin = r.get("itinerario", "")
+            destino = r.get("destino", "")
+            frec = r.get("frecuencia", "")
+            tramo_parts = [p for p in [origen, itin, destino] if p]
+            tramo = " - ".join(tramo_parts) if tramo_parts else r.get("tramo", "")
+            frec_val = f" ({frec})" if frec else ""
+            
+            rutas_rows_html += f"""
+            <tr>
+                <td style="font-weight:bold; white-space:nowrap; padding-right:8px;">Ruta {cod}:</td>
+                <td>{tramo}{frec_val}</td>
+            </tr>"""
+    else:
+        rutas_rows_html = '<tr><td colspan="2" style="font-style:italic; color:#64748b;">SIN RUTAS ASIGNADAS</td></tr>'
+
+    return f"""
+    <!-- HOJA A4 PARA PLACA {placa} -->
+    <div class="a4-sheet">
+        <!-- ═══ 1. ANVERSO (CARA PRINCIPAL) ═══ -->
+        <div class="anverso-box">
+            <div class="section-tag">ANVERSO (CARA PRINCIPAL) — TUC N° {clean_val(numero_tuc)}</div>
+
+            <div class="anverso-header">
+                <!-- LOGO DRTC-P -->
+                <div class="logo-box">
+                    <svg width="105" height="65" viewBox="0 0 110 70" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 25 32 C 35 12, 65 12, 75 32 Z" fill="#eab308" />
+                        <path d="M 20 37 C 35 22, 65 22, 80 37 C 65 29, 35 29, 20 37 Z" fill="#0284c7" />
+                        <path d="M 15 42 C 35 27, 65 27, 85 42 C 65 34, 35 34, 15 42 Z" fill="#0369a1" />
+                        <path d="M 10 47 C 35 32, 65 32, 90 47 C 65 39, 35 39, 10 47 Z" fill="#0c4a6e" />
+                        <text x="50" y="64" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-style="italic" font-size="16" fill="#1e293b" letter-spacing="-0.5">DRTC-P</text>
+                    </svg>
+                </div>
+
+                <!-- TEXTO CABECERA ANVERSO -->
+                <div class="header-info">
+                    <div class="row-auto">
+                        AUTORIZACIÓN &nbsp;&nbsp; DEL: <strong>{clean_val(d.get('fecha_del'))}</strong> &nbsp;&nbsp; AL: <strong>{clean_val(d.get('fecha_al'))}</strong>
+                    </div>
+                    <div class="row-rdr">
+                        R.D.R. N° <strong>{clean_val(d.get('nro_resolucion_primigenia'))}</strong>-GRP/GRI/DRTC
+                    </div>
+                    <div class="row-empresa">
+                        {clean_val(d.get('empresa'))}
+                    </div>
+                    <div class="row-ruc-partida">
+                        RUC : <strong>{clean_val(d.get('ruc'))}</strong> &nbsp;&nbsp;&nbsp;&nbsp; <strong>Partida Registral:</strong> {clean_val(d.get('partida'))}
+                    </div>
+                </div>
+            </div>
+
+            <!-- FICHA TECNICA ANVERSO -->
+            <div class="tech-grid">
+                <div class="grid-row-2col">
+                    <div class="col-left-wide">Placa : <strong>{clean_val(d.get('placa'))}</strong></div>
+                    <div>Color : <strong>{clean_val(d.get('color'))}</strong></div>
+                </div>
+                <div class="grid-row-2col">
+                    <div class="col-left-wide">Marca: <strong>{clean_val(d.get('marca'))}</strong></div>
+                    <div>VIN/Serie : <strong>{clean_val(d.get('vin'))}</strong></div>
+                </div>
+                <div class="grid-row-4col">
+                    <div>Fab./Mod. : <strong>{clean_val(d.get('anio'))}</strong></div>
+                    <div>Asientos : <strong>{clean_val(d.get('asientos'))}</strong></div>
+                    <div>Alto: <strong>{clean_val(d.get('alto'))}</strong></div>
+                    <div>Peso Neto : <strong>{clean_val(d.get('peso_neto'))}</strong></div>
+                </div>
+                <div class="grid-row-4col">
+                    <div>Categoría. : <strong>{clean_val(d.get('categoria'))}</strong></div>
+                    <div>Ejes : <strong>{clean_val(d.get('ejes'))}</strong></div>
+                    <div>Ancho: <strong>{clean_val(d.get('ancho'))}</strong></div>
+                    <div>Carga Útil : <strong>{clean_val(d.get('carga_util'))}</strong></div>
+                </div>
+                <div class="grid-row-4col">
+                    <div></div>
+                    <div></div>
+                    <div>Largo : <strong>{clean_val(d.get('largo'))}</strong></div>
+                    <div>Peso Bruto : <strong>{clean_val(d.get('peso_bruto'))}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ 2. REVERSO (SELLO / RUTAS) ═══ -->
+        <div class="reverso-box">
+            <div class="section-tag">REVERSO (SELLO / RUTAS AUTORIZADAS)</div>
+
+            <table class="rutas-table">
+                <tbody>
+                    {rutas_rows_html}
+                </tbody>
+            </table>
+
+            <div class="reverso-acto">
+                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-GRP/GRI/DRTC ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
+            </div>
+        </div>
+    </div>
     """
-    Genera una página HTML en formato A4 con la TUC renderizada en 2 secciones (Anverso y Reverso),
-    coincidiendo exactamente con la plantilla oficial de Google Docs de la DRTC Puno.
-    Optimizada para impresión directa en hoja A4 (Ctrl+P).
-    """
-    try:
-        tuc_info = await TucDocumentService.get_datos_impresion(placa_o_id)
-        d = tuc_info.get("datos", {})
-        numero_tuc = tuc_info.get("numero_tuc", "S/N")
-        placa = d.get("placa", "-")
 
-        # Construir filas de tabla de rutas para el Reverso
-        rutas_rows_html = ""
-        rutas_detalle = d.get("rutas_detalle", [])
-        if rutas_detalle:
-            for r in rutas_detalle:
-                cod = r.get("codigo", "")
-                origen = r.get("origen", "")
-                itin = r.get("itinerario", "")
-                destino = r.get("destino", "")
-                frec = r.get("frecuencia", "")
-                tramo_parts = [p for p in [origen, itin, destino] if p]
-                tramo = " - ".join(tramo_parts) if tramo_parts else r.get("tramo", "")
-                frec_val = f" ({frec})" if frec else ""
-                
-                rutas_rows_html += f"""
-                <tr>
-                    <td style="font-weight:bold; white-space:nowrap; padding-right:8px;">Ruta {cod}:</td>
-                    <td>{tramo}{frec_val}</td>
-                </tr>"""
-        else:
-            rutas_rows_html = '<tr><td colspan="2" style="font-style:italic; color:#64748b;">SIN RUTAS ASIGNADAS</td></tr>'
-
-        def clean_val(val):
-            if val is None:
-                return "-"
-            s = str(val).strip()
-            return s if s else "-"
-
-        html = f"""<!DOCTYPE html>
+def _build_tuc_page_wrapper(title: str, toolbar_label: str, sheets_html: str) -> str:
+    return f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>TUC {placa} - N° {numero_tuc} | DRTC Puno</title>
+    <title>{title}</title>
     <style>
         * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
@@ -291,6 +367,12 @@ async def vista_impresion_tuc(placa_o_id: str):
         .btn-close:hover {{ background: rgba(255,255,255,0.25); }}
 
         /* CONTENEDOR HOJA A4 */
+        .sheets-container {{
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }}
+
         .a4-sheet {{
             width: 210mm;
             min-height: 297mm;
@@ -413,7 +495,18 @@ async def vista_impresion_tuc(placa_o_id: str):
             }}
             body {{ background: #fff !important; padding: 0 !important; }}
             .toolbar {{ display: none !important; }}
-            .a4-sheet {{ box-shadow: none !important; padding: 0 !important; width: 100% !important; }}
+            .sheets-container {{ gap: 0 !important; }}
+            .a4-sheet {{
+                box-shadow: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }}
+            .a4-sheet:last-child {{
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }}
             .section-tag {{ display: none !important; }}
         }}
     </style>
@@ -423,96 +516,17 @@ async def vista_impresion_tuc(placa_o_id: str):
     <!-- TOOLBAR (Navegación en pantalla) -->
     <div class="toolbar">
         <div class="toolbar-title">
-            <span>Impresión TUC — Placa: <strong>{placa}</strong> (Formato Oficial A4)</span>
+            <span>{toolbar_label}</span>
         </div>
         <div>
-            <button class="btn-print" onclick="window.print()">Imprimir Documento (Ctrl+P)</button>
+            <button class="btn-print" onclick="window.print()">Imprimir (Ctrl+P)</button>
             <button class="btn-close" onclick="window.close()">Cerrar</button>
         </div>
     </div>
 
-    <!-- HOJA A4 -->
-    <div class="a4-sheet">
-
-        <!-- ═══ 1. ANVERSO (CARA PRINCIPAL) ═══ -->
-        <div class="anverso-box">
-            <div class="section-tag">ANVERSO (CARA PRINCIPAL)</div>
-
-            <div class="anverso-header">
-                <!-- LOGO DRTC-P -->
-                <div class="logo-box">
-                    <svg width="105" height="65" viewBox="0 0 110 70" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M 25 32 C 35 12, 65 12, 75 32 Z" fill="#eab308" />
-                        <path d="M 20 37 C 35 22, 65 22, 80 37 C 65 29, 35 29, 20 37 Z" fill="#0284c7" />
-                        <path d="M 15 42 C 35 27, 65 27, 85 42 C 65 34, 35 34, 15 42 Z" fill="#0369a1" />
-                        <path d="M 10 47 C 35 32, 65 32, 90 47 C 65 39, 35 39, 10 47 Z" fill="#0c4a6e" />
-                        <text x="50" y="64" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-style="italic" font-size="16" fill="#1e293b" letter-spacing="-0.5">DRTC-P</text>
-                    </svg>
-                </div>
-
-                <!-- TEXTO CABECERA ANVERSO -->
-                <div class="header-info">
-                    <div class="row-auto">
-                        AUTORIZACIÓN &nbsp;&nbsp; DEL: <strong>{clean_val(d.get('fecha_del'))}</strong> &nbsp;&nbsp; AL: <strong>{clean_val(d.get('fecha_al'))}</strong>
-                    </div>
-                    <div class="row-rdr">
-                        R.D.R. N° <strong>{clean_val(d.get('nro_resolucion_primigenia'))}</strong>-GRP/GRI/DRTC
-                    </div>
-                    <div class="row-empresa">
-                        {clean_val(d.get('empresa'))}
-                    </div>
-                    <div class="row-ruc-partida">
-                        RUC : <strong>{clean_val(d.get('ruc'))}</strong> &nbsp;&nbsp;&nbsp;&nbsp; <strong>Partida Registral:</strong> {clean_val(d.get('partida'))}
-                    </div>
-                </div>
-            </div>
-
-            <!-- FICHA TECNICA ANVERSO -->
-            <div class="tech-grid">
-                <div class="grid-row-2col">
-                    <div class="col-left-wide">Placa : <strong>{clean_val(d.get('placa'))}</strong></div>
-                    <div>Color : <strong>{clean_val(d.get('color'))}</strong></div>
-                </div>
-                <div class="grid-row-2col">
-                    <div class="col-left-wide">Marca: <strong>{clean_val(d.get('marca'))}</strong></div>
-                    <div>VIN/Serie : <strong>{clean_val(d.get('vin'))}</strong></div>
-                </div>
-                <div class="grid-row-4col">
-                    <div>Fab./Mod. : <strong>{clean_val(d.get('anio'))}</strong></div>
-                    <div>Asientos : <strong>{clean_val(d.get('asientos'))}</strong></div>
-                    <div>Alto: <strong>{clean_val(d.get('alto'))}</strong></div>
-                    <div>Peso Neto : <strong>{clean_val(d.get('peso_neto'))}</strong></div>
-                </div>
-                <div class="grid-row-4col">
-                    <div>Categoría. : <strong>{clean_val(d.get('categoria'))}</strong></div>
-                    <div>Ejes : <strong>{clean_val(d.get('ejes'))}</strong></div>
-                    <div>Ancho: <strong>{clean_val(d.get('ancho'))}</strong></div>
-                    <div>Carga Útil : <strong>{clean_val(d.get('carga_util'))}</strong></div>
-                </div>
-                <div class="grid-row-4col">
-                    <div></div>
-                    <div></div>
-                    <div>Largo : <strong>{clean_val(d.get('largo'))}</strong></div>
-                    <div>Peso Bruto : <strong>{clean_val(d.get('peso_bruto'))}</strong></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ═══ 2. REVERSO (SELLO / RUTAS) ═══ -->
-        <div class="reverso-box">
-            <div class="section-tag">REVERSO (SELLO / RUTAS AUTORIZADAS)</div>
-
-            <table class="rutas-table">
-                <tbody>
-                    {rutas_rows_html}
-                </tbody>
-            </table>
-
-            <div class="reverso-acto">
-                R.D.R N° <strong>{clean_val(d.get('num_resolucion_acto'))}</strong>-GRP/GRI/DRTC ({clean_val(d.get('fecha_resolucion_acto'))}) ({clean_val(d.get('tipo_resolucion_acto'))})
-            </div>
-        </div>
-
+    <!-- HOJAS A4 -->
+    <div class="sheets-container">
+        {sheets_html}
     </div>
 
     <script>
@@ -520,11 +534,67 @@ async def vista_impresion_tuc(placa_o_id: str):
     </script>
 </body>
 </html>"""
-        return HTMLResponse(content=html)
+
+@router.get("/vista-impresion/{placa_o_id}", summary="Página HTML A4 completa del TUC con Anverso y Reverso (Ctrl+P)", response_class=HTMLResponse)
+async def vista_impresion_tuc(placa_o_id: str):
+    """
+    Genera una página HTML en formato A4 con la TUC renderizada en 2 secciones (Anverso y Reverso),
+    coincidiendo exactamente con la plantilla oficial de Google Docs de la DRTC Puno.
+    Optimizada para impresión directa en hoja A4 (Ctrl+P).
+    """
+    try:
+        tuc_info = await TucDocumentService.get_datos_impresion(placa_o_id)
+        d = tuc_info.get("datos", {})
+        numero_tuc = tuc_info.get("numero_tuc", "S/N")
+        placa = d.get("placa", "-")
+
+        sheet_html = _generar_sheet_tuc_html(tuc_info)
+        page_html = _build_tuc_page_wrapper(
+            title=f"TUC {placa} - N° {numero_tuc} | DRTC Puno",
+            toolbar_label=f"Impresión TUC — Placa: <strong>{placa}</strong> (Formato Oficial A4)",
+            sheets_html=sheet_html
+        )
+        return HTMLResponse(content=page_html)
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar vista de impresión A4: {str(e)}")
+
+@router.get("/vista-impresion-lote", summary="Página HTML para imprimir lote de TUCs en A4 (Ctrl+P)", response_class=HTMLResponse)
+async def vista_impresion_lote(
+    placas: str = Query(..., description="Placas separadas por coma (ej: ABC-123,XYZ-789)")
+):
+    """
+    Genera un documento HTML imprimible en A4 que concatena múltiples TUCs (una página A4 por vehículo),
+    permitiendo la impresión masiva en lote con un solo Ctrl+P.
+    """
+    try:
+        lista_placas = [p.strip().upper() for p in placas.split(",") if p.strip()]
+        if not lista_placas:
+            raise HTTPException(status_code=400, detail="Debe proporcionar al menos una placa")
+
+        sheets = []
+        for p in lista_placas:
+            try:
+                tuc_info = await TucDocumentService.get_datos_impresion(p)
+                sheets.append(_generar_sheet_tuc_html(tuc_info))
+            except Exception as item_err:
+                logger.warning(f"No se pudo cargar datos de TUC para placa {p}: {item_err}")
+
+        if not sheets:
+            raise HTTPException(status_code=404, detail="No se pudo obtener información de TUC para ninguna de las placas indicadas")
+
+        total_sheets = len(sheets)
+        page_html = _build_tuc_page_wrapper(
+            title=f"Lote de TUCs ({total_sheets} vehículos) | DRTC Puno",
+            toolbar_label=f"Impresión de Lote TUCs — <strong>{total_sheets}</strong> Tarjeta(s) A4 listas para imprimir",
+            sheets_html="\n".join(sheets)
+        )
+        return HTMLResponse(content=page_html)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar impresión de lote: {str(e)}")
 
 class TucPlantillaConfigRequest(BaseModel):
     plantilla_id: str

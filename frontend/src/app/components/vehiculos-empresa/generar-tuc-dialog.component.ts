@@ -236,10 +236,16 @@ export interface GenerarTucDialogData {
                 <div class="action-info">
                   <h4 class="action-h">Impresión Directa / Tarjeta Física</h4>
                   <p class="action-p">Abre el cuadro de diálogo de impresión con las dimensiones calibradas para imprimir sobre el cartón.</p>
-                  <button mat-raised-button class="btn-print-direct" (click)="imprimirTarjeta()">
-                    <mat-icon>print</mat-icon>
-                    <span>Imprimir Tarjeta Ahora</span>
-                  </button>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button mat-raised-button class="btn-print-direct" (click)="imprimirTarjeta()">
+                      <mat-icon>print</mat-icon>
+                      <span>Imprimir Tarjeta Ahora</span>
+                    </button>
+                    <button mat-stroked-button color="primary" (click)="abrirVistaImpresionA4()" matTooltip="Abre documento oficial A4 listo para imprimir">
+                      <mat-icon>open_in_new</mat-icon>
+                      <span>Vista Completa A4</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1330,6 +1336,13 @@ export class GenerarTucDialogComponent implements OnInit {
         iframe.remove();
       }, 2000);
     }, 350);
+  }
+
+  abrirVistaImpresionA4(): void {
+    const term = this.data.vehiculo.placa || this.data.vehiculo.id;
+    const url = `${environment.apiUrl}/tucs/vista-impresion/${encodeURIComponent(term)}`;
+    window.open(url, '_blank');
+    this.snackBar.open('Vista de impresión A4 abierta en nueva pestaña. Usa Ctrl+P para imprimir.', 'OK', { duration: 3500 });
   }
 
   abrirNotificacionImpresion(): void {
