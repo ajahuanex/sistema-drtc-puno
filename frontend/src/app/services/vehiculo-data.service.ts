@@ -54,6 +54,14 @@ export class VehiculoDataService {
     return this.http.get<{ success: boolean; data: any; message?: string }>(`${this.apiUrl}/buscar/placa/${placa}`);
   }
 
+  consultarPcm(placa: string): Observable<{ success: boolean; origen?: string; data: any; message?: string }> {
+    return this.http.get<{ success: boolean; origen?: string; data: any; message?: string }>(`${this.apiUrl}/consultar-pcm/${placa}`);
+  }
+
+  guardarFichaTecnica(data: any): Observable<{ success: boolean; data: any; message?: string }> {
+    return this.http.post<{ success: boolean; data: any; message?: string }>(`${this.apiUrl}/guardar-ficha`, data);
+  }
+
   createVehiculoData(data: any): Observable<{ success: boolean; data: any }> {
     return this.http.post<{ success: boolean; data: any }>(this.apiUrl, data);
   }

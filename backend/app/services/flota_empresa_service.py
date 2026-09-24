@@ -861,16 +861,38 @@ class FlotaEmpresaService:
                     if not req.nuevas_rutas and rutas_codigos_clonados:
                         req.nuevas_rutas = rutas_codigos_clonados
 
+                def _parse_safe_dt(val, default=None):
+                    if not val:
+                        return default
+                    if isinstance(val, datetime):
+                        return val
+                    if isinstance(val, str):
+                        try:
+                            # Handle YYYY-MM-DD or full ISO
+                            s = val.strip().replace("Z", "")
+                            if len(s) == 10 and "-" in s:
+                                return datetime.strptime(s, "%Y-%m-%d")
+                            return datetime.fromisoformat(s)
+                        except Exception:
+                            return default
+                    return default
+
+                dt_emision = _parse_safe_dt(req.nueva_fecha_emision, now)
+                dt_inicio = _parse_safe_dt(req.nueva_fecha_inicio_vigencia, dt_emision)
+                dt_fin = _parse_safe_dt(req.nueva_fecha_fin_vigencia, None)
+
+                anios_dur = getattr(req, "duracion_anios", None) or 4
                 # Upsert de la NUEVA resolución primigenia con las 3 fechas oficiales
                 nueva_prim = {
                     "ruc_empresa": ruc,
                     "razon_social": razon_social,
                     "nro_resolucion": nueva_res,
-                    "fecha_resolucion": req.nueva_fecha_emision or now,
-                    "fecha_emision": req.nueva_fecha_emision or now,
-                    "fecha_inicio_vigencia": req.nueva_fecha_inicio_vigencia,
-                    "fecha_fin_vigencia": req.nueva_fecha_fin_vigencia,
-                    "duracion_anios": getattr(req, "duracion_anios", None) or 4,
+                    "fecha_resolucion": dt_emision,
+                    "fecha_emision": dt_emision,
+                    "fecha_inicio_vigencia": dt_inicio,
+                    "fecha_fin_vigencia": dt_fin,
+                    "duracion_anios": anios_dur,
+                    "anios_vigencia": anios_dur,
                     "tipo_autorizacion": "RENOVACION",
                     "estado": "VIGENTE",
                     "esta_activo": True,
@@ -1114,7 +1136,7 @@ class FlotaEmpresaService:
                 try:
                     from app.services.tuc_service import TucService
                     from app.models.tuc import TipoEmisionTuc
-                    nro_tuc_val = await TucService.generar_siguiente_nro_tuc(TipoEmisionTuc.ELECTRONICA)
+                    nro_tuc_val = await TucService.generar_siguiente_nro_tuc(TipoEmisionTuc.FISICA)
                 except Exception as tuc_gen_err:
                     logger.warning(f"No se pudo autogenerar TUC para {placa_in}: {tuc_gen_err}")
 
@@ -1295,13 +1317,21 @@ class FlotaEmpresaService:
                 await self._sincronizar_tuc_registro(doc_veh)
 
         # -------------------------------------------------------------
-        # 3. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN HIJA EN 'resoluciones_hijas'
+        # 3. REGISTRAR EL TRÁMITE COMO RESOLUCIÓN EN 'resoluciones_hijas'
         # -------------------------------------------------------------
-        nro_hija_val = (req.nro_resolucion_hija or "").strip().upper()
-        if not nro_hija_val:
-            from app.services.resolucion_hija_service import ResolucionHijaService
-            hija_srv = ResolucionHijaService(self.db)
-            nro_hija_val = await hija_srv.generar_siguiente_numero(req.tipo_tramite)
+        if req.tipo_tramite == "RENOVACION" or req.es_renovacion:
+            # En Renovación, el acto resolutivo oficial ES la nueva resolución de autorización ingresada por el usuario
+            nro_hija_val = (req.nueva_resolucion_primigenia or req.nro_resolucion_hija or "").strip().upper()
+            if nro_hija_val:
+                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
+        else:
+            nro_hija_val = (req.nro_resolucion_hija or "").strip().upper()
+            if not nro_hija_val:
+                from app.services.resolucion_hija_service import ResolucionHijaService
+                hija_srv = ResolucionHijaService(self.db)
+                nro_hija_val = await hija_srv.generar_siguiente_numero(req.tipo_tramite)
+            else:
+                nro_hija_val = _normalizar_codigo_resolucion(nro_hija_val) or nro_hija_val
 
         # Mapeo de tipo_acto
         tipo_acto_map = {
@@ -1361,7 +1391,8 @@ class FlotaEmpresaService:
         })
         prim_id = prim_doc.get("id") or str(prim_doc["_id"]) if prim_doc else None
 
-        fecha_res = req.fecha_emision_resolucion or req.nueva_fecha_emision or now
+        fecha_res = _parse_safe_dt(req.fecha_emision_resolucion or req.nueva_fecha_emision, now)
+        fecha_exp = _parse_safe_dt(req.fecha_expediente, now)
         exp_num = req.num_expediente or req.documento_origen or ""
         origen_txt = f"OFICIO {req.documento_origen}" if req.es_de_oficio else f"EXP. {exp_num or 'S/N'}"
 
@@ -1378,7 +1409,7 @@ class FlotaEmpresaService:
             "fecha_resolucion": fecha_res,
             "fecha_inicio_efectos": fecha_res,
             "expediente_numero": exp_num,
-            "fecha_expediente": req.fecha_expediente or now,
+            "fecha_expediente": fecha_exp,
             "vehiculos_ingresantes": placas_ing,
             "vehiculos_salientes": placas_sal,
             "rutas_modificadas_ids": req.nuevas_rutas or [],

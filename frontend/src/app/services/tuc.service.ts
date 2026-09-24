@@ -109,7 +109,7 @@ export class TucService {
   }
 
   // Obtener Siguiente Número Correlativo
-  getSiguienteNumero(tipo: TipoEmisionTuc = 'ELECTRONICA'): Observable<{ siguienteNroTuc: string }> {
+  getSiguienteNumero(tipo: TipoEmisionTuc = 'FISICA'): Observable<{ siguienteNroTuc: string }> {
     return this.http.get<{ siguienteNroTuc: string }>(`${this.apiUrl}/siguiente-numero`, {
       params: new HttpParams().set('tipo', tipo)
     });

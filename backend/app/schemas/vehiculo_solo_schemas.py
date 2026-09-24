@@ -12,11 +12,16 @@ from enum import Enum
 # Enums
 class CategoriaVehiculo(str, Enum):
     M1 = "M1"
+    M1_C3 = "M1-C3"
     M2 = "M2"
+    M2_C3 = "M2-C3"
     M3 = "M3"
+    M3_C3 = "M3-C3"
     N1 = "N1"
     N2 = "N2"
     N3 = "N3"
+    L = "L"
+    O = "O"
 
 
 class TipoCarroceria(str, Enum):

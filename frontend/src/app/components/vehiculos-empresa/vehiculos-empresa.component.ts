@@ -1530,12 +1530,13 @@ export class VehiculosEmpresaComponent implements OnInit {
     if (!item) return false;
     // 1. Si el estado_primigenia ya viene como VENCIDA, CANCELADA o INACTIVA
     const estPrim = (item.estado_primigenia || '').toUpperCase();
-    if (estPrim === 'VENCIDA' || estPrim === 'CANCELADA' || estPrim === 'INACTIVA') return true;
+    if (estPrim === 'VENCIDA' || estPrim === 'CANCELADA' || estPrim === 'INACTIVA' || estPrim === 'SUSPENDIDA') return true;
 
-    // 2. Si el detalle u observaciones indican renovación o cancelación
+    // 2. Si el detalle u observaciones del vehículo indican baja o reemplazo
     const det = (item.detalles || '').toUpperCase();
     const obs = (item.observaciones || '').toUpperCase();
-    if (det.includes('RENOVAD') || obs.includes('RENOVAD') || det.includes('CANCELAD') || obs.includes('CANCELAD')) return true;
+    if (det.includes('CANCELAD') || obs.includes('CANCELAD')) return true;
+    if (det.includes('RENOVADO(') || obs.includes('RENOVADO(') || det.includes('REEMPLAZAD') || obs.includes('REEMPLAZAD')) return true;
 
     // 3. Revisar en la matriz de resoluciones primigenias oficiales
     const nro = (item.nro_resolucion_primigenia || '').trim().toUpperCase();
@@ -1548,8 +1549,8 @@ export class VehiculosEmpresaComponent implements OnInit {
       });
       if (resFound) {
         const estRes = (resFound.estado || '').toUpperCase();
-        if (estRes === 'VENCIDA' || estRes === 'CANCELADA' || estRes === 'INACTIVA') return true;
-        if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVAD') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
+        if (estRes === 'VENCIDA' || estRes === 'CANCELADA' || estRes === 'INACTIVA' || estRes === 'SUSPENDIDA') return true;
+        if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVADA(') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
         if (resFound.fecha_fin_vigencia) {
           const d = new Date(resFound.fecha_fin_vigencia);
           if (!isNaN(d.getTime())) {
@@ -1558,6 +1559,7 @@ export class VehiculosEmpresaComponent implements OnInit {
             if (d < hoy) return true;
           }
         }
+        if (estRes === 'VIGENTE') return false;
       }
     }
 
@@ -1581,8 +1583,8 @@ export class VehiculosEmpresaComponent implements OnInit {
     const resFound = matriz.find(r => this.formatResolucionCode(r.nro_resolucion).toUpperCase() === target);
     if (resFound) {
       const est = (resFound.estado || '').toUpperCase();
-      if (est === 'VENCIDA' || est === 'CANCELADA' || est === 'INACTIVA') return true;
-      if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVAD') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
+      if (est === 'VENCIDA' || est === 'CANCELADA' || est === 'INACTIVA' || est === 'SUSPENDIDA') return true;
+      if (resFound.observaciones && (resFound.observaciones.toUpperCase().includes('RENOVADA(') || resFound.observaciones.toUpperCase().includes('CANCELAD'))) return true;
       if (resFound.fecha_fin_vigencia) {
         const d = new Date(resFound.fecha_fin_vigencia);
         if (!isNaN(d.getTime())) {
@@ -1591,6 +1593,7 @@ export class VehiculosEmpresaComponent implements OnInit {
           if (d < hoy) return true;
         }
       }
+      if (est === 'VIGENTE') return false;
     }
     const vehs = this.flotaEmpresa().filter(i => !i.es_cronologico && this.formatResolucionCode(i.nro_resolucion_primigenia).toUpperCase() === target);
     if (vehs.length > 0 && vehs.every(v => this.esResolucionVencida(v))) {

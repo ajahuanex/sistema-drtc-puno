@@ -30,6 +30,20 @@ async def create_vehiculo_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creando datos técnicos: {str(e)}")
 
+@router.post("/guardar-ficha")
+async def guardar_ficha_tecnica(
+    vehiculo_data: dict,
+    service: VehiculoDataService = Depends(get_vehiculo_data_service)
+):
+    """Crear o actualizar la ficha técnica del vehículo por placa"""
+    try:
+        result = await service.upsert_vehiculo_data(vehiculo_data)
+        return {"success": True, "data": result}
+    except ValidationErrorException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al guardar ficha técnica: {str(e)}")
+
 
 @router.get("/{vehiculo_data_id}")
 async def get_vehiculo_data(

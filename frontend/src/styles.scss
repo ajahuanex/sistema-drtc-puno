@@ -2876,4 +2876,22 @@ button.mat-mdc-icon-button.compact-icon-btn-sm {
   }
 }
 
+/* Elevar overlays y diálogos de Angular Material sobre modales de pantalla completa */
+.cdk-overlay-container {
+  z-index: 25000 !important;
+}
+
+.cdk-overlay-backdrop {
+  z-index: 25000 !important;
+}
+
+.cdk-global-overlay-wrapper {
+  z-index: 25001 !important;
+}
+
+.modal-vehiculo-overlay-elevado {
+  z-index: 25002 !important;
+}
+
+
 

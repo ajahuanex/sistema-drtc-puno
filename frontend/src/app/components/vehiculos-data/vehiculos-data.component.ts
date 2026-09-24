@@ -128,15 +128,18 @@ interface ColumnaConfig {
               <mat-form-field appearance="outline" class="filter-select" subscriptSizing="dynamic">
                 <mat-label>Categoría</mat-label>
                 <mat-select [formControl]="categoriaControl">
-                  <mat-option value="">Todas las Categorías</mat-option>
-                  <mat-option value="M1">M1 (Pasajeros <= 8 as.)</mat-option>
-                  <mat-option value="M2">M2 (Minibús / Pasajeros <= 5 ton)</mat-option>
-                  <mat-option value="M3">M3 (Ómnibus / Pasajeros > 5 ton)</mat-option>
-                  <mat-option value="N1">N1 (Mercancías <= 3.5 ton)</mat-option>
-                  <mat-option value="N2">N2 (Mercancías 3.5 a 12 ton)</mat-option>
-                  <mat-option value="N3">N3 (Carga Heavy > 12 ton)</mat-option>
-                  <mat-option value="L">L (Motos)</mat-option>
-                  <mat-option value="O">O (Remolques)</mat-option>
+                  <mat-option value="">Todas</mat-option>
+                  <mat-option value="M2">M2</mat-option>
+                  <mat-option value="M2-C3">M2-C3</mat-option>
+                  <mat-option value="M3">M3</mat-option>
+                  <mat-option value="M3-C3">M3-C3</mat-option>
+                  <mat-option value="M1">M1</mat-option>
+                  <mat-option value="M1-C3">M1-C3</mat-option>
+                  <mat-option value="N1">N1</mat-option>
+                  <mat-option value="N2">N2</mat-option>
+                  <mat-option value="N3">N3</mat-option>
+                  <mat-option value="L">L</mat-option>
+                  <mat-option value="O">O</mat-option>
                 </mat-select>
               </mat-form-field>
 
@@ -246,9 +249,12 @@ interface ColumnaConfig {
                   <mat-form-field appearance="outline">
                     <mat-label>Categoría</mat-label>
                     <mat-select formControlName="categoria">
-                      <mat-option value="M1">M1</mat-option>
                       <mat-option value="M2">M2</mat-option>
+                      <mat-option value="M2-C3">M2-C3</mat-option>
                       <mat-option value="M3">M3</mat-option>
+                      <mat-option value="M3-C3">M3-C3</mat-option>
+                      <mat-option value="M1">M1</mat-option>
+                      <mat-option value="M1-C3">M1-C3</mat-option>
                       <mat-option value="N1">N1</mat-option>
                       <mat-option value="N2">N2</mat-option>
                       <mat-option value="N3">N3</mat-option>

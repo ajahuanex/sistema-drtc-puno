@@ -255,9 +255,9 @@ class TramiteMasivoRequest(BaseModel):
     # Específico para RENOVACION:
     es_renovacion: bool = False
     nueva_resolucion_primigenia: Optional[str] = None
-    nueva_fecha_emision: Optional[datetime] = None
-    nueva_fecha_inicio_vigencia: Optional[datetime] = None
-    nueva_fecha_fin_vigencia: Optional[datetime] = None
+    nueva_fecha_emision: Optional[Any] = None
+    nueva_fecha_inicio_vigencia: Optional[Any] = None
+    nueva_fecha_fin_vigencia: Optional[Any] = None
     duracion_anios: Optional[int] = Field(default=4, description="Años de vigencia de la renovación (4 o 10)")
     rutas_a_ratificar: List[str] = Field(default_factory=list, description="Códigos de rutas de la resolución anterior a ratificar y clonar")
     nuevas_rutas: List[str] = Field(default_factory=list)

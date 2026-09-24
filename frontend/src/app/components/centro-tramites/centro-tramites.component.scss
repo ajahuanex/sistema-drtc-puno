@@ -2433,3 +2433,27 @@
   }
 }
 
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: 7px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.82rem;
+  }
+
+  tr:hover td {
+    background-color: #f1f5f9 !important;
+  }
+}

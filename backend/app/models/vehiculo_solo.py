@@ -20,8 +20,11 @@ from app.database import Base
 
 class CategoriaVehiculo(str, enum.Enum):
     M1 = "M1"  # Vehículos de transporte de pasajeros hasta 8 asientos
+    M1_C3 = "M1-C3"  # Vehículos de pasajeros hasta 8 asientos (Clase C3)
     M2 = "M2"  # Vehículos de transporte de pasajeros más de 8 asientos, peso <= 5 ton
+    M2_C3 = "M2-C3"  # Minibús clase C3 DRTC Puno
     M3 = "M3"  # Vehículos de transporte de pasajeros más de 8 asientos, peso > 5 ton
+    M3_C3 = "M3-C3"  # Ómnibus clase C3 DRTC Puno
     N1 = "N1"  # Vehículos de transporte de mercancías, peso <= 3.5 ton
     N2 = "N2"  # Vehículos de transporte de mercancías, 3.5 ton < peso <= 12 ton
     N3 = "N3"  # Vehículos de transporte de mercancías, peso > 12 ton

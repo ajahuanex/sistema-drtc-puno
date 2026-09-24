@@ -47,15 +47,15 @@ class TucService:
     @staticmethod
     async def generar_siguiente_nro_tuc(tipo_emision: TipoEmisionTuc) -> str:
         db = await _get_db()
-        prefijo = "TE-" if tipo_emision == TipoEmisionTuc.ELECTRONICA else "TF-"
-        regex_pattern = f"^{prefijo}\\d{{6}}$"
+        prefijo = "TE-" if tipo_emision == TipoEmisionTuc.ELECTRONICA else "T-"
+        regex_pattern = f"^{prefijo}\\d+"
         
         cursor = db.tucs.find({"nroTuc": {"$regex": regex_pattern}}).sort("nroTuc", -1).limit(1)
         docs = await cursor.to_list(length=1)
         
         max_db = 0
         if docs and "nroTuc" in docs[0]:
-            match = re.search(r"\d{6}", docs[0]["nroTuc"])
+            match = re.search(r"\d+", docs[0]["nroTuc"])
             if match:
                 max_db = int(match.group(0))
                 

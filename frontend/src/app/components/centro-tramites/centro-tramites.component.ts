@@ -23,7 +23,8 @@ import { ResolucionHijaService } from '../../services/resolucion-hija.service';
 import { ResolucionPrimigenia } from '../../models/resolucion-primigenia.model';
 import { BusquedaGlobalService } from '../../services/busqueda-global.service';
 import { VehiculoDataService } from '../../services/vehiculo-data.service';
-import { VehiculoModalComponent } from './vehiculo-modal.component';
+import { TucService } from '../../services/tuc.service';
+import { VehiculoModalComponent, calcularCompletitudVehiculo, enriquecerFichaTecnica } from './vehiculo-modal.component';
 import { RutaModalComponent } from './ruta-modal.component';
 import { SustitucionModalComponent } from './sustitucion-modal.component';
 import { BajaExternaFormComponent } from '../bajas-externas/baja-externa-form/baja-externa-form.component';
@@ -65,6 +66,7 @@ export class CentroTramites implements OnInit {
   private vehiculoDataService = inject(VehiculoDataService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private tucService = inject(TucService);
 
   // States for Drawer / Wizard
   isDrawerOpen = signal<boolean>(false);
@@ -115,6 +117,196 @@ export class CentroTramites implements OnInit {
   grupoVigenciaColapsado = signal<boolean>(false);
   grupoRutasColapsado = signal<boolean>(false);
   grupoFlotaColapsado = signal<boolean>(false);
+  tablaFlotaExpandidaPaso3 = signal<boolean>(false);
+  tablaFlotaExpandidaPaso4 = signal<boolean>(false);
+
+  modalFlotaPantallaCompleta = signal<boolean>(false);
+  filtroFlotaModal = signal<string>('');
+  rutasSeleccionadasMasivas = signal<string[]>([]);
+  vehiculosMarcadosModal = signal<string[]>([]);
+
+  abrirModalFlotaCompleta() {
+    this.modalFlotaPantallaCompleta.set(true);
+  }
+
+  cerrarModalFlotaCompleta() {
+    this.modalFlotaPantallaCompleta.set(false);
+    this.filtroFlotaModal.set('');
+    this.vehiculosMarcadosModal.set([]);
+  }
+
+  vehiculosModalFiltrados = computed(() => {
+    const list = this.vehiculosRenovacionLista().filter(v => v.seleccionado);
+    const q = this.filtroFlotaModal().trim().toUpperCase();
+    if (!q) return list;
+    return list.filter(v =>
+      (v.placa && v.placa.toUpperCase().includes(q)) ||
+      (v.marca && v.marca.toUpperCase().includes(q)) ||
+      (v.numero_tuc && v.numero_tuc.toUpperCase().includes(q))
+    );
+  });
+
+  rutasOpciones = computed(() => {
+    const rutas = this.rutasEmpresaActual();
+    if (rutas && rutas.length > 0) {
+      return rutas.map(r => {
+        const cod = String(r.codigoRuta || r.codigo || '01').trim();
+        const orig = this.formatearLugar(r.origen);
+        const dest = this.formatearLugar(r.destino);
+        return {
+          codigo: cod,
+          label: orig && dest ? `Ruta ${cod}: ${orig} ➔ ${dest}` : `Ruta ${cod}`
+        };
+      });
+    }
+    const ratificadas = this.rutasSeleccionadasRenovacion();
+    if (ratificadas && ratificadas.length > 0) {
+      return ratificadas.map(cod => ({
+        codigo: cod,
+        label: `Ruta ${cod}`
+      }));
+    }
+    return [{ codigo: '01', label: 'Ruta 01' }];
+  });
+
+  toggleMarcarVehiculo(placa: string) {
+    this.vehiculosMarcadosModal.update(list =>
+      list.includes(placa) ? list.filter(p => p !== placa) : [...list, placa]
+    );
+  }
+
+  isVehiculoMarcadoModal(placa: string): boolean {
+    return this.vehiculosMarcadosModal().includes(placa);
+  }
+
+  toggleMarcarTodosModal() {
+    const todos = this.vehiculosModalFiltrados().map(v => v.placa);
+    if (this.vehiculosMarcadosModal().length === todos.length) {
+      this.vehiculosMarcadosModal.set([]);
+    } else {
+      this.vehiculosMarcadosModal.set([...todos]);
+    }
+  }
+
+  estanTodosMarcadosModal(): boolean {
+    const todos = this.vehiculosModalFiltrados();
+    return todos.length > 0 && this.vehiculosMarcadosModal().length === todos.length;
+  }
+
+  actualizarRutasVehiculo(v: any, nuevasRutas: string[]) {
+    const lista = this.vehiculosRenovacionLista();
+    const idx = lista.findIndex(item => item.placa === v.placa);
+    if (idx !== -1) {
+      lista[idx] = { ...lista[idx], rutas: nuevasRutas };
+      this.vehiculosRenovacionLista.set([...lista]);
+    }
+  }
+
+  modalAsignarRutasAbierto = signal<boolean>(false);
+  rutasSeleccionadasParaAsignar = signal<string[]>([]);
+
+  abrirModalAsignarRutas() {
+    if (this.rutasSeleccionadasParaAsignar().length === 0) {
+      const opts = this.rutasOpciones().map(o => o.codigo);
+      this.rutasSeleccionadasParaAsignar.set(opts);
+    }
+    this.modalAsignarRutasAbierto.set(true);
+  }
+
+  cerrarModalAsignarRutas() {
+    this.modalAsignarRutasAbierto.set(false);
+  }
+
+  toggleRutaParaAsignar(codigo: string) {
+    this.rutasSeleccionadasParaAsignar.update(list =>
+      list.includes(codigo) ? list.filter(c => c !== codigo) : [...list, codigo]
+    );
+  }
+
+  isRutaParaAsignarSeleccionada(codigo: string): boolean {
+    return this.rutasSeleccionadasParaAsignar().includes(codigo);
+  }
+
+  seleccionarTodasRutasParaAsignar() {
+    const todas = this.rutasOpciones().map(o => o.codigo);
+    if (this.rutasSeleccionadasParaAsignar().length === todas.length) {
+      this.rutasSeleccionadasParaAsignar.set([]);
+    } else {
+      this.rutasSeleccionadasParaAsignar.set([...todas]);
+    }
+  }
+
+  confirmarAsignacionRutas() {
+    const rutas = this.rutasSeleccionadasParaAsignar();
+    if (!rutas || rutas.length === 0) {
+      this.snackBar.open('Seleccione al menos una ruta para asignar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    const marcados = this.vehiculosMarcadosModal();
+    const hayMarcados = marcados.length > 0;
+    const marcadosSet = new Set(marcados);
+
+    const lista = this.vehiculosRenovacionLista();
+    let asignadosCount = 0;
+    const actualizados = lista.map(v => {
+      if (hayMarcados) {
+        if (marcadosSet.has(v.placa)) {
+          asignadosCount++;
+          return { ...v, rutas: [...rutas] };
+        }
+      } else {
+        if (v.seleccionado) {
+          asignadosCount++;
+          return { ...v, rutas: [...rutas] };
+        }
+      }
+      return v;
+    });
+
+    this.vehiculosRenovacionLista.set(actualizados);
+    this.modalAsignarRutasAbierto.set(false);
+    this.snackBar.open(
+      `✓ Rutas [${rutas.join(', ')}] asignadas a ${asignadosCount} vehículo(s)`,
+      'Entendido',
+      { duration: 4000 }
+    );
+  }
+
+  // Leyenda detallada de rutas ratificadas para el Paso 4
+  rutasRatificadasDetalle = computed(() => {
+    const seleccionadas = this.rutasSeleccionadasRenovacion();
+    const todas = this.rutasEmpresaActual();
+    if (!todas || todas.length === 0) {
+      return seleccionadas.map(cod => ({
+        codigoRuta: cod,
+        origenTexto: 'Origen Autorizado',
+        destinoTexto: 'Destino Autorizado',
+        itinerarioTexto: '',
+        frecuenciaTexto: ''
+      }));
+    }
+    const filtradas = todas.filter(r => {
+      const cod = String(r.codigoRuta || r.codigo || '').trim();
+      return seleccionadas.includes(cod);
+    });
+    if (filtradas.length === 0) {
+      return seleccionadas.map(cod => ({
+        codigoRuta: cod,
+        origenTexto: 'Origen Autorizado',
+        destinoTexto: 'Destino Autorizado',
+        itinerarioTexto: '',
+        frecuenciaTexto: ''
+      }));
+    }
+    return filtradas.map(r => ({
+      ...r,
+      codigoRuta: r.codigoRuta || r.codigo,
+      origenTexto: this.formatearLugar(r.origen) || 'Origen',
+      destinoTexto: this.formatearLugar(r.destino) || 'Destino',
+      itinerarioTexto: this.formatearItinerario(r.itinerario),
+      frecuenciaTexto: this.formatearFrecuencia(r.frecuencia)
+    }));
+  });
 
   // Catálogo completo de empresas y resoluciones
   empresasCatalogo = signal<ResumenEmpresa[]>([]);
@@ -701,6 +893,15 @@ export class CentroTramites implements OnInit {
     if (this.tramiteSeleccionado() === 'RENOVACION' && this.pasoActual() === 1) {
       this.normalizarNuevaResolucion();
     }
+    if (this.tramiteSeleccionado() === 'RENOVACION' && this.pasoActual() === 2) {
+      // Verificar si los vehículos tienen TUCs antiguas del padrón anterior o están vacías
+      const tienenTucViejaOVacia = this.vehiculosRenovacionLista().some(v => 
+        v.seleccionado && (!v.numero_tuc || v.numero_tuc === v.tuc_anterior || !v.numero_tuc.startsWith('TE-'))
+      );
+      if (tienenTucViejaOVacia) {
+        this.generarTucsMasivos(false);
+      }
+    }
     if (this.stepper) {
       this.stepper.next();
     }
@@ -823,10 +1024,9 @@ export class CentroTramites implements OnInit {
 
   seleccionarTramite(id: string) {
     this.tramiteSeleccionado.set(id);
-    if (!this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
-      this.cargarSiguienteResolucionHija(id);
-    }
     if (id === 'RENOVACION') {
+      // Para renovación no aplica resolución hija/modificatoria
+      this.datosOrigenForm.get('nro_resolucion_hija')?.setValue('');
       const vList = this.vehiculosEnResolucion();
       if (vList.length > 0 && this.vehiculosRenovacionLista().length === 0) {
         this.inicializarFlotaRenovacion(vList);
@@ -835,6 +1035,10 @@ export class CentroTramites implements OnInit {
       const res = this.resolucionForm.get('nro_resolucion_primigenia')?.value;
       if (emp?.ruc) {
         this.cargarRutasEmpresa(emp.ruc, res || undefined);
+      }
+    } else {
+      if (!this.datosOrigenForm.get('nro_resolucion_hija')?.value) {
+        this.cargarSiguienteResolucionHija(id);
       }
     }
   }
@@ -851,9 +1055,22 @@ export class CentroTramites implements OnInit {
     });
   }
 
+  abrirSelectorFecha(input: HTMLInputElement) {
+    if (input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch (e) {
+        input.focus();
+      }
+    } else if (input) {
+      input.focus();
+    }
+  }
+
   abrirModalVehiculo() {
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
-      width: '600px',
+      width: '740px',
+      maxWidth: '95vw',
       data: {}
     });
 
@@ -1020,7 +1237,8 @@ export class CentroTramites implements OnInit {
     }
 
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
-      width: '650px',
+      width: '740px',
+      maxWidth: '95vw',
       data: {
         vehiculo: vehiculoData,
         isEdit: true
@@ -1363,6 +1581,28 @@ export class CentroTramites implements OnInit {
     return String(itinerario);
   }
 
+  formatearLugar(lugar: any): string {
+    if (!lugar) return '';
+    if (typeof lugar === 'string') {
+      return (lugar.includes('[object') || lugar.includes('[OBJECT')) ? '' : lugar;
+    }
+    if (typeof lugar === 'object') {
+      return lugar.nombre || lugar.distrito || lugar.localidad || lugar.provincia || lugar.descripcion || '';
+    }
+    return String(lugar);
+  }
+
+  formatearFrecuencia(f: any): string {
+    if (!f) return '';
+    if (typeof f === 'string') {
+      return (f.includes('[object') || f.includes('[OBJECT')) ? '' : f;
+    }
+    if (typeof f === 'object') {
+      return f.descripcion || f.texto || f.nombre || f.valor || '';
+    }
+    return String(f);
+  }
+
   seleccionarTodasRutasRenovacion(seleccionar: boolean) {
     if (seleccionar) {
       const cods = this.rutasEmpresaActual().map(r => r.codigoRuta || r.codigo).filter(Boolean);
@@ -1432,31 +1672,36 @@ export class CentroTramites implements OnInit {
   }
 
   inicializarFlotaRenovacion(vehiculos: any[]) {
-    const anioActual = new Date().getFullYear();
     const items = vehiculos.map((v, index) => {
-      const anioFab = v.anio_fabricacion || v.anio || null;
-      const edad = anioFab ? (anioActual - anioFab) : 0;
-      return {
+      return enriquecerFichaTecnica({
         ...v,
         orden: index + 1,
         seleccionado: true,
         placa: v.placa,
-        marca: v.marca || '',
-        modelo: v.modelo || '',
-        anio_fabricacion: anioFab,
-        categoria: v.categoria || 'M2',
-        asientos: v.asientos || v.numero_asientos || null,
-        numero_asientos: v.numero_asientos || v.asientos || null,
-        peso_neto: v.peso_neto || v.peso_seco || null,
-        peso_seco: v.peso_seco || v.peso_neto || null,
-        numero_tuc: v.numero_tuc || '',
-        rutas: Array.isArray(v.rutas) ? [...v.rutas] : (v.rutas ? [v.rutas] : []),
-        edad: edad,
-        alerta_antiguedad: edad >= 15,
-        datos_verificados: !!(v.marca && v.modelo && anioFab)
-      };
+        tuc_anterior: v.numero_tuc || '',
+        numero_tuc: '', // Se asignará nueva TUC oficial correlativa
+        rutas: Array.isArray(v.rutas) ? [...v.rutas] : (v.rutas ? [v.rutas] : [])
+      }, v);
     });
     this.vehiculosRenovacionLista.set(items);
+
+    // Asignar automáticamente nuevas TUCs consecutivas desde el módulo de TUCs para la renovación
+    this.generarTucsMasivos(false);
+
+    // Enriquecer en segundo plano los datos técnicos desde vehiculos_data para asegurar 100% de completitud
+    for (const v of items) {
+      if (v.placa) {
+        this.vehiculoDataService.getVehiculoDataByPlaca(v.placa).subscribe({
+          next: (res) => {
+            if (res && res.success && res.data) {
+              this.vehiculosRenovacionLista.update(lista =>
+                lista.map(item => item.placa === v.placa ? enriquecerFichaTecnica(item, res.data) : item)
+              );
+            }
+          }
+        });
+      }
+    }
   }
 
   setModoCargaVehiculos(modo: 'PRECARGADA' | 'MULTIFILA') {
@@ -1477,7 +1722,6 @@ export class CentroTramites implements OnInit {
 
     this.procesandoLineasExcel.set(true);
     const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-    const anioActual = new Date().getFullYear();
     const nuevosVehiculos: any[] = [];
     const anterioresMap = new Map<string, any>();
     for (const v of this.vehiculosEnResolucion()) {
@@ -1520,25 +1764,13 @@ export class CentroTramites implements OnInit {
       const rawKey = cleanPlaca.replace(/[\s-]/g, '');
       const anterior = anterioresMap.get(rawKey);
 
-      const anioFab = anterior?.anio_fabricacion || anterior?.anio || null;
-      const edad = anioFab ? (anioActual - anioFab) : 0;
-
-      const itemVehiculo: any = {
+      const itemVehiculo: any = enriquecerFichaTecnica({
         orden: ordenContador++,
         seleccionado: true,
         placa: cleanPlaca,
-        marca: anterior?.marca || '',
-        modelo: anterior?.modelo || '',
-        anio_fabricacion: anioFab,
-        categoria: anterior?.categoria || 'M2',
-        asientos: anterior?.asientos || null,
-        peso_neto: anterior?.peso_neto || null,
-        numero_tuc: anterior?.numero_tuc || '',
         rutas: cleanRutas.length > 0 ? cleanRutas : (anterior?.rutas || []),
-        edad: edad,
-        alerta_antiguedad: edad >= 15,
-        datos_verificados: !!(anterior?.marca && anterior?.modelo && anioFab)
-      };
+        numero_tuc: anterior?.numero_tuc || ''
+      }, anterior);
 
       nuevosVehiculos.push(itemVehiculo);
     }
@@ -1547,33 +1779,14 @@ export class CentroTramites implements OnInit {
     this.procesandoLineasExcel.set(false);
     this.snackBar.open(`✓ ${nuevosVehiculos.length} vehículos procesados con éxito`, 'Entendido', { duration: 4000 });
 
-    // Enriquecer en segundo plano los que falten datos técnicos
+    // Enriquecer en segundo plano desde vehiculos_data
     for (const v of nuevosVehiculos) {
-      if (!v.marca || !v.anio_fabricacion) {
+      if (v.placa) {
         this.vehiculoDataService.getVehiculoDataByPlaca(v.placa).subscribe({
           next: (res) => {
             if (res && res.success && res.data) {
-              const d = res.data;
               this.vehiculosRenovacionLista.update(lista =>
-                lista.map(item => {
-                  if (item.placa === v.placa) {
-                    const aFab = d.anio_fabricacion || d.anio_modelo || d.ano_fabricacion || item.anio_fabricacion;
-                    const ed = aFab ? (anioActual - aFab) : 0;
-                    return {
-                      ...item,
-                      marca: d.marca || item.marca,
-                      modelo: d.modelo || item.modelo,
-                      anio_fabricacion: aFab,
-                      categoria: d.categoria || item.categoria,
-                      asientos: d.numero_asientos || d.asientos || item.asientos,
-                      peso_neto: d.peso_neto || item.peso_neto,
-                      edad: ed,
-                      alerta_antiguedad: ed >= 15,
-                      datos_verificados: true
-                    };
-                  }
-                  return item;
-                })
+                lista.map(item => item.placa === v.placa ? enriquecerFichaTecnica(item, res.data) : item)
               );
             }
           }
@@ -1584,7 +1797,9 @@ export class CentroTramites implements OnInit {
 
   abrirVerificacionTecnica(v: any, index: number) {
     const dialogRef = this.dialog.open(VehiculoModalComponent, {
-      width: '820px',
+      width: '740px',
+      maxWidth: '95vw',
+      panelClass: 'modal-vehiculo-overlay-elevado',
       data: {
         vehiculo: v,
         isEdit: true
@@ -1593,35 +1808,120 @@ export class CentroTramites implements OnInit {
 
     dialogRef.afterClosed().subscribe((res: any) => {
       if (res) {
-        const anioActual = new Date().getFullYear();
-        const aFab = res.anio_fabricacion || null;
-        const edad = aFab ? (anioActual - aFab) : 0;
         this.vehiculosRenovacionLista.update(lista =>
-          lista.map((item, i) => {
-            if (i === index) {
-              return {
-                ...item,
-                ...res,
-                marca: res.marca || item.marca,
-                modelo: res.modelo || item.modelo,
-                anio_fabricacion: aFab,
-                categoria: res.categoria || item.categoria,
-                asientos: res.asientos || res.numero_asientos || item.asientos,
-                numero_asientos: res.numero_asientos || res.asientos || item.numero_asientos,
-                peso_neto: res.peso_neto || res.peso_seco || item.peso_neto,
-                peso_seco: res.peso_seco || res.peso_neto || item.peso_seco,
-                numero_tuc: res.numero_tuc || item.numero_tuc,
-                edad: edad,
-                alerta_antiguedad: edad >= 15,
-                datos_verificados: true
-              };
-            }
-            return item;
-          })
+          lista.map((item, i) => i === index ? enriquecerFichaTecnica(item, res) : item)
         );
         this.snackBar.open(`✓ Ficha técnica actualizada para ${v.placa}`, 'Cerrar', { duration: 3000 });
       }
     });
+  }
+
+  calcularCompletitud(v: any): number {
+    return v?.porcentaje_completitud ?? calcularCompletitudVehiculo(v);
+  }
+
+  formatoFechaLatina(fechaStr: string | null | undefined): string {
+    if (!fechaStr) return '-';
+    const str = String(fechaStr).trim();
+    if (!str) return '-';
+    const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+    if (match) {
+      return `${match[3]}/${match[2]}/${match[1]}`;
+    }
+    return str;
+  }
+
+  actualizarTucVehiculo(index: number, event: Event) {
+    const val = (event.target as HTMLInputElement).value.trim().toUpperCase();
+    this.vehiculosRenovacionLista.update(lista =>
+      lista.map((item, i) => i === index ? { ...item, numero_tuc: val } : item)
+    );
+  }
+
+  generarTucIndividual(index: number) {
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const siguiente = res?.siguienteNroTuc || 'T-000001';
+        this.vehiculosRenovacionLista.update(lista =>
+          lista.map((item, i) => i === index ? { ...item, numero_tuc: siguiente } : item)
+        );
+        this.snackBar.open(`✓ TUC Física ${siguiente} asignada`, 'Cerrar', { duration: 2500 });
+      },
+      error: () => {
+        const num = String(index + 1).padStart(6, '0');
+        const fallback = `T-${num}`;
+        this.vehiculosRenovacionLista.update(lista =>
+          lista.map((item, i) => i === index ? { ...item, numero_tuc: fallback } : item)
+        );
+        this.snackBar.open(`✓ TUC Física ${fallback} asignada`, 'Cerrar', { duration: 2500 });
+      }
+    });
+  }
+
+  toggleTablaFlotaPaso3() {
+    this.tablaFlotaExpandidaPaso3.update(v => !v);
+  }
+
+  toggleTablaFlotaPaso4() {
+    this.tablaFlotaExpandidaPaso4.update(v => !v);
+  }
+
+  generarTucsMasivos(mostrarNotificacion: boolean = true) {
+    const seleccionados = this.vehiculosRenovacionLista().filter(v => v.seleccionado);
+    if (seleccionados.length === 0) {
+      if (mostrarNotificacion) {
+        this.snackBar.open('Seleccione al menos un vehículo para asignar TUCs', 'Cerrar', { duration: 3000 });
+      }
+      return;
+    }
+
+    this.tucService.getSiguienteNumero('FISICA').subscribe({
+      next: (res) => {
+        const sig = res?.siguienteNroTuc || 'T-000001';
+        this.asignarTucsSecuenciales(sig, mostrarNotificacion);
+      },
+      error: () => {
+        this.asignarTucsSecuenciales('T-000001', mostrarNotificacion);
+      }
+    });
+  }
+
+  private asignarTucsSecuenciales(tucInicial: string, mostrarNotificacion: boolean = true) {
+    const match = tucInicial.match(/^([A-Za-z]+-?)(\d+)(.*)$/);
+    let prefijo = 'T-';
+    let baseNum = 1;
+    let sufijo = '';
+
+    if (match) {
+      prefijo = match[1];
+      baseNum = parseInt(match[2], 10) || 1;
+      sufijo = match[3] || '';
+    }
+
+    let contador = baseNum;
+    let totalAsignados = 0;
+    let primerTuc = '';
+
+    this.vehiculosRenovacionLista.update(lista => {
+      return lista.map(v => {
+        if (!v.seleccionado) return v;
+        const numStr = String(contador).padStart(6, '0');
+        const nuevoTuc = `${prefijo}${numStr}${sufijo}`;
+        if (!primerTuc) primerTuc = nuevoTuc;
+        contador++;
+        totalAsignados++;
+        return { ...v, numero_tuc: nuevoTuc };
+      });
+    });
+
+    const ultimoTuc = `${prefijo}${String(contador - 1).padStart(6, '0')}${sufijo}`;
+    if (mostrarNotificacion) {
+      this.snackBar.open(
+        `✓ Se asignaron ${totalAsignados} nuevas TUCs Físicas correlativas (${primerTuc} al ${ultimoTuc})`,
+        'Cerrar',
+        { duration: 4000 }
+      );
+    }
   }
 
   cambiarOrdenVehiculo(index: number, event: Event) {
@@ -1718,8 +2018,15 @@ export class CentroTramites implements OnInit {
     const origenVal = this.datosOrigenForm.value;
     const esDeOficio = origenVal.tipo_origen === 'OFICIO';
     const docOrigen = origenVal.numero_origen || undefined;
-    const nroHija = origenVal.nro_resolucion_hija?.trim() || undefined;
-    const fechaRes = origenVal.fecha_emision_resolucion || undefined;
+    const nroHija = tipo === 'RENOVACION'
+      ? this.normalizarResolucionTexto(
+          this.renovacionForm.value.nueva_resolucion_primigenia || '',
+          this.renovacionForm.value.nueva_fecha_emision
+        )
+      : (origenVal.nro_resolucion_hija?.trim() || undefined);
+    const fechaRes = tipo === 'RENOVACION'
+      ? (this.renovacionForm.value.nueva_fecha_emision || undefined)
+      : (origenVal.fecha_emision_resolucion || undefined);
 
     let vehiculosItems: any[] = [];
     let payloadExtra: any = {};
@@ -1821,11 +2128,11 @@ export class CentroTramites implements OnInit {
       const rutasDetalle = this.rutasEmpresaActual()
         .filter(r => this.rutasSeleccionadasRenovacion().includes(r.codigoRuta || r.codigo))
         .map(r => ({
-          codigo: (r.codigoRuta || r.codigo || '').toUpperCase().trim(),
-          origen: (typeof r.origen === 'object' ? (r.origen?.nombre || '') : String(r.origen || '')).toUpperCase().trim(),
-          destino: (typeof r.destino === 'object' ? (r.destino?.nombre || '') : String(r.destino || '')).toUpperCase().trim(),
-          itinerario: (r.itinerario || '').toUpperCase().trim(),
-          frecuencia: (typeof r.frecuencia === 'object' ? (r.frecuencia?.descripcion || '') : String(r.frecuencia || '')).toUpperCase().trim()
+          codigo: String(r.codigoRuta || r.codigo || '').toUpperCase().trim(),
+          origen: this.formatearLugar(r.origen).toUpperCase().trim(),
+          destino: this.formatearLugar(r.destino).toUpperCase().trim(),
+          itinerario: this.formatearItinerario(r.itinerario).toUpperCase().trim(),
+          frecuencia: this.formatearFrecuencia(r.frecuencia).toUpperCase().trim()
         }));
 
       payloadExtra = {
@@ -1834,9 +2141,9 @@ export class CentroTramites implements OnInit {
           this.renovacionForm.value.nueva_resolucion_primigenia || '',
           this.renovacionForm.value.nueva_fecha_emision
         ),
-        nueva_fecha_emision: this.renovacionForm.value.nueva_fecha_emision,
-        nueva_fecha_inicio_vigencia: this.renovacionForm.value.nueva_fecha_inicio_vigencia,
-        nueva_fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia,
+        nueva_fecha_emision: this.renovacionForm.value.nueva_fecha_emision || undefined,
+        nueva_fecha_inicio_vigencia: this.renovacionForm.value.nueva_fecha_inicio_vigencia || undefined,
+        nueva_fecha_fin_vigencia: this.renovacionForm.value.nueva_fecha_fin_vigencia || undefined,
         duracion_anios: this.duracionAniosRenovacion(),
         rutas_a_ratificar: this.rutasSeleccionadasRenovacion(),
         nuevas_rutas_detalle: rutasDetalle

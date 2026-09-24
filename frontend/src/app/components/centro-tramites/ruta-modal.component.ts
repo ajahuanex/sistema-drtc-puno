@@ -66,7 +66,7 @@ export function parsearItinerarioTexto(itinerario: any): string {
             <mat-icon style="color: #0284c7; font-size: 20px;">alt_route</mat-icon>
           </div>
           <div>
-            <h2 class="title-text">{{ data.isNew ? 'Nueva Ruta Concesionada' : 'Editar Ruta de Concesión' }}</h2>
+            <h2 class="title-text">{{ data.isNew ? 'Nueva Ruta Autorizada' : 'Editar Ruta Autorizada' }}</h2>
             <span class="subtitle-text">Defina el trayecto e itinerario oficial para la nueva resolución</span>
           </div>
         </div>

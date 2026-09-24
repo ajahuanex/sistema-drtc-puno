@@ -142,7 +142,7 @@ import {
           <div class="kpi-data">
             <span class="kpi-number">{{ totalVigentes() | number }}</span>
             <span class="kpi-label">Títulos Vigentes</span>
-            <span class="kpi-detail">Concesiones activas (10 años)</span>
+            <span class="kpi-detail">Autorizaciones activas (10 años)</span>
           </div>
         </div>
 
