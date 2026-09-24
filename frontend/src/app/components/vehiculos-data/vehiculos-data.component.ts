@@ -237,8 +237,13 @@ interface ColumnaConfig {
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
-                    <mat-label>Año de Fabricación</mat-label>
-                    <input matInput type="number" formControlName="anio_fabricacion">
+                    <mat-label>Año Fabricación (MTC)</mat-label>
+                    <input matInput type="number" formControlName="anio_fabricacion" placeholder="Ej: 2020">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Año Modelo (Comercial)</mat-label>
+                    <input matInput type="number" formControlName="anio_modelo" placeholder="Ej: 2021">
                   </mat-form-field>
 
                   <mat-form-field appearance="outline">
@@ -715,7 +720,7 @@ export class VehiculosDataComponent implements OnInit {
     if (!item) return 0;
     const campos = [
       'placa_actual', 'vin', 'numero_motor', 'marca', 'modelo',
-      'anio_fabricacion', 'color', 'categoria', 'carroceria', 'clase',
+      'anio_fabricacion', 'anio_modelo', 'color', 'categoria', 'carroceria', 'clase',
       'combustible', 'numero_asientos', 'numero_pasajeros', 'cilindrada',
       'numero_ejes', 'numero_ruedas', 'peso_bruto', 'peso_seco',
       'carga_util', 'longitud', 'ancho', 'altura'
@@ -752,7 +757,8 @@ export class VehiculosDataComponent implements OnInit {
       placa_actual: ['', [Validators.required, Validators.pattern(/^[A-Z0-9-]{6,10}$/i)]],
       marca: ['', Validators.required],
       modelo: ['', Validators.required],
-      anio_fabricacion: [2020, [Validators.required, Validators.min(1900)]],
+      anio_fabricacion: [null, [Validators.min(1900), Validators.max(2035)]],
+      anio_modelo: [null, [Validators.min(1900), Validators.max(2035)]],
       color: ['BLANCO'],
       categoria: ['M1', Validators.required],
       carroceria: ['MINIBUS'],
@@ -981,7 +987,8 @@ export class VehiculosDataComponent implements OnInit {
       placa_actual: item.placa_actual,
       marca: item.marca,
       modelo: item.modelo,
-      anio_fabricacion: item.anio_fabricacion,
+      anio_fabricacion: item.anio_fabricacion || null,
+      anio_modelo: item.anio_modelo || null,
       color: item.color,
       categoria: item.categoria,
       carroceria: item.carroceria,

@@ -152,9 +152,8 @@ export const routes: Routes = [
       },
       { 
         path: 'vehiculos/carga-masiva', 
-        loadComponent: () => import('./components/vehiculos/carga-masiva-vehiculos.component').then(m => m.CargaMasivaVehiculosComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'vehiculos' }
+        redirectTo: 'vehiculos-empresa/carga-masiva',
+        pathMatch: 'full'
       },
       { 
         path: 'vehiculos-data', 

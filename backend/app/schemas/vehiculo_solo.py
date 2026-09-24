@@ -134,8 +134,8 @@ class VehiculoSoloBase(BaseModel):
     marca: str
     modelo: str
     version: Optional[str] = None
-    anio_fabricacion: int = Field(..., ge=1900, le=2100)
-    anio_modelo: int = Field(..., ge=1900, le=2100)
+    anio_fabricacion: Optional[int] = Field(None, ge=1900, le=2100)
+    anio_modelo: Optional[int] = Field(None, ge=1900, le=2100)
     categoria: CategoriaVehiculo
     clase: str
     carroceria: TipoCarroceria

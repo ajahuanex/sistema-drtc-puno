@@ -322,7 +322,7 @@ import { Vehiculo360Response } from '../../services/vehiculo.service';
                 <tbody>
                   @for (ev of data.timeline_historial; track $index) {
                     <tr>
-                      <td>{{ ev.fecha ? (ev.fecha | date:'dd/MM/yyyy') : 'Registrado' }}</td>
+                      <td>{{ ev.fecha ? (ev.fecha | date:'dd/MM/yyyy') : (ev.fecha_display || 'Sin fecha') }}</td>
                       <td class="font-bold">{{ ev.titulo }}</td>
                       <td class="code-text">{{ ev.resolucion || '-' }}</td>
                       <td>{{ ev.empresa }}</td>
@@ -961,7 +961,7 @@ export class RecordVehicularDialogComponent {
 
     // V. HISTORIAL DE TRÁMITES
     const timelineBody = v.timeline_historial.slice(0, 8).map(ev => [
-      ev.fecha ? ev.fecha.slice(0, 10) : 'Registrado',
+      ev.fecha ? ev.fecha.slice(0, 10) : (ev.fecha_display || 'Sin fecha'),
       ev.titulo,
       ev.resolucion || '-',
       ev.empresa,

@@ -4,6 +4,7 @@ Consolida datos técnicos (vehiculos_data), flota y resoluciones (flota_empresa)
 tarjetas de circulación (tucs) y normativa del MTC (RNAT D.S. 017-2009-MTC).
 """
 
+import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import re
@@ -13,6 +14,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 class VehiculoConsultaService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
+        self.col_vehiculos = db["vehiculos"]
         self.col_vehiculos_data = db["vehiculos_data"]
         self.col_flota = db["flota_empresa"]
         self.col_tucs = db["tucs"]
@@ -20,6 +22,8 @@ class VehiculoConsultaService:
         self.col_res_hijas = db["resoluciones_hijas"]
         self.col_empresas = db["empresas"]
         self.col_rutas = db["rutas"]
+        self.col_seguros = db["seguros_vehiculares"]
+        self.col_inspecciones = db["inspecciones_tecnicas"]
 
     def _normalizar_placa(self, placa: str) -> Dict[str, str]:
         """Normaliza la placa generando variantes con y sin guion"""
@@ -31,23 +35,44 @@ class VehiculoConsultaService:
             "original": placa.strip().upper()
         }
 
-    def _evaluar_normativa_mtc(self, anio_fabricacion: Optional[int], categoria: Optional[str]) -> Dict[str, Any]:
+    def _evaluar_normativa_mtc(
+        self,
+        anio_fabricacion: Optional[int],
+        categoria: Optional[str],
+        anio_modelo: Optional[int] = None
+    ) -> Dict[str, Any]:
         """
         Evalúa el cumplimiento normativo dual:
         1. RNAT D.S. Nº 017-2009-MTC (Art. 25: Límite ordinario de 15 años de permanencia en el servicio regular).
-        2. Régimen Extraordinario de Permanencia Región Puno (Resolución Ministerial Especial Puno - Cronograma Art. 1.1).
+        2. Régimen Extraordinario de Permanencia Región Puno (Resolución Ministerial N.° 585-2021-MTC/01 - Cronograma Art. 1.1).
         3. Categorías vehiculares MTC (D.S. 058-2003-MTC).
+        
+        Manejo diferenciado de fechas:
+        - anio_fabricacion: Base legal imperativa (TIV).
+        - anio_modelo: Designación comercial. Se usa de forma provisional/referencial si falta anio_fabricacion.
         """
         anio_actual = datetime.now().year
+        
+        tiene_fab = bool(anio_fabricacion and anio_fabricacion > 1900)
+        tiene_mod = bool(anio_modelo and anio_modelo > 1900)
+        
+        anio_base = anio_fabricacion if tiene_fab else (anio_modelo if tiene_mod else None)
+        es_referencial_modelo = bool(not tiene_fab and tiene_mod)
+        origen_computo = "ANIO_FABRICACION" if tiene_fab else ("ANIO_MODELO_REFERENCIAL" if tiene_mod else "NO_DETERMINADO")
+
         evaluacion = {
             "anio_actual": anio_actual,
-            "anio_fabricacion": anio_fabricacion,
+            "anio_fabricacion": anio_fabricacion if tiene_fab else None,
+            "anio_modelo": anio_modelo if tiene_mod else None,
+            "anio_computo_usado": anio_base,
+            "origen_computo": origen_computo,
+            "requiere_subsanacion_fab": not tiene_fab,
             "antiguedad_anios": None,
             "limite_permanencia_anios": 15,
             "anio_limite_salida_rnat": None,
             "estado_antiguedad_rnat": "NO_DETERMINADO",
             "badge_color": "gray",
-            "mensaje_normativo": "Año de fabricación no registrado.",
+            "mensaje_normativo": "Año de fabricación y año modelo no registrados.",
             "categoria_valida_rnat": True,
             "observacion_categoria": "",
             # Evaluación bajo Resolución Ministerial N.° 585-2021-MTC/01 (Ámbito Región Puno)
@@ -66,9 +91,9 @@ class VehiculoConsultaService:
             "alerta_critica": False
         }
 
-        if anio_fabricacion and anio_fabricacion > 1900:
-            antiguedad = anio_actual - anio_fabricacion
-            anio_limite_rnat = anio_fabricacion + 15
+        if anio_base:
+            antiguedad = anio_actual - anio_base
+            anio_limite_rnat = anio_base + 15
             evaluacion["antiguedad_anios"] = antiguedad
             evaluacion["anio_limite_salida_rnat"] = anio_limite_rnat
 
@@ -89,7 +114,7 @@ class VehiculoConsultaService:
 
             retiro_puno = None
             for (inicio, fin), f_retiro in cronograma_puno:
-                if inicio <= anio_fabricacion <= fin:
+                if inicio <= anio_base <= fin:
                     retiro_puno = f_retiro
                     break
 
@@ -142,6 +167,9 @@ class VehiculoConsultaService:
                     evaluacion["badge_color"] = "red"
                     evaluacion["mensaje_normativo"] = f"Vida útil excedida ({antiguedad} años). Superó los 15 años máximos de permanencia según RENAT. Inapto para renovación salvo prórroga expresa."
 
+            if es_referencial_modelo:
+                evaluacion["mensaje_normativo"] = f"[CÓMPUTO SOBRE AÑO MODELO {anio_modelo} - REFERENCIAL]: {evaluacion['mensaje_normativo']} (Nota: Conforme al Art. 25 del RENAT, el cómputo legal se rige por el Año de Fabricación. Se debe registrar el Año de Fabricación de la TIV)."
+
         if categoria:
             cat_upper = categoria.upper()
             if "M1" in cat_upper:
@@ -168,26 +196,49 @@ class VehiculoConsultaService:
         placa_norm = self._normalizar_placa(placa_param)
         placas_query = [placa_norm["con_guion"], placa_norm["raw"], placa_norm["original"]]
 
-        # 1. Buscar datos técnicos en vehiculos_data
-        tech = await self.col_vehiculos_data.find_one({
+        # 1. Búsqueda paralela y concurrente con asyncio.gather (Datos técnicos, flota, TUCs, base, seguros y CITV)
+        tech_task = self.col_vehiculos_data.find_one({
             "$or": [
                 {"placa_actual": {"$in": placas_query}},
                 {"placa": {"$in": placas_query}}
             ]
         })
-
-        # 2. Buscar participaciones en flota_empresa
-        flota_records = await self.col_flota.find({
+        flota_task = self.col_flota.find({
             "placa": {"$in": placas_query}
         }).to_list(200)
-
-        # 3. Buscar TUCs asociadas
-        tucs_records = await self.col_tucs.find({
+        tucs_task = self.col_tucs.find({
             "placa": {"$in": placas_query}
         }).to_list(100)
+        v_base_task = self.col_vehiculos.find_one({
+            "placa": {"$in": placas_query}
+        })
+        seguro_task = self.col_seguros.find_one({
+            "$or": [
+                {"placa": {"$in": placas_query}},
+                {"placa_actual": {"$in": placas_query}}
+            ]
+        })
+        inspeccion_task = self.col_inspecciones.find_one({
+            "$or": [
+                {"placa": {"$in": placas_query}},
+                {"placa_actual": {"$in": placas_query}}
+            ]
+        })
+
+        results = await asyncio.gather(
+            tech_task, flota_task, tucs_task, v_base_task, seguro_task, inspeccion_task,
+            return_exceptions=True
+        )
+
+        tech = results[0] if not isinstance(results[0], Exception) else None
+        flota_records = results[1] if (not isinstance(results[1], Exception) and isinstance(results[1], list)) else []
+        tucs_records = results[2] if (not isinstance(results[2], Exception) and isinstance(results[2], list)) else []
+        v_base = results[3] if not isinstance(results[3], Exception) else None
+        seguro_doc = results[4] if not isinstance(results[4], Exception) else None
+        inspeccion_doc = results[5] if not isinstance(results[5], Exception) else None
 
         # Si no existe en ningún lado, retornar None
-        if not tech and not flota_records and not tucs_records:
+        if not tech and not flota_records and not tucs_records and not v_base:
             return None
 
         # Resolver placa principal oficial
@@ -196,13 +247,17 @@ class VehiculoConsultaService:
             placa_oficial = tech["placa_actual"]
         elif flota_records:
             placa_oficial = flota_records[0].get("placa") or placa_oficial
+        elif v_base and v_base.get("placa"):
+            placa_oficial = v_base["placa"]
 
         # 4. Extraer datos técnicos
         datos_tecnicos = None
         anio_fab = None
+        anio_mod = None
         categoria_veh = None
         if tech:
             anio_fab = tech.get("anio_fabricacion")
+            anio_mod = tech.get("anio_modelo")
             categoria_veh = tech.get("categoria")
             datos_tecnicos = {
                 "marca": tech.get("marca"),
@@ -232,8 +287,8 @@ class VehiculoConsultaService:
                 "observaciones_tecnicas": tech.get("observaciones")
             }
 
-        # 5. Evaluación de normativa MTC
-        normativa_mtc = self._evaluar_normativa_mtc(anio_fab, categoria_veh)
+        # 5. Evaluación de normativa MTC (con diferenciación estricta de Año Fabricación vs. Año Modelo)
+        normativa_mtc = self._evaluar_normativa_mtc(anio_fab, categoria_veh, anio_modelo=anio_mod)
 
         # 6. Analizar estado administrativo actual (de flota_empresa)
         # Buscar el registro más relevante (priorizando HABILITADO o el más reciente)
@@ -294,6 +349,20 @@ class VehiculoConsultaService:
                 "descripcion": f"La unidad figura como HABILITADA en {len(registros_habilitados)} registros: {', '.join(nombres_empresas)}. Verifique si se dio de baja en la empresa anterior."
             })
 
+        # Alerta diferenciada si falta Año de Fabricación pero hay Año Modelo
+        if not anio_fab and anio_mod:
+            alertas.append({
+                "tipo": "ADVERTENCIA",
+                "titulo": "Año de Fabricación Pendiente (Cálculo con Año Modelo)",
+                "descripcion": f"La unidad cuenta con Año Modelo ({anio_mod}), pero carece de Año de Fabricación en la ficha técnica. Conforme al Art. 25 del RENAT (D.S. 017-2009-MTC), el cómputo de permanencia legal se realiza con el Año de Fabricación de la Tarjeta de Identificación Vehicular (TIV)."
+            })
+        elif not anio_fab and not anio_mod:
+            alertas.append({
+                "tipo": "ADVERTENCIA",
+                "titulo": "Ficha Técnica sin Años Registrados",
+                "descripcion": "El vehículo no registra Año de Fabricación ni Año Modelo en el sistema. Utilice el botón [Editar Ficha Técnica] para registrar los datos oficiales de la TIV."
+            })
+
         if normativa_mtc.get("alerta_critica"):
             alertas.append({
                 "tipo": "PELIGRO" if normativa_mtc.get("dictamen_final") == "RETIRO_VENCIDO" else "ADVERTENCIA",
@@ -311,6 +380,123 @@ class VehiculoConsultaService:
                 "tipo": "INFO",
                 "titulo": "Próximo al Límite de Permanencia",
                 "descripcion": normativa_mtc["mensaje_normativo"]
+            })
+
+        # Evaluación de Póliza SOAT
+        raw_soat = seguro_doc if isinstance(seguro_doc, dict) else None
+        if not raw_soat and tech and isinstance(tech, dict) and tech.get("soat"):
+            raw_soat = tech["soat"]
+        if not raw_soat and registro_activo and registro_activo.get("soat"):
+            raw_soat = registro_activo["soat"]
+
+        soat_info = {
+            "tiene_soat": False,
+            "numero_poliza": None,
+            "aseguradora": None,
+            "fecha_inicio": None,
+            "fecha_vencimiento": None,
+            "dias_restantes": None,
+            "estado": "NO_REGISTRADO",
+            "tipo": "SOAT"
+        }
+        if raw_soat and isinstance(raw_soat, dict):
+            f_venc_soat = str(raw_soat.get("fecha_vencimiento") or raw_soat.get("fechaFin") or "")[:10]
+            dias_soat = None
+            est_soat = (raw_soat.get("estado") or "VIGENTE").upper()
+            if f_venc_soat:
+                try:
+                    v_date_s = datetime.fromisoformat(f_venc_soat).date()
+                    dias_soat = (v_date_s - datetime.now().date()).days
+                    if dias_soat < 0:
+                        est_soat = "VENCIDO"
+                    elif dias_soat <= 30:
+                        est_soat = "POR_VENCER"
+                    else:
+                        est_soat = "VIGENTE"
+                except Exception:
+                    pass
+            soat_info = {
+                "tiene_soat": True,
+                "numero_poliza": raw_soat.get("numero_poliza") or raw_soat.get("poliza") or "POL-SOAT",
+                "aseguradora": raw_soat.get("aseguradora") or raw_soat.get("compania") or "Aseguradora Autorizada",
+                "fecha_inicio": str(raw_soat.get("fecha_inicio") or "")[:10] or None,
+                "fecha_vencimiento": f_venc_soat or None,
+                "dias_restantes": dias_soat,
+                "estado": est_soat,
+                "tipo": raw_soat.get("tipo_seguro") or "SOAT"
+            }
+
+        # Evaluación de Certificado de Inspección Técnica Vehicular (CITV)
+        raw_citv = inspeccion_doc if isinstance(inspeccion_doc, dict) else None
+        if not raw_citv and tech and isinstance(tech, dict) and tech.get("citv"):
+            raw_citv = tech["citv"]
+        if not raw_citv and registro_activo and registro_activo.get("citv"):
+            raw_citv = registro_activo["citv"]
+
+        citv_info = {
+            "tiene_citv": False,
+            "numero_certificado": None,
+            "centro_inspeccion": None,
+            "resultado": "PENDIENTE_ACREDITACION",
+            "fecha_emision": None,
+            "fecha_vencimiento": None,
+            "dias_restantes": None,
+            "estado": "NO_REGISTRADO",
+            "tipo_inspeccion": "ORDINARIA REGIONAL"
+        }
+        if raw_citv and isinstance(raw_citv, dict):
+            f_venc_citv = str(raw_citv.get("fecha_vencimiento") or raw_citv.get("fechaFin") or "")[:10]
+            dias_citv = None
+            est_citv = (raw_citv.get("estado") or "VIGENTE").upper()
+            if f_venc_citv:
+                try:
+                    v_date_c = datetime.fromisoformat(f_venc_citv).date()
+                    dias_citv = (v_date_c - datetime.now().date()).days
+                    if dias_citv < 0:
+                        est_citv = "VENCIDO"
+                    elif dias_citv <= 30:
+                        est_citv = "POR_VENCER"
+                    else:
+                        est_citv = "VIGENTE"
+                except Exception:
+                    pass
+            citv_info = {
+                "tiene_citv": True,
+                "numero_certificado": raw_citv.get("numero_certificado") or raw_citv.get("numero_inspeccion") or "CERT-CITV",
+                "centro_inspeccion": raw_citv.get("centro_inspeccion") or raw_citv.get("empresa_certificadora") or "Centro Autorizado MTC",
+                "resultado": raw_citv.get("resultado") or "APROBADO",
+                "fecha_emision": str(raw_citv.get("fecha_emision") or "")[:10] or None,
+                "fecha_vencimiento": f_venc_citv or None,
+                "dias_restantes": dias_citv,
+                "estado": est_citv,
+                "tipo_inspeccion": raw_citv.get("tipo_inspeccion") or "ORDINARIA REGIONAL"
+            }
+
+        # Alertas de SOAT y CITV
+        if soat_info["tiene_soat"] and soat_info["estado"] == "VENCIDO":
+            alertas.append({
+                "tipo": "PELIGRO",
+                "titulo": "Póliza SOAT Vencida",
+                "descripcion": f"La póliza SOAT N° {soat_info['numero_poliza']} venció el {soat_info['fecha_vencimiento']}. La unidad está impedida de operar en ruta."
+            })
+        elif not soat_info["tiene_soat"]:
+            alertas.append({
+                "tipo": "ADVERTENCIA",
+                "titulo": "Póliza SOAT No Acreditada",
+                "descripcion": "No se registra póliza SOAT vigente vinculada en el sistema para esta placa."
+            })
+
+        if citv_info["tiene_citv"] and citv_info["estado"] == "VENCIDO":
+            alertas.append({
+                "tipo": "PELIGRO",
+                "titulo": "Inspección Técnica (CITV) Vencida",
+                "descripcion": f"El Certificado CITV N° {citv_info['numero_certificado']} venció el {citv_info['fecha_vencimiento']}. Incumple la condición obligatoria del Art. 2.1 R.M. 585-2021."
+            })
+        elif not citv_info["tiene_citv"]:
+            alertas.append({
+                "tipo": "ADVERTENCIA",
+                "titulo": "CITV Pendiente de Acreditación",
+                "descripcion": "Se requiere acreditación de Certificado de Inspección Técnica Vehicular semestral conforme al Art. 2.1 de la R.M. N.° 585-2021-MTC/01."
             })
 
         # 7. Obtener resoluciones asociadas y vigencia de resolución primigenia
@@ -620,15 +806,20 @@ class VehiculoConsultaService:
         lista_tucs = []
         tuc_actual = None
         for t in tucs_records:
+            num_tuc = t.get("numero_tuc") or t.get("nroTuc") or (registro_activo.get("numero_tuc") if registro_activo else None)
+            f_emi = str(t.get("fecha_emision") or t.get("fechaEmision") or "")[:10] or None
+            f_ven = str(t.get("fecha_vencimiento") or t.get("fechaVencimiento") or "")[:10] or None
+            res_tuc = t.get("resolucion_autorizacion") or t.get("nroResolucion") or (registro_activo.get("nro_resolucion_primigenia") if registro_activo else None)
+            qr_val = t.get("codigo_seguridad_qr") or t.get("qr_hash") or t.get("hashSeguridad")
             tuc_item = {
                 "id": str(t.get("_id")),
-                "numero_tuc": t.get("numero_tuc") or (registro_activo.get("numero_tuc") if registro_activo else None),
+                "numero_tuc": num_tuc,
                 "estado": t.get("estado", "VIGENTE"),
-                "fecha_emision": str(t.get("fecha_emision")) if t.get("fecha_emision") else None,
-                "fecha_vencimiento": str(t.get("fecha_vencimiento")) if t.get("fecha_vencimiento") else None,
-                "resolucion": t.get("resolucion_autorizacion") or (registro_activo.get("nro_resolucion_primigenia") if registro_activo else None),
+                "fecha_emision": f_emi,
+                "fecha_vencimiento": f_ven,
+                "resolucion": res_tuc,
                 "link_documento": t.get("link_documento") or (registro_activo.get("link_tuc") if registro_activo else None),
-                "qr_hash": t.get("codigo_seguridad_qr") or t.get("qr_hash")
+                "qr_hash": qr_val
             }
             lista_tucs.append(tuc_item)
             if not tuc_actual and t.get("estado") == "VIGENTE":
@@ -656,7 +847,31 @@ class VehiculoConsultaService:
             prim = f.get("nro_resolucion_primigenia")
             hija = f.get("nro_resolucion_hija")
             tipo_hija = f.get("tipo_resolucion_hija")
-            fecha_evento = f.get("fecha_resolucion_hija") or f.get("fecha_cronologica") or f.get("fecha_registro")
+            
+            # Buscar fecha del evento administrativo:
+            # 1. fecha_resolucion_hija
+            # 2. fecha_cronologica
+            # 3. fecha_expediente
+            # NUNCA usar fecha_registro como fecha de evento administrativo (fecha_registro es solo auditoría de inserción en BD)
+            fecha_evento = f.get("fecha_resolucion_hija") or f.get("fecha_cronologica") or f.get("fecha_expediente")
+            res_aplicable = hija or prim or "No especificada"
+
+            # Fallback en caso esté en resoluciones_dict
+            if not fecha_evento and res_aplicable in resoluciones_dict:
+                info_r = resoluciones_dict[res_aplicable]
+                fecha_evento = info_r.get("fecha_resolucion") or info_r.get("fecha_emision") or info_r.get("fecha_inicio_vigencia")
+
+            # Determinar sort_key para ordenamiento cronológico:
+            # Si tiene fecha real, usarla como sort_key (YYYY-MM-DD).
+            # Si no tiene fecha, extraer el año de la resolución (ej. R-0320-2022 -> 2022-01-01) o usar 1900-01-01.
+            # De esta forma nunca tomará la fecha de inserción a MongoDB ni saltará al presente.
+            sort_key = "1900-01-01"
+            if fecha_evento:
+                sort_key = str(fecha_evento)[:10]
+            elif res_aplicable:
+                y_match = re.search(r'(19\d\d|20\d\d)', res_aplicable)
+                if y_match:
+                    sort_key = f"{y_match.group(1)}-01-01"
 
             tipo_desc = "Trámite Administrativo"
             if tipo_hija == "I":
@@ -670,10 +885,10 @@ class VehiculoConsultaService:
             elif tipo_hija == "O":
                 tipo_desc = "Otros Trámites"
 
-            res_aplicable = hija or prim or "No especificada"
-
             timeline.append({
-                "fecha": str(fecha_evento) if fecha_evento else "Fecha no registrada",
+                "fecha": str(fecha_evento)[:10] if fecha_evento else None,
+                "fecha_display": str(fecha_evento)[:10] if fecha_evento else "Sin fecha registrada",
+                "sort_key": sort_key,
                 "tipo_evento": "RESOLUCION" if (prim or hija) else "REGISTRO_FLOTA",
                 "titulo": f"{tipo_desc} - {res_aplicable}",
                 "empresa": empresa_nombre,
@@ -685,24 +900,29 @@ class VehiculoConsultaService:
                 "observaciones": [obs.get("texto") for obs in f.get("observaciones_historial", []) if obs.get("texto")]
             })
 
-        # Agregar eventos de emisión de TUCs si tienen fecha
+        # Agregar eventos de emisión de TUCs si tienen fecha y no están ya duplicados
+        tucs_ya_en_timeline = set(ev.get("tuc_asociada") for ev in timeline if ev.get("tuc_asociada"))
         for t in lista_tucs:
-            if t.get("fecha_emision"):
+            t_num = t.get("numero_tuc")
+            t_fecha = t.get("fecha_emision")
+            if t_fecha and t_num and t_num not in tucs_ya_en_timeline:
                 timeline.append({
-                    "fecha": t["fecha_emision"],
+                    "fecha": str(t_fecha)[:10],
+                    "fecha_display": str(t_fecha)[:10],
+                    "sort_key": str(t_fecha)[:10],
                     "tipo_evento": "TUC_EMISION",
-                    "titulo": f"Emisión de TUC N° {t.get('numero_tuc', 'S/N')}",
+                    "titulo": f"Emisión de TUC N° {t_num or 'S/N'}",
                     "empresa": registro_activo.get("razon_social") if registro_activo else "DRTC Puno",
                     "ruc": registro_activo.get("ruc") if registro_activo else "",
                     "resolucion": t.get("resolucion", "Autorización"),
                     "estado_resultado": t.get("estado"),
-                    "tuc_asociada": t.get("numero_tuc"),
+                    "tuc_asociada": t_num,
                     "rutas": [],
                     "observaciones": ["Emisión de Tarjeta Única de Circulación con código de verificación QR."]
                 })
 
-        # Ordenar timeline por fecha descendente
-        timeline.sort(key=lambda x: str(x.get("fecha") or ""), reverse=True)
+        # Ordenar timeline por sort_key descendente
+        timeline.sort(key=lambda x: str(x.get("sort_key") or "1900-01-01"), reverse=True)
 
         # 10. Resumen de Empresas Históricas y Participación de Flota
         empresas_historicas = []
@@ -751,11 +971,16 @@ class VehiculoConsultaService:
         empresas_historicas.sort(key=lambda x: 0 if x.get("es_operador_actual") else 1)
 
         # Armar respuesta completa
+        vehiculo_id = str(v_base["_id"]) if (v_base and v_base.get("_id")) else (str(registro_activo.get("_id")) if registro_activo and registro_activo.get("_id") else None)
+        vehiculo_data_id = str(tech.get("_id")) if (tech and tech.get("_id")) else None
+
         return {
             "placa": placa_oficial,
             "existe_en_base": True,
             "modalidad_placa": modalidad_placa,
             "situacion_actual": {
+                "vehiculo_id": vehiculo_id,
+                "vehiculo_data_id": vehiculo_data_id,
                 "estado_habilitacion": registro_activo.get("estado", "NO_REGISTRADO") if registro_activo else "NO_REGISTRADO",
                 "empresa_actual": registro_activo.get("razon_social") if registro_activo else "Sin empresa asignada",
                 "ruc_empresa_actual": registro_activo.get("ruc") if registro_activo else None,
@@ -776,6 +1001,8 @@ class VehiculoConsultaService:
             "normativa_mtc": normativa_mtc,
             "datos_tecnicos": datos_tecnicos,
             "tucs": lista_tucs,
+            "soat": soat_info,
+            "citv": citv_info,
             "timeline_historial": timeline,
             "empresas_historicas": empresas_historicas,
             "resoluciones_detalles": resoluciones_dict,

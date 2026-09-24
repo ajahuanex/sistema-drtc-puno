@@ -30,6 +30,12 @@ import {
 } from '../../services/vehiculo.service';
 import { RecordVehicularDialogComponent } from './record-vehicular-dialog.component';
 import { RutasVehiculoModalComponent } from './rutas-vehiculo-modal.component';
+import { CambiarEstadoVehiculoModalComponent } from './cambiar-estado-vehiculo-modal.component';
+import { TransferirEmpresaModalComponent } from './transferir-empresa-modal.component';
+import { SolicitarBajaVehiculoUnifiedComponent } from './solicitar-baja-vehiculo-unified.component';
+import { EditarFichaTecnicaModalComponent } from './editar-ficha-tecnica-modal.component';
+import { MatMenuModule } from '@angular/material/menu';
+import * as XLSX from 'xlsx';
 
 @Component({
   selector: 'app-vehiculos',
@@ -53,7 +59,8 @@ import { RutasVehiculoModalComponent } from './rutas-vehiculo-modal.component';
     MatSnackBarModule,
     MatTabsModule,
     MatSelectModule,
-    MatDialogModule
+    MatDialogModule,
+    MatMenuModule
   ],
   templateUrl: './vehiculos.component.html',
   styleUrls: ['./vehiculos.component.scss']
@@ -365,5 +372,160 @@ export class VehiculosComponent implements OnInit, OnDestroy {
       case 'CONCESION_VENCIDA': return 'compat-ambar';
       default: return 'compat-neutral';
     }
+  }
+
+  getSoatBadgeClass(estado?: string): string {
+    if (!estado) return 'vigencia-neutral';
+    const e = estado.toUpperCase();
+    if (e.includes('VIGENTE') || e.includes('ACTIVO')) return 'vigencia-verde';
+    if (e.includes('POR_VENCER') || e.includes('POR VENCER')) return 'vigencia-ambar';
+    return 'vigencia-rojo';
+  }
+
+  getCitvBadgeClass(estado?: string): string {
+    if (!estado) return 'vigencia-neutral';
+    const e = estado.toUpperCase();
+    if (e.includes('VIGENTE') || e.includes('APROBADO') || e.includes('CONFORME')) return 'vigencia-verde';
+    if (e.includes('POR_VENCER') || e.includes('POR VENCER')) return 'vigencia-ambar';
+    return 'vigencia-rojo';
+  }
+
+  abrirModalCambiarEstado(): void {
+    const data = this.vehiculoData();
+    if (!data) return;
+
+    const dialogRef = this.dialog.open(CambiarEstadoVehiculoModalComponent, {
+      width: '540px',
+      maxWidth: '95vw',
+      data: {
+        vehiculo: {
+          id: data.situacion_actual.vehiculo_id || data.placa,
+          placa: data.placa,
+          estado: data.situacion_actual.estado_habilitacion,
+          marca: data.datos_tecnicos?.marca || '',
+          modelo: data.datos_tecnicos?.modelo || ''
+        }
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.snackBar.open(`Estado actualizado a: ${res.estadoNuevo || 'actualizado'}`, 'OK', { duration: 3500 });
+        this.buscarVehiculo(data.placa);
+      }
+    });
+  }
+
+  abrirModalTransferirEmpresa(): void {
+    const data = this.vehiculoData();
+    if (!data) return;
+
+    const dialogRef = this.dialog.open(TransferirEmpresaModalComponent, {
+      width: '800px',
+      maxWidth: '96vw',
+      data: {
+        vehiculo: {
+          id: data.situacion_actual.vehiculo_id || data.placa,
+          placa: data.placa,
+          estado: data.situacion_actual.estado_habilitacion,
+          marca: data.datos_tecnicos?.marca || '',
+          modelo: data.datos_tecnicos?.modelo || '',
+          empresaActualId: data.situacion_actual.ruc_empresa_actual || ''
+        }
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.snackBar.open('Transferencia vehicular registrada exitosamente.', 'OK', { duration: 3500 });
+        this.buscarVehiculo(data.placa);
+      }
+    });
+  }
+
+  abrirModalSolicitarBaja(): void {
+    const data = this.vehiculoData();
+    if (!data) return;
+
+    const dialogRef = this.dialog.open(SolicitarBajaVehiculoUnifiedComponent, {
+      width: '780px',
+      maxWidth: '96vw',
+      data: {
+        vehiculo: {
+          id: data.situacion_actual.vehiculo_id || data.placa,
+          placa: data.placa,
+          estado: data.situacion_actual.estado_habilitacion,
+          empresaActualId: data.situacion_actual.ruc_empresa_actual || ''
+        }
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.snackBar.open('Solicitud de baja registrada en trámite.', 'OK', { duration: 3500 });
+        this.buscarVehiculo(data.placa);
+      }
+    });
+  }
+
+  abrirModalEditarFicha(): void {
+    const data = this.vehiculoData();
+    if (!data) return;
+
+    const dialogRef = this.dialog.open(EditarFichaTecnicaModalComponent, {
+      width: '880px',
+      maxWidth: '96vw',
+      data: {
+        placa: data.placa,
+        datosTecnicos: data.datos_tecnicos
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(res => {
+      if (res) {
+        this.buscarVehiculo(data.placa);
+      }
+    });
+  }
+
+  exportarDirectorioExcel(): void {
+    const items = this.directorioItems();
+    if (!items || items.length === 0) {
+      this.snackBar.open('No hay registros en el directorio para exportar', 'Cerrar', { duration: 3000 });
+      return;
+    }
+
+    const dataToExport = items.map(item => ({
+      'Placa': item.placa || '-',
+      'Empresa Operadora': item.razon_social || '-',
+      'RUC': item.ruc || '-',
+      'Resolución Matriz': item.nro_resolucion_primigenia || '-',
+      'Tarjeta TUC': item.numero_tuc || '-',
+      'Marca': item.marca || '-',
+      'Modelo': item.modelo || '-',
+      'Año Fab.': item.anio_fabricacion || '-',
+      'Año Modelo': item.anio_modelo || '-',
+      'Antigüedad (Años)': item.antiguedad_anios ?? '-',
+      'Categoría': item.categoria || '-',
+      'Estado Habilitación': item.estado || '-'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Flota Regional DRTC');
+
+    // Auto-ajustar anchos de columnas
+    const maxProps: any = {};
+    dataToExport.forEach(row => {
+      Object.keys(row).forEach(key => {
+        const valStr = String((row as any)[key] || '');
+        maxProps[key] = Math.max(maxProps[key] || key.length, valStr.length);
+      });
+    });
+    worksheet['!cols'] = Object.keys(maxProps).map(key => ({ wch: Math.min(maxProps[key] + 4, 38) }));
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, `Directorio_Flota_Vehicular_DRTC_Puno_${dateStr}.xlsx`);
+    this.snackBar.open('Directorio exportado a Excel exitosamente', 'Cerrar', { duration: 3000 });
   }
 }

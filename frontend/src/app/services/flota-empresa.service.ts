@@ -27,6 +27,7 @@ export interface VehiculoEmpresa {
   marca?: string;
   modelo?: string;
   anio_fabricacion?: number;
+  anio_modelo?: number;
   color?: string;
   categoria?: string;
   carroceria?: string;
@@ -58,10 +59,15 @@ export interface VehiculoEmpresa {
   id_origen?: string;
   notificado?: string;
   estado_primigenia?: string;
+  baja?: string;
+  baja_externa?: string;
   fecha_vigencia_hasta?: string;
   link_tuc?: string;
+  id_tuc?: string;
   link_notificacion?: string;
+  tramite?: string;
   detalles?: string;
+  porcentaje?: string;
   fecha_registro?: string;
   fecha_actualizacion?: string;
   esta_activo: boolean;
@@ -116,6 +122,7 @@ export interface VehiculoEmpresaCreate {
   marca?: string;
   modelo?: string;
   anio_fabricacion?: number;
+  anio_modelo?: number;
   color?: string;
   categoria?: string;
   carroceria?: string;

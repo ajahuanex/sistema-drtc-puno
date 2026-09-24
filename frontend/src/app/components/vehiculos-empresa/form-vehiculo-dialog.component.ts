@@ -213,8 +213,16 @@ export interface ExpedienteItem {
 
               <!-- 4. ANIO_FABRICACION -->
               <mat-form-field appearance="outline" floatLabel="always">
-                <mat-label>4. AÑO FABRICACIÓN</mat-label>
+                <mat-label>4. AÑO FABRICACIÓN (MTC)</mat-label>
                 <input matInput type="number" formControlName="anio_fabricacion" placeholder="Ej: 2022">
+                <mat-hint>Base legal de permanencia (TIV)</mat-hint>
+              </mat-form-field>
+
+              <!-- 4.1 ANIO_MODELO -->
+              <mat-form-field appearance="outline" floatLabel="always">
+                <mat-label>4.1 AÑO MODELO (COMERCIAL)</mat-label>
+                <input matInput type="number" formControlName="anio_modelo" placeholder="Ej: 2023">
+                <mat-hint>Designación del fabricante</mat-hint>
               </mat-form-field>
 
               <!-- 5. COLOR -->
@@ -784,8 +792,8 @@ export class FormVehiculoDialogComponent implements OnInit {
       // 23 Datos Técnicos del Vehículo en ORDEN STRICTO
       placa: [v.placa || '', [Validators.required, Validators.minLength(6)]],
       marca: [v.marca || ''],
-      modelo: [v.modelo || ''],
       anio_fabricacion: [v.anio_fabricacion || ''],
+      anio_modelo: [v.anio_modelo || ''],
       color: [v.color || ''],
       categoria: [catVal],
       clase: [claseVal],
@@ -1016,8 +1024,8 @@ export class FormVehiculoDialogComponent implements OnInit {
       // 23 Datos Técnicos
       placa: val.placa.trim().toUpperCase(),
       marca: val.marca?.trim().toUpperCase() || undefined,
-      modelo: val.modelo?.trim().toUpperCase() || undefined,
       anio_fabricacion: val.anio_fabricacion ? Number(val.anio_fabricacion) : undefined,
+      anio_modelo: val.anio_modelo ? Number(val.anio_modelo) : undefined,
       color: val.color?.trim().toUpperCase() || undefined,
       categoria: val.categoria,
       carroceria: val.carroceria?.trim().toUpperCase() || undefined,

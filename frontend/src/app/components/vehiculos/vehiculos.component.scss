@@ -2317,3 +2317,176 @@
     color: #64748b !important;
   }
 }
+
+// =========================================================================
+// NUEVAS MEJORAS: ACCIONES ADMINISTRATIVAS, SOAT/CITV Y EXPORTACIÓN EXCEL
+// =========================================================================
+.btn-gestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #1e40af, #2563eb) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0 16px;
+  height: 40px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1d4ed8) !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+  }
+}
+
+.menu-acciones-vehiculo {
+  .mat-mdc-menu-item {
+    font-size: 13.5px;
+    font-weight: 500;
+    gap: 12px;
+  }
+}
+
+.kpi-card-seguros {
+  border-left: 4px solid #10b981;
+
+  .icon-seguro {
+    color: #10b981;
+  }
+
+  .kpi-doc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .kpi-doc-lbl {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #64748b;
+      min-width: 42px;
+    }
+
+    .kpi-doc-date {
+      font-size: 11.5px;
+      color: #64748b;
+    }
+  }
+}
+
+.tab-toolbar-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  .tab-toolbar-info {
+    h3 {
+      margin: 0 0 4px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    p {
+      margin: 0;
+      font-size: 12.5px;
+      color: #64748b;
+    }
+  }
+
+  .btn-edit-ficha-bar {
+    border-radius: 8px;
+    font-weight: 600;
+  }
+}
+
+.ficha-card-seguros {
+  grid-column: 1 / -1;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+
+  .seguros-header {
+    background: linear-gradient(135deg, #065f46, #047857) !important;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .seguro-subblock {
+    padding: 8px 4px;
+
+    .subblock-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .sub-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #0f172a;
+
+        .sub-ic {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+          color: #059669;
+        }
+      }
+    }
+
+    .seguro-sub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+  }
+}
+
+.sin-datos-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-export-excel {
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 8px;
+  height: 52px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+  transition: all 0.2s ease;
+
+  &:hover:not([disabled]) {
+    background: #047857 !important;
+    box-shadow: 0 4px 10px rgba(5, 150, 105, 0.4);
+    transform: translateY(-1px);
+  }
+}

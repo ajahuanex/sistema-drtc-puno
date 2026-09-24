@@ -35,11 +35,19 @@ export interface RegistroFlotaPreview {
   fecha_cronologica: string;
   razon_social: string;
   fecha_resolucion_hija: string;
+  id_origen?: string;
+  notificado?: string;
+  estado_primigenia?: string;
+  baja?: string;
+  baja_externa?: string;
   num_expediente?: string;
   fecha_expediente?: string;
-  link_tuc?: string;
-  link_notificacion?: string;
   detalles?: string;
+  link_tuc?: string;
+  id_tuc?: string;
+  link_notificacion?: string;
+  tramite?: string;
+  porcentaje?: string;
   esValido: boolean;
   errores: string[];
 }
@@ -160,11 +168,15 @@ export interface RegistroFlotaPreview {
                            placeholder="https://docs.google.com/spreadsheets/d/...">
                     <mat-icon matPrefix>link</mat-icon>
                     @if (googleSheetsUrl()) {
-                      <button matSuffix mat-icon-button (click)="googleSheetsUrl.set('')">
+                      <button matSuffix mat-icon-button (click)="googleSheetsUrl.set('')" matTooltip="Limpiar enlace">
                         <mat-icon>clear</mat-icon>
                       </button>
                     }
                   </mat-form-field>
+                  <button mat-stroked-button type="button" class="btn-default-sheets"
+                          (click)="restablecerUrlOficial()" matTooltip="Restablecer URL oficial por defecto">
+                    <mat-icon>restore</mat-icon> URL Oficial
+                  </button>
                   <button mat-raised-button color="primary" class="btn-fetch-sheets"
                           [disabled]="!googleSheetsUrl() || cargandoGoogleSheets()"
                           (click)="cargarDesdeGoogleSheets()">
@@ -258,7 +270,9 @@ export interface RegistroFlotaPreview {
                           <th>Res. Hija</th>
                           <th>Placa</th>
                           <th>Rutas</th>
-                          <th>TUC</th>
+                          <th>TUC / ID</th>
+                          <th>Trámite</th>
+                          <th>Baja</th>
                           <th>Estado Veh.</th>
                           <th>Observaciones</th>
                         </tr>
@@ -292,6 +306,20 @@ export interface RegistroFlotaPreview {
                             <td>
                               @if (r.numero_tuc) {
                                 <span class="type-tag" style="background:#7c3aed;color:#fff;">{{ r.numero_tuc }}</span>
+                              } @else if (r.id_tuc) {
+                                <span class="type-tag" style="background:#6d28d9;color:#fff;">{{ r.id_tuc }}</span>
+                              } @else { <span>-</span> }
+                            </td>
+                            <td>
+                              @if (r.tramite) {
+                                <span class="type-tag" style="background:#0284c7;color:#fff;">{{ r.tramite }}</span>
+                              } @else { <span>-</span> }
+                            </td>
+                            <td>
+                              @if (r.baja || r.baja_externa) {
+                                <span class="type-tag" style="background:#fee2e2;color:#991b1b;">
+                                  {{ r.baja ? 'BAJA' : '' }} {{ r.baja_externa ? '(EXT)' : '' }}
+                                </span>
                               } @else { <span>-</span> }
                             </td>
                             <td>
@@ -303,7 +331,7 @@ export interface RegistroFlotaPreview {
                               @if (!r.esValido && r.errores.length) {
                                 <span class="err-text"><mat-icon>error_outline</mat-icon> {{ r.errores.join(', ') }}</span>
                               } @else {
-                                <span class="obs-cell">{{ r.observaciones || 'OK' }}</span>
+                                <span class="obs-cell">{{ r.observaciones || r.detalles || 'OK' }}</span>
                               }
                             </td>
                           </tr>
@@ -559,9 +587,14 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
 
   Math = Math;
 
+  readonly DEFAULT_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1HNGDNmU0La1v6mfbJwoJtK7-0zPvOjpxq9OhgcBe--I';
+
   // Signals de estado
-  origenCarga = signal<'archivo' | 'google-sheets'>('archivo');
-  googleSheetsUrl = signal<string>(localStorage.getItem('drtc_ultimo_google_sheets_url') || '');
+  origenCarga = signal<'archivo' | 'google-sheets'>('google-sheets');
+  googleSheetsUrl = signal<string>(
+    localStorage.getItem('drtc_ultimo_google_sheets_url') ||
+    'https://docs.google.com/spreadsheets/d/1HNGDNmU0La1v6mfbJwoJtK7-0zPvOjpxq9OhgcBe--I'
+  );
   cargandoGoogleSheets = signal<boolean>(false);
 
   archivoSeleccionado = signal<File | null>(null);
@@ -580,6 +613,7 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
     { archivoCol: 'A / RUC', destCampo: 'ruc', tipo: 'RUC (11 dígitos)', requerido: true },
     { archivoCol: 'B / RDR_PRIMIGENIA', destCampo: 'nro_resolucion_primigenia', tipo: 'R-0123-2026 (normalizado)', requerido: true },
     { archivoCol: 'C / RDR (HIJA)', destCampo: 'nro_resolucion_hija', tipo: 'Texto (I/S/M/O/C)', requerido: false },
+    { archivoCol: 'D / PORCENTAJE', destCampo: 'porcentaje', tipo: 'Texto / Porcentaje', requerido: false },
     { archivoCol: 'E / PLACA', destCampo: 'placa', tipo: 'Placa A2B-123', requerido: false },
     { archivoCol: 'F / RUTA', destCampo: 'rutas[]', tipo: 'Array normalizado', requerido: false },
     { archivoCol: 'G / TUC', destCampo: 'numero_tuc', tipo: 'T-012345 / T-PLACA', requerido: false },
@@ -588,12 +622,18 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
     { archivoCol: 'J / FECHA', destCampo: 'fecha_cronologica', tipo: 'Fecha (DD/MM/YYYY)', requerido: false },
     { archivoCol: 'K / RAZON SOCIAL', destCampo: 'razon_social', tipo: 'Texto', requerido: false },
     { archivoCol: 'L / FECHA HIJA', destCampo: 'fecha_resolucion_hija', tipo: 'Fecha (DD/MM/YYYY)', requerido: false },
-    { archivoCol: 'O / ESTADO PRIMIGENIA', destCampo: 'estado_primigenia', tipo: 'ACTIVA / INACTIVA', requerido: false },
-    { archivoCol: 'P / NUM_EXPEDIENTE', destCampo: 'num_expediente', tipo: 'Texto expediente', requerido: false },
-    { archivoCol: 'Q / FECHA_EXPEDIENTE', destCampo: 'fecha_expediente', tipo: 'Fecha (DD/MM/YYYY)', requerido: false },
-    { archivoCol: 'R / LINK_TUC', destCampo: 'link_tuc', tipo: 'URL Drive TUC', requerido: false },
-    { archivoCol: 'S / LINK_NOTIFICACION', destCampo: 'link_notificacion', tipo: 'URL Notificación', requerido: false },
+    { archivoCol: 'M / ID', destCampo: 'id_origen', tipo: 'ID externo', requerido: false },
+    { archivoCol: 'N / NOTIFICADO', destCampo: 'notificado', tipo: 'SÍ / NO', requerido: false },
+    { archivoCol: 'O / ESTADO_PRIMIGENIA', destCampo: 'estado_primigenia', tipo: 'ACTIVA / INACTIVA', requerido: false },
+    { archivoCol: 'P / BAJA', destCampo: 'baja', tipo: 'Texto / Estado Baja', requerido: false },
+    { archivoCol: 'Q / BAJA_EXTERNA', destCampo: 'baja_externa', tipo: 'Texto / Baja Interempresa', requerido: false },
+    { archivoCol: 'R / EXPEDIENTE', destCampo: 'num_expediente', tipo: 'E-0123-2026 (normalizado)', requerido: false },
+    { archivoCol: 'S / FECHA_EXPEDIENTE', destCampo: 'fecha_expediente', tipo: 'Fecha (DD/MM/YYYY)', requerido: false },
     { archivoCol: 'T / DETALLES', destCampo: 'detalles', tipo: 'Texto libre', requerido: false },
+    { archivoCol: 'U / LINK_TUC', destCampo: 'link_tuc', tipo: 'URL Drive TUC', requerido: false },
+    { archivoCol: 'V / ID_TUC', destCampo: 'id_tuc', tipo: 'ID / Código TUC', requerido: false },
+    { archivoCol: 'W / LINK_NOTIFICACION', destCampo: 'link_notificacion', tipo: 'URL Notificación', requerido: false },
+    { archivoCol: 'X / TRAMITE', destCampo: 'tramite', tipo: 'Tipo de Trámite', requerido: false },
   ]);
 
   // Computed: sorting en preview
@@ -661,7 +701,11 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
     return res.resultado?.errores || res.errores || [];
   });
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    if (!this.googleSheetsUrl() || !this.googleSheetsUrl().trim()) {
+      this.googleSheetsUrl.set(this.DEFAULT_SHEETS_URL);
+    }
+  }
 
   toggleSort(col: string): void {
     if (this.sortField() === col) {
@@ -801,6 +845,7 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
         const primigenia = this.normalizarResolucionCode(primigeniaRaw);
         const hijaRaw = getVal(row, 'C', ['RDR', 'NRO_RESOLUCION_HIJA']);
         const hija = this.normalizarResolucionCode(hijaRaw);
+        const porcentaje = getVal(row, 'D', ['PORCENTAJE', 'porcentaje']);
         const placa = getVal(row, 'E', ['PLACA']);
         const ruta = getVal(row, 'F', ['RUTA']);
         const tuc = getVal(row, 'G', ['TUC']);
@@ -809,12 +854,19 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
         const fecha = getVal(row, 'J', ['FECHA', 'FECHA_CRONOLOGICA']);
         const razon = getVal(row, 'K', ['RAZON SOCIAL', 'RAZON_SOCIAL']);
         const fechaHija = getVal(row, 'L', ['FECHA HIJA', 'FECHA_HIJA']);
+        const idOrigen = getVal(row, 'M', ['ID', 'ID_ORIGEN']);
+        const notificado = getVal(row, 'N', ['NOTIFICADO']);
+        const estadoPrim = getVal(row, 'O', ['ESTADO_PRIMIGENIA', 'ESTADO PRIMIGENIA']);
 
-        const numExpediente = getVal(row, 'P', ['NUM_EXPEDIENTE', 'EXPEDIENTE']);
-        const fechaExpediente = getVal(row, 'Q', ['FECHA_EXPEDIENTE', 'FECHA EXPEDIENTE']);
-        const linkTuc = getVal(row, 'R', ['LINK_TUC', 'LINK TUC']);
-        const linkNotificacion = getVal(row, 'S', ['LINK_NOTIFICACION', 'LINK NOTIFICACION']);
+        const baja = getVal(row, 'P', ['BAJA']);
+        const bajaExterna = getVal(row, 'Q', ['BAJA_EXTERNA', 'BAJA EXTERNA']);
+        const numExpediente = getVal(row, 'R', ['EXPEDIENTE', 'NUM_EXPEDIENTE', 'NUM EXPEDIENTE']);
+        const fechaExpediente = getVal(row, 'S', ['FECHA_EXPEDIENTE', 'FECHA EXPEDIENTE']);
         const detalles = getVal(row, 'T', ['DETALLES']);
+        const linkTuc = getVal(row, 'U', ['LINK_TUC', 'LINK TUC']);
+        const idTuc = getVal(row, 'V', ['ID_TUC', 'ID TUC']);
+        const linkNotificacion = getVal(row, 'W', ['LINK_NOTIFICACION', 'LINK NOTIFICACION']);
+        const tramite = getVal(row, 'X', ['TRAMITE']);
 
         const esCrono = !placa || placa === '-' || placa === '–' || placa.toUpperCase() === 'NAN';
         const errores: string[] = [];
@@ -849,11 +901,19 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
           fecha_cronologica: fecha,
           razon_social: razon,
           fecha_resolucion_hija: fechaHija,
+          id_origen: idOrigen,
+          notificado: notificado,
+          estado_primigenia: estadoPrim,
+          baja: baja,
+          baja_externa: bajaExterna,
           num_expediente: numExpediente,
           fecha_expediente: fechaExpediente,
-          link_tuc: linkTuc,
-          link_notificacion: linkNotificacion,
           detalles: detalles,
+          link_tuc: linkTuc,
+          id_tuc: idTuc,
+          link_notificacion: linkNotificacion,
+          tramite: tramite,
+          porcentaje: porcentaje,
           esValido: errores.length === 0,
           errores
         };
@@ -962,9 +1022,15 @@ export class CargaMasivaVehiculosEmpresaComponent implements OnInit {
     this.procesarArchivo();
   }
 
+  restablecerUrlOficial(): void {
+    this.googleSheetsUrl.set(this.DEFAULT_SHEETS_URL);
+    localStorage.setItem('drtc_ultimo_google_sheets_url', this.DEFAULT_SHEETS_URL);
+    this.snackBar.open('URL oficial de DRTC Puno restablecida', 'OK', { duration: 2500 });
+  }
+
   reiniciarProceso(): void {
     this.archivoSeleccionado.set(null);
-    this.googleSheetsUrl.set('');
+    this.googleSheetsUrl.set(this.DEFAULT_SHEETS_URL);
     this.previewRows.set([]);
     this.resultado.set(null);
     this.mostrarResultados.set(false);

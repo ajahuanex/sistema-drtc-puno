@@ -998,7 +998,11 @@ export interface ColumnasState {
                             </td>
                             <td>
                               <span class="fecha-cell">
-                                {{ (item.fecha_cronologica || item.fecha_resolucion_hija) | date:'dd/MM/yyyy' }}
+                                @if (item.fecha_cronologica || item.fecha_resolucion_hija) {
+                                  {{ (item.fecha_cronologica || item.fecha_resolucion_hija) | date:'dd/MM/yyyy' }}
+                                } @else {
+                                  <span class="sin-datos">Sin fecha</span>
+                                }
                               </span>
                             </td>
                             <td>

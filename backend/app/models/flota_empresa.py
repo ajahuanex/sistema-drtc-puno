@@ -52,6 +52,7 @@ class VehiculoEmpresaCreate(BaseModel):
     marca: Optional[str] = None
     modelo: Optional[str] = None
     anio_fabricacion: Optional[int] = None
+    anio_modelo: Optional[int] = None
     color: Optional[str] = None
     categoria: Optional[str] = None
     carroceria: Optional[str] = None
@@ -84,10 +85,15 @@ class VehiculoEmpresaCreate(BaseModel):
     id_origen: Optional[str] = None
     notificado: Optional[str] = None
     estado_primigenia: Optional[str] = None  # ACTIVA/INACTIVA
+    baja: Optional[str] = None
+    baja_externa: Optional[str] = None
     fecha_vigencia_hasta: Optional[datetime] = None
     link_tuc: Optional[str] = None
+    id_tuc: Optional[str] = None
     link_notificacion: Optional[str] = None
+    tramite: Optional[str] = None
     detalles: Optional[str] = None
+    porcentaje: Optional[str] = None
 
 
 class VehiculoEmpresaUpdate(BaseModel):
@@ -104,6 +110,7 @@ class VehiculoEmpresaUpdate(BaseModel):
     marca: Optional[str] = None
     modelo: Optional[str] = None
     anio_fabricacion: Optional[int] = None
+    anio_modelo: Optional[int] = None
     color: Optional[str] = None
     categoria: Optional[str] = None
     carroceria: Optional[str] = None
@@ -132,6 +139,11 @@ class VehiculoEmpresaUpdate(BaseModel):
     fecha_resolucion_hija: Optional[Any] = None
     notificado: Optional[str] = None
     estado_primigenia: Optional[str] = None
+    baja: Optional[str] = None
+    baja_externa: Optional[str] = None
+    id_tuc: Optional[str] = None
+    tramite: Optional[str] = None
+    porcentaje: Optional[str] = None
     esta_activo: Optional[bool] = None
     link_tuc: Optional[str] = None
     link_notificacion: Optional[str] = None
@@ -159,6 +171,7 @@ class VehiculoEmpresaResponse(BaseModel):
     marca: Optional[str] = None
     modelo: Optional[str] = None
     anio_fabricacion: Optional[int] = None
+    anio_modelo: Optional[int] = None
     color: Optional[str] = None
     categoria: Optional[str] = None
     carroceria: Optional[str] = None
@@ -190,9 +203,14 @@ class VehiculoEmpresaResponse(BaseModel):
     id_origen: Optional[str] = None
     notificado: Optional[str] = None
     estado_primigenia: Optional[str] = None
+    baja: Optional[str] = None
+    baja_externa: Optional[str] = None
     link_tuc: Optional[str] = None
+    id_tuc: Optional[str] = None
     link_notificacion: Optional[str] = None
+    tramite: Optional[str] = None
     detalles: Optional[str] = None
+    porcentaje: Optional[str] = None
     fecha_registro: Optional[Any] = None
     fecha_actualizacion: Optional[Any] = None
     esta_activo: bool = True

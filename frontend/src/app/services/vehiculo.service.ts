@@ -1832,7 +1832,11 @@ export interface RegimenPuno {
 
 export interface NormativaMTC {
   anio_actual: number;
-  anio_fabricacion?: number;
+  anio_fabricacion?: number | null;
+  anio_modelo?: number | null;
+  anio_computo_usado?: number | null;
+  origen_computo?: 'ANIO_FABRICACION' | 'ANIO_MODELO_REFERENCIAL' | 'NO_DETERMINADO';
+  requiere_subsanacion_fab?: boolean;
   antiguedad_anios?: number;
   limite_permanencia_anios: number;
   anio_limite_salida_rnat?: number;
@@ -1900,6 +1904,8 @@ export interface EvaluacionPermanenciaVsResolucion {
 }
 
 export interface SituacionActualVehiculo {
+  vehiculo_id?: string;
+  vehiculo_data_id?: string;
   estado_habilitacion: string;
   empresa_actual: string;
   ruc_empresa_actual?: string;
@@ -1924,6 +1930,29 @@ export interface SituacionActualVehiculo {
   link_tuc?: string;
 }
 
+export interface SoatInfo {
+  tiene_soat: boolean;
+  numero_poliza?: string | null;
+  aseguradora?: string | null;
+  fecha_inicio?: string | null;
+  fecha_vencimiento?: string | null;
+  dias_restantes?: number | null;
+  estado: string;
+  tipo: string;
+}
+
+export interface CitvInfo {
+  tiene_citv: boolean;
+  numero_certificado?: string | null;
+  centro_inspeccion?: string | null;
+  resultado?: string;
+  fecha_emision?: string | null;
+  fecha_vencimiento?: string | null;
+  dias_restantes?: number | null;
+  estado: string;
+  tipo_inspeccion: string;
+}
+
 export interface TucHistorialItem {
   id?: string;
   numero_tuc?: string;
@@ -1936,7 +1965,8 @@ export interface TucHistorialItem {
 }
 
 export interface EventoTimelineVehiculo {
-  fecha: string;
+  fecha: string | null;
+  fecha_display?: string;
   tipo_evento: string;
   titulo: string;
   empresa: string;
@@ -1983,6 +2013,8 @@ export interface Vehiculo360Response {
   normativa_mtc: NormativaMTC;
   datos_tecnicos?: DatosTecnicosVehiculo;
   tucs: TucHistorialItem[];
+  soat?: SoatInfo;
+  citv?: CitvInfo;
   timeline_historial: EventoTimelineVehiculo[];
   empresas_historicas: EmpresaHistorica[];
   resoluciones_detalles: Record<string, any>;

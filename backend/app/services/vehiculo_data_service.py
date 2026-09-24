@@ -216,7 +216,8 @@ class VehiculoDataService:
                             if existing_v:
                                 if existing_v.get("anio_fabricacion") and existing_v["anio_fabricacion"] > 1900:
                                     veh_dict["anio_fabricacion"] = existing_v["anio_fabricacion"]
-                                    veh_dict["anio_modelo"] = existing_v.get("anio_modelo") or existing_v["anio_fabricacion"]
+                                if existing_v.get("anio_modelo") and existing_v["anio_modelo"] > 1900:
+                                    veh_dict["anio_modelo"] = existing_v["anio_modelo"]
                                 veh_dict["anio_fabricacion_pcm"] = anio_val
                                 if existing_v.get("categoria"):
                                     veh_dict["categoria"] = existing_v["categoria"]

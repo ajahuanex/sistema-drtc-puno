@@ -132,7 +132,10 @@ class VehiculoDataExcelService:
             # Extraer campos de datos técnicos
             marca = self.normalizar_str(row.get('MARCA'))
             modelo = self.normalizar_str(row.get('MODELO'))
-            anio_fab = self.normalizar_int(row.get('ANIO_FABRICACION'), 0)
+            anio_fab_raw = self.normalizar_int(row.get('ANIO_FABRICACION') or row.get('ANO_FABRICACION') or row.get('FABRICACION'), None)
+            anio_fab = anio_fab_raw if (anio_fab_raw and anio_fab_raw > 1900) else None
+            anio_mod_raw = self.normalizar_int(row.get('ANIO_MODELO') or row.get('ANO_MODELO') or row.get('MODELO_ANIO'), None)
+            anio_mod = anio_mod_raw if (anio_mod_raw and anio_mod_raw > 1900) else None
             color = self.normalizar_str(row.get('COLOR'))
             categoria = self.normalizar_str(row.get('CATEGORIA'))
             carroceria = self.normalizar_str(row.get('CARROCERIA'))
@@ -188,7 +191,7 @@ class VehiculoDataExcelService:
                 "marca": marca or "DESCONOCIDA",
                 "modelo": modelo or "DESCONOCIDO",
                 "anio_fabricacion": anio_fab,
-                "anio_modelo": anio_fab,
+                "anio_modelo": anio_mod,
                 "color": color or "DESCONOCIDO",
                 "categoria": categoria or "M1",
                 "carroceria": carroceria or "MINIBUS",

@@ -1203,7 +1203,7 @@ class FlotaEmpresaService:
                     "marca": datos_tech.get("marca"),
                     "modelo": datos_tech.get("modelo"),
                     "anio_fabricacion": datos_tech.get("anio_fabricacion"),
-                    "anio_modelo": datos_tech.get("anio_fabricacion"),
+                    "anio_modelo": datos_tech.get("anio_modelo"),
                     "color": datos_tech.get("color"),
                     "categoria": cat_val,
                     "carroceria": datos_tech.get("carroceria"),

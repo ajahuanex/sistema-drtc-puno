@@ -72,16 +72,19 @@ export interface RutaDetalleDisplay {
             </div>
 
             <!-- TUC AL FINAL DE LA MISMA FILA DE LA PLACA -->
-            @if (data.numero_tuc) {
+            @if (data.numero_tuc || data.id_tuc) {
               <div class="tuc-box-end">
                 <mat-icon>card_membership</mat-icon>
-                <span>TUC: {{ data.numero_tuc }}</span>
+                <span>TUC: {{ data.numero_tuc || data.id_tuc }}</span>
+                @if (data.id_tuc && data.numero_tuc) {
+                  <span style="font-size:11px;opacity:0.8;">(ID: {{ data.id_tuc }})</span>
+                }
               </div>
             }
           </div>
 
           <!-- CARACTERÍSTICAS DEL VEHÍCULO DEBAJO DE LA PLACA -->
-          @if (techMarcaModelo() || techCategoria() || techAnio()) {
+          @if (techMarcaModelo() || techCategoria() || techAnioFabricacion() || techAnioModelo()) {
             <div class="identity-tech-row">
               @if (techMarcaModelo()) {
                 <span class="brand-chip">
@@ -97,10 +100,17 @@ export interface RutaDetalleDisplay {
                 </span>
               }
 
-              @if (techAnio()) {
+              @if (techAnioFabricacion()) {
                 <span class="tech-chip">
                   <mat-icon>event</mat-icon>
-                  <span>Año Fab./ Mod.: <strong>{{ techAnio() }}</strong></span>
+                  <span>Año Fab.: <strong>{{ techAnioFabricacion() }}</strong></span>
+                </span>
+              }
+
+              @if (techAnioModelo()) {
+                <span class="tech-chip" style="background:#f0fdf4; border-color:#bbf7d0; color:#166534;">
+                  <mat-icon style="color:#16a34a;">stars</mat-icon>
+                  <span>Año Modelo: <strong>{{ techAnioModelo() }}</strong></span>
                 </span>
               }
             </div>
@@ -117,6 +127,9 @@ export interface RutaDetalleDisplay {
             </div>
             <div class="card-main-val">{{ data.razon_social || 'SIN RAZÓN SOCIAL' }}</div>
             <div class="card-sub-val font-mono">RUC: {{ data.ruc }}</div>
+            @if (data.porcentaje) {
+              <div class="card-sub-val">Porcentaje: <strong>{{ data.porcentaje }}</strong></div>
+            }
           </div>
 
           <!-- CARD 2: RESOLUCIÓN PRIMIGENIA Y FECHAS DE VIGENCIA -->
@@ -151,24 +164,49 @@ export interface RutaDetalleDisplay {
             </div>
           </div>
 
-          <!-- CARD 3: RESOLUCIÓN (Solo si existe) -->
-          @if (tieneResolucionHija) {
+          <!-- CARD 3: RESOLUCIÓN / TRÁMITE (Solo si existe) -->
+          @if (tieneResolucionHija || data.tramite) {
             <div class="info-card border-amber">
               <div class="card-icon-title">
                 <mat-icon class="icon-amber">description</mat-icon>
-                <span class="card-title">Resolución</span>
+                <span class="card-title">Resolución / Trámite</span>
               </div>
               <div class="card-main-val font-mono text-amber">
-                {{ formatResolucionCode(data.nro_resolucion_hija) }}
+                {{ formatResolucionCode(data.nro_resolucion_hija) || data.tramite || '-' }}
               </div>
               @if (data.tipo_resolucion_hija) {
                 <div class="card-sub-val">
                   Tipo: <strong>{{ getTipoHijaNombre(data.tipo_resolucion_hija) }}</strong>
                 </div>
               }
+              @if (data.tramite && data.nro_resolucion_hija) {
+                <div class="card-sub-val">
+                  Trámite: <strong>{{ data.tramite }}</strong>
+                </div>
+              }
               @if (data.fecha_resolucion_hija) {
                 <div class="card-sub-val">
                   Fecha Res: {{ data.fecha_resolucion_hija | date:'dd/MM/yyyy' }}
+                </div>
+              }
+            </div>
+          }
+
+          <!-- CARD 3.5: BAJA REGISTRADA (Si aplica) -->
+          @if (data.baja || data.baja_externa) {
+            <div class="info-card border-red" style="border-left: 4px solid #ef4444; background: #fff5f5;">
+              <div class="card-icon-title">
+                <mat-icon style="color: #ef4444;">no_transfer</mat-icon>
+                <span class="card-title" style="color: #991b1b;">Baja Registrada</span>
+              </div>
+              @if (data.baja) {
+                <div class="card-sub-val" style="color: #b91c1c;">
+                  Baja: <strong>{{ data.baja }}</strong>
+                </div>
+              }
+              @if (data.baja_externa) {
+                <div class="card-sub-val" style="color: #b91c1c;">
+                  Baja Externa: <strong>{{ data.baja_externa }}</strong>
                 </div>
               }
             </div>
@@ -1095,7 +1133,8 @@ export class DetalleVehiculoDialogComponent implements OnInit {
   fechaFinVigencia = signal<string | null>(null);
 
   // Datos Técnicos del Vehículo
-  techAnio = signal<string | null>(null);
+  techAnioFabricacion = signal<string | null>(null);
+  techAnioModelo = signal<string | null>(null);
   techCategoria = signal<string | null>(null);
   techMarcaModelo = signal<string | null>(null);
 
@@ -1232,8 +1271,11 @@ export class DetalleVehiculoDialogComponent implements OnInit {
 
   private cargarDatosTecnicosVehiculo(): void {
     const d = this.data as any;
-    if (d.anio_fabricacion || d.anio || d.modelo) {
-      this.techAnio.set(String(d.anio_fabricacion || d.anio || d.modelo));
+    if (d.anio_fabricacion) {
+      this.techAnioFabricacion.set(String(d.anio_fabricacion));
+    }
+    if (d.anio_modelo) {
+      this.techAnioModelo.set(String(d.anio_modelo));
     }
     if (d.categoria || d.categoria_vehiculo || d.clase) {
       this.techCategoria.set(String(d.categoria || d.categoria_vehiculo || d.clase));
@@ -1247,8 +1289,11 @@ export class DetalleVehiculoDialogComponent implements OnInit {
       this.http.get<any>(`${environment.apiUrl}/vehiculos-solo/placa/${placa}`).subscribe({
         next: (vData) => {
           if (vData) {
-            if (vData.anio_fabricacion || vData.anio_modelo) {
-              this.techAnio.set(String(vData.anio_fabricacion || vData.anio_modelo));
+            if (vData.anio_fabricacion) {
+              this.techAnioFabricacion.set(String(vData.anio_fabricacion));
+            }
+            if (vData.anio_modelo) {
+              this.techAnioModelo.set(String(vData.anio_modelo));
             }
             if (vData.categoria || vData.clase) {
               this.techCategoria.set(String(vData.categoria || vData.clase));
@@ -1263,7 +1308,8 @@ export class DetalleVehiculoDialogComponent implements OnInit {
             next: (resp) => {
               const v = resp?.data || resp;
               if (v) {
-                if (v.anio_fabricacion || v.anio) this.techAnio.set(String(v.anio_fabricacion || v.anio));
+                if (v.anio_fabricacion) this.techAnioFabricacion.set(String(v.anio_fabricacion));
+                if (v.anio_modelo) this.techAnioModelo.set(String(v.anio_modelo));
                 if (v.categoria || v.clase) this.techCategoria.set(String(v.categoria || v.clase));
                 if (v.marca || v.modelo) this.techMarcaModelo.set(`${v.marca || ''} ${v.modelo || ''}`.trim());
               }

@@ -45,6 +45,7 @@ export interface VehiculoProcesadoUI {
     marca?: string;
     modelo?: string;
     anio_fabricacion?: number | null;
+    anio_modelo?: number | null;
     color?: string;
     categoria?: string;
     carroceria?: string;
@@ -503,8 +504,13 @@ export interface VehiculoProcesadoUI {
                             </mat-form-field>
 
                             <mat-form-field appearance="outline" floatLabel="always">
-                              <mat-label>4. AÑO FAB.</mat-label>
+                              <mat-label>4. AÑO FAB. (MTC)</mat-label>
                               <input matInput type="number" [(ngModel)]="v.datos_tecnicos.anio_fabricacion" placeholder="Ej: 2020">
+                            </mat-form-field>
+
+                            <mat-form-field appearance="outline" floatLabel="always">
+                              <mat-label>4.1 AÑO MODELO</mat-label>
+                              <input matInput type="number" [(ngModel)]="v.datos_tecnicos.anio_modelo" placeholder="Ej: 2021">
                             </mat-form-field>
 
                             <mat-form-field appearance="outline" floatLabel="always">
@@ -1786,6 +1792,10 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
         if (anioFab && Number(anioFab) <= 1900) {
           anioFab = null;
         }
+        let anioMod = d.anio_modelo;
+        if (anioMod && Number(anioMod) <= 1900) {
+          anioMod = null;
+        }
 
         return {
           origen: origen,
@@ -1794,6 +1804,7 @@ export class FormTramitePrimigeniaDialogComponent implements OnInit {
             marca: d.marca || d.marca_vehiculo || '',
             modelo: d.modelo || d.modelo_vehiculo || '',
             anio_fabricacion: anioFab,
+            anio_modelo: anioMod,
             color: d.color || '',
             categoria: cat,
             carroceria: d.carroceria || d.tipo_carroceria || '',

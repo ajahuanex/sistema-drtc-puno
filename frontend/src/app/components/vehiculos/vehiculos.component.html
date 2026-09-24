@@ -20,6 +20,30 @@
           <mat-icon>list_alt</mat-icon> Directorio de Flota
         </button>
         @if (vehiculoData()) {
+          <!-- Menú de Acciones Administrativas Directas -->
+          <button mat-flat-button color="primary" [matMenuTriggerFor]="menuAcciones" class="btn-gestion">
+            <mat-icon>tune</mat-icon> Acciones de Gestión <mat-icon>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #menuAcciones="matMenu" class="menu-acciones-vehiculo">
+            <button mat-menu-item (click)="abrirModalCambiarEstado()">
+              <mat-icon color="primary">published_with_changes</mat-icon>
+              <span>Cambiar Estado de la Unidad</span>
+            </button>
+            <button mat-menu-item (click)="abrirModalTransferirEmpresa()">
+              <mat-icon color="accent">swap_horiz</mat-icon>
+              <span>Transferir a Otra Empresa</span>
+            </button>
+            <button mat-menu-item (click)="abrirModalSolicitarBaja()">
+              <mat-icon color="warn">no_transfer</mat-icon>
+              <span>Solicitar Baja Vehicular</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="abrirModalEditarFicha()">
+              <mat-icon>edit_note</mat-icon>
+              <span>Editar Ficha Técnica SUNARP</span>
+            </button>
+          </mat-menu>
+
           <button mat-flat-button color="accent" class="btn-imprimir" (click)="imprimirRecord()">
             <mat-icon>print</mat-icon> Imprimir Récord Oficial
           </button>
@@ -257,6 +281,34 @@
               </div>
             </div>
           </div>
+
+          <!-- KPI 5: Póliza SOAT & Certificado CITV -->
+          <div class="kpi-card kpi-card-seguros">
+            <div class="kpi-header">
+              <mat-icon class="kpi-icon icon-seguro">health_and_safety</mat-icon>
+              <span class="kpi-title">Póliza SOAT & CITV</span>
+            </div>
+            <div class="kpi-body">
+              <div class="kpi-doc-row">
+                <span class="kpi-doc-lbl">SOAT:</span>
+                <span class="badge-mini-vigencia" [ngClass]="getSoatBadgeClass(vehiculoData()!.soat?.estado)">
+                  {{ vehiculoData()!.soat?.estado || 'NO_REGISTRADO' }}
+                </span>
+                @if (vehiculoData()!.soat?.fecha_vencimiento) {
+                  <span class="kpi-doc-date">{{ vehiculoData()!.soat?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
+                }
+              </div>
+              <div class="kpi-doc-row">
+                <span class="kpi-doc-lbl">CITV:</span>
+                <span class="badge-mini-vigencia" [ngClass]="getCitvBadgeClass(vehiculoData()!.citv?.estado)">
+                  {{ vehiculoData()!.citv?.estado || 'PENDIENTE' }}
+                </span>
+                @if (vehiculoData()!.citv?.fecha_vencimiento) {
+                  <span class="kpi-doc-date">{{ vehiculoData()!.citv?.fecha_vencimiento | date:'dd/MM/yy' }}</span>
+                }
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -301,6 +353,15 @@
         <!-- ===================================================================== -->
         @if (activeTab() === 'ficha') {
           <div class="tab-content-panel">
+            <div class="tab-toolbar-row">
+              <div class="tab-toolbar-info">
+                <h3>Ficha Registral y Especificaciones Técnicas (SUNARP / MTC)</h3>
+                <p>Identificación de motor, chasis/VIN, carrocería, capacidades y normas D.S. 058-2003-MTC y R.M. 585-2021.</p>
+              </div>
+              <button mat-flat-button color="primary" class="btn-edit-ficha-bar" (click)="abrirModalEditarFicha()">
+                <mat-icon>edit_note</mat-icon> Editar Ficha Técnica
+              </button>
+            </div>
             @if (vehiculoData()!.datos_tecnicos) {
               <div class="ficha-tecnica-grid">
                 
@@ -319,12 +380,12 @@
                       <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.modelo || '-' }}</span>
                     </div>
                     <div class="ficha-data-row">
-                      <span class="label">Año de Fabricación:</span>
-                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.anio_fabricacion || '-' }}</span>
+                      <span class="label">Año Fabricación (MTC):</span>
+                      <span class="val highlight">{{ vehiculoData()!.datos_tecnicos?.anio_fabricacion || 'Sin registrar' }}</span>
                     </div>
                     <div class="ficha-data-row">
-                      <span class="label">Año Modelo:</span>
-                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.anio_modelo || '-' }}</span>
+                      <span class="label">Año Modelo (Comercial):</span>
+                      <span class="val">{{ vehiculoData()!.datos_tecnicos?.anio_modelo || 'Sin registrar' }}</span>
                     </div>
                     <div class="ficha-data-row">
                       <span class="label">Número de Motor:</span>
@@ -430,6 +491,11 @@
                         <span class="puno-badge-pill" [ngClass]="getAntiguedadBadgeClass(vehiculoData()!.normativa_mtc.dictamen_final)">
                           {{ vehiculoData()!.normativa_mtc.dictamen_final }}
                         </span>
+                        @if (vehiculoData()!.normativa_mtc.origen_computo === 'ANIO_MODELO_REFERENCIAL') {
+                          <span class="badge-referencial-alerta" style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px;">
+                            <mat-icon style="font-size:13px; width:13px; height:13px;">warning</mat-icon> Cómputo sobre Año Modelo
+                          </span>
+                        }
                       </div>
                       <p class="puno-diagnostico-p">
                         {{ vehiculoData()!.normativa_mtc.regimen_puno.mensaje_puno }}
@@ -451,37 +517,37 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 1999">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! <= 1999">
                             <td>1990 - 1999</td>
                             <td>2021 - 2025</td>
                             <td>R.M. 585-2021 (Puno)</td>
                             <td><span class="mini-badge-rojo">RETIRO VENCIDO</span></td>
                           </tr>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion === 2000 || vehiculoData()!.normativa_mtc.anio_fabricacion === 2001)">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && ((vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) === 2000 || (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) === 2001)">
                             <td><strong>2000 - 2001</strong></td>
                             <td><strong>31/12/2026</strong></td>
                             <td>R.M. 585-2021 (Puno)</td>
                             <td><span class="mini-badge-ambar">RETIRO ESTE AÑO (2026)</span></td>
                           </tr>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2002 && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 2004)">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && ((vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! >= 2002 && (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! <= 2004)">
                             <td>2002 - 2004</td>
                             <td>31/12/2027</td>
                             <td>R.M. 585-2021 (Puno)</td>
                             <td><span class="mini-badge-verde">VIGENTE (Retiro 2027)</span></td>
                           </tr>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2005 && vehiculoData()!.normativa_mtc.anio_fabricacion! <= 2007)">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && ((vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! >= 2005 && (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! <= 2007)">
                             <td>2005 - 2007</td>
                             <td>31/12/2028</td>
                             <td>R.M. 585-2021 (Puno)</td>
                             <td><span class="mini-badge-verde">VIGENTE (Retiro 2028)</span></td>
                           </tr>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && (vehiculoData()!.normativa_mtc.anio_fabricacion === 2008 || vehiculoData()!.normativa_mtc.anio_fabricacion === 2009)">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && ((vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) === 2008 || (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) === 2009)">
                             <td>2008 - 2009</td>
                             <td>31/12/2029</td>
                             <td>R.M. 585-2021 (Puno)</td>
                             <td><span class="mini-badge-verde">VIGENTE (Retiro 2029)</span></td>
                           </tr>
-                          <tr [class.highlight-row]="vehiculoData()!.normativa_mtc.anio_fabricacion && vehiculoData()!.normativa_mtc.anio_fabricacion! >= 2010">
+                          <tr [class.highlight-row]="(vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo) && (vehiculoData()!.normativa_mtc.anio_fabricacion || vehiculoData()!.normativa_mtc.anio_modelo)! >= 2010">
                             <td>2010 en adelante</td>
                             <td>15 años desde fab.</td>
                             <td><strong>RENAT Nacional</strong></td>
@@ -543,15 +609,96 @@
                   </div>
                 }
 
+                <!-- Tarjeta 6: Póliza SOAT & Certificado de Inspección Técnica (CITV) -->
+                <div class="ficha-card ficha-card-seguros">
+                  <div class="ficha-card-header seguros-header">
+                    <mat-icon>health_and_safety</mat-icon> Póliza SOAT & Certificado CITV
+                  </div>
+                  <div class="ficha-card-body">
+                    <!-- Sección SOAT -->
+                    <div class="seguro-subblock">
+                      <div class="subblock-title-row">
+                        <span class="sub-title"><mat-icon class="sub-ic">verified_user</mat-icon> Seguro Obligatorio de Accidentes (SOAT)</span>
+                        <span class="badge-mini-vigencia" [ngClass]="getSoatBadgeClass(vehiculoData()!.soat?.estado)">
+                          {{ vehiculoData()!.soat?.estado || 'NO_REGISTRADO' }}
+                        </span>
+                      </div>
+                      <div class="seguro-sub-grid">
+                        <div class="ficha-data-row">
+                          <span class="label">N° Póliza:</span>
+                          <span class="val font-semibold">{{ vehiculoData()!.soat?.numero_poliza || 'Sin póliza registrada' }}</span>
+                        </div>
+                        <div class="ficha-data-row">
+                          <span class="label">Aseguradora:</span>
+                          <span class="val">{{ vehiculoData()!.soat?.aseguradora || 'No especificada' }}</span>
+                        </div>
+                        <div class="ficha-data-row">
+                          <span class="label">Vencimiento:</span>
+                          <span class="val">
+                            @if (vehiculoData()!.soat?.fecha_vencimiento) {
+                              {{ vehiculoData()!.soat?.fecha_vencimiento | date:'dd/MM/yyyy' }}
+                              @if (vehiculoData()!.soat?.dias_restantes !== null && vehiculoData()!.soat?.dias_restantes !== undefined) {
+                                ({{ vehiculoData()!.soat!.dias_restantes! >= 0 ? 'Quedan ' + vehiculoData()!.soat!.dias_restantes + ' días' : 'Venció hace ' + (vehiculoData()!.soat!.dias_restantes! * -1) + ' días' }})
+                              }
+                            } @else {
+                              -
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <mat-divider style="margin: 12px 0;"></mat-divider>
+
+                    <!-- Sección CITV -->
+                    <div class="seguro-subblock">
+                      <div class="subblock-title-row">
+                        <span class="sub-title"><mat-icon class="sub-ic">fact_check</mat-icon> Inspección Técnica Vehicular (CITV)</span>
+                        <span class="badge-mini-vigencia" [ngClass]="getCitvBadgeClass(vehiculoData()!.citv?.estado)">
+                          {{ vehiculoData()!.citv?.estado || 'PENDIENTE' }}
+                        </span>
+                      </div>
+                      <div class="seguro-sub-grid">
+                        <div class="ficha-data-row">
+                          <span class="label">N° Certificado:</span>
+                          <span class="val font-semibold">{{ vehiculoData()!.citv?.numero_certificado || 'Pendiente de acreditación' }}</span>
+                        </div>
+                        <div class="ficha-data-row">
+                          <span class="label">Centro Autorizado:</span>
+                          <span class="val">{{ vehiculoData()!.citv?.centro_inspeccion || 'Centro Autorizado MTC' }}</span>
+                        </div>
+                        <div class="ficha-data-row">
+                          <span class="label">Vencimiento / Estado:</span>
+                          <span class="val">
+                            @if (vehiculoData()!.citv?.fecha_vencimiento) {
+                              {{ vehiculoData()!.citv?.fecha_vencimiento | date:'dd/MM/yyyy' }}
+                              @if (vehiculoData()!.citv?.dias_restantes !== null && vehiculoData()!.citv?.dias_restantes !== undefined) {
+                                ({{ vehiculoData()!.citv!.dias_restantes! >= 0 ? 'Quedan ' + vehiculoData()!.citv!.dias_restantes + ' días' : 'Venció hace ' + (vehiculoData()!.citv!.dias_restantes! * -1) + ' días' }})
+                              }
+                            } @else {
+                              {{ vehiculoData()!.citv?.resultado || 'Pendiente' }}
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             } @else {
               <div class="sin-datos-tecnicos">
                 <mat-icon class="big-icon-muted">build</mat-icon>
                 <h3>Datos técnicos aún no registrados para esta placa</h3>
                 <p>El vehículo se encuentra registrado en resoluciones de flota, pero aún no se han cargado sus 23 características técnicas en Datos Técnicos Vehiculares.</p>
-                <a mat-stroked-button color="primary" routerLink="/vehiculos-data">
-                  <mat-icon>upload</mat-icon> Ir a Datos Técnicos Vehiculares
-                </a>
+                <div class="sin-datos-actions">
+                  <button mat-flat-button color="primary" (click)="abrirModalEditarFicha()">
+                    <mat-icon>add_circle</mat-icon> Registrar Ficha Técnica Aquí
+                  </button>
+                  <a mat-stroked-button color="primary" routerLink="/vehiculos-data">
+                    <mat-icon>upload</mat-icon> Ir a Módulo Vehículos Data
+                  </a>
+                </div>
               </div>
             }
           </div>
@@ -658,6 +805,7 @@
                     </div>
                     
                     <div class="timeline-meta">
+                      <span class="meta-fecha"><mat-icon class="inline-icon">event</mat-icon> {{ evento.fecha ? (evento.fecha | date:'dd/MM/yyyy') : (evento.fecha_display || 'Sin fecha registrada') }}</span>
                       <span><mat-icon class="inline-icon">business</mat-icon> {{ evento.empresa }}</span>
                       @if (evento.resolucion) {
                         <span><mat-icon class="inline-icon">gavel</mat-icon> Res: <strong>{{ evento.resolucion }}</strong></span>
@@ -948,6 +1096,10 @@
             <input matInput placeholder="Placa, empresa o resolución..." [value]="directorioSearch()" (keyup.enter)="onDirectorioSearch($any($event.target).value)" />
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
+
+          <button mat-flat-button class="btn-export-excel" (click)="exportarDirectorioExcel()" [disabled]="cargandoDirectorio() || directorioItems().length === 0" matTooltip="Exportar lista actual a formato Excel (.xlsx)">
+            <mat-icon>file_download</mat-icon> Exportar Excel
+          </button>
         </div>
       </div>
 

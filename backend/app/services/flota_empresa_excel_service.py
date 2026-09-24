@@ -9,7 +9,7 @@ import uuid
 import logging
 from io import BytesIO
 from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pandas as pd
 from openpyxl import Workbook
@@ -29,7 +29,7 @@ COLUMNAS_MAP = {
     "A": "ruc",
     "B": "nro_resolucion_primigenia",
     "C": "nro_resolucion_hija",
-    # D: porcentaje – ignorado
+    "D": "porcentaje",
     "E": "placa",
     "F": "ruta",
     "G": "tuc",
@@ -41,6 +41,15 @@ COLUMNAS_MAP = {
     "M": "id_origen",
     "N": "notificado",
     "O": "estado_primigenia",
+    "P": "baja",
+    "Q": "baja_externa",
+    "R": "num_expediente",
+    "S": "fecha_expediente",
+    "T": "detalles",
+    "U": "link_tuc",
+    "V": "id_tuc",
+    "W": "link_notificacion",
+    "X": "tramite",
 }
 
 ESTADOS_VALIDOS = {"HABILITADO", "INHABILITADO", "OBSERVADO", "CANCELADO", "SUSPENDIDO"}
@@ -256,18 +265,28 @@ def _parse_observaciones(val) -> List[EntradaObservacion]:
 
 
 def _parse_fecha(val) -> Optional[datetime]:
-    """Parsear fechas desde diferentes formatos."""
+    """
+    Parsear fechas desde diferentes formatos asegurando la correcta interpretación
+    en la zona horaria de Perú (UTC-5 Lima).
+    Se normaliza a las 12:00:00 UTC (medio día) para evitar que al visualizarse
+    en el cliente en zona -05:00 o UTC ocurra desfase hacia el día anterior o posterior.
+    """
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return None
     if isinstance(val, datetime):
-        return val
+        return datetime(val.year, val.month, val.day, 12, 0, 0, tzinfo=timezone.utc)
     s = _clean_str(val)
     if not s:
         return None
+    
+    # Limpiar si viene con timestamp ISO (ej: 2026-04-23T00:00:00) o espacios
+    s_clean = s.split("T")[0].split(" ")[0].strip()
+    
     formatos = ["%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d", "%m/%d/%Y"]
     for fmt in formatos:
         try:
-            return datetime.strptime(s, fmt)
+            d = datetime.strptime(s_clean, fmt)
+            return datetime(d.year, d.month, d.day, 12, 0, 0, tzinfo=timezone.utc)
         except ValueError:
             continue
     return None
@@ -528,6 +547,7 @@ class FlotaEmpresaExcelService:
         tipo_hija = _extraer_tipo_hija(nro_hija_raw)
         nro_hija = _normalizar_hija(nro_hija_raw) if nro_hija_raw else None
 
+        porcentaje = _clean_str(get_col("D", ["PORCENTAJE", "porcentaje"]))
         placa, es_cronologico = _normalizar_placa(get_col("E", ["PLACA", "placa"]))
         rutas = _normalizar_rutas(get_col("F", ["RUTA", "ruta"]))
         tuc = _normalizar_tuc(get_col("G", ["TUC", "tuc"]), placa=placa)
@@ -538,15 +558,19 @@ class FlotaEmpresaExcelService:
         fecha_hija = _parse_fecha(get_col("L", ["FECHA HIJA", "fecha_resolucion_hija"]))
         id_origen = _clean_str(get_col("M", ["ID", "id_origen"]))
         notificado = _clean_str(get_col("N", ["NOTIFICADO", "notificado"]))
-        estado_prim = _clean_str(get_col("O", ["ESTADO PRIMIGENIA", "estado_primigenia"]))
+        estado_prim = _clean_str(get_col("O", ["ESTADO PRIMIGENIA", "ESTADO_PRIMIGENIA", "estado_primigenia"]))
 
-        num_expediente = _normalizar_expediente(get_col("P", ["NUM_EXPEDIENTE", "EXPEDIENTE", "num_expediente"]))
-        fecha_expediente = _parse_fecha(get_col("Q", ["FECHA_EXPEDIENTE", "FECHA EXPEDIENTE", "fecha_expediente"]))
-        link_tuc = _clean_str(get_col("R", ["LINK_TUC", "LINK TUC", "link_tuc"]))
-        link_notificacion = _clean_str(get_col("S", ["LINK_NOTIFICACION", "LINK NOTIFICACION", "link_notificacion"]))
+        baja = _clean_str(get_col("P", ["BAJA", "baja"]))
+        baja_externa = _clean_str(get_col("Q", ["BAJA_EXTERNA", "BAJA EXTERNA", "baja_externa"]))
+        num_expediente = _normalizar_expediente(get_col("R", ["EXPEDIENTE", "NUM_EXPEDIENTE", "num_expediente", "EXP"]))
+        fecha_expediente = _parse_fecha(get_col("S", ["FECHA_EXPEDIENTE", "FECHA EXPEDIENTE", "fecha_expediente"]))
         detalles = _clean_str(get_col("T", ["DETALLES", "detalles"]))
+        link_tuc = _clean_str(get_col("U", ["LINK_TUC", "LINK TUC", "link_tuc"]))
+        id_tuc = _clean_str(get_col("V", ["ID_TUC", "ID TUC", "id_tuc"]))
+        link_notificacion = _clean_str(get_col("W", ["LINK_NOTIFICACION", "LINK NOTIFICACION", "link_notificacion"]))
+        tramite = _clean_str(get_col("X", ["TRAMITE", "tramite", "TIPO_TRAMITE"]))
         
-        partida_raw = _clean_str(get_col("U", ["PARTIDA", "partida", "PARTIDA_REGISTRAL", "PARTIDA REGISTRAL", "partida_registral", "Partida Registral", "SUNARP"]))
+        partida_raw = _clean_str(get_col("Z", ["PARTIDA", "partida", "PARTIDA_REGISTRAL", "PARTIDA REGISTRAL", "partida_registral", "Partida Registral", "SUNARP"]))
         partida = None
         if partida_raw:
             p_clean = re.sub(r'[\s\-]+', '', str(partida_raw).strip())
@@ -561,6 +585,7 @@ class FlotaEmpresaExcelService:
             "nro_resolucion_primigenia": nro_prim,
             "nro_resolucion_hija": nro_hija,
             "tipo_resolucion_hija": tipo_hija,
+            "porcentaje": porcentaje,
             "placa": placa,
             "es_cronologico": es_cronologico,
             "rutas": rutas,
@@ -573,11 +598,15 @@ class FlotaEmpresaExcelService:
             "id_origen": id_origen,
             "notificado": notificado,
             "estado_primigenia": estado_prim,
+            "baja": baja,
+            "baja_externa": baja_externa,
             "num_expediente": num_expediente,
             "fecha_expediente": fecha_expediente,
-            "link_tuc": link_tuc,
-            "link_notificacion": link_notificacion,
             "detalles": detalles,
+            "link_tuc": link_tuc,
+            "id_tuc": id_tuc,
+            "link_notificacion": link_notificacion,
+            "tramite": tramite,
             "partida_registral": partida,
             "es_valido": len(errores) == 0,
             "errores": errores,
@@ -693,6 +722,7 @@ class FlotaEmpresaExcelService:
                     "nro_resolucion_primigenia": datos["nro_resolucion_primigenia"],
                     "nro_resolucion_hija": datos["nro_resolucion_hija"],
                     "tipo_resolucion_hija": datos["tipo_resolucion_hija"],
+                    "porcentaje": datos.get("porcentaje"),
                     "placa": datos["placa"],
                     "es_cronologico": datos["es_cronologico"],
                     "rutas": datos["rutas"],
@@ -706,11 +736,15 @@ class FlotaEmpresaExcelService:
                     "id_origen": datos["id_origen"],
                     "notificado": datos["notificado"],
                     "estado_primigenia": datos["estado_primigenia"],
+                    "baja": datos.get("baja"),
+                    "baja_externa": datos.get("baja_externa"),
                     "num_expediente": datos.get("num_expediente"),
                     "fecha_expediente": datos.get("fecha_expediente"),
-                    "link_tuc": datos.get("link_tuc"),
-                    "link_notificacion": datos.get("link_notificacion"),
                     "detalles": datos.get("detalles"),
+                    "link_tuc": datos.get("link_tuc"),
+                    "id_tuc": datos.get("id_tuc"),
+                    "link_notificacion": datos.get("link_notificacion"),
+                    "tramite": datos.get("tramite"),
                     "partida_registral": datos.get("partida_registral"),
                     "esta_activo": True,
                 }
@@ -806,12 +840,16 @@ class FlotaEmpresaExcelService:
             ("FECHA HIJA", "L", False, "Fecha de emisión de resolución hija (DD/MM/YYYY)"),
             ("ID", "M", False, "ID externo de origen"),
             ("NOTIFICADO", "N", False, "Indicador de notificación"),
-            ("ESTADO PRIMIGENIA", "O", False, "Estado de la resolución primigenia: ACTIVA/INACTIVA"),
-            ("NUM_EXPEDIENTE", "P", False, "Número de Expediente Administrativo"),
-            ("FECHA_EXPEDIENTE", "Q", False, "Fecha de Expediente (DD/MM/YYYY)"),
-            ("LINK_TUC", "R", False, "Enlace a documento TUC en Drive"),
-            ("LINK_NOTIFICACION", "S", False, "Enlace a Notificación en Drive"),
-            ("DETALLES", "T", False, "Detalles adicionales"),
+            ("ESTADO_PRIMIGENIA", "O", False, "Estado de la resolución primigenia: ACTIVA/INACTIVA"),
+            ("BAJA", "P", False, "Baja vehicular (SÍ/NO o N° Resolución)"),
+            ("BAJA_EXTERNA", "Q", False, "Baja externa interempresa previa (SÍ/NO o datos)"),
+            ("EXPEDIENTE", "R", False, "Número de Expediente Administrativo (ej: E-0129-2026)"),
+            ("FECHA_EXPEDIENTE", "S", False, "Fecha de Expediente (DD/MM/YYYY)"),
+            ("DETALLES", "T", False, "Detalles del trámite o vehículo"),
+            ("LINK_TUC", "U", False, "Enlace a documento TUC en Drive"),
+            ("ID_TUC", "V", False, "ID o correlativo interno del TUC"),
+            ("LINK_NOTIFICACION", "W", False, "Enlace a Notificación en Drive"),
+            ("TRAMITE", "X", False, "Tipo de trámite (INCREMENTO, SUSTITUCION, RENOVACION, etc.)"),
         ]
 
         for col_idx, (header, _, _req, _desc) in enumerate(headers, 1):
@@ -834,8 +872,10 @@ class FlotaEmpresaExcelService:
             "A2B-123", "01,02,03", "T-010145",
             "HABILITADO", "Sustitución aprobada | Vehículo nuevo",
             "23/04/2026", "EMPRESA EJEMPLO S.R.L.", "10/12/2025",
-            "001", "SÍ", "ACTIVA", "EXP-2026-01290", "15/01/2026",
-            "https://drive.google.com/...", "https://drive.google.com/...", "Trámite completado"
+            "001", "SÍ", "ACTIVA",
+            "NO", "NO", "EXP-2026-01290", "15/01/2026",
+            "Trámite regular", "https://drive.google.com/...", "TUC-8849",
+            "https://drive.google.com/...", "INCREMENTO"
         ]
         for col_idx, ej in enumerate(ejemplos, 1):
             cell = ws.cell(row=3, column=col_idx, value=ej)
