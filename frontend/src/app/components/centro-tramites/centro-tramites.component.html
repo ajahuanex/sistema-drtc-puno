@@ -260,9 +260,24 @@
 
               <!-- Origen / Exp. -->
               <ng-container matColumnDef="doc">
-                <th mat-header-cell *matHeaderCellDef class="sortable-th">Origen / Exp.</th>
+                <th mat-header-cell *matHeaderCellDef class="sortable-th">Expediente / Matriz</th>
                 <td mat-cell *matCellDef="let element">
-                  <div style="color: #2563eb; font-family: monospace; font-size: 12px; font-weight: 600;">{{element.doc}}</div>
+                  <div>
+                    @if (element.expediente_numero) {
+                      <span style="display: inline-block; font-family: monospace; font-size: 11px; font-weight: 700; color: #1e40af; background: #dbeafe; padding: 2px 6px; border-radius: 4px; border: 1px solid #bfdbfe;">
+                        {{element.expediente_numero}}
+                      </span>
+                    } @else {
+                      <span style="display: inline-block; font-family: monospace; font-size: 10px; font-weight: 600; color: #94a3b8; background: #f1f5f9; padding: 2px 5px; border-radius: 4px;" title="Sin número de expediente registrado">
+                        S/E
+                      </span>
+                    }
+                  </div>
+                  @if (element.nro_resolucion_primigenia) {
+                    <div style="font-family: monospace; font-size: 10px; color: #64748b; margin-top: 3px;" title="Resolución Matriz / Primigenia asociada">
+                      Matriz: <span style="font-weight: 600; color: #475569;">{{element.nro_resolucion_primigenia}}</span>
+                    </div>
+                  }
                 </td>
               </ng-container>
 

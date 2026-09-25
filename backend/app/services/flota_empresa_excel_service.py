@@ -379,7 +379,7 @@ class FlotaEmpresaExcelService:
                         ]
                     })
                     if doc:
-                        doc["_resolucion_hija_detectada"] = nro_clean
+                        doc["_resolucion_hija_detectada"] = _normalizar_hija(nro_clean) or nro_clean
                         doc["_nro_primigenia_resuelta"] = padre_nro
         
         cache[nro_r] = doc
@@ -397,7 +397,14 @@ class FlotaEmpresaExcelService:
         fecha_hija: Optional[datetime],
         fecha_crono: Optional[datetime],
         prim_doc: Optional[dict],
-        hija_cache: dict
+        hija_cache: dict,
+        baja: Optional[str] = None,
+        num_expediente: Optional[str] = None,
+        fecha_expediente: Optional[datetime] = None,
+        numero_tuc: Optional[str] = None,
+        link_tuc: Optional[str] = None,
+        link_notificacion: Optional[str] = None,
+        rutas: Optional[List[str]] = None
     ):
         """
         Validar y sincronizar la resolución hija en el módulo 'resoluciones_hijas'.
@@ -408,6 +415,8 @@ class FlotaEmpresaExcelService:
             return
         
         nro_hija_clean = nro_hija.strip()
+        nro_norm = _normalizar_hija(nro_hija_clean) or nro_hija_clean
+        nro_prim_norm = _normalizar_primigenia(nro_prim) or nro_prim
         now = datetime.utcnow()
         fecha_efecto = fecha_hija or fecha_crono or now
         
@@ -422,44 +431,76 @@ class FlotaEmpresaExcelService:
         tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS")
         
         hija_doc = None
-        if nro_hija_clean in hija_cache:
+        if nro_norm in hija_cache:
+            hija_doc = hija_cache[nro_norm]
+        elif nro_hija_clean in hija_cache:
             hija_doc = hija_cache[nro_hija_clean]
         else:
-            hija_doc = await self.hijas_coll.find_one({"nro_resolucion": nro_hija_clean})
-            if not hija_doc:
+            core = re.sub(r'^[Rr]-?', '', re.sub(r'-[ISRMOCFE]$', '', nro_hija_clean, flags=re.I)).strip()
+            parts = core.split('-')
+            conditions = [
+                {"nro_resolucion": nro_norm},
+                {"nro_resolucion": nro_hija_clean},
+                {"nro_resolucion": {"$regex": f"^{re.escape(nro_hija_clean)}$", "$options": "i"}},
+                {"nro_resolucion": {"$regex": f"^{re.escape(nro_norm)}$", "$options": "i"}}
+            ]
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                num_int = int(parts[0])
+                year = parts[1]
+                regex_pat = f"^R?-?0*{num_int}-{year}(-[ISRMOCFE])?$"
+                conditions.append({"nro_resolucion": {"$regex": regex_pat, "$options": "i"}})
+
+            if ruc:
                 hija_doc = await self.hijas_coll.find_one({
-                    "nro_resolucion": {"$regex": f"^{re.escape(nro_hija_clean)}$", "$options": "i"}
+                    "$or": conditions,
+                    "ruc_empresa": ruc
                 })
+            if not hija_doc:
+                hija_doc = await self.hijas_coll.find_one({"$or": conditions})
         
+        salientes = []
+        if baja and str(baja).strip() not in ("-", "", "None", "NAN"):
+            salientes.append(str(baja).strip().upper())
+
+        tucs = []
+        if numero_tuc and str(numero_tuc).strip() not in ("-", "", "None", "NAN"):
+            tucs.append(str(numero_tuc).strip())
+
         if not hija_doc:
             # CREAR AUTOMÁTICAMENTE la Resolución Hija en resoluciones_hijas
             hija_id = str(uuid.uuid4())
             nueva_hija = {
                 "id": hija_id,
-                "nro_resolucion": nro_hija_clean,
-                "nro_resolucion_primigenia": nro_prim,
+                "nro_resolucion": nro_norm,
+                "nro_resolucion_primigenia": nro_prim_norm,
                 "resolucion_primigenia_id": prim_doc.get("id") or str(prim_doc.get("_id")) if prim_doc else None,
                 "ruc_empresa": ruc,
                 "razon_social": razon_social,
                 "tipo_acto": tipo_acto,
                 "fecha_resolucion": fecha_efecto,
                 "fecha_inicio_efectos": fecha_efecto,
-                "vehiculos_ingresantes": [placa] if (placa and placa != "-") else [],
-                "vehiculos_salientes": [],
-                "rutas_modificadas_ids": [],
+                "vehiculos_ingresantes": [placa] if (placa and placa not in ("-", "")) else [],
+                "vehiculos_salientes": salientes,
+                "expediente_numero": num_expediente,
+                "fecha_expediente": fecha_expediente,
+                "link_documento": link_tuc,
+                "link_notificacion": link_notificacion,
+                "numeros_tuc": tucs,
+                "rutas_modificadas_ids": rutas or [],
                 "observaciones": f"Importado automáticamente desde Carga Masiva Flota Vehicular (RUC: {ruc})",
                 "esta_activo": True,
                 "fecha_registro": now,
                 "fecha_actualizacion": now,
             }
             await self.hijas_coll.insert_one(nueva_hija)
+            hija_cache[nro_norm] = nueva_hija
             hija_cache[nro_hija_clean] = nueva_hija
             
             # Si existe la resolución primigenia, vincular al historial_modificaciones
             if prim_doc and "_id" in prim_doc:
                 mod_entry = {
                     "resolucion_hija_id": hija_id,
-                    "nro_resolucion_hija": nro_hija_clean,
+                    "nro_resolucion_hija": nro_norm,
                     "tipo_modificacion": tipo_acto,
                     "fecha_acto": fecha_efecto,
                     "observacion": f"Importado automáticamente de Flota (Placa {placa})"
@@ -473,20 +514,54 @@ class FlotaEmpresaExcelService:
                 )
         else:
             # ACTUALIZAR Resolución Hija existente
+            hija_cache[nro_norm] = hija_doc
             hija_cache[nro_hija_clean] = hija_doc
             updates = {"fecha_actualizacion": now}
+            if hija_doc.get("nro_resolucion") != nro_norm and not hija_doc.get("nro_resolucion", "").startswith("R-"):
+                updates["nro_resolucion"] = nro_norm
             if ruc and not hija_doc.get("ruc_empresa"):
                 updates["ruc_empresa"] = ruc
             if razon_social and not hija_doc.get("razon_social"):
                 updates["razon_social"] = razon_social
             if prim_doc and not hija_doc.get("resolucion_primigenia_id"):
                 updates["resolucion_primigenia_id"] = prim_doc.get("id") or str(prim_doc.get("_id"))
+            if nro_prim_norm and not hija_doc.get("nro_resolucion_primigenia"):
+                updates["nro_resolucion_primigenia"] = nro_prim_norm
+            if num_expediente and not hija_doc.get("expediente_numero"):
+                updates["expediente_numero"] = num_expediente
+            if fecha_expediente and not hija_doc.get("fecha_expediente"):
+                updates["fecha_expediente"] = fecha_expediente
+            if link_tuc and not hija_doc.get("link_documento"):
+                updates["link_documento"] = link_tuc
+            if link_notificacion and not hija_doc.get("link_notificacion"):
+                updates["link_notificacion"] = link_notificacion
                 
             push_updates = {}
-            if placa and placa != "-":
+            if placa and placa not in ("-", ""):
                 veh_ingresantes = hija_doc.get("vehiculos_ingresantes", [])
                 if placa not in veh_ingresantes:
                     push_updates["vehiculos_ingresantes"] = placa
+            if salientes:
+                veh_salientes = hija_doc.get("vehiculos_salientes", [])
+                nuevas_bajas = [b for b in salientes if b not in veh_salientes]
+                if len(nuevas_bajas) == 1:
+                    push_updates["vehiculos_salientes"] = nuevas_bajas[0]
+                elif len(nuevas_bajas) > 1:
+                    push_updates["vehiculos_salientes"] = {"$each": nuevas_bajas}
+            if tucs:
+                tucs_existentes = hija_doc.get("numeros_tuc", [])
+                nuevos_tucs = [t for t in tucs if t not in tucs_existentes]
+                if len(nuevos_tucs) == 1:
+                    push_updates["numeros_tuc"] = nuevos_tucs[0]
+                elif len(nuevos_tucs) > 1:
+                    push_updates["numeros_tuc"] = {"$each": nuevos_tucs}
+            if rutas:
+                rutas_existentes = hija_doc.get("rutas_modificadas_ids", [])
+                nuevas_rutas = [r for r in rutas if r not in rutas_existentes]
+                if len(nuevas_rutas) == 1:
+                    push_updates["rutas_modificadas_ids"] = nuevas_rutas[0]
+                elif len(nuevas_rutas) > 1:
+                    push_updates["rutas_modificadas_ids"] = {"$each": nuevas_rutas}
                     
             op = {"$set": updates}
             if push_updates:
@@ -711,7 +786,14 @@ class FlotaEmpresaExcelService:
                         fecha_hija=datos.get("fecha_resolucion_hija"),
                         fecha_crono=datos.get("fecha_cronologica"),
                         prim_doc=prim_doc,
-                        hija_cache=hija_cache
+                        hija_cache=hija_cache,
+                        baja=datos.get("baja"),
+                        num_expediente=datos.get("num_expediente"),
+                        fecha_expediente=datos.get("fecha_expediente"),
+                        numero_tuc=datos.get("numero_tuc"),
+                        link_tuc=datos.get("link_tuc"),
+                        link_notificacion=datos.get("link_notificacion"),
+                        rutas=datos.get("rutas")
                     )
 
                 # 4. Construir documento para flota_empresa

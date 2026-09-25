@@ -337,7 +337,7 @@ export class CentroTramites implements OnInit {
     { key: 'fecha', label: 'Fecha', visible: true, fija: false },
     { key: 'empresa', label: 'Empresa / RUC', visible: true, fija: false },
     { key: 'tipo', label: 'Tipo Trámite', visible: true, fija: false },
-    { key: 'doc', label: 'Origen / Exp.', visible: true, fija: false },
+    { key: 'doc', label: 'Expediente / Matriz', visible: true, fija: false },
     { key: 'vehiculos', label: 'Vehículos', visible: true, fija: false },
     { key: 'estado', label: 'Estado', visible: true, fija: false },
     { key: 'acciones', label: 'Acciones', visible: true, fija: true }

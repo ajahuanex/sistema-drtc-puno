@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from bson import ObjectId
 import uuid
+import re
 
 from app.models.resolucion_hija import (
     ResolucionHija,
@@ -97,8 +98,21 @@ class ResolucionHijaService:
         return None
 
     async def get_resolucion_hija_by_numero(self, nro_resolucion: str) -> Optional[ResolucionHija]:
+        nro_clean = nro_resolucion.strip()
+        core = re.sub(r'^[Rr]-?', '', re.sub(r'-[ISRMOCFE]$', '', nro_clean, flags=re.I)).strip()
+        parts = core.split('-')
+        conditions = [
+            {"nro_resolucion": nro_clean},
+            {"nro_resolucion": {"$regex": f"^{re.escape(nro_clean)}$", "$options": "i"}}
+        ]
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            num_int = int(parts[0])
+            year = parts[1]
+            regex_pat = f"^R?-?0*{num_int}-{year}(-[ISRMOCFE])?$"
+            conditions.append({"nro_resolucion": {"$regex": regex_pat, "$options": "i"}})
+
         doc = await self.collection.find_one({
-            "nro_resolucion": nro_resolucion.strip(),
+            "$or": conditions,
             "esta_activo": True
         })
         if doc:
