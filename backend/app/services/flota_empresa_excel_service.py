@@ -106,18 +106,33 @@ def _normalizar_codigo_resolucion(val) -> Optional[str]:
     if not s:
         return None
     s = s.upper().strip()
-    
+    if s in ("NAN", "NONE", "NULL", "-", "S/N", "TUC", "REPRESENTANTE", "DUPLICADO", "D", "R----", "R-VARIOS"):
+        return None
+
+    # Si es placa vehicular aislada (ej. VBM-956), no es número de resolución
+    if re.match(r"^(?:R-)?([A-Z0-9]{3}-?[A-Z0-9]{3})$", s) and not re.search(r"19\d\d|20\d\d", s):
+        return None
+
     # Extraer sufijo de tipo si viene pegado al final (ej: -S, -I, -FE, etc.)
-    s = re.sub(r"\s*[-_ ]\s*(FE|[ISRMDCO])$", "", s, flags=re.IGNORECASE).strip()
+    s = re.sub(r"\s*[-_ ]\s*(FE|[ISRMDCOB])(?:[-_\s)]|$)", "", s, flags=re.IGNORECASE).strip()
     
+    # Quitar prefijos comunes
+    s = re.sub(r"^(?:RESOLUCI[OÓ]N|RES\.|RES-|R\.|R\s+)", "R-", s)
+    s = re.sub(r"^(?:N[°º]|N-)\s*", "", s)
+
     # Quitar prefijo R-
     clean = re.sub(r"^R[-_ ]*", "", s, flags=re.IGNORECASE).strip()
     
-    parts = re.split(r"[-/]", clean)
+    parts = re.split(r"[-/.]+", clean)
     if len(parts) >= 2:
         num_digits = re.sub(r"\D", "", parts[0])
         num_part = num_digits.zfill(4) if num_digits else parts[0]
         year_digits = re.sub(r"\D", "", parts[1])
+        if len(year_digits) == 4:
+            return f"R-{num_part}-{year_digits}"
+        elif len(year_digits) == 2:
+            y = "20" + year_digits if int(year_digits) < 50 else "19" + year_digits
+            return f"R-{num_part}-{y}"
         year_part = year_digits if year_digits else str(datetime.utcnow().year)
         return f"R-{num_part}-{year_part}"
     else:
@@ -125,7 +140,7 @@ def _normalizar_codigo_resolucion(val) -> Optional[str]:
         if num_digits:
             return f"R-{num_digits.zfill(4)}-{datetime.utcnow().year}"
             
-    return s if s.startswith("R-") else f"R-{s}"
+    return None
 
 
 def _normalizar_primigenia(val) -> Optional[str]:
@@ -136,6 +151,7 @@ def _normalizar_primigenia(val) -> Optional[str]:
 def _normalizar_hija(val) -> Optional[str]:
     """Normalizar número de resolución hija a formato 'R-0123-2026'."""
     return _normalizar_codigo_resolucion(val)
+
 
 
 def _normalizar_tuc(val, placa: Optional[str] = None) -> Optional[str]:
@@ -415,10 +431,15 @@ class FlotaEmpresaExcelService:
             return
         
         nro_hija_clean = nro_hija.strip()
-        nro_norm = _normalizar_hija(nro_hija_clean) or nro_hija_clean
+        nro_norm = _normalizar_hija(nro_hija_clean)
+        if not nro_norm:
+            return
         nro_prim_norm = _normalizar_primigenia(nro_prim) or nro_prim
         now = datetime.utcnow()
         fecha_efecto = fecha_hija or fecha_crono or now
+        
+        if not tipo_hija_code:
+            tipo_hija_code = _extraer_tipo_hija(nro_hija)
         
         mapeo_tipo = {
             "I": "INCREMENTO_FLOTA",
@@ -426,7 +447,9 @@ class FlotaEmpresaExcelService:
             "M": "MODIFICACION_RUTA",
             "O": "OTROS",
             "C": "CANCELACION_PARCIAL",
+            "B": "CANCELACION_PARCIAL",
             "R": "RENOVACION",
+            "FE": "FE_DE_ERRATAS",
         }
         tipo_acto = mapeo_tipo.get((tipo_hija_code or "").upper(), "INCREMENTO_FLOTA" if (placa and placa != "-") else "OTROS")
         
@@ -795,6 +818,7 @@ class FlotaEmpresaExcelService:
                         link_notificacion=datos.get("link_notificacion"),
                         rutas=datos.get("rutas")
                     )
+
 
                 # 4. Construir documento para flota_empresa
                 now = datetime.utcnow()

@@ -336,14 +336,15 @@ export class CentroTramites implements OnInit {
     { key: 'id', label: 'N° Resolución', visible: true, fija: false },
     { key: 'fecha', label: 'Fecha', visible: true, fija: false },
     { key: 'empresa', label: 'Empresa / RUC', visible: true, fija: false },
-    { key: 'tipo', label: 'Tipo Trámite', visible: true, fija: false },
-    { key: 'doc', label: 'Expediente / Matriz', visible: true, fija: false },
+    { key: 'doc', label: 'Expediente', visible: true, fija: false },
     { key: 'vehiculos', label: 'Vehículos', visible: true, fija: false },
     { key: 'estado', label: 'Estado', visible: true, fija: false },
-    { key: 'acciones', label: 'Acciones', visible: true, fija: true }
+    { key: 'acciones', label: 'Acciones', visible: true, fija: true },
+    { key: 'tipo', label: 'Tipo Trámite (Columna Sep.)', visible: false, fija: false }
   ];
   columnasVisibles = signal<Record<string, boolean>>(this._cargarColumnasGuardadas());
   mostrarConfigColumnas = signal<boolean>(false);
+
 
   // Detail panel
   tramiteDetalle = signal<any>(null);
@@ -479,7 +480,9 @@ export class CentroTramites implements OnInit {
         (item.id && item.id.toLowerCase().includes(txt)) ||
         (item.empresa && item.empresa.toLowerCase().includes(txt)) ||
         (item.ruc && item.ruc.toLowerCase().includes(txt)) ||
-        (item.doc && item.doc.toLowerCase().includes(txt)) ||
+        (item.expediente_numero && item.expediente_numero.toLowerCase().includes(txt)) ||
+        (item.fecha_expediente_display && item.fecha_expediente_display.toLowerCase().includes(txt)) ||
+        (item.tipoLabel && item.tipoLabel.toLowerCase().includes(txt)) ||
         (item.tipo && item.tipo.toLowerCase().includes(txt)) ||
         (item.placasTexto && item.placasTexto.toLowerCase().includes(txt)) ||
         (item.fecha && item.fecha.toLowerCase().includes(txt))
@@ -487,7 +490,11 @@ export class CentroTramites implements OnInit {
     }
 
     if (tipo !== 'TODOS') {
-      list = list.filter(item => item.tipoRaw.includes(tipo) || item.tipo.toUpperCase().includes(tipo));
+      list = list.filter(item => 
+        item.tipoRaw.includes(tipo) || 
+        item.tipo.toUpperCase().includes(tipo) || 
+        (item.tipoLabel && item.tipoLabel.toUpperCase().includes(tipo))
+      );
     }
 
     if (anio !== 'TODOS') {
@@ -576,14 +583,27 @@ export class CentroTramites implements OnInit {
           const placasSal: string[] = Array.isArray(r.vehiculos_salientes) ? r.vehiculos_salientes : [];
           const todasPlacas = [...placasIng, ...placasSal].join(' ');
 
+          const nroNorm = this.normalizarNumeroResolucion(r.nro_resolucion, r.fecha_resolucion || r.fecha_registro);
           const tipoActo = r.tipo_acto || r.tipo_tramite_origen || 'MODIFICACION';
-          const doc = r.expediente_numero || r.nro_resolucion_primigenia || 'S/N';
+          const infoTipo = this.obtenerInfoTipoTramite(tipoActo);
+
+          // Expediente real: NO inventar resolución primigenia
+          const expNumero = (r.expediente_numero && r.expediente_numero.trim() !== '') ? r.expediente_numero.trim() : null;
+          let fechaExpDisplay: string | null = null;
+          if (r.fecha_expediente) {
+            const fe = new Date(r.fecha_expediente);
+            if (!isNaN(fe.getTime())) {
+              fechaExpDisplay = fe.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+          }
+
           const razon = r.razon_social || r.ruc_empresa || 'EMPRESA NO ESPECIFICADA';
 
           return {
             _id: r._id || r.id,
             correlativo: '', // se asigna después del sort
-            id: r.nro_resolucion || 'S/N',
+            id: nroNorm,
+            nro_resolucion_raw: r.nro_resolucion || '',
             fecha: r.fecha_resolucion ? new Date(r.fecha_resolucion).toLocaleDateString('es-PE') : 'S/F',
             fechaSort,
             anio,
@@ -591,7 +611,12 @@ export class CentroTramites implements OnInit {
             ruc: r.ruc_empresa || '',
             tipoRaw: tipoActo.toUpperCase(),
             tipo: tipoActo.replace(/_/g, ' '),
-            doc,
+            tipoLabel: infoTipo.label,
+            tipoBadgeClass: infoTipo.badgeClass,
+            doc: expNumero || '', // para compatibilidad
+            expediente_numero: expNumero,
+            fecha_expediente: r.fecha_expediente || null,
+            fecha_expediente_display: fechaExpDisplay,
             nro_resolucion_primigenia: r.nro_resolucion_primigenia,
             placasIng,
             placasSal,
@@ -601,7 +626,6 @@ export class CentroTramites implements OnInit {
             observaciones: r.observaciones || '',
             fecha_resolucion_raw: r.fecha_resolucion || null,
             fecha_inicio_efectos: r.fecha_inicio_efectos || null,
-            expediente_numero: r.expediente_numero || '',
             link_documento: r.link_documento || '',
             link_notificacion: r.link_notificacion || '',
             numeros_tuc: r.numeros_tuc || [],
@@ -609,6 +633,7 @@ export class CentroTramites implements OnInit {
             fecha_registro: r.fecha_registro || null
           };
         });
+
 
         // Ordenar descendente:
         // Los trámites registrados en el sistema recientemente (fecha_registro posterior a la importación 2026-09-15)
@@ -679,14 +704,85 @@ export class CentroTramites implements OnInit {
     this.pageIndex.set(0);
   }
 
+  normalizarNumeroResolucion(val?: string, fecha?: any): string {
+    if (!val) return 'S/N';
+    let s = val.trim().toUpperCase();
+    if (!s || s === 'NAN' || s === 'NONE' || s === 'NULL' || s === '-' || s === 'TUC') return 'S/N';
+    s = s.replace(/^(?:RESOLUCI[OÓ]N|RES\.|RES-|R\.|R\s+)/, 'R-');
+    s = s.replace(/^(?:N[°º]|N-)\s*/, '');
+    const m = s.match(/^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{4})/);
+    if (m) {
+      return `R-${m[1].padStart(4, '0')}-${m[2]}`;
+    }
+    const m2 = s.match(/^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{2})(?:[-/.]?.*)?$/);
+    if (m2) {
+      const anio = parseInt(m2[2], 10) < 50 ? '20' + m2[2] : '19' + m2[2];
+      return `R-${m2[1].padStart(4, '0')}-${anio}`;
+    }
+    if (/^\d+$/.test(s) && fecha) {
+      const d = new Date(fecha);
+      if (!isNaN(d.getFullYear())) {
+        return `R-${s.padStart(4, '0')}-${d.getFullYear()}`;
+      }
+    }
+    if (/^\d/.test(s)) {
+      return `R-${s}`;
+    }
+    return s;
+  }
+
+  obtenerInfoTipoTramite(tipoRaw: string): { label: string; badgeClass: string } {
+    const t = (tipoRaw || '').toUpperCase();
+    if (t.includes('SUSTITUCION')) {
+      return { label: 'SUSTITUCIÓN', badgeClass: 'badge-tramite-sustitucion' };
+    }
+    if (t.includes('INCREMENTO')) {
+      return { label: 'INCREMENTO', badgeClass: 'badge-tramite-incremento' };
+    }
+    if (t.includes('RENOVACION')) {
+      return { label: 'RENOVACIÓN', badgeClass: 'badge-tramite-renovacion' };
+    }
+    if (t.includes('MODIFICACION')) {
+      return { label: 'MODIFICACIÓN RUTA', badgeClass: 'badge-tramite-modificacion' };
+    }
+    if (t.includes('CANCELACION') || t.includes('BAJA')) {
+      return { label: 'CANCELACIÓN PARCIAL', badgeClass: 'badge-tramite-cancelacion' };
+    }
+    if (t.includes('ERRATA') || t.includes('FE_DE_ERRATAS')) {
+      return { label: 'FE DE ERRATAS', badgeClass: 'badge-tramite-fe' };
+    }
+    if (t.includes('DUPLICADO')) {
+      return { label: 'DUPLICADO', badgeClass: 'badge-tramite-duplicado' };
+    }
+    if (t.includes('CANJE')) {
+      return { label: 'CANJE', badgeClass: 'badge-tramite-canje' };
+    }
+    if (t.includes('REPRESENTANTE')) {
+      return { label: 'CAMBIO REP.', badgeClass: 'badge-tramite-otros' };
+    }
+    if (t.includes('SUSPENSION')) {
+      return { label: 'SUSPENSIÓN', badgeClass: 'badge-tramite-cancelacion' };
+    }
+    return { label: (tipoRaw || 'MODIFICACIÓN').replace(/_/g, ' '), badgeClass: 'badge-tramite-otros' };
+  }
+
   // COLUMN CONFIGURATION
   private _cargarColumnasGuardadas(): Record<string, boolean> {
+    const defaults: Record<string, boolean> = {
+      correlativo: true,
+      id: true,
+      fecha: true,
+      empresa: true,
+      doc: true,
+      vehiculos: true,
+      estado: true,
+      acciones: true,
+      tipo: false // Por defecto integrado bajo la resolución
+    };
     try {
-      const saved = localStorage.getItem('drtc_tramites_columnas');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('drtc_tramites_columnas_v2');
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
     } catch {}
-    const defaults: Record<string, boolean> = {};
-    this.todasColumnasDisponibles?.forEach(c => defaults[c.key] = c.visible);
     return defaults;
   }
 
@@ -695,7 +791,7 @@ export class CentroTramites implements OnInit {
     if (col?.fija) return; // No se puede ocultar columna fija
     this.columnasVisibles.update(prev => {
       const updated = { ...prev, [key]: !prev[key] };
-      try { localStorage.setItem('drtc_tramites_columnas', JSON.stringify(updated)); } catch {}
+      try { localStorage.setItem('drtc_tramites_columnas_v2', JSON.stringify(updated)); } catch {}
       return updated;
     });
   }

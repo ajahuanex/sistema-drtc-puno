@@ -1023,6 +1023,131 @@
   }
 }
 
+/* ── N° Resolución + Tipo Trámite Integrado ── */
+.col-resolucion-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  padding: 2px 0;
+}
+
+.resolucion-code-badge {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.tipo-tramite-subtag {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+
+  &.badge-tramite-sustitucion {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  &.badge-tramite-renovacion {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  &.badge-tramite-incremento {
+    background: #ecfeff;
+    color: #0e7490;
+    border: 1px solid #a5f3fc;
+  }
+
+  &.badge-tramite-modificacion {
+    background: #faf5ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+  }
+
+  &.badge-tramite-cancelacion {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+  }
+
+  &.badge-tramite-fe {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  &.badge-tramite-duplicado,
+  &.badge-tramite-canje,
+  &.badge-tramite-otros {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+}
+
+/* ── Expediente Column ── */
+.col-expediente-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  padding: 2px 0;
+}
+
+.expediente-code {
+  color: #1d4ed8;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.expediente-fecha {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 1px;
+  white-space: nowrap;
+
+  .exp-icon {
+    font-size: 12px;
+    width: 12px;
+    height: 12px;
+    color: #94a3b8;
+  }
+}
+
+.badge-sin-expediente {
+  color: #94a3b8;
+  font-size: 11px;
+  font-style: italic;
+  background: #f8fafc;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px dashed #cbd5e1;
+  display: inline-block;
+  white-space: nowrap;
+}
+
 /* ── Column Configurator ─────────────── */
 .col-config-wrapper {
   position: relative;

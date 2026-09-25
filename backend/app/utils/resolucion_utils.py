@@ -229,7 +229,7 @@ def generar_resumen_vigencia(
         'porcentaje_transcurrido': min(100, max(0, ((fecha_actual - fecha_inicio).days / ((fecha_fin - fecha_inicio).days)) * 100))
     }
 
-def normalizar_numero_resolucion(val: Optional[str]) -> str:
+def normalizar_numero_resolucion(val: Optional[str], fecha_referencia: Optional[datetime] = None) -> str:
     """
     Normaliza un número de resolución al formato estándar 'R-XXXX-YYYY'
     Ejemplos:
@@ -238,32 +238,74 @@ def normalizar_numero_resolucion(val: Optional[str]) -> str:
     - 'r-123-2026' -> 'R-0123-2026'
     - 'R. 0123-2026' -> 'R-0123-2026'
     - 'RES-0123-2026' -> 'R-0123-2026'
+    - '0375-2023-S' -> 'R-0375-2023'
+    - '0097-2026-M' -> 'R-0097-2026'
+    - 'R-0079--2026' -> 'R-0079-2026'
     """
     if not val:
         return ""
     
     import re
     s = str(val).strip().upper()
-    if not s or s == 'NAN':
+    if not s or s in ('NAN', 'NONE', 'NULL', '-', 'S/N', 'TUC', 'REPRESENTANTE', 'DUPLICADO', 'D', 'R----', 'R-VARIOS'):
         return ""
     
+    # Si es placa vehicular aislada (ej. VBM-956), no es número de resolución
+    if re.match(r'^(?:R-)?([A-Z0-9]{3}-?[A-Z0-9]{3})$', s) and not re.search(r'19\d\d|20\d\d', s):
+        return ""
+
     # 1. Quitar prefijos comunes como RESOLUCION, RESOLUCIÓN, RES., RES-, R., R
-    s = re.sub(r'^(RESOLUCIÓN|RESOLUCION|RES\.|RES-|R\.|R\s+)', 'R-', s)
-    s = re.sub(r'^(N°|Nº|N-)\s*', '', s)
+    s = re.sub(r'^(?:RESOLUCI[OÓ]N|RES\.|RES-|R\.|R\s+)', 'R-', s)
+    s = re.sub(r'^(?:N[°º]|N-)\s*', '', s)
     s = s.strip()
 
-    # 2. Buscar patrón de correlativo numérico y año 4 dígitos
-    match = re.search(r'^(?:R[-.\s]*)?0*(\d{1,6})[-/. ](\d{4})(?:[-/.]?.*)?$', s)
+    # 2. Buscar patrón de correlativo numérico y año 4 dígitos (tolerando sufijos -S, -I, -M, etc. o dobles guiones)
+    match = re.search(r'^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{4})', s)
     if match:
         correlativo, anio = match.groups()
         corr_fmt = f"{int(correlativo):04d}"
         return f"R-{corr_fmt}-{anio}"
     
-    # 3. Si no encaja en correlativo-año, asegurar prefijo R- si empieza por número
-    if s[0].isdigit():
+    # 3. Buscar patrón con año de 2 dígitos (ej. 123-26)
+    match_2d = re.search(r'^(?:R[-.\s]*)?0*(\d{1,6})[-/.\s]+(\d{2})(?:[-/.]?.*)?$', s)
+    if match_2d:
+        correlativo, yr2 = match_2d.groups()
+        anio = "20" + yr2 if int(yr2) < 50 else "19" + yr2
+        corr_fmt = f"{int(correlativo):04d}"
+        return f"R-{corr_fmt}-{anio}"
+
+    # 4. Si es sólo dígitos numéricos y tenemos fecha_referencia
+    if s.isdigit() and fecha_referencia:
+        yr = getattr(fecha_referencia, "year", None)
+        if yr:
+            return f"R-{int(s):04d}-{yr}"
+
+    # 5. Si no encaja en correlativo-año, asegurar prefijo R- si empieza por número
+    if s and s[0].isdigit():
         return f"R-{s}"
     
     return s
+
+def extraer_tipo_de_resolucion(val: Optional[str]) -> Optional[str]:
+    """
+    Extrae el tipo de acto modificatorio del sufijo de un número de resolución hija.
+    """
+    if not val:
+        return None
+    import re
+    s = str(val).strip().upper()
+    if re.search(r'[-_(\s](S|SUST)(?:[-_\s)]|$)', s):
+        return 'SUSTITUCION_VEHICULAR'
+    if re.search(r'[-_(\s](I|INC)(?:[-_\s)]|$)', s):
+        return 'INCREMENTO_FLOTA'
+    if re.search(r'[-_(\s](M|MOD)(?:[-_\s)]|$)', s):
+        return 'MODIFICACION_RUTA'
+    if re.search(r'[-_(\s](C|CAN|B|BAJA)(?:[-_\s)]|$)', s):
+        return 'CANCELACION_PARCIAL'
+    if re.search(r'[-_(\s](FE|ERRATA)(?:[-_\s)]|$)', s):
+        return 'FE_DE_ERRATAS'
+    return None
+
 
 # Constantes útiles
 ANIOS_VIGENCIA_ESTANDAR = 4
