@@ -1232,10 +1232,15 @@ async def procesar_carga_masiva_google_sheets(
                         ''
                     )
                     if representante:
-                        # Separar nombres y apellidos
-                        nombres_partes = representante.split()
-                        apellidos_rep = nombres_partes[-1] if len(nombres_partes) > 0 else ''
-                        nombres_rep = ' '.join(nombres_partes[:-1]) if len(nombres_partes) > 1 else ''
+                        # Separar nombres y apellidos (Soporta 'APELLIDOS, NOMBRES' con coma)
+                        if ',' in representante:
+                            partes = [p.strip() for p in representante.split(',', 1)]
+                            apellidos_rep = partes[0]
+                            nombres_rep = partes[1] if len(partes) > 1 else ''
+                        else:
+                            nombres_partes = representante.split()
+                            apellidos_rep = ' '.join(nombres_partes[2:]) if len(nombres_partes) > 2 else (nombres_partes[-1] if len(nombres_partes) > 0 else '')
+                            nombres_rep = ' '.join(nombres_partes[:2]) if len(nombres_partes) > 2 else (' '.join(nombres_partes[:-1]) if len(nombres_partes) > 1 else '')
                 
                 # Normalizar DNI a 8 dígitos si existe
                 if dni:
@@ -1251,12 +1256,19 @@ async def procesar_carga_masiva_google_sheets(
                         'tipoSocio': 'REPRESENTANTE_LEGAL'
                     })
                 
-                # Obtener Razón Social SUNAT y Mínimo (opcionales)
+                # Obtener Razón Social SUNAT y Mínimo / RZ (nombre corto)
                 razon_social_sunat = str(
                     empresa_data.get('razonSocialSunat', '') or 
                     empresa_data.get('RAZON_SOCIAL_SUNAT', '')
                 ).strip() or None
-                razon_social_minimo = str(empresa_data.get('razonSocialMinimo', '')).strip() or None
+                razon_social_minimo = str(
+                    empresa_data.get('razonSocialMinimo', '') or
+                    empresa_data.get('RZ', '') or
+                    empresa_data.get('rz', '') or
+                    empresa_data.get('NOMBRE_CORTO', '') or
+                    empresa_data.get('nombre_corto', '') or
+                    empresa_data.get('razon_social_minimo', '')
+                ).strip() or None
                 
                 # Obtener Partida Registral
                 partida_raw = (
@@ -1340,10 +1352,17 @@ async def procesar_carga_masiva_google_sheets(
                         elif isinstance(empresa_existente, dict) and isinstance(empresa_existente.get('razonSocial'), dict):
                             existing_rs_sunat = empresa_existente['razonSocial'].get('sunat')
 
+                        existing_rs_minimo = None
+                        if hasattr(empresa_existente, 'razonSocial') and hasattr(empresa_existente.razonSocial, 'minimo'):
+                            existing_rs_minimo = empresa_existente.razonSocial.minimo
+                        elif isinstance(empresa_existente, dict) and isinstance(empresa_existente.get('razonSocial'), dict):
+                            existing_rs_minimo = empresa_existente['razonSocial'].get('minimo')
+
                         rs_update = {
                             'principal': razon_social,
                             'sunat': razon_social_sunat or existing_rs_sunat,
-                            'minimo': razon_social_minimo
+                            'minimo': razon_social_minimo or existing_rs_minimo,
+                            'nombre_corto': razon_social_minimo or existing_rs_minimo
                         }
 
                         # Crear objeto de actualización
@@ -1714,8 +1733,11 @@ async def _fetch_sunat_data(ruc: str) -> Optional[dict]:
     if not ruc or len(ruc) != 11 or not ruc.isdigit():
         return None
     url = f"https://pcm.guillermo.pe/api/v1/consultas/sunat-ruc/datos-principales?transport=rest&rest_format=json&numruc={ruc}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=headers) as client:
             resp = await client.get(url)
             if resp.status_code == 200:
                 return resp.json()
@@ -1734,10 +1756,13 @@ async def actualizar_sunat_empresa(
     (nombre, estado, condición, dirección, ciiu, fecha de consulta) en la base de datos MongoDB.
     """
     empresa = await empresa_service.get_empresa_by_id(empresa_id)
+    if not empresa and len(empresa_id) == 11 and empresa_id.isdigit():
+        empresa = await empresa_service.get_empresa_by_ruc(empresa_id)
     if not empresa:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     
     ruc = empresa.get('ruc') if isinstance(empresa, dict) else empresa.ruc
+    target_id = empresa.get('id') if isinstance(empresa, dict) else (empresa.id or empresa_id)
     
     data = await _fetch_sunat_data(ruc)
     if not data or 'data' not in data:
@@ -1762,7 +1787,7 @@ async def actualizar_sunat_empresa(
         razonSocial=razon_actualizada  # type: ignore
     )
     
-    updated = await empresa_service.update_empresa(empresa_id, update_data, "SISTEMA")
+    updated = await empresa_service.update_empresa(target_id or empresa_id, update_data, "SISTEMA")
     if not updated:
         raise HTTPException(status_code=500, detail="Error al guardar datos SUNAT en MongoDB")
     

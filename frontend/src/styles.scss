@@ -2882,15 +2882,30 @@ button.mat-mdc-icon-button.compact-icon-btn-sm {
 }
 
 .cdk-overlay-backdrop {
-  z-index: 25000 !important;
-}
-
-.cdk-global-overlay-wrapper {
   z-index: 25001 !important;
 }
 
+/* El panel del overlay DEBE estar SIEMPRE por encima del backdrop para recibir clics */
+.cdk-overlay-pane {
+  z-index: 25005 !important;
+}
+
+.cdk-global-overlay-wrapper {
+  z-index: 25005 !important;
+}
+
+.mat-mdc-menu-panel {
+  pointer-events: auto !important;
+  z-index: 25006 !important;
+}
+
+.cdk-overlay-transparent-backdrop,
+.cdk-overlay-transparent-backdrop.cdk-overlay-backdrop-showing {
+  opacity: 0 !important;
+}
+
 .modal-vehiculo-overlay-elevado {
-  z-index: 25002 !important;
+  z-index: 25010 !important;
 }
 
 

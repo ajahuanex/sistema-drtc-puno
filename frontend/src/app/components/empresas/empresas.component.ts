@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed, effect, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
@@ -42,6 +42,8 @@ const ESTADOS_RUC: Record<string, string> = {
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
+    RouterLink,
     ReactiveFormsModule,
     FormsModule,
     MatTableModule,
@@ -97,30 +99,9 @@ const ESTADOS_RUC: Record<string, string> = {
               <span>Exportar Todas ({{ empresas().length }})</span>
             </button>
             <mat-divider></mat-divider>
-            <button mat-menu-item (click)="descargarPlantilla()">
-              <mat-icon>description</mat-icon>
-              <span>Descargar Plantilla Excel</span>
-            </button>
-          </mat-menu>
-
-          <!-- Botón Carga Masiva con Menú -->
-          <button mat-button class="header-action-btn" [matMenuTriggerFor]="cargaMasivaMenu" [disabled]="isLoading()" matTooltip="Carga masiva de empresas">
-            <span class="material-symbols-outlined btn-icon">upload_file</span>
-            <span class="btn-text">Carga Masiva</span>
-          </button>
-          <mat-menu #cargaMasivaMenu="matMenu">
-            <button mat-menu-item (click)="abrirCargaMasivaGoogleSheets()">
-              <mat-icon color="primary">cloud_upload</mat-icon>
-              <span>Cargar desde Google Sheets</span>
-            </button>
-            <button mat-menu-item (click)="abrirCargaMasiva()">
-              <mat-icon color="accent">upload_file</mat-icon>
-              <span>Cargar desde Archivo Excel (.xlsx)</span>
-            </button>
-            <mat-divider></mat-divider>
-            <button mat-menu-item (click)="abrirActualizarDatos()">
-              <mat-icon style="color: #f59e0b;">update</mat-icon>
-              <span>Actualizar Datos en Bloque desde Excel</span>
+            <button mat-menu-item (click)="irAInicializador()">
+              <mat-icon style="color: #6366f1;">database</mat-icon>
+              <span>Sincronizar Base Maestra (Inicializador)</span>
             </button>
           </mat-menu>
 
@@ -316,12 +297,52 @@ const ESTADOS_RUC: Record<string, string> = {
           </div>
         }
 
-        <!-- Tabla de Resultados -->
+        <!-- Modern Skeleton Preloader (Stitch DRTC Modern Loading) -->
         @if (isLoading()) {
-          <div class="loading-container">
-            <mat-spinner diameter="50"></mat-spinner>
-            <p>Cargando empresas de transporte...</p>
-          </div>
+          <mat-card class="modern-preloader-card animate-fade-in">
+            <mat-progress-bar mode="indeterminate" class="preloader-progress-bar"></mat-progress-bar>
+            
+            <div class="preloader-header">
+              <div class="preloader-pulse-avatar">
+                <span class="material-symbols-outlined pulse-icon">domain</span>
+                <span class="pulse-ring"></span>
+              </div>
+              <div class="preloader-meta">
+                <div class="preloader-title-row">
+                  <span class="preloader-badge">Sincronizando Padrón</span>
+                  <span class="preloader-subtext">Dirección Regional de Transportes y Comunicaciones Puno</span>
+                </div>
+                <h4>Cargando expediente digital oficial y estado tributario SUNAT...</h4>
+              </div>
+            </div>
+
+            <!-- Skeleton Table Rows -->
+            <div class="skeleton-table">
+              <div class="skeleton-table-header">
+                <div class="skeleton-th" style="width: 32px;"></div>
+                <div class="skeleton-th" style="width: 130px;"></div>
+                <div class="skeleton-th" style="flex: 2.5;"></div>
+                <div class="skeleton-th" style="width: 120px;"></div>
+                <div class="skeleton-th" style="width: 110px;"></div>
+                <div class="skeleton-th" style="flex: 1.8;"></div>
+                <div class="skeleton-th" style="width: 110px;"></div>
+                <div class="skeleton-th" style="width: 60px;"></div>
+              </div>
+
+              @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+                <div class="skeleton-row">
+                  <div class="skeleton-cell check-cell"><div class="skeleton-box s-check"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-ruc"></div></div>
+                  <div class="skeleton-cell flex-2-5"><div class="skeleton-box s-title"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-badge"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-status"></div></div>
+                  <div class="skeleton-cell flex-1-8"><div class="skeleton-box s-rep"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-sunat"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-action"></div></div>
+                </div>
+              }
+            </div>
+          </mat-card>
         } @else if (empresasFiltradas().length === 0) {
           <mat-card class="empty-state">
             <mat-card-content>
@@ -399,8 +420,8 @@ const ESTADOS_RUC: Record<string, string> = {
                         </th>
                       }
                       @if (columnaVisible('acciones')) {
-                        <th class="text-center th-actions-icon-col" matTooltip="Opciones y Acciones">
-                          <span class="material-symbols-outlined th-actions-icon">more_vert</span>
+                        <th class="text-center th-acciones-col">
+                          <span>Acciones</span>
                         </th>
                       }
                     </tr>
@@ -441,7 +462,9 @@ const ESTADOS_RUC: Record<string, string> = {
                         }
                         @if (columnaVisible('razonSocial')) {
                           <td class="razon-social-td">
-                            <div class="empresa-name-container">
+                            <div class="empresa-name-container clickable-company-name"
+                                 (click)="verDetalle(empresa.id)"
+                                 matTooltip="Clic para ver expediente completo de la empresa">
                               <span class="company-name-text">{{ empresa.razonSocial.principal }}</span>
                             </div>
                           </td>
@@ -549,10 +572,32 @@ const ESTADOS_RUC: Record<string, string> = {
                           </td>
                         }
                         @if (columnaVisible('acciones')) {
-                          <td class="text-center">
-                            <button mat-icon-button [matMenuTriggerFor]="actionMenu" [matMenuTriggerData]="{ empresa: empresa }" matTooltip="Opciones de la Empresa">
-                              <mat-icon>more_vert</mat-icon>
-                            </button>
+                          <td class="text-center actions-cell">
+                            <div class="row-actions-group">
+                              <a [routerLink]="['/empresas', empresa.id]"
+                                 class="table-action-btn action-view"
+                                 matTooltip="Ver Detalle y Expediente">
+                                <mat-icon>visibility</mat-icon>
+                              </a>
+                              <a [routerLink]="['/empresas', empresa.id, 'editar']"
+                                 class="table-action-btn action-edit"
+                                 matTooltip="Editar Empresa">
+                                <mat-icon>edit</mat-icon>
+                              </a>
+                              <button type="button"
+                                      class="table-action-btn action-sunat"
+                                      (click)="consultarSunat(empresa)"
+                                      [disabled]="sunatCargando().has(empresa.ruc)"
+                                      matTooltip="Consultar Estado SUNAT en Vivo">
+                                <mat-icon>fact_check</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-delete"
+                                      (click)="eliminarEmpresa(empresa.id)"
+                                      matTooltip="Eliminar Empresa">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            </div>
                           </td>
                         }
                       </tr>
@@ -560,29 +605,6 @@ const ESTADOS_RUC: Record<string, string> = {
                   </tbody>
                 </table>
               </div>
-
-              <mat-menu #actionMenu="matMenu">
-                <ng-template matMenuContent let-empresa="empresa">
-                  <button mat-menu-item (click)="verDetalle(empresa.id)">
-                    <mat-icon color="primary">visibility</mat-icon>
-                    <span>Ver Detalle de Empresa</span>
-                  </button>
-                  <button mat-menu-item (click)="editarEmpresa(empresa.id)">
-                    <mat-icon color="accent">edit</mat-icon>
-                    <span>Editar Empresa</span>
-                  </button>
-                  <mat-divider></mat-divider>
-                  <button mat-menu-item (click)="consultarSunat(empresa)" [disabled]="sunatCargando().has(empresa.ruc)">
-                    <mat-icon style="color: #059669;">fact_check</mat-icon>
-                    <span>Consultar Estado SUNAT</span>
-                  </button>
-                  <mat-divider></mat-divider>
-                  <button mat-menu-item (click)="eliminarEmpresa(empresa.id)">
-                    <mat-icon color="warn">delete</mat-icon>
-                    <span>Eliminar Empresa</span>
-                  </button>
-                </ng-template>
-              </mat-menu>
 
               <mat-paginator
                 [pageSizeOptions]="[10, 25, 50, 100, 250]"
@@ -1141,6 +1163,157 @@ const ESTADOS_RUC: Record<string, string> = {
       }
     }
 
+    /* ── Modern Preloader & Skeleton Loading ───────────────────── */
+    .modern-preloader-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+
+      .preloader-progress-bar {
+        height: 3px;
+      }
+
+      .preloader-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        border-bottom: 1px solid #f1f5f9;
+
+        .preloader-pulse-avatar {
+          position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 10px;
+          background: #eff6ff;
+          color: #2563eb;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #dbeafe;
+
+          .pulse-icon {
+            font-size: 24px;
+            animation: pulseSubtle 1.8s infinite ease-in-out;
+          }
+
+          .pulse-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 14px;
+            border: 2px solid #3b82f6;
+            opacity: 0.4;
+            animation: radarPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+          }
+        }
+
+        .preloader-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+
+          .preloader-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .preloader-badge {
+            background: #dbeafe;
+            color: #1e40af;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 2px 7px;
+            border-radius: 4px;
+          }
+
+          .preloader-subtext {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+          }
+
+          h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0f172a;
+          }
+        }
+      }
+
+      .skeleton-table {
+        padding: 0.5rem 1rem 1.25rem;
+
+        .skeleton-table-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.75rem 0.5rem;
+          border-bottom: 2px solid #f1f5f9;
+
+          .skeleton-th {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 4px;
+          }
+        }
+
+        .skeleton-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.85rem 0.5rem;
+          border-bottom: 1px solid #f8fafc;
+
+          .skeleton-cell {
+            flex-shrink: 0;
+
+            &.check-cell { width: 28px; }
+            &.flex-2-5 { flex: 2.5; }
+            &.flex-1-8 { flex: 1.8; }
+          }
+
+          .skeleton-box {
+            border-radius: 6px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmerWave 1.6s infinite;
+
+            &.s-check { width: 18px; height: 18px; border-radius: 4px; }
+            &.s-ruc { width: 110px; height: 22px; }
+            &.s-title { width: 90%; height: 20px; }
+            &.s-badge { width: 95px; height: 20px; }
+            &.s-status { width: 90px; height: 20px; }
+            &.s-rep { width: 85%; height: 22px; }
+            &.s-sunat { width: 100px; height: 22px; border-radius: 12px; }
+            &.s-action { width: 48px; height: 26px; border-radius: 6px; }
+          }
+        }
+      }
+    }
+
+    @keyframes shimmerWave {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes pulseSubtle {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.8; }
+    }
+
+    @keyframes radarPulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
     /* ── Data Table (Stitch enterprises-table) ─────────────────── */
     .table-card {
       border-radius: 12px;
@@ -1244,6 +1417,156 @@ const ESTADOS_RUC: Record<string, string> = {
 
     .razon-th, .razon-social-td {
       min-width: 280px;
+    }
+
+    .clickable-company-name {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      transition: all 0.15s ease;
+
+      .company-name-text {
+        font-weight: 600;
+        color: #1e293b;
+        transition: color 0.15s ease;
+      }
+
+      &:hover .company-name-text {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+    }
+
+    .company-short-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      padding: 1px 6px;
+      white-space: nowrap;
+    }
+
+    .th-acciones-col {
+      width: 165px;
+      min-width: 165px;
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .actions-cell {
+      white-space: nowrap;
+      width: 165px;
+      min-width: 165px;
+      padding: 0.35rem 0.5rem !important;
+      text-align: center;
+    }
+
+    .row-actions-group {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .table-action-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      text-decoration: none;
+      background: #f8fafc;
+      cursor: pointer !important;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      user-select: none;
+      padding: 0;
+
+      mat-icon {
+        font-size: 17px;
+        width: 17px;
+        height: 17px;
+        line-height: 17px;
+        pointer-events: none;
+      }
+
+      &:hover {
+        transform: translateY(-2px) scale(1.08);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      &:active {
+        transform: translateY(0) scale(0.96);
+      }
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed !important;
+        pointer-events: none;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* Botón 1: Ver Detalle (Azul DRTC) */
+      &.action-view {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #2563eb;
+
+        &:hover {
+          background: #2563eb;
+          border-color: #1d4ed8;
+          color: #ffffff;
+        }
+      }
+
+      /* Botón 2: Editar (Ámbar / Naranja) */
+      &.action-edit {
+        background: #fefce8;
+        border-color: #fef08a;
+        color: #ca8a04;
+
+        &:hover {
+          background: #eab308;
+          border-color: #ca8a04;
+          color: #ffffff;
+        }
+      }
+
+      /* Botón 3: Consultar SUNAT (Esmeralda) */
+      &.action-sunat {
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+        color: #059669;
+
+        &:hover {
+          background: #059669;
+          border-color: #047857;
+          color: #ffffff;
+        }
+      }
+
+      /* Botón 4: Eliminar (Rojo / Destructivo) */
+      &.action-delete {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+
+        &:hover {
+          background: #dc2626;
+          border-color: #b91c1c;
+          color: #ffffff;
+        }
+      }
     }
 
     .ruc-cell-stacked {
@@ -1776,6 +2099,45 @@ const ESTADOS_RUC: Record<string, string> = {
         }
       }
 
+      .modern-preloader-card {
+        background: #0f172a !important;
+        border-color: #1e293b !important;
+
+        .preloader-header {
+          background: linear-gradient(180deg, #131b2e 0%, #0f172a 100%) !important;
+          border-bottom-color: #1e293b !important;
+
+          .preloader-pulse-avatar {
+            background: rgba(37, 99, 235, 0.15) !important;
+            border-color: rgba(59, 130, 246, 0.3) !important;
+            color: #60a5fa !important;
+          }
+
+          .preloader-meta {
+            .preloader-badge {
+              background: rgba(59, 130, 246, 0.2) !important;
+              color: #93c5fd !important;
+            }
+            .preloader-subtext { color: #94a3b8 !important; }
+            h4 { color: #ffffff !important; }
+          }
+        }
+
+        .skeleton-table {
+          .skeleton-table-header {
+            border-bottom-color: #1e293b !important;
+            .skeleton-th { background: #1e293b !important; }
+          }
+          .skeleton-row {
+            border-bottom-color: #131b2e !important;
+            .skeleton-box {
+              background: linear-gradient(90deg, #131b2e 25%, #1e293b 50%, #131b2e 75%) !important;
+              background-size: 200% 100% !important;
+            }
+          }
+        }
+      }
+
       .table-card {
         background: #0f172a !important;
         border-color: #1e293b !important;
@@ -1830,6 +2192,57 @@ const ESTADOS_RUC: Record<string, string> = {
 
       .company-name-text {
         color: #ffffff !important;
+      }
+
+      .clickable-company-name:hover .company-name-text {
+        color: #60a5fa !important;
+      }
+
+      .company-short-badge {
+        background: rgba(59, 130, 246, 0.2) !important;
+        color: #93c5fd !important;
+        border-color: rgba(59, 130, 246, 0.4) !important;
+      }
+
+      .table-action-btn {
+        background: rgba(30, 41, 59, 0.8) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+
+        &.action-view {
+          border-color: rgba(59, 130, 246, 0.4) !important;
+          color: #60a5fa !important;
+          &:hover {
+            background: #2563eb !important;
+            color: #ffffff !important;
+          }
+        }
+
+        &.action-edit {
+          border-color: rgba(245, 158, 11, 0.4) !important;
+          color: #fbbf24 !important;
+          &:hover {
+            background: #d97706 !important;
+            color: #ffffff !important;
+          }
+        }
+
+        &.action-sunat {
+          border-color: rgba(16, 185, 129, 0.4) !important;
+          color: #34d399 !important;
+          &:hover {
+            background: #059669 !important;
+            color: #ffffff !important;
+          }
+        }
+
+        &.action-delete {
+          border-color: rgba(239, 68, 68, 0.4) !important;
+          color: #f87171 !important;
+          &:hover {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+          }
+        }
       }
 
       .ruc-text {
@@ -1966,6 +2379,7 @@ export class EmpresasComponent implements OnInit {
   estadoFilter = signal('');
   servicioFilter = signal<string>('');
   showMobileFilters = signal<boolean>(false);
+  empresaSeleccionadaMenu = signal<Empresa | null>(null);
 
   // Computed KPI Metrics (Stitch Official Padrón DRTC Puno) — DINÁMICOS
   totalAutorizadas = computed(() => {
@@ -2315,8 +2729,18 @@ export class EmpresasComponent implements OnInit {
   }
 
   getRepresentanteLegal(empresa: Empresa): any {
-    if (!empresa.socios || empresa.socios.length === 0) return null;
-    return empresa.socios.find(s => s.tipoSocio === 'REPRESENTANTE_LEGAL') || null;
+    if (!empresa) return null;
+    if (empresa.socios && empresa.socios.length > 0) {
+      const rep = empresa.socios.find(s => s.tipoSocio === 'REPRESENTANTE_LEGAL');
+      if (rep) return rep;
+    }
+    if ((empresa as any).representanteLegal) {
+      return (empresa as any).representanteLegal;
+    }
+    if (empresa.socios && empresa.socios.length > 0) {
+      return empresa.socios[0];
+    }
+    return null;
   }
 
   getSociosAdicionales(empresa: Empresa): any[] {
@@ -2351,8 +2775,12 @@ export class EmpresasComponent implements OnInit {
   }
 
   consultarSunat(empresa: Empresa): void {
-    const ruc = empresa.ruc;
+    const ruc = empresa?.ruc;
+    const empId = empresa?.id || (empresa as any)?._id || ruc;
     if (!ruc || this.sunatCargando().has(ruc)) return;
+
+    // Feedback inmediato al usuario
+    this.snackBar.open(`Consultando SUNAT para RUC ${ruc}...`, undefined, { duration: 3000 });
 
     // Marcar como cargando
     const cargando = new Set(this.sunatCargando());
@@ -2365,15 +2793,15 @@ export class EmpresasComponent implements OnInit {
       this.sunatCargando.set(cargandoAct);
     };
 
-    // Usar actualizarSunat para consultar la API de SUNAT y persistir en la base de datos MongoDB
-    this.empresaService.actualizarSunat(empresa.id).pipe(
+    // Usar actualizarSunat para consultar la API de SUNAT y persistir en MongoDB
+    this.empresaService.actualizarSunat(empId).pipe(
       finalize(() => removerCargando())
     ).subscribe({
       next: (empresaActualizada) => {
         if (empresaActualizada && empresaActualizada.datosSunat) {
           const d = empresaActualizada.datosSunat as any;
           const sunatData: SunatData = {
-            ddp_nombre: d.ddp_nombre || d.razonSocial || empresaActualizada.razonSocial?.sunat || '',
+            ddp_nombre: d.ddp_nombre || d.razonSocial || (typeof empresaActualizada.razonSocial === 'object' ? empresaActualizada.razonSocial?.sunat : '') || '',
             ddp_estado: d.ddp_estado || (d.valido ? '00' : '10'),
             desc_estado: d.desc_estado || (d.valido ? 'ACTIVO' : 'INACTIVO'),
             esActivo: d.esActivo === true || d.valido === true,
@@ -2387,8 +2815,8 @@ export class EmpresasComponent implements OnInit {
 
           // Actualizar la empresa en la lista local
           const updatedEmpresas = this.empresas().map(e => {
-            if (e.id === empresa.id) {
-              return empresaActualizada;
+            if (e.id === empresa.id || e.ruc === empresa.ruc) {
+              return { ...e, ...empresaActualizada, datosSunat: d };
             }
             return e;
           });
@@ -2397,7 +2825,7 @@ export class EmpresasComponent implements OnInit {
           const estado = ESTADOS_RUC[sunatData.ddp_estado || ''] || sunatData.desc_estado || '';
           const habido = sunatData.esHabido ? 'HABIDO' : 'NO HABIDO';
           const activo = sunatData.esActivo ? '✅ ACTIVO' : '❌ BAJA';
-          this.snackBar.open(`Guardado en BD: ${sunatData.ddp_nombre || ''} — ${activo} | ${estado} | ${habido}`, 'OK', { duration: 6000 });
+          this.snackBar.open(`SUNAT: ${sunatData.ddp_nombre || empresa.razonSocial?.principal || ''} — ${activo} | ${estado} | ${habido}`, 'OK', { duration: 6000 });
         } else {
           this.snackBar.open(`No se obtuvieron datos SUNAT para RUC ${ruc}`, 'Cerrar', { duration: 4000 });
         }
@@ -2421,6 +2849,15 @@ export class EmpresasComponent implements OnInit {
               const newCache = new Map(this.sunatCache());
               newCache.set(ruc, sunatData);
               this.sunatCache.set(newCache);
+
+              const updatedEmpresas = this.empresas().map(e => {
+                if (e.ruc === ruc) {
+                  return { ...e, datosSunat: data };
+                }
+                return e;
+              });
+              this.empresas.set(updatedEmpresas);
+
               const estado = ESTADOS_RUC[sunatData.ddp_estado || ''] || sunatData.desc_estado || '';
               const habido = sunatData.esHabido ? 'HABIDO' : 'NO HABIDO';
               const activo = sunatData.esActivo ? '✅ ACTIVO' : '❌ BAJA';
@@ -2568,17 +3005,29 @@ export class EmpresasComponent implements OnInit {
     this.router.navigate(['/empresas/nueva']);
   }
 
-  verDetalle(empresaId: string): void {
-    this.router.navigate(['/empresas', empresaId]);
+  verDetalle(empresaOId: string | Empresa | undefined): void {
+    const id = typeof empresaOId === 'string' ? empresaOId : (empresaOId?.id || (empresaOId as any)?._id);
+    if (!id) {
+      this.snackBar.open('ID de empresa no disponible', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.router.navigate(['/empresas', id]);
   }
 
-  editarEmpresa(empresaId: string): void {
-    this.router.navigate(['/empresas', empresaId, 'editar']);
+  editarEmpresa(empresaOId: string | Empresa | undefined): void {
+    const id = typeof empresaOId === 'string' ? empresaOId : (empresaOId?.id || (empresaOId as any)?._id);
+    if (!id) {
+      this.snackBar.open('ID de empresa no disponible', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.router.navigate(['/empresas', id, 'editar']);
   }
 
-  eliminarEmpresa(empresaId: string): void {
+  eliminarEmpresa(empresaOId: string | Empresa | undefined): void {
+    const id = typeof empresaOId === 'string' ? empresaOId : (empresaOId?.id || (empresaOId as any)?._id);
+    if (!id) return;
     if (confirm('¿Está seguro que desea eliminar esta empresa?')) {
-      this.empresaService.deleteEmpresa(empresaId).subscribe({
+      this.empresaService.deleteEmpresa(id).subscribe({
         next: () => {
           this.snackBar.open('Empresa eliminada exitosamente', 'Cerrar', { duration: 3000 });
           this.cargarEmpresas();
@@ -2690,322 +3139,10 @@ export class EmpresasComponent implements OnInit {
     });
   }
 
-  abrirCargaMasiva(): void {
-    this.router.navigate(['/empresas/carga-masiva']);
+  irAInicializador(): void {
+    this.router.navigate(['/inicializador-datos']);
   }
 
-  abrirActualizarDatos(): void {
-    this.router.navigate(['/empresas/carga-masiva']);
-  }
-
-  abrirCargaMasivaGoogleSheets(): void {
-    this.router.navigate(['/empresas/carga-masiva']);
-  }
-
-  async descargarPlantilla(): Promise<void> {
-    try {
-      this.isLoading.set(true);
-      const response = await this.empresaService.descargarPlantilla().toPromise();
-      if (response) {
-        const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'plantilla-empresas.xlsx';
-        link.click();
-        window.URL.revokeObjectURL(url);
-        this.snackBar.open('Plantilla descargada correctamente', 'Cerrar', { duration: 3000 });
-      }
-    } catch (error) {
-      console.error('Error descargando plantilla:', error);
-      this.snackBar.open('Error al descargar la plantilla', 'Cerrar', { duration: 3000 });
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  private async procesarArchivoExcel(file: File): Promise<void> {
-    const reader = new FileReader();
-    reader.onload = async (e: any) => {
-      try {
-        const XLSX = await import('xlsx');
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        if (jsonData.length === 0) {
-          this.snackBar.open('El archivo no contiene datos', 'Cerrar', { duration: 3000 });
-          return;
-        }
-
-        const empresas: EmpresaCreate[] = [];
-        let filasOmitidas = 0;
-
-        for (const row of jsonData as any[]) {
-          const ruc = ((row as any)['RUC'] || (row as any)['ruc'])?.toString().trim();
-          const razonSocialPrincipal = (
-            (row as any)['RAZON_SOCIAL'] ||
-            (row as any)['Razón Social Principal'] ||
-            (row as any)['RAZON SOCIAL'] ||
-            (row as any)['razon_social'] ||
-            (row as any)['razonSocial']
-          )?.toString().trim();
-
-          if (!ruc || !razonSocialPrincipal) {
-            filasOmitidas++;
-            continue;
-          }
-
-          let dni = (
-            (row as any)['DNI_REPRESENTANTE_LEGAL'] ||
-            (row as any)['DNI Representante'] ||
-            (row as any)['dni_representante'] ||
-            (row as any)['DNI'] ||
-            ''
-          )?.toString().trim();
-
-          let nombres = (row as any)['Nombres Representante']?.toString().trim() || '';
-          let apellidos = (row as any)['Apellidos Representante']?.toString().trim() || '';
-          const repLegal = ((row as any)['REPRESENTANTE_LEGAL'] || (row as any)['Representante Legal'])?.toString().trim() || '';
-          if (!nombres && !apellidos && repLegal) {
-            const parts = repLegal.split(' ');
-            apellidos = parts.length > 0 ? parts[parts.length - 1] : '';
-            nombres = parts.length > 1 ? parts.slice(0, -1).join(' ') : '';
-          }
-
-          let estado = (
-            (row as any)['ESTADO'] ||
-            (row as any)['Estado'] ||
-            'AUTORIZADA'
-          )?.toString().trim().toUpperCase();
-          if (!['AUTORIZADA', 'EN_TRAMITE', 'SUSPENDIDA', 'CANCELADA'].includes(estado)) {
-            estado = 'AUTORIZADA';
-          }
-
-          let partidaRaw = (row as any)['PARTIDA_REGISTRAL'] ||
-                           (row as any)['Partida Registral'] ||
-                           (row as any)['PARTIDA REGISTRAL'] ||
-                           (row as any)['Partida'] ||
-                           (row as any)['PARTIDA'] ||
-                           (row as any)['partida_registral'] ||
-                           (row as any)['partida'] ||
-                           '';
-          let partida = partidaRaw.toString().trim();
-          if (partida && partida !== '-' && partida.toLowerCase() !== 'nan') {
-            const partidaNumerica = partida.replace(/\D/g, '');
-            if (partidaNumerica) {
-              partida = partidaNumerica.padStart(8, '0');
-            }
-          } else {
-            partida = '';
-          }
-
-          const direccionFiscal = (
-            (row as any)['DOMICILIO_LEGAL'] ||
-            (row as any)['Dirección Fiscal'] ||
-            (row as any)['DOMICILIO_FISCAL_SUNAT'] ||
-            (row as any)['domicilio_legal'] ||
-            ''
-          )?.toString().trim();
-
-          const emailContacto = (
-            (row as any)['CORREO_ELECTRONICO'] ||
-            (row as any)['Email Contacto'] ||
-            (row as any)['email'] ||
-            ''
-          )?.toString().trim();
-
-          const telefonoContacto = (
-            (row as any)['TELEFONO'] ||
-            (row as any)['Teléfono Contacto'] ||
-            (row as any)['telefono'] ||
-            ''
-          )?.toString().trim();
-
-          const observaciones = (
-            (row as any)['OBSERVACIONES'] ||
-            (row as any)['Observaciones'] ||
-            ''
-          )?.toString().trim();
-
-          const tipoServRaw = (row as any)['TIPO_SERVICIO'] || (row as any)['Tipo de Servicio'];
-          const tiposServicio = tipoServRaw
-            ? tipoServRaw.toString().split(';').map((s: string) => s.trim().toUpperCase()).filter((s: string) => s)
-            : ['PERSONAS'];
-
-          const empresa: EmpresaCreate = {
-            ruc,
-            razonSocial: {
-              principal: razonSocialPrincipal,
-              sunat: ((row as any)['RAZON_SOCIAL_SUNAT'] || (row as any)['Razón Social SUNAT'])?.toString().trim() || undefined,
-              minimo: (row as any)['Razón Social Mínimo']?.toString().trim() || undefined
-            },
-            direccionFiscal: direccionFiscal || '',
-            partidaRegistral: partida || undefined,
-            estado: estado as any,
-            socios: dni || nombres || apellidos ? [
-              {
-                dni: dni,
-                nombres: nombres,
-                apellidos: apellidos,
-                tipoSocio: TipoSocio.REPRESENTANTE_LEGAL,
-                email: emailContacto || undefined,
-                direccion: direccionFiscal || undefined
-              }
-            ] : [],
-            tiposServicio: tiposServicio,
-            emailContacto: emailContacto || '',
-            telefonoContacto: telefonoContacto || '',
-            sitioWeb: (row as any)['Sitio Web']?.toString().trim() || '',
-            observaciones: observaciones || ''
-          };
-
-          empresas.push(empresa);
-        }
-
-        if (empresas.length === 0) {
-          this.snackBar.open(`No se encontraron empresas válidas en el archivo.`, 'Cerrar', { duration: 5000 });
-          return;
-        }
-
-        this.isLoading.set(true);
-        let exitosas = 0;
-        let errores = 0;
-
-        const crearEmpresas = (index: number) => {
-          if (index >= empresas.length) {
-            const mensaje = `${exitosas} empresas importadas exitosamente${errores > 0 ? `, ${errores} errores` : ''}`;
-            this.snackBar.open(mensaje, 'Cerrar', { duration: 5000 });
-            this.cargarEmpresas();
-            this.isLoading.set(false);
-            return;
-          }
-
-          this.empresaService.createEmpresa(empresas[index]).subscribe({
-            next: () => {
-              exitosas++;
-              crearEmpresas(index + 1);
-            },
-            error: (error: any) => {
-              console.error('Error creando empresa:', error);
-              errores++;
-              crearEmpresas(index + 1);
-            }
-          });
-        };
-
-        crearEmpresas(0);
-      } catch (error) {
-        console.error('Error procesando archivo:', error);
-        this.snackBar.open('Error al procesar el archivo Excel', 'Cerrar', { duration: 3000 });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  private async procesarActualizacionExcel(file: File): Promise<void> {
-    const reader = new FileReader();
-    reader.onload = async (e: any) => {
-      try {
-        const XLSX = await import('xlsx');
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        if (jsonData.length === 0) {
-          this.snackBar.open('El archivo no contiene datos', 'Cerrar', { duration: 3000 });
-          return;
-        }
-
-        const actualizaciones: any[] = [];
-        let filasOmitidas = 0;
-
-        for (const row of jsonData as any[]) {
-          const ruc = (row as any)['RUC']?.toString().trim();
-          const razonSocialPrincipal = (row as any)['Razón Social Principal']?.toString().trim();
-
-          if (!ruc || !razonSocialPrincipal) {
-            filasOmitidas++;
-            continue;
-          }
-
-          const empresa = this.empresas().find(e => e.ruc === ruc);
-          if (!empresa) {
-            filasOmitidas++;
-            continue;
-          }
-
-          const datosActualizar: any = {};
-          datosActualizar.razonSocial = {
-            principal: razonSocialPrincipal,
-            sunat: (row as any)['Razón Social SUNAT']?.toString().trim() || undefined,
-            minimo: (row as any)['Razón Social Mínimo']?.toString().trim() || undefined
-          };
-
-          if (row['Dirección Fiscal']) datosActualizar.direccionFiscal = (row as any)['Dirección Fiscal'].toString().trim();
-          if (row['Estado']) {
-            const estado = (row as any)['Estado'].toString().trim().toUpperCase();
-            if (['AUTORIZADA', 'EN_TRAMITE', 'SUSPENDIDA', 'CANCELADA'].includes(estado)) {
-              datosActualizar.estado = estado;
-            }
-          }
-          if (row['Tipo de Servicio']) {
-            datosActualizar.tiposServicio = (row as any)['Tipo de Servicio'].toString().split(';').map((s: string) => s.trim()).filter((s: string) => s);
-          }
-          if (row['Email Contacto']) datosActualizar.emailContacto = (row as any)['Email Contacto'].toString().trim();
-          if (row['Teléfono Contacto']) datosActualizar.telefonoContacto = (row as any)['Teléfono Contacto'].toString().trim();
-          if (row['Sitio Web']) datosActualizar.sitioWeb = (row as any)['Sitio Web'].toString().trim();
-          if (row['Observaciones']) datosActualizar.observaciones = (row as any)['Observaciones'].toString().trim();
-
-          actualizaciones.push({
-            empresaId: empresa.id,
-            ruc,
-            datos: datosActualizar
-          });
-        }
-
-        if (actualizaciones.length === 0) {
-          this.snackBar.open(`No se encontraron datos para actualizar.`, 'Cerrar', { duration: 5000 });
-          return;
-        }
-
-        this.isLoading.set(true);
-        let actualizadas = 0;
-        let errores = 0;
-
-        const actualizarSiguiente = (index: number) => {
-          if (index >= actualizaciones.length) {
-            const mensaje = `${actualizadas} empresa(s) actualizada(s)${errores > 0 ? `, ${errores} error(es)` : ''}`;
-            this.snackBar.open(mensaje, 'Cerrar', { duration: 5000 });
-            this.cargarEmpresas();
-            this.isLoading.set(false);
-            return;
-          }
-
-          const actualizacion = actualizaciones[index];
-          this.empresaService.updateEmpresa(actualizacion.empresaId, actualizacion.datos).subscribe({
-            next: () => {
-              actualizadas++;
-              actualizarSiguiente(index + 1);
-            },
-            error: (error: any) => {
-              console.error('Error actualizando empresa:', error);
-              errores++;
-              actualizarSiguiente(index + 1);
-            }
-          });
-        };
-
-        actualizarSiguiente(0);
-      } catch (error) {
-        console.error('Error procesando archivo:', error);
-        this.snackBar.open('Error al procesar el archivo Excel', 'Cerrar', { duration: 3000 });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
 }
 
 // Dialog Component for Column Configuration

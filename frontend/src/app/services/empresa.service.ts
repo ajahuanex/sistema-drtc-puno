@@ -259,12 +259,19 @@ export class EmpresaService {
   // ========================================
 
   private transformEmpresaData(empresa: any): Empresa {
+    let razon = empresa.razonSocial || empresa.razon_social;
+    if (typeof razon === 'string') {
+      razon = { principal: razon };
+    } else if (!razon || typeof razon !== 'object') {
+      razon = { principal: 'Sin razón social' };
+    } else if (!razon.principal) {
+      razon = { ...razon, principal: razon.sunat || razon.minimo || 'Sin razón social' };
+    }
+
     return {
       id: empresa.id || empresa._id || '',
       ruc: empresa.ruc || '',
-      razonSocial: empresa.razonSocial || empresa.razon_social || {
-        principal: 'Sin razón social'
-      },
+      razonSocial: razon,
       direccionFiscal: empresa.direccionFiscal || empresa.direccion_fiscal || '',
       partidaRegistral: empresa.partidaRegistral || empresa.partida_registral || empresa.partida || undefined,
       estado: empresa.estado || EstadoEmpresa.EN_TRAMITE,

@@ -49,6 +49,7 @@ class RazonSocial(BaseModel):
     principal: str
     sunat: Optional[str] = None
     minimo: Optional[str] = None
+    nombre_corto: Optional[str] = None
 
 
 class RepresentanteLegal(BaseModel):
@@ -113,6 +114,7 @@ class EmpresaCreate(BaseModel):
     direccionFiscal: Optional[str] = None
     partidaRegistral: Optional[str] = None
     socios: List[Socio] = Field(default_factory=list)
+    representanteLegal: Optional[RepresentanteLegal] = None
     tiposServicio: List[TipoServicio] = Field(default_factory=lambda: [TipoServicio.PASAJEROS])
     emailContacto: Optional[str] = None
     telefonoContacto: Optional[str] = None
@@ -127,6 +129,7 @@ class EmpresaUpdate(BaseModel):
     direccionFiscal: Optional[str] = None
     partidaRegistral: Optional[str] = None
     socios: Optional[List[Socio]] = None
+    representanteLegal: Optional[RepresentanteLegal] = None
     estado: Optional[EstadoEmpresa] = None
     tiposServicio: Optional[List[TipoServicio]] = None
     emailContacto: Optional[str] = None

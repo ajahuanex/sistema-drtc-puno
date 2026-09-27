@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -47,6 +48,7 @@ import {
     MatInputModule,
     MatCardModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
     MatSnackBarModule,
     MatChipsModule,
     MatSelectModule,
@@ -109,11 +111,6 @@ import {
               <span>Descargar Plantilla Vaciado</span>
             </button>
           </mat-menu>
-
-          <button mat-button class="header-action-btn" (click)="irACargaMasiva()" [disabled]="isLoading()" matTooltip="Cargar múltiples resoluciones desde Excel">
-            <mat-icon class="btn-icon">file_upload</mat-icon>
-            <span class="btn-text">Carga Masiva</span>
-          </button>
 
           <button mat-button class="header-action-btn btn-primary-custom" (click)="toggleFormModal()" [disabled]="isLoading()" matTooltip="Registrar nueva resolución primigenia">
             <mat-icon class="btn-icon">add_circle</mat-icon>
@@ -554,12 +551,54 @@ import {
           </mat-card>
         }
 
-        <!-- Tabla de Resultados -->
+        <!-- Modern Skeleton Preloader (Stitch DRTC Modern Loading) -->
         @if (isLoading()) {
-          <div class="loading-container">
-            <mat-spinner diameter="50"></mat-spinner>
-            <p>Cargando resoluciones primigenias...</p>
-          </div>
+          <mat-card class="modern-preloader-card animate-fade-in">
+            <mat-progress-bar mode="indeterminate" class="preloader-progress-bar"></mat-progress-bar>
+            
+            <div class="preloader-header">
+              <div class="preloader-pulse-avatar">
+                <mat-icon class="pulse-icon">auto_awesome</mat-icon>
+                <span class="pulse-ring"></span>
+              </div>
+              <div class="preloader-meta">
+                <div class="preloader-title-row">
+                  <span class="preloader-badge">Sincronizando Resoluciones</span>
+                  <span class="preloader-subtext">Dirección Regional de Transportes y Comunicaciones Puno</span>
+                </div>
+                <h4>Cargando padrón oficial de resoluciones primigenias y títulos habilitantes...</h4>
+              </div>
+            </div>
+
+            <!-- Skeleton Table Rows -->
+            <div class="skeleton-table">
+              <div class="skeleton-table-header">
+                <div class="skeleton-th" style="width: 32px;"></div>
+                <div class="skeleton-th" style="width: 140px;"></div>
+                <div class="skeleton-th" style="width: 90px;"></div>
+                <div class="skeleton-th" style="flex: 2;"></div>
+                <div class="skeleton-th" style="width: 110px;"></div>
+                <div class="skeleton-th" style="width: 90px;"></div>
+                <div class="skeleton-th" style="width: 90px;"></div>
+                <div class="skeleton-th" style="width: 80px;"></div>
+                <div class="skeleton-th" style="width: 185px;"></div>
+              </div>
+
+              @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+                <div class="skeleton-row">
+                  <div class="skeleton-cell check-cell"><div class="skeleton-box s-check"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-nro"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-siglas"></div></div>
+                  <div class="skeleton-cell flex-2"><div class="skeleton-box s-empresa"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-tipo"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-fecha"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-vigencia"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-estado"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-action"></div></div>
+                </div>
+              }
+            </div>
+          </mat-card>
         } @else if (resolucionesFiltradas().length === 0) {
           <mat-card class="empty-state">
             <mat-card-content>
@@ -688,8 +727,8 @@ import {
                         <th>Drive</th>
                       }
                       @if (columnaVisible('acciones')) {
-                        <th class="text-center th-actions-icon-col" matTooltip="Opciones y Acciones">
-                          <mat-icon class="th-actions-icon">more_vert</mat-icon>
+                        <th class="text-center th-acciones-col">
+                          <span>Acciones</span>
                         </th>
                       }
                     </tr>
@@ -841,10 +880,39 @@ import {
                           </td>
                         }
                         @if (columnaVisible('acciones')) {
-                          <td class="text-center">
-                            <button mat-icon-button [matMenuTriggerFor]="actionMenu" [matMenuTriggerData]="{ item: item }" matTooltip="Opciones de la Resolución">
-                              <mat-icon>more_vert</mat-icon>
-                            </button>
+                          <td class="text-center actions-cell">
+                            <div class="row-actions-group">
+                              <button type="button"
+                                      class="table-action-btn action-view"
+                                      (click)="verDetalleModal(item)"
+                                      matTooltip="Ver Detalle e Historial">
+                                <mat-icon>visibility</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-edit"
+                                      (click)="editarResolucionModal(item)"
+                                      matTooltip="Editar Resolución">
+                                <mat-icon>edit</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-errata"
+                                      (click)="abrirModalFeErrata(item)"
+                                      matTooltip="Agregar Fe de Errata">
+                                <mat-icon>note_add</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-hija"
+                                      (click)="crearHijaVinculada(item)"
+                                      matTooltip="Registrar Resolución Hija">
+                                <mat-icon>alt_route</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-delete"
+                                      (click)="eliminarResolucion(item.id)"
+                                      matTooltip="Desactivar o Eliminar">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            </div>
                           </td>
                         }
                       </tr>
@@ -852,39 +920,6 @@ import {
                   </tbody>
                 </table>
               </div>
-
-              <!-- Menú desplegable global para las acciones -->
-              <mat-menu #actionMenu="matMenu">
-                <ng-template matMenuContent let-item="item">
-                  <button mat-menu-item (click)="verDetalleModal(item)">
-                    <mat-icon color="primary">visibility</mat-icon>
-                    <span>Ver Detalle e Historial</span>
-                  </button>
-                  <button mat-menu-item (click)="editarResolucionModal(item)">
-                    <mat-icon color="accent">edit</mat-icon>
-                    <span>Editar Resolución</span>
-                  </button>
-                  <button mat-menu-item (click)="abrirModalFeErrata(item)">
-                    <mat-icon style="color: #b45309;">note_add</mat-icon>
-                    <span>Agregar Fe de Errata</span>
-                  </button>
-                  <button mat-menu-item (click)="crearHijaVinculada(item)">
-                    <mat-icon style="color: #0d9488;">alt_route</mat-icon>
-                    <span>Registrar Resolución Hija</span>
-                  </button>
-                  @if (item?.link_documento) {
-                    <a mat-menu-item [href]="item.link_documento" target="_blank">
-                      <mat-icon style="color: #2563eb;">open_in_new</mat-icon>
-                      <span>Abrir en Google Drive</span>
-                    </a>
-                  }
-                  <mat-divider></mat-divider>
-                  <button mat-menu-item (click)="eliminarResolucion(item.id)">
-                    <mat-icon color="warn">delete</mat-icon>
-                    <span>Desactivar / Eliminar</span>
-                  </button>
-                </ng-template>
-              </mat-menu>
 
               <mat-paginator
                 [pageSizeOptions]="[10, 25, 50, 100, 250, 500, 1000]"
@@ -1355,12 +1390,160 @@ import {
       }
     }
 
-    .loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 3rem;
-      gap: 1rem;
+    /* ── Modern Skeleton Preloader ─────────────────────────────── */
+    .modern-preloader-card {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+      padding: 0 !important;
+
+      .preloader-progress-bar {
+        height: 3px;
+        --mdc-linear-progress-active-indicator-color: #6366f1;
+        --mdc-linear-progress-track-color: #e0e7ff;
+      }
+
+      .preloader-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem 1rem;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        border-bottom: 1px solid #f1f5f9;
+
+        .preloader-pulse-avatar {
+          position: relative;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: #eef2ff;
+          color: #4f46e5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+
+          .pulse-icon {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+            animation: pulseSubtle 2s infinite ease-in-out;
+          }
+
+          .pulse-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 16px;
+            border: 2px solid #818cf8;
+            opacity: 0.4;
+            animation: radarPulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+          }
+        }
+
+        .preloader-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+
+          .preloader-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .preloader-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 2px 7px;
+            border-radius: 4px;
+          }
+
+          .preloader-subtext {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+          }
+
+          h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #0f172a;
+          }
+        }
+      }
+
+      .skeleton-table {
+        padding: 0.5rem 1rem 1.25rem;
+
+        .skeleton-table-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.75rem 0.5rem;
+          border-bottom: 2px solid #f1f5f9;
+
+          .skeleton-th {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 4px;
+          }
+        }
+
+        .skeleton-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.85rem 0.5rem;
+          border-bottom: 1px solid #f8fafc;
+
+          .skeleton-cell {
+            flex-shrink: 0;
+
+            &.check-cell { width: 28px; }
+            &.flex-2 { flex: 2; }
+          }
+
+          .skeleton-box {
+            border-radius: 6px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmerWave 1.6s infinite;
+
+            &.s-check { width: 18px; height: 18px; border-radius: 4px; }
+            &.s-nro { width: 130px; height: 20px; }
+            &.s-siglas { width: 85px; height: 20px; }
+            &.s-empresa { width: 90%; height: 20px; }
+            &.s-tipo { width: 100px; height: 20px; }
+            &.s-fecha { width: 85px; height: 20px; }
+            &.s-vigencia { width: 85px; height: 20px; }
+            &.s-estado { width: 75px; height: 20px; }
+            &.s-action { width: 175px; height: 28px; border-radius: 8px; }
+          }
+        }
+      }
+    }
+
+    @keyframes shimmerWave {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes pulseSubtle {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.08); opacity: 0.8; }
+    }
+
+    @keyframes radarPulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      100% { transform: scale(1.3); opacity: 0; }
     }
 
     .empty-state {
@@ -1452,17 +1635,135 @@ import {
       }
     }
 
-    .th-actions-icon-col {
-      width: 48px;
-      min-width: 48px;
-      padding: 0.5rem !important;
+    .th-acciones-col {
+      width: 195px;
+      min-width: 195px;
+      text-align: center;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
 
-      .th-actions-icon {
-        font-size: 1.25rem;
-        width: 1.25rem;
-        height: 1.25rem;
-        vertical-align: middle;
-        color: #475569;
+    .actions-cell {
+      white-space: nowrap;
+      width: 195px;
+      min-width: 195px;
+      padding: 0.35rem 0.5rem !important;
+      text-align: center;
+    }
+
+    .row-actions-group {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .table-action-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      text-decoration: none;
+      background: #f8fafc;
+      cursor: pointer !important;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      user-select: none;
+      padding: 0;
+
+      mat-icon {
+        font-size: 17px;
+        width: 17px;
+        height: 17px;
+        line-height: 17px;
+        pointer-events: none;
+      }
+
+      &:hover {
+        transform: translateY(-2px) scale(1.08);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      &:active {
+        transform: translateY(0) scale(0.96);
+      }
+
+      &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed !important;
+        pointer-events: none;
+        transform: none;
+        box-shadow: none;
+      }
+
+      /* 1. Ver Detalle e Historial (Azul) */
+      &.action-view {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #2563eb;
+
+        &:hover {
+          background: #2563eb;
+          border-color: #1d4ed8;
+          color: #ffffff;
+        }
+      }
+
+      /* 2. Editar Resolución (Ámbar) */
+      &.action-edit {
+        background: #fefce8;
+        border-color: #fef08a;
+        color: #ca8a04;
+
+        &:hover {
+          background: #eab308;
+          border-color: #ca8a04;
+          color: #ffffff;
+        }
+      }
+
+      /* 3. Fe de Errata (Naranja Cobre) */
+      &.action-errata {
+        background: #fff7ed;
+        border-color: #fed7aa;
+        color: #ea580c;
+
+        &:hover {
+          background: #ea580c;
+          border-color: #c2410c;
+          color: #ffffff;
+        }
+      }
+
+      /* 4. Registrar Hija (Teal / Modificatoria) */
+      &.action-hija {
+        background: #f0fdfa;
+        border-color: #99f6e4;
+        color: #0d9488;
+
+        &:hover {
+          background: #0d9488;
+          border-color: #0f766e;
+          color: #ffffff;
+        }
+      }
+
+      /* 5. Eliminar / Desactivar (Rojo) */
+      &.action-delete {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+
+        &:hover {
+          background: #dc2626;
+          border-color: #b91c1c;
+          color: #ffffff;
+        }
       }
     }
 
@@ -2193,8 +2494,39 @@ import {
         }
       }
 
-      .th-actions-icon-col .th-actions-icon {
-        color: #94a3b8 !important;
+      .table-action-btn {
+        background: rgba(30, 41, 59, 0.8) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+
+        &.action-view {
+          border-color: rgba(59, 130, 246, 0.4) !important;
+          color: #60a5fa !important;
+          &:hover { background: #2563eb !important; color: #ffffff !important; }
+        }
+
+        &.action-edit {
+          border-color: rgba(245, 158, 11, 0.4) !important;
+          color: #fbbf24 !important;
+          &:hover { background: #d97706 !important; color: #ffffff !important; }
+        }
+
+        &.action-errata {
+          border-color: rgba(234, 88, 12, 0.4) !important;
+          color: #fb923c !important;
+          &:hover { background: #ea580c !important; color: #ffffff !important; }
+        }
+
+        &.action-hija {
+          border-color: rgba(13, 148, 136, 0.4) !important;
+          color: #2dd4bf !important;
+          &:hover { background: #0d9488 !important; color: #ffffff !important; }
+        }
+
+        &.action-delete {
+          border-color: rgba(239, 68, 68, 0.4) !important;
+          color: #f87171 !important;
+          &:hover { background: #dc2626 !important; color: #ffffff !important; }
+        }
       }
 
       /* CELDAS Y DETALLES EN DARK */
@@ -2955,7 +3287,7 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     { key: 'historial_modificaciones', label: 'Modificaciones', required: false },
     { key: 'observaciones', label: 'Observaciones', required: false },
     { key: 'link_documento', label: 'Drive PDF', required: false },
-    { key: 'acciones', label: 'Acciones (⋮)', required: true }
+    { key: 'acciones', label: 'Acciones', required: true }
   ];
 
   // 'siglas' NO está incluida por defecto aquí para que quede desactivada inicialmente
@@ -3034,10 +3366,6 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
     this.searchControl.valueChanges.subscribe(() => this.currentPage.set(0));
     this.estadoControl.valueChanges.subscribe(() => this.currentPage.set(0));
     this.tipoAutorizacionControl.valueChanges.subscribe(() => this.currentPage.set(0));
-  }
-
-  irACargaMasiva(): void {
-    this.router.navigate(['/resoluciones-primigenias/carga-masiva']);
   }
 
   cargarResoluciones(): void {
@@ -3318,10 +3646,6 @@ export class ResolucionesPrimigeniasComponent implements OnInit {
         this.snackBar.open('Error descargando plantilla Excel', 'Cerrar', { duration: 3000 });
       }
     });
-  }
-
-  abrirCargaMasiva(): void {
-    this.router.navigate(['/resoluciones-primigenias/carga-masiva']);
   }
 
   cerrarCargaMasivaModal(): void {

@@ -12,15 +12,18 @@ from app.models.empresa import (
     RepresentanteLegal, 
     EstadoEmpresa,
     DocumentoEmpresa,
-    TipoDocumento
+    TipoDocumento,
+    Socio,
+    TipoSocio
 )
 from app.services.empresa_service import EmpresaService
 from app.dependencies.db import get_database
 import unicodedata
 
 class EmpresaExcelService:
-    def __init__(self):
-        self.empresa_service = None
+    def __init__(self, db=None):
+        self.db = db
+        self.empresa_service = EmpresaService(db) if db is not None else None
 
     def _normalizar_estado(self, valor: Any) -> str:
         """Normalizar variantes de estado legal de empresa a los valores de EstadoEmpresa"""
@@ -509,15 +512,22 @@ class EmpresaExcelService:
         for row in range(18, 22):
             worksheet[f'A{row}'].font = Font(bold=True, color="366092")
     
-    async def validar_archivo_excel(self, archivo_excel: BytesIO) -> Dict[str, Any]:
-        """Validar archivo Excel de empresas usando datos reales de la base de datos"""
+    async def validar_archivo_excel(self, archivo_excel: Any, es_csv: bool = False) -> Dict[str, Any]:
+        """Validar archivo Excel o CSV de empresas usando datos reales de la base de datos"""
         try:
-            # Intentar leer la hoja "DATOS" primero, si no existe, leer la primera hoja
-            try:
-                df = pd.read_excel(archivo_excel, sheet_name='DATOS')
-            except:
-                # Si no existe la hoja DATOS, leer la primera hoja disponible
-                df = pd.read_excel(archivo_excel)
+            if isinstance(archivo_excel, pd.DataFrame):
+                df = archivo_excel
+            elif es_csv or (isinstance(archivo_excel, (bytes, bytearray)) and not bytes(archivo_excel[:4]).startswith(b'PK')):
+                content = archivo_excel.getvalue() if hasattr(archivo_excel, 'getvalue') else archivo_excel
+                df = pd.read_csv(BytesIO(content), dtype=str)
+            else:
+                buf = BytesIO(archivo_excel) if isinstance(archivo_excel, (bytes, bytearray)) else archivo_excel
+                try:
+                    df = pd.read_excel(buf, sheet_name='DATOS', dtype=str)
+                except Exception:
+                    if hasattr(buf, 'seek'):
+                        buf.seek(0)
+                    df = pd.read_excel(buf, dtype=str)
             
             resultados = {
                 'total_filas': len(df),
@@ -650,16 +660,19 @@ class EmpresaExcelService:
             errores.append("Razón Social Principal debe tener al menos 3 caracteres")
         
         # Validar dirección fiscal (OPCIONAL)
-        direccion = str(row.get('Dirección Fiscal', '')).strip() if pd.notna(row.get('Dirección Fiscal')) else ''
-        if direccion and len(direccion) < 10:
-            errores.append("Dirección Fiscal debe tener al menos 10 caracteres")
+        direccion = (
+            str(row.get('DOMICILIO_LEGAL', '')).strip() if pd.notna(row.get('DOMICILIO_LEGAL')) else
+            str(row.get('Dirección Fiscal', '')).strip() if pd.notna(row.get('Dirección Fiscal')) else ''
+        )
+        if direccion and len(direccion) < 5:
+            advertencias.append(f"Dirección Fiscal muy corta: {direccion}")
         
         # Validar estado (OPCIONAL) - soportar múltiples nombres de columnas
         estado_raw = (
+            row.get('ESTADO') or 
+            row.get('Estado') or 
             row.get('Estado Legal') or 
             row.get('ESTADO_LEGAL') or 
-            row.get('Estado') or 
-            row.get('ESTADO') or 
             row.get('Situación') or 
             row.get('Situacion') or 
             row.get('SITUACION') or 
@@ -671,55 +684,83 @@ class EmpresaExcelService:
             errores.append(f"Estado inválido: {estado}. Valores válidos: {', '.join([e.value for e in EstadoEmpresa])}")
         
         # Validar DNI representante (OPCIONAL)
-        dni_rep = limpiar_valor(row.get('DNI Representante', ''))
+        dni_rep = (
+            limpiar_valor(row.get('DNI_REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('DNI Representante', '')) or
+            limpiar_valor(row.get('DNI', ''))
+        )
         if dni_rep and not self._validar_formato_dni(dni_rep):
             errores.append(f"DNI debe ser numérico y tener máximo 8 dígitos: {dni_rep}")
         
-        # Validar nombres representante (OPCIONAL)
+        # Validar representante legal (unificado o separado)
+        rep_raw = (
+            limpiar_valor(row.get('REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('Representante Legal', ''))
+        )
         nombres_rep = limpiar_valor(row.get('Nombres Representante', ''))
-        if nombres_rep and len(nombres_rep) < 2:
-            errores.append("Nombres del Representante deben tener al menos 2 caracteres")
-        
-        # Validar apellidos representante (OPCIONAL)
         apellidos_rep = limpiar_valor(row.get('Apellidos Representante', ''))
+        
+        if rep_raw and (not nombres_rep or not apellidos_rep):
+            nombres_rep, apellidos_rep = self._procesar_nombres_apellidos(rep_raw)
+            
+        if nombres_rep and len(nombres_rep) < 2:
+            advertencias.append(f"Nombres del Representante muy cortos: {nombres_rep}")
         if apellidos_rep and len(apellidos_rep) < 2:
-            errores.append("Apellidos del Representante deben tener al menos 2 caracteres")
+            advertencias.append(f"Apellidos del Representante muy cortos: {apellidos_rep}")
         
         # Validar teléfono contacto (opcional pero formato válido si se proporciona)
-        telefono_contacto = limpiar_valor(row.get('Teléfono Contacto', ''))
+        telefono_contacto = (
+            limpiar_valor(row.get('TELEFONO', '')) or
+            limpiar_valor(row.get('Teléfono Contacto', '')) or
+            limpiar_valor(row.get('TELEFONO_CONTACTO', ''))
+        )
         if telefono_contacto and not self._validar_formato_telefono(telefono_contacto):
-            errores.append(f"Formato de teléfono de contacto inválido: {telefono_contacto}")
+            advertencias.append(f"Formato de teléfono de contacto inusual: {telefono_contacto}")
         
         # Validar email contacto (opcional pero formato válido si se proporciona)
-        email_contacto = limpiar_valor(row.get('Email Contacto', ''))
+        email_contacto = (
+            limpiar_valor(row.get('CORREO_ELECTRONICO', '')) or
+            limpiar_valor(row.get('Email Contacto', '')) or
+            limpiar_valor(row.get('EMAIL', '')) or
+            limpiar_valor(row.get('CORREO', ''))
+        )
         if email_contacto and not self._validar_formato_email(email_contacto):
-            errores.append(f"Formato de email de contacto inválido: {email_contacto}")
+            advertencias.append(f"Formato de email de contacto inusual: {email_contacto}")
         
         # Validar partida registral (opcional)
-        partida_registral = self._obtener_partida_de_row(row)
+        partida_registral = (
+            limpiar_valor(row.get('PARTIDA_REGISTRAL', '')) or
+            self._obtener_partida_de_row(row)
+        )
         if partida_registral and not self._validar_formato_partida_registral(partida_registral):
-            errores.append(f"Formato de Partida Registral inválido: {partida_registral}")
+            advertencias.append(f"Formato de Partida Registral inusual: {partida_registral}")
         
         # Validar razón social SUNAT (opcional)
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
         if razon_social_sunat and len(razon_social_sunat) < 3:
-            errores.append("Razón Social SUNAT debe tener al menos 3 caracteres")
+            advertencias.append("Razón Social SUNAT debe tener al menos 3 caracteres")
         
-        # Validar razón social mínimo (opcional)
-        razon_social_minimo = limpiar_valor(row.get('Razón Social Mínimo', ''))
+        # Validar razón social mínimo / RZ (opcional)
+        razon_social_minimo = (
+            limpiar_valor(row.get('RZ', '')) or
+            limpiar_valor(row.get('Razón Social Mínimo', '')) or
+            limpiar_valor(row.get('NOMBRE_CORTO', ''))
+        )
         if razon_social_minimo and len(razon_social_minimo) < 2:
-            errores.append("Razón Social Mínimo debe tener al menos 2 caracteres")
+            advertencias.append("Nombre corto / RZ debe tener al menos 2 caracteres")
         
         # Validar estado SUNAT (opcional)
         estado_sunat = limpiar_valor(row.get('Estado SUNAT', ''))
         if estado_sunat and len(estado_sunat) < 2:
-            errores.append("Estado SUNAT debe tener al menos 2 caracteres")
+            advertencias.append("Estado SUNAT debe tener al menos 2 caracteres")
         
         # Validar tipo de servicio (opcional)
-        tipo_servicio = limpiar_valor(row.get('Tipo de Servicio', ''))
+        tipo_servicio = (
+            limpiar_valor(row.get('TIPO_SERVICIO', '')) or
+            limpiar_valor(row.get('Tipo de Servicio', ''))
+        )
         if tipo_servicio:
-            # Validar usando tipos básicos (el módulo de configuración será reconstruido)
-            tipos_basicos = ['PERSONAS', 'TURISMO', 'MERCANCIAS', 'CARGA']
+            tipos_basicos = ['PERSONAS', 'PASAJEROS', 'TURISMO', 'MERCANCIAS', 'CARGA', 'TRABAJADORES']
             if tipo_servicio.upper() not in tipos_basicos:
                 advertencias.append(f"Tipo de Servicio no estándar: {tipo_servicio}")
         
@@ -772,25 +813,30 @@ class EmpresaExcelService:
             tuple: (nombres_procesados, apellidos_procesados)
         """
         if not nombres_completos:
-            return None, None
+            return "POR ACTUALIZAR", "POR ACTUALIZAR"
         
-        nombres_completos = nombres_completos.strip()
+        nombres_completos = str(nombres_completos).strip()
         
         # Si hay apellidos explícitos, usarlos
-        if apellidos and apellidos.strip():
-            return nombres_completos, apellidos.strip()
+        if apellidos and str(apellidos).strip():
+            return nombres_completos, str(apellidos).strip()
         
-        # Si no hay apellidos, intentar dividir el nombre completo
+        # Formato oficial peruano: APELLIDOS, NOMBRES (con coma)
+        if ',' in nombres_completos:
+            partes = nombres_completos.split(',', 1)
+            ap_str = partes[0].strip() or "POR ACTUALIZAR"
+            nom_str = partes[1].strip() or "POR ACTUALIZAR"
+            return nom_str, ap_str
+        
+        # Si no hay coma, dividir por palabras
         partes = nombres_completos.split()
-        
         if len(partes) >= 2:
-            # Asumir que las primeras palabras son nombres y las últimas apellidos
             if len(partes) == 2:
-                # Caso simple: "JUAN PEREZ" -> nombres="JUAN", apellidos="PEREZ"
+                # "JUAN PEREZ" -> nombres="JUAN", apellidos="PEREZ"
                 return partes[0], partes[1]
             elif len(partes) == 3:
-                # "JUAN CARLOS PEREZ" -> nombres="JUAN CARLOS", apellidos="PEREZ"
-                return " ".join(partes[:-1]), partes[-1]
+                # "REYNALDO PACORI HANCCO" -> nombres="REYNALDO", apellidos="PACORI HANCCO"
+                return partes[0], f"{partes[1]} {partes[2]}"
             elif len(partes) >= 4:
                 # "JUAN CARLOS PEREZ GARCIA" -> nombres="JUAN CARLOS", apellidos="PEREZ GARCIA"
                 mitad = len(partes) // 2
@@ -974,16 +1020,20 @@ class EmpresaExcelService:
         # Datos básicos
         ruc = limpiar_valor(row.get('RUC', ''))
         
-        # Razón social (solo si se proporciona)
+        # Razón social (soporta RAZON_SOCIAL y RZ como nombre corto)
         razon_social_principal = (
+            limpiar_valor(row.get('RAZON_SOCIAL', '')) or
             limpiar_valor(row.get('Razón Social Principal', '')) or
             limpiar_valor(row.get('Razón Social', '')) or
             limpiar_valor(row.get('Razon Social', '')) or
-            limpiar_valor(row.get('RAZON_SOCIAL', '')) or
             limpiar_valor(row.get('EMPRESA', ''))
         )
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
-        razon_social_minimo = limpiar_valor(row.get('Razón Social Mínimo', ''))
+        razon_social_minimo = (
+            limpiar_valor(row.get('RZ', '')) or
+            limpiar_valor(row.get('Razón Social Mínimo', '')) or
+            limpiar_valor(row.get('NOMBRE_CORTO', ''))
+        )
         
         update_data = {'ruc': ruc}
         
@@ -991,51 +1041,83 @@ class EmpresaExcelService:
             razon_social = RazonSocial(
                 principal=razon_social_principal,
                 sunat=razon_social_sunat,
-                minimo=razon_social_minimo
+                minimo=razon_social_minimo,
+                nombre_corto=razon_social_minimo
             )
             update_data['razonSocial'] = razon_social
         
-        # Dirección fiscal (solo si se proporciona)
-        direccion_fiscal = limpiar_valor(row.get('Dirección Fiscal', ''))
+        # Dirección fiscal (soporta DOMICILIO_LEGAL y Dirección Fiscal)
+        direccion_fiscal = (
+            limpiar_valor(row.get('DOMICILIO_LEGAL', '')) or
+            limpiar_valor(row.get('Dirección Fiscal', '')) or
+            limpiar_valor(row.get('DIRECCION_FISCAL', ''))
+        )
         if direccion_fiscal:
             update_data['direccionFiscal'] = direccion_fiscal
         
-        # Contacto empresa (solo si se proporciona)
-        telefono_contacto = limpiar_valor(row.get('Teléfono Contacto', ''))
+        # Contacto empresa (soporta TELEFONO y Teléfono Contacto)
+        telefono_contacto = (
+            limpiar_valor(row.get('TELEFONO', '')) or
+            limpiar_valor(row.get('Teléfono Contacto', '')) or
+            limpiar_valor(row.get('TELEFONO_CONTACTO', ''))
+        )
         if telefono_contacto:
-            # Normalizar teléfono: convertir espacios a comas para múltiples números
             telefono_normalizado = self._normalizar_telefono(telefono_contacto)
             update_data['telefonoContacto'] = telefono_normalizado
             
-        email_contacto = limpiar_valor(row.get('Email Contacto', ''))
+        # Email Contacto (soporta CORREO_ELECTRONICO y Email Contacto)
+        email_contacto = (
+            limpiar_valor(row.get('CORREO_ELECTRONICO', '')) or
+            limpiar_valor(row.get('Email Contacto', '')) or
+            limpiar_valor(row.get('EMAIL', '')) or
+            limpiar_valor(row.get('CORREO', ''))
+        )
         if email_contacto:
             update_data['emailContacto'] = email_contacto
         
-        # Representante legal (solo requiere DNI, nombres y apellidos opcionales)
+        # Representante legal (soporta REPRESENTANTE_LEGAL y DNI_REPRESENTANTE_LEGAL)
+        rep_raw = (
+            limpiar_valor(row.get('REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('Representante Legal', ''))
+        )
+        dni_rep = (
+            limpiar_valor(row.get('DNI_REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('DNI Representante', '')) or
+            limpiar_valor(row.get('DNI', ''))
+        )
         nombres_rep = limpiar_valor(row.get('Nombres Representante', ''))
         apellidos_rep = limpiar_valor(row.get('Apellidos Representante', ''))
-        dni_rep = limpiar_valor(row.get('DNI Representante', ''))
         
-        if dni_rep:  # Solo requiere DNI
-            # Normalizar DNI completando con ceros a la izquierda
-            dni_normalizado = self._normalizar_dni(dni_rep)
-            
-            # Usar valores por defecto si no se proporcionan nombres/apellidos
+        if rep_raw and (not nombres_rep or not apellidos_rep):
+            nombres_rep, apellidos_rep = self._procesar_nombres_apellidos(rep_raw)
+        
+        if dni_rep or nombres_rep or apellidos_rep:
+            dni_normalizado = self._normalizar_dni(dni_rep) if dni_rep else "00000000"
             nombres_final = nombres_rep if nombres_rep else "POR ACTUALIZAR"
-            apellidos_final = apellidos_rep if apellidos_rep else "DESDE API EXTERNA"
+            apellidos_final = apellidos_rep if apellidos_rep else "POR ACTUALIZAR"
             
             representante_legal = RepresentanteLegal(
                 dni=dni_normalizado,
                 nombres=nombres_final,
                 apellidos=apellidos_final,
-                email=None,  # No hay email representante en el nuevo formato
-                telefono=None,  # No hay teléfono representante en el nuevo formato
-                direccion=None  # No hay dirección representante en el nuevo formato
+                email=None,
+                telefono=None,
+                direccion=None
+            )
+            socio_rep = Socio(
+                dni=dni_normalizado,
+                nombres=nombres_final,
+                apellidos=apellidos_final,
+                tipoSocio=TipoSocio.REPRESENTANTE_LEGAL
             )
             update_data['representanteLegal'] = representante_legal
+            update_data['socios'] = [socio_rep]
         
-        # Campos adicionales nuevos
-        partida_registral = self._obtener_partida_de_row(row)
+        # Partida registral (soporta PARTIDA_REGISTRAL)
+        partida_registral = (
+            limpiar_valor(row.get('PARTIDA_REGISTRAL', '')) or
+            self._obtener_partida_de_row(row)
+        )
         if partida_registral:
             update_data['partidaRegistral'] = self._normalizar_partida_registral(partida_registral)
         
@@ -1043,22 +1125,28 @@ class EmpresaExcelService:
         if estado_sunat:
             update_data['estadoSunat'] = estado_sunat
         
-        # Observaciones (solo si se proporciona)
-        observaciones = limpiar_valor(row.get('Observaciones', ''))
+        # Observaciones
+        observaciones = (
+            limpiar_valor(row.get('OBSERVACIONES', '')) or
+            limpiar_valor(row.get('Observaciones', ''))
+        )
         if observaciones:
             update_data['observaciones'] = observaciones
         
-        # Tipo de servicio (solo si se proporciona)
-        tipo_servicio = limpiar_valor(row.get('Tipo de Servicio', ''))
+        # Tipo de servicio (soporta TIPO_SERVICIO)
+        tipo_servicio = (
+            limpiar_valor(row.get('TIPO_SERVICIO', '')) or
+            limpiar_valor(row.get('Tipo de Servicio', ''))
+        )
         if tipo_servicio:
             update_data['tipoServicio'] = tipo_servicio.upper()
         
-        # Estado Legal (normalizado)
+        # Estado Legal (soporta ESTADO)
         estado_raw = (
+            row.get('ESTADO') or
+            row.get('Estado') or 
             row.get('Estado Legal') or 
             row.get('ESTADO_LEGAL') or 
-            row.get('Estado') or 
-            row.get('ESTADO') or 
             row.get('Situación') or 
             row.get('Situacion') or 
             row.get('SITUACION') or 
@@ -1070,16 +1158,14 @@ class EmpresaExcelService:
         
     
     def _convertir_fila_a_empresa_create(self, row: pd.Series) -> EmpresaCreate:
-        """Convertir fila de Excel a modelo EmpresaCreate (solo campos no vacíos)"""
+        """Convertir fila de Excel o CSV a modelo EmpresaCreate"""
         
         def limpiar_valor(valor):
-            """Limpiar y convertir valores de pandas"""
             if pd.isna(valor):
                 return None
             valor_str = str(valor).strip()
             if valor_str == '' or valor_str.lower() == 'nan':
                 return None
-            # Si es un número float que termina en .0, convertir a entero
             if valor_str.endswith('.0'):
                 try:
                     return str(int(float(valor_str)))
@@ -1090,53 +1176,88 @@ class EmpresaExcelService:
         # Datos básicos
         ruc = limpiar_valor(row.get('RUC', ''))
         
-        # Razón social (solo si se proporciona)
-        razon_social_principal = limpiar_valor(row.get('Razón Social Principal', ''))
+        # Razón social (soporta RAZON_SOCIAL y RZ)
+        razon_social_principal = (
+            limpiar_valor(row.get('RAZON_SOCIAL', '')) or
+            limpiar_valor(row.get('Razón Social Principal', '')) or
+            limpiar_valor(row.get('Razón Social', '')) or
+            limpiar_valor(row.get('Razon Social', '')) or
+            limpiar_valor(row.get('EMPRESA', ''))
+        )
         razon_social_sunat = limpiar_valor(row.get('Razón Social SUNAT', ''))
-        razon_social_minimo = limpiar_valor(row.get('Razón Social Mínimo', ''))
+        razon_social_minimo = (
+            limpiar_valor(row.get('RZ', '')) or
+            limpiar_valor(row.get('Razón Social Mínimo', '')) or
+            limpiar_valor(row.get('NOMBRE_CORTO', ''))
+        )
         
         razon_social = None
-        if razon_social_principal:  # Solo crear si hay razón social principal
+        if razon_social_principal:
             razon_social = RazonSocial(
                 principal=razon_social_principal,
                 sunat=razon_social_sunat,
-                minimo=razon_social_minimo
+                minimo=razon_social_minimo,
+                nombre_corto=razon_social_minimo
             )
         
-        # Dirección fiscal (solo si se proporciona)
-        direccion_fiscal = limpiar_valor(row.get('Dirección Fiscal', ''))
+        # Dirección fiscal
+        direccion_fiscal = (
+            limpiar_valor(row.get('DOMICILIO_LEGAL', '')) or
+            limpiar_valor(row.get('Dirección Fiscal', '')) or
+            limpiar_valor(row.get('DIRECCION_FISCAL', ''))
+        )
         
-        # Contacto empresa (solo si se proporciona)
-        telefono_contacto = limpiar_valor(row.get('Teléfono Contacto', ''))
-        email_contacto = limpiar_valor(row.get('Email Contacto', ''))
+        # Contacto empresa
+        telefono_contacto = (
+            limpiar_valor(row.get('TELEFONO', '')) or
+            limpiar_valor(row.get('Teléfono Contacto', '')) or
+            limpiar_valor(row.get('TELEFONO_CONTACTO', ''))
+        )
+        email_contacto = (
+            limpiar_valor(row.get('CORREO_ELECTRONICO', '')) or
+            limpiar_valor(row.get('Email Contacto', '')) or
+            limpiar_valor(row.get('EMAIL', '')) or
+            limpiar_valor(row.get('CORREO', ''))
+        )
         
-        # Representante legal (solo requiere DNI, nombres y apellidos opcionales)
+        # Representante legal
+        rep_raw = (
+            limpiar_valor(row.get('REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('Representante Legal', ''))
+        )
+        dni_rep = (
+            limpiar_valor(row.get('DNI_REPRESENTANTE_LEGAL', '')) or
+            limpiar_valor(row.get('DNI Representante', '')) or
+            limpiar_valor(row.get('DNI', ''))
+        )
         nombres_rep = limpiar_valor(row.get('Nombres Representante', ''))
         apellidos_rep = limpiar_valor(row.get('Apellidos Representante', ''))
-        dni_rep = limpiar_valor(row.get('DNI Representante', ''))
+        
+        if rep_raw and (not nombres_rep or not apellidos_rep):
+            nombres_rep, apellidos_rep = self._procesar_nombres_apellidos(rep_raw)
         
         representante_legal = None
-        if dni_rep:  # Solo requiere DNI, nombres y apellidos opcionales
-            # Normalizar DNI completando con ceros a la izquierda
-            dni_normalizado = self._normalizar_dni(dni_rep)
-            
-            # Usar valores por defecto si no se proporcionan nombres/apellidos
+        if dni_rep or nombres_rep or apellidos_rep:
+            dni_normalizado = self._normalizar_dni(dni_rep) if dni_rep else "00000000"
             nombres_final = nombres_rep if nombres_rep else "POR ACTUALIZAR"
-            apellidos_final = apellidos_rep if apellidos_rep else "DESDE API EXTERNA"
+            apellidos_final = apellidos_rep if apellidos_rep else "POR ACTUALIZAR"
             
             representante_legal = RepresentanteLegal(
                 dni=dni_normalizado,
                 nombres=nombres_final,
                 apellidos=apellidos_final,
-                email=None,  # No hay email representante en el nuevo formato
-                telefono=None,  # No hay teléfono representante en el nuevo formato
-                direccion=None  # No hay dirección representante en el nuevo formato
+                email=None,
+                telefono=None,
+                direccion=None
             )
         
-        # Observaciones (solo si se proporciona)
-        observaciones = limpiar_valor(row.get('Observaciones', ''))
+        # Observaciones
+        observaciones = (
+            limpiar_valor(row.get('OBSERVACIONES', '')) or
+            limpiar_valor(row.get('Observaciones', ''))
+        )
         
-        # Crear objeto con solo los campos que tienen datos
+        # Crear objeto con los campos
         empresa_data = {
             'ruc': ruc
         }
@@ -1147,27 +1268,56 @@ class EmpresaExcelService:
             empresa_data['direccionFiscal'] = direccion_fiscal
         if representante_legal:
             empresa_data['representanteLegal'] = representante_legal
+            empresa_data['socios'] = [
+                Socio(
+                    dni=dni_normalizado,
+                    nombres=nombres_final,
+                    apellidos=apellidos_final,
+                    tipoSocio=TipoSocio.REPRESENTANTE_LEGAL
+                )
+            ]
         if email_contacto:
             empresa_data['emailContacto'] = email_contacto
         if telefono_contacto:
-            # Normalizar teléfono: convertir espacios a comas para múltiples números
             telefono_normalizado = self._normalizar_telefono(telefono_contacto)
             empresa_data['telefonoContacto'] = telefono_normalizado
         if observaciones:
             empresa_data['observaciones'] = observaciones
         
-        # Partida registral (opcional)
-        partida_registral = self._obtener_partida_de_row(row)
+        # Partida registral
+        partida_registral = (
+            limpiar_valor(row.get('PARTIDA_REGISTRAL', '')) or
+            self._obtener_partida_de_row(row)
+        )
         if partida_registral:
             empresa_data['partidaRegistral'] = self._normalizar_partida_registral(partida_registral)
 
+        # Tipo de servicio
+        tipo_servicio = (
+            limpiar_valor(row.get('TIPO_SERVICIO', '')) or
+            limpiar_valor(row.get('Tipo de Servicio', ''))
+        )
+        if tipo_servicio:
+            empresa_data['tipoServicio'] = tipo_servicio.upper()
+            
+        # Estado
+        estado_raw = (
+            row.get('ESTADO') or
+            row.get('Estado') or 
+            row.get('Estado Legal') or 
+            row.get('ESTADO_LEGAL') or 
+            ''
+        )
+        if estado_raw:
+            empresa_data['estado'] = self._normalizar_estado(estado_raw)
+
         return EmpresaCreate(**empresa_data)
     
-    async def procesar_carga_masiva(self, archivo_excel: BytesIO) -> Dict[str, Any]:
-        """Procesar carga masiva de empresas desde Excel - CREAR O ACTUALIZAR EN BASE DE DATOS REAL"""
+    async def procesar_carga_masiva(self, archivo_excel: Any, es_csv: bool = False) -> Dict[str, Any]:
+        """Procesar carga masiva de empresas desde Excel o CSV - CREAR O ACTUALIZAR EN BASE DE DATOS REAL"""
         
         # Primero validar el archivo
-        resultado_validacion = await self.validar_archivo_excel(archivo_excel)
+        resultado_validacion = await self.validar_archivo_excel(archivo_excel, es_csv=es_csv)
         
         if 'error' in resultado_validacion:
             return resultado_validacion
@@ -1226,6 +1376,10 @@ class EmpresaExcelService:
             'total_procesadas': len(empresas_creadas) + len(empresas_actualizadas)
         }
     
+    async def procesar_archivo_excel(self, content_bytes: bytes, es_csv: bool = False) -> Dict[str, Any]:
+        """Procesa bytes de Excel o CSV delegando a procesar_carga_masiva"""
+        return await self.procesar_carga_masiva(content_bytes, es_csv=es_csv)
+    
     async def _actualizar_empresa_existente(self, empresa_existente, empresa_data, empresa_service):
         """Actualizar empresa existente manteniendo campos vacíos del Excel"""
         from app.models.empresa import EmpresaUpdate
@@ -1267,7 +1421,8 @@ class EmpresaExcelService:
         
         # Actualizar en la base de datos
         usuario_id = "CARGA_MASIVA_UPDATE"
-        empresa_actualizada = await empresa_service.update_empresa(empresa_existente.id, empresa_update, usuario_id)
+        empresa_id = empresa_existente.get('id') if isinstance(empresa_existente, dict) else getattr(empresa_existente, 'id', None)
+        empresa_actualizada = await empresa_service.update_empresa(str(empresa_id), empresa_update, usuario_id)
         
         return empresa_actualizada
     
@@ -1302,6 +1457,23 @@ class EmpresaExcelService:
                 nombres="POR ACTUALIZAR",
                 apellidos="DESDE API EXTERNA"
             )
+        
+        # Sincronizar socios con el representante legal
+        if 'socios' in empresa_dict and empresa_dict['socios']:
+            empresa_data['socios'] = empresa_dict['socios']
+        else:
+            rep = empresa_data['representanteLegal']
+            dni_v = getattr(rep, 'dni', None) or (rep.get('dni') if isinstance(rep, dict) else '00000000')
+            nom_v = getattr(rep, 'nombres', None) or (rep.get('nombres') if isinstance(rep, dict) else 'POR ACTUALIZAR')
+            ape_v = getattr(rep, 'apellidos', None) or (rep.get('apellidos') if isinstance(rep, dict) else 'POR ACTUALIZAR')
+            empresa_data['socios'] = [
+                Socio(
+                    dni=str(dni_v),
+                    nombres=str(nom_v),
+                    apellidos=str(ape_v),
+                    tipoSocio=TipoSocio.REPRESENTANTE_LEGAL
+                )
+            ]
         
         # Tipo de servicio por defecto
         if 'tipoServicio' in empresa_dict and empresa_dict['tipoServicio']:
@@ -1354,6 +1526,7 @@ class EmpresaExcelService:
         
         # Actualizar en la base de datos
         usuario_id = "CARGA_MASIVA_UPDATE"
-        empresa_actualizada = await empresa_service.update_empresa(empresa_existente.id, empresa_update, usuario_id)
+        empresa_id = empresa_existente.get('id') if isinstance(empresa_existente, dict) else getattr(empresa_existente, 'id', None)
+        empresa_actualizada = await empresa_service.update_empresa(str(empresa_id), empresa_update, usuario_id)
         
         return empresa_actualizada

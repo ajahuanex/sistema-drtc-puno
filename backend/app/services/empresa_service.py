@@ -266,6 +266,29 @@ class EmpresaService:
             
         auditoria = await self.crear_auditoria_cambio(empresa_actual, update_data, usuario_id)
         
+        # Sincronizar bidireccionalmente socios y representanteLegal
+        if "socios" in update_data and update_data["socios"] and "representanteLegal" not in update_data:
+            rep_socio = next((s for s in update_data["socios"] if (s.get("tipoSocio") if isinstance(s, dict) else getattr(s, "tipoSocio", None)) in ["REPRESENTANTE_LEGAL", "REPRESENTANTE"]), None)
+            if rep_socio:
+                d_val = rep_socio if isinstance(rep_socio, dict) else rep_socio.model_dump()
+                update_data["representanteLegal"] = {
+                    "dni": d_val.get("dni", "00000000"),
+                    "nombres": d_val.get("nombres", "POR ACTUALIZAR"),
+                    "apellidos": d_val.get("apellidos", "POR ACTUALIZAR"),
+                    "email": d_val.get("email"),
+                    "telefono": d_val.get("telefono"),
+                    "direccion": d_val.get("direccion")
+                }
+        elif "representanteLegal" in update_data and update_data["representanteLegal"] and "socios" not in update_data:
+            rep = update_data["representanteLegal"]
+            d_rep = rep if isinstance(rep, dict) else rep.model_dump()
+            update_data["socios"] = [{
+                "dni": d_rep.get("dni", "00000000"),
+                "nombres": d_rep.get("nombres", "POR ACTUALIZAR"),
+                "apellidos": d_rep.get("apellidos", "POR ACTUALIZAR"),
+                "tipoSocio": "REPRESENTANTE_LEGAL"
+            }]
+
         update_data["fechaActualizacion"] = datetime.utcnow()
         auditoria_existente = [a.model_dump() for a in empresa_actual.auditoria]
         update_data["auditoria"] = auditoria_existente + [auditoria.model_dump()]

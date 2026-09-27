@@ -53,9 +53,31 @@ const ESTADOS_RUC: Record<string, string> = {
       </div>
 
       @if (isLoading()) {
-        <div class="loading-wrapper">
-          <mat-spinner diameter="40"></mat-spinner>
-          <span>Cargando detalle de la empresa...</span>
+        <div class="detail-skeleton-container animate-fade-in">
+          <div class="skeleton-company-header">
+            <div class="sh-left">
+              <div class="sh-avatar skeleton-shimmer"></div>
+              <div class="sh-titles">
+                <div class="sh-tag skeleton-shimmer"></div>
+                <div class="sh-title skeleton-shimmer"></div>
+                <div class="sh-chips">
+                  <div class="sh-chip skeleton-shimmer"></div>
+                  <div class="sh-chip skeleton-shimmer"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="skeleton-tabs-card">
+            <div class="skeleton-tab-bar">
+              <div class="stab skeleton-shimmer"></div>
+              <div class="stab skeleton-shimmer"></div>
+              <div class="stab skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-tab-body">
+              <div class="skeleton-field-block skeleton-shimmer"></div>
+              <div class="skeleton-field-block skeleton-shimmer"></div>
+            </div>
+          </div>
         </div>
       } @else if (!empresa()) {
         <mat-card class="error-card">
@@ -641,6 +663,90 @@ const ESTADOS_RUC: Record<string, string> = {
         font-weight: 600;
         mat-icon { margin-right: 6px; }
       }
+    }
+
+    /* ── Modern Detail Skeleton Loader ───────────────────────── */
+    .detail-skeleton-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+
+      .skeleton-company-header {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+        .sh-left {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+
+          .sh-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            flex-shrink: 0;
+          }
+
+          .sh-titles {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+
+            .sh-tag { width: 140px; height: 16px; border-radius: 4px; }
+            .sh-title { width: 65%; height: 26px; border-radius: 6px; }
+            .sh-chips {
+              display: flex;
+              gap: 8px;
+              .sh-chip { width: 100px; height: 22px; border-radius: 6px; }
+            }
+          }
+        }
+      }
+
+      .skeleton-tabs-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+        .skeleton-tab-bar {
+          display: flex;
+          gap: 1rem;
+          padding: 1rem 1.5rem;
+          border-bottom: 2px solid #f1f5f9;
+
+          .stab { width: 120px; height: 24px; border-radius: 6px; }
+        }
+
+        .skeleton-tab-body {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+
+          .skeleton-field-block {
+            width: 100%;
+            height: 90px;
+            border-radius: 8px;
+          }
+        }
+      }
+    }
+
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmerWave 1.6s infinite;
+    }
+
+    @keyframes shimmerWave {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
 
     .loading-wrapper, .empty-state {

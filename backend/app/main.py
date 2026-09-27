@@ -30,6 +30,7 @@ from app.routers.busqueda_global_router import router as busqueda_global_router
 from app.routers.parametros_router import router as parametros_router
 from app.routers.usuarios_router import router as usuarios_router
 from app.routers.permisos_router import router as permisos_router
+from app.routers.inicializador_router import router as inicializador_router
 from app.dependencies.db import lifespan
 
 # Configuración de logging
@@ -141,6 +142,7 @@ app.include_router(busqueda_global_router, prefix=api_prefix)
 app.include_router(parametros_router, prefix=api_prefix)
 app.include_router(usuarios_router, prefix=api_prefix)
 app.include_router(permisos_router, prefix=api_prefix)
+app.include_router(inicializador_router, prefix=api_prefix)
 from app.routers.bajas_router import router as bajas_router
 app.include_router(bajas_router, prefix=api_prefix)
 

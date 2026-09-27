@@ -39,8 +39,6 @@ export class LoginComponent {
   // Estados Reactivos
   isLoading = signal(false);
   showPassword = signal(false);
-  selectedRole = signal<'personal' | 'inspector' | 'empresa'>('personal');
-  docType = signal<'DNI' | 'CE' | 'RUC' | 'PASAPORTE'>('DNI');
   captchaCode = signal<string>('K7X');
   captchaInput = signal<string>('');
   rememberMe = signal<boolean>(true);
@@ -51,7 +49,7 @@ export class LoginComponent {
 
   constructor() {
     this.loginForm = this.fb.group({
-      dni: ['', [Validators.required, Validators.pattern(/^\d{8,11}$/)]],
+      dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
       password: ['', [Validators.required, Validators.minLength(4)]]
     });
 
@@ -66,28 +64,6 @@ export class LoginComponent {
     }
     this.captchaCode.set(code);
     this.captchaInput.set('');
-  }
-
-  setRole(role: 'personal' | 'inspector' | 'empresa'): void {
-    this.selectedRole.set(role);
-    if (role === 'empresa') {
-      this.onDocTypeChange('RUC');
-    } else {
-      this.onDocTypeChange('DNI');
-    }
-  }
-
-  onDocTypeChange(type: 'DNI' | 'CE' | 'RUC' | 'PASAPORTE'): void {
-    this.docType.set(type);
-    const dniControl = this.loginForm.get('dni');
-    if (type === 'RUC') {
-      dniControl?.setValidators([Validators.required, Validators.pattern(/^\d{11}$/)]);
-    } else if (type === 'DNI') {
-      dniControl?.setValidators([Validators.required, Validators.pattern(/^\d{8}$/)]);
-    } else {
-      dniControl?.setValidators([Validators.required, Validators.pattern(/^[A-Za-z0-9]{6,12}$/)]);
-    }
-    dniControl?.updateValueAndValidity();
   }
 
   fillDemoCredentials(): void {

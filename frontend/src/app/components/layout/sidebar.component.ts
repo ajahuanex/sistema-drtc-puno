@@ -208,10 +208,6 @@ import { AuthService } from '../../services/auth.service';
                       <span class="sub-bullet"></span>
                       <span>Todas las Resoluciones</span>
                     </a>
-                    <a routerLink="/resoluciones-primigenias/carga-masiva" routerLinkActive="sub-active" class="sub-link">
-                      <span class="sub-bullet"></span>
-                      <span>Carga Masiva Primigenias</span>
-                    </a>
                     <a routerLink="/resoluciones/carga-masiva" routerLinkActive="sub-active" class="sub-link">
                       <span class="sub-bullet"></span>
                       <span>Carga Masiva Resoluciones</span>
@@ -371,6 +367,24 @@ import { AuthService } from '../../services/auth.service';
                   </svg>
                   @if (isExpanded()) {
                     <span class="item-title">Auditoría y Trazabilidad</span>
+                  }
+                </a>
+              }
+
+              <!-- Inicializador y Migración Maestra de Datos -->
+              @if (canAccess('configuracion') || canAccess('auditoria')) {
+                <a
+                  routerLink="/inicializador-datos"
+                  routerLinkActive="active"
+                  class="nav-link-item group"
+                  [matTooltip]="!isExpanded() ? 'Inicializador de Datos' : ''"
+                  matTooltipPosition="right"
+                >
+                  <svg class="item-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  </svg>
+                  @if (isExpanded()) {
+                    <span class="item-title">Inicializador de Datos</span>
                   }
                 </a>
               }

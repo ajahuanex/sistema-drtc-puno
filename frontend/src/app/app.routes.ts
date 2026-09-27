@@ -35,14 +35,8 @@ export const routes: Routes = [
         data: { modulo: 'empresas' }
       },
       { 
-        path: 'empresas/carga-masiva', 
-        loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'empresas' }
-      },
-      { 
-        path: 'empresas/carga-masiva-google-sheets', 
-        loadComponent: () => import('./components/empresas/carga-masiva-empresas.component').then(m => m.CargaMasivaEmpresasComponent),
+        path: 'empresas/:id/editar', 
+        loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent),
         canActivate: [RoleGuard],
         data: { modulo: 'empresas' }
       },
@@ -52,20 +46,8 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { modulo: 'empresas' }
       },
-      { 
-        path: 'empresas/:id/editar', 
-        loadComponent: () => import('./components/empresas/empresa-form.component').then(m => m.EmpresaFormComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'empresas' }
-      },
       
       // RESOLUCIONES
-      { 
-        path: 'resoluciones-primigenias/carga-masiva', 
-        loadComponent: () => import('./components/resoluciones-primigenias/carga-masiva-resoluciones-primigenias.component').then(m => m.CargaMasivaResolucionesPrimigeniasComponent),
-        canActivate: [RoleGuard],
-        data: { modulo: 'resoluciones' }
-      },
       { 
         path: 'resoluciones-primigenias', 
         loadComponent: () => import('./components/resoluciones-primigenias/resoluciones-primigenias.component').then(m => m.ResolucionesPrimigeniasComponent),
@@ -243,6 +225,14 @@ export const routes: Routes = [
         loadComponent: () => import('./components/centro-tramites/centro-tramites.component').then(m => m.CentroTramites),
         canActivate: [RoleGuard],
         data: { modulo: 'resoluciones' }
+      },
+
+      // MÓDULO INICIALIZADOR Y MIGRACIÓN MAESTRA DE DATOS
+      { 
+        path: 'inicializador-datos', 
+        loadComponent: () => import('./components/inicializador-datos/inicializador-datos.component').then(m => m.InicializadorDatosComponent),
+        canActivate: [RoleGuard],
+        data: { modulo: 'empresas' }
       },
     ]
   },

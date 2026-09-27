@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatStepperModule } from '@angular/material/stepper';
 import { EmpresaService } from '../../services/empresa.service';
-import { Empresa, EmpresaCreate, EmpresaUpdate, Socio } from '../../models/empresa.model';
+import { Empresa, EmpresaCreate, EmpresaUpdate, Socio, TipoSocio } from '../../models/empresa.model';
 
 @Component({
   selector: 'app-empresa-form',
@@ -60,7 +60,7 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, Socio } from '../../models/empre
               <h1>{{ isEditing() ? 'Actualizar Expediente de la Empresa' : 'Registrar Nueva Empresa de Transporte' }}</h1>
               <p class="hero-subtitle">
                 @if (isEditing() && empresaActual()) {
-                  <span>RUC {{ empresaActual()!.ruc }} &bull; {{ empresaActual()!.razonSocial.principal }}</span>
+                  <span>RUC {{ empresaActual()!.ruc }} &bull; {{ getRazonSocialTexto(empresaActual()) }}</span>
                 } @else {
                   <span>Alta oficial de títulos habilitantes y operadores interprovinciales con validación SUNAT</span>
                 }
@@ -81,9 +81,20 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, Socio } from '../../models/empre
       </div>
 
       @if (isLoading()) {
-        <div class="loading-wrapper">
-          <mat-spinner diameter="44"></mat-spinner>
-          <span>Cargando datos de la empresa...</span>
+        <div class="form-skeleton-container animate-fade-in">
+          <div class="skeleton-form-layout">
+            <div class="skeleton-form-card">
+              <div class="s-card-title skeleton-shimmer"></div>
+              <div class="s-field skeleton-shimmer"></div>
+              <div class="s-field skeleton-shimmer"></div>
+              <div class="s-field skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-form-card">
+              <div class="s-card-title skeleton-shimmer"></div>
+              <div class="s-field skeleton-shimmer"></div>
+              <div class="s-field skeleton-shimmer"></div>
+            </div>
+          </div>
         </div>
       } @else {
         <form [formGroup]="form" (ngSubmit)="guardar()" class="form-body">
@@ -532,6 +543,55 @@ import { Empresa, EmpresaCreate, EmpresaUpdate, Socio } from '../../models/empre
           }
         }
       }
+    }
+
+    /* ── Modern Form Skeleton Loader ─────────────────────────── */
+    .form-skeleton-container {
+      margin-top: 1.5rem;
+
+      .skeleton-form-layout {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 1.5rem;
+
+        @media (max-width: 1080px) {
+          grid-template-columns: 1fr;
+        }
+
+        .skeleton-form-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+          .s-card-title {
+            width: 50%;
+            height: 24px;
+            border-radius: 6px;
+          }
+
+          .s-field {
+            width: 100%;
+            height: 54px;
+            border-radius: 8px;
+          }
+        }
+      }
+    }
+
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmerWave 1.6s infinite;
+    }
+
+    @keyframes shimmerWave {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
 
     .loading-wrapper {
@@ -1112,6 +1172,14 @@ export class EmpresaFormComponent implements OnInit {
     });
   }
 
+  getRazonSocialTexto(empresa: Empresa | null): string {
+    if (!empresa) return '';
+    if (typeof empresa.razonSocial === 'object' && empresa.razonSocial !== null) {
+      return empresa.razonSocial.principal || '';
+    }
+    return String(empresa.razonSocial || '');
+  }
+
   cargarEmpresa(): void {
     if (!this.empresaId) return;
     this.isLoading.set(true);
@@ -1120,23 +1188,28 @@ export class EmpresaFormComponent implements OnInit {
       next: (empresa) => {
         this.empresaActual.set(empresa);
 
+        const razonPrincipal = this.getRazonSocialTexto(empresa);
+        const razonMinimo = typeof empresa.razonSocial === 'object' && empresa.razonSocial !== null
+          ? (empresa.razonSocial.minimo || '')
+          : '';
+
         if (empresa.datosSunat) {
           const ds = empresa.datosSunat as any;
           this.sunatInfo.set({
             esActivo: ds.esActivo !== false,
             esHabido: ds.esHabido !== false,
-            ddp_nombre: ds.ddp_nombre || empresa.razonSocial.principal
+            ddp_nombre: ds.ddp_nombre || razonPrincipal
           });
         }
 
         // Rellenar campos básicos
         this.form.patchValue({
           ruc: empresa.ruc,
-          razonSocial: empresa.razonSocial.principal,
-          razonSocialMinimo: empresa.razonSocial.minimo || '',
-          direccionFiscal: empresa.direccionFiscal,
+          razonSocial: razonPrincipal,
+          razonSocialMinimo: razonMinimo,
+          direccionFiscal: empresa.direccionFiscal || '',
           partidaRegistral: empresa.partidaRegistral || '',
-          estado: empresa.estado,
+          estado: empresa.estado || 'AUTORIZADA',
           observaciones: empresa.observaciones || '',
           emailContacto: empresa.emailContacto || '',
           telefonoContacto: empresa.telefonoContacto || '',
@@ -1149,8 +1222,19 @@ export class EmpresaFormComponent implements OnInit {
           this.sociosArray.removeAt(0);
         }
 
+        const repLegal = (empresa as any).representanteLegal;
         if (empresa.socios && empresa.socios.length > 0) {
           empresa.socios.forEach(s => this.sociosArray.push(this.crearSocioGroup(s)));
+        } else if (repLegal) {
+          this.sociosArray.push(this.crearSocioGroup({
+            tipoSocio: TipoSocio.REPRESENTANTE_LEGAL,
+            dni: repLegal.dni || '',
+            nombres: repLegal.nombres || '',
+            apellidos: repLegal.apellidos || '',
+            email: repLegal.email || '',
+            telefono: repLegal.telefono || '',
+            direccion: repLegal.direccion || ''
+          }));
         } else {
           this.sociosArray.push(this.crearSocioGroup());
         }

@@ -1,0 +1,281 @@
+<div class="inicializador-container">
+  <!-- Cabecera Institucional del Inicializador -->
+  <header class="hub-header">
+    <div class="header-left">
+      <div class="badge-oficial">
+        <mat-icon>security</mat-icon>
+        <span>MÓDULO DE ARRANQUE Y MIGRACIÓN MAESTRA • DRTC PUNO</span>
+      </div>
+      <h1 class="hub-title">Centro Inicializador de Datos</h1>
+      <p class="hub-desc">
+        Poblado secuencial de las 5 bases de datos matrices (Empresas, Primigenias, Rutas, Fichas Técnicas Saneadas y Flota Operacional).
+        <strong class="highlight-norm">Una vez concluida esta inicialización, toda nueva operación ingresa exclusivamente por el Centro de Trámites.</strong>
+      </p>
+    </div>
+
+    <div class="header-right">
+      <div class="kpi-progress-card">
+        <span class="kpi-label">Progreso de Inicialización</span>
+        <div class="kpi-val-row">
+          <span class="kpi-number">{{ progresoGlobal() }}%</span>
+          <span class="kpi-sub">Completado</span>
+        </div>
+        <mat-progress-bar mode="determinate" [value]="progresoGlobal()"></mat-progress-bar>
+      </div>
+
+      <button mat-flat-button color="accent" class="btn-ir-tramites" routerLink="/centro-tramites" (click)="irACentroTramites()">
+        <mat-icon>alt_route</mat-icon>
+        <span>Centro de Trámites</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Workspace Principal Dividido -->
+  <main class="hub-workspace">
+    <!-- Panel Izquierdo: Secuencia Guiada de las 5 Etapas -->
+    <aside class="sidebar-etapas">
+      <h3 class="sidebar-title">
+        <mat-icon>format_list_numbered</mat-icon>
+        <span>Etapas de Ingesta Maestra</span>
+      </h3>
+
+      <div class="etapas-list">
+        @for (etapa of etapas(); track etapa.id; let idx = $index) {
+          <div 
+            class="etapa-item-card" 
+            [class.active]="etapaActualIndex() === idx" 
+            [class.completed]="etapa.total_registros > 0"
+            (click)="seleccionarEtapa(idx)">
+            
+            <div class="etapa-number-box">
+              @if (etapa.total_registros > 0) {
+                <mat-icon class="icon-done">check_circle</mat-icon>
+              } @else {
+                <span class="step-num">{{ idx + 1 }}</span>
+              }
+            </div>
+
+            <div class="etapa-info">
+              <h4 class="etapa-name">{{ etapa.nombre }}</h4>
+              <p class="etapa-desc-short">{{ etapa.descripcion }}</p>
+              <div class="etapa-meta">
+                <span class="badge-count" [class.badge-has-data]="etapa.total_registros > 0">
+                  <mat-icon class="mini-icon">storage</mat-icon>
+                  <span>{{ etapa.total_registros | number }} registros</span>
+                </span>
+                <span class="col-name">{{ etapa.coleccion }}</span>
+              </div>
+            </div>
+
+            <mat-icon class="arrow-indicator">chevron_right</mat-icon>
+          </div>
+        }
+      </div>
+
+      <!-- Aviso Normativo RNAT -->
+      <div class="normativa-box">
+        <div class="normativa-top">
+          <mat-icon>gavel</mat-icon>
+          <span>D.S. 017-2009-MTC (RNAT)</span>
+        </div>
+        <p>
+          Las habilitaciones de flota y TUCs requieren vinculación estricta entre Empresa, Resolución Primigenia de 10 años y Ficha Técnica con categoría vehicular M2/M3.
+        </p>
+      </div>
+    </aside>
+
+    <!-- Panel Derecho: Espacio de Trabajo de la Etapa Seleccionada -->
+    <section class="stage-workspace">
+      @if (etapaActual(); as etapa) {
+        <div class="stage-card">
+          <!-- Cabecera de la Etapa -->
+          <div class="stage-header">
+            <div>
+              <div class="stage-pill">ETAPA {{ etapaActualIndex() + 1 }} DE {{ etapas().length }}</div>
+              <h2 class="stage-heading">{{ etapa.nombre }}</h2>
+              <p class="stage-subheading">{{ etapa.descripcion }}</p>
+            </div>
+
+            <div class="stage-status-indicator">
+              @if (etapa.total_registros > 0) {
+                <span class="status-badge status-ok">
+                  <mat-icon>verified</mat-icon>
+                  <span>Poblado ({{ etapa.total_registros | number }} en BD)</span>
+                </span>
+              } @else {
+                <span class="status-badge status-pending">
+                  <mat-icon>hourglass_empty</mat-icon>
+                  <span>Pendiente de Ingesta</span>
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Selector de Modo: Google Sheets vs Archivo Local -->
+          <div class="mode-selector-row">
+            <span class="mode-label">Fuente de Datos:</span>
+            <div class="mode-buttons">
+              <button 
+                type="button" 
+                class="mode-btn" 
+                [class.active]="modoIngreso() === 'url'" 
+                (click)="modoIngreso.set('url')">
+                <mat-icon>cloud_download</mat-icon>
+                <span>Google Sheets Oficial</span>
+              </button>
+              <button 
+                type="button" 
+                class="mode-btn" 
+                [class.active]="modoIngreso() === 'archivo'" 
+                (click)="modoIngreso.set('archivo')">
+                <mat-icon>upload_file</mat-icon>
+                <span>Subir Archivo Local (.xlsx / .csv)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Input de Entrada de Datos -->
+          <div class="source-input-container">
+            @if (modoIngreso() === 'url') {
+              <div class="form-group-url">
+                <label class="url-label">
+                  <mat-icon>link</mat-icon>
+                  <span>URL Pública de Google Sheets (Exportable a CSV):</span>
+                </label>
+                <div class="input-url-wrapper">
+                  <input 
+                    type="url" 
+                    class="input-url font-tabular" 
+                    [(ngModel)]="sheetsUrls()[etapa.id]" 
+                    placeholder="https://docs.google.com/spreadsheets/d/..." />
+                  <button 
+                    type="button" 
+                    class="btn-reset-url" 
+                    (click)="sheetsUrls()[etapa.id] = etapa.default_url" 
+                    matTooltip="Restablecer URL oficial por defecto">
+                    <mat-icon>restart_alt</mat-icon>
+                  </button>
+                </div>
+                <span class="hint-text">
+                  * La hoja debe tener permisos públicos de lectura ("Cualquier persona con el enlace puede ver").
+                </span>
+              </div>
+            } @else {
+              <div class="form-group-file">
+                <label class="file-drop-area">
+                  <input type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls,.csv" class="hidden-input" />
+                  <mat-icon class="drop-icon">cloud_upload</mat-icon>
+                  @if (selectedFile(); as file) {
+                    <div class="file-selected-info">
+                      <span class="file-name">{{ file.name }}</span>
+                      <span class="file-size font-tabular">({{ (file.size / 1024) | number:'1.0-1' }} KB)</span>
+                    </div>
+                  } @else {
+                    <div class="drop-text">
+                      <strong>Haga clic aquí para seleccionar el archivo</strong>
+                      <span>Soporta archivos Excel (.xlsx, .xls) o CSV (.csv)</span>
+                    </div>
+                  }
+                </label>
+              </div>
+            }
+          </div>
+
+          <!-- Barra de Acciones de la Etapa -->
+          <div class="stage-actions-bar">
+            <button 
+              type="button" 
+              class="btn-preview" 
+              (click)="previsualizar()" 
+              [disabled]="isPreviewLoading() || isExecuting()">
+              @if (isPreviewLoading()) {
+                <mat-spinner diameter="18"></mat-spinner>
+                <span>Analizando Estructura...</span>
+              } @else {
+                <mat-icon>visibility</mat-icon>
+                <span>1. Previsualizar y Validar</span>
+              }
+            </button>
+
+            <button 
+              type="button" 
+              class="btn-execute" 
+              (click)="ejecutarEtapa()" 
+              [disabled]="isExecuting() || isPreviewLoading()">
+              @if (isExecuting()) {
+                <mat-spinner diameter="20"></mat-spinner>
+                <span>Procesando Ingesta en BD...</span>
+              } @else {
+                <mat-icon>bolt</mat-icon>
+                <span>2. Ejecutar Ingesta / Migración</span>
+              }
+            </button>
+          </div>
+
+          <!-- Contenedor de Vista Previa de Datos -->
+          @if (previewData(); as preview) {
+            <div class="preview-results-box">
+              <div class="preview-header-row">
+                <div class="preview-stats">
+                  <span class="stat-pill">
+                    <mat-icon>table_rows</mat-icon>
+                    <strong>{{ preview.total_filas | number }}</strong> registros detectados
+                  </span>
+                  <span class="stat-pill">
+                    <mat-icon>view_column</mat-icon>
+                    <strong>{{ preview.total_columnas }}</strong> columnas
+                  </span>
+                </div>
+                <span class="preview-caption">Mostrando las primeras 5 filas de muestra:</span>
+              </div>
+
+              <div class="table-scroll-container">
+                <table class="preview-table">
+                  <thead>
+                    <tr>
+                      <th class="col-num">#</th>
+                      @for (col of preview.columnas; track col) {
+                        <th>{{ col }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (fila of preview.muestra; track $index; let rIdx = $index) {
+                      <tr>
+                        <td class="col-num font-tabular">{{ rIdx + 1 }}</td>
+                        @for (col of preview.columnas; track col) {
+                          <td class="cell-val">{{ fila[col] || '-' }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+
+          <!-- Bitácora y Registro de Auditoría en Tiempo Real -->
+          <div class="audit-log-container">
+            <h4 class="log-title">
+              <mat-icon>history</mat-icon>
+              <span>Bitácora de Ingesta y Auditoría del Sistema</span>
+            </h4>
+            <div class="log-scroll-box">
+              @for (log of logs(); track log.timestamp + log.mensaje) {
+                <div class="log-item" [attr.data-tipo]="log.tipo">
+                  <span class="log-time font-tabular">[{{ log.timestamp }}]</span>
+                  <span class="log-badge">{{ log.etapaId.toUpperCase() }}</span>
+                  <span class="log-msg">{{ log.mensaje }}</span>
+                </div>
+              } @empty {
+                <div class="log-empty">
+                  No se han registrado operaciones en esta sesión.
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+  </main>
+</div>

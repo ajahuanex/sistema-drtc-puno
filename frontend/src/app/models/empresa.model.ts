@@ -42,13 +42,14 @@ export interface RazonSocial {
   principal: string;
   sunat?: string;
   minimo?: string;
+  nombre_corto?: string;
 }
 
 export interface Socio {
   dni: string;
   nombres: string;
   apellidos: string;
-  tipoSocio: TipoSocio;
+  tipoSocio: TipoSocio | string;
   email?: string;
   telefono?: string;
   direccion?: string;
@@ -60,6 +61,7 @@ export interface Socio {
 
 export interface Empresa {
   id: string;
+  _id?: string;
   ruc: string;
   razonSocial: RazonSocial;
   direccionFiscal: string;
@@ -69,6 +71,7 @@ export interface Empresa {
   fechaRegistro: Date;
   fechaActualizacion?: Date;
   socios: Socio[];
+  representanteLegal?: any;
   emailContacto?: string;
   telefonoContacto?: string;
   sitioWeb?: string;
