@@ -51,7 +51,7 @@ import { TopbarComponent } from './topbar.component';
       display: flex;
       flex-direction: row;
       overflow: hidden;
-      background-color: #f8fafc;
+      background-color: var(--bg-app, #f8fafc);
       margin: 0;
       padding: 0;
     }
@@ -81,14 +81,14 @@ import { TopbarComponent } from './topbar.component';
       min-width: 0;
       height: 100vh;
       overflow: hidden;
-      background-color: #f8fafc;
+      background-color: var(--bg-app, #f8fafc);
     }
 
     .topbar-wrapper {
       height: 64px;
       flex-shrink: 0;
-      background-color: #ffffff;
-      border-bottom: 1px solid #e2e8f0;
+      background-color: var(--bg-surface, #ffffff);
+      border-bottom: 1px solid var(--border-color, #e2e8f0);
       z-index: 20;
     }
 
@@ -96,7 +96,7 @@ import { TopbarComponent } from './topbar.component';
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      background-color: #f8fafc;
+      background-color: var(--bg-app, #f8fafc);
       position: relative;
     }
 
@@ -116,6 +116,22 @@ import { TopbarComponent } from './topbar.component';
 
     .main-canvas::-webkit-scrollbar-thumb:hover {
       background: rgba(148, 163, 184, 0.55);
+    }
+
+    /* Modo Oscuro para el Layout Principal (SIRRETT Oficial) */
+    :host-context([data-theme="dark"]),
+    :host-context(.dark-theme),
+    :host-context(.dark-mode) {
+      .master-layout-container,
+      .right-viewport,
+      .main-canvas {
+        background-color: #090d16 !important;
+      }
+
+      .topbar-wrapper {
+        background-color: #0a0e1a !important;
+        border-bottom-color: #1e293b !important;
+      }
     }
 
     /* Responsive */

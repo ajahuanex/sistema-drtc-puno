@@ -92,6 +92,27 @@ export interface SunatData {
   [key: string]: any;
 }
 
+export interface SunatCronStatus {
+  activo: boolean;
+  en_ejecucion: boolean;
+  horario_programado: string;
+  timezone?: string;
+  proxima_ejecucion?: string | null;
+  ultimo_inicio?: string | null;
+  ultimo_fin?: string | null;
+  total_procesadas?: number;
+  total_actualizadas?: number;
+  total_errores?: number;
+  ultimo_error?: string | null;
+  origen_ultima_ejecucion?: string | null;
+  progreso?: {
+    actual: number;
+    total: number;
+    porcentaje: number;
+    ruc_actual?: string | null;
+  };
+}
+
 // ========================================
 // OPERACIONES CRUD
 // ========================================

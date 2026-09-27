@@ -12,7 +12,8 @@ import logging
 import unicodedata
 
 logger = logging.getLogger(__name__)
-from app.dependencies.auth import get_current_active_user
+from app.dependencies.auth import get_current_active_user, get_current_user_optional
+from app.models.usuario import UsuarioInDB
 from app.dependencies.db import get_database
 from app.services.empresa_service import EmpresaService
 from app.services.empresa_excel_service import EmpresaExcelService
@@ -1795,109 +1796,106 @@ async def actualizar_sunat_empresa(
     return create_empresa_response(updated)
 
 
-@router.post("/actualizar-sunat-masivo")
-async def actualizar_sunat_masivo(
-    background_tasks: BackgroundTasks,
-    empresa_service: EmpresaService = Depends(get_empresa_service)
-):
-    """
-    Dispara la actualización masiva de datos SUNAT para TODAS las empresas activas.
-    La tarea se ejecuta en background para no bloquear la respuesta HTTP.
-    """
-    background_tasks.add_task(_tarea_actualizacion_masiva_sunat, empresa_service)
-    return {
-        "mensaje": "Actualización masiva SUNAT iniciada en background",
-        "status": "procesando"
-    }
-
-
-async def _tarea_actualizacion_masiva_sunat(empresa_service: EmpresaService):
-    """Tarea en background: actualiza datos SUNAT de todas las empresas activas."""
-    logger.info("⌛ Iniciando actualización masiva SUNAT...")
-    db_instance = await get_empresa_service.__wrapped__(empresa_service) if hasattr(get_empresa_service, '__wrapped__') else None
-    
-    # Obtener todas las empresas activas
-    try:
-        empresas = await empresa_service.get_all_empresas_activas()
-    except Exception:
-        # Fallback: obtener todas
-        empresas = await empresa_service.get_empresas(skip=0, limit=99999)
-    
-    actualizadas = 0
-    errores = 0
-    
-    for empresa in empresas:
-        try:
-            empresa_id = empresa.get('id') if isinstance(empresa, dict) else empresa.id
-            ruc = empresa.get('ruc') if isinstance(empresa, dict) else empresa.ruc
-            
-            data = await _fetch_sunat_data(ruc)
-            if not data or 'data' not in data:
-                errores += 1
-                continue
-            
-            sunat_raw = data['data']
-            ahora = datetime.utcnow()
-            estados_ruc = {
-                '00': 'ACTIVO', '10': 'SUSPENSION TEMPORAL', '11': 'BAJA DE OFICIO',
-                '12': 'BAJA DEFINITIVA', '20': 'BAJA PROVISIONAL',
-                '21': 'BAJA PROV. POR OFICIO', '22': 'SUSPENSION PROVISIONAL'
-            }
-            datos_sunat = {
-                "ddp_nombre": sunat_raw.get('ddp_nombre', ''),
-                "ddp_estado": sunat_raw.get('ddp_estado', ''),
-                "desc_estado": estados_ruc.get(sunat_raw.get('ddp_estado', ''), ''),
-                "esActivo": sunat_raw.get('ddp_estado') == '00',
-                "esHabido": sunat_raw.get('ddp_ubigeo') is not None and sunat_raw.get('ddp_ubigeo') != '',
-                "ddp_ciiu": sunat_raw.get('ddp_ciiu', ''),
-                "ddp_fecact": sunat_raw.get('ddp_fecact', ''),
-                "fechaConsulta": ahora.isoformat()
-            }
-            
-            razon_actual = empresa.get('razonSocial', {}) if isinstance(empresa, dict) else \
-                (empresa.razonSocial.model_dump() if hasattr(empresa.razonSocial, 'model_dump') else {})
-            razon_actualizada = {**razon_actual, 'sunat': datos_sunat['ddp_nombre']}
-            
-            update_data = EmpresaUpdate(
-                datosSunat=datos_sunat,
-                ultimaValidacionSunat=ahora,
-                razonSocial=razon_actualizada  # type: ignore
-            )
-            await empresa_service.update_empresa(empresa_id, update_data, "SCHEDULER")
-            actualizadas += 1
-            
-            # Respetar rate limits de la API
-            await asyncio.sleep(0.5)
-            
-        except Exception as e:
-            logger.warning(f"Error actualizando SUNAT para empresa: {e}")
-            errores += 1
-    
-    logger.info(f"✅ Actualización masiva SUNAT completa: {actualizadas} ok, {errores} errores")
-
-
 @router.get("/cron-sunat/status")
 async def obtener_estado_cron():
     """
-    Retorna el estado de la validación automática diaria con SUNAT.
+    Retorna el estado de la validación automática diaria con SUNAT
+    (horario programado, próxima ejecución, último inicio/fin, estadísticas y progreso).
     """
     from app.services.sunat_sync_service import obtener_estado_cron_sunat
     return obtener_estado_cron_sunat()
 
 
+@router.post("/cron-sunat/ejecutar-manual")
 @router.post("/sincronizar-sunat-diario")
-async def ejecutar_sincronizacion_sunat_diaria(
+async def ejecutar_sincronizacion_sunat_manual(
     background_tasks: BackgroundTasks,
-    forzar: bool = False
+    forzar: bool = Query(False, description="Si es True, fuerza la actualización de todas las empresas"),
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
 ):
     """
-    Dispara la sincronización automática diaria de SUNAT en segundo plano.
+    Dispara la sincronización manual de SUNAT en segundo plano (para administradores).
+    Si el usuario está autenticado, valida que cuente con privilegios de administración.
     """
-    from app.services.sunat_sync_service import ejecutar_validacion_sunat_masiva
-    background_tasks.add_task(ejecutar_validacion_sunat_masiva, forzar)
+    if current_user:
+        rol = (current_user.rolId or "").lower()
+        if rol not in ["admin", "oti", "administrador"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo los administradores tienen permiso para ejecutar la sincronización manual de SUNAT."
+            )
+
+    from app.services.sunat_sync_service import ejecutar_validacion_sunat_masiva, obtener_estado_cron_sunat
+    estado_actual = obtener_estado_cron_sunat()
+    if estado_actual.get("en_ejecucion"):
+        return {
+            "status": "ocupado",
+            "mensaje": "Ya existe una sincronización SUNAT en ejecución.",
+            "estado": estado_actual
+        }
+
+    background_tasks.add_task(ejecutar_validacion_sunat_masiva, forzar, "MANUAL_ADMIN")
     return {
-        "mensaje": "Sincronización diaria SUNAT programada en segundo plano",
+        "mensaje": "Sincronización manual con SUNAT iniciada correctamente en segundo plano",
         "forzar_todas": forzar,
-        "status": "iniciado"
+        "status": "iniciado",
+        "estado": obtener_estado_cron_sunat()
     }
+
+
+@router.post("/actualizar-sunat-masivo")
+async def actualizar_sunat_masivo(
+    background_tasks: BackgroundTasks,
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
+):
+    """
+    Dispara la actualización masiva de datos SUNAT en background (compatibilidad con endpoints existentes).
+    """
+    if current_user:
+        rol = (current_user.rolId or "").lower()
+        if rol not in ["admin", "oti", "administrador"]:
+            raise HTTPException(status_code=403, detail="Acceso denegado: se requiere rol de Administrador")
+
+    from app.services.sunat_sync_service import ejecutar_validacion_sunat_masiva, obtener_estado_cron_sunat
+    estado_actual = obtener_estado_cron_sunat()
+    if estado_actual.get("en_ejecucion"):
+        return {
+            "status": "ocupado",
+            "mensaje": "Ya existe una sincronización SUNAT en ejecución.",
+            "estado": estado_actual
+        }
+
+    background_tasks.add_task(ejecutar_validacion_sunat_masiva, True, "MANUAL_ADMIN")
+    return {
+        "mensaje": "Actualización masiva SUNAT iniciada en background",
+        "status": "procesando",
+        "estado": obtener_estado_cron_sunat()
+    }
+
+
+@router.post("/cron-sunat/config")
+async def configurar_cron_sunat(
+    config: Dict[str, Any] = Body(...),
+    current_user: Optional[UsuarioInDB] = Depends(get_current_user_optional)
+):
+    """
+    Permite al administrador configurar el horario diario (ej. '07:00') y activación del cron automático SUNAT.
+    """
+    if current_user:
+        rol = (current_user.rolId or "").lower()
+        if rol not in ["admin", "oti", "administrador"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Solo los administradores pueden cambiar la configuración del horario de SUNAT."
+            )
+
+    from app.services.sunat_sync_service import actualizar_configuracion_cron
+    horario = config.get("horario") or config.get("horario_programado")
+    activo = config.get("activo")
+    nuevo_estado = actualizar_configuracion_cron(horario_str=horario, activo=activo)
+    return {
+        "mensaje": f"Configuración de sincronización SUNAT actualizada exitosamente a las {nuevo_estado.get('horario_programado')}",
+        "estado": nuevo_estado
+    }
+
 

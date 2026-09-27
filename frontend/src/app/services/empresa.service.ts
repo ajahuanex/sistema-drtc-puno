@@ -11,7 +11,8 @@ import {
   Socio,
   SocioCreate,
   SocioUpdate,
-  ExpedienteOperativoEmpresa
+  ExpedienteOperativoEmpresa,
+  SunatCronStatus
 } from '../models/empresa.model';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
@@ -192,6 +193,40 @@ export class EmpresaService {
       headers: this.getHeaders()
     }).pipe(
       catchError(error => this.handleError('actualizarSunatMasivo', error))
+    );
+  }
+
+  /**
+   * Obtiene el estado actual del cron diario de SUNAT y de la sincronización.
+   */
+  obtenerEstadoCronSunat(): Observable<SunatCronStatus> {
+    return this.http.get<SunatCronStatus>(`${this.apiUrl}/cron-sunat/status`, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('obtenerEstadoCronSunat', error))
+    );
+  }
+
+  /**
+   * Dispara manualmente la validación SUNAT masiva (para administradores).
+   * @param forzar Si es true, valida todas las empresas sin importar la última fecha.
+   */
+  sincronizarSunatManual(forzar: boolean = false): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cron-sunat/ejecutar-manual?forzar=${forzar}`, {}, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('sincronizarSunatManual', error))
+    );
+  }
+
+  /**
+   * Permite al administrador configurar el horario diario (ej. '07:00') y activación del cron automático SUNAT.
+   */
+  configurarHorarioCronSunat(horario: string, activo: boolean = true): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cron-sunat/config`, { horario, activo }, {
+      headers: this.getHeaders()
+    }).pipe(
+      catchError(error => this.handleError('configurarHorarioCronSunat', error))
     );
   }
 

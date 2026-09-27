@@ -112,6 +112,10 @@ class Settings(BaseSettings):
     # Session
     SESSION_TIMEOUT_MINUTES: int = int(os.getenv("SESSION_TIMEOUT_MINUTES", "30"))
     
+    # Programación de Validación Automática SUNAT (por defecto 07:00 AM hora local Perú)
+    SUNAT_CRON_HORA: str = os.getenv("SUNAT_CRON_HORA", "07:00")
+    SUNAT_CRON_ACTIVO: bool = os.getenv("SUNAT_CRON_ACTIVO", "true").lower() in ("true", "1", "yes")
+    
     # Validaciones
     @property
     def is_production(self) -> bool:

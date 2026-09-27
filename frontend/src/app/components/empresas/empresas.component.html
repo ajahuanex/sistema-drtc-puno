@@ -1,0 +1,578 @@
+    <div class="page-container">
+      <!-- Header Banner (Stitch Official module-hero-banner) -->
+      <div class="page-header" data-purpose="module-hero-banner">
+        <div class="header-content">
+          <div class="title-with-icon">
+            <span class="material-symbols-outlined header-icon">apartment</span>
+            <div>
+              <h1>Gestión de Empresas de Transporte Terrestre Interprovincial</h1>
+              <p class="subtitle">Padrón Oficial y Expediente Administrativo Digital 360° de Operadores Habilitados en la Región Puno (D.S. 017-2009-MTC)</p>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <!-- Botón Sincronización SUNAT (Administrador) -->
+          @if (esAdmin()) {
+            <button mat-button class="header-action-btn btn-sunat-header" (click)="abrirModalSunat()" matTooltip="Gestión del horario programado (07:00 AM) y validación manual SUNAT">
+              <span class="material-symbols-outlined btn-icon" [class.spin-icon]="cronSunatStatus()?.en_ejecucion">cloud_sync</span>
+              <span class="btn-text">
+                @if (cronSunatStatus()?.en_ejecucion) {
+                  Sincronizando SUNAT...
+                } @else {
+                  SUNAT: {{ cronSunatStatus()?.horario_programado || '07:00' }} AM
+                }
+              </span>
+            </button>
+          }
+
+          <!-- Botón Exportar Excel con Menú -->
+          <button mat-button class="header-action-btn" [matMenuTriggerFor]="exportExcelMenu" [disabled]="isLoading()" matTooltip="Exportar empresas a Excel">
+            <span class="material-symbols-outlined btn-icon">download</span>
+            <span class="btn-text">Exportar Padrón (Excel/PDF)</span>
+          </button>
+          <mat-menu #exportExcelMenu="matMenu">
+            <button mat-menu-item (click)="exportarExcelSeleccionadas()" [disabled]="empresasSeleccionadas().size === 0">
+              <mat-icon color="primary">check_box</mat-icon>
+              <span>Exportar Seleccionadas ({{ empresasSeleccionadas().size }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarExcel()">
+              <mat-icon color="accent">filter_alt</mat-icon>
+              <span>Exportar Vista Filtrada ({{ empresasFiltradas().length }})</span>
+            </button>
+            <button mat-menu-item (click)="exportarExcelTodas()">
+              <mat-icon style="color: #10b981;">table_chart</mat-icon>
+              <span>Exportar Todas ({{ empresas().length }})</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="irAInicializador()">
+              <mat-icon style="color: #6366f1;">database</mat-icon>
+              <span>Sincronizar Base Maestra (Inicializador)</span>
+            </button>
+          </mat-menu>
+
+          <!-- Botón Nueva Empresa -->
+          <button mat-button class="header-action-btn btn-primary-custom" (click)="crearEmpresa()" [disabled]="isLoading()" matTooltip="Registrar nueva empresa">
+            <span class="material-symbols-outlined btn-icon">add_circle</span>
+            <span class="btn-text">+ Nueva Empresa</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Metrics Grid (Stitch Official Padrón DRTC Puno) -->
+      <div class="kpi-metrics-grid" data-purpose="kpi-metrics-grid">
+        <!-- Card 1: Total Autorizadas -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Autorizadas</span>
+            <span class="kpi-icon-badge kpi-badge-blue">
+              <span class="material-symbols-outlined">verified</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-number">{{ totalAutorizadas() }}</span>
+            <span class="kpi-subtext">modalidad transporte de pasajeros</span>
+          </div>
+          <div class="kpi-footer">
+            <span class="status-dot dot-emerald"></span>
+            <span class="kpi-highlight font-emerald">{{ pctAutorizadasPasajeros() }}%</span>
+            <span>del total de empresas autorizadas</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Total Canceladas -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Canceladas</span>
+            <span class="kpi-icon-badge kpi-badge-rose">
+              <span class="material-symbols-outlined">cancel</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <span class="kpi-number text-rose">{{ totalCanceladas() }}</span>
+            <span class="kpi-subtext">empresas canceladas</span>
+          </div>
+          <div class="kpi-footer font-rose">
+            <span class="material-symbols-outlined footer-icon">gavel</span>
+            <span class="font-semibold">R.D. de cancelación / sanción firme</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Estado SUNAT (RUC) -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Estado SUNAT (RUC)</span>
+            <span class="kpi-icon-badge kpi-badge-emerald">
+              <span class="material-symbols-outlined">check_circle</span>
+            </span>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-split-stat">
+              <div>
+                <span class="kpi-number text-emerald">{{ sunatActivas() }}</span>
+                <span class="kpi-subtext">activas y habidas</span>
+              </div>
+              <div class="kpi-sunat-subpills">
+                <span class="kpi-pill-tag pill-rose" matTooltip="Empresas con RUC de Baja (Baja de oficio, definitiva o prov.)">
+                  <span class="tag-num">{{ sunatBajas() }}</span> Baja
+                </span>
+                <span class="kpi-pill-tag pill-amber" matTooltip="Empresas con condición No Habido o No Hallado">
+                  <span class="tag-num">{{ sunatNoHabidos() }}</span> No Habido
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="kpi-footer kpi-footer-between">
+            <div class="kpi-footer-left">
+              <span class="status-dot dot-emerald"></span>
+              <span class="kpi-highlight font-emerald">{{ pctSunatConformes() }}%</span>
+              <span>conformes @if (sunatEnVerificacion() > 0) { <span class="text-amber font-mono font-semibold">({{ sunatEnVerificacion() }} pend.)</span> }</span>
+            </div>
+            <div class="kpi-footer-right">
+              <span class="cron-pill" matTooltip="Horario automático programado diariamente">
+                <span class="material-symbols-outlined schedule-icon">schedule</span>
+                {{ cronSunatStatus()?.horario_programado || '07:00' }} AM
+              </span>
+              @if (esAdmin()) {
+                <button mat-icon-button class="btn-quick-sync" (click)="abrirModalSunat()" matTooltip="Consultar / Sincronizar SUNAT ahora">
+                  <span class="material-symbols-outlined" [class.spin-icon]="cronSunatStatus()?.en_ejecucion">sync</span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Modalidad Autorizada -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Modalidad Autorizada</span>
+            <span class="kpi-icon-badge kpi-badge-blue">
+              <span class="material-symbols-outlined">directions_bus</span>
+            </span>
+          </div>
+          <div class="kpi-modalidad-boxes">
+            <div class="kpi-mini-box">
+              <span class="mini-box-label">Pasajeros</span>
+              <span class="mini-box-number">{{ pasajerosCount() }}</span>
+            </div>
+            <div class="kpi-mini-box">
+              <span class="mini-box-label label-amber">Turismo</span>
+              <span class="mini-box-number">{{ turismoCount() }}</span>
+            </div>
+            <div class="kpi-mini-box">
+              <span class="mini-box-label label-blue">Trabajad.</span>
+              <span class="mini-box-number">{{ trabajadoresCount() }}</span>
+            </div>
+          </div>
+          <div class="kpi-footer kpi-footer-between">
+            <span>Total: <strong class="font-mono text-dark">{{ totalEmpresasCount() }} empresas</strong></span>
+            <span class="text-primary-link">D.S. 017-2009-MTC</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <!-- Formulario de Filtros Oficial Stitch (data-purpose="table-filters") -->
+        <section class="stitch-filters" data-purpose="table-filters">
+          <!-- Búsqueda rápida -->
+          <div class="search-box-wrapper">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input 
+              type="text" 
+              [formControl]="searchControl" 
+              placeholder="Buscar por RUC, Razón Social o Representante Legal..." 
+              class="stitch-search-input">
+            @if (searchControl.value) {
+              <button type="button" (click)="searchControl.setValue('')" class="stitch-clear-btn" matTooltip="Limpiar búsqueda">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            }
+          </div>
+
+          <!-- Filtros desplegables y acciones -->
+          <div class="filter-controls-group">
+            <div class="filter-item">
+              <label class="filter-label">Estado:</label>
+              <select [formControl]="estadoControl" class="stitch-select">
+                <option value="">Todos los Estados</option>
+                <option value="AUTORIZADA">Habilitada (Activa)</option>
+                <option value="EN_TRAMITE">En Renovación</option>
+                <option value="SUSPENDIDA">Suspendida</option>
+                <option value="CANCELADA">Cancelada</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label class="filter-label">Modalidad:</label>
+              <select [ngModel]="servicioFilter()" (ngModelChange)="servicioFilter.set($event); currentPage.set(0)" class="stitch-select">
+                <option value="">Todas las Modalidades</option>
+                <option value="PASAJEROS">Regular Personas (M2/M3)</option>
+                <option value="TURISMO">Turismo</option>
+                <option value="TRABAJADORES">Trabajadores</option>
+                <option value="MERCANCIAS">Mercancías</option>
+                <option value="CARGA">Carga</option>
+                <option value="INFRAESTRUCTURA">Infraestructura</option>
+                <option value="MIXTO">Mixto</option>
+              </select>
+            </div>
+
+            <!-- Botón Limpiar filtros -->
+            @if (searchControl.value || estadoControl.value || servicioFilter()) {
+              <button type="button" (click)="limpiarFiltros()" class="stitch-btn stitch-btn-reset" matTooltip="Limpiar todos los filtros">
+                <span class="material-symbols-outlined">filter_alt_off</span>
+                <span>Limpiar</span>
+              </button>
+            }
+
+            <!-- Botón Configurar Columnas -->
+            <button type="button" (click)="abrirConfiguracionColumnas()" class="stitch-btn" matTooltip="Configurar columnas visibles">
+              <span class="material-symbols-outlined">view_column</span>
+              <span>Columnas</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Banner de Selección Múltiple -->
+        @if (empresasSeleccionadas().size > 0) {
+          <div class="selection-banner animate-fade-in">
+            <div class="banner-info">
+              <mat-icon class="banner-icon">check_circle</mat-icon>
+              <span><strong>{{ empresasSeleccionadas().size }}</strong> empresa(s) seleccionada(s)</span>
+            </div>
+            <div class="banner-actions">
+              <button mat-raised-button color="accent" (click)="exportarExcelSeleccionadas()">
+                <mat-icon>file_download</mat-icon> Exportar Seleccionadas
+              </button>
+              <button mat-raised-button color="primary" (click)="abrirEdicionBloqueEstado()">
+                <mat-icon>edit</mat-icon> Cambiar Estado en Bloque
+              </button>
+              <button mat-raised-button color="primary" (click)="abrirEdicionBloqueServicios()">
+                <mat-icon>category</mat-icon> Cambiar Servicios en Bloque
+              </button>
+              <button mat-button (click)="limpiarSeleccion()" class="btn-clear-selection">
+                <mat-icon>close</mat-icon> Desmarcar todo
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Modern Skeleton Preloader (Stitch DRTC Modern Loading) -->
+        @if (isLoading()) {
+          <mat-card class="modern-preloader-card animate-fade-in">
+            <mat-progress-bar mode="indeterminate" class="preloader-progress-bar"></mat-progress-bar>
+            
+            <div class="preloader-header">
+              <div class="preloader-pulse-avatar">
+                <span class="material-symbols-outlined pulse-icon">domain</span>
+                <span class="pulse-ring"></span>
+              </div>
+              <div class="preloader-meta">
+                <div class="preloader-title-row">
+                  <span class="preloader-badge">Sincronizando Padrón</span>
+                  <span class="preloader-subtext">Dirección Regional de Transportes y Comunicaciones Puno</span>
+                </div>
+                <h4>Cargando expediente digital oficial y estado tributario SUNAT...</h4>
+              </div>
+            </div>
+
+            <!-- Skeleton Table Rows -->
+            <div class="skeleton-table">
+              <div class="skeleton-table-header">
+                <div class="skeleton-th" style="width: 32px;"></div>
+                <div class="skeleton-th" style="width: 130px;"></div>
+                <div class="skeleton-th" style="flex: 2.5;"></div>
+                <div class="skeleton-th" style="width: 120px;"></div>
+                <div class="skeleton-th" style="width: 110px;"></div>
+                <div class="skeleton-th" style="flex: 1.8;"></div>
+                <div class="skeleton-th" style="width: 110px;"></div>
+                <div class="skeleton-th" style="width: 60px;"></div>
+              </div>
+
+              @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+                <div class="skeleton-row">
+                  <div class="skeleton-cell check-cell"><div class="skeleton-box s-check"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-ruc"></div></div>
+                  <div class="skeleton-cell flex-2-5"><div class="skeleton-box s-title"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-badge"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-status"></div></div>
+                  <div class="skeleton-cell flex-1-8"><div class="skeleton-box s-rep"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-sunat"></div></div>
+                  <div class="skeleton-cell"><div class="skeleton-box s-action"></div></div>
+                </div>
+              }
+            </div>
+          </mat-card>
+        } @else if (empresasFiltradas().length === 0) {
+          <mat-card class="empty-state">
+            <mat-card-content>
+              <mat-icon class="empty-icon">business</mat-icon>
+              <h3>No se encontraron empresas</h3>
+              <p>Intenta ajustar los filtros de búsqueda o registra una nueva empresa.</p>
+              <button mat-raised-button color="primary" (click)="crearEmpresa()">
+                <mat-icon>add</mat-icon> Registrar Primera Empresa
+              </button>
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          <mat-card class="table-card">
+            <mat-card-content>
+              <div class="table-container">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      @if (columnaVisible('seleccionar')) {
+                        <th class="checkbox-th text-center">
+                          <mat-checkbox
+                            [checked]="isAllSelected()"
+                            [indeterminate]="isSomeSelected()"
+                            (change)="toggleSelectAll($event)"
+                            matTooltip="Seleccionar / deseleccionar todas las empresas">
+                          </mat-checkbox>
+                        </th>
+                      }
+                      @if (columnaVisible('ruc')) {
+                        <th (click)="toggleSort('ruc')" class="sortable-th ruc-th">
+                          <span>RUC</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('ruc') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('razonSocial')) {
+                        <th (click)="toggleSort('razonSocial')" class="sortable-th razon-th">
+                          <span>Razón Social</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('razonSocial') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('partidaRegistral')) {
+                        <th (click)="toggleSort('partidaRegistral')" class="sortable-th">
+                          <span>Partida Registral</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('partidaRegistral') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('estado')) {
+                        <th (click)="toggleSort('estado')" class="sortable-th">
+                          <span>Estado Legal</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('estado') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('servicios')) {
+                        <th (click)="toggleSort('servicios')" class="sortable-th">
+                          <span>Tipos de Servicio</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('servicios') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('representante')) {
+                        <th (click)="toggleSort('representante')" class="sortable-th">
+                          <span>Representante Legal</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('representante') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('contacto')) {
+                        <th (click)="toggleSort('contacto')" class="sortable-th">
+                          <span>Contacto</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('contacto') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('estadoSunat')) {
+                        <th (click)="toggleSort('estadoSunat')" class="sortable-th text-center" matTooltip="Ordenar por Estado SUNAT">
+                          <span>Estado SUNAT</span>
+                          <span class="material-symbols-outlined sort-icon">{{ getSortIcon('estadoSunat') }}</span>
+                        </th>
+                      }
+                      @if (columnaVisible('acciones')) {
+                        <th class="text-center th-acciones-col">
+                          <span>Acciones</span>
+                        </th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (empresa of empresasPaginadas(); track empresa.id) {
+                      <tr [class.selected-row]="empresasSeleccionadas().has(empresa.id)">
+                        @if (columnaVisible('seleccionar')) {
+                          <td class="checkbox-td text-center" (click)="$event.stopPropagation()">
+                            <mat-checkbox
+                              [checked]="empresasSeleccionadas().has(empresa.id)"
+                              (change)="toggleSeleccionar(empresa.id, $event)">
+                            </mat-checkbox>
+                          </td>
+                        }
+                        @if (columnaVisible('ruc')) {
+                          <td class="ruc-cell">
+                            <div class="ruc-cell-stacked">
+                              <span class="ruc-text">{{ empresa.ruc }}</span>
+                              <div class="ruc-meta-row">
+                                <span [class]="'badge-autorizada status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')"
+                                      [matTooltip]="'Estado legal: ' + (empresa.estado || 'AUTORIZADA')">
+                                  {{ (empresa.estado || 'AUTORIZADA').toUpperCase() }}
+                                </span>
+                                @for (srv of (empresa.tiposServicio || []).slice(0, 1); track srv) {
+                                  <span [class]="isTurismo(srv) ? 'badge-turismo' : 'badge-modalidad'" [matTooltip]="'Tipo de Servicio: ' + srv">
+                                    {{ getServicioAbreviado(srv) }}
+                                  </span>
+                                }
+                                @if ((empresa.tiposServicio || []).length > 1) {
+                                  <span class="badge-modalidad badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
+                                    +{{ (empresa.tiposServicio || []).length - 1 }}
+                                  </span>
+                                }
+                              </div>
+                            </div>
+                          </td>
+                        }
+                        @if (columnaVisible('razonSocial')) {
+                          <td class="razon-social-td">
+                            <div class="empresa-name-container clickable-company-name"
+                                 (click)="verDetalle(empresa.id)"
+                                 matTooltip="Clic para ver expediente completo de la empresa">
+                              <span class="company-name-text">{{ empresa.razonSocial.principal }}</span>
+                            </div>
+                          </td>
+                        }
+                        @if (columnaVisible('partidaRegistral')) {
+                          <td>
+                            @if (empresa.partidaRegistral) {
+                              <span class="partida-pill-mini" [matTooltip]="'Partida Registral (SUNARP): ' + empresa.partidaRegistral">
+                                <mat-icon class="partida-mini-icon">verified</mat-icon> {{ empresa.partidaRegistral }}
+                              </span>
+                            } @else {
+                              <span style="font-size: 0.8rem; color: #9ca3af;">—</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('estado')) {
+                          <td>
+                            <span [class]="'badge-autorizada status-' + (empresa.estado ? empresa.estado.toLowerCase() : 'autorizada')">
+                              {{ getEstadoDisplayName(empresa.estado) }}
+                            </span>
+                          </td>
+                        }
+                        @if (columnaVisible('servicios')) {
+                          <td>
+                            <div class="services-chips-flex">
+                              @for (srv of (empresa.tiposServicio || []).slice(0, 2); track srv) {
+                                <span [class]="isTurismo(srv) ? 'badge-turismo' : 'badge-modalidad'">{{ srv }}</span>
+                              }
+                              @if ((empresa.tiposServicio || []).length > 2) {
+                                <span class="badge-modalidad badge-more" [matTooltip]="empresa.tiposServicio.join(', ')">
+                                  +{{ (empresa.tiposServicio || []).length - 2 }}
+                                </span>
+                              }
+                            </div>
+                          </td>
+                        }
+                        @if (columnaVisible('representante')) {
+                          <td>
+                            @if (getRepresentanteLegal(empresa)) {
+                              <div class="representante-info">
+                                <strong class="rep-name">{{ getRepresentanteLegal(empresa)?.nombres }} {{ getRepresentanteLegal(empresa)?.apellidos }}</strong>
+                                <span class="rep-dni">DNI: {{ getRepresentanteLegal(empresa)?.dni }}</span>
+                                @if (getSociosAdicionales(empresa).length > 0) {
+                                  <div class="socios-extra-chips">
+                                    @for (socio of getSociosAdicionales(empresa).slice(0,2); track socio.dni) {
+                                      <span class="socio-chip" [matTooltip]="socio.tipoSocio + ': ' + socio.nombres + ' ' + socio.apellidos + ' (DNI: ' + socio.dni + ')'">
+                                        {{ getLabelCargo(socio.tipoSocio) }}: {{ socio.apellidos }}
+                                      </span>
+                                    }
+                                    @if (getSociosAdicionales(empresa).length > 2) {
+                                      <span class="socio-chip socio-chip-more" [matTooltip]="getSociosTooltip(empresa)">
+                                        +{{ getSociosAdicionales(empresa).length - 2 }} más
+                                      </span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+                            } @else if ((empresa.socios || []).length > 0) {
+                              <div class="representante-info">
+                                <strong class="rep-name">{{ empresa.socios[0].nombres }} {{ empresa.socios[0].apellidos }}</strong>
+                                <span class="rep-cargo">{{ getLabelCargo(empresa.socios[0].tipoSocio) }}</span>
+                                <span class="rep-dni">DNI: {{ empresa.socios[0].dni }}</span>
+                              </div>
+                            } @else {
+                              <span class="sin-datos">—</span>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('contacto')) {
+                          <td>
+                            <div class="contact-info-col">
+                              @if (empresa.emailContacto) {
+                                <span class="contact-text email-text" [matTooltip]="empresa.emailContacto">
+                                  <span class="material-symbols-outlined inline-icon">mail</span>
+                                  <span>{{ empresa.emailContacto }}</span>
+                                </span>
+                              }
+                              @if (empresa.telefonoContacto) {
+                                <span class="contact-text phone-text">
+                                  <span class="material-symbols-outlined inline-icon">call</span>
+                                  <span>{{ empresa.telefonoContacto }}</span>
+                                </span>
+                              }
+                              @if (!empresa.emailContacto && !empresa.telefonoContacto) {
+                                <span class="sin-datos">—</span>
+                              }
+                            </div>
+                          </td>
+                        }
+                        @if (columnaVisible('estadoSunat')) {
+                          <td class="text-center">
+                            @if (sunatCargando().has(empresa.ruc)) {
+                              <mat-progress-bar mode="indeterminate" style="width:70px; margin:auto;"></mat-progress-bar>
+                            } @else {
+                              @let sData = sunatCache().get(empresa.ruc);
+                              <div class="sunat-badges-only">
+                                <span [class]="'badge-sunat-pill ' + (sData?.esActivo !== false ? 'sunat-activo' : 'sunat-baja')">
+                                  {{ sData?.esActivo !== false ? 'ACTIVO' : 'BAJA' }}
+                                </span>
+                                <span [class]="'badge-sunat-pill ' + (sData?.esHabido !== false ? 'sunat-habido' : 'sunat-no-habido')">
+                                  {{ sData?.esHabido !== false ? 'HABIDO' : 'NO HABIDO' }}
+                                </span>
+                              </div>
+                            }
+                          </td>
+                        }
+                        @if (columnaVisible('acciones')) {
+                          <td class="text-center actions-cell">
+                            <div class="row-actions-group">
+                              <a [routerLink]="['/empresas', empresa.id]"
+                                 class="table-action-btn action-view"
+                                 matTooltip="Ver Detalle y Expediente">
+                                <mat-icon>visibility</mat-icon>
+                              </a>
+                              <a [routerLink]="['/empresas', empresa.id, 'editar']"
+                                 class="table-action-btn action-edit"
+                                 matTooltip="Editar Empresa">
+                                <mat-icon>edit</mat-icon>
+                              </a>
+                              <button type="button"
+                                      class="table-action-btn action-sunat"
+                                      (click)="consultarSunat(empresa)"
+                                      [disabled]="sunatCargando().has(empresa.ruc)"
+                                      matTooltip="Consultar Estado SUNAT en Vivo">
+                                <mat-icon>fact_check</mat-icon>
+                              </button>
+                              <button type="button"
+                                      class="table-action-btn action-delete"
+                                      (click)="eliminarEmpresa(empresa.id)"
+                                      matTooltip="Eliminar Empresa">
+                                <mat-icon>delete</mat-icon>
+                              </button>
+                            </div>
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <mat-paginator
+                [pageSizeOptions]="[10, 25, 50, 100, 250]"
+                [pageSize]="pageSize()"
+                [length]="empresasFiltradas().length"
+                (page)="onPageChange($event)"
+                showFirstLastButtons>
+              </mat-paginator>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </div>

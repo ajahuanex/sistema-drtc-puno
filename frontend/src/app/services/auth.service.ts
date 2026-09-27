@@ -187,4 +187,14 @@ export class AuthService {
 
     return true;
   }
+
+  /**
+   * Determina si el usuario autenticado tiene rol de Administrador u OTI.
+   */
+  isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    const rol = (user.rolId || (user as any).rol_id || '').toLowerCase();
+    return rol === 'admin' || rol === 'oti' || rol === 'administrador' || rol.includes('admin');
+  }
 } 
